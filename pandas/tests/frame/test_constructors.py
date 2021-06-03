@@ -10,6 +10,7 @@ from datetime import (
 import functools
 import itertools
 import re
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -999,7 +1000,17 @@ class TestDataFrameConstructors:
         assert isna(frame).values.all()
 
         # cast type
-        frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+        msg = r"datetime64\[ns\] values and dtype=int64"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    category=DeprecationWarning,
+                    message="elementwise comparison failed",
+                )
+                frame = DataFrame(
+                    mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64
+                )
         assert frame.values.dtype == np.int64
 
         # Check non-masked values
@@ -2482,6 +2493,27 @@ class TestDataFrameConstructors:
             columns=MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")]),
         )
         tm.assert_frame_equal(result, expected)
+
+
+class TestDataFrameConstructorWithDtypeCoercion:
+    def test_floating_values_integer_dtype(self):
+        # GH#40110 make DataFrame behavior with arraylike floating data and
+        #  inty dtype match Series behavior
+
+        arr = np.random.randn(10, 5)
+
+        msg = "if they cannot be cast losslessly"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DataFrame(arr, dtype="i8")
+
+        with tm.assert_produces_warning(None):
+            # if they can be cast losslessly, no warning
+            DataFrame(arr.round(), dtype="i8")
+
+        # with NaNs, we already have the correct behavior, so no warning
+        arr[0, 0] = np.nan
+        with tm.assert_produces_warning(None):
+            DataFrame(arr, dtype="i8")
 
 
 class TestDataFrameConstructorWithDatetimeTZ:
