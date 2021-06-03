@@ -5409,6 +5409,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.dtype("object")
 
         dtype = find_common_type([self.dtype, target_dtype])
+
         if dtype.kind in ["i", "u"]:
             # TODO: what about reversed with self being categorical?
             if (
