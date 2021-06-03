@@ -1349,12 +1349,10 @@ class _LocIndexer(_LocationIndexer):
             if missing == len(indexer):
                 axis_name = self.obj._get_axis_name(axis)
                 if use_interval_msg:
-                    raise KeyError(list(key))
+                    key = list(key)
                 raise KeyError(f"None of [{key}] are in the [{axis_name}]")
 
             not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
-            if use_interval_msg:
-                raise KeyError(not_found)
             raise KeyError(f"{not_found} not in index")
 
 
