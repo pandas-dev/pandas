@@ -320,8 +320,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
@@ -1118,14 +1119,14 @@ default 'raise'
         ...                                         "2000-08-31 00:00:00"]))
         >>> df.index.to_period("M")
         PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[M]', freq='M')
+                    dtype='period[M]')
 
         Infer the daily frequency
 
         >>> idx = pd.date_range("2017-01-01", periods=2)
         >>> idx.to_period()
         PeriodIndex(['2017-01-01', '2017-01-02'],
-                    dtype='period[D]', freq='D')
+                    dtype='period[D]')
         """
         from pandas.core.arrays import PeriodArray
 
@@ -1174,6 +1175,7 @@ default 'raise'
             "future version.  "
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
             FutureWarning,
+            # stacklevel chosen to be correct for when called from DatetimeIndex
             stacklevel=3,
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -2102,7 +2104,6 @@ def sequence_to_dt64ns(
         result = data.view(DT64NS_DTYPE)
 
     if copy:
-        # TODO: should this be deepcopy?
         result = result.copy()
 
     assert isinstance(result, np.ndarray), type(result)

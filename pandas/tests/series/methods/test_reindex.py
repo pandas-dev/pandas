@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     Categorical,
     Index,
+    MultiIndex,
     NaT,
     Period,
     PeriodIndex,
@@ -369,4 +370,17 @@ def test_reindex_no_posargs():
     ser = Series([1, 2])
     result = ser.reindex(index=[1, 0])
     expected = Series([2, 1], index=[1, 0])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
+def test_reindex_empty_with_level(values):
+    # GH41170
+    ser = Series(
+        range(len(values[0])), index=MultiIndex.from_arrays(values), dtype="object"
+    )
+    result = ser.reindex(np.array(["b"]), level=0)
+    expected = Series(
+        index=MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype="object"
+    )
     tm.assert_series_equal(result, expected)
