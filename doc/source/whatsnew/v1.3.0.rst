@@ -444,7 +444,7 @@ In the new behavior, we get a new array, and retain an integer-dtyped ``5``:
 Consistent Casting With Setting Into Boolean Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Setting non-boolean values into a :class:`Series with ``dtype=bool`` consistently
+Setting non-boolean values into a :class:`Series` with ``dtype=bool`` consistently
 cast to ``dtype=object`` (:issue:`38709`)
 
 .. ipython:: python
@@ -644,6 +644,7 @@ Other API changes
 - Partially initialized :class:`CategoricalDtype` (i.e. those with ``categories=None`` objects will no longer compare as equal to fully initialized dtype objects.
 - Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 - Added new ``engine`` and ``**engine_kwargs`` parameters to :meth:`DataFrame.to_sql` to support other future "SQL engines". Currently we still only use ``SQLAlchemy`` under the hood, but more engines are planned to be supported such as ``turbodbc`` (:issue:`36893`)
+- Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
 
 Build
 =====
@@ -687,6 +688,7 @@ Deprecations
 - Deprecated passing arguments (apart from ``cond`` and ``other``) as positional in :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``"upper"`` and ``"lower"``) (:issue:`41485`)
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
+- Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.sort_values` (other than ``"by"``) and :meth:`Series.sort_values` (:issue:`41485`)
@@ -694,10 +696,12 @@ Deprecations
 - Deprecated passing arguments as positional in :meth:`DataFrame.set_index` (other than ``"keys"``) (:issue:`41485`)
 - Deprecated passing arguments as positional (except for ``"levels"``) in :meth:`MultiIndex.set_levels` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates`(:issue:`41485`)
+- Deprecated passing arguments as positional in :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates` (:issue:`41485`)
 - Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.reset_index` (other than ``"level"``) and :meth:`Series.reset_index` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`,:issue:`33401`)
+- Deprecated behavior of :class:`Series` construction with large-integer values and small-integer dtype silently overflowing; use ``Series(data).astype(dtype)`` instead (:issue:`41734`)
+- Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
 - In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``"labels"``) (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.where` and :meth:`Series.where` (other than ``"cond"`` and ``"other"``) (:issue:`41485`)
@@ -922,7 +926,7 @@ Indexing
 - Bug in :meth:`Series.__setitem__` raising ``ValueError`` when setting a :class:`Series` with a scalar indexer (:issue:`38303`)
 - Bug in :meth:`DataFrame.loc` dropping levels of :class:`MultiIndex` when :class:`DataFrame` used as input has only one row (:issue:`10521`)
 - Bug in :meth:`DataFrame.__getitem__` and :meth:`Series.__getitem__` always raising ``KeyError`` when slicing with existing strings an :class:`Index` with milliseconds (:issue:`33589`)
-- Bug in setting ``timedelta64`` or ``datetime64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`, issue:`39619`)
+- Bug in setting ``timedelta64`` or ``datetime64`` values into numeric :class:`Series` failing to cast to object dtype (:issue:`39086`, :issue:`39619`)
 - Bug in setting :class:`Interval` values into a :class:`Series` or :class:`DataFrame` with mismatched :class:`IntervalDtype` incorrectly casting the new values to the existing dtype (:issue:`39120`)
 - Bug in setting ``datetime64`` values into a :class:`Series` with integer-dtype incorrect casting the datetime64 values to integers (:issue:`39266`)
 - Bug in setting ``np.datetime64("NaT")`` into a :class:`Series` with :class:`Datetime64TZDtype` incorrectly treating the timezone-naive value as timezone-aware (:issue:`39769`)
@@ -960,6 +964,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when :class:`MultiIndex` containing ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning empty when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
 - Bug in :meth:`MultiIndex.reindex` raising ``ValueError`` with empty MultiIndex and indexing only a specific level (:issue:`41170`)
+- Bug in :meth:`MultiIndex.reindex` raising ``TypeError`` when reindexing against a flat :class:`Index` (:issue:`41707`)
 
 I/O
 ^^^
@@ -1042,7 +1047,7 @@ Groupby/resample/rolling
 - Bug in :class:`core.window.ewm.ExponentialMovingWindowGroupby` where the times vector and values became out of sync for non-trivial groups (:issue:`40951`)
 - Bug in :meth:`Series.asfreq` and :meth:`DataFrame.asfreq` dropping rows when the index is not sorted (:issue:`39805`)
 - Bug in aggregation functions for :class:`DataFrame` not respecting ``numeric_only`` argument when ``level`` keyword was given (:issue:`40660`)
-- Bug in :meth:`SeriesGroupBy.aggregate` where using a user-defined function to aggregate a ``Series`` with an object-typed :class:`Index` causes an incorrect :class:`Index` shape (issue:`40014`)
+- Bug in :meth:`SeriesGroupBy.aggregate` where using a user-defined function to aggregate a ``Series`` with an object-typed :class:`Index` causes an incorrect :class:`Index` shape (:issue:`40014`)
 - Bug in :class:`core.window.RollingGroupby` where ``as_index=False`` argument in ``groupby`` was ignored (:issue:`39433`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising ``ValueError`` when using with nullable type columns holding ``NA`` even with ``skipna=True`` (:issue:`40585`)
 - Bug in :meth:`GroupBy.cummin` and :meth:`GroupBy.cummax` incorrectly rounding integer values near the ``int64`` implementations bounds (:issue:`40767`)
@@ -1051,12 +1056,13 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.rolling` returning mean zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`DataFrame.rolling` returning sum not zero for all ``NaN`` window with ``min_periods=0`` if calculation is not numerical stable (:issue:`41053`)
 - Bug in :meth:`SeriesGroupBy.agg` failing to retain ordered :class:`CategoricalDtype` on order-preserving aggregations (:issue:`41147`)
-- Bug in :meth:`DataFrameGroupBy.min` and :meth:`DataFrameGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising ``ValueError`` (:issue:41111`)
+- Bug in :meth:`DataFrameGroupBy.min` and :meth:`DataFrameGroupBy.max` with multiple object-dtype columns and ``numeric_only=False`` incorrectly raising ``ValueError`` (:issue:`41111`)
 - Bug in :meth:`DataFrameGroupBy.rank` with the GroupBy object's ``axis=0`` and the ``rank`` method's keyword ``axis=1`` (:issue:`41320`)
 - Bug in :meth:`DataFrameGroupBy.__getitem__` with non-unique columns incorrectly returning a malformed :class:`SeriesGroupBy` instead of :class:`DataFrameGroupBy` (:issue:`41427`)
 - Bug in :meth:`DataFrameGroupBy.transform` with non-unique columns incorrectly raising ``AttributeError`` (:issue:`41427`)
 - Bug in :meth:`Resampler.apply` with non-unique columns incorrectly dropping duplicated columns (:issue:`41445`)
 - Bug in :meth:`SeriesGroupBy` aggregations incorrectly returning empty :class:`Series` instead of raising ``TypeError`` on aggregations that are invalid for its dtype, e.g. ``.prod`` with ``datetime64[ns]`` dtype (:issue:`41342`)
+- Bug in :class:`DataFrameGroupBy` aggregations incorrectly failing to drop columns with invalid dtypes for that aggregation when there are no valid columns (:issue:`41291`)
 - Bug in :meth:`DataFrame.rolling.__iter__` where ``on`` was not assigned to the index of the resulting objects (:issue:`40373`)
 - Bug in :meth:`DataFrameGroupBy.transform` and :meth:`DataFrameGroupBy.agg` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`41647`)
 
@@ -1074,6 +1080,7 @@ Reshaping
 - Bug in :meth:`DataFrame.sort_values` not reshaping index correctly after sorting on columns, when ``ignore_index=True`` (:issue:`39464`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``ExtensionDtype`` dtypes (:issue:`39454`)
 - Bug in :meth:`DataFrame.append` returning incorrect dtypes with combinations of ``datetime64`` and ``timedelta64`` dtypes (:issue:`39574`)
+- Bug in :meth:`DataFrame.append` with a :class:`DataFrame` with a :class:`MultiIndex` and appending a :class:`Series` whose :class:`Index` is not a :class:`MultiIndex` (:issue:`41707`)
 - Bug in :meth:`DataFrame.pivot_table` returning a ``MultiIndex`` for a single value when operating on and empty ``DataFrame`` (:issue:`13483`)
 - Allow :class:`Index` to be passed to the :func:`numpy.all` function (:issue:`40180`)
 - Bug in :meth:`DataFrame.stack` not preserving ``CategoricalDtype`` in a ``MultiIndex`` (:issue:`36991`)
@@ -1128,6 +1135,7 @@ Other
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 - Bug in creating a :class:`Series` from a ``range`` object that does not fit in the bounds of ``int64`` dtype (:issue:`30173`)
+- Bug in creating a :class:`Series` from a ``dict`` with all-tuple keys and an :class:`Index` that requires reindexing (:issue:`41707`)
 
 .. ---------------------------------------------------------------------------
 
