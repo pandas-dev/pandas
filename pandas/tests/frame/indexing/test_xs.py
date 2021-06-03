@@ -366,8 +366,8 @@ class TestXSWithMultiIndex:
 
     def test_xs_list_indexer_droplevel_false(self):
         # GH#41760
-        mi = MultiIndex.from_tuples([("x", "y", "a"), ("x", "z", "b"), ("v", "w", "c")])
+        mi = MultiIndex.from_tuples([("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")])
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
-        msg = "Passing lists as key for xs is not allowed."
-        with pytest.raises(TypeError, match=msg):
-            df.xs(["x", "v"], drop_level=False, axis=1)
+        with tm.assert_produces_warning(FutureWarning):
+            with pytest.raises(KeyError, match="y"):
+                df.xs(["x", "y"], drop_level=False, axis=1)

@@ -3758,9 +3758,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         labels = self._get_axis(axis)
 
         if isinstance(key, list):
-            len_levels = 1 if level is None or is_scalar(level) else len(level)
-            if len(key) != len_levels:
-                raise TypeError("Passing lists as key for xs is not allowed.")
             warnings.warn(
                 "Passing lists as key for xs is deprecated and will be removed in a "
                 "future version. Pass key as a tuple instead.",
