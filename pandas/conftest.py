@@ -66,6 +66,11 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
+suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
+    "ignore:Promotion of numbers and bools:FutureWarning"
+)
+
 # ----------------------------------------------------------------
 # Configuration / Settings
 # ----------------------------------------------------------------
@@ -111,6 +116,8 @@ def pytest_collection_modifyitems(items):
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
+
+        item.add_marker(suppress_npdev_promotion_warning)
 
 
 # Hypothesis
@@ -1150,6 +1157,27 @@ def object_dtype(request):
     * object
     * 'object'
     """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "string",
+        pytest.param(
+            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def any_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'object'
+    * 'string'
+    * 'arrow_string'
+    """
+    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
     return request.param
 
 

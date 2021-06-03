@@ -170,7 +170,9 @@ def test_unary_op_does_not_propagate_mask(data, op, request):
     data, _ = data
     if data.dtype in ["Float32", "Float64"] and op == "__invert__":
         request.node.add_marker(
-            pytest.mark.xfail(reason="invert is not implemented for float ea dtypes")
+            pytest.mark.xfail(
+                raises=TypeError, reason="invert is not implemented for float ea dtypes"
+            )
         )
     s = pd.Series(data)
     result = getattr(s, op)()

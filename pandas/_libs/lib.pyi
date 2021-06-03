@@ -5,11 +5,16 @@ from typing import (
     Any,
     Callable,
     Generator,
+    Literal,
+    overload,
 )
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
 # placeholder until we can specify np.ndarray[object, ndim=2]
 ndarray_obj_2d = np.ndarray
@@ -38,7 +43,6 @@ def is_integer(val: object) -> bool: ...
 def is_float(val: object) -> bool: ...
 
 def is_interval_array(values: np.ndarray) -> bool: ...
-def is_period_array(values: np.ndarray) -> bool: ...
 def is_datetime64_array(values: np.ndarray) -> bool: ...
 def is_timedelta_or_timedelta64_array(values: np.ndarray) -> bool: ...
 def is_datetime_with_singletz_array(values: np.ndarray) -> bool: ...
@@ -51,31 +55,98 @@ def is_float_array(values: np.ndarray, skipna: bool = False): ...
 def is_integer_array(values: np.ndarray, skipna: bool = False): ...
 def is_bool_array(values: np.ndarray, skipna: bool = False): ...
 
-def fast_multiget(mapping: dict, keys: np.ndarray, default=np.nan) -> ArrayLike: ...
-
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = True) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool = True) -> list: ...
 def fast_unique_multiple(arrays: list, sort: bool = True) -> list: ...
 
 def map_infer(
     arr: np.ndarray, f: Callable[[Any], Any], convert: bool = True, ignore_na: bool = False
-) -> ArrayLike: ...
+) -> np.ndarray: ...
 
+
+@overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
 def maybe_convert_objects(
     objects: np.ndarray,  # np.ndarray[object]
-    try_float: bool = False,
-    safe: bool = False,
-    convert_datetime: bool = False,
-    convert_timedelta: bool = False,
-    convert_to_nullable_integer: bool = False,
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: Literal[False] = ...,
+    convert_timedelta: bool = ...,
+    convert_period: Literal[False] = ...,
+    convert_to_nullable_integer: Literal[False] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> np.ndarray: ...
+
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: bool = ...,
+    convert_timedelta: bool = ...,
+    convert_period: bool = ...,
+    convert_to_nullable_integer: Literal[True] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: Literal[True] = ...,
+    convert_timedelta: bool = ...,
+    convert_period: bool = ...,
+    convert_to_nullable_integer: bool = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> ArrayLike: ...
+
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: bool = ...,
+    convert_timedelta: bool = ...,
+    convert_period: Literal[True] = ...,
+    convert_to_nullable_integer: bool = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> ArrayLike: ...
+
+@overload
+def maybe_convert_objects(
+    objects: np.ndarray,  # np.ndarray[object]
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_datetime: bool = ...,
+    convert_timedelta: bool = ...,
+    convert_period: bool = ...,
+    convert_to_nullable_integer: bool = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> ArrayLike: ...
+
+@overload
 def maybe_convert_numeric(
     values: np.ndarray,  # np.ndarray[object]
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
-) -> np.ndarray: ...
+    convert_to_masked_nullable: Literal[False] = ...,
+) -> tuple[np.ndarray, None]: ...
+
+@overload
+def maybe_convert_numeric(
+    values: np.ndarray,  # np.ndarray[object]
+    na_values: set,
+    convert_empty: bool = True,
+    coerce_numeric: bool = False,
+    *,
+    convert_to_masked_nullable: Literal[True],
+) -> tuple[np.ndarray, np.ndarray]: ...
 
 # TODO: restrict `arr`?
 def ensure_string_array(
@@ -88,7 +159,7 @@ def ensure_string_array(
 
 def infer_datetimelike_array(
     arr: np.ndarray  # np.ndarray[object]
-) -> str: ...
+) -> tuple[str, bool]: ...
 
 def astype_intsafe(
     arr: np.ndarray,  # np.ndarray[object]
@@ -120,7 +191,7 @@ def maybe_indices_to_slice(
 ) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
 
 def clean_index_list(obj: list) -> tuple[
-    list | np.ndarray,  # np.ndarray[object] | np.ndarray[np.int64]
+    list | np.ndarray,  # np.ndarray[object | np.int64 | np.uint64]
     bool,
 ]: ...
 
@@ -140,7 +211,7 @@ def map_infer_mask(
     convert: bool = ...,
     na_value: Any = ...,
     dtype: np.dtype = ...,
-) -> ArrayLike: ...
+) -> np.ndarray: ...
 
 def indices_fast(
     index: np.ndarray,   # ndarray[intp_t]

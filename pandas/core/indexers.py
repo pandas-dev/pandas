@@ -164,8 +164,10 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         #  a) not necessarily 1-D indexers, e.g. tuple
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
-            if len(indexer) != len(value):
+            if len(indexer) != len(value) and values.ndim == 1:
                 # boolean with truth values == len of the value is ok too
+                if isinstance(indexer, list):
+                    indexer = np.array(indexer)
                 if not (
                     isinstance(indexer, np.ndarray)
                     and indexer.dtype == np.bool_
@@ -180,7 +182,8 @@ def check_setitem_lengths(indexer, value, values) -> bool:
 
     elif isinstance(indexer, slice):
         if is_list_like(value):
-            if len(value) != length_of_indexer(indexer, values):
+            if len(value) != length_of_indexer(indexer, values) and values.ndim == 1:
+                # In case of two dimensional value is used row-wise and broadcasted
                 raise ValueError(
                     "cannot set using a slice indexer with a "
                     "different length than the value"

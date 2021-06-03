@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import (
-    Timestamp,
     lib,
     writers as libwriters,
 )
@@ -42,11 +41,6 @@ class TestMisc:
         expected = np.array(["p", "a", "n", "d", "s"])
         out = lib.fast_unique_multiple_list_gen(gen, sort=False)
         tm.assert_numpy_array_equal(np.array(out), expected)
-
-    def test_fast_unique_multiple_unsortable_runtimewarning(self):
-        arr = [np.array(["foo", Timestamp("2000")])]
-        with tm.assert_produces_warning(RuntimeWarning):
-            lib.fast_unique_multiple(arr, sort=None)
 
 
 class TestIndexing:
@@ -212,3 +206,15 @@ def test_no_default_pickle():
     # GH#40397
     obj = tm.round_trip_pickle(lib.no_default)
     assert obj is lib.no_default
+
+
+def test_clean_index_list():
+    # with both 0 and a large-uint64, np.array will infer to float64
+    #  https://github.com/numpy/numpy/issues/19146
+    #  but a more accurate choice would be uint64
+    values = [0, np.iinfo(np.uint64).max]
+
+    result, _ = lib.clean_index_list(values)
+
+    expected = np.array(values, dtype="uint64")
+    tm.assert_numpy_array_equal(result, expected, check_dtype=True)
