@@ -988,9 +988,11 @@ cdef class TextReader:
                 if isinstance(self.dtype, dict):
                     # gh-41574
                     # Designed to support defaultdict
-                    try:
+                    if name in self.dtype:
                         col_dtype = self.dtype[name]
-                    except KeyError:
+                    else:
+                        # the defaultdict must return a default value only if
+                        # both the column name and the index are not presented
                         try:
                             col_dtype = self.dtype[i]
                         except KeyError:
