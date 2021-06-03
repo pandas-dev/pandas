@@ -398,19 +398,30 @@ cdef class _Timestamp(ABCTimestamp):
                                   field, freqstr, month_kw)
         return out[0]
 
-    cpdef bint _needs_field_deprecation_warning(self, freq):
+    cdef _warn_on_field_deprecation(self, freq, str field):
         """
-        Will the removal of .freq change the value of start/end properties?
+        Warn if the removal of .freq change the value of start/end properties.
         """
+        cdef:
+            bint needs = False
+
         if freq is not None:
             kwds = freq.kwds
             month_kw = kwds.get("startingMonth", kwds.get("month", 12))
             freqstr = self._freqstr
             if month_kw != 12:
-                return True
+                needs = True
             if freqstr.startswith("B"):
-                return True
-        return False
+                needs = True
+
+            if needs:
+                warnings.warn(
+                    "Timestamp.freq is deprecated and will be removed in a future "
+                    "version. When you have a freq, use "
+                    f"freq.{field}(timestamp) instead",
+                    FutureWarning,
+                    stacklevel=1,
+                )
 
     @property
     def is_month_start(self) -> bool:
@@ -430,13 +441,7 @@ cdef class _Timestamp(ABCTimestamp):
         if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == 1
-        if self._needs_field_deprecation_warning(self._freq):
-            warnings.warn(
-                "Timestamp.freq is deprecated and will be removed in a future version. "
-                "When you have a freq, use freq.is_month_start(timestamp) instead",
-                FutureWarning,
-                stacklevel=1,
-            )
+        self._warn_on_field_deprecation(self._freq, "is_month_start")
         return self._get_start_end_field("is_month_start", self._freq)
 
     @property
@@ -457,13 +462,7 @@ cdef class _Timestamp(ABCTimestamp):
         if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == self.days_in_month
-        if self._needs_field_deprecation_warning(self._freq):
-            warnings.warn(
-                "Timestamp.freq is deprecated and will be removed in a future version. "
-                "When you have a freq, use freq.is_month_end(timestamp) instead",
-                FutureWarning,
-                stacklevel=1,
-            )
+        self._warn_on_field_deprecation(self._freq, "is_month_end")
         return self._get_start_end_field("is_month_end", self._freq)
 
     @property
@@ -484,13 +483,7 @@ cdef class _Timestamp(ABCTimestamp):
         if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == 1 and self.month % 3 == 1
-        if self._needs_field_deprecation_warning(self._freq):
-            warnings.warn(
-                "Timestamp.freq is deprecated and will be removed in a future version. "
-                "When you have a freq, use freq.is_quarter_start(timestamp) instead",
-                FutureWarning,
-                stacklevel=1,
-            )
+        self._warn_on_field_deprecation(self._freq, "is_quarter_start")
         return self._get_start_end_field("is_quarter_start", self._freq)
 
     @property
@@ -511,13 +504,7 @@ cdef class _Timestamp(ABCTimestamp):
         if self._freq is None:
             # fast-path for non-business frequencies
             return (self.month % 3) == 0 and self.day == self.days_in_month
-        if self._needs_field_deprecation_warning(self._freq):
-            warnings.warn(
-                "Timestamp.freq is deprecated and will be removed in a future version. "
-                "When you have a freq, use freq.is_quarter_end(timestamp) instead",
-                FutureWarning,
-                stacklevel=1,
-            )
+        self._warn_on_field_deprecation(self._freq, "is_quarter_end")
         return self._get_start_end_field("is_quarter_end", self._freq)
 
     @property
@@ -538,13 +525,7 @@ cdef class _Timestamp(ABCTimestamp):
         if self._freq is None:
             # fast-path for non-business frequencies
             return self.day == self.month == 1
-        if self._needs_field_deprecation_warning(self._freq):
-            warnings.warn(
-                "Timestamp.freq is deprecated and will be removed in a future version. "
-                "When you have a freq, use freq.is_year_start(timestamp) instead",
-                FutureWarning,
-                stacklevel=1,
-            )
+        self._warn_on_field_deprecation(self._freq, "is_year_start")
         return self._get_start_end_field("is_year_start", self._freq)
 
     @property
@@ -565,13 +546,7 @@ cdef class _Timestamp(ABCTimestamp):
         if self._freq is None:
             # fast-path for non-business frequencies
             return self.month == 12 and self.day == 31
-        if self._needs_field_deprecation_warning(self._freq):
-            warnings.warn(
-                "Timestamp.freq is deprecated and will be removed in a future version. "
-                "When you have a freq, use freq.is_year_end(timestamp) instead",
-                FutureWarning,
-                stacklevel=1,
-            )
+        self._warn_on_field_deprecation(self._freq, "is_year_end")
         return self._get_start_end_field("is_year_end", self._freq)
 
     cdef _get_date_name_field(self, str field, object locale):

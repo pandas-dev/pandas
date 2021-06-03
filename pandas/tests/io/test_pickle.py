@@ -56,7 +56,10 @@ lzma = import_lzma()
 
 
 # TODO(ArrayManager) pickling
-pytestmark = td.skip_array_manager_not_yet_implemented
+pytestmark = [
+    td.skip_array_manager_not_yet_implemented,
+    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
+]
 
 
 @pytest.fixture(scope="module")
