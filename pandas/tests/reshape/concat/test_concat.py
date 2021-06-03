@@ -640,10 +640,10 @@ def test_concat_multiindex_with_empty_rangeindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_posargs_deprecation(all_parsers):
+def test_concat_posargs_deprecation():
     # https://github.com/pandas-dev/pandas/issues/41485
-    df = pd.DataFrame([[1, 2, 3]], index=["a"])
-    df2 = pd.DataFrame([[4, 5, 6]], index=["b"])
+    df = DataFrame([[1, 2, 3]], index=["a"])
+    df2 = DataFrame([[4, 5, 6]], index=["b"])
 
     msg = (
         "In a future version of pandas all arguments of concat"
