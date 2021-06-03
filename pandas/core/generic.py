@@ -267,7 +267,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (
                 isinstance(mgr, BlockManager)
                 and len(mgr.blocks) == 1
-                and mgr.blocks[0].values.dtype == dtype
+                and is_dtype_equal(mgr.blocks[0].values.dtype, dtype)
             ):
                 pass
             else:
@@ -481,13 +481,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @property
     def _AXIS_NUMBERS(self) -> dict[str, int]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn("_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=3)
+        level = self.ndim + 1
+        warnings.warn(
+            "_AXIS_NUMBERS has been deprecated.", FutureWarning, stacklevel=level
+        )
         return {"index": 0}
 
     @property
     def _AXIS_NAMES(self) -> dict[int, str]:
         """.. deprecated:: 1.1.0"""
-        warnings.warn("_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=3)
+        level = self.ndim + 1
+        warnings.warn(
+            "_AXIS_NAMES has been deprecated.", FutureWarning, stacklevel=level
+        )
         return {0: "index"}
 
     @final
@@ -687,8 +693,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.size
         4
         """
-        # error: Incompatible return value type (got "number", expected "int")
-        return np.prod(self.shape)  # type: ignore[return-value]
+        return np.prod(self.shape)
 
     @overload
     def set_axis(
@@ -6387,47 +6392,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="fillna")
 
-    @overload
-    def ffill(
-        self: FrameOrSeries,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        downcast=...,
-    ) -> FrameOrSeries:
-        ...
-
-    @overload
-    def ffill(
-        self: FrameOrSeries,
-        axis: None | Axis,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def ffill(
-        self: FrameOrSeries,
-        *,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def ffill(
-        self: FrameOrSeries,
-        axis: None | Axis = ...,
-        inplace: bool_t = ...,
-        limit: None | int = ...,
-        downcast=...,
-    ) -> FrameOrSeries | None:
-        ...
-
-    @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def ffill(
         self: FrameOrSeries,
@@ -6450,47 +6414,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     pad = ffill
 
-    @overload
-    def bfill(
-        self: FrameOrSeries,
-        axis: None | Axis = ...,
-        inplace: Literal[False] = ...,
-        limit: None | int = ...,
-        downcast=...,
-    ) -> FrameOrSeries:
-        ...
-
-    @overload
-    def bfill(
-        self: FrameOrSeries,
-        axis: None | Axis,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def bfill(
-        self: FrameOrSeries,
-        *,
-        inplace: Literal[True],
-        limit: None | int = ...,
-        downcast=...,
-    ) -> None:
-        ...
-
-    @overload
-    def bfill(
-        self: FrameOrSeries,
-        axis: None | Axis = ...,
-        inplace: bool_t = ...,
-        limit: None | int = ...,
-        downcast=...,
-    ) -> FrameOrSeries | None:
-        ...
-
-    @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def bfill(
         self: FrameOrSeries,
@@ -6696,7 +6619,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
-    @final
     def interpolate(
         self: FrameOrSeries,
         method: str = "linear",
@@ -7361,115 +7283,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
 
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower=...,
-        upper=...,
-        axis: Axis | None = ...,
-        inplace: Literal[False] = ...,
-        *args,
-        **kwargs,
-    ) -> FrameOrSeries:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        upper,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        upper,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        axis: Axis | None,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        upper,
-        axis: Axis | None,
-        inplace: Literal[True],
-        *args,
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower,
-        upper,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        *,
-        inplace: Literal[True],
-        **kwargs,
-    ) -> None:
-        ...
-
-    @overload
-    def clip(
-        self: FrameOrSeries,
-        lower=...,
-        upper=...,
-        axis: Axis | None = ...,
-        inplace: bool_t = ...,
-        *args,
-        **kwargs,
-    ) -> FrameOrSeries | None:
-        ...
-
-    @final
     def clip(
         self: FrameOrSeries,
         lower=None,
@@ -9069,7 +8882,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self._constructor(new_data)
             return result.__finalize__(self)
 
-    @final
     @doc(
         klass=_shared_doc_kwargs["klass"],
         cond="True",
@@ -9217,7 +9029,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
@@ -9250,7 +9062,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "try_cast keyword is deprecated and will be removed in a "
                 "future version",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=4,
             )
 
         # see gh-21891
@@ -9409,7 +9221,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             new_ax = index.shift(periods, freq)
 
-        result = self.set_axis(new_ax, axis)
+        result = self.set_axis(new_ax, axis=axis)
         return result.__finalize__(self, method="shift")
 
     @final
@@ -11359,7 +11171,7 @@ Examples
 True
 >>> pd.Series([True, False]).all()
 False
->>> pd.Series([]).all()
+>>> pd.Series([], dtype="float64").all()
 True
 >>> pd.Series([np.nan]).all()
 True
@@ -11727,7 +11539,7 @@ is True.
 False
 >>> pd.Series([True, False]).any()
 True
->>> pd.Series([]).any()
+>>> pd.Series([], dtype="float64").any()
 False
 >>> pd.Series([np.nan]).any()
 False
@@ -11815,13 +11627,13 @@ _sum_examples += """
 
 By default, the sum of an empty or all-NA Series is ``0``.
 
->>> pd.Series([]).sum()  # min_count=0 is the default
+>>> pd.Series([], dtype="float64").sum()  # min_count=0 is the default
 0.0
 
 This can be controlled with the ``min_count`` parameter. For example, if
 you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
 
->>> pd.Series([]).sum(min_count=1)
+>>> pd.Series([], dtype="float64").sum(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
@@ -11862,12 +11674,12 @@ Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
 
->>> pd.Series([]).prod()
+>>> pd.Series([], dtype="float64").prod()
 1.0
 
 This can be controlled with the ``min_count`` parameter
 
->>> pd.Series([]).prod(min_count=1)
+>>> pd.Series([], dtype="float64").prod(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and

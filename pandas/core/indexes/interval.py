@@ -16,8 +16,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import lib
 from pandas._libs.interval import (
     Interval,
@@ -69,7 +67,6 @@ from pandas.core.algorithms import (
     take_nd,
     unique,
 )
-from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -80,7 +77,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
     _index_shared_docs,
-    default_pprint,
     ensure_index,
     maybe_extract_name,
 )
@@ -255,8 +251,6 @@ def _setop(op_name: str):
 @inherit_names(["is_non_overlapping_monotonic", "closed"], IntervalArray, cache=True)
 class IntervalIndex(ExtensionIndex):
     _typ = "intervalindex"
-    _comparables = ["name"]
-    _attributes = ["name", "closed"]
 
     # annotate properties pinned via inherit_names
     closed: str
@@ -422,20 +416,10 @@ class IntervalIndex(ExtensionIndex):
     def _multiindex(self) -> MultiIndex:
         return MultiIndex.from_arrays([self.left, self.right], names=["left", "right"])
 
-    def __array_wrap__(self, result, context=None):
-        # we don't want the superclass implementation
-        return result
-
     def __reduce__(self):
-        d = {"left": self.left, "right": self.right}
+        d = {"left": self.left, "right": self.right, "closed": self.closed}
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
-
-    @Appender(Index.astype.__doc__)
-    def astype(self, dtype, copy: bool = True):
-        with rewrite_exception("IntervalArray", type(self).__name__):
-            new_values = self._values.astype(dtype, copy=copy)
-        return Index(new_values, dtype=new_values.dtype, name=self.name)
 
     @property
     def inferred_type(self) -> str:
@@ -789,9 +773,11 @@ class IntervalIndex(ExtensionIndex):
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])
-            except InvalidIndexError as err:
-                # i.e. non-scalar key
-                raise TypeError(key) from err
+            except InvalidIndexError:
+                # i.e. non-scalar key e.g. a tuple.
+                # see test_append_different_columns_types_raises
+                missing.append(i)
+                locs = np.array([-1])
 
             indexer.append(locs)
 
@@ -867,46 +853,6 @@ class IntervalIndex(ExtensionIndex):
     def length(self) -> Index:
         return Index(self._data.length, copy=False)
 
-    def putmask(self, mask, value) -> Index:
-        mask, noop = validate_putmask(self._data, mask)
-        if noop:
-            return self.copy()
-
-        try:
-            self._validate_fill_value(value)
-        except (ValueError, TypeError):
-            dtype = self._find_common_type_compat(value)
-            return self.astype(dtype).putmask(mask, value)
-
-        arr = self._data.copy()
-        arr.putmask(mask, value)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def insert(self, loc: int, item):
-        """
-        Return a new IntervalIndex inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
-        objects and NA can be inserted into an IntervalIndex
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        try:
-            result = self._data.insert(loc, item)
-        except (ValueError, TypeError):
-            # e.g trying to insert a string
-            dtype, _ = infer_dtype_from_scalar(item, pandas_dtype=True)
-            dtype = find_common_type([self.dtype, dtype])
-            return self.astype(dtype).insert(loc, item)
-
-        return type(self)._simple_new(result, name=self.name)
-
     # --------------------------------------------------------------------
     # Rendering Methods
     # __repr__ associated methods are based on MultiIndex
@@ -919,49 +865,9 @@ class IntervalIndex(ExtensionIndex):
         return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
 
     def _format_data(self, name=None) -> str:
-
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
-        n = len(self)
-        max_seq_items = min((get_option("display.max_seq_items") or n) // 10, 10)
-
-        formatter = str
-
-        if n == 0:
-            summary = "[]"
-        elif n == 1:
-            first = formatter(self[0])
-            summary = f"[{first}]"
-        elif n == 2:
-            first = formatter(self[0])
-            last = formatter(self[-1])
-            summary = f"[{first}, {last}]"
-        else:
-
-            if n > max_seq_items:
-                n = min(max_seq_items // 2, 10)
-                head = [formatter(x) for x in self[:n]]
-                tail = [formatter(x) for x in self[-n:]]
-                head_joined = ", ".join(head)
-                tail_joined = ", ".join(tail)
-                summary = f"[{head_joined} ... {tail_joined}]"
-            else:
-                tail = [formatter(x) for x in self]
-                joined = ", ".join(tail)
-                summary = f"[{joined}]"
-
-        return summary + "," + self._format_space()
-
-    def _format_attrs(self):
-        attrs = []
-        if self.name is not None:
-            attrs.append(("name", default_pprint(self.name)))
-        attrs.append(("dtype", f"'{self.dtype}'"))
-        return attrs
-
-    def _format_space(self) -> str:
-        space = " " * (len(type(self).__name__) + 1)
-        return f"\n{space}"
+        return self._data._format_data() + "," + self._format_space()
 
     # --------------------------------------------------------------------
     # Set Operations
@@ -1214,6 +1120,8 @@ def interval_range(
     if periods is not None:
         periods += 1
 
+    breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
+
     if is_number(endpoint):
         # force consistency between start/end/freq (lower end if freq skips it)
         if com.all_not_none(start, end, freq):
@@ -1239,16 +1147,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            # error: Incompatible types in assignment (expression has type
-            # "DatetimeIndex", variable has type "ndarray")
-            breaks = date_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "TimedeltaIndex", variable has type "ndarray")
-            breaks = timedelta_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
