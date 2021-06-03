@@ -18,7 +18,6 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.sum` and :meth:`DataFrame.prod` when ``min_count`` and ``numeric_only`` are both given (:issue:`41074`)
 - Regression in :func:`read_csv` when using ``memory_map=True`` with an non-UTF8 encoding (:issue:`40986`)
 - Regression in :meth:`DataFrame.replace` and :meth:`Series.replace` when the values to replace is a NumPy float array (:issue:`40371`)
-- Regression in :meth:`DataFrame.xs` raising ``KeyError`` for existing element with list-like indexer for :class:`MultiIndex` columns with ``droplevel=False`` (:issue:`41760`)
 
 .. ---------------------------------------------------------------------------
 

@@ -3756,6 +3756,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
+
+        if isinstance(key, list):
+            len_levels = 1 if level is None or is_scalar(level) else len(level)
+            if len(key) != len_levels:
+                raise TypeError("Passing lists as key for xs is not allowed.")
+            warnings.warn(
+                "Passing lists as key for xs is deprecated and will be removed in a "
+                "future version. Pass key as a tuple instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if level is not None:
             if not isinstance(labels, MultiIndex):
                 raise TypeError("Index must be a MultiIndex")
@@ -3771,7 +3783,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return result
 
         if axis == 1:
-            if drop_level or not is_scalar(key):
+            if drop_level:
                 return self[key]
             index = self.columns
         else:

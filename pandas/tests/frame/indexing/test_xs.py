@@ -106,7 +106,8 @@ class TestXS:
         expected = df[:1]
         tm.assert_frame_equal(result, expected)
 
-        result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_view(self, using_array_manager):
@@ -187,7 +188,11 @@ class TestXSWithMultiIndex:
         assert df.index.is_unique is False
         expected = concat([frame.xs("one", level="second")] * 2)
 
-        result = df.xs(key, level=level)
+        if isinstance(key, list):
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.xs(key, level=level)
+        else:
+            result = df.xs(key, level=level)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_missing_values_in_index(self):
@@ -363,6 +368,6 @@ class TestXSWithMultiIndex:
         # GH#41760
         mi = MultiIndex.from_tuples([("x", "y", "a"), ("x", "z", "b"), ("v", "w", "c")])
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
-        expected = df.copy()
-        result = df.xs(["x", "v"], drop_level=False, axis=1)
-        tm.assert_frame_equal(result, expected)
+        msg = "Passing lists as key for xs is not allowed."
+        with pytest.raises(TypeError, match=msg):
+            df.xs(["x", "v"], drop_level=False, axis=1)
