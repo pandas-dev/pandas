@@ -147,17 +147,6 @@ frame_see_also_sub = dedent(
 )
 
 
-frame_subs = {
-    "klass": "DataFrame",
-    "type_sub": " and columns",
-    "max_cols_sub": frame_max_cols_sub,
-    "null_counts_sub": frame_null_counts_sub,
-    "examples_sub": frame_examples_sub,
-    "see_also_sub": frame_see_also_sub,
-    "version_added_sub": "",
-}
-
-
 def _put_str(s: str | Dtype, space: int) -> str:
     """
     Make string of specified length, padding to the right if necessary.
@@ -414,7 +403,13 @@ class DataFrameInfo(BaseInfo):
 
     @doc(
         BaseInfo.render,
-        **frame_subs,
+        klass="DataFrame",
+        type_sub=" and columns",
+        max_cols_sub=frame_max_cols_sub,
+        null_counts_sub=frame_null_counts_sub,
+        examples_sub=frame_examples_sub,
+        see_also_sub=frame_see_also_sub,
+        version_added_sub="",
     )
     def render(
         self,
