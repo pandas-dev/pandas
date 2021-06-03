@@ -1006,14 +1006,15 @@ class TestIndex(Base):
         ):
             if PY310:
                 if (
-                    nulls_fixture == float("nan")
-                    and nulls_fixture2
-                    in [
-                        np.nan,
-                        float("nan"),
-                    ]
-                    or nulls_fixture is np.nan
-                    and nulls_fixture2 is np.nan
+                    # Failing cases are
+                    # np.nan, float('nan')
+                    # float('nan'), np.nan
+                    # float('nan'), float('nan')
+                    # Since only float('nan'), np.nan is float
+                    # Use not np.nan to identify float('nan')
+                    nulls_fixture is np.nan
+                    and nulls_fixture2 is not np.nan
+                    or nulls_fixture is not np.nan
                 ):
                     request.applymarker(
                         pytest.mark.xfail(reason="Failing on Python 3.10")
