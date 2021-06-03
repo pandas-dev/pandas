@@ -67,10 +67,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.base import (
-    DataError,
-    SpecificationError,
-)
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -323,7 +320,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return output
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ):
 
         obj = self._selected_obj
@@ -331,7 +328,10 @@ class SeriesGroupBy(GroupBy[Series]):
         data = obj._mgr
 
         if numeric_only and not is_numeric_dtype(obj.dtype):
-            raise DataError("No numeric types to aggregate")
+            # GH#41291 match Series behavior
+            raise NotImplementedError(
+                f"{type(self).__name__}.{how} does not implement numeric_only."
+            )
 
         # This is overkill because it is only called once, but is here to
         #  mirror the array_func used in DataFrameGroupBy._cython_agg_general
@@ -513,16 +513,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
         obj = self._selected_obj
 
-        is_numeric = is_numeric_dtype(obj.dtype)
-        if numeric_only and not is_numeric:
-            raise DataError("No numeric types to aggregate")
-
         try:
             result = self.grouper._cython_operation(
                 "transform", obj._values, how, axis, **kwargs
             )
-        except (NotImplementedError, TypeError):
-            raise DataError("No numeric types to aggregate")
+        except NotImplementedError as err:
+            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
@@ -1056,12 +1052,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 yield values
 
     def _cython_agg_general(
-        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
     ) -> DataFrame:
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
-        orig = data
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -1084,9 +1079,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not len(new_mgr) and len(orig):
-            # If the original Manager was already empty, no need to raise
-            raise DataError("No numeric types to aggregate")
+        if len(new_mgr) < len(data):
+            warnings.warn(
+                f"Dropping invalid columns in {type(self).__name__}.{how} "
+                "is deprecated. In a future version, a TypeError will be raised. "
+                f"Before calling .{how}, select only columns which should be "
+                "valid for the function.",
+                FutureWarning,
+                stacklevel=4,
+            )
 
         return self._wrap_agged_manager(new_mgr)
 
@@ -1283,6 +1284,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func, ignore_failures=True)
         res_mgr.set_axis(1, mgr.axes[1])
 
+        if len(res_mgr) < len(mgr):
+            warnings.warn(
+                f"Dropping invalid columns in {type(self).__name__}.{how} "
+                "is deprecated. In a future version, a TypeError will be raised. "
+                f"Before calling .{how}, select only columns which should be "
+                "valid for the transforming function.",
+                FutureWarning,
+                stacklevel=4,
+            )
+
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
             res_df = res_df.T
@@ -1420,7 +1431,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                pass
+                warnings.warn(
+                    f"Dropping invalid columns in {type(self).__name__}.transform "
+                    "is deprecated. In a future version, a TypeError will be raised. "
+                    "Before calling .transform, select only columns which should be "
+                    "valid for the transforming function.",
+                    FutureWarning,
+                    stacklevel=5,
+                )
             else:
                 inds.append(i)
 

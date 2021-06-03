@@ -711,6 +711,21 @@ class TestSeriesConstructors:
         with pytest.raises(ValueError, match=msg):
             Series(["a", "b", "c"], dtype=float)
 
+    def test_constructor_signed_int_overflow_deprecation(self):
+        # GH#41734 disallow silent overflow
+        msg = "Values are too large to be losslessly cast"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([1, 200, 923442], dtype="int8")
+
+        expected = Series([1, -56, 50], dtype="int8")
+        tm.assert_series_equal(ser, expected)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([1, 200, 923442], dtype="uint8")
+
+        expected = Series([1, 200, 50], dtype="uint8")
+        tm.assert_series_equal(ser, expected)
+
     def test_constructor_unsigned_dtype_overflow(self, uint_dtype):
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
@@ -900,14 +915,23 @@ class TestSeriesConstructors:
 
     def test_constructor_dtype_datetime64_6(self):
         # these will correctly infer a datetime
-        s = Series([None, NaT, "2013-08-05 15:30:00.000001"])
-        assert s.dtype == "datetime64[ns]"
-        s = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
-        assert s.dtype == "datetime64[ns]"
-        s = Series([NaT, None, "2013-08-05 15:30:00.000001"])
-        assert s.dtype == "datetime64[ns]"
-        s = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
-        assert s.dtype == "datetime64[ns]"
+        msg = "containing strings is deprecated"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([None, NaT, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == "datetime64[ns]"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([np.nan, NaT, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == "datetime64[ns]"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([NaT, None, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == "datetime64[ns]"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([NaT, np.nan, "2013-08-05 15:30:00.000001"])
+        assert ser.dtype == "datetime64[ns]"
 
     def test_constructor_dtype_datetime64_5(self):
         # tz-aware (UTC and other tz's)
@@ -1094,7 +1118,21 @@ class TestSeriesConstructors:
         result = Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        result = Series(ser.values, dtype=ser.dtype)
+        msg = "will interpret the data as wall-times"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # deprecate behavior inconsistent with DatetimeIndex GH#33401
+            result = Series(ser.values, dtype=ser.dtype)
+        tm.assert_series_equal(result, ser)
+
+        with tm.assert_produces_warning(None):
+            # one suggested alternative to the deprecated usage
+            middle = Series(ser.values).dt.tz_localize("UTC")
+            result = middle.dt.tz_convert(ser.dtype.tz)
+        tm.assert_series_equal(result, ser)
+
+        with tm.assert_produces_warning(None):
+            # the other suggested alternative to the deprecated usage
+            result = Series(ser.values.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize(
@@ -1365,14 +1403,22 @@ class TestSeriesConstructors:
         assert td.dtype == "object"
 
         # these will correctly infer a timedelta
-        s = Series([None, NaT, "1 Day"])
-        assert s.dtype == "timedelta64[ns]"
-        s = Series([np.nan, NaT, "1 Day"])
-        assert s.dtype == "timedelta64[ns]"
-        s = Series([NaT, None, "1 Day"])
-        assert s.dtype == "timedelta64[ns]"
-        s = Series([NaT, np.nan, "1 Day"])
-        assert s.dtype == "timedelta64[ns]"
+        msg = "containing strings is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([None, NaT, "1 Day"])
+        assert ser.dtype == "timedelta64[ns]"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([np.nan, NaT, "1 Day"])
+        assert ser.dtype == "timedelta64[ns]"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([NaT, None, "1 Day"])
+        assert ser.dtype == "timedelta64[ns]"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser = Series([NaT, np.nan, "1 Day"])
+        assert ser.dtype == "timedelta64[ns]"
 
     # GH 16406
     def test_constructor_mixed_tz(self):
@@ -1525,6 +1571,36 @@ class TestSeriesConstructors:
         result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_range_overflows(self):
+        # GH#30173 range objects that overflow int64
+        rng = range(2 ** 63, 2 ** 63 + 4)
+        ser = Series(rng)
+        expected = Series(list(rng))
+        tm.assert_series_equal(ser, expected)
+        assert list(ser) == list(rng)
+        assert ser.dtype == np.uint64
+
+        rng2 = range(2 ** 63 + 4, 2 ** 63, -1)
+        ser2 = Series(rng2)
+        expected2 = Series(list(rng2))
+        tm.assert_series_equal(ser2, expected2)
+        assert list(ser2) == list(rng2)
+        assert ser2.dtype == np.uint64
+
+        rng3 = range(-(2 ** 63), -(2 ** 63) - 4, -1)
+        ser3 = Series(rng3)
+        expected3 = Series(list(rng3))
+        tm.assert_series_equal(ser3, expected3)
+        assert list(ser3) == list(rng3)
+        assert ser3.dtype == object
+
+        rng4 = range(2 ** 73, 2 ** 73 + 4)
+        ser4 = Series(rng4)
+        expected4 = Series(list(rng4))
+        tm.assert_series_equal(ser4, expected4)
+        assert list(ser4) == list(rng4)
+        assert ser4.dtype == object
+
     def test_constructor_tz_mixed_data(self):
         # GH 13051
         dt_list = [
@@ -1654,6 +1730,14 @@ class TestSeriesConstructors:
             [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
         )
         result = result.reindex(index=expected.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dict_multiindex_reindex_flat(self):
+        # construction involves reindexing with a MultiIndex corner case
+        data = {("i", "i"): 0, ("i", "j"): 1, ("j", "i"): 2, "j": np.nan}
+        expected = Series(data)
+
+        result = Series(expected[:-1].to_dict(), index=expected.index)
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_timedelta_index(self):
