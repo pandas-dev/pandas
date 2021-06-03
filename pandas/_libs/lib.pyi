@@ -190,11 +190,7 @@ def maybe_indices_to_slice(
     max_len: int,
 ) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
 
-def clean_index_list(obj: list) -> tuple[
-    list | np.ndarray,  # np.ndarray[object | np.int64 | np.uint64]
-    bool,
-]: ...
-
+def is_all_arraylike(obj: list) -> bool: ...
 
 # -----------------------------------------------------------------
 # Functions which in reality take memoryviews
