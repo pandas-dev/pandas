@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import copy as copy_func
 from datetime import datetime
 import functools
 from itertools import zip_longest
@@ -6312,21 +6311,15 @@ def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Ind
             # check in clean_index_list
             index_like = list(index_like)
 
-        converted, all_arrays = lib.clean_index_list(index_like)
-
-        if len(converted) > 0 and all_arrays:
+        if len(index_like) and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
-            return MultiIndex.from_arrays(converted)
+            return MultiIndex.from_arrays(index_like)
         else:
-            index_like = converted
+            return Index(index_like, copy=copy, tupleize_cols=False)
     else:
-        # clean_index_list does the equivalent of copying
-        # so only need to do this if not list instance
-        if copy:
-            index_like = copy_func(index_like)
 
-    return Index(index_like)
+        return Index(index_like, copy=copy)
 
 
 def ensure_has_len(seq):

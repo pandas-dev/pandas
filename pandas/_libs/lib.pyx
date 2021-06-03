@@ -740,19 +740,15 @@ cpdef ndarray[object] ensure_string_array(
     return result
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def clean_index_list(obj: list):
+def is_all_arraylike(obj: list) -> bool:
     """
-    Utility used in ``pandas.core.indexes.api.ensure_index``.
+    Should we treat these as levels of a MultiIndex, as opposed to Index items?
     """
     cdef:
         Py_ssize_t i, n = len(obj)
         object val
         bint all_arrays = True
 
-    # First check if we have a list of arraylikes, in which case we will
-    #  pass them to MultiIndex.from_arrays
     for i in range(n):
         val = obj[i]
         if not (isinstance(val, list) or
@@ -762,31 +758,7 @@ def clean_index_list(obj: list):
             all_arrays = False
             break
 
-    if all_arrays:
-        return obj, all_arrays
-
-    # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj, skipna=False)
-    if inferred in ['string', 'bytes', 'mixed', 'mixed-integer']:
-        return np.asarray(obj, dtype=object), 0
-    elif inferred in ['integer']:
-        # we infer an integer but it *could* be a uint64
-
-        arr = np.asarray(obj)
-        if arr.dtype.kind not in ["i", "u"]:
-            # eg [0, uint64max] gets cast to float64,
-            #  but then we know we have either uint64 or object
-            if (arr < 0).any():
-                # TODO: similar to maybe_cast_to_integer_array
-                return np.asarray(obj, dtype="object"), 0
-
-            # GH#35481
-            guess = np.asarray(obj, dtype="uint64")
-            return guess, 0
-
-        return arr, 0
-
-    return np.asarray(obj), 0
+    return all_arrays
 
 
 # ------------------------------------------------------------------------------
