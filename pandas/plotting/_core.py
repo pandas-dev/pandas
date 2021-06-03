@@ -1763,6 +1763,7 @@ def _load_backend(backend: str) -> types.ModuleType:
         found_backend = entry_point.name == backend
         if found_backend:
             module = entry_point.load()
+            break
 
     if not found_backend:
         # Fall back to unregistered, module name approach.
