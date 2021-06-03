@@ -4947,8 +4947,7 @@ Keep all original rows and also all original values
             Right boundary.
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
-            For backwards compatibility this can also be set to ``True``
-            ("both") or false ("neither")
+            Deprecate boolean values of ``True`` ("both") or false ("neither").
 
             .. versionchanged:: 1.3.0
 
