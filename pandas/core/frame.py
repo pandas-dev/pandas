@@ -201,7 +201,10 @@ from pandas.io.formats import (
     console,
     format as fmt,
 )
-from pandas.io.formats.info import DataFrameInfo
+from pandas.io.formats.info import (
+    DataFrameInfo,
+    frame_sub_kwargs,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -3000,7 +3003,7 @@ class DataFrame(NDFrame, OpsMixin):
         return xml_formatter.write_output()
 
     # ----------------------------------------------------------------------
-    @doc(DataFrameInfo.render)
+    @doc(DataFrameInfo.render, **frame_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
