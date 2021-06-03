@@ -1,4 +1,9 @@
-from typing import ChainMap, MutableMapping, TypeVar, cast
+from typing import (
+    ChainMap,
+    MutableMapping,
+    TypeVar,
+    cast,
+)
 
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")

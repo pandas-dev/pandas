@@ -6,13 +6,20 @@ arguments when parsing.
 """
 
 import csv
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -269,9 +276,7 @@ def test_none_delimiter(python_parser_only, capsys):
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
     # not expect any errors to occur.
-    result = parser.read_csv(
-        StringIO(data), header=0, sep=None, warn_bad_lines=True, error_bad_lines=False
-    )
+    result = parser.read_csv(StringIO(data), header=0, sep=None, on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
 
     captured = capsys.readouterr()

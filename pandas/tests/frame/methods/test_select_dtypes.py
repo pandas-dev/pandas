@@ -4,7 +4,10 @@ import pytest
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.arrays import ExtensionArray
 
@@ -388,7 +391,6 @@ class TestSelectDtypes:
         (
             (np.array([1, 2], dtype=np.int32), True),
             (pd.array([1, 2], dtype="Int32"), True),
-            (pd.array(["a", "b"], dtype="string"), False),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=True)), True),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=False)), False),
         ),
@@ -399,3 +401,9 @@ class TestSelectDtypes:
         df = DataFrame(arr)
         is_selected = df.select_dtypes(np.number).shape == df.shape
         assert is_selected == expected
+
+    def test_select_dtypes_numeric_nullable_string(self, nullable_string_dtype):
+        arr = pd.array(["a", "b"], dtype=nullable_string_dtype)
+        df = DataFrame(arr)
+        is_selected = df.select_dtypes(np.number).shape == df.shape
+        assert not is_selected

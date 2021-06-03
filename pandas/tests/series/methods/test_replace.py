@@ -254,9 +254,9 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
-    def test_replace_with_dictlike_and_string_dtype(self):
+    def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
         # GH 32621
-        s = pd.Series(["one", "two", np.nan], dtype="string")
+        s = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
         expected = pd.Series(["1", "2", np.nan])
         result = s.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
@@ -266,7 +266,7 @@ class TestSeriesReplace:
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
@@ -449,14 +449,3 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("pattern", ["^.$", "."])
-    def test_str_replace_regex_default_raises_warning(self, pattern):
-        # https://github.com/pandas-dev/pandas/pull/24809
-        s = pd.Series(["a", "b", "c"])
-        msg = r"The default value of regex will change from True to False"
-        if len(pattern) == 1:
-            msg += r".*single character regular expressions.*not.*literal strings"
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            s.str.replace(pattern, "")
-            assert re.match(msg, str(w[0].message))

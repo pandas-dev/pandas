@@ -4,7 +4,13 @@ import pytest
 from pandas.errors import NumbaUtilError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, NamedAgg, option_context
+from pandas import (
+    DataFrame,
+    Index,
+    NamedAgg,
+    Series,
+    option_context,
+)
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
@@ -150,3 +156,20 @@ def test_multifunc_notimplimented(agg_func):
 
     with pytest.raises(NotImplementedError, match="Numba engine can"):
         grouped[1].agg(agg_func, engine="numba")
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_args_not_cached():
+    # GH 41647
+    def sum_last(values, index, n):
+        return values[-n:].sum()
+
+    df = DataFrame({"id": [0, 0, 1, 1], "x": [1, 1, 1, 1]})
+    grouped_x = df.groupby("id")["x"]
+    result = grouped_x.agg(sum_last, 1, engine="numba")
+    expected = Series([1.0] * 2, name="x", index=Index([0, 1], name="id"))
+    tm.assert_series_equal(result, expected)
+
+    result = grouped_x.agg(sum_last, 2, engine="numba")
+    expected = Series([2.0] * 2, name="x", index=Index([0, 1], name="id"))
+    tm.assert_series_equal(result, expected)

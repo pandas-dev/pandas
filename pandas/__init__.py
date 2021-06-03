@@ -20,7 +20,6 @@ del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
 from pandas.compat import (
-    np_version_under1p17 as _np_version_under1p17,
     np_version_under1p18 as _np_version_under1p18,
     is_numpy_dev as _is_numpy_dev,
 )
@@ -167,6 +166,7 @@ from pandas.io.api import (
     read_feather,
     read_gbq,
     read_html,
+    read_xml,
     read_json,
     read_stata,
     read_sas,

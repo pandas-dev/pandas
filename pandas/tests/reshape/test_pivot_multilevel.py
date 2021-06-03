@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, Int64Index, MultiIndex
+from pandas import (
+    Index,
+    Int64Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -192,7 +196,7 @@ def test_pivot_list_like_columns(
     tm.assert_frame_equal(result, expected)
 
 
-def test_pivot_multiindexed_rows_and_cols():
+def test_pivot_multiindexed_rows_and_cols(using_array_manager):
     # GH 36360
 
     df = pd.DataFrame(
@@ -214,11 +218,14 @@ def test_pivot_multiindexed_rows_and_cols():
     )
 
     expected = pd.DataFrame(
-        data=[[5.0, np.nan], [10.0, 7.0]],
+        data=[[5, np.nan], [10, 7.0]],
         columns=MultiIndex.from_tuples(
             [(0, 1, 0), (0, 1, 1)], names=["col_L0", "col_L1", "idx_L1"]
         ),
         index=Int64Index([0, 1], dtype="int64", name="idx_L0"),
     )
+    if not using_array_manager:
+        # BlockManager does not preserve the dtypes
+        expected = expected.astype("float64")
 
     tm.assert_frame_equal(res, expected)

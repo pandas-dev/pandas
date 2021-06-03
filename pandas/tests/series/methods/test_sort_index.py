@@ -3,7 +3,12 @@ import random
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, MultiIndex, Series
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -198,6 +203,20 @@ class TestSeriesSortIndex:
         expected = ser.iloc[[0, 4, 1, 5, 2, 6, 3, 7]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            None,
+            (True, None),
+            (False, "True"),
+        ],
+    )
+    def test_sort_index_ascending_bad_value_raises(self, ascending):
+        ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
+        match = 'For argument "ascending" expected type bool'
+        with pytest.raises(ValueError, match=match):
+            ser.sort_index(ascending=ascending)
+
 
 class TestSeriesSortIndexKey:
     def test_sort_index_multiindex_key(self):
@@ -300,4 +319,16 @@ class TestSeriesSortIndexKey:
 
         result = s.sort_index(key=lambda x: x.month_name())
         expected = s.iloc[[2, 1, 0]]
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_index_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.sort_index "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.sort_index(0)
+        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

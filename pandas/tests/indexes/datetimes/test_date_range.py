@@ -2,7 +2,11 @@
 test date_range, bdate_range construction from the convenience range functions
 """
 
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -10,12 +14,25 @@ import pytz
 from pytz import timezone
 
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.offsets import BDay, CDay, DateOffset, MonthEnd, prefix_mapping
+from pandas._libs.tslibs.offsets import (
+    BDay,
+    CDay,
+    DateOffset,
+    MonthEnd,
+    prefix_mapping,
+)
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DatetimeIndex, Timedelta, Timestamp, bdate_range, date_range, offsets
+from pandas import (
+    DatetimeIndex,
+    Timedelta,
+    Timestamp,
+    bdate_range,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core.arrays.datetimes import generate_range
 
@@ -129,6 +146,7 @@ class TestDateRanges:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(end="1969-11-14", periods=106752 * 24, freq="H")
 
+    @pytest.mark.slow
     def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
         # cases where stride * periods overflow int64 and stride/endpoint
         #  have different signs
@@ -1009,7 +1027,7 @@ class TestCustomDateRange:
 
 def test_date_range_with_custom_holidays():
     # GH 30593
-    freq = pd.offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
+    freq = offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
     result = date_range(start="2020-11-25 15:00", periods=4, freq=freq)
     expected = DatetimeIndex(
         [

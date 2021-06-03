@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, concat
+from pandas import (
+    DataFrame,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -60,9 +64,9 @@ def test_different_input_array_raise_exception(name):
     A = Series(np.random.randn(50), index=np.arange(50))
     A[:10] = np.NaN
 
-    msg = "Input arrays must be of the same type!"
+    msg = "other must be a DataFrame or Series"
     # exception raised is Exception
-    with pytest.raises(Exception, match=msg):
+    with pytest.raises(ValueError, match=msg):
         getattr(A.ewm(com=20, min_periods=5), name)(np.random.randn(50))
 
 

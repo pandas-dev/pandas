@@ -2,7 +2,15 @@ import string
 
 import numpy as np
 
-from pandas import DataFrame, MultiIndex, Series, concat, date_range, merge, merge_asof
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    concat,
+    date_range,
+    merge,
+    merge_asof,
+)
 
 from .pandas_vb_common import tm
 

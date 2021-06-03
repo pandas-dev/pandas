@@ -3,7 +3,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs import algos as libalgos, index as libindex
+from pandas._libs import (
+    algos as libalgos,
+    index as libindex,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -58,7 +61,13 @@ class TestTimedeltaEngine:
     @pytest.mark.parametrize(
         "scalar",
         [
-            pd.Timestamp(pd.Timedelta(days=42).asm8.view("datetime64[ns]")),
+            # error: Argument 1 to "Timestamp" has incompatible type "timedelta64";
+            # expected "Union[integer[Any], float, str, date, datetime64]"
+            pd.Timestamp(
+                pd.Timedelta(days=42).asm8.view(
+                    "datetime64[ns]"
+                )  # type: ignore[arg-type]
+            ),
             pd.Timedelta(days=42).value,
             pd.Timedelta(days=42).to_pytimedelta(),
             pd.Timedelta(days=42).to_timedelta64(),

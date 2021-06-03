@@ -1,5 +1,8 @@
 import calendar
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -7,9 +10,15 @@ import numpy as np
 import pytest
 import pytz
 
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
-from pandas import Period, Timedelta, Timestamp, compat
+from pandas import (
+    Period,
+    Timedelta,
+    Timestamp,
+    compat,
+)
 
 from pandas.tseries import offsets
 
@@ -215,7 +224,11 @@ class TestTimestampConstructors:
 
     def test_constructor_positional(self):
         # see gh-10758
-        msg = "an integer is required"
+        msg = (
+            "'NoneType' object cannot be interpreted as an integer"
+            if PY310
+            else "an integer is required"
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(2000, 1)
 
@@ -323,7 +336,9 @@ class TestTimestampConstructors:
                 tz="UTC",
             ),
             Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
-            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),
+            # error: Argument 9 to "Timestamp" has incompatible type "_UTCclass";
+            # expected "Optional[int]"
+            Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC),  # type: ignore[arg-type]
         ],
     )
     def test_constructor_nanosecond(self, result):
@@ -421,6 +436,13 @@ class TestTimestampConstructors:
             for unit in time_units:
                 dt64 = np.datetime64(date_string, unit)
                 Timestamp(dt64)
+
+    @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
+    def test_out_of_bounds_string_consistency(self, arg):
+        # GH 15829
+        msg = "Out of bounds"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(arg)
 
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp

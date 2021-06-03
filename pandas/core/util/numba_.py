@@ -1,12 +1,18 @@
 """Common utilities for Numba operations"""
-from distutils.version import LooseVersion
 import types
-from typing import Callable, Dict, Optional, Tuple
+from typing import (
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
+
+from pandas.util.version import Version
 
 GLOBAL_USE_NUMBA: bool = False
 NUMBA_FUNC_CACHE: Dict[Tuple[Callable, str], Callable] = {}
@@ -84,7 +90,7 @@ def jit_user_function(
     """
     numba = import_optional_dependency("numba")
 
-    if LooseVersion(numba.__version__) >= LooseVersion("0.49.0"):
+    if Version(numba.__version__) >= Version("0.49.0"):
         is_jitted = numba.extending.is_jitted(func)
     else:
         is_jitted = isinstance(func, numba.targets.registry.CPUDispatcher)

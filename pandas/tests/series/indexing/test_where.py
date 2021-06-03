@@ -1,10 +1,17 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Series, Timestamp, date_range, isna
+from pandas import (
+    Series,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -132,6 +139,20 @@ def test_where():
     expected.iloc[0] = s2[0]
     rs = s2.where(cond[:3], -s2)
     tm.assert_series_equal(rs, expected)
+
+
+def test_where_non_keyword_deprecation():
+    # GH 41485
+    s = Series(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.where(s > 1, 10, False)
+    expected = Series([10, 10, 2, 3, 4])
+    tm.assert_series_equal(expected, result)
 
 
 def test_where_error():
@@ -466,11 +487,14 @@ def test_where_categorical(klass):
     tm.assert_equal(exp, res)
 
 
+# TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
+# for categorical with datetime categories
+@td.skip_array_manager_not_yet_implemented
 def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
 
-    dr = pd.date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
+    dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
     rvals = pd.Categorical([dr[0], pd.NaT, dr[2]])
 
