@@ -24,6 +24,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
+from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -511,7 +512,24 @@ def sanitize_array(
             # possibility of nan -> garbage
             try:
                 subarr = _try_cast(data, dtype, copy, True)
+            except IntCastingNaNError:
+                subarr = np.array(data, copy=copy)
             except ValueError:
+                if not raise_cast_failure:
+                    # i.e. called via DataFrame constructor
+                    warnings.warn(
+                        "In a future version, passing float-dtype values and an "
+                        "integer dtype to DataFrame will retain floating dtype "
+                        "if they cannot be cast losslessly (matching Series behavior). "
+                        "To retain the old behavior, use DataFrame(data).astype(dtype)",
+                        FutureWarning,
+                        stacklevel=4,
+                    )
+                    # GH#40110 until the deprecation is enforced, we _dont_
+                    #  ignore the dtype for DataFrame, and _do_ cast even though
+                    #  it is lossy.
+                    dtype = cast(np.dtype, dtype)
+                    return np.array(data, dtype=dtype, copy=copy)
                 subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here

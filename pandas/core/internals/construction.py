@@ -22,11 +22,9 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
-from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -303,22 +301,12 @@ def ndarray_to_mgr(
         shape = values.shape
         flat = values.ravel()
 
-        if not is_integer_dtype(dtype):
-            # TODO: skipping integer_dtype is needed to keep the tests passing,
-            #  not clear it is correct
-            # Note: we really only need _try_cast, but keeping to exposed funcs
-            values = sanitize_array(
-                flat, None, dtype=dtype, copy=copy, raise_cast_failure=True
-            )
-        else:
-            try:
-                values = construct_1d_ndarray_preserving_na(
-                    flat, dtype=dtype, copy=False
-                )
-            except IntCastingNaNError:
-                # following Series, we ignore the dtype and retain floating
-                # values instead of casting nans to meaningless ints
-                pass
+        # GH#40110 see similar check inside sanitize_array
+        rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
+
+        values = sanitize_array(
+            flat, None, dtype=dtype, copy=copy, raise_cast_failure=rcf
+        )
 
         values = values.reshape(shape)
 

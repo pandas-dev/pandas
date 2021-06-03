@@ -714,7 +714,9 @@ class TestDataFrameToCSV:
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")
         )
         df_int = DataFrame(
-            np.random.randn(100, 5), dtype="int64", columns=create_cols("int")
+            np.random.randn(100, 5).astype("int64"),
+            dtype="int64",
+            columns=create_cols("int"),
         )
         df_bool = DataFrame(True, index=df_float.index, columns=create_cols("bool"))
         df_object = DataFrame(
@@ -765,7 +767,7 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, df)
 
         df_float = DataFrame(np.random.randn(1000, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(1000, 3), dtype="int64")
+        df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
         df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))

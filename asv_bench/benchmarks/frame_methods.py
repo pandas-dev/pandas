@@ -652,7 +652,9 @@ class Rank:
     ]
 
     def setup(self, dtype):
-        self.df = DataFrame(np.random.randn(10000, 10), columns=range(10), dtype=dtype)
+        self.df = DataFrame(
+            np.random.randn(10000, 10).astype(dtype), columns=range(10), dtype=dtype
+        )
 
     def time_rank(self, dtype):
         self.df.rank()

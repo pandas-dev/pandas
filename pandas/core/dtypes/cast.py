@@ -2088,7 +2088,13 @@ def maybe_cast_to_integer_array(
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
 
-    if is_float_dtype(arr.dtype) or is_object_dtype(arr.dtype):
+    if is_float_dtype(arr.dtype):
+        if not np.isfinite(arr).all():
+            raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer"
+            )
+        raise ValueError("Trying to coerce float values to integers")
+    if is_object_dtype(arr.dtype):
         raise ValueError("Trying to coerce float values to integers")
 
     if casted.dtype < arr.dtype:
@@ -2097,6 +2103,17 @@ def maybe_cast_to_integer_array(
             f"Values are too large to be losslessly cast to {dtype}. "
             "In a future version this will raise OverflowError. To retain the "
             f"old behavior, use pd.Series(values).astype({dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return casted
+
+    if arr.dtype.kind in ["m", "M"]:
+        # test_constructor_maskedarray_nonfloat
+        warnings.warn(
+            f"Constructing Series or DataFrame from {arr.dtype} values and "
+            f"dtype={dtype} is deprecated and will raise in a future version. "
+            "Use values.view(dtype) instead",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
