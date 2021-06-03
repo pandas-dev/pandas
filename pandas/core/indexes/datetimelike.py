@@ -49,7 +49,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -599,7 +598,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         try:
             return self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            return com.asarray_tuplesafe(keyarr)
+            return super()._convert_arr_indexer(keyarr)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
