@@ -5011,13 +5011,21 @@ Keep all original rows and also all original values
         elif inclusive == "right":
             lmask = self > left
             rmask = self <= right
-        elif inclusive == "neither" or inclusive is False:
+        elif inclusive == "neither":
+            lmask = self > left
+            rmask = self < right
+        elif inclusive is False:
+            warnings.warn(
+                "Boolean inputs to the `inclusive` argument are deprecated in favour of `{"both", or "neither"}`",
+                FutureWarning,
+                stacklevel=2,
+            )
             lmask = self > left
             rmask = self < right
         else:
             raise ValueError(
                 "Inclusive has to be either string of 'both','left', 'right', "
-                "or 'neither', or a boolean value"
+                "or 'neither'"
             )
 
         return lmask & rmask
