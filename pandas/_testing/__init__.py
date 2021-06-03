@@ -30,9 +30,13 @@ from pandas._typing import Dtype
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     is_sequence,
     is_timedelta64_dtype,
+    is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 
 import pandas as pd
@@ -41,11 +45,14 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
+    Float64Index,
     Index,
+    Int64Index,
     IntervalIndex,
     MultiIndex,
     RangeIndex,
     Series,
+    UInt64Index,
     bdate_range,
 )
 from pandas._testing._io import (  # noqa:F401
@@ -292,12 +299,32 @@ def makeBoolIndex(k=10, name=None):
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
+def makeNumericIndex(k=10, name=None, *, dtype):
+    dtype = pandas_dtype(dtype)
+    assert isinstance(dtype, np.dtype)
+
+    if is_integer_dtype(dtype):
+        values = np.arange(k, dtype=dtype)
+        if is_unsigned_integer_dtype(dtype):
+            values += 2 ** (dtype.itemsize * 8 - 1)
+    elif is_float_dtype(dtype):
+        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values.sort()
+        values = values * (10 ** np.random.randint(0, 9))
+    else:
+        raise NotImplementedError(f"wrong dtype {dtype}")
+
+    return Index(values, dtype=dtype, name=name)
+
+
 def makeIntIndex(k=10, name=None):
-    return Index(list(range(k)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="int64")
+    return Int64Index(base_idx)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2 ** 63 + i for i in range(k)], name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="uint64")
+    return UInt64Index(base_idx)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -305,8 +332,8 @@ def makeRangeIndex(k=10, name=None, **kwargs):
 
 
 def makeFloatIndex(k=10, name=None):
-    values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
-    return Index(values * (10 ** np.random.randint(0, 9)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="float64")
+    return Float64Index(base_idx)
 
 
 def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:

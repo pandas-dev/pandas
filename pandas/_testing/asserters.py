@@ -308,7 +308,7 @@ def assert_index_equal(
     """
     __tracebackhide__ = True
 
-    def _check_types(left, right, obj="Index"):
+    def _check_types(left, right, obj="Index") -> None:
         if not exact:
             return
 
