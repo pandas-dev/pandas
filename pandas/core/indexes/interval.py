@@ -67,7 +67,6 @@ from pandas.core.algorithms import (
     take_nd,
     unique,
 )
-from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -853,46 +852,6 @@ class IntervalIndex(ExtensionIndex):
     @property
     def length(self) -> Index:
         return Index(self._data.length, copy=False)
-
-    def putmask(self, mask, value) -> Index:
-        mask, noop = validate_putmask(self._data, mask)
-        if noop:
-            return self.copy()
-
-        try:
-            self._validate_fill_value(value)
-        except (ValueError, TypeError):
-            dtype = self._find_common_type_compat(value)
-            return self.astype(dtype).putmask(mask, value)
-
-        arr = self._data.copy()
-        arr.putmask(mask, value)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def insert(self, loc: int, item):
-        """
-        Return a new IntervalIndex inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
-        objects and NA can be inserted into an IntervalIndex
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        try:
-            result = self._data.insert(loc, item)
-        except (ValueError, TypeError):
-            # e.g trying to insert a string
-            dtype, _ = infer_dtype_from_scalar(item, pandas_dtype=True)
-            dtype = find_common_type([self.dtype, dtype])
-            return self.astype(dtype).insert(loc, item)
-
-        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
