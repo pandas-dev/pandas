@@ -26,14 +26,14 @@ Fixed regressions
 Deprecations
 ~~~~~~~~~~~~
 
-- Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` with same length as ``level`` keyword (:issue:`41789`)
+- Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
 
 .. _whatsnew_125.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
 
-- Bug in :meth:`DataFrame.xs` and :meth:`Series.xs` accepting list as ``key`` and casting elements to different levels per index in list, now raises ``TypeError`` (:issue:`41760`)
+-
 -
 
 .. ---------------------------------------------------------------------------
