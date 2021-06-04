@@ -556,7 +556,6 @@ def sanitize_array(
         if dtype is not None or len(data) == 0:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
-            # TODO: copy?
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
                 subarr = cast(np.ndarray, subarr)
