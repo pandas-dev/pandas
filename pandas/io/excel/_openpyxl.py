@@ -541,6 +541,10 @@ class OpenpyxlWriter(ExcelWriter):
                     # When cells are merged only the top-left cell is preserved
                     # The behaviour of the other cells in a merged range is
                     # undefined
+                    """
+
+                    Commenting out to test if the code otherwise works.
+
                     if style_kwargs:
                         first_row = startrow + cell.row + 1
                         last_row = startrow + cell.mergestart + 1
@@ -555,6 +559,7 @@ class OpenpyxlWriter(ExcelWriter):
                                 xcell = wks.cell(column=col, row=row)
                                 for k, v in style_kwargs.items():
                                     setattr(xcell, k, v)
+                    """
 
                 wks.append([xcell])
         else:
