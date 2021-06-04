@@ -94,6 +94,7 @@ from pandas._libs.missing cimport (
     is_null_timedelta64,
     isnaobj,
 )
+from pandas._libs.missing import checknull
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -696,10 +697,12 @@ cpdef ndarray[object] ensure_string_array(
     coerce : {{'all', 'null', 'non-null', None}}, default 'all'
         Whether to coerce non-string elements to strings.
             - 'all' will convert null values and non-null non-string values.
-            - 'null' will only convert nulls without converting other non-strings.
+            - 'strict-null' will only convert pd.NA, np.nan, or None to na_value
+              without converting other non-strings.
+            - 'null' will convert nulls to na_value w/out converting other non-strings.
             - 'non-null' will only convert non-null non-string elements to string.
             - None will not convert anything.
-        If coerce is not all, a ValueError will be raised for values
+        If coerce is not 'all', a ValueError will be raised for values
         that are not strings or na_value.
     copy : bool, default True
         Whether to ensure that a new array is returned.
@@ -714,6 +717,7 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+        set strict_na_values = {C_NA, np.nan, None}
 
     if hasattr(arr, "to_numpy"):
         arr = arr.to_numpy()
@@ -725,22 +729,27 @@ cpdef ndarray[object] ensure_string_array(
     if copy and result is arr:
         result = result.copy()
 
+    if coerce == 'strict-null':
+        # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
+        # If they are present, they are treated like a regular Python object
+        # and will either cause an exception to be raised or be coerced.
+        check_null = strict_na_values.__contains__
+    else:
+        check_null = checknull
+
     for i in range(n):
         val = arr[i]
 
         if isinstance(val, str):
             continue
 
-        if not (val is None or val is C_NA or val is np.nan):
-            # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
-            # If they are present, they are treated like a regular Python object
-            # and will either cause an exception to be raised or be coerced.
+        if not check_null(val):
             if coerce =="all" or coerce == "non-null":
                 result[i] = str(val)
             else:
                 raise ValueError("Non-string element encountered in array.")
         else:
-            if coerce=="all" or coerce == "null":
+            if coerce=="all" or coerce == "null" or coerce == 'strict-null':
                 val = na_value
             if skipna:
                 result[i] = val

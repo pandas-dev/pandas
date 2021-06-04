@@ -230,8 +230,11 @@ class StringArray(PandasArray):
             )
         try:
             lib.ensure_string_array(
-                self._ndarray, na_value=StringDtype.na_value, coerce="null", copy=False
-            ),
+                self._ndarray,
+                na_value=StringDtype.na_value,
+                coerce="strict-null",
+                copy=False,
+            )
         except ValueError:
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
 
