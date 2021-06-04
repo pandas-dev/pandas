@@ -1464,7 +1464,7 @@ def convert_dtypes(
 
 def maybe_infer_to_datetimelike(
     value: np.ndarray,
-) -> np.ndarray | DatetimeArray | TimedeltaArray:
+) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1479,7 +1479,7 @@ def maybe_infer_to_datetimelike(
 
     Returns
     -------
-    np.ndarray, DatetimeArray, or TimedeltaArray
+    np.ndarray, DatetimeArray, TimedeltaArray, PeriodArray, or IntervalArray
 
     """
     if not isinstance(value, np.ndarray) or value.dtype != object:
@@ -1529,7 +1529,12 @@ def maybe_infer_to_datetimelike(
 
     inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
     if inferred_type in ["period", "interval"]:
-        return lib.maybe_convert_objects(v, convert_period=True, convert_interval=True)
+        # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "Union[ndarray, DatetimeArray, TimedeltaArray, PeriodArray,
+        # IntervalArray]")
+        return lib.maybe_convert_objects(  # type: ignore[return-value]
+            v, convert_period=True, convert_interval=True
+        )
 
     if inferred_type == "datetime":
         # error: Incompatible types in assignment (expression has type "ExtensionArray",

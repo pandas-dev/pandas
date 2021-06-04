@@ -566,6 +566,7 @@ def sanitize_array(
 
     if isinstance(subarr, np.ndarray):
         # at this point we should have dtype be None or subarr.dtype == dtype
+        dtype = cast(np.dtype, dtype)
         subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
     return subarr
