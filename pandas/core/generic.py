@@ -10176,7 +10176,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             assert _data is not None  # needed for mypy
             data = _data
 
-        rs = data.div(data.shift(periods=periods, freq=freq, axis=axis, **kwargs)) - 1
+        shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
+        rs = data / shifted - 1
         if freq is not None:
             # Shift method is implemented differently when freq is not None
             # We want to restore the original index
