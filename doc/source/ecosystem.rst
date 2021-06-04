@@ -75,12 +75,12 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 Use pandas DataFrames in your `scikit-learn <https://scikit-learn.org/>`__
 ML pipeline.
 
-`Featuretools <https://github.com/featuretools/featuretools/>`__
+`Featuretools <https://github.com/alteryx/featuretools/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
 
-`Compose <https://github.com/FeatureLabs/compose>`__
+`Compose <https://github.com/alteryx/compose>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Compose is a machine learning tool for labeling data and prediction engineering. It allows you to structure the labeling process by parameterizing prediction problems and transforming time-driven relational data into target values with cutoff times that can be used for supervised learning.
@@ -405,6 +405,35 @@ Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
 
+`Cylon <https://cylondata.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Cylon is a fast, scalable, distributed memory parallel runtime with a pandas
+like Python DataFrame API. ”Core Cylon” is implemented with C++ using Apache
+Arrow format to represent the data in-memory. Cylon DataFrame API implements
+most of the core operators of pandas such as merge, filter, join, concat,
+group-by, drop_duplicates, etc. These operators are designed to work across
+thousands of cores to scale applications. It can interoperate with pandas
+DataFrame by reading data from pandas or converting data to pandas so users
+can selectively scale parts of their pandas DataFrame applications.
+
+.. code:: python
+
+    from pycylon import read_csv, DataFrame, CylonEnv
+    from pycylon.net import MPIConfig
+
+    # Initialize Cylon distributed environment
+    config: MPIConfig = MPIConfig()
+    env: CylonEnv = CylonEnv(config=config, distributed=True)
+
+    df1: DataFrame = read_csv('/tmp/csv1.csv')
+    df2: DataFrame = read_csv('/tmp/csv2.csv')
+
+    # Using 1000s of cores across the cluster to compute the join
+    df3: Table = df1.join(other=df2, on=[0], algorithm="hash", env=env)
+
+    print(df3)
+
 `Dask <https://dask.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -522,11 +551,12 @@ Library            Accessor     Classes                              Description
 ================== ============ ==================================== ===============================================================================
 `cyberpandas`_     ``ip``       ``Series``                           Provides common operations for working with IP addresses.
 `pdvega`_          ``vgplot``   ``Series``, ``DataFrame``            Provides plotting functions from the Altair_ library.
-`pandas-genomics`_ ``genomics`` ``Series``, ``DataFrame``            Provides common operations for quality control and analysis of genomics data
+`pandas-genomics`_ ``genomics`` ``Series``, ``DataFrame``            Provides common operations for quality control and analysis of genomics data.
 `pandas_path`_     ``path``     ``Index``, ``Series``                Provides `pathlib.Path`_ functions for Series.
 `pint-pandas`_     ``pint``     ``Series``, ``DataFrame``            Provides units support for numeric Series and DataFrames.
 `composeml`_       ``slice``    ``DataFrame``                        Provides a generator for enhanced data slicing.
 `datatest`_        ``validate`` ``Series``, ``DataFrame``, ``Index`` Provides validation, differences, and acceptance managers.
+`woodwork`_        ``ww``       ``Series``, ``DataFrame``            Provides physical, logical, and semantic data typing information for Series and DataFrames.
 ================== ============ ==================================== ===============================================================================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
@@ -536,5 +566,6 @@ Library            Accessor     Classes                              Description
 .. _pandas_path: https://github.com/drivendataorg/pandas-path/
 .. _pathlib.Path: https://docs.python.org/3/library/pathlib.html
 .. _pint-pandas: https://github.com/hgrecco/pint-pandas
-.. _composeml: https://github.com/FeatureLabs/compose
+.. _composeml: https://github.com/alteryx/compose
 .. _datatest: https://datatest.readthedocs.io/
+.. _woodwork: https://github.com/alteryx/woodwork

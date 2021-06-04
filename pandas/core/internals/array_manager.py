@@ -85,6 +85,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
+    maybe_coerce_values,
     new_block,
     to_native_types,
 )
@@ -160,21 +161,10 @@ class BaseArrayManager(DataManager):
         axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(
-        self, axis: int, new_labels: Index, verify_integrity: bool = True
-    ) -> None:
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
+        self._validate_set_axis(axis, new_labels)
         axis = self._normalize_axis(axis)
-        if verify_integrity:
-            old_len = len(self._axes[axis])
-            new_len = len(new_labels)
-
-            if new_len != old_len:
-                raise ValueError(
-                    f"Length mismatch: Expected axis has {old_len} elements, new "
-                    f"values have {new_len} elements"
-                )
-
         self._axes[axis] = new_labels
 
     def consolidate(self: T) -> T:
@@ -273,9 +263,6 @@ class BaseArrayManager(DataManager):
             new_axes = [self._axes[0], self._axes[1][result_indices]]
         else:
             new_axes = self._axes
-
-        if len(result_arrays) == 0:
-            return self.make_empty(new_axes)
 
         # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
         # expected "List[Union[ndarray, ExtensionArray]]"
@@ -487,7 +474,7 @@ class BaseArrayManager(DataManager):
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
         arrays = [self.arrays[i] for i in indices]
         # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="int64")]]
+        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="intp")]]
         return type(self)(arrays, new_axes, verify_integrity=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
@@ -696,7 +683,6 @@ class BaseArrayManager(DataManager):
             return True
 
     # TODO
-    # equals
     # to_dict
 
 
@@ -716,7 +702,7 @@ class ArrayManager(BaseArrayManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
-            self.arrays = [ensure_wrapped_if_datetimelike(arr) for arr in arrays]
+            self.arrays = [maybe_coerce_values(arr) for arr in arrays]
             self._verify_integrity()
 
     def _verify_integrity(self) -> None:
@@ -829,7 +815,7 @@ class ArrayManager(BaseArrayManager):
 
             # TODO we receive a datetime/timedelta64 ndarray from DataFrame._iset_item
             # but we should avoid that and pass directly the proper array
-            value = ensure_wrapped_if_datetimelike(value)
+            value = maybe_coerce_values(value)
 
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
@@ -888,7 +874,7 @@ class ArrayManager(BaseArrayManager):
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
                 )
-        value = ensure_wrapped_if_datetimelike(value)
+        value = maybe_coerce_values(value)
 
         # TODO self.arrays can be empty
         # assert len(value) == len(self.arrays[0])
@@ -1203,7 +1189,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             assert len(arrays) == 1
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
-            arr = ensure_wrapped_if_datetimelike(arr)
+            arr = maybe_coerce_values(arr)
             if isinstance(arr, ABCPandasArray):
                 arr = arr.to_numpy()
             self.arrays = [arr]

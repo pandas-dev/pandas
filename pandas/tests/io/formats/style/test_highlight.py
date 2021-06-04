@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     IndexSlice,
 )
+import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 
@@ -54,7 +55,9 @@ def test_highlight_minmax_basic(df, f):
     }
     if f == "highlight_min":
         df = -df
-    result = getattr(df.style, f)(axis=1, color="red")._compute().ctx
+    with tm.assert_produces_warning(RuntimeWarning):
+        # All-NaN slice encountered
+        result = getattr(df.style, f)(axis=1, color="red")._compute().ctx
     assert result == expected
 
 
