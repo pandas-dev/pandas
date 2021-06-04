@@ -646,7 +646,7 @@ def test_concat_posargs_deprecation():
     df2 = DataFrame([[4, 5, 6]], index=["b"])
 
     msg = (
-        "In a future version of pandas all arguments of concat"
+        "In a future version of pandas all arguments of concat "
         "except for the argument 'objs' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):

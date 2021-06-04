@@ -55,7 +55,6 @@ if TYPE_CHECKING:
 # Concatenate DataFrame objects
 
 
-@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
@@ -88,6 +87,7 @@ def concat(
     ...
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
     axis=0,
