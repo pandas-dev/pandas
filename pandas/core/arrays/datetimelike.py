@@ -1677,11 +1677,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
 
-    def copy(self: TimelikeOpsT) -> TimelikeOpsT:
-        result = super().copy()
-        result._freq = self._freq
-        return result
-
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
         if is_datetime64tz_dtype(self.dtype):

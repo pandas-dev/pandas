@@ -2813,7 +2813,7 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup, side="left"):
+    def _partial_tup_index(self, tup: tuple, side="left"):
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "

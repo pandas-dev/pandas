@@ -360,9 +360,6 @@ class Index(IndexOpsMixin, PandasObject):
     _can_hold_na: bool = True
     _can_hold_strings: bool = True
 
-    # would we like our indexing holder to defer to us
-    _defer_to_indexing = False
-
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
