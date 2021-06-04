@@ -25,7 +25,6 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
-    ints_to_pydatetime,
     parsing,
     timezones,
     to_offset,
@@ -40,6 +39,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -256,11 +256,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _comparables = ["name", "freqstr", "tz"]
-    _attributes = ["name", "tz", "freq"]
-
-    _is_numeric_dtype = False
-
     _data: DatetimeArray
     inferred_freq: str | None
     tz: tzinfo | None
@@ -390,10 +385,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-
-    def _mpl_repr(self) -> np.ndarray:
-        # how to represent ourselves to matplotlib
-        return ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
@@ -660,7 +651,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version.  "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
     def get_loc(self, key, method=None, tolerance=None):
         """

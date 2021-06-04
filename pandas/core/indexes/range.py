@@ -97,7 +97,6 @@ class RangeIndex(NumericIndex):
     _typ = "rangeindex"
     _engine_type = libindex.Int64Engine
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
-    _can_hold_na = False
     _range: range
 
     # --------------------------------------------------------------------
@@ -603,11 +602,6 @@ class RangeIndex(NumericIndex):
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
         no_steps = -(-(lower_limit - self.start) // abs(self.step))
-        return self.start + abs(self.step) * no_steps
-
-    def _max_fitting_element(self, upper_limit: int) -> int:
-        """Returns the largest element smaller than or equal to the limit"""
-        no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
 
     def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
