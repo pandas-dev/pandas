@@ -51,8 +51,11 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
+    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -1297,6 +1300,11 @@ class _LocIndexer(_LocationIndexer):
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
         self._validate_read_indexer(keyarr, indexer, axis)
+
+        if isinstance(ax, (IntervalIndex, CategoricalIndex)):
+            # take instead of reindex to preserve dtype.  For IntervalIndex
+            #  this is to map integers to the Intervals they match to.
+            keyarr = ax.take(indexer)
         return keyarr, indexer
 
     def _validate_read_indexer(self, key, indexer, axis: int):
@@ -1329,13 +1337,22 @@ class _LocIndexer(_LocationIndexer):
         missing = (missing_mask).sum()
 
         if missing:
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
             ax = self.obj._get_axis(axis)
 
-            not_found = list(set(key) - set(ax))
+            # TODO: remove special-case; this is just to keep exception
+            #  message tests from raising while debugging
+            use_interval_msg = isinstance(ax, IntervalIndex) or (
+                isinstance(ax, CategoricalIndex)
+                and isinstance(ax.categories, IntervalIndex)
+            )
+
+            if missing == len(indexer):
+                axis_name = self.obj._get_axis_name(axis)
+                if use_interval_msg:
+                    key = list(key)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
             raise KeyError(f"{not_found} not in index")
 
 
