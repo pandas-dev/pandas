@@ -1528,6 +1528,8 @@ def maybe_infer_to_datetimelike(
             return td_values.reshape(shape)
 
     inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
+    if inferred_type in ["period", "interval"]:
+        return lib.maybe_convert_objects(v, convert_period=True, convert_interval=True)
 
     if inferred_type == "datetime":
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
@@ -1564,7 +1566,6 @@ def maybe_infer_to_datetimelike(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        # return v.reshape(shape)
     return value
 
 
