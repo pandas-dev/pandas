@@ -8,6 +8,7 @@ import re
 import numpy as np
 import pytest
 
+import pandas._libs.lib as lib
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -301,6 +302,12 @@ def test_constructor_nan_like(na):
     tm.assert_extension_array_equal(
         pd.arrays.StringArray(np.array(["a", na], dtype="object")), expected
     )
+
+
+def test_invalid_coerce_raises():
+    data = np.array(["a", "b'"], dtype=object)
+    with pytest.raises(ValueError, match="coerce argument is not valid"):
+        lib.ensure_string_array(data, coerce="abcd")
 
 
 @pytest.mark.parametrize("copy", [True, False])

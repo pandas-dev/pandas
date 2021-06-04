@@ -719,6 +719,8 @@ cpdef ndarray[object] ensure_string_array(
     np.ndarray[object]
         An array with the input array's elements casted to str or nan-like.
     """
+    if coerce not in {"all", "strict-null", "null", "non-null", None}:
+        raise ValueError("coerce argument is not valid")
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         set strict_na_values = {C_NA, np.nan, None}
