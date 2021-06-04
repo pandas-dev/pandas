@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
@@ -23,6 +24,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
+from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -317,12 +319,7 @@ def array(
             return PeriodArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "interval":
-            try:
-                return IntervalArray(data, copy=copy)
-            except ValueError:
-                # We may have a mixture of `closed` here.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return IntervalArray(data, copy=copy)
 
         elif inferred_dtype.startswith("datetime"):
             # datetime, datetime64
@@ -515,7 +512,24 @@ def sanitize_array(
             # possibility of nan -> garbage
             try:
                 subarr = _try_cast(data, dtype, copy, True)
+            except IntCastingNaNError:
+                subarr = np.array(data, copy=copy)
             except ValueError:
+                if not raise_cast_failure:
+                    # i.e. called via DataFrame constructor
+                    warnings.warn(
+                        "In a future version, passing float-dtype values and an "
+                        "integer dtype to DataFrame will retain floating dtype "
+                        "if they cannot be cast losslessly (matching Series behavior). "
+                        "To retain the old behavior, use DataFrame(data).astype(dtype)",
+                        FutureWarning,
+                        stacklevel=4,
+                    )
+                    # GH#40110 until the deprecation is enforced, we _dont_
+                    #  ignore the dtype for DataFrame, and _do_ cast even though
+                    #  it is lossy.
+                    dtype = cast(np.dtype, dtype)
+                    return np.array(data, dtype=dtype, copy=copy)
                 subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
@@ -745,6 +759,17 @@ def _try_cast(
         if raise_cast_failure:
             raise
         else:
+            # we only get here with raise_cast_failure False, which means
+            #  called via the DataFrame constructor
+            # GH#24435
+            warnings.warn(
+                f"Could not cast to {dtype}, falling back to object. This "
+                "behavior is deprecated. In a future version, when a dtype is "
+                "passed to 'DataFrame', either all columns will be cast to that "
+                "dtype, or a TypeError will be raised",
+                FutureWarning,
+                stacklevel=7,
+            )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
 

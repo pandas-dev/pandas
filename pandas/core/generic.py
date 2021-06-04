@@ -3756,6 +3756,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
+
+        if isinstance(key, list):
+            warnings.warn(
+                "Passing lists as key for xs is deprecated and will be removed in a "
+                "future version. Pass key as a tuple instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if level is not None:
             if not isinstance(labels, MultiIndex):
                 raise TypeError("Index must be a MultiIndex")
@@ -8315,8 +8324,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             How to rank NaN values:
 
             * keep: assign NaN rank to NaN values
-            * top: assign smallest rank to NaN values if ascending
-            * bottom: assign highest rank to NaN values if ascending.
+            * top: assign lowest rank to NaN values
+            * bottom: assign highest rank to NaN values
 
         ascending : bool, default True
             Whether or not the elements should be ranked in ascending order.
