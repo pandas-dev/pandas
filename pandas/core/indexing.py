@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -1301,10 +1302,19 @@ class _LocIndexer(_LocationIndexer):
 
         self._validate_read_indexer(keyarr, indexer, axis)
 
-        if isinstance(ax, (IntervalIndex, CategoricalIndex)):
-            # take instead of reindex to preserve dtype.  For IntervalIndex
-            #  this is to map integers to the Intervals they match to.
+        if needs_i8_conversion(ax.dtype) or isinstance(
+            ax, (IntervalIndex, CategoricalIndex)
+        ):
+            # For CategoricalIndex take instead of reindex to preserve dtype.
+            #  For IntervalIndex this is to map integers to the Intervals they match to.
             keyarr = ax.take(indexer)
+            if keyarr.dtype.kind in ["m", "M"]:
+                # DTI/TDI.take can infer a freq in some cases when we dont want one
+                if isinstance(key, list) or (
+                    isinstance(key, type(ax)) and key.freq is None
+                ):
+                    keyarr = keyarr._with_freq(None)
+
         return keyarr, indexer
 
     def _validate_read_indexer(self, key, indexer, axis: int):
