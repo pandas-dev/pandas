@@ -431,7 +431,7 @@ def test_arrow_array(dtype):
 
 
 @td.skip_if_no("pyarrow")
-def test_arrow_roundtrip(dtype):
+def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
     import pyarrow as pa
 
@@ -439,15 +439,17 @@ def test_arrow_roundtrip(dtype):
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
     assert table.field("a").type == "string"
-    result = table.to_pandas()
-    assert isinstance(result["a"].dtype, type(dtype))
-    tm.assert_frame_equal(result, df)
+    with pd.option_context("string_storage", string_storage2):
+        result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    expected = df.astype(f"string[{string_storage2}]")
+    tm.assert_frame_equal(result, expected)
     # ensure the missing value is represented by NA and not np.nan or None
     assert result.loc[2, "a"] is pd.NA
 
 
 @td.skip_if_no("pyarrow")
-def test_arrow_load_from_zero_chunks(dtype):
+def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
     import pyarrow as pa
 
@@ -457,9 +459,11 @@ def test_arrow_load_from_zero_chunks(dtype):
     assert table.field("a").type == "string"
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
-    result = table.to_pandas()
-    assert isinstance(result["a"].dtype, type(dtype))
-    tm.assert_frame_equal(result, df)
+    with pd.option_context("string_storage", string_storage2):
+        result = table.to_pandas()
+    assert isinstance(result["a"].dtype, pd.StringDtype)
+    expected = df.astype(f"string[{string_storage2}]")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_value_counts_na(dtype):

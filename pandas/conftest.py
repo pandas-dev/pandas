@@ -1152,6 +1152,10 @@ def string_storage(request):
     return request.param
 
 
+# Alias so we can test with cartesian product of string_storage
+string_storage2 = string_storage
+
+
 @pytest.fixture(params=tm.BYTES_DTYPES)
 def bytes_dtype(request):
     """
