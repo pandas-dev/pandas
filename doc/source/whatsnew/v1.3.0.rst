@@ -142,7 +142,7 @@ properly format HTML and eliminate some inconsistencies (:issue:`39942` :issue:`
 One also has greater control of the display through separate sparsification of the index or columns, using the new 'styler' options context (:issue:`41142`).
 
 We have added an extension to allow LaTeX styling as an alternative to CSS styling and a method :meth:`.Styler.to_latex`
-which renders the necessary LaTeX format including built-up styles. An additional file io function :meth:`Styler.to_html` has been added for convenience (:issue:`40312`).
+which renders the necessary LaTeX format including built-up styles. An additional file io function :meth:`.Styler.to_html` has been added for convenience (:issue:`40312`).
 
 Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
@@ -217,7 +217,7 @@ Other enhancements
 - :meth:`.Styler.format` adds keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
 - :meth:`.Styler.background_gradient` now allows the ability to supply a specific gradient map (:issue:`22727`)
 - :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
-- Builtin highlighting methods in :class:`Styler` have a more consistent signature and css customisability (:issue:`40242`)
+- Builtin highlighting methods in :class:`.Styler` have a more consistent signature and css customisability (:issue:`40242`)
 - :meth:`.Styler.highlight_between` added to list of builtin styling methods (:issue:`39821`)
 - :meth:`Series.loc.__getitem__` and :meth:`Series.loc.__setitem__` with :class:`MultiIndex` now raising helpful error message when indexer has too many dimensions (:issue:`35349`)
 - :func:`read_stata` now supports reading data from compressed files (:issue:`26599`)
@@ -247,7 +247,7 @@ These are bug fixes that might have notable behavior changes.
 ``Categorical.unique`` now always maintains same dtype as original
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, when calling :meth:`Categorical.unique` with categorical data, unused categories in the new array
+Previously, when calling :meth:`~Categorical.unique` with categorical data, unused categories in the new array
 would be removed, meaning that the dtype of the new array would be different than the
 original, if some categories are not present in the unique array (:issue:`18291`)
 
@@ -277,8 +277,8 @@ As an example of this, given:
         unique
         original.dtype == unique.dtype
 
-Preserve dtypes in  :meth:`DataFrame.combine_first`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Preserve dtypes in :meth:`DataFrame.combine_first`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :meth:`DataFrame.combine_first` will now preserve dtypes (:issue:`7509`)
 
@@ -1124,8 +1124,8 @@ Other
 - ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
 - Bug in :meth:`Series.where` with numeric dtype and ``other = None`` not casting to ``nan`` (:issue:`39761`)
 - :meth:`Index.where` behavior now mirrors :meth:`Index.putmask` behavior, i.e. ``index.where(mask, other)`` matches ``index.putmask(~mask, other)`` (:issue:`39412`)
-- Bug in :func:`pandas.testing.assert_series_equal`, :func:`pandas.testing.assert_frame_equal`, :func:`pandas.testing.assert_index_equal` and :func:`pandas.testing.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
-- Bug in :func:`pandas.testing.assert_index_equal` with ``exact=True`` not raising when comparing :class:`CategoricalIndex` instances with ``Int64Index`` and ``RangeIndex`` categories (:issue:`41263`)
+- Bug in :func:`.assert_series_equal`, :func:`.assert_frame_equal`, :func:`.assert_index_equal` and :func:`.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
+- Bug in :func:`.assert_index_equal` with ``exact=True`` not raising when comparing :class:`CategoricalIndex` instances with ``Int64Index`` and ``RangeIndex`` categories (:issue:`41263`)
 - Bug in :meth:`DataFrame.equals`, :meth:`Series.equals`, :meth:`Index.equals` with object-dtype containing ``np.datetime64("NaT")`` or ``np.timedelta64("NaT")`` (:issue:`39650`)
 - Bug in :func:`show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - Let Pandas compile on z/OS when using `xlc <https://www.ibm.com/products/xl-cpp-compiler-zos>`_ (:issue:`35826`)
