@@ -32,7 +32,6 @@ from pandas.core.dtypes.base import (
 )
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
@@ -726,6 +725,10 @@ def _try_cast(
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
+    elif dtype.kind == "U":
+        # TODO: test cases with arr.dtype.kind in ["m", "M"]
+        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy)
+
     elif dtype.kind in ["m", "M"]:
         return maybe_cast_to_datetime(arr, dtype)
 
@@ -735,16 +738,12 @@ def _try_cast(
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            maybe_cast_to_integer_array(arr, dtype)
-            subarr = arr
+            subarr = maybe_cast_to_integer_array(arr, dtype)
         else:
-            subarr = arr
-
-        if not isinstance(subarr, ABCExtensionArray):
             # 4 tests fail if we move this to a try/except/else; see
             #  test_constructor_compound_dtypes, test_constructor_cast_failure
             #  test_constructor_dict_cast2, test_loc_setitem_dtype
-            subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
+            subarr = np.array(arr, dtype=dtype, copy=copy)
 
     except (ValueError, TypeError):
         if raise_cast_failure:
