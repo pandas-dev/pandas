@@ -1308,11 +1308,11 @@ class _LocIndexer(_LocationIndexer):
             # For CategoricalIndex take instead of reindex to preserve dtype.
             #  For IntervalIndex this is to map integers to the Intervals they match to.
             keyarr = ax.take(indexer)
-            if isinstance(key, list) or (
-                isinstance(key, type(ax)) and key.freq is None
-            ):
+            if keyarr.dtype.kind in ["m", "M"]:
                 # DTI/TDI.take can infer a freq in some cases when we dont want one
-                if keyarr.dtype.kind in ["m", "M"]:
+                if isinstance(key, list) or (
+                    isinstance(key, type(ax)) and key.freq is None
+                ):
                     keyarr = keyarr._with_freq(None)
 
         return keyarr, indexer
