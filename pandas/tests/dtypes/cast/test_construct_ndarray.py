@@ -1,9 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.cast import construct_1d_ndarray_preserving_na
-
 import pandas._testing as tm
+from pandas.core.construction import sanitize_array
 
 
 @pytest.mark.parametrize(
@@ -17,7 +16,7 @@ import pandas._testing as tm
     ],
 )
 def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
-    result = construct_1d_ndarray_preserving_na(values, dtype=dtype)
+    result = sanitize_array(values, index=None, dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -27,5 +26,5 @@ def test_construct_1d_ndarray_preserving_na_datetimelike(dtype):
     expected = np.array(list(arr), dtype=object)
     assert all(isinstance(x, type(arr[0])) for x in expected)
 
-    result = construct_1d_ndarray_preserving_na(arr, np.dtype(object))
+    result = sanitize_array(arr, index=None, dtype=np.dtype(object))
     tm.assert_numpy_array_equal(result, expected)
