@@ -745,8 +745,8 @@ styler_sparse_columns_doc = """
 
 styler_max_elements = """
 : int
-    The maximum number of data-cell (<td>) elements that will b rendered before
-    trimming will occur over columns, rows or both.
+    The maximum number of data-cell (<td>) elements that will be rendered before
+    trimming will occur over columns, rows or both if needed.
 """
 
 with cf.config_prefix("styler"):
@@ -757,5 +757,5 @@ with cf.config_prefix("styler"):
     )
 
     cf.register_option(
-        "max.elements", 2 ** 18, styler_sparse_columns_doc, validator=bool
+        "render.max_elements", 2 ** 18, styler_max_elements, validator=bool
     )

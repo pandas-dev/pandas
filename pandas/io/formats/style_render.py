@@ -190,7 +190,7 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        max_elements = get_option("styler.max.elements")
+        max_elements = get_option("styler.render.max_elements")
         max_rows, max_cols = _get_trimming_maximums(
             len(self.data.index), len(self.data.columns), max_elements
         )

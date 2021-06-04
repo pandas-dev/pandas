@@ -126,14 +126,14 @@ def test_trimming_maximum():
 
 def test_render_trimming():
     df = DataFrame(np.arange(120).reshape(60, 2))
-    with pd.option_context("styler.max.elements", 6):
+    with pd.option_context("styler.render.max_elements", 6):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 3  # index + 2 data cols
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
     assert len(ctx["body"][0]) == 3  # index + 2 data cols
 
     df = DataFrame(np.arange(120).reshape(12, 10))
-    with pd.option_context("styler.max.elements", 6):
+    with pd.option_context("styler.render.max_elements", 6):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
@@ -143,7 +143,7 @@ def test_render_trimming():
 def test_render_trimming_mi():
     midx = MultiIndex.from_product([[1, 2], [1, 2, 3]])
     df = DataFrame(np.arange(36).reshape(6, 6), columns=midx, index=midx)
-    with pd.option_context("styler.max.elements", 4):
+    with pd.option_context("styler.render.max_elements", 4):
         ctx = df.style._translate(True, True)
 
     assert len(ctx["body"][0]) == 5  # 2 indexes + 2 data cols + trimming row
