@@ -10177,7 +10177,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = _data
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
-        rs = data / shifted - 1
+        # Unsupported left operand type for / ("FrameOrSeries")
+        rs = data / shifted - 1  # type: ignore[operator]
         if freq is not None:
             # Shift method is implemented differently when freq is not None
             # We want to restore the original index
