@@ -98,6 +98,7 @@ from pandas._libs.missing cimport (
     is_null_timedelta64,
     isnaobj,
 )
+from pandas._libs.missing import checknull
 from pandas._libs.tslibs.conversion cimport convert_to_tsobject
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -682,15 +683,14 @@ def astype_intsafe(ndarray[object] arr, cnp.dtype new_dtype) -> ndarray:
 cpdef ndarray[object] ensure_string_array(
         arr,
         object na_value=np.nan,
-        bint convert_na_value=True,
-        bint coerce=True,
+        coerce="all",
         bint copy=True,
         bint skipna=True,
 ):
     """
-    Checks that all elements in numpy are string or null and returns a new numpy array
-    with object dtype and only strings and na values if so. Otherwise,
-    raise a ValueError.
+    Checks that all elements in numpy array are string or null
+    and returns a new numpy array with object dtype
+    and only strings and na values if so. Otherwise, raise a ValueError.
 
     Parameters
     ----------
@@ -698,11 +698,16 @@ cpdef ndarray[object] ensure_string_array(
         The values to be converted to str, if needed.
     na_value : Any, default np.nan
         The value to use for na. For example, np.nan or pd.NA.
-    convert_na_value : bool, default True
-        If False, existing na values will be used unchanged in the new array.
-    coerce : bool, default True
-        Whether to coerce non-null non-string elements to strings.
-        Will raise ValueError otherwise.
+    coerce : {{'all', 'null', 'non-null', None}}, default 'all'
+        Whether to coerce non-string elements to strings.
+            - 'all' will convert null values and non-null non-string values.
+            - 'strict-null' will only convert pd.NA, np.nan, or None to na_value
+              without converting other non-strings.
+            - 'null' will convert nulls to na_value w/out converting other non-strings.
+            - 'non-null' will only convert non-null non-string elements to string.
+            - None will not convert anything.
+        If coerce is not 'all', a ValueError will be raised for values
+        that are not strings or na_value.
     copy : bool, default True
         Whether to ensure that a new array is returned.
     skipna : bool, default True
@@ -716,6 +721,7 @@ cpdef ndarray[object] ensure_string_array(
     """
     cdef:
         Py_ssize_t i = 0, n = len(arr)
+        set strict_na_values = {C_NA, np.nan, None}
 
     if hasattr(arr, "to_numpy"):
         arr = arr.to_numpy()
@@ -727,19 +733,27 @@ cpdef ndarray[object] ensure_string_array(
     if copy and result is arr:
         result = result.copy()
 
+    if coerce == 'strict-null':
+        # We don't use checknull, since NaT, Decimal("NaN"), etc. aren't valid
+        # If they are present, they are treated like a regular Python object
+        # and will either cause an exception to be raised or be coerced.
+        check_null = strict_na_values.__contains__
+    else:
+        check_null = checknull
+
     for i in range(n):
         val = arr[i]
 
         if isinstance(val, str):
             continue
 
-        if not checknull(val):
-            if coerce:
+        if not check_null(val):
+            if coerce =="all" or coerce == "non-null":
                 result[i] = str(val)
             else:
                 raise ValueError("Non-string element encountered in array.")
         else:
-            if convert_na_value:
+            if coerce=="all" or coerce == "null" or coerce == 'strict-null':
                 val = na_value
             if skipna:
                 result[i] = val
@@ -1856,8 +1870,8 @@ cdef class StringValidator(Validator):
         return issubclass(self.dtype.type, np.str_)
 
     cdef bint is_valid_null(self, object value) except -1:
-        # We deliberately exclude None / NaN here since StringArray uses NA
-        return value is C_NA
+        # Override to exclude float('Nan') and complex NaN
+        return value is None or value is C_NA or value is np.nan
 
 
 cpdef bint is_string_array(ndarray values, bint skipna=False):
@@ -2154,7 +2168,7 @@ def maybe_convert_numeric(
         upcasting for ints with nulls to float64.
     Returns
     -------
-    np.ndarray or tuple of converted values and its mask
+    np.ndarray
         Array of converted object values to numerical ones.
 
     Optional[np.ndarray]
@@ -2313,11 +2327,6 @@ def maybe_convert_numeric(
 
     if seen.check_uint64_conflict():
         return (values, None)
-
-    # This occurs since we disabled float nulls showing as null in anticipation
-    # of seeing ints that were never seen. So then, we return float
-    if allow_null_in_int and seen.null_ and not seen.int_:
-        seen.float_ = True
 
     # This occurs since we disabled float nulls showing as null in anticipation
     # of seeing ints that were never seen. So then, we return float

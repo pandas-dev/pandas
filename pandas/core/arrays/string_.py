@@ -144,10 +144,17 @@ class StringArray(PandasArray):
         .. warning::
 
            Currently, this expects an object-dtype ndarray
-           where the elements are Python strings or :attr:`pandas.NA`.
+           where the elements are Python strings
+           or nan-likes(``None``, ``nan``, ``NA``).
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
+
+        .. versionchanged:: 1.3
+
+           StringArray now accepts nan-likes in the constructor in addition
+           to strings, whereas it only accepted strings and :attr:`pandas.NA`
+           before.
 
     copy : bool, default False
         Whether to copy the array of data.
@@ -223,18 +230,18 @@ class StringArray(PandasArray):
             )
         try:
             lib.ensure_string_array(
-                self._ndarray, na_value=StringDtype.na_value, coerce=False, copy=False
-            ),
-            NDArrayBacked.__init__(
-                self,
                 self._ndarray,
-                StringDtype(),
+                na_value=StringDtype.na_value,
+                coerce="strict-null",
+                copy=False,
             )
         except ValueError:
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy=False, coerce=True
+    ):
         if dtype:
             assert dtype == "string"
 
@@ -242,15 +249,23 @@ class StringArray(PandasArray):
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
+            if coerce:
+                coerce = "non-null"
+            else:
+                coerce = None
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(result, copy=copy, coerce=coerce)
             result[na_values] = StringDtype.na_value
 
         else:
             # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+            if coerce:
+                coerce = "all"
+            else:
+                coerce = "strict-null"
             result = lib.ensure_string_array(
-                scalars, na_value=StringDtype.na_value, copy=copy
+                scalars, na_value=StringDtype.na_value, copy=copy, coerce=coerce
             )
 
         # Manually creating new array avoids the validation step in the __init__, so is
