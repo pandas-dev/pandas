@@ -315,7 +315,7 @@ def makeNumericIndex(k=10, name=None, *, dtype):
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
 
-    return Index(values, dtype=dtype, name=name)
+    return NumericIndex(values, dtype=dtype, name=name)
 
 
 def makeIntIndex(k=10, name=None):

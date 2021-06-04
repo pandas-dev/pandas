@@ -197,18 +197,14 @@ class NumericIndex(Index):
         """
         Ensure int64 dtype for Int64Index etc. but allow int32 etc. for NumericIndex.
 
-        Assumed dtype has already been validated.
+        Assumes dtype has already been validated.
         """
         if dtype is None:
             return cls._default_dtype
 
         dtype = pandas_dtype(dtype)
         assert isinstance(dtype, np.dtype)
-
-        if cls._default_dtype is None:
-            return dtype
-        else:
-            return cls._default_dtype
+        return dtype
 
     def __contains__(self, key) -> bool:
         """
@@ -357,6 +353,16 @@ class IntegerIndex(NumericIndex):
 
     _is_numeric_index: bool = False
 
+    @classmethod
+    @doc(NumericIndex._ensure_dtype)
+    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
+        if dtype is None:
+            return cls._default_dtype
+        dtype = pandas_dtype(dtype)
+        assert isinstance(dtype, np.dtype)
+
+        return cls._default_dtype
+
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
@@ -422,3 +428,13 @@ class Float64Index(NumericIndex):
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
     _is_numeric_index: bool = False
+
+    @classmethod
+    @doc(NumericIndex._ensure_dtype)
+    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
+        if dtype is None:
+            return cls._default_dtype
+        dtype = pandas_dtype(dtype)
+        assert isinstance(dtype, np.dtype)
+
+        return cls._default_dtype
