@@ -303,5 +303,5 @@ def test_interpolate_posargs_deprecation():
     )
     expected = Series([1.0, 1.0, 1.0, 1.0], index=idx)
 
-    expected.index.freq = "3s"
+    expected.index._data.freq = "3s"
     tm.assert_series_equal(result, expected)
