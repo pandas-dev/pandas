@@ -8,7 +8,7 @@ from pandas.core.construction import sanitize_array
 @pytest.mark.parametrize(
     "values, dtype, expected",
     [
-        ([1, 2, 3], None, np.array([1, 2, 3])),
+        ([1, 2, 3], None, np.array([1, 2, 3], dtype=np.int64)),
         (np.array([1, 2, 3]), None, np.array([1, 2, 3])),
         (["1", "2", None], None, np.array(["1", "2", None])),
         (["1", "2", None], np.dtype("str"), np.array(["1", "2", None])),
