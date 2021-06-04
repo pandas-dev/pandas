@@ -892,6 +892,7 @@ Conversion
 - Bug in :meth:`qcut` raising error when taking ``Float64DType`` as input (:issue:`40730`)
 - Bug in :class:`DataFrame` and :class:`Series` construction with ``datetime64[ns]`` data and ``dtype=object`` resulting in ``datetime`` objects instead of :class:`Timestamp` objects (:issue:`41599`)
 - Bug in :class:`DataFrame` and :class:`Series` construction with ``timedelta64[ns]`` data and ``dtype=object`` resulting in ``np.timedelta64`` objects instead of :class:`Timedelta` objects (:issue:`41599`)
+- Bug in :class:`DataFrame` construction when given a two-dimensional object-dtype ``np.ndarray`` of :class:`Period` or :class:`Interval` objects failing to cast to :class:`PeriodDtype` or :class:`IntervalDtype`, respectively (:issue:`41812`)
 
 Strings
 ^^^^^^^

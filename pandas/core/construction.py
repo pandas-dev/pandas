@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_string_dtype,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -565,17 +564,10 @@ def sanitize_array(
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
-    if not (
-        isinstance(subarr.dtype, ExtensionDtype) or isinstance(dtype, ExtensionDtype)
-    ):
+    if isinstance(subarr, np.ndarray):
+        # at this point we should have dtype be None or subarr.dtype == dtype
+        dtype = cast(np.dtype, dtype)
         subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
-
-        is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
-        if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
-            inferred = lib.infer_dtype(subarr, skipna=False)
-            if inferred in {"interval", "period"}:
-                subarr = array(subarr)
-                subarr = extract_array(subarr, extract_numpy=True)
 
     return subarr
 
