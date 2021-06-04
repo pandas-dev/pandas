@@ -145,7 +145,7 @@ class StringArray(PandasArray):
 
            Currently, this expects an object-dtype ndarray
            where the elements are Python strings
-           or nan-likes(``None``, ``nan``, ``NaT``, ``NA``, Decimal("NaN")).
+           or nan-likes(``None``, ``nan``, ``NA``).
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
@@ -239,7 +239,9 @@ class StringArray(PandasArray):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(
+        cls, scalars, *, dtype: Dtype | None = None, copy=False, coerce=True
+    ):
         if dtype:
             assert dtype == "string"
 
@@ -247,15 +249,23 @@ class StringArray(PandasArray):
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype
+            if coerce:
+                coerce = "non-null"
+            else:
+                coerce = None
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, coerce="non-null")
+            result = lib.ensure_string_array(result, copy=copy, coerce=coerce)
             result[na_values] = StringDtype.na_value
 
         else:
             # convert non-na-likes to str, and nan-likes to StringDtype.na_value
+            if coerce:
+                coerce = "all"
+            else:
+                coerce = "strict-null"
             result = lib.ensure_string_array(
-                scalars, na_value=StringDtype.na_value, copy=copy
+                scalars, na_value=StringDtype.na_value, copy=copy, coerce=coerce
             )
 
         # Manually creating new array avoids the validation step in the __init__, so is

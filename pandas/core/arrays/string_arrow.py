@@ -237,7 +237,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             )
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
+    def _from_sequence(
+        cls, scalars, dtype: Dtype | None = None, copy: bool = False, coerce=True
+    ):
         from pandas.core.arrays.masked import BaseMaskedArray
 
         _chk_pyarrow_available()
@@ -247,11 +249,19 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             # numerical issues with Float32Dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, coerce="non-null")
+            if coerce:
+                coerce = "non-null"
+            else:
+                coerce = None
+            result = lib.ensure_string_array(result, copy=copy, coerce=coerce)
             return cls(pa.array(result, mask=na_values, type=pa.string()))
 
         # convert non-na-likes to str
-        result = lib.ensure_string_array(scalars, copy=copy)
+        if coerce:
+            coerce = "all"
+        else:
+            coerce = "strict-null"
+        result = lib.ensure_string_array(scalars, copy=copy, coerce=coerce)
         return cls(pa.array(result, type=pa.string(), from_pandas=True))
 
     @classmethod
