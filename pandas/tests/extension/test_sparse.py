@@ -13,7 +13,6 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
-# from copy import deepcopy
 
 import numpy as np
 import pytest
@@ -178,6 +177,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         super().test_transpose(data)
 
     # Inherited tests that fail on Python 3.10 (TODO: remove test once passed)
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
     @pytest.mark.parametrize(
         "columns",
         [
