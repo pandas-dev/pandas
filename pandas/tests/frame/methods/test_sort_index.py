@@ -603,7 +603,7 @@ class TestDataFrameSortIndex:
 
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int64)
+        df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
 
         # it works!
         result = df.sort_index(level=0)
@@ -611,7 +611,7 @@ class TestDataFrameSortIndex:
 
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int32)
+        df = DataFrame(np.random.randn(4000).astype("int32"), index=index)
 
         # it works!
         result = df.sort_index(level=0)
@@ -774,6 +774,16 @@ class TestDataFrameSortIndex:
         match = 'For argument "ascending" expected type bool'
         with pytest.raises(ValueError, match=match):
             df.sort_index(axis=0, ascending=ascending, na_position="first")
+
+    def test_sort_index_use_inf_as_na(self):
+        # GH 29687
+        expected = DataFrame(
+            {"col1": [1, 2, 3], "col2": [3, 4, 5]},
+            index=pd.date_range("2020", periods=3),
+        )
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = expected.sort_index()
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSortIndexKey:

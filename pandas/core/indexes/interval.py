@@ -67,7 +67,6 @@ from pandas.core.algorithms import (
     take_nd,
     unique,
 )
-from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -422,12 +421,6 @@ class IntervalIndex(ExtensionIndex):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (type(self), d), None
 
-    @Appender(Index.astype.__doc__)
-    def astype(self, dtype, copy: bool = True):
-        with rewrite_exception("IntervalArray", type(self).__name__):
-            new_values = self._values.astype(dtype, copy=copy)
-        return Index(new_values, dtype=new_values.dtype, name=self.name)
-
     @property
     def inferred_type(self) -> str:
         """Return a string of the type inferred from the values"""
@@ -780,9 +773,11 @@ class IntervalIndex(ExtensionIndex):
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])
-            except InvalidIndexError as err:
-                # i.e. non-scalar key
-                raise TypeError(key) from err
+            except InvalidIndexError:
+                # i.e. non-scalar key e.g. a tuple.
+                # see test_append_different_columns_types_raises
+                missing.append(i)
+                locs = np.array([-1])
 
             indexer.append(locs)
 
@@ -820,20 +815,6 @@ class IntervalIndex(ExtensionIndex):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
-    @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr):
-        """
-        we are passed a list-like indexer. Return the
-        indexer for matching intervals.
-        """
-        locs = self.get_indexer_for(keyarr)
-
-        # we have missing values
-        if (locs == -1).any():
-            raise KeyError(keyarr[locs == -1].tolist())
-
-        return locs
-
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
@@ -857,46 +838,6 @@ class IntervalIndex(ExtensionIndex):
     @property
     def length(self) -> Index:
         return Index(self._data.length, copy=False)
-
-    def putmask(self, mask, value) -> Index:
-        mask, noop = validate_putmask(self._data, mask)
-        if noop:
-            return self.copy()
-
-        try:
-            self._validate_fill_value(value)
-        except (ValueError, TypeError):
-            dtype = self._find_common_type_compat(value)
-            return self.astype(dtype).putmask(mask, value)
-
-        arr = self._data.copy()
-        arr.putmask(mask, value)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def insert(self, loc: int, item):
-        """
-        Return a new IntervalIndex inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
-        objects and NA can be inserted into an IntervalIndex
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        try:
-            result = self._data.insert(loc, item)
-        except (ValueError, TypeError):
-            # e.g trying to insert a string
-            dtype, _ = infer_dtype_from_scalar(item, pandas_dtype=True)
-            dtype = find_common_type([self.dtype, dtype])
-            return self.astype(dtype).insert(loc, item)
-
-        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -1165,6 +1106,8 @@ def interval_range(
     if periods is not None:
         periods += 1
 
+    breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
+
     if is_number(endpoint):
         # force consistency between start/end/freq (lower end if freq skips it)
         if com.all_not_none(start, end, freq):
@@ -1190,16 +1133,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            # error: Incompatible types in assignment (expression has type
-            # "DatetimeIndex", variable has type "ndarray")
-            breaks = date_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "TimedeltaIndex", variable has type "ndarray")
-            breaks = timedelta_range(  # type: ignore[assignment]
-                start=start, end=end, periods=periods, freq=freq
-            )
+            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
