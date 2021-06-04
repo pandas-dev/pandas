@@ -178,7 +178,6 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         super().test_transpose(data)
 
     # Inherited tests that fail on Python 3.10 (TODO: remove test once passed)
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
     @pytest.mark.parametrize(
         "columns",
         [
@@ -189,7 +188,21 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         ],
     )
     def test_stack(self, data, columns):
-        super().test_stack(data, columns)
+        df = pd.DataFrame({"A": data[:5], "B": data[:5]})
+        df.columns = columns
+        result = df.stack()
+        expected = df.astype(object).stack()
+        # we need a second astype(object), in case the constructor inferred
+        # object -> specialized, as is done for period.
+        expected = expected.astype(object)
+
+        if isinstance(expected, pd.Series):
+            assert result.dtype == df.iloc[:, 0].dtype
+        else:
+            assert all(result.dtypes == df.iloc[:, 0].dtype)
+
+        result = result.astype(object)
+        self.assert_equal(result, expected)
 
     # test_stack = pytest.mark.xfail(PY310, reason="Failing on Python 3.10")(
     #     deepcopy(base.BaseReshapingTests.test_stack)
