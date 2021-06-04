@@ -815,6 +815,7 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
 - Performance improvement in :meth:`Series.nunique` with nan values (:issue:`40865`)
 - Performance improvement in :meth:`DataFrame.transpose`, :meth:`Series.unstack` with ``DatetimeTZDtype`` (:issue:`40149`)
+- Performance improvement in :meth:`Series.plot` and :meth:`DataFrame.plot` with entry point lazy loading (:issue:`41492`)
 
 .. ---------------------------------------------------------------------------
 
