@@ -228,8 +228,8 @@ class NumericIndex(Index):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
         if is_float_dtype(self.dtype):
-            dtype = pandas_dtype(dtype)
             if needs_i8_conversion(dtype):
                 raise TypeError(
                     f"Cannot convert Float64Index to dtype {dtype}; integer "
@@ -243,6 +243,9 @@ class NumericIndex(Index):
                     return Int64Index(arr, name=self.name)
                 else:
                     return NumericIndex(arr, name=self.name, dtype=dtype)
+        elif self._is_numeric_index:
+            if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
+                return type(self)(self, dtype=dtype, copy=copy)
 
         return super().astype(dtype, copy=copy)
 
@@ -272,21 +275,6 @@ class NumericIndex(Index):
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
-
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr) -> np.ndarray:
-        if not is_unsigned_integer_dtype(self.dtype):
-            return super()._convert_arr_indexer(keyarr)
-
-        # Cast the indexer to uint64 if possible so that the values returned
-        # from indexing are also uint64.
-        dtype = None
-        if is_integer_dtype(keyarr) or (
-            lib.infer_dtype(keyarr, skipna=False) == "integer"
-        ):
-            dtype = np.dtype(np.uint64)
-
-        return com.asarray_tuplesafe(keyarr, dtype=dtype)
 
     # ----------------------------------------------------------------
 

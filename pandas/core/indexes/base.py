@@ -2431,29 +2431,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return isinstance(self, ABCMultiIndex)
 
-    @final
-    @classmethod
-    def _is_numeric_index(cls) -> bool:
-        """
-        Check if this is a NumericIndex, but *not* Int64Index, UInt64Index, FloatIndex.
-
-        Used to check if an operation should return NumericIndex or plain Index.
-        """
-        from pandas import (
-            Float64Index,
-            Int64Index,
-            NumericIndex,
-            RangeIndex,
-            UInt64Index,
-        )
-
-        if not issubclass(cls, NumericIndex):
-            return False
-        elif issubclass(cls, (RangeIndex, Int64Index, UInt64Index, Float64Index)):
-            return False
-        else:
-            return True
-
     # --------------------------------------------------------------------
     # Pickle Methods
 
