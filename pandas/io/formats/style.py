@@ -462,7 +462,8 @@ class Styler(StylerRenderer):
             This is used with \\ref{<label>} in the main .tex file.
         caption : str, tuple, optional
             If string, the LaTeX table caption included as: \\caption{<caption>}.
-            If tuple, the caption included as: \\caption[<caption[1]>]{<caption[0]>}.
+            If tuple, i.e ("full caption", "short caption"), the caption included
+            as: \\caption[<caption[1]>]{<caption[0]>}.
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
