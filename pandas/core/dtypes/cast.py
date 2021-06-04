@@ -14,7 +14,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     Sized,
     cast,
     overload,
@@ -1969,59 +1968,6 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     result = np.empty(len(values), dtype="object")
     result[:] = values
     return result
-
-
-def construct_1d_ndarray_preserving_na(
-    values: Sequence, dtype: np.dtype | None = None, copy: bool = False
-) -> np.ndarray:
-    """
-    Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
-
-    Parameters
-    ----------
-    values : Sequence
-    dtype : numpy.dtype, optional
-    copy : bool, default False
-        Note that copies may still be made with ``copy=False`` if casting
-        is required.
-
-    Returns
-    -------
-    arr : ndarray[dtype]
-
-    Examples
-    --------
-    >>> np.array([1.0, 2.0, None], dtype='str')
-    array(['1.0', '2.0', 'None'], dtype='<U4')
-
-    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype=np.dtype('str'))
-    array(['1.0', '2.0', None], dtype=object)
-    """
-
-    if dtype is not None and dtype.kind == "U":
-        subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
-    else:
-        if dtype is not None:
-            _disallow_mismatched_datetimelike(values, dtype)
-
-        if (
-            dtype == object
-            and isinstance(values, np.ndarray)
-            and values.dtype.kind in ["m", "M"]
-        ):
-            # TODO(numpy#12550): special-case can be removed
-            subarr = construct_1d_object_array_from_listlike(list(values))
-        elif (
-            dtype is not None
-            and dtype.kind in ["i", "u"]
-            and isinstance(values, np.ndarray)
-            and values.dtype.kind == "f"
-        ):
-            return astype_float_to_int_nansafe(values, dtype, copy=copy)
-        else:
-            subarr = np.array(values, dtype=dtype, copy=copy)
-
-    return subarr
 
 
 def maybe_cast_to_integer_array(
