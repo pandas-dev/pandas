@@ -650,6 +650,6 @@ def test_concat_posargs_deprecation():
         "except for the argument 'objs' will be keyword-only"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df, df2], axis=0)
+        result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
