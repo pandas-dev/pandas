@@ -94,6 +94,8 @@ class TestFancy:
             msgs.append("Index data must be 1-dimensional")
         if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
             msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, (pd.TimedeltaIndex, pd.DatetimeIndex, pd.PeriodIndex)):
+            msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
         msg = "|".join(msgs)
@@ -127,6 +129,7 @@ class TestFancy:
                     r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
                     "Cannot set values with ndim > 1",
                     "Index data must be 1-dimensional",
+                    "Data must be 1-dimensional",
                     "Array conditional must be same shape as self",
                 ]
             )
