@@ -16,10 +16,6 @@ from pandas._libs.tslibs import (
 
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Timestamp.freq is deprecated:FutureWarning"
-)
-
 
 class TestTimestampArithmetic:
     def test_overflow_offset(self):
@@ -120,7 +116,7 @@ class TestTimestampArithmetic:
         td = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
             # freq deprecated
             ts = Timestamp(dt, freq="D")
 
@@ -154,6 +150,7 @@ class TestTimestampArithmetic:
             ("M", None, np.timedelta64(1, "M")),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
