@@ -67,5 +67,6 @@ Style export and import
    Styler.render
    Styler.export
    Styler.use
+   Styler.to_html
    Styler.to_excel
    Styler.to_latex

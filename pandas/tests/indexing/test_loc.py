@@ -1010,18 +1010,32 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
-        s = Series([1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max])
+        umax = np.iinfo("uint64").max
+        ser = Series([1, 2], index=[umax - 1, umax])
 
-        result = s.loc[np.iinfo("uint64").max - 1]
-        expected = s.iloc[0]
+        result = ser.loc[umax - 1]
+        expected = ser.iloc[0]
         assert result == expected
 
-        result = s.loc[[np.iinfo("uint64").max - 1]]
-        expected = s.iloc[[0]]
+        result = ser.loc[[umax - 1]]
+        expected = ser.iloc[[0]]
         tm.assert_series_equal(result, expected)
 
-        result = s.loc[[np.iinfo("uint64").max - 1, np.iinfo("uint64").max]]
-        tm.assert_series_equal(result, s)
+        result = ser.loc[[umax - 1, umax]]
+        tm.assert_series_equal(result, ser)
+
+    def test_loc_uint64_disallow_negative(self):
+        # GH#41775
+        umax = np.iinfo("uint64").max
+        ser = Series([1, 2], index=[umax - 1, umax])
+
+        with pytest.raises(KeyError, match="-1"):
+            # don't wrap around
+            ser.loc[-1]
+
+        with pytest.raises(KeyError, match="-1"):
+            # don't wrap around
+            ser.loc[[-1]]
 
     def test_loc_setitem_empty_append_expands_rows(self):
         # GH6173, various appends to an empty dataframe

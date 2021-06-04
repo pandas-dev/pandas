@@ -37,7 +37,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -630,7 +634,13 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         # This is needed for Categorical, but is kind of weird
         return True
 
-    # must be PeriodDType
+    elif isinstance(dtype, PeriodDtype):
+        return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
+
+    elif isinstance(dtype, IntervalDtype):
+        return lib.is_float(obj) or obj is None or obj is libmissing.NA
+
+    # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
 
 
