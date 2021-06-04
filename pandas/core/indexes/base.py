@@ -3428,7 +3428,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> np.ndarray:
         # returned ndarray is np.intp
         method = missing.clean_reindex_fill_method(method)
-        target = ensure_index(target)
+        target = self._maybe_cast_listlike_indexer(target)
 
         self._check_indexing_method(method)
 
@@ -3720,7 +3720,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
-        indexer = self._convert_list_indexer(keyarr)
+        indexer = None
         return indexer, keyarr
 
     def _convert_arr_indexer(self, keyarr) -> np.ndarray:
@@ -3737,22 +3737,6 @@ class Index(IndexOpsMixin, PandasObject):
         converted_keyarr : array-like
         """
         return com.asarray_tuplesafe(keyarr)
-
-    def _convert_list_indexer(self, keyarr):
-        """
-        Convert a list-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-        kind : iloc, loc, optional
-
-        Returns
-        -------
-        positional indexer or None
-        """
-        return None
 
     @final
     def _invalid_indexer(self, form: str_t, key) -> TypeError:
@@ -5693,6 +5677,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_floating():
             return com.cast_scalar_indexer(key)
         return key
+
+    def _maybe_cast_listlike_indexer(self, target) -> Index:
+        """
+        Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
+        """
+        return ensure_index(target)
 
     @final
     def _validate_indexer(self, form: str_t, key, kind: str_t):
