@@ -49,7 +49,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -599,7 +598,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         try:
             return self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            return com.asarray_tuplesafe(keyarr)
+            return super()._convert_arr_indexer(keyarr)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
@@ -631,10 +630,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     # --------------------------------------------------------------------
     # Set Operation Methods
-
-    def _difference(self, other, sort=None):
-        new_idx = super()._difference(other, sort=sort)._with_freq(None)
-        return new_idx
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
@@ -781,13 +776,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
         if self._can_fast_union(other):
             result = self._fast_union(other, sort=sort)
-            if sort is None:
-                # In the case where sort is None, _can_fast_union
-                #  implies that result.freq should match self.freq
-                assert result.freq == self.freq, (result.freq, self.freq)
-            elif result.freq is None:
-                # TODO: no tests rely on this; needed?
-                result = result._with_freq("infer")
+            # in the case with sort=None, the _can_fast_union check ensures
+            #  that result.freq == self.freq
             return result
         else:
             i8self = Int64Index._simple_new(self.asi8)

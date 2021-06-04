@@ -84,6 +84,10 @@ from pandas._libs.util cimport (
 )
 
 from pandas._libs.tslib import array_to_datetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas._libs.tslibs.period import Period
 
 from pandas._libs.missing cimport (
@@ -736,11 +740,9 @@ cpdef ndarray[object] ensure_string_array(
     return result
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def clean_index_list(obj: list):
+def is_all_arraylike(obj: list) -> bool:
     """
-    Utility used in ``pandas.core.indexes.api.ensure_index``.
+    Should we treat these as levels of a MultiIndex, as opposed to Index items?
     """
     cdef:
         Py_ssize_t i, n = len(obj)
@@ -751,24 +753,12 @@ def clean_index_list(obj: list):
         val = obj[i]
         if not (isinstance(val, list) or
                 util.is_array(val) or hasattr(val, '_data')):
+            # TODO: EA?
+            # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
             break
 
-    if all_arrays:
-        return obj, all_arrays
-
-    # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj, skipna=False)
-    if inferred in ['string', 'bytes', 'mixed', 'mixed-integer']:
-        return np.asarray(obj, dtype=object), 0
-    elif inferred in ['integer']:
-        # TODO: we infer an integer but it *could* be a uint64
-        try:
-            return np.asarray(obj, dtype='int64'), 0
-        except OverflowError:
-            return np.asarray(obj, dtype='object'), 0
-
-    return np.asarray(obj), 0
+    return all_arrays
 
 
 # ------------------------------------------------------------------------------
@@ -1187,6 +1177,7 @@ cdef class Seen:
         bint timedelta_       # seen_timedelta
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
+        bint interval_        # seen_interval
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1212,6 +1203,7 @@ cdef class Seen:
         self.timedelta_ = False
         self.datetimetz_ = False
         self.period_ = False
+        self.interval_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef inline bint check_uint64_conflict(self) except -1:
@@ -1550,9 +1542,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     for i in range(n):
         val = values[i]
-        if (util.is_integer_object(val) and
-                not util.is_timedelta64_object(val) and
-                not util.is_datetime64_object(val)):
+        if util.is_integer_object(val):
             return "mixed-integer"
 
     return "mixed"
@@ -1638,7 +1628,8 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
     # convert *every* string array
     if len(objs):
         try:
-            array_to_datetime(objs, errors="raise")
+            # require_iso8601 as in maybe_infer_to_datetimelike
+            array_to_datetime(objs, errors="raise", require_iso8601=True)
             return "datetime", seen_str
         except (ValueError, TypeError):
             pass
@@ -1653,6 +1644,7 @@ cdef inline bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
 
 
+@cython.internal
 cdef class Validator:
 
     cdef:
@@ -1671,6 +1663,7 @@ cdef class Validator:
             return False
 
         if self.is_array_typed():
+            # i.e. this ndarray is already of the desired dtype
             return True
         elif self.dtype.type_num == NPY_OBJECT:
             if self.skipna:
@@ -1726,11 +1719,16 @@ cdef class Validator:
         return True
 
     cdef bint finalize_validate_skipna(self):
+        """
+        If we _only_ saw non-dtype-specific NA values, even if they are valid
+        for this dtype, we do not infer this dtype.
+        """
         # TODO(phillipc): Remove the existing validate methods and replace them
         # with the skipna versions upon full deprecation of skipna=False
         return True
 
 
+@cython.internal
 cdef class BoolValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_bool_object(value)
@@ -1747,6 +1745,7 @@ cpdef bint is_bool_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class IntegerValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value)
@@ -1755,6 +1754,7 @@ cdef class IntegerValidator(Validator):
         return issubclass(self.dtype.type, np.integer)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_integer_array(ndarray values):
     cdef:
         IntegerValidator validator = IntegerValidator(len(values),
@@ -1762,6 +1762,7 @@ cpdef bint is_integer_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class IntegerNaValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return (util.is_integer_object(value)
@@ -1775,6 +1776,7 @@ cdef bint is_integer_na_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class IntegerFloatValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value) or util.is_float_object(value)
@@ -1790,6 +1792,7 @@ cdef bint is_integer_float_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class FloatValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_float_object(value)
@@ -1798,12 +1801,14 @@ cdef class FloatValidator(Validator):
         return issubclass(self.dtype.type, np.floating)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_float_array(ndarray values):
     cdef:
         FloatValidator validator = FloatValidator(len(values), values.dtype)
     return validator.validate(values)
 
 
+@cython.internal
 cdef class ComplexValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return (
@@ -1821,6 +1826,7 @@ cdef bint is_complex_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class DecimalValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return is_decimal(value)
@@ -1832,6 +1838,7 @@ cdef bint is_decimal_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class StringValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return isinstance(value, str)
@@ -1852,6 +1859,7 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class BytesValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return isinstance(value, bytes)
@@ -1867,6 +1875,7 @@ cdef bint is_bytes_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class TemporalValidator(Validator):
     cdef:
         Py_ssize_t generic_null_count
@@ -1893,9 +1902,14 @@ cdef class TemporalValidator(Validator):
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
     cdef inline bint finalize_validate_skipna(self):
+        """
+        If we _only_ saw non-dtype-specific NA values, even if they are valid
+        for this dtype, we do not infer this dtype.
+        """
         return self.generic_null_count != self.n
 
 
+@cython.internal
 cdef class DatetimeValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDateTime_Check(value)
@@ -1911,11 +1925,13 @@ cpdef bint is_datetime_array(ndarray values, bint skipna=True):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class Datetime64Validator(DatetimeValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_datetime64_object(value)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_datetime64_array(ndarray values):
     cdef:
         Datetime64Validator validator = Datetime64Validator(len(values),
@@ -1923,7 +1939,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
-# TODO: only non-here use is in test
+# Note: only python-exposed for tests
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -1954,6 +1970,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     return True
 
 
+@cython.internal
 cdef class TimedeltaValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDelta_Check(value)
@@ -1962,12 +1979,13 @@ cdef class TimedeltaValidator(TemporalValidator):
         return is_null_timedelta64(value)
 
 
+@cython.internal
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return is_timedelta(value)
 
 
-# TODO: only non-here use is in test
+# Note: only python-exposed for tests
 cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """
     Infer with timedeltas and/or nat/none.
@@ -1978,22 +1996,26 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class DateValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return PyDate_Check(value)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef:
         DateValidator validator = DateValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
 
+@cython.internal
 cdef class TimeValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return PyTime_Check(value)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef:
         TimeValidator validator = TimeValidator(len(values), skipna=skipna)
@@ -2031,11 +2053,11 @@ cdef bint is_period_array(ndarray[object] values):
     return True
 
 
+# Note: only python-exposed for tests
 cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
     """
-
     cdef:
         Py_ssize_t i, n = len(values)
         str closed = None
@@ -2320,7 +2342,9 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_datetime=False,
                           bint convert_timedelta=False,
                           bint convert_period=False,
-                          bint convert_to_nullable_integer=False) -> "ArrayLike":
+                          bint convert_interval=False,
+                          bint convert_to_nullable_integer=False,
+                          object dtype_if_all_nat=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2343,9 +2367,14 @@ def maybe_convert_objects(ndarray[object] objects,
     convert_period : bool, default False
         If an array-like object contains only (homogeneous-freq) Period values
         or NaT, whether to convert and return a PeriodArray.
+    convert_interval : bool, default False
+        If an array-like object contains only Interval objects (with matching
+        dtypes and closedness) or NaN, whether to convert to IntervalArray.
     convert_to_nullable_integer : bool, default False
         If an array-like object contains only integer values (and NaN) is
         encountered, whether to convert and return an IntegerArray.
+    dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
+        Dtype to cast to if we have all-NaT.
 
     Returns
     -------
@@ -2414,8 +2443,12 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.float_ = True
         elif is_timedelta(val):
             if convert_timedelta:
-                itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
                 seen.timedelta_ = True
+                try:
+                    itimedeltas[i] = convert_to_timedelta64(val, "ns").view("i8")
+                except OutOfBoundsTimedelta:
+                    seen.object_ = True
+                    break
             else:
                 seen.object_ = True
                 break
@@ -2452,8 +2485,12 @@ def maybe_convert_objects(ndarray[object] objects,
                     break
                 else:
                     seen.datetime_ = True
-                    idatetimes[i] = convert_to_tsobject(
-                        val, None, None, 0, 0).value
+                    try:
+                        idatetimes[i] = convert_to_tsobject(
+                            val, None, None, 0, 0).value
+                    except OutOfBoundsDatetime:
+                        seen.object_ = True
+                        break
             else:
                 seen.object_ = True
                 break
@@ -2471,6 +2508,13 @@ def maybe_convert_objects(ndarray[object] objects,
                 complexes[i] = complex(val)
                 seen.float_ = True
             except (ValueError, TypeError):
+                seen.object_ = True
+                break
+        elif is_interval(val):
+            if convert_interval:
+                seen.interval_ = True
+                break
+            else:
                 seen.object_ = True
                 break
         else:
@@ -2494,6 +2538,17 @@ def maybe_convert_objects(ndarray[object] objects,
 
             # unbox to PeriodArray
             return pi._data
+        seen.object_ = True
+
+    if seen.interval_:
+        if is_interval_array(objects):
+            from pandas import IntervalIndex
+            ii = IntervalIndex(objects)
+
+            # unbox to IntervalArray
+            return ii._data
+
+        seen.object_ = True
 
     if not seen.object_:
         result = None
@@ -2523,8 +2578,13 @@ def maybe_convert_objects(ndarray[object] objects,
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
-                                # TODO: array full of NaT ambiguity resolve here needed
-                                pass
+                                dtype = dtype_if_all_nat
+                                if dtype is not None:
+                                    # otherwise we keep object dtype
+                                    result = _infer_all_nats(
+                                        dtype, datetimes, timedeltas
+                                    )
+
                             elif convert_datetime:
                                 result = datetimes
                             elif convert_timedelta:
@@ -2563,8 +2623,13 @@ def maybe_convert_objects(ndarray[object] objects,
                     elif seen.nat_:
                         if not seen.numeric_:
                             if convert_datetime and convert_timedelta:
-                                # TODO: array full of NaT ambiguity resolve here needed
-                                pass
+                                dtype = dtype_if_all_nat
+                                if dtype is not None:
+                                    # otherwise we keep object dtype
+                                    result = _infer_all_nats(
+                                        dtype, datetimes, timedeltas
+                                    )
+
                             elif convert_datetime:
                                 result = datetimes
                             elif convert_timedelta:
@@ -2593,6 +2658,26 @@ def maybe_convert_objects(ndarray[object] objects,
             return result
 
     return objects
+
+
+cdef _infer_all_nats(dtype, ndarray datetimes, ndarray timedeltas):
+    """
+    If we have all-NaT values, cast these to the given dtype.
+    """
+    if isinstance(dtype, np.dtype):
+        if dtype == "M8[ns]":
+            result = datetimes
+        elif dtype == "m8[ns]":
+            result = timedeltas
+        else:
+            raise ValueError(dtype)
+    else:
+        # ExtensionDtype
+        cls = dtype.construct_array_type()
+        i8vals = np.empty(len(datetimes), dtype="i8")
+        i8vals.fill(NPY_NAT)
+        result = cls(i8vals, dtype=dtype)
+    return result
 
 
 class NoDefault(Enum):
@@ -2818,25 +2903,3 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
                 result[i, j] = row[j]
 
     return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n = len(keys)
-        object val
-        ndarray[object] output = np.empty(n, dtype='O')
-
-    if n == 0:
-        # kludge, for Series
-        return np.empty(0, dtype='f8')
-
-    for i in range(n):
-        val = keys[i]
-        if val in mapping:
-            output[i] = mapping[val]
-        else:
-            output[i] = default
-
-    return maybe_convert_objects(output)

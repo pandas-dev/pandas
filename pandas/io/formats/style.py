@@ -761,13 +761,13 @@ class Styler(StylerRenderer):
         ----------
         buf : str, Path, or StringIO-like, optional, default None
             Buffer to write to. If ``None``, the output is returned as a string.
-        table_uuid: str, optional
+        table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 
             ``<table id="T_<table_uuid>" ..>``
 
             If not given uses Styler's initially assigned value.
-        table_attributes: str, optional
+        table_attributes : str, optional
             Attributes to assign within the `<table>` HTML element in the format:
 
             ``<table .. <table_attributes> >``
