@@ -225,8 +225,6 @@ Other enhancements
 - Add support for parsing ``ISO 8601``-like timestamps with negative signs to :class:`Timedelta` (:issue:`37172`)
 - Add support for unary operators in :class:`FloatingArray` (:issue:`38749`)
 - :class:`RangeIndex` can now be constructed by passing a ``range`` object directly e.g. ``pd.RangeIndex(range(3))`` (:issue:`12067`)
-- :meth:`round` being enabled for the nullable integer and floating dtypes (:issue:`38844`)
-- :meth:`pandas.read_csv` and :meth:`pandas.read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 - :meth:`pandas.read_csv` now accepts an argument ``use_nullable_dtypes`` that allows reading data directly into the nullable integer and boolean data types (:issue:`36712`)
 - :meth:`Series.round` and :meth:`DataFrame.round` now work with nullable integer and floating dtypes (:issue:`38844`)
 - :meth:`read_csv` and :meth:`read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)

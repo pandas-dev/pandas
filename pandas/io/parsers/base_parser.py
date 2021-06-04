@@ -63,8 +63,8 @@ from pandas.core.arrays import (
     Categorical,
     FloatingArray,
     IntegerArray,
-    StringArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -757,7 +757,7 @@ class ParserBase:
             and 0 < na_count < len(result)
         ):
             try:
-                result = StringArray(result)
+                result = StringDtype.construct_array_type()._from_sequence(result)
             except ValueError:
                 pass
 

@@ -114,8 +114,8 @@ from pandas.core.arrays import (
     BooleanArray,
     FloatingArray,
     IntegerArray,
-    StringArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -1382,7 +1382,7 @@ def _maybe_upcast(arr, use_nullable_dtypes=False):
     elif use_nullable_dtypes and arr.dtype == np.object_:
         # Maybe convert StringArray & catch error for non-strings
         try:
-            arr = StringArray(arr)
+            arr = StringDtype.construct_array_type()._from_sequence(arr)
         except ValueError as e:
             pass
 
