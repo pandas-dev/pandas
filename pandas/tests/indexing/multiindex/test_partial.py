@@ -69,7 +69,8 @@ class TestMultiIndexPartial:
         )
         df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
 
-        result = df.xs(["foo", "one"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.xs(["foo", "one"])
         expected = df.loc["foo", "one"]
         tm.assert_frame_equal(result, expected)
 

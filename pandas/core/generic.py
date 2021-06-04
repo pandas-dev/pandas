@@ -3756,6 +3756,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
+
+        if isinstance(key, list):
+            warnings.warn(
+                "Passing lists as key for xs is deprecated and will be removed in a "
+                "future version. Pass key as a tuple instead.",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         if level is not None:
             if not isinstance(labels, MultiIndex):
                 raise TypeError("Index must be a MultiIndex")
