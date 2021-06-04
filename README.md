@@ -17,6 +17,8 @@
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+
 
 ## What is it?
 
@@ -100,9 +102,10 @@ pip install pandas
 ```
 
 ## Dependencies
+- [Setuptools - A fully-featured, actively-maintained, and stable library designed to facilitate packaging Python projects](https://setuptools.readthedocs.io/en/latest/)
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
-- [python-dateutil - Provides powerful extensions to the standard datetime module](https://labix.org/python-dateutil)
-- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://pythonhosted.org/pytz)
+- [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
+- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://github.com/stub42/pytz)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
@@ -121,7 +124,7 @@ cloning the git repo), execute:
 python setup.py install
 ```
 
-or for installing in [development mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs):
+or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_install/#install-editable):
 
 
 ```sh
