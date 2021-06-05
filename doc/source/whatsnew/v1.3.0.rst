@@ -248,7 +248,7 @@ These are bug fixes that might have notable behavior changes.
 ``Categorical.unique`` now always maintains same dtype as original
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, when calling :meth:`~Categorical.unique` with categorical data, unused categories in the new array
+Previously, when calling :meth:`Categorical.unique` with categorical data, unused categories in the new array
 would be removed, meaning that the dtype of the new array would be different than the
 original, if some categories are not present in the unique array (:issue:`18291`)
 
