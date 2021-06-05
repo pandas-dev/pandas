@@ -26,7 +26,10 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
-from pandas._typing import Callable
+from pandas._typing import (
+    Callable,
+    final,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -400,6 +403,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
+    @final
     def _partial_date_slice(
         self,
         reso: Resolution,
