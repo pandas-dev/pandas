@@ -688,9 +688,7 @@ cpdef ndarray[object] ensure_string_array(
         bint skipna=True,
 ):
     """
-    Checks that all elements in numpy array are string or null
-    and returns a new numpy array with object dtype
-    and only strings and na values if so. Otherwise, raise a ValueError.
+    Returns a new numpy array with object dtype and only strings and na values.
 
     Parameters
     ----------
@@ -698,7 +696,7 @@ cpdef ndarray[object] ensure_string_array(
         The values to be converted to str, if needed.
     na_value : Any, default np.nan
         The value to use for na. For example, np.nan or pd.NA.
-    coerce : {{'all', 'null', 'non-null', None}}, default 'all'
+    coerce : {'all', 'null', 'non-null', None}, default 'all'
         Whether to coerce non-string elements to strings.
             - 'all' will convert null values and non-null non-string values.
             - 'strict-null' will only convert pd.NA, np.nan, or None to na_value
@@ -717,10 +715,17 @@ cpdef ndarray[object] ensure_string_array(
     Returns
     -------
     np.ndarray[object]
-        An array with the input array's elements casted to str or nan-like.
+        An array of strings and na_value.
+
+    Raises
+    ------
+    ValueError
+        If an element is encountered that is not a string or valid NA value
+        and element is not coerced.
     """
     if coerce not in {"all", "strict-null", "null", "non-null", None}:
-        raise ValueError("coerce argument is not valid")
+        raise ValueError("coerce argument must be one of "
+                         f"'all'|'strict-null'|'null'|'non-null'|None, not {coerce}")
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         set strict_na_values = {C_NA, np.nan, None}
@@ -753,7 +758,9 @@ cpdef ndarray[object] ensure_string_array(
             if coerce =="all" or coerce == "non-null":
                 result[i] = str(val)
             else:
-                raise ValueError("Non-string element encountered in array.")
+                raise ValueError(f"Element {val} is not a string or valid null."
+                                 "If you want it to be coerced to a string,"
+                                 "specify coerce='all'")
         else:
             if coerce=="all" or coerce == "null" or coerce == 'strict-null':
                 val = na_value

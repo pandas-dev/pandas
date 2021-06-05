@@ -306,7 +306,11 @@ def test_constructor_nan_like(na):
 
 def test_invalid_coerce_raises():
     data = np.array(["a", "b'"], dtype=object)
-    with pytest.raises(ValueError, match="coerce argument is not valid"):
+    with pytest.raises(
+        ValueError,
+        match="coerce argument must be one of "
+        "'all'|'strict-null'|'null'|'non-null'|None, not abcd",
+    ):
         lib.ensure_string_array(data, coerce="abcd")
 
 

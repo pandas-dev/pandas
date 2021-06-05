@@ -145,16 +145,16 @@ class StringArray(PandasArray):
 
            Currently, this expects an object-dtype ndarray
            where the elements are Python strings
-           or nan-likes(``None``, ``nan``, ``NA``).
+           or nan-likes(``None``, ``np.nan``, ``NA``).
            This may change without warning in the future. Use
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
 
         .. versionchanged:: 1.3
 
-           StringArray now accepts nan-likes in the constructor in addition
-           to strings, whereas it only accepted strings and :attr:`pandas.NA`
-           before.
+           StringArray now accepts nan-likes(``None``, ``np.nan``) for the
+           ``values`` parameter in its constructor
+           in addition to strings and :attr:`pandas.NA`
 
     copy : bool, default False
         Whether to copy the array of data.
