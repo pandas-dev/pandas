@@ -28,11 +28,16 @@ class TestInvalidConcat:
     def test_concat_invalid_first_argument(self):
         df1 = tm.makeCustomDataframe(10, 2)
         df2 = tm.makeCustomDataframe(10, 2)
-        msg = (
+        err_msg = (
             "first argument must be an iterable of pandas "
             'objects, you passed an object of type "DataFrame"'
         )
-        with pytest.raises(TypeError, match=msg):
+        warn_msg = (
+            "In a future version of pandas all arguments of concat "
+            "except for the argument 'objs' will be keyword-only"
+        )
+        warning_ctx = tm.assert_produces_warning(FutureWarning, match=warn_msg)
+        with pytest.raises(TypeError, match=err_msg), warning_ctx:
             concat(df1, df2)
 
         # generator ok though
