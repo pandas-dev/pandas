@@ -39,7 +39,7 @@ def dtype_object(dtype):
 
 @pytest.fixture(
     params=[
-        pd.arrays.PythonStringArray,
+        pd.arrays.StringArray,
         pytest.param(ArrowStringArray, marks=skip_if_no_pyarrow),
     ]
 )
@@ -55,7 +55,7 @@ def test_repr(dtype):
     expected = f"0       a\n1    <NA>\n2       b\nName: A, dtype: {dtype}"
     assert repr(df.A) == expected
 
-    arr_name = "ArrowStringArray" if dtype == "arrow_string" else "PythonStringArray"
+    arr_name = "ArrowStringArray" if dtype == "arrow_string" else "StringArray"
     expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: {dtype}"
     assert repr(df.A.array) == expected
 
@@ -69,14 +69,14 @@ def test_none_to_nan(cls):
 def test_setitem_validates(cls):
     arr = cls._from_sequence(["a", "b"])
 
-    if cls is pd.arrays.PythonStringArray:
-        msg = "Cannot set non-string value '10' into a PythonStringArray."
+    if cls is pd.arrays.StringArray:
+        msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
     with pytest.raises(ValueError, match=msg):
         arr[0] = 10
 
-    if cls is pd.arrays.PythonStringArray:
+    if cls is pd.arrays.StringArray:
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
@@ -280,8 +280,8 @@ def test_comparison_methods_array(all_compare_operators, dtype, request):
 
 
 def test_constructor_raises(cls):
-    if cls is pd.arrays.PythonStringArray:
-        msg = "PythonStringArray requires a sequence of strings or pandas.NA"
+    if cls is pd.arrays.StringArray:
+        msg = "StringArray requires a sequence of strings or pandas.NA"
     else:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowStringArray"
 
@@ -431,7 +431,7 @@ def test_fillna_args(dtype, request):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    msg = "Cannot set non-string value '1' into a PythonStringArray."
+    msg = "Cannot set non-string value '1' into a StringArray."
     with pytest.raises(ValueError, match=msg):
         arr.fillna(value=1)
 

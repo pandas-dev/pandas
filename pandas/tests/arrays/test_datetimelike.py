@@ -345,7 +345,7 @@ class SharedTests:
             TypeError,
             match=re.escape(
                 f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                "or array of those. Got 'PythonStringArray' instead."
+                "or array of those. Got 'StringArray' instead."
             ),
         ):
             arr.searchsorted([str(arr[1]), "baz"])

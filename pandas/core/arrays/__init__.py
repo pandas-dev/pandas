@@ -16,7 +16,7 @@ from pandas.core.arrays.period import (
     period_array,
 )
 from pandas.core.arrays.sparse import SparseArray
-from pandas.core.arrays.string_ import PythonStringArray
+from pandas.core.arrays.string_ import StringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 
 __all__ = [
@@ -34,6 +34,6 @@ __all__ = [
     "PeriodArray",
     "period_array",
     "SparseArray",
-    "PythonStringArray",
+    "StringArray",
     "TimedeltaArray",
 ]

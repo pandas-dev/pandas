@@ -173,7 +173,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             return self._str_map(scalar_rep, dtype=str)
         else:
-            from pandas.core.arrays.string_ import PythonStringArray
+            from pandas.core.arrays.string_ import StringArray
             from pandas.core.arrays.string_arrow import ArrowStringArray
 
             def rep(x, r):
@@ -186,7 +186,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
             repeats = np.asarray(repeats, dtype=object)
             result = libops.vec_binop(np.asarray(self), repeats, rep)
-            if isinstance(self, (PythonStringArray, ArrowStringArray)):
+            if isinstance(self, (StringArray, ArrowStringArray)):
                 # Not going through map, so we have to do this here.
                 result = type(self)._from_sequence(result)
             return result
