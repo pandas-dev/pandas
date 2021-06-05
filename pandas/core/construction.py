@@ -727,7 +727,7 @@ def _try_cast(
 
     elif dtype.kind == "U":
         # TODO: test cases with arr.dtype.kind in ["m", "M"]
-        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy)
+        return lib.ensure_string_array(arr, coerce="non-null", copy=copy)
 
     elif dtype.kind in ["m", "M"]:
         return maybe_cast_to_datetime(arr, dtype)
