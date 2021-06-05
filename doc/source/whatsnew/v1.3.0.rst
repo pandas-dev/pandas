@@ -445,7 +445,7 @@ Consistent Casting With Setting Into Boolean Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Setting non-boolean values into a :class:`Series` with ``dtype=bool`` now consistently
-casts to ``dtype=object``. (:issue:`38709`)
+casts to ``dtype=object`` (:issue:`38709`)
 
 .. ipython:: python
 
