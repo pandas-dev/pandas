@@ -134,7 +134,10 @@ class TestSetitemCoercion(CoercionBase):
             )
             request.node.add_marker(mark)
 
-        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        warn = None if exp_dtype is np.int8 else FutureWarning
+        msg = "Values are too large to be losslessly cast to int8"
+        with tm.assert_produces_warning(warn, match=msg):
+            exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
