@@ -1175,7 +1175,7 @@ def _range_from_fields(
     return np.array(ordinals, dtype=np.int64), freq
 
 
-def _make_field_arrays(*fields) -> tuple[np.ndarray, ...]:
+def _make_field_arrays(*fields) -> list[np.ndarray]:
     length = None
     for x in fields:
         if isinstance(x, (list, np.ndarray, ABCSeries)):
