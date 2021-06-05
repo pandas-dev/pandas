@@ -116,38 +116,28 @@ Styler enhancements
 ^^^^^^^^^^^^^^^^^^^
 
 We provided some focused development on :class:`.Styler`. See also the `Styler documentation <../user_guide/style.ipynb>`_
-which has also been revised and improved(:issue:`39720`, :issue:`39317`, :issue:`40493`).
+which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`40493`).
 
  - The method :meth:`.Styler.set_table_styles` can now accept more natural CSS language for arguments, such as ``'color:red;'`` instead of ``[('color', 'red')]`` (:issue:`39563`)
  - The methods :meth:`.Styler.highlight_null`, :meth:`.Styler.highlight_min`, and :meth:`.Styler.highlight_max` now allow custom CSS highlighting instead of the default background coloring (:issue:`40242`)
- - Extended :meth:`.Styler.background_gradient` to shade elements based on a given gradient map and not be restricted to values in the DataFrame (:issue:`22727`, :issue:`28901`)
+ - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`, :issue:`39708`, :issue:`40284`)
+- :meth:`.Styler.apply` now accepts functions that return an ``ndarray`` when ``axis=None``, making it now consistent with the ``axis=0`` and ``axis=1`` behavior (:issue:`39359`)
+- When incorrectly formatted CSS is given via :meth:`.Styler.apply` or :meth:`.Styler.applymap`, an error is now raised upon rendering (:issue:`39660`)
+ - :meth:`.Styler.format` now accepts the keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
+- :meth:`.Styler.background_gradient` has gained the argument ``gmap`` to supply a specific gradient map for shading (:issue:`22727`)
+- :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
  - Added the method :meth:`.Styler.highlight_between` (:issue:`39821`)
  - Added the method :meth:`.Styler.highlight_quantile` (:issue:`40926`)
  - Added the method :meth:`.Styler.text_gradient` (:issue:`41098`)
- - The :meth:`.Styler.apply` method now consistently accepts functions that return an ``ndarray`` to allow more flexible development of UDFs when ``axis`` is ``None``, ``0``, or ``1`` (:issue:`39359`)
  - Added the method :meth:`.Styler.set_tooltips` allowing hover tooltips; this can be used enhance interactive displays (:issue:`21266`)
- - The method :meth:`.Styler.set_td_classes` is now as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap`, and more so in some cases (:issue:`40453`)
- - Considerably improved performance of HTML render times and now matches :meth:`DataFrame.to_html` (:issue:`39952`, :issue:`40425`)
  - Added the parameter ``escape`` to the method :meth:`.Styler.format` to escape data before it is passed to the formatter (:issue:`40388`)
  - Added the parameter ``precision`` to the method :meth:`.Styler.format` to control the display of floating point numbers (:issue:`40134`)
- - Fixed bug in the method :meth:`.Styler.set_table_styles` where multiple elements in CSS-selectors of the ``table_styles`` argument were not correctly added (:issue:`34061`)
- - Fixed bug in :class:`.Styler` where copying the output from Jupyter dropped the top left cell and misaligned headers (:issue:`12147`)
- - Fixed bug in :class:`.Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
- - Fixed bug in :meth:`.Styler.background_gradient` where the text-color was not determined correctly (:issue:`39888`)
  - :class:`.Styler` rendered HTML output now follows the `w3 HTML Style Guide <https://www.w3schools.com/html/html5_syntax.asp>`_ (:issue:`39626`)
  - Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41143`)
  - One has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options <options.available>`, which are also usable via :func:`option_context` (:issue:`41142`)
+- Added the option ``sytler.max.elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
  - Added the method :meth:`.Styler.to_latex` (:issue:`21673`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
-
-:class:`.Styler` has also been compatible with non-unique index or columns, at least for as many features as are fully compatible, others made only partially compatible (:issue:`41269`).
-One also has greater control of the display through separate sparsification of the index or columns, using the new 'styler' options context (:issue:`41142`).
-Render trimming has also been added for large numbers of data elements to avoid browser overload (:issue:`40712`).
-
-We have added an extension to allow LaTeX styling as an alternative to CSS styling and a method :meth:`.Styler.to_latex`
-which renders the necessary LaTeX format including built-up styles (:issue:`21673`, :issue:`41659`). An additional file io function :meth:`Styler.to_html` has been added for convenience (:issue:`40312`).
-
-Documentation has also seen major revisions in light of new features (:issue:`39720` :issue:`39317` :issue:`40493`)
 
 .. _whatsnew_130.dataframe_honors_copy_with_dict:
 
@@ -213,15 +203,6 @@ Other enhancements
 - Passing a :class:`DataFrame` indexer to ``iloc`` is now disallowed for :meth:`Series.__getitem__` and :meth:`DataFrame.__getitem__` (:issue:`39004`)
 - :meth:`Series.apply` can now accept list-like or dictionary-like arguments that aren't lists or dictionaries, e.g. ``ser.apply(np.array(["sum", "mean"]))``, which was already the case for :meth:`DataFrame.apply` (:issue:`39140`)
 - :meth:`DataFrame.plot.scatter` can now accept a categorical column for the argument ``c`` (:issue:`12380`, :issue:`31357`)
-- :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`, :issue:`39708`, :issue:`40284`)
-- :meth:`.Styler.set_table_styles` amended to optionally allow certain CSS input arguments as strings (:issue:`39564`)
-- :meth:`.Styler.apply` now accepts functions that return an ``ndarray`` when ``axis=None``, consistent with the ``axis=0`` and ``axis=1`` behavior (:issue:`39359`)
-- :meth:`.Styler.apply` and :meth:`.Styler.applymap` now raise errors if incorrectly formatted CSS is passed (:issue:`39660`)
-- :meth:`.Styler.format` now accepts the keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
-- :meth:`.Styler.background_gradient` has gained the argument ``gmap`` to supply a specific gradient map (:issue:`22727`)
-- :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
-- Builtin highlighting methods in :class:`.Styler` have a more consistent signature and css customisability (:issue:`40242`)
-- Added the method :meth:`.Styler.highlight_between` (:issue:`39821`)
 - :meth:`Series.loc` now raises a helpful error message when the Series has a :class:`MultiIndex` and the indexer has too many dimensions (:issue:`35349`)
 - :func:`read_stata` now supports reading data from compressed files (:issue:`26599`)
 - Added support for parsing ``ISO 8601``-like timestamps with negative signs to :class:`Timedelta` (:issue:`37172`)
@@ -808,7 +789,8 @@ Performance improvements
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
 - Performance improvement in :func:`json_normalize` for basic cases (including separators) (:issue:`40035` :issue:`15621`)
 - Performance improvement in :class:`.ExpandingGroupby` aggregation methods (:issue:`39664`)
-- Performance improvement in :class:`.Styler` where render times are more than 50% reduced (:issue:`39972` :issue:`39952`)
+- Performance improvement in :class:`.Styler` where render times are more than 50% reduced and now matches :meth:`DataFrame.to_html` (:issue:`39972` :issue:`39952`, :issue:`40425`)
+- The method :meth:`.Styler.set_td_classes` is now as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap`, and even more so in some cases (:issue:`40453`)
 - Performance improvement in :meth:`.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
 - Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
 - Performance improvement in the conversion of a PyArrow Boolean array to a pandas nullable Boolean array (:issue:`41051`)
@@ -1115,7 +1097,7 @@ Styler
 - :class:`.Styler` rendered HTML output has seen minor alterations to support w3 good code standards (:issue:`39626`)
 - Bug in :class:`.Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
 - Bug in :meth:`.Styler.background_gradient` where text-color was not determined correctly (:issue:`39888`)
-- Bug in :class:`.Styler` where multiple elements in CSS-selectors were not correctly added to ``table_styles`` (:issue:`39942`)
+- Bug in :meth:`.Styler.set_table_styles` where multiple elements in CSS-selectors of the ``table_styles`` argument were not correctly added (:issue:`34061`)
 - Bug in :class:`.Styler` where copying from Jupyter dropped the top left cell and misaligned headers (:issue:`12147`)
 - Bug in :class:`Styler.where` where ``kwargs`` were not passed to the applicable callable (:issue:`40845`)
 - Bug in :class:`.Styler` caused CSS to duplicate on multiple renders (:issue:`39395`, :issue:`40334`)
