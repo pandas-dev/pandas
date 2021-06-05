@@ -1573,6 +1573,7 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
         bint seen_timedelta = False, seen_date = False, seen_datetime = False
         bint seen_tz_aware = False, seen_tz_naive = False
         bint seen_nat = False, seen_str = False
+        bint seen_period = False, seen_interval = False
         list objs = []
         object v
 
@@ -1610,8 +1611,24 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
         elif is_timedelta(v):
             # timedelta, or timedelta64
             seen_timedelta = True
+        elif is_period_object(v):
+            seen_period = True
+            break
+        elif is_interval(v):
+            seen_interval = True
+            break
         else:
             return "mixed", seen_str
+
+    if seen_period:
+        if is_period_array(arr):
+            return "period", seen_str
+        return "mixed", seen_str
+
+    if seen_interval:
+        if is_interval_array(arr):
+            return "interval", seen_str
+        return "mixed", seen_str
 
     if seen_date and not (seen_datetime or seen_timedelta):
         return "date", seen_str

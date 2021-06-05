@@ -258,9 +258,6 @@ class IntervalIndex(ExtensionIndex):
     closed_left: bool
     closed_right: bool
 
-    # we would like our indexing holder to defer to us
-    _defer_to_indexing = True
-
     _data: IntervalArray
     _values: IntervalArray
     _can_hold_strings = False
