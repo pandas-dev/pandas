@@ -315,34 +315,34 @@ class StylerRenderer:
                     )
                 ]
 
-            if clabels:
-                column_headers = [
-                    _element(
-                        "th",
-                        f"{col_heading_class} level{r} col{c}",
-                        value,
-                        _is_visible(c, r, col_lengths),
-                        attributes=(
-                            f'colspan="{col_lengths.get((r, c), 0)}"'
-                            if col_lengths.get((r, c), 0) > 1
-                            else ""
-                        ),
-                    )
-                    for c, value in enumerate(clabels[r])
-                ]
-
-                if len(self.data.columns) > max_cols:
-                    # add an extra column with `...` value to indicate trimming
-                    column_headers.append(
+                if clabels:
+                    column_headers = [
                         _element(
                             "th",
-                            f"{col_heading_class} level{r} {trimmed_col_class}",
-                            "...",
-                            True,
-                            attributes="",
+                            f"{col_heading_class} level{r} col{c}",
+                            value,
+                            _is_visible(c, r, col_lengths),
+                            attributes=(
+                                f'colspan="{col_lengths.get((r, c), 0)}"'
+                                if col_lengths.get((r, c), 0) > 1
+                                else ""
+                            ),
                         )
-                    )
-                head.append(index_blanks + column_name + column_headers)
+                        for c, value in enumerate(clabels[r])
+                    ]
+
+                    if len(self.data.columns) > max_cols:
+                        # add an extra column with `...` value to indicate trimming
+                        column_headers.append(
+                            _element(
+                                "th",
+                                f"{col_heading_class} level{r} {trimmed_col_class}",
+                                "...",
+                                True,
+                                attributes="",
+                            )
+                        )
+                    head.append(index_blanks + column_name + column_headers)
 
         # 2) index names
         if (
