@@ -62,10 +62,10 @@ class Construction:
     def peakmem_cat_frame_construction(self, dtype):
         DataFrame(self.frame_cat_arr, dtype=dtype)
 
-    def time_string_array_construction(self):
+    def time_string_array_construction(self, dtype):
         StringArray(self.series_arr)
 
-    def peakmem_stringarray_construction(self):
+    def peakmem_stringarray_construction(self, dtype):
         StringArray(self.series_arr)
 
 
