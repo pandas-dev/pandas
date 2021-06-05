@@ -3631,17 +3631,9 @@ class MultiIndex(Index):
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)
 
-        if len(uniq_tuples) == 0:
-            return MultiIndex(
-                levels=self.levels,
-                codes=[[]] * self.nlevels,
-                names=result_names,
-                verify_integrity=False,
-            )
-        else:
-            return MultiIndex.from_arrays(
-                zip(*uniq_tuples), sortorder=0, names=result_names
-            )
+        # Argument 2 to "_wrap_mi_setop_result" of "MultiIndex" has incompatible
+        # type "Union[List[Any], MultiIndex, Any]"; expected "ndarray"
+        return self._wrap_mi_setop_result(other, uniq_tuples)  # type: ignore[arg-type]
 
     def _difference(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
@@ -3656,15 +3648,30 @@ class MultiIndex(Index):
         if sort is None:
             difference = sorted(difference)
 
-        if len(difference) == 0:
+        return self._wrap_mi_setop_result(other, difference)
+
+    def _wrap_mi_setop_result(self, other: Index, result: np.ndarray) -> MultiIndex:
+        """
+        Wrap the ndarray[tuples] result of a set operation in a MultiIndex.
+
+        Handles special cases with empty results.
+        """
+        # specific to difference and intersection, which can always
+        #  be dtype-preserving (though for intersection dtype-preserving is
+        #  mutually exclusive with commutative)
+        other, result_names = self._convert_can_do_setop(other)
+
+        if len(result) == 0:
+            # These methods are dtype-preserving, which for MultiIndex
+            #  means levels-preserving
             return MultiIndex(
-                levels=[[]] * self.nlevels,
+                levels=self.levels,
                 codes=[[]] * self.nlevels,
                 names=result_names,
                 verify_integrity=False,
             )
         else:
-            return MultiIndex.from_tuples(difference, sortorder=0, names=result_names)
+            return MultiIndex.from_tuples(result, sortorder=0, names=result_names)
 
     def _convert_can_do_setop(self, other):
         result_names = self.names
