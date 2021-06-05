@@ -76,7 +76,6 @@ from pandas.core.api import (
     RangeIndex,
     Float64Index,
     MultiIndex,
-    NumericIndex,
     IntervalIndex,
     TimedeltaIndex,
     DatetimeIndex,

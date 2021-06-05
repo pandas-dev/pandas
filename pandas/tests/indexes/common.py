@@ -33,8 +33,8 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.core.indexes.numeric import NumericIndex
 
 
 class Base:

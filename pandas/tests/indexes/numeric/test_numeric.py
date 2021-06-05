@@ -128,10 +128,8 @@ class TestFloatNumericIndex(NumericBase):
         with pytest.raises((TypeError, ValueError), match=msg):
             index_cls(["a", "b", 0.0])
 
-        msg = (
-            r"float\(\) argument must be a string or a( real)? number, not 'Timestamp'"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = f"data is not compatible with {index_cls.__name__}"
+        with pytest.raises(ValueError, match=msg):
             index_cls([Timestamp("20130101")])
 
     def test_constructor_coerce(self, mixed_index, float_index):

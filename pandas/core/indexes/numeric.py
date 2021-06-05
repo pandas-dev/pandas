@@ -166,10 +166,11 @@ class NumericIndex(Index):
         dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
-            subarr = np.array(data, dtype=dtype, copy=copy)
-            if not is_numeric_dtype(subarr.dtype):
-                # hack to raise correctly
-                subarr = np.array(data, dtype="float64", copy=copy)
+            try:
+                subarr = np.array(data, dtype=dtype, copy=copy)
+                cls._validate_dtype(subarr.dtype)
+            except (TypeError, ValueError):
+                raise ValueError(f"data is not compatible with {cls.__name__}")
             cls._assert_safe_casting(data, subarr)
         else:
             subarr = data
