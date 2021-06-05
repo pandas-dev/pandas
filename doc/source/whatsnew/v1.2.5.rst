@@ -22,12 +22,6 @@ Fixed regressions
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_125.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
-
-- Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
 
 .. _whatsnew_125.bug_fixes:
 
