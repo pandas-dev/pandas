@@ -169,11 +169,6 @@ def setop_check(method):
                 result = getattr(self.astype(object), op_name)(other, sort=sort)
                 return result.astype(self.dtype)
 
-            elif not self._should_compare(other):
-                # GH#19016: ensure set op will not return a prohibited dtype
-                result = getattr(self.astype(object), op_name)(other, sort=sort)
-                return result.astype(self.dtype)
-
         return method(self, other, sort)
 
     return wrapped
