@@ -53,7 +53,7 @@ class TestFloatNumericIndex(NumericBase):
         return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     def test_repr_roundtrip(self, index):
-        tm.assert_index_equal(eval(repr(index)), index)
+        tm.assert_index_equal(eval(repr(index)), index, exact=True)
 
     def check_is_index(self, idx):
         assert isinstance(idx, Index)
@@ -160,7 +160,7 @@ class TestFloatNumericIndex(NumericBase):
         # There is no Float32Index, so we always
         # generate Float64Index.
         idx = Index([1, 2, 3.5], dtype=float_dtype)
-        tm.assert_index_equal(idx, Index([1, 2, 3.5]))
+        tm.assert_index_equal(idx, Index([1, 2, 3.5]), exact=True)
 
     def test_equals_numeric(self):
         index_cls = self._index_cls
@@ -255,19 +255,21 @@ class TestFloatNumericIndex(NumericBase):
         tm.assert_numpy_array_equal(idx.isin([np.nan]), np.array([False, False]))
 
     def test_fillna_float64(self):
+        index_cls = self._index_cls
         # GH 11343
         idx = Index([1.0, np.nan, 3.0], dtype=float, name="x")
         # can't downcast
         exp = Index([1.0, 0.1, 3.0], name="x")
-        tm.assert_index_equal(idx.fillna(0.1), exp)
+        tm.assert_index_equal(idx.fillna(0.1), exp, exact=True)
 
         # downcast
-        exp = self._index_cls([1.0, 2.0, 3.0], name="x")
-        tm.assert_index_equal(idx.fillna(2), exp)
+        exact = True if index_cls is Int64Index else "equiv"
+        exp = index_cls([1.0, 2.0, 3.0], name="x")
+        tm.assert_index_equal(idx.fillna(2), exp, exact=exact)
 
         # object
         exp = Index([1.0, "obj", 3.0], name="x")
-        tm.assert_index_equal(idx.fillna("obj"), exp)
+        tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
 
 class TestFloat64Index(TestFloatNumericIndex):
@@ -312,10 +314,10 @@ class NumericInt(NumericBase):
         assert idx_view.name == "Foo"
 
         idx_view = idx.view(dtype)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"))
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
         idx_view = idx.view(index_cls)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"))
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
     def test_is_monotonic(self):
         index_cls = self._index_cls
@@ -432,11 +434,13 @@ class TestIntNumericIndex(NumericInt):
         # pass list, coerce fine
         index = index_cls([-5, 0, 1, 2], dtype=dtype)
         expected = Index([-5, 0, 1, 2], dtype=dtype)
-        tm.assert_index_equal(index, expected)
+        exact = True if index_cls is Int64Index else "equiv"
+        tm.assert_index_equal(index, expected, exact=exact)
 
         # from iterable
-        index = index_cls(iter([-5, 0, 1, 2]))
-        tm.assert_index_equal(index, expected)
+        index = index_cls(iter([-5, 0, 1, 2]), dtype=dtype)
+        expected = index_cls([-5, 0, 1, 2], dtype=dtype)
+        tm.assert_index_equal(index, expected, exact=True)
 
         # scalar raise Exception
         msg = (
@@ -449,7 +453,7 @@ class TestIntNumericIndex(NumericInt):
         # copy
         arr = index.values
         new_index = index_cls(arr, copy=True)
-        tm.assert_index_equal(new_index, index)
+        tm.assert_index_equal(new_index, index, exact=True)
         val = arr[0] + 3000
 
         # this should not change index
@@ -459,12 +463,13 @@ class TestIntNumericIndex(NumericInt):
         # interpret list-like
         expected = index_cls([5, 0])
         for cls in [Index, index_cls]:
+            exact = True if cls is Int64Index else "equiv"
             for idx in [
                 cls([5, 0], dtype=dtype),
                 cls(np.array([5, 0]), dtype=dtype),
                 cls(Series([5, 0]), dtype=dtype),
             ]:
-                tm.assert_index_equal(idx, expected)
+                tm.assert_index_equal(idx, expected, exact=exact)
 
     def test_constructor_corner(self, dtype):
         index_cls = self._index_cls
@@ -472,7 +477,8 @@ class TestIntNumericIndex(NumericInt):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = index_cls(arr, dtype=dtype)
         assert index.values.dtype == index.dtype
-        tm.assert_index_equal(index, Index(arr))
+        exact = True if index_cls is Int64Index else "equiv"
+        tm.assert_index_equal(index, Index(arr), exact=exact)
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
@@ -566,27 +572,28 @@ class TestUInt64Index(TestUIntNumericIndex):
 
     def test_constructor(self, dtype):
         index_cls = self._index_cls
+        exact = True if index_cls is UInt64Index else "equiv"
 
         idx = index_cls([1, 2, 3])
         res = Index([1, 2, 3], dtype=dtype)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         idx = index_cls([1, 2 ** 63])
         res = Index([1, 2 ** 63], dtype=dtype)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         idx = index_cls([1, 2 ** 63])
         res = Index([1, 2 ** 63])
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         idx = Index([-1, 2 ** 63], dtype=object)
         res = Index(np.array([-1, 2 ** 63], dtype=object))
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         # https://github.com/pandas-dev/pandas/issues/29526
         idx = index_cls([1, 2 ** 63 + 1], dtype=dtype)
         res = Index([1, 2 ** 63 + 1], dtype=dtype)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
     def test_constructor_does_not_cast_to_float(self):
         # https://github.com/numpy/numpy/issues/19146
