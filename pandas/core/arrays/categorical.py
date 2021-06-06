@@ -1407,7 +1407,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = np.array(locs, dtype=self.codes.dtype)  # type: ignore[assignment]
         return codes
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
         underlying ndarray, raising TypeError if this is not possible.
@@ -1435,8 +1435,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "in this Categorical's categories"
             )
         return fill_value
-
-    _validate_scalar = _validate_fill_value
 
     # -------------------------------------------------------------
 
