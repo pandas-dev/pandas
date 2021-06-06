@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
     ArrowStringDtype,
@@ -312,6 +313,42 @@ def test_invalid_coerce_raises():
         "'all'|'strict-null'|'null'|'non-null'|None, not abcd",
     ):
         lib.ensure_string_array(data, coerce="abcd")
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array(["foo", "bar", pd.NA], dtype=object),
+        np.array(["foo", "bar", np.nan], dtype=object),
+        np.array(["foo", "bar", None], dtype=object),
+        BaseMaskedArray(
+            np.array(["foo", "bar", "garbage"]), np.array([False, False, True])
+        ),
+    ],
+)
+def test_from_sequence_no_coerce(cls, values):
+    expected = pd.arrays.StringArray(np.array(["foo", "bar", pd.NA], dtype=object))
+    result = cls._from_sequence(values, coerce=False)
+    # Use bare assert since classes are different
+    assert (result == expected).all()
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array(["foo", "bar", pd.NaT], dtype=object),
+        np.array(["foo", "bar", np.datetime64("nat")], dtype=object),
+        np.array(["foo", "bar", float("nan")], dtype=object),
+    ],
+)
+def test_from_sequence_no_coerce_invalid(cls, values):
+    with pytest.raises(
+        ValueError,
+        match="Element .* is not a string or valid null."
+        "If you want it to be coerced to a string,"
+        "specify coerce='all'",
+    ):
+        cls._from_sequence(values, coerce=False)
 
 
 @pytest.mark.parametrize("copy", [True, False])
