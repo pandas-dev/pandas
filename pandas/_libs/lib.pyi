@@ -11,7 +11,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    DtypeObj,
+)
 
 # placeholder until we can specify np.ndarray[object, ndim=2]
 ndarray_obj_2d = np.ndarray
@@ -45,7 +48,7 @@ def is_string_array(values: np.ndarray, skipna: bool = False): ...
 def is_float_array(values: np.ndarray, skipna: bool = False): ...
 def is_integer_array(values: np.ndarray, skipna: bool = False): ...
 def is_bool_array(values: np.ndarray, skipna: bool = False): ...
-def fast_multiget(mapping: dict, keys: np.ndarray, default=np.nan) -> np.ndarray: ...
+
 def fast_unique_multiple_list_gen(gen: Generator, sort: bool = True) -> list: ...
 def fast_unique_multiple_list(lists: list, sort: bool = True) -> list: ...
 def fast_unique_multiple(arrays: list, sort: bool = True) -> list: ...
@@ -64,7 +67,9 @@ def maybe_convert_objects(
     convert_datetime: Literal[False] = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[False] = ...,
+    convert_interval: Literal[False] = ...,
     convert_to_nullable_integer: Literal[False] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
 ) -> np.ndarray: ...
 @overload
 def maybe_convert_objects(
@@ -75,7 +80,9 @@ def maybe_convert_objects(
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: Literal[True] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -86,7 +93,9 @@ def maybe_convert_objects(
     convert_datetime: Literal[True] = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: bool = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -97,7 +106,9 @@ def maybe_convert_objects(
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[True] = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: bool = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
@@ -108,7 +119,9 @@ def maybe_convert_objects(
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: bool = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_numeric(
@@ -161,9 +174,8 @@ def maybe_indices_to_slice(
     indices: np.ndarray,  # np.ndarray[np.intp]
     max_len: int,
 ) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
-def clean_index_list(
-    obj: list,
-) -> tuple[list | np.ndarray, bool,]: ...  # np.ndarray[object] | np.ndarray[np.int64]
+
+def is_all_arraylike(obj: list) -> bool: ...
 
 # -----------------------------------------------------------------
 # Functions which in reality take memoryviews
