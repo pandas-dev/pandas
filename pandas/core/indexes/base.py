@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import copy as copy_func
 from datetime import datetime
 import functools
 from itertools import zip_longest
@@ -360,9 +359,6 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype: bool = False
     _can_hold_na: bool = True
     _can_hold_strings: bool = True
-
-    # would we like our indexing holder to defer to us
-    _defer_to_indexing = False
 
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
@@ -3429,7 +3425,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> np.ndarray:
         # returned ndarray is np.intp
         method = missing.clean_reindex_fill_method(method)
-        target = ensure_index(target)
+        target = self._maybe_cast_listlike_indexer(target)
 
         self._check_indexing_method(method)
 
@@ -3721,7 +3717,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
-        indexer = self._convert_list_indexer(keyarr)
+        indexer = None
         return indexer, keyarr
 
     def _convert_arr_indexer(self, keyarr) -> np.ndarray:
@@ -3738,22 +3734,6 @@ class Index(IndexOpsMixin, PandasObject):
         converted_keyarr : array-like
         """
         return com.asarray_tuplesafe(keyarr)
-
-    def _convert_list_indexer(self, keyarr):
-        """
-        Convert a list-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-        kind : iloc, loc, optional
-
-        Returns
-        -------
-        positional indexer or None
-        """
-        return None
 
     @final
     def _invalid_indexer(self, form: str_t, key) -> TypeError:
@@ -5410,6 +5390,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.dtype("object")
 
         dtype = find_common_type([self.dtype, target_dtype])
+
         if dtype.kind in ["i", "u"]:
             # TODO: what about reversed with self being categorical?
             if (
@@ -5693,6 +5674,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_floating():
             return com.cast_scalar_indexer(key)
         return key
+
+    def _maybe_cast_listlike_indexer(self, target) -> Index:
+        """
+        Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
+        """
+        return ensure_index(target)
 
     @final
     def _validate_indexer(self, form: str_t, key, kind: str_t):
@@ -6312,21 +6299,15 @@ def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Ind
             # check in clean_index_list
             index_like = list(index_like)
 
-        converted, all_arrays = lib.clean_index_list(index_like)
-
-        if len(converted) > 0 and all_arrays:
+        if len(index_like) and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
-            return MultiIndex.from_arrays(converted)
+            return MultiIndex.from_arrays(index_like)
         else:
-            index_like = converted
+            return Index(index_like, copy=copy, tupleize_cols=False)
     else:
-        # clean_index_list does the equivalent of copying
-        # so only need to do this if not list instance
-        if copy:
-            index_like = copy_func(index_like)
 
-    return Index(index_like)
+        return Index(index_like, copy=copy)
 
 
 def ensure_has_len(seq):

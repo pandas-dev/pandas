@@ -740,19 +740,15 @@ cpdef ndarray[object] ensure_string_array(
     return result
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def clean_index_list(obj: list):
+def is_all_arraylike(obj: list) -> bool:
     """
-    Utility used in ``pandas.core.indexes.api.ensure_index``.
+    Should we treat these as levels of a MultiIndex, as opposed to Index items?
     """
     cdef:
         Py_ssize_t i, n = len(obj)
         object val
         bint all_arrays = True
 
-    # First check if we have a list of arraylikes, in which case we will
-    #  pass them to MultiIndex.from_arrays
     for i in range(n):
         val = obj[i]
         if not (isinstance(val, list) or
@@ -762,31 +758,7 @@ def clean_index_list(obj: list):
             all_arrays = False
             break
 
-    if all_arrays:
-        return obj, all_arrays
-
-    # don't force numpy coerce with nan's
-    inferred = infer_dtype(obj, skipna=False)
-    if inferred in ['string', 'bytes', 'mixed', 'mixed-integer']:
-        return np.asarray(obj, dtype=object), 0
-    elif inferred in ['integer']:
-        # we infer an integer but it *could* be a uint64
-
-        arr = np.asarray(obj)
-        if arr.dtype.kind not in ["i", "u"]:
-            # eg [0, uint64max] gets cast to float64,
-            #  but then we know we have either uint64 or object
-            if (arr < 0).any():
-                # TODO: similar to maybe_cast_to_integer_array
-                return np.asarray(obj, dtype="object"), 0
-
-            # GH#35481
-            guess = np.asarray(obj, dtype="uint64")
-            return guess, 0
-
-        return arr, 0
-
-    return np.asarray(obj), 0
+    return all_arrays
 
 
 # ------------------------------------------------------------------------------
@@ -1601,6 +1573,7 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
         bint seen_timedelta = False, seen_date = False, seen_datetime = False
         bint seen_tz_aware = False, seen_tz_naive = False
         bint seen_nat = False, seen_str = False
+        bint seen_period = False, seen_interval = False
         list objs = []
         object v
 
@@ -1638,8 +1611,24 @@ def infer_datetimelike_array(arr: ndarray[object]) -> tuple[str, bool]:
         elif is_timedelta(v):
             # timedelta, or timedelta64
             seen_timedelta = True
+        elif is_period_object(v):
+            seen_period = True
+            break
+        elif is_interval(v):
+            seen_interval = True
+            break
         else:
             return "mixed", seen_str
+
+    if seen_period:
+        if is_period_array(arr):
+            return "period", seen_str
+        return "mixed", seen_str
+
+    if seen_interval:
+        if is_interval_array(arr):
+            return "interval", seen_str
+        return "mixed", seen_str
 
     if seen_date and not (seen_datetime or seen_timedelta):
         return "date", seen_str
@@ -1672,6 +1661,7 @@ cdef inline bint is_timedelta(object o):
     return PyDelta_Check(o) or util.is_timedelta64_object(o)
 
 
+@cython.internal
 cdef class Validator:
 
     cdef:
@@ -1690,6 +1680,7 @@ cdef class Validator:
             return False
 
         if self.is_array_typed():
+            # i.e. this ndarray is already of the desired dtype
             return True
         elif self.dtype.type_num == NPY_OBJECT:
             if self.skipna:
@@ -1745,11 +1736,16 @@ cdef class Validator:
         return True
 
     cdef bint finalize_validate_skipna(self):
+        """
+        If we _only_ saw non-dtype-specific NA values, even if they are valid
+        for this dtype, we do not infer this dtype.
+        """
         # TODO(phillipc): Remove the existing validate methods and replace them
         # with the skipna versions upon full deprecation of skipna=False
         return True
 
 
+@cython.internal
 cdef class BoolValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_bool_object(value)
@@ -1766,6 +1762,7 @@ cpdef bint is_bool_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class IntegerValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value)
@@ -1774,6 +1771,7 @@ cdef class IntegerValidator(Validator):
         return issubclass(self.dtype.type, np.integer)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_integer_array(ndarray values):
     cdef:
         IntegerValidator validator = IntegerValidator(len(values),
@@ -1781,6 +1779,7 @@ cpdef bint is_integer_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class IntegerNaValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return (util.is_integer_object(value)
@@ -1794,6 +1793,7 @@ cdef bint is_integer_na_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class IntegerFloatValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_integer_object(value) or util.is_float_object(value)
@@ -1809,6 +1809,7 @@ cdef bint is_integer_float_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class FloatValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_float_object(value)
@@ -1817,12 +1818,14 @@ cdef class FloatValidator(Validator):
         return issubclass(self.dtype.type, np.floating)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_float_array(ndarray values):
     cdef:
         FloatValidator validator = FloatValidator(len(values), values.dtype)
     return validator.validate(values)
 
 
+@cython.internal
 cdef class ComplexValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return (
@@ -1840,6 +1843,7 @@ cdef bint is_complex_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class DecimalValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return is_decimal(value)
@@ -1851,6 +1855,7 @@ cdef bint is_decimal_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class StringValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return isinstance(value, str)
@@ -1871,6 +1876,7 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class BytesValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return isinstance(value, bytes)
@@ -1886,6 +1892,7 @@ cdef bint is_bytes_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class TemporalValidator(Validator):
     cdef:
         Py_ssize_t generic_null_count
@@ -1912,9 +1919,14 @@ cdef class TemporalValidator(Validator):
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
     cdef inline bint finalize_validate_skipna(self):
+        """
+        If we _only_ saw non-dtype-specific NA values, even if they are valid
+        for this dtype, we do not infer this dtype.
+        """
         return self.generic_null_count != self.n
 
 
+@cython.internal
 cdef class DatetimeValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDateTime_Check(value)
@@ -1930,11 +1942,13 @@ cpdef bint is_datetime_array(ndarray values, bint skipna=True):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class Datetime64Validator(DatetimeValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return util.is_datetime64_object(value)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_datetime64_array(ndarray values):
     cdef:
         Datetime64Validator validator = Datetime64Validator(len(values),
@@ -1942,7 +1956,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
-# TODO: only non-here use is in test
+# Note: only python-exposed for tests
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
     Check values have the same tzinfo attribute.
@@ -1973,6 +1987,7 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
     return True
 
 
+@cython.internal
 cdef class TimedeltaValidator(TemporalValidator):
     cdef bint is_value_typed(self, object value) except -1:
         return PyDelta_Check(value)
@@ -1981,12 +1996,13 @@ cdef class TimedeltaValidator(TemporalValidator):
         return is_null_timedelta64(value)
 
 
+@cython.internal
 cdef class AnyTimedeltaValidator(TimedeltaValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return is_timedelta(value)
 
 
-# TODO: only non-here use is in test
+# Note: only python-exposed for tests
 cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     """
     Infer with timedeltas and/or nat/none.
@@ -1997,22 +2013,26 @@ cpdef bint is_timedelta_or_timedelta64_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
 cdef class DateValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return PyDate_Check(value)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_date_array(ndarray values, bint skipna=False):
     cdef:
         DateValidator validator = DateValidator(len(values), skipna=skipna)
     return validator.validate(values)
 
 
+@cython.internal
 cdef class TimeValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
         return PyTime_Check(value)
 
 
+# Note: only python-exposed for tests
 cpdef bint is_time_array(ndarray values, bint skipna=False):
     cdef:
         TimeValidator validator = TimeValidator(len(values), skipna=skipna)
@@ -2050,6 +2070,7 @@ cdef bint is_period_array(ndarray[object] values):
     return True
 
 
+# Note: only python-exposed for tests
 cpdef bint is_interval_array(ndarray values):
     """
     Is this an ndarray of Interval (or np.nan) with a single dtype?
