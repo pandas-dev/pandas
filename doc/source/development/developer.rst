@@ -40,6 +40,8 @@ So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
    {'index_columns': [<descr0>, <descr1>, ...],
     'column_indexes': [<ci0>, <ci1>, ..., <ciN>],
     'columns': [<c0>, <c1>, ...],
+    'attrs': {...},
+    'column_attrs': {<column_name0>: {...}, <column_name1>: {...}, ...},
     'pandas_version': $VERSION,
     'creator': {
       'library': $LIBRARY,
@@ -181,6 +183,52 @@ As an example of fully-formed metadata:
          'metadata': None}
     ],
     'pandas_version': '0.20.0',
+    'creator': {
+      'library': 'pyarrow',
+      'version': '0.13.0'
+    }}
+
+
+Attribute metadata
+~~~~~~~~~~~~~~~~~~
+
+.. warning:: This only works with the ``pyarrow`` engine as of ``pandas`` 1.3.
+
+The attributes of both the ``DataFrame`` and each ``Series`` are written to and read
+from using:
+
+- :attr:`DataFrame.attrs`
+- :attr:`Series.attrs`
+
+Here is an example:
+
+.. code-block:: python
+
+    df = pd.DataFrame({"a": [1], "b": [1]})
+    df.attrs = {"name": "my custom dataset"}
+    df.a.attrs = {
+        "long_name": "Description about data",
+        "nodata": -1,
+        "units": "metre",
+    }
+    df.to_parquet("file.parquet")
+
+
+Here is an example of the metadata:
+
+.. code-block:: text
+
+   {
+   ...
+    'attrs': {'name': 'my custom dataset'},
+    'column_attrs': {
+        'a': {
+            'long_name': 'Description about data',
+            'nodata': -1,
+            'units': 'metre',
+        },
+    },
+    'pandas_version': '1.3.0',
     'creator': {
       'library': 'pyarrow',
       'version': '0.13.0'
