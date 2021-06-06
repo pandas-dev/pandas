@@ -811,7 +811,9 @@ def test_map_datetimetz():
     "vals,mapping,exp",
     [
         pytest.param(
-            (list("abc"), {np.nan: "not NaN"}, [np.nan] * 3 + ["not NaN"]),
+            list("abc"),
+            {np.nan: "not NaN"},
+            [np.nan] * 3 + ["not NaN"],
             marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10"),
         ),
         (list("abc"), {"a": "a letter"}, ["a letter"] + [np.nan] * 3),
