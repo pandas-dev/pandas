@@ -227,7 +227,7 @@ as shown in example below:
    reversed_df = df[::-1].rolling("2s").sum()[::-1]
    reversed_df
 
-Or we can also do it using FixedForwardWindowIndexer which basically Creates window boundaries
+Or we can also do it using :meth:`api.indexers.FixedForwardWindowIndexer` which basically creates window boundaries
 for fixed-length windows that include the current row.
 
 .. ipython:: python
