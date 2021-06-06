@@ -1,6 +1,7 @@
 from datetime import datetime, time
 from functools import partial
 import os
+from pathlib import Path
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -1273,3 +1274,21 @@ class TestExcelFileRead:
         expected = DataFrame([], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
+
+    def test_corrupt_files_closed(self, request, engine, read_ext):
+        # GH41778
+        errors = (BadZipFile, ValueError)
+        if engine is None:
+            pytest.skip()
+        elif engine == "xlrd":
+            import xlrd
+
+            errors = (BadZipFile, ValueError, xlrd.biffh.XLRDError)
+
+        with tm.ensure_clean(f"corrupt{read_ext}") as file:
+            Path(file).write_text("corrupt")
+            with tm.assert_produces_warning(False):
+                try:
+                    pd.ExcelFile(file, engine=engine)
+                except errors:
+                    pass
