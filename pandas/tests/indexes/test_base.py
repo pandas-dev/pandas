@@ -1017,7 +1017,8 @@ class TestIndex(Base):
                     or nulls_fixture is not np.nan
                 ):
                     request.applymarker(
-                        pytest.mark.xfail(reason="Failing on Python 3.10")
+                        # This test is flaky :(
+                        pytest.mark.xfail(reason="Failing on Python 3.10", strict=False)
                     )
             tm.assert_numpy_array_equal(
                 Index(["a", nulls_fixture]).isin([nulls_fixture2]),
