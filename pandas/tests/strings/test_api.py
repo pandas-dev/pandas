@@ -125,10 +125,12 @@ def test_api_per_method(
             method(*args, **kwargs)
 
 
-def test_api_for_categorical(any_string_method, any_string_dtype, request):
+def test_api_for_categorical(
+    any_string_method, any_string_dtype, any_string_dtype_param, request
+):
     # https://github.com/pandas-dev/pandas/issues/10661
 
-    if any_string_dtype == "arrow_string":
+    if any_string_dtype_param == "pyarrow":
         # unsupported operand type(s) for +: 'ArrowStringArray' and 'str'
         mark = pytest.mark.xfail(raises=TypeError, reason="Not Implemented")
         request.node.add_marker(mark)

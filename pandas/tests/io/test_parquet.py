@@ -811,10 +811,11 @@ class TestParquetPyArrow(Base):
 
     @td.skip_if_no("pyarrow", min_version="1.0.0")
     def test_pyarrow_backed_string_array(self, pa):
-        # test ArrowStringArray supported through the __arrow_array__ protocol
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+        # test StringArray(..., storage="pyarrow") supported through the __arrow_array__
+        # protocol
 
-        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="arrow_string")})
+        with pd.option_context("string_storage", "pyarrow"):
+            df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string")})
         check_round_trip(df, pa, expected=df)
 
     @td.skip_if_no("pyarrow")

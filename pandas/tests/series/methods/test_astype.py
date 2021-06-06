@@ -10,8 +10,8 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -250,23 +250,19 @@ class TestAstype:
         "data, dtype",
         [
             (["x", "y", "z"], "string"),
-            pytest.param(
-                ["x", "y", "z"],
-                "arrow_string",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
-            ),
             (["x", "y", "z"], "category"),
             (3 * [Timestamp("2020-01-01", tz="UTC")], None),
             (3 * [Interval(0, 1)], None),
         ],
     )
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
-    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
+    def test_astype_ignores_errors_for_extension_dtypes(
+        self, data, dtype, errors, string_storage
+    ):
         # https://github.com/pandas-dev/pandas/issues/35471
 
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        ser = Series(data, dtype=dtype)
+        with pd.option_context("string_storage", string_storage):
+            ser = Series(data, dtype=dtype)
         if errors == "ignore":
             expected = ser
             result = ser.astype(float, errors="ignore")

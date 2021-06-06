@@ -5,10 +5,8 @@ import pytest
 
 from pandas.compat import pa_version_under1p0
 
-from pandas.core.arrays.string_arrow import (
-    ArrowStringArray,
-    ArrowStringDtype,
-)
+import pandas as pd
+from pandas.core.arrays.string_ import StringArray
 
 
 @pytest.mark.skipif(
@@ -34,7 +32,7 @@ def test_constructor_not_string_type_raises(array, chunked):
             "ArrowStringArray requires a PyArrow (chunked) array of string type"
         )
     with pytest.raises(ValueError, match=msg):
-        ArrowStringArray(arr)
+        StringArray(arr, storage="pyarrow")
 
 
 @pytest.mark.skipif(
@@ -45,10 +43,8 @@ def test_pyarrow_not_installed_raises():
     msg = re.escape("pyarrow>=1.0.0 is required for PyArrow backed StringArray")
 
     with pytest.raises(ImportError, match=msg):
-        ArrowStringDtype()
+        StringArray([], storage="pyarrow")
 
-    with pytest.raises(ImportError, match=msg):
-        ArrowStringArray([])
-
-    with pytest.raises(ImportError, match=msg):
-        ArrowStringArray._from_sequence(["a", None, "b"])
+    with pd.option_context("string_storage", "pyarrow"):
+        with pytest.raises(ImportError, match=msg):
+            StringArray._from_sequence(["a", None, "b"])

@@ -11,16 +11,12 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     NpDtype,
     PositionalIndexer,
     Scalar,
-    type_t,
 )
 from pandas.compat import (
     pa_version_under1p0,
@@ -43,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import missing
@@ -84,93 +79,6 @@ def _chk_pyarrow_available() -> None:
     if pa_version_under1p0:
         msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
         raise ImportError(msg)
-
-
-@register_extension_dtype
-class ArrowStringDtype(StringDtype):
-    """
-    Extension dtype for string data in a ``pyarrow.ChunkedArray``.
-
-    .. versionadded:: 1.2.0
-
-    .. warning::
-
-       ArrowStringDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
-
-    Examples
-    --------
-    >>> from pandas.core.arrays.string_arrow import ArrowStringDtype
-    >>> ArrowStringDtype()
-    ArrowStringDtype
-    """
-
-    name = "arrow_string"
-
-    #: StringDtype.na_value uses pandas.NA
-    na_value = libmissing.NA
-
-    def __init__(self):
-        _chk_pyarrow_available()
-
-    @property
-    def type(self) -> type[str]:
-        return str
-
-    @classmethod
-    def construct_array_type(cls) -> type_t[ArrowStringArray]:  # type: ignore[override]
-        """
-        Return the array type associated with this dtype.
-
-        Returns
-        -------
-        type
-        """
-        return ArrowStringArray
-
-    def __hash__(self) -> int:
-        return hash("ArrowStringDtype")
-
-    def __repr__(self) -> str:
-        return "ArrowStringDtype"
-
-    def __from_arrow__(  # type: ignore[override]
-        self, array: pa.Array | pa.ChunkedArray
-    ) -> ArrowStringArray:
-        """
-        Construct StringArray from pyarrow Array/ChunkedArray.
-        """
-        return ArrowStringArray(array)
-
-    def __eq__(self, other) -> bool:
-        """Check whether 'other' is equal to self.
-
-        By default, 'other' is considered equal if
-        * it's a string matching 'self.name'.
-        * it's an instance of this type.
-
-        Parameters
-        ----------
-        other : Any
-
-        Returns
-        -------
-        bool
-        """
-        if isinstance(other, ArrowStringDtype):
-            return True
-        elif isinstance(other, str) and other == "arrow_string":
-            return True
-        else:
-            return False
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -222,8 +130,10 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     Length: 4, dtype: arrow_string
     """
 
-    def __init__(self, values):
-        self._dtype = ArrowStringDtype()
+    _dtype = StringDtype()
+
+    def __init__(self, values, copy: bool = False):
+        # copy is ignored, for compatibility with ObjectStringArray
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
@@ -261,9 +171,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
-    def dtype(self) -> ArrowStringDtype:
+    def dtype(self) -> StringDtype:
         """
-        An instance of 'ArrowStringDtype'.
+        An instance of 'StringDtype'.
         """
         return self._dtype
 
@@ -465,12 +375,21 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
+    def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        raise NotImplementedError
+
+    def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+        raise NotImplementedError
+
     @property
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
         """
         return self._data.nbytes
+
+    def memory_usage(self, deep: bool = False) -> int:
+        return self.nbytes
 
     def isna(self) -> np.ndarray:
         """
@@ -761,7 +680,7 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
     # ------------------------------------------------------------------------
     # String methods interface
 
-    _str_na_value = ArrowStringDtype.na_value
+    _str_na_value = StringDtype.na_value
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True

@@ -366,7 +366,7 @@ def test_len_mixed():
 )
 def test_index(method, sub, start, end, index_or_series, any_string_dtype, expected):
     if index_or_series is Index and not any_string_dtype == "object":
-        pytest.skip("Index cannot yet be backed by a StringArray/ArrowStringArray")
+        pytest.skip("Index cannot yet be backed by a StringArray")
 
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype

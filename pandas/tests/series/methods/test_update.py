@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
+import pandas as pd
 from pandas import (
     CategoricalDtype,
     DataFrame,
@@ -11,7 +10,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
 
 
 class TestUpdate:
@@ -88,13 +86,6 @@ class TestUpdate:
         "data, other, expected, dtype",
         [
             (["a", None], [None, "b"], ["a", "b"], "string"),
-            pytest.param(
-                ["a", None],
-                [None, "b"],
-                ["a", "b"],
-                "arrow_string",
-                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
-            ),
             ([1, None], [None, 2], [1, 2], "Int64"),
             ([True, None], [None, False], [True, False], "boolean"),
             (
@@ -111,10 +102,13 @@ class TestUpdate:
             ),
         ],
     )
-    def test_update_extension_array_series(self, data, other, expected, dtype):
-        result = Series(data, dtype=dtype)
-        other = Series(other, dtype=dtype)
-        expected = Series(expected, dtype=dtype)
+    def test_update_extension_array_series(
+        self, data, other, expected, dtype, string_storage
+    ):
+        with pd.option_context("string_storage", string_storage):
+            result = Series(data, dtype=dtype)
+            other = Series(other, dtype=dtype)
+            expected = Series(expected, dtype=dtype)
 
         result.update(other)
         tm.assert_series_equal(result, expected)

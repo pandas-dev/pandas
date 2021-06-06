@@ -1120,22 +1120,30 @@ def string_dtype(request):
 
 @pytest.fixture(
     params=[
-        "string",
-        pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        "python",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
     ]
 )
-def nullable_string_dtype(request):
-    """
-    Parametrized fixture for string dtypes.
-
-    * 'string'
-    * 'arrow_string'
-    """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
+def string_storage(request):
     return request.param
+
+
+# Aliases so we can test with cartesian product of string_storage
+string_storage2 = string_storage
+string_storage3 = string_storage
+
+
+@pytest.fixture
+def nullable_string_dtype(string_storage):
+    """
+    Parametrized fixture for StringDtype with string_storage.
+
+    * 'string' (python storage)
+    * 'string` (pyarrow storage)
+    """
+    with pd.option_context("string_storage", string_storage):
+
+        yield "string"
 
 
 @pytest.fixture(params=tm.BYTES_DTYPES)
@@ -1163,22 +1171,27 @@ def object_dtype(request):
 @pytest.fixture(
     params=[
         "object",
-        "string",
-        pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
-        ),
+        "python",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
     ]
 )
-def any_string_dtype(request):
+def any_string_dtype_param(request):
+    return request.param
+
+
+@pytest.fixture
+def any_string_dtype(any_string_dtype_param):
     """
     Parametrized fixture for string dtypes.
     * 'object'
-    * 'string'
-    * 'arrow_string'
+    * 'string' (python storage)
+    * 'string` (pyarrow storage)
     """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-    return request.param
+    if any_string_dtype_param == "object":
+        yield "object"
+    else:
+        with pd.option_context("string_storage", any_string_dtype_param):
+            yield "string"
 
 
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
