@@ -50,16 +50,16 @@ As noted above, some operations support specifying a window based on a time offs
 
 .. ipython:: python
 
-   s = pd.Series(range(5), index=pd.date_range('2020-01-01', periods=5, freq='1D'))
-   s.rolling(window='2D').sum()
+   s = pd.Series(range(5), index=pd.date_range("2020-01-01", periods=5, freq="1D"))
+   s.rolling(window="2D").sum()
 
 Additionally, some methods support chaining a ``groupby`` operation with a windowing operation
 which will first group the data by the specified keys and then perform a windowing operation per group.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': ['a', 'b', 'a', 'b', 'a'], 'B': range(5)})
-   df.groupby('A').expanding().sum()
+   df = pd.DataFrame({"A": ["a", "b", "a", "b", "a"], "B": range(5)})
+   df.groupby("A").expanding().sum()
 
 .. note::
 
@@ -95,13 +95,16 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
        arr[:, :2] = (x[:, :2] * x[:, 2]).sum(axis=0) / x[:, 2].sum()
        return arr
 
+
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa:E501
+   df.rolling(2, method="table", min_periods=0).apply(
+       weighted_mean, raw=True, engine="numba"
+   )  # noqa:E501
 
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
-``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows
+``min_peridos`` defaults to 1 for time-based windows and ``window`` for fixed windows
 
 .. ipython:: python
 
@@ -132,13 +135,13 @@ time based index must be monotonic.
 
 .. ipython:: python
 
-   times = ['2020-01-01', '2020-01-03', '2020-01-04', '2020-01-05', '2020-01-29']
+   times = ["2020-01-01", "2020-01-03", "2020-01-04", "2020-01-05", "2020-01-29"]
    s = pd.Series(range(5), index=pd.DatetimeIndex(times))
    s
    # Window with 2 observations
    s.rolling(window=2).sum()
    # Window with 2 days worth of observations
-   s.rolling(window='2D').sum()
+   s.rolling(window="2D").sum()
 
 For all supported aggregation functions, see :ref:`api.functions_rolling`.
 
@@ -155,20 +158,6 @@ By default the labels are set to the right edge of the window, but a
    s = pd.Series(range(10))
    s.rolling(window=5).mean()
    s.rolling(window=5, center=True).mean()
-
-
-This can also be applied to datetime-like indices.
-
-.. versionadded:: 1.3
-
-.. ipython:: python
-
-    df = pd.DataFrame(
-        {"A": [0, 1, 2, 3, 4]}, index=pd.date_range("2020", periods=5, freq="1D")
-    )
-    df
-    df.rolling("2D", center=False).mean()
-    df.rolling("2D", center=True).mean()
 
 
 .. _window.endpoints:
@@ -212,6 +201,54 @@ from present information back to past information. This allows the rolling windo
 
    df
 
+.. _window.reverse_rolling_window:
+
+Reverse rolling window
+~~~~~~~~~~~~~~~~~~~~~~
+
+Get the window of a rolling function to look forward.
+
+We can achieve this by using slicing in python by applying rolling aggregation and then flipping the result
+as shown in example below:
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       data=[
+           [pd.Timestamp("2018-01-01 00:00:00"), 100],
+           [pd.Timestamp("2018-01-01 00:00:01"), 101],
+           [pd.Timestamp("2018-01-01 00:00:03"), 103],
+           [pd.Timestamp("2018-01-01 00:00:04"), 111],
+       ],
+       columns=["time", "value"],
+   ).set_index("time")
+   df
+
+   df1 = df[::-1].rolling("2s").sum()[::-1]
+   df1
+
+Or we can also do it using FixedForwardWindowIndexer which basically Creates window boundaries
+for fixed-length windows that include the current row.
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       data=[
+           [pd.Timestamp("2018-01-01 00:00:00"), 100],
+           [pd.Timestamp("2018-01-01 00:00:01"), 101],
+           [pd.Timestamp("2018-01-01 00:00:03"), 103],
+           [pd.Timestamp("2018-01-01 00:00:04"), 111],
+       ],
+       columns=["time", "value"],
+   ).set_index("time")
+   df
+
+   indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+
+   df2 = df.rolling(window=indexer, min_periods=1).sum()
+   df2
+
+
 .. _window.custom_rolling_window:
 
 Custom window rolling
@@ -227,7 +264,7 @@ ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``
 and will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
-For example, if we have the following :class:`DataFrame`
+For example, if we have the following :class:``DataFrame``:
 
 .. ipython:: python
 
@@ -295,9 +332,22 @@ forward-looking rolling window, and we can use it as follows:
 
 .. ipython:: python
 
-   from pandas.api.indexers import FixedForwardWindowIndexer
-   indexer = FixedForwardWindowIndexer(window_size=2)
-   df.rolling(indexer, min_periods=1).sum()
+   df = pd.DataFrame(
+       data=[
+           [pd.Timestamp("2018-01-01 00:00:00"), 100],
+           [pd.Timestamp("2018-01-01 00:00:01"), 101],
+           [pd.Timestamp("2018-01-01 00:00:03"), 103],
+           [pd.Timestamp("2018-01-01 00:00:04"), 111],
+       ],
+       columns=["time", "value"],
+   ).set_index("time")
+   df
+
+   indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
+
+   df_out = df.rolling(window=indexer, min_periods=1).sum()
+   df_out
+
 
 .. _window.rolling_apply:
 
@@ -314,8 +364,10 @@ the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objec
    def mad(x):
        return np.fabs(x - x.mean()).mean()
 
+
    s = pd.Series(range(10))
    s.rolling(window=4).apply(mad, raw=True)
+
 
 .. _window.numba_engine:
 
@@ -331,10 +383,6 @@ Numba will be applied in potentially two routines:
 
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
-
-.. versionadded:: 1.3
-
-``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
 `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
@@ -381,8 +429,8 @@ two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
   with the passed Series, thus returning a DataFrame.
 * :class:`DataFrame`/:class:`DataFrame`: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
-  passed then computes the statistic for each pair of columns, returning a :class:`DataFrame` with a
-  :class:`MultiIndex` whose values are the dates in question (see :ref:`the next section
+  passed then computes the statistic for each pair of columns, returning a
+  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
   <window.corr_pairwise>`).
 
 For example:
@@ -422,11 +470,7 @@ can even be omitted:
 
 .. ipython:: python
 
-   covs = (
-       df[["B", "C", "D"]]
-       .rolling(window=4)
-       .cov(df[["A", "B", "C"]], pairwise=True)
-   )
+   covs = df[["B", "C", "D"]].rolling(window=4).cov(df[["A", "B", "C"]], pairwise=True)
    covs
 
 
@@ -592,7 +636,7 @@ The following formula is used to compute exponentially weighted mean with an inp
 
 .. math::
 
-    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 
 ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how
