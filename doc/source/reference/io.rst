@@ -13,6 +13,7 @@ Pickling
    :toctree: api/
 
    read_pickle
+   to_pickle
 
 Flat file
 ~~~~~~~~~
@@ -21,6 +22,7 @@ Flat file
 
    read_table
    read_csv
+   to_csv
    read_fwf
 
 Clipboard
@@ -29,6 +31,7 @@ Clipboard
    :toctree: api/
 
    read_clipboard
+   DataFrame.to_clipboard
 
 Excel
 ~~~~~
@@ -36,6 +39,7 @@ Excel
    :toctree: api/
 
    read_excel
+   DataFrame.to_excel
    ExcelFile.parse
 
 .. autosummary::
@@ -43,16 +47,17 @@ Excel
    :template: autosummary/class_without_autosummary.rst
 
    ExcelWriter
-
+   
+.. currentmodule:: pandas.io
+.. currentmodule:: pandas.io.json
 JSON
 ~~~~
 .. autosummary::
    :toctree: api/
 
    read_json
+   to_json
    json_normalize
-
-.. currentmodule:: pandas.io.json
 
 .. autosummary::
    :toctree: api/
@@ -67,6 +72,7 @@ HTML
    :toctree: api/
 
    read_html
+   DataFrame.to_html
 
 XML
 ~~~~
@@ -74,6 +80,7 @@ XML
    :toctree: api/
 
    read_xml
+   DataFrame.to_xml
 
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -101,6 +108,7 @@ Feather
    :toctree: api/
 
    read_feather
+   DataFrame.to_feather
 
 Parquet
 ~~~~~~~
@@ -108,6 +116,7 @@ Parquet
    :toctree: api/
 
    read_parquet
+   DataFrame.to_parquet
 
 ORC
 ~~~
@@ -138,6 +147,7 @@ SQL
    read_sql_table
    read_sql_query
    read_sql
+   DataFrame.to_sql
 
 Google BigQuery
 ~~~~~~~~~~~~~~~
@@ -145,6 +155,7 @@ Google BigQuery
    :toctree: api/
 
    read_gbq
+   DataFrame.to_gpq
 
 STATA
 ~~~~~
@@ -152,6 +163,7 @@ STATA
    :toctree: api/
 
    read_stata
+   DataFrame.to_stata
 
 .. currentmodule:: pandas.io.stata
 
