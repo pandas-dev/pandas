@@ -115,6 +115,20 @@ def test_series_map_box_timestamps():
     ser.apply(func)
 
 
+def test_series_map_stringdtype(any_string_dtype):
+    # map test on StringDType, GH#40823
+    ser1 = Series(
+        data=["cat", "dog", "rabbit"],
+        index=["id1", "id2", "id3"],
+        dtype=any_string_dtype,
+    )
+    ser2 = Series(data=["id3", "id2", "id1", "id7000"], dtype=any_string_dtype)
+    result = ser2.map(ser1)
+    expected = Series(data=["rabbit", "dog", "cat", pd.NA], dtype=any_string_dtype)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_apply_box():
     # ufunc will not be boxed. Same test cases as the test_map_box
     vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
@@ -259,29 +273,66 @@ def test_transform(string_series):
 
 @pytest.mark.parametrize("op", series_transform_kernels)
 def test_transform_partial_failure(op, request):
-    # GH 35964 & GH 40211
+    # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
+            pytest.mark.xfail(
+                raises=AssertionError, reason=f"{op} is successful on any dtype"
+            )
         )
-    match = "Allowing for partial failure is deprecated"
+    if op in ("rank", "fillna"):
+        pytest.skip(f"{op} doesn't raise TypeError on object")
 
     # Using object makes most transform kernels fail
     ser = Series(3 * [object])
 
     expected = ser.transform(["shift"])
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform([op, "shift"])
+    result = ser.transform([op, "shift"])
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": "shift"})
-    with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": op, "B": "shift"})
+    result = ser.transform({"A": op, "B": "shift"})
     tm.assert_equal(result, expected)
 
     expected = ser.transform({"B": ["shift"]})
+    result = ser.transform({"A": [op], "B": ["shift"]})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"A": ["shift"], "B": [op]})
+    result = ser.transform({"A": [op, "shift"], "B": [op]})
+    tm.assert_equal(result, expected)
+
+
+def test_transform_partial_failure_valueerror():
+    # GH 40211
+    match = ".*did not transform successfully and did not raise a TypeError"
+
+    def noop(x):
+        return x
+
+    def raising_op(_):
+        raise ValueError
+
+    ser = Series(3 * [object])
+
+    expected = ser.transform([noop])
     with tm.assert_produces_warning(FutureWarning, match=match):
-        result = ser.transform({"A": [op], "B": ["shift"]})
+        result = ser.transform([noop, raising_op])
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": noop})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": raising_op, "B": noop})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": [noop]})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [raising_op], "B": [noop]})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"A": [noop], "B": [noop]})
+    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+        result = ser.transform({"A": [noop, raising_op], "B": [noop]})
     tm.assert_equal(result, expected)
 
 
@@ -406,8 +457,8 @@ def test_non_callable_aggregates(how):
                 ("sum", "abc"),
                 ("max", "c"),
                 ("min", "a"),
-                ("all", "c"),  # see GH12863
-                ("any", "a"),
+                ("all", True),
+                ("any", True),
             ],
         ),
     ),
@@ -822,7 +873,9 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)  # noqa
-    b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+        ser = Series(list_of_strings)
+    b = ser.apply(pd.to_timedelta)  # noqa
     # Can't compare until apply on a Series gives the correct dtype
     # assert_series_equal(a, b)
 

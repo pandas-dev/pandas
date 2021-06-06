@@ -155,21 +155,25 @@ def convert_json_field_to_pandas_type(field):
 
     Examples
     --------
-    >>> convert_json_field_to_pandas_type({'name': 'an_int',
-                                           'type': 'integer'})
+    >>> convert_json_field_to_pandas_type({"name": "an_int", "type": "integer"})
     'int64'
-    >>> convert_json_field_to_pandas_type({'name': 'a_categorical',
-                                           'type': 'any',
-                                           'constraints': {'enum': [
-                                                          'a', 'b', 'c']},
-                                           'ordered': True})
-    'CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)'
-    >>> convert_json_field_to_pandas_type({'name': 'a_datetime',
-                                           'type': 'datetime'})
+
+    >>> convert_json_field_to_pandas_type(
+    ...     {
+    ...         "name": "a_categorical",
+    ...         "type": "any",
+    ...         "constraints": {"enum": ["a", "b", "c"]},
+    ...         "ordered": True,
+    ...     }
+    ... )
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)
+
+    >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'
-    >>> convert_json_field_to_pandas_type({'name': 'a_datetime_with_tz',
-                                           'type': 'datetime',
-                                           'tz': 'US/Central'})
+
+    >>> convert_json_field_to_pandas_type(
+    ...     {"name": "a_datetime_with_tz", "type": "datetime", "tz": "US/Central"}
+    ... )
     'datetime64[ns, US/Central]'
     """
     typ = field["type"]
@@ -245,12 +249,13 @@ def build_table_schema(
     ...      'C': pd.date_range('2016-01-01', freq='d', periods=3),
     ...     }, index=pd.Index(range(3), name='idx'))
     >>> build_table_schema(df)
-    {'fields': [{'name': 'idx', 'type': 'integer'},
-    {'name': 'A', 'type': 'integer'},
-    {'name': 'B', 'type': 'string'},
-    {'name': 'C', 'type': 'datetime'}],
-    'pandas_version': '0.20.0',
-    'primaryKey': ['idx']}
+    {'fields': \
+[{'name': 'idx', 'type': 'integer'}, \
+{'name': 'A', 'type': 'integer'}, \
+{'name': 'B', 'type': 'string'}, \
+{'name': 'C', 'type': 'datetime'}], \
+'primaryKey': ['idx'], \
+'pandas_version': '0.20.0'}
     """
     if index is True:
         data = set_default_names(data)
@@ -296,7 +301,7 @@ def parse_table_schema(json, precise_float):
     ----------
     json :
         A JSON table schema
-    precise_float : boolean
+    precise_float : bool
         Flag controlling precision when decoding string to double values, as
         dictated by ``read_json``
 

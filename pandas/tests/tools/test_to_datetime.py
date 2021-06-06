@@ -43,6 +43,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
+from pandas.core.tools.datetimes import start_caching_at
 
 
 class TestTimeConversionFormats:
@@ -956,6 +957,19 @@ class TestToDatetime:
         expected = Timestamp("20130101 00:00:00")
         assert result == expected
 
+    def test_convert_object_to_datetime_with_cache(self):
+        # GH#39882
+        ser = Series(
+            [None] + [NaT] * start_caching_at + [Timestamp("2012-07-26")],
+            dtype="object",
+        )
+        result = to_datetime(ser, errors="coerce")
+        expected = Series(
+            [NaT] * (start_caching_at + 1) + [Timestamp("2012-07-26")],
+            dtype="datetime64[ns]",
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "date, format",
         [
@@ -1065,7 +1079,7 @@ class TestToDatetime:
 
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
-        s = Series(
+        ser = Series(
             [
                 "nan",
                 Timestamp("1990-01-01"),
@@ -1075,7 +1089,7 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            to_datetime(s)
+            to_datetime(ser)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
@@ -1157,7 +1171,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 11111111 with the unit 'D'"
-        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, unit="D", errors="raise", cache=cache)
 
         values = [1420043460000, iNaT, NaT, np.nan, "NaT"]
@@ -1171,7 +1185,7 @@ class TestToDatetimeUnit:
         tm.assert_index_equal(result, expected)
 
         msg = "cannot convert input 1420043460000 with the unit 's'"
-        with pytest.raises(tslib.OutOfBoundsDatetime, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             to_datetime(values, errors="raise", unit="s", cache=cache)
 
         # if we have a string, then we raise a ValueError
@@ -1179,7 +1193,7 @@ class TestToDatetimeUnit:
         for val in ["foo", Timestamp("20130101")]:
             try:
                 to_datetime(val, errors="raise", unit="s", cache=cache)
-            except tslib.OutOfBoundsDatetime as err:
+            except OutOfBoundsDatetime as err:
                 raise AssertionError("incorrect exception raised") from err
             except ValueError:
                 pass
@@ -1885,7 +1899,10 @@ class TestToDatetimeInferFormat:
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_infer_datetime_format_series_with_nans(self, cache):
         s = Series(
-            np.array(["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan])
+            np.array(
+                ["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan],
+                dtype=object,
+            )
         )
         tm.assert_series_equal(
             to_datetime(s, infer_datetime_format=False, cache=cache),
@@ -1902,7 +1919,8 @@ class TestToDatetimeInferFormat:
                     "01/01/2011 00:00:00",
                     "01/02/2011 00:00:00",
                     "01/03/2011 00:00:00",
-                ]
+                ],
+                dtype=object,
             )
         )
 
@@ -2347,7 +2365,7 @@ class TestOrigin:
             ("random_string", ValueError),
             ("epoch", ValueError),
             ("13-24-1990", ValueError),
-            (datetime(1, 1, 1), tslib.OutOfBoundsDatetime),
+            (datetime(1, 1, 1), OutOfBoundsDatetime),
         ],
     )
     def test_invalid_origins(self, origin, exc, units, units_from_epochs):

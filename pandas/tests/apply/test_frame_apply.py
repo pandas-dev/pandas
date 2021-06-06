@@ -164,8 +164,9 @@ def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     if len(args) > 1 and how == "agg":
         request.node.add_marker(
             pytest.mark.xfail(
+                raises=TypeError,
                 reason="agg/apply signature mismatch - agg passes 2nd "
-                "argument to func"
+                "argument to func",
             )
         )
     result = getattr(float_frame, how)(func, *args, **kwds)
@@ -558,6 +559,13 @@ def test_applymap(float_frame):
         for func in [round, lambda x: x]:
             result = expected.applymap(func)
             tm.assert_frame_equal(result, expected)
+
+
+def test_applymap_kwargs():
+    # GH 40652
+    result = DataFrame([[1, 2], [3, 4]]).applymap(lambda x, y: x + y, y=2)
+    expected = DataFrame([[3, 4], [5, 6]])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_applymap_na_ignore(float_frame):
@@ -1102,10 +1110,9 @@ def test_agg_multiple_mixed_no_warning():
     with tm.assert_produces_warning(None):
         result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
-    # For backwards compatibility, the result's index is
-    # still sorted by function name, so it's ['min', 'sum']
-    # not ['sum', 'min'].
-    expected = expected[["D", "C", "B", "A"]]
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
+    expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1202,7 +1209,10 @@ def test_nuiscance_columns():
     )
     tm.assert_frame_equal(result, expected)
 
-    result = df.agg("sum")
+    with tm.assert_produces_warning(
+        FutureWarning, match="Select only valid", check_stacklevel=False
+    ):
+        result = df.agg("sum")
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
@@ -1419,8 +1429,9 @@ def test_apply_datetime_tz_issue():
 @pytest.mark.parametrize("method", ["min", "max", "sum"])
 def test_consistency_of_aggregates_of_columns_with_missing_values(df, method):
     # GH 16832
-    none_in_first_column_result = getattr(df[["A", "B"]], method)()
-    none_in_second_column_result = getattr(df[["B", "A"]], method)()
+    with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+        none_in_first_column_result = getattr(df[["A", "B"]], method)()
+        none_in_second_column_result = getattr(df[["B", "A"]], method)()
 
     tm.assert_series_equal(none_in_first_column_result, none_in_second_column_result)
 
@@ -1435,9 +1446,10 @@ def test_apply_dtype(col):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_mutating():
+def test_apply_mutating(using_array_manager):
     # GH#35462 case where applied func pins a new BlockManager to a row
     df = DataFrame({"a": range(100), "b": range(100, 200)})
+    df_orig = df.copy()
 
     def func(row):
         mgr = row._mgr
@@ -1451,7 +1463,12 @@ def test_apply_mutating():
     result = df.apply(func, axis=1)
 
     tm.assert_frame_equal(result, expected)
-    tm.assert_frame_equal(df, result)
+    if not using_array_manager:
+        # INFO(ArrayManager) With BlockManager, the row is a view and mutated in place,
+        # with ArrayManager the row is not a view, and thus not mutated in place
+        tm.assert_frame_equal(df, result)
+    else:
+        tm.assert_frame_equal(df, df_orig)
 
 
 def test_apply_empty_list_reduce():
@@ -1504,4 +1521,44 @@ def test_apply_np_reducer(float_frame, op, how):
     expected = Series(
         getattr(np, op)(float_frame, axis=0, **kwargs), index=float_frame.columns
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_aggregation_func_column_order():
+    # GH40420: the result of .agg should have an index that is sorted
+    # according to the arguments provided to agg.
+    df = DataFrame(
+        [
+            ("1", 1, 0, 0),
+            ("2", 2, 0, 0),
+            ("3", 3, 0, 0),
+            ("4", 4, 5, 4),
+            ("5", 5, 6, 6),
+            ("6", 6, 7, 7),
+        ],
+        columns=("item", "att1", "att2", "att3"),
+    )
+
+    def foo(s):
+        return s.sum() / 2
+
+    aggs = ["sum", foo, "count", "min"]
+    result = df.agg(aggs)
+    expected = DataFrame(
+        {
+            "item": ["123456", np.nan, 6, "1"],
+            "att1": [21.0, 10.5, 6.0, 1.0],
+            "att2": [18.0, 9.0, 6.0, 0.0],
+            "att3": [17.0, 8.5, 6.0, 0.0],
+        },
+        index=["sum", "foo", "count", "min"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_apply_getitem_axis_1():
+    # GH 13427
+    df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
+    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)

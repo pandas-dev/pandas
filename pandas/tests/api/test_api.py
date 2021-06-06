@@ -192,7 +192,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p17",
         "_np_version_under1p18",
         "_is_numpy_dev",
         "_testing",
@@ -215,7 +214,7 @@ class TestPDApi(Base):
             + self.funcs_to
             + self.private_modules
         )
-        self.check(pd, checkthese, self.ignored)
+        self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
 
     def test_depr(self):
         deprecated_list = (
@@ -275,7 +274,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
+        from pandas import testing  # noqa: PDF015
 
         self.check(testing, self.funcs)
 
