@@ -232,21 +232,10 @@ for fixed-length windows that include the current row.
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       data=[
-           [pd.Timestamp("2018-01-01 00:00:00"), 100],
-           [pd.Timestamp("2018-01-01 00:00:01"), 101],
-           [pd.Timestamp("2018-01-01 00:00:03"), 103],
-           [pd.Timestamp("2018-01-01 00:00:04"), 111],
-       ],
-       columns=["time", "value"],
-   ).set_index("time")
-   df
-
    indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
 
-   df2 = df.rolling(window=indexer, min_periods=1).sum()
-   df2
+   reversed_df = df.rolling(window=indexer, min_periods=1).sum()
+   reversed_df
 
 
 .. _window.custom_rolling_window:
