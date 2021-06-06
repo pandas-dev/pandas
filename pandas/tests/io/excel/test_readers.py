@@ -1277,13 +1277,13 @@ class TestExcelFileRead:
 
     def test_corrupt_files_closed(self, request, engine, read_ext):
         # GH41778
-        errors = (BadZipFile,)
+        errors = (BadZipFile, ValueError)
         if engine is None:
             pytest.skip()
         elif engine == "xlrd":
             import xlrd
 
-            errors = (BadZipFile, xlrd.biffh.XLRDError)
+            errors = (BadZipFile, ValueError, xlrd.biffh.XLRDError)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
             Path(file).write_text("corrupt")
