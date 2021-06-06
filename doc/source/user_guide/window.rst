@@ -99,7 +99,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
    df.rolling(2, method="table", min_periods=0).apply(
        weighted_mean, raw=True, engine="numba"
-   )  # noqa:E501
+   )
 
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
@@ -135,7 +135,7 @@ time based index must be monotonic.
 
 .. ipython:: python
 
-   times = ["2020-01-01", "2020-01-03", "2020-01-04", "2020-01-05", "2020-01-29"]
+   times = ['2020-01-01', '2020-01-03', '2020-01-04', '2020-01-05', '2020-01-29']
    s = pd.Series(range(5), index=pd.DatetimeIndex(times))
    s
    # Window with 2 observations
@@ -224,8 +224,8 @@ as shown in example below:
    ).set_index("time")
    df
 
-   df1 = df[::-1].rolling("2s").sum()[::-1]
-   df1
+   reversed_df = df[::-1].rolling("2s").sum()[::-1]
+   reversed_df
 
 Or we can also do it using FixedForwardWindowIndexer which basically Creates window boundaries
 for fixed-length windows that include the current row.
