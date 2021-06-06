@@ -5,24 +5,48 @@ Utilities for conversion to writer-agnostic Excel representation.
 from functools import reduce
 import itertools
 import re
-from typing import Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
+from typing import (
+    Callable,
+    Dict,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 import warnings
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import Label, StorageOptions
+from pandas._typing import (
+    IndexLabel,
+    StorageOptions,
+)
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes import missing
-from pandas.core.dtypes.common import is_float, is_scalar
+from pandas.core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
 
-from pandas import DataFrame, Index, MultiIndex, PeriodIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    PeriodIndex,
+)
 from pandas.core import generic
 import pandas.core.common as com
 
 from pandas.io.formats._color_data import CSS4_COLORS
-from pandas.io.formats.css import CSSResolver, CSSWarning
+from pandas.io.formats.css import (
+    CSSResolver,
+    CSSWarning,
+)
 from pandas.io.formats.format import get_level_lengths
 from pandas.io.formats.printing import pprint_thing
 
@@ -440,10 +464,10 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: Optional[str] = None,
-        cols: Optional[Sequence[Label]] = None,
-        header: Union[Sequence[Label], bool] = True,
+        cols: Optional[Sequence[Hashable]] = None,
+        header: Union[Sequence[Hashable], bool] = True,
         index: bool = True,
-        index_label: Optional[Union[Label, Sequence[Label]]] = None,
+        index_label: Optional[IndexLabel] = None,
         merge_cells: bool = False,
         inf_rep: str = "inf",
         style_converter: Optional[Callable] = None,
@@ -465,7 +489,7 @@ class ExcelFormatter:
             if not len(Index(cols).intersection(df.columns)):
                 raise KeyError("passes columns are not ALL present dataframe")
 
-            if len(Index(cols).intersection(df.columns)) != len(cols):
+            if len(Index(cols).intersection(df.columns)) != len(set(cols)):
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
@@ -603,9 +627,8 @@ class ExcelFormatter:
                 ""
             ] * len(self.columns)
             if reduce(lambda x, y: x and y, map(lambda x: x != "", row)):
-                # pandas\io\formats\excel.py:618: error: Incompatible types in
-                # assignment (expression has type "Generator[ExcelCell, None,
-                # None]", variable has type "Tuple[]")  [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "Generator[ExcelCell, None, None]", variable has type "Tuple[]")
                 gen2 = (  # type: ignore[assignment]
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
@@ -750,7 +773,8 @@ class ExcelFormatter:
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
                 if styles is not None:
-                    xlstyle = self.style_converter(";".join(styles[i, colidx]))
+                    css = ";".join([a + ":" + str(v) for (a, v) in styles[i, colidx]])
+                    xlstyle = self.style_converter(css)
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
 
     def get_formatted_cells(self) -> Iterable[ExcelCell]:
@@ -809,9 +833,8 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            # pandas\io\formats\excel.py:808: error: Cannot instantiate
-            # abstract class 'ExcelWriter' with abstract attributes 'engine',
-            # 'save', 'supported_extensions' and 'write_cells'  [abstract]
+            # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
+            # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
             writer = ExcelWriter(  # type: ignore[abstract]
                 writer, engine=engine, storage_options=storage_options
             )

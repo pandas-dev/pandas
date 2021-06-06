@@ -1,3 +1,4 @@
+from decimal import Decimal
 import numbers
 
 import cython
@@ -5,7 +6,12 @@ from cython import Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport float64_t, int64_t, ndarray, uint8_t
+from numpy cimport (
+    float64_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
@@ -15,7 +21,10 @@ from pandas._libs.tslibs.nattype cimport (
     checknull_with_nat,
     is_null_datetimelike,
 )
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value,
+    get_timedelta64_value,
+)
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 from pandas.compat import IS64
@@ -27,6 +36,62 @@ cdef:
     int64_t NPY_NAT = util.get_nat()
 
     bint is_32bit = not IS64
+
+    type cDecimal = Decimal  # for faster isinstance checks
+
+
+cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False):
+    """
+    Check if two scalars are both NA of matching types.
+
+    Parameters
+    ----------
+    left : Any
+    right : Any
+    nan_matches_none : bool, default False
+        For backwards compatibility, consider NaN as matching None.
+
+    Returns
+    -------
+    bool
+    """
+    if left is None:
+        if nan_matches_none and util.is_nan(right):
+            return True
+        return right is None
+    elif left is C_NA:
+        return right is C_NA
+    elif left is NaT:
+        return right is NaT
+    elif util.is_float_object(left):
+        if nan_matches_none and right is None:
+            return True
+        return (
+            util.is_nan(left)
+            and util.is_float_object(right)
+            and util.is_nan(right)
+        )
+    elif util.is_complex_object(left):
+        return (
+            util.is_nan(left)
+            and util.is_complex_object(right)
+            and util.is_nan(right)
+        )
+    elif util.is_datetime64_object(left):
+        return (
+            get_datetime64_value(left) == NPY_NAT
+            and util.is_datetime64_object(right)
+            and get_datetime64_value(right) == NPY_NAT
+        )
+    elif util.is_timedelta64_object(left):
+        return (
+            get_timedelta64_value(left) == NPY_NAT
+            and util.is_timedelta64_object(right)
+            and get_timedelta64_value(right) == NPY_NAT
+        )
+    elif is_decimal_na(left):
+        return is_decimal_na(right)
+    return False
 
 
 cpdef bint checknull(object val):
@@ -53,7 +118,18 @@ cpdef bint checknull(object val):
     The difference between `checknull` and `checknull_old` is that `checknull`
     does *not* consider INF or NEGINF to be NA.
     """
-    return val is C_NA or is_null_datetimelike(val, inat_is_null=False)
+    return (
+        val is C_NA
+        or is_null_datetimelike(val, inat_is_null=False)
+        or is_decimal_na(val)
+    )
+
+
+cdef inline bint is_decimal_na(object val):
+    """
+    Is this a decimal.Decimal object Decimal("NAN").
+    """
+    return isinstance(val, cDecimal) and val != val
 
 
 cpdef bint checknull_old(object val):
@@ -314,7 +390,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     return method
 
 
-def _create_unary_propagating_op(name):
+def _create_unary_propagating_op(name: str):
     def method(self):
         return NA
 

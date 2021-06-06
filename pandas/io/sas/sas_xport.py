@@ -10,7 +10,10 @@ https://support.sas.com/techsup/technote/ts140.pdf
 from collections import abc
 from datetime import datetime
 import struct
-from typing import IO, cast
+from typing import (
+    IO,
+    cast,
+)
 import warnings
 
 import numpy as np

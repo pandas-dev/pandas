@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -29,7 +31,7 @@ Color = Union[str, Sequence[float]]
 
 def get_standard_colors(
     num_colors: int,
-    colormap: Optional["Colormap"] = None,
+    colormap: Optional[Colormap] = None,
     color_type: str = "default",
     color: Optional[Union[Dict[str, Color], Color, Collection[Color]]] = None,
 ):
@@ -81,7 +83,7 @@ def get_standard_colors(
 def _derive_colors(
     *,
     color: Optional[Union[Color, Collection[Color]]],
-    colormap: Optional[Union[str, "Colormap"]],
+    colormap: Optional[Union[str, Colormap]],
     color_type: str,
     num_colors: int,
 ) -> List[Color]:
@@ -140,7 +142,7 @@ def _cycle_colors(colors: List[Color], num_colors: int) -> Iterator[Color]:
 
 
 def _get_colors_from_colormap(
-    colormap: Union[str, "Colormap"],
+    colormap: Union[str, Colormap],
     num_colors: int,
 ) -> List[Color]:
     """Get colors from colormap."""
@@ -148,7 +150,7 @@ def _get_colors_from_colormap(
     return [colormap(num) for num in np.linspace(0, 1, num=num_colors)]
 
 
-def _get_cmap_instance(colormap: Union[str, "Colormap"]) -> "Colormap":
+def _get_cmap_instance(colormap: Union[str, Colormap]) -> Colormap:
     """Get instance of matplotlib colormap."""
     if isinstance(colormap, str):
         cmap = colormap

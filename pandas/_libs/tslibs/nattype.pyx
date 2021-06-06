@@ -1,4 +1,7 @@
+import warnings
+
 from cpython.datetime cimport (
+    PyDate_Check,
     PyDateTime_Check,
     PyDateTime_IMPORT,
     PyDelta_Check,
@@ -27,7 +30,10 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport get_datetime64_value, get_timedelta64_value
+from pandas._libs.tslibs.np_datetime cimport (
+    get_datetime64_value,
+    get_timedelta64_value,
+)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -124,6 +130,21 @@ cdef class _NaT(datetime):
             else:
                 return NotImplemented
             return result
+
+        elif PyDate_Check(other):
+            # GH#39151 don't defer to datetime.date object
+            if op == Py_EQ:
+                return False
+            if op == Py_NE:
+                return True
+            warnings.warn(
+                "Comparison of NaT with datetime.date is deprecated in "
+                "order to match the standard library behavior.  "
+                "In a future version these will be considered non-comparable.",
+                FutureWarning,
+                stacklevel=1,
+            )
+            return False
 
         return NotImplemented
 
@@ -266,12 +287,6 @@ cdef class _NaT(datetime):
         return "NaT"
 
     def __hash__(self):
-        return NPY_NAT
-
-    def __int__(self):
-        return NPY_NAT
-
-    def __long__(self):
         return NPY_NAT
 
     @property

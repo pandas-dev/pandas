@@ -3,7 +3,10 @@ Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
 
 import re
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 import warnings
 
 

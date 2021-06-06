@@ -5,8 +5,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseInterfaceTests(BaseExtensionTests):
@@ -49,7 +48,8 @@ class BaseInterfaceTests(BaseExtensionTests):
 
         # the data can never contain other nan-likes than na_value
         for na_value_obj in tm.NULL_OBJECTS:
-            if na_value_obj is na_value:
+            if na_value_obj is na_value or type(na_value_obj) == type(na_value):
+                # type check for e.g. two instances of Decimal("NAN")
                 continue
             assert na_value_obj not in data
             assert na_value_obj not in data_missing

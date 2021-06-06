@@ -1,7 +1,14 @@
 import numpy as np
+import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -271,7 +278,7 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
-        df = DataFrame({"a": pd.date_range("2012", periods=3), "b": [1, 2, 3]})
+        df = DataFrame({"a": date_range("2012", periods=3), "b": [1, 2, 3]})
         result = df.describe(datetime_is_numeric=True)
         expected = DataFrame(
             {
@@ -359,4 +366,34 @@ class TestDataFrameDescribe:
                 "max",
             ],
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_describe_does_not_raise_error_for_dictlike_elements(self):
+        # GH#32409
+        df = DataFrame([{"test": {"a": "1"}}, {"test": {"a": "2"}}])
+        expected = DataFrame(
+            {"test": [2, 2, {"a": "1"}, 1]}, index=["count", "unique", "top", "freq"]
+        )
+        result = df.describe()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("exclude", ["x", "y", ["x", "y"], ["x", "z"]])
+    def test_describe_when_include_all_exclude_not_allowed(self, exclude):
+        """
+        When include is 'all', then setting exclude != None is not allowed.
+        """
+        df = DataFrame({"x": [1], "y": [2], "z": [3]})
+        msg = "exclude must be None when include is 'all'"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include="all", exclude=exclude)
+
+    def test_describe_with_duplicate_columns(self):
+        df = DataFrame(
+            [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
+            columns=["bar", "a", "a"],
+            dtype="float64",
+        )
+        result = df.describe()
+        ser = df.iloc[:, 0].describe()
+        expected = pd.concat([ser, ser, ser], keys=df.columns, axis=1)
         tm.assert_frame_equal(result, expected)

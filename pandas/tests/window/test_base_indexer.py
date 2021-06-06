@@ -1,10 +1,20 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer, FixedForwardWindowIndexer
-from pandas.core.window.indexers import ExpandingIndexer, VariableOffsetWindowIndexer
+from pandas.api.indexers import (
+    BaseIndexer,
+    FixedForwardWindowIndexer,
+)
+from pandas.core.window.indexers import (
+    ExpandingIndexer,
+    VariableOffsetWindowIndexer,
+)
 
 from pandas.tseries.offsets import BusinessDay
 
@@ -71,17 +81,6 @@ def test_indexer_accepts_rolling_args():
     result = df.rolling(indexer, center=True, min_periods=1, closed="both").sum()
     expected = DataFrame({"values": [0.0, 1.0, 10.0, 3.0, 4.0]})
     tm.assert_frame_equal(result, expected)
-
-
-def test_win_type_not_implemented():
-    class CustomIndexer(BaseIndexer):
-        def get_window_bounds(self, num_values, min_periods, center, closed):
-            return np.array([0, 1]), np.array([1, 2])
-
-    df = DataFrame({"values": range(2)})
-    indexer = CustomIndexer()
-    with pytest.raises(NotImplementedError, match="BaseIndexer subclasses not"):
-        df.rolling(indexer, win_type="boxcar")
 
 
 @pytest.mark.parametrize("constructor", [Series, DataFrame])
@@ -170,7 +169,10 @@ def test_rolling_forward_window(constructor, func, np_func, expected, np_kwargs)
 
     # Check that the function output matches applying an alternative function
     # if min_periods isn't specified
-    rolling3 = constructor(values).rolling(window=indexer)
+    # GH 39604: After count-min_periods deprecation, apply(lambda x: len(x))
+    # is equivalent to count after setting min_periods=0
+    min_periods = 0 if func == "count" else None
+    rolling3 = constructor(values).rolling(window=indexer, min_periods=min_periods)
     result3 = getattr(rolling3, func)()
     expected3 = constructor(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result3, expected3)

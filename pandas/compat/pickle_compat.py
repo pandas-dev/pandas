@@ -1,12 +1,16 @@
 """
 Support pre-0.12 series pickle compatibility.
 """
+from __future__ import annotations
 
 import contextlib
 import copy
 import io
 import pickle as pkl
-from typing import TYPE_CHECKING, Optional
+from typing import (
+    TYPE_CHECKING,
+    Optional,
+)
 import warnings
 
 from pandas._libs.tslibs import BaseOffset
@@ -14,7 +18,10 @@ from pandas._libs.tslibs import BaseOffset
 from pandas import Index
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def load_reduce(self):
@@ -64,7 +71,7 @@ class _LoadSparseSeries:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "Series", but must return
     # a subtype of "_LoadSparseSeries")
-    def __new__(cls) -> "Series":  # type: ignore[misc]
+    def __new__(cls) -> Series:  # type: ignore[misc]
         from pandas import Series
 
         warnings.warn(
@@ -82,7 +89,7 @@ class _LoadSparseFrame:
     # https://github.com/python/mypy/issues/1020
     # error: Incompatible return type for "__new__" (returns "DataFrame", but must
     # return a subtype of "_LoadSparseFrame")
-    def __new__(cls) -> "DataFrame":  # type: ignore[misc]
+    def __new__(cls) -> DataFrame:  # type: ignore[misc]
         from pandas import DataFrame
 
         warnings.warn(

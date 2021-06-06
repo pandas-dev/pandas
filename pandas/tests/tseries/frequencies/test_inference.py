@@ -1,13 +1,26 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTHS,
+)
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
 
-from pandas import DatetimeIndex, Index, Series, Timestamp, date_range, period_range
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Series,
+    Timestamp,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 from pandas.core.tools.datetimes import to_datetime
 
@@ -267,7 +280,7 @@ def test_infer_freq_tz(tz_naive_fixture, expected, dates):
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["3H", "10T", "3601S", "3600001L", "3600000001U", "3600000000001N"]
+    "freq", ["H", "3H", "10T", "3601S", "3600001L", "3600000001U", "3600000000001N"]
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772

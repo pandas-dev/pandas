@@ -18,7 +18,11 @@ The SQL tests are broken down in different classes:
 """
 
 import csv
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 from io import StringIO
 import sqlite3
 import warnings
@@ -26,7 +30,10 @@ import warnings
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64_dtype, is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64_dtype,
+    is_datetime64tz_dtype,
+)
 
 import pandas as pd
 from pandas import (
@@ -44,7 +51,10 @@ from pandas import (
 import pandas._testing as tm
 
 import pandas.io.sql as sql
-from pandas.io.sql import read_sql_query, read_sql_table
+from pandas.io.sql import (
+    read_sql_query,
+    read_sql_table,
+)
 
 try:
     import sqlalchemy
@@ -205,30 +215,53 @@ SQL_STRINGS = {
                 SELECT * FROM iris
                 """
     },
-    "create_pkey_table": {
+    "create_single_pkey_table": {
         "sqlite": """CREATE TABLE pkey_table (
-                "a" Integer Primary Key,
-                "b" TEXT
+                "a"  Primary Key,
+                "b" TEXT,
+                "c" TEXT
             )""",
         "mysql": """CREATE TABLE pkey_table (
                 `a` INTEGER,
-                `b` TEXT,
+                `b` VARCHAR(200),
+                `c` VARCHAR(200),
                 PRIMARY KEY (a)
             )""",
         "postgresql": """CREATE TABLE pkey_table (
                 "a" INTEGER PRIMARY KEY,
-                "b" TEXT
+                "b" TEXT,
+                "c" TEXT
+            )""",
+    },
+    "create_comp_pkey_table": {
+        "sqlite": """CREATE TABLE pkey_table (
+                "a" Integer,
+                "b" TEXT,
+                "c" TEXT,
+                PRIMARY KEY ("a", "b")
+            )""",
+        "mysql": """CREATE TABLE pkey_table (
+                `a` INTEGER NOT NULL,
+                `b` VARCHAR(200) NOT NULL,
+                `c` VARCHAR(200),
+                PRIMARY KEY (`a`,`b`)
+            )""",
+        "postgresql": """CREATE TABLE pkey_table (
+                "a" INTEGER,
+                "b" TEXT,
+                "c" TEXT,
+                PRIMARY KEY("a", "b")
             )""",
     },
     "insert_pkey_table": {
-        "sqlite": """INSERT INTO pkey_table VALUES (?, ?)""",
-        "mysql": """INSERT INTO pkey_table VALUES (%s, %s)""",
-        "postgresql": """INSERT INTO pkey_table VALUES (%s, %s)""",
+        "sqlite": """INSERT INTO pkey_table VALUES (?, ?, ?)""",
+        "mysql": """INSERT INTO pkey_table VALUES (%s, %s, %s)""",
+        "postgresql": """INSERT INTO pkey_table VALUES (%s, %s, %s)""",
     },
     "read_pkey_table": {
-        "sqlite": """SELECT b FROM pkey_table WHERE A IN (?, ?)""",
-        "mysql": """SELECT b FROM pkey_table WHERE A IN (%s, %s)""",
-        "postgresql": """SELECT b FROM pkey_table WHERE A IN (%s, %s)""",
+        "sqlite": """SELECT c FROM pkey_table WHERE A IN (?, ?)""",
+        "mysql": """SELECT c FROM pkey_table WHERE A IN (%s, %s)""",
+        "postgresql": """SELECT c FROM pkey_table WHERE A IN (%s, %s)""",
     },
 }
 
@@ -334,11 +367,13 @@ class PandasSQLTest:
         assert issubclass(pytype, np.floating)
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
-    def _create_pkey_table(self):
+    def _create_pkey_table(self, pkey_type):
         self.drop_table("pkey_table")
-        self._get_exec().execute(SQL_STRINGS["create_pkey_table"][self.flavor])
+        self._get_exec().execute(
+            SQL_STRINGS[f"create_{pkey_type}_pkey_table"][self.flavor]
+        )
         ins = SQL_STRINGS["insert_pkey_table"][self.flavor]
-        data = [(1, "name1"), (2, "name2"), (3, "name3")]
+        data = [(1, "name1", "val1"), (2, "name2", "val2"), (3, "name3", "val3")]
         self._get_exec().execute(ins, data)
 
     def _load_test1_data(self):
@@ -487,8 +522,13 @@ class PandasSQLTest:
         self._load_types_test_data(data)
 
     def _load_pkey_table_data(self):
-        columns = ["a", "b"]
-        data = [(1, "new_name1"), (2, "new_name2"), (4, "name4"), (5, "name5")]
+        columns = ["a", "b", "c"]
+        data = [
+            (1, "name1", "new_val1"),
+            (2, "name2", "new_val2"),
+            (4, "name4", "val4"),
+            (5, "name5", "val5"),
+        ]
 
         self.pkey_table_frame = DataFrame(data, columns=columns)
 
@@ -598,57 +638,21 @@ class PandasSQLTest:
         # Nuke table
         self.drop_table("test_frame1")
 
-    def _to_sql_on_conflict_update(self, method):
+    def _to_sql_on_conflict_update(self, method, pkey_type):
         """
-        Original table: 3 rows
-        pkey_table_frame: 4 rows (2 duplicate  keys)
-        Expected after upsert:
-            - table len = 5
-            - Original database values for rows with duplicate keys
-            - dataframe has all original values
-        """
-        # Nuke
-        self.drop_table("pkey_table")
-        # Re-create original table
-        self._create_pkey_table()
-        # Original table exists and as 3 rows
-        assert self.pandasSQL.has_table("pkey_table")
-        assert self._count_rows("pkey_table") == 3
-        # Insert new dataframe
-        self.pandasSQL.to_sql(
-            self.pkey_table_frame,
-            "pkey_table",
-            if_exists="append",
-            on_conflict="do_nothing",
-            index=False,
-            method=method,
-        )
-        # Check table len correct
-        assert self._count_rows("pkey_table") == 5
-        # Check original DB values maintained for duplicate keys
-        duplicate_keys = [1, 2]
-        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
-        duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
-        data_from_db = [val[0] for val in duplicate_val].sort()
-        expected = ["name1", "name2"].sort()
-        assert data_from_db == expected
-        # Finally, confirm that duplicate values are not removed from original df object
-        assert len(self.pkey_table_frame.index) == 4
-        # Clean up
-        self.drop_table("pkey_table")
-
-    def _to_sql_on_conflict_nothing(self, method):
-        """
-        Original table: 3 rows
-        pkey_table_frame: 4 rows (2 duplicate keys)
-        Expected after upsert:
-            - table len = 5
-            - dataframe values for rows with duplicate keys
+        GIVEN:
+        - Original database table: 3 rows
+        - new dataframe: 4 rows (2 duplicate keys)
+        WHEN:
+        - on conflict update insert
+        THEN:
+        - DB table len = 5
+        - Conflicting primary keys in DB updated
         """
         # Nuke
         self.drop_table("pkey_table")
         # Re-create original table
-        self._create_pkey_table()
+        self._create_pkey_table(pkey_type)
         # Original table exists and as 3 rows
         assert self.pandasSQL.has_table("pkey_table")
         assert self._count_rows("pkey_table") == 3
@@ -663,19 +667,149 @@ class PandasSQLTest:
         )
         # Check table len correct
         assert self._count_rows("pkey_table") == 5
-        # Check original DB values maintained for duplicate keys
+        # Check conflicting primary keys have been updated
+        # Get new values for conflicting keys
         duplicate_keys = [1, 2]
         duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
-        data_from_db = [val[0] for val in duplicate_val].sort()
-        data_from_df = list(
-            self.pkey_table_frame.loc[
-                self.pkey_table_frame["a"].isin(duplicate_keys), "b"
-            ]
-        ).sort()
-        assert data_from_db == data_from_df
+        data_from_db = sorted(val[0] for val in duplicate_val)
+        # Expected values from pkey_table_frame
+        expected = sorted(["new_val1", "new_val2"])
+        assert data_from_db == expected
+        # Finally, confirm that duplicate values are not removed from original df object
+        assert len(self.pkey_table_frame.index) == 4
         # Clean up
         self.drop_table("pkey_table")
+
+    def _to_sql_on_conflict_nothing(self, method, pkey_type):
+        """
+        GIVEN:
+        - Original table: 3 rows
+        - new dataframe: 4 rows (2 duplicate keys)
+        WHEN:
+        - on conflict do nothing insert
+        THEN:
+        - database table len = 5
+        - conflicting keys in table not updated
+        """
+        # Nuke
+        self.drop_table("pkey_table")
+        # Re-create original table
+        self._create_pkey_table(pkey_type)
+        # Original table exists and has 3 rows
+        assert self.pandasSQL.has_table("pkey_table")
+        assert self._count_rows("pkey_table") == 3
+        # Prepare SQL for reading duplicate keys
+        duplicate_keys = [1, 2]
+        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
+        #  get conflicting pkey values before insert
+        duplicate_val_before = self._get_exec().execute(
+            duplicate_key_query, duplicate_keys
+        )
+        data_from_db_before = sorted(val[0] for val in duplicate_val_before)
+        # Insert new dataframe
+        self.pandasSQL.to_sql(
+            self.pkey_table_frame,
+            "pkey_table",
+            if_exists="append",
+            on_conflict="do_nothing",
+            index=False,
+            method=method,
+        )
+        # Check table len correct
+        assert self._count_rows("pkey_table") == 5
+        # Get conflicting keys from DB after to_sql
+        duplicate_val_after = self._get_exec().execute(
+            duplicate_key_query, duplicate_keys
+        )
+        data_from_db_after = sorted(val[0] for val in duplicate_val_after)
+        # Get data from incoming df
+        data_from_df = sorted(
+            self.pkey_table_frame.loc[
+                self.pkey_table_frame["a"].isin(duplicate_keys), "c"
+            ].tolist()
+        )
+        # Check original DB values maintained for duplicate keys
+        assert data_from_db_before == data_from_db_after
+        # Check DB values not equal to new values
+        assert data_from_db_after != data_from_df
+        # Clean up
+        self.drop_table("pkey_table")
+
+    def _test_to_sql_on_conflict_with_index(self, method, pkey_type):
+        """
+        GIVEN:
+        - Original db table: 3 rows
+        - New dataframe: 4 rows (2 duplicate keys), pkey as index
+        WHEN:
+        - inserting new data, noting the index column
+        - on conflict do update
+        THEN:
+        - DB table len = 5
+        - Conflicting primary keys in DB updated
+        """
+        # Nuke
+        self.drop_table("pkey_table")
+        # Re-create table
+        self._create_pkey_table(pkey_type)
+        # Original table exists and as 3 rows
+        assert self.pandasSQL.has_table("pkey_table")
+        assert self._count_rows("pkey_table") == 3
+        if pkey_type == "single":
+            index_pkey_table = self.pkey_table_frame.set_index("a")
+        else:
+            index_pkey_table = self.pkey_table_frame.set_index(["a", "b"])
+        # Insert new dataframe
+        self.pandasSQL.to_sql(
+            index_pkey_table,
+            "pkey_table",
+            if_exists="append",
+            on_conflict="do_update",
+            index=True,
+            method=method,
+        )
+        # Check table len correct
+        assert self._count_rows("pkey_table") == 5
+        # Check conflicting primary keys have been updated
+        # Get new values for conflicting keys
+        duplicate_keys = [1, 2]
+        duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
+        duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
+        data_from_db = sorted(val[0] for val in duplicate_val)
+        # Expected values from pkey_table_frame
+        expected = sorted(["new_val1", "new_val2"])
+        assert data_from_db == expected
+        # Finally, confirm that duplicate values are not removed from original df object
+        assert len(self.pkey_table_frame.index) == 4
+        # Clean up
+        self.drop_table("pkey_table")
+
+    def _to_sql_on_conflict_with_non_append(self, if_exists, on_conflict):
+        """
+        GIVEN:
+        - to_sql is called
+        WHEN:
+        - `on_conflict` is not null
+        - `if_exists` is set to a value other than `append`
+        THEN:
+        - ValueError is raised
+        """
+        # Nuke table and re-create
+        self.drop_table("pkey_table")
+        self._create_pkey_table("single")
+        # Attempt insert
+        assert if_exists != "append"
+        with pytest.raises(
+            ValueError, match="on_conflict can only be used with 'append' operations"
+        ):
+            # Insert new dataframe
+            self.pandasSQL.to_sql(
+                self.pkey_table_frame,
+                "pkey_table",
+                if_exists=if_exists,
+                on_conflict=on_conflict,
+                index=False,
+            )
 
     def _roundtrip(self):
         self.drop_table("test_frame_roundtrip")
@@ -776,6 +910,12 @@ class _TestSQLApi(PandasSQLTest):
         iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
         self._check_iris_loaded_frame(iris_frame)
 
+    def test_read_sql_with_chunksize_no_result(self):
+        query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
+        with_batch = sql.read_sql_query(query, self.conn, chunksize=5)
+        without_batch = sql.read_sql_query(query, self.conn)
+        tm.assert_frame_equal(concat(with_batch), without_batch)
+
     def test_to_sql(self):
         sql.to_sql(self.test_frame1, "test_frame1", self.conn)
         assert sql.has_table("test_frame1", self.conn)
@@ -822,6 +962,28 @@ class _TestSQLApi(PandasSQLTest):
         sql.to_sql(s, "test_series", self.conn, index=False)
         s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
+
+    def test_to_sql_invalid_on_conflict(self):
+        msg = "'update' is not valid for on_conflict"
+        with pytest.raises(ValueError, match=msg):
+            sql.to_sql(
+                self.pkey_table_frame,
+                "pkey_frame1",
+                self.conn,
+                if_exists="append",
+                on_conflict="update",
+            )
+
+    def test_to_sql_on_conflict_non_append(self):
+        msg = "on_conflict can only be used with 'append' operations"
+        with pytest.raises(ValueError, match=msg):
+            sql.to_sql(
+                self.pkey_table_frame,
+                "pkey_frame1",
+                self.conn,
+                if_exists="replace",
+                on_conflict="do_update",
+            )
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, "test_frame_roundtrip", con=self.conn)
@@ -956,7 +1118,7 @@ class _TestSQLApi(PandasSQLTest):
         with tm.assert_produces_warning(UserWarning):
             df.to_sql("test_timedelta", self.conn)
         result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
-        tm.assert_series_equal(result["foo"], df["foo"].astype("int64"))
+        tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
 
     def test_complex_raises(self):
         df = DataFrame({"a": [1 + 1j, 2j]})
@@ -1051,6 +1213,27 @@ class _TestSQLApi(PandasSQLTest):
             "SELECT * FROM test_multiindex_roundtrip", self.conn, index_col=["A", "B"]
         )
         tm.assert_frame_equal(df, result, check_index_type=True)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            None,
+            int,
+            float,
+            {"A": int, "B": float},
+        ],
+    )
+    def test_dtype_argument(self, dtype):
+        # GH10285 Add dtype argument to read_sql_query
+        df = DataFrame([[1.2, 3.4], [5.6, 7.8]], columns=["A", "B"])
+        df.to_sql("test_dtype_argument", self.conn)
+
+        expected = df.astype(dtype)
+        result = sql.read_sql_query(
+            "SELECT A, B FROM test_dtype_argument", con=self.conn, dtype=dtype
+        )
+
+        tm.assert_frame_equal(result, expected)
 
     def test_integer_col_names(self):
         df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
@@ -1254,6 +1437,45 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
         assert isinstance(table.table.c["time"].type, sqltypes.TIMESTAMP)
 
+    @pytest.mark.parametrize(
+        "integer, expected",
+        [
+            ("int8", "SMALLINT"),
+            ("Int8", "SMALLINT"),
+            ("uint8", "SMALLINT"),
+            ("UInt8", "SMALLINT"),
+            ("int16", "SMALLINT"),
+            ("Int16", "SMALLINT"),
+            ("uint16", "INTEGER"),
+            ("UInt16", "INTEGER"),
+            ("int32", "INTEGER"),
+            ("Int32", "INTEGER"),
+            ("uint32", "BIGINT"),
+            ("UInt32", "BIGINT"),
+            ("int64", "BIGINT"),
+            ("Int64", "BIGINT"),
+            (int, "BIGINT" if np.dtype(int).name == "int64" else "INTEGER"),
+        ],
+    )
+    def test_sqlalchemy_integer_mapping(self, integer, expected):
+        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+        df = DataFrame([0, 1], columns=["a"], dtype=integer)
+        db = sql.SQLDatabase(self.conn)
+        table = sql.SQLTable("test_type", db, frame=df)
+
+        result = str(table.table.c.a.type)
+        assert result == expected
+
+    @pytest.mark.parametrize("integer", ["uint64", "UInt64"])
+    def test_sqlalchemy_integer_overload_mapping(self, integer):
+        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+        df = DataFrame([0, 1], columns=["a"], dtype=integer)
+        db = sql.SQLDatabase(self.conn)
+        with pytest.raises(
+            ValueError, match="Unsigned 64 bit integer datatype is not supported"
+        ):
+            sql.SQLTable("test_type", db, frame=df)
+
     def test_database_uri_string(self):
 
         # Test read_sql and .to_sql method with a database URI (GH10654)
@@ -1320,6 +1542,15 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
 
+    def test_column_with_percentage(self):
+        # GH 37157
+        df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
+        df.to_sql("test_column_percentage", self.conn, index=False)
+
+        res = sql.read_sql_table("test_column_percentage", self.conn)
+
+        tm.assert_frame_equal(res, df)
+
 
 class _EngineToConnMixin:
     """
@@ -1380,7 +1611,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
-        conn = "mysql://root@localhost/pandas_nosetest"
+        conn = "mysql://root@localhost/pandas"
         msg = "Using URI string without sqlalchemy installed"
         with pytest.raises(ImportError, match=msg):
             sql.read_sql("SELECT * FROM iris", conn)
@@ -1510,12 +1741,24 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._to_sql_method_callable()
 
     @pytest.mark.parametrize("method", [None, "multi"])
-    def test_to_sql_upsert_keep(self, method):
-        self._to_sql_upsert_keep(method)
+    @pytest.mark.parametrize("pkey_type", ["single", "comp"])
+    def test_to_sql_conflict_nothing(self, method, pkey_type):
+        self._to_sql_on_conflict_nothing(method, pkey_type)
 
     @pytest.mark.parametrize("method", [None, "multi"])
-    def test_to_sql_upsert_overwrite(self, method):
-        self._to_sql_upsert_overwrite(method)
+    @pytest.mark.parametrize("pkey_type", ["single", "comp"])
+    def test_to_sql_conflict_update(self, method, pkey_type):
+        self._to_sql_on_conflict_update(method, pkey_type)
+
+    @pytest.mark.parametrize("method", [None, "multi"])
+    @pytest.mark.parametrize("pkey_type", ["single", "comp"])
+    def test_to_sql_on_conflict_with_index(self, method, pkey_type):
+        self._test_to_sql_on_conflict_with_index(method, pkey_type)
+
+    @pytest.mark.parametrize("if_exists", ["fail", "replace"])
+    @pytest.mark.parametrize("on_conflict", ["do_update", "do_nothing"])
+    def test_to_sql_conflict_with_non_append(self, if_exists, on_conflict):
+        self._to_sql_on_conflict_with_non_append(if_exists, on_conflict)
 
     def test_create_table(self):
         temp_conn = self.connect()
@@ -1631,7 +1874,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = pd.read_sql_query("select * from types_test_data", self.conn)
+        df = read_sql_query("select * from types_test_data", self.conn)
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
 
@@ -1641,7 +1884,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
 
-        df = pd.read_sql_query(
+        df = read_sql_query(
             "select * from types_test_data", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
@@ -1651,11 +1894,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
-        df = pd.concat(
+        df = concat(
             list(
-                pd.read_sql_query(
-                    "select * from types_test_data", self.conn, chunksize=1
-                )
+                read_sql_query("select * from types_test_data", self.conn, chunksize=1)
             ),
             ignore_index=True,
         )
@@ -2126,11 +2367,12 @@ class _TestMySQLAlchemy:
     """
 
     flavor = "mysql"
+    port = 3306
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost/pandas_nosetest",
+            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
@@ -2195,11 +2437,12 @@ class _TestPostgreSQLAlchemy:
     """
 
     flavor = "postgresql"
+    port = 5432
 
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres@localhost/pandas_nosetest"
+            f"postgresql+{cls.driver}://postgres:postgres@localhost:{cls.port}/pandas"
         )
 
     @classmethod
@@ -2664,7 +2907,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception):
+        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self):
@@ -2683,7 +2926,7 @@ class TestXSQLite(SQLiteMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception):
+        with tm.external_error_raised(sqlite3.ProgrammingError):
             tquery("select * from test", con=self.conn)
 
     def test_na_roundtrip(self):
@@ -2815,7 +3058,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True, scope="class")
     def setup_class(cls):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
@@ -2835,7 +3078,7 @@ class TestXMySQL(MySQLMixIn):
     @pytest.fixture(autouse=True)
     def setup_method(self, request, datapath):
         pymysql = pytest.importorskip("pymysql")
-        pymysql.connect(host="localhost", user="root", passwd="", db="pandas_nosetest")
+        pymysql.connect(host="localhost", user="root", passwd="", db="pandas")
         try:
             pymysql.connect(read_default_group="pandas")
         except pymysql.ProgrammingError as err:
@@ -2888,7 +3131,7 @@ class TestXMySQL(MySQLMixIn):
         sql.to_sql(frame, name="test", con=self.conn)
         query = "select * from test"
         chunksize = 5
-        chunk_gen = pd.read_sql_query(
+        chunk_gen = read_sql_query(
             sql=query, con=self.conn, chunksize=chunksize, index_col="index"
         )
         chunk_df = next(chunk_gen)
@@ -2949,7 +3192,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)', self.conn)
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="<insert message here>"):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
     def test_execute_closed_connection(self, request, datapath):
@@ -2970,7 +3213,7 @@ class TestXMySQL(MySQLMixIn):
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="<insert message here>"):
             tquery("select * from test", con=self.conn)
 
         # Initialize connection again (needed for tearDown)

@@ -37,14 +37,14 @@ pandas supports 4 types of windowing operations:
 #. Expanding window: Accumulating window over the values.
 #. Exponentially Weighted window: Accumulating and exponentially weighted window over the values.
 
-=============================   =================  ===========================   ===========================  ========================
-Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby
-=============================   =================  ===========================   ===========================  ========================
-Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes
-Weighted window                 ``rolling``        ``Window``                    No                           No
-Expanding window                ``expanding``      ``Expanding``                 No                           Yes
-Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)
-=============================   =================  ===========================   ===========================  ========================
+=============================   =================  ===========================   ===========================  ========================  ===================================
+Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby  Supports table method
+=============================   =================  ===========================   ===========================  ========================  ===================================
+Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes (as of version 1.3)
+Weighted window                 ``rolling``        ``Window``                    No                           No                        No
+Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes (as of version 1.3)
+Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No
+=============================   =================  ===========================   ===========================  ========================  ===================================
 
 As noted above, some operations support specifying a window based on a time offset:
 
@@ -74,6 +74,29 @@ which will first group the data by the specified keys and then perform a windowi
     noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
     <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
     to compute the rolling sums to preserve accuracy as much as possible.
+
+
+.. versionadded:: 1.3
+
+Some windowing operations also support the ``method='table'`` option in the constructor which
+performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
+This can provide a useful performance benefit for a :class:`DataFrame` with many columns or rows
+(with the corresponding ``axis`` argument) or the ability to utilize other columns during the windowing
+operation. The ``method='table'`` option can only be used if ``engine='numba'`` is specified
+in the corresponding method call.
+
+For example, a `weighted mean <https://en.wikipedia.org/wiki/Weighted_arithmetic_mean>`__ calculation can
+be calculated with :meth:`~Rolling.apply` by specifying a separate column of weights.
+
+.. ipython:: python
+
+   def weighted_mean(x):
+       arr = np.ones((1, x.shape[1]))
+       arr[:, :2] = (x[:, :2] * x[:, 2]).sum(axis=0) / x[:, 2].sum()
+       return arr
+
+   df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
+   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa:E501
 
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
@@ -145,7 +168,7 @@ parameter:
 =============  ====================
 Value          Behavior
 =============  ====================
-``right'``     close right endpoint
+``'right'``     close right endpoint
 ``'left'``     close left endpoint
 ``'both'``     close both endpoints
 ``'neither'``  open endpoints
@@ -191,7 +214,7 @@ ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``
 and will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
-For example, if we have the following :class:``DataFrame``:
+For example, if we have the following :class:`DataFrame`
 
 .. ipython:: python
 
@@ -298,6 +321,10 @@ Numba will be applied in potentially two routines:
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
+.. versionadded:: 1.3
+
+``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
+
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
 `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
@@ -343,8 +370,8 @@ two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
   with the passed Series, thus returning a DataFrame.
 * :class:`DataFrame`/:class:`DataFrame`: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
-  passed then computes the statistic for each pair of columns, returning a
-  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
+  passed then computes the statistic for each pair of columns, returning a :class:`DataFrame` with a
+  :class:`MultiIndex` whose values are the dates in question (see :ref:`the next section
   <window.corr_pairwise>`).
 
 For example:
@@ -554,7 +581,7 @@ The following formula is used to compute exponentially weighted mean with an inp
 
 .. math::
 
-    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{0.5^\frac{t_{t} - t_{i}}{\lambda}},
+    y_t = \frac{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda} x_{t-i}}{\sum_{i=0}^t 0.5^\frac{t_{t} - t_{i}}{\lambda}},
 
 
 ExponentialMovingWindow also has an ``ignore_na`` argument, which determines how

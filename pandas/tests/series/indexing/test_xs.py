@@ -1,6 +1,10 @@
 import numpy as np
 
-from pandas import MultiIndex, Series, date_range
+from pandas import (
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 

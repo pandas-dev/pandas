@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, NaT, Period, Series, Timestamp
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    NaT,
+    Period,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

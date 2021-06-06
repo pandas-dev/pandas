@@ -2,11 +2,18 @@
 
 from typing import AnyStr
 
-from pandas._typing import FilePathOrBuffer, StorageOptions
+from pandas._typing import (
+    FilePathOrBuffer,
+    StorageOptions,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import DataFrame, Int64Index, RangeIndex
+from pandas import (
+    DataFrame,
+    Int64Index,
+    RangeIndex,
+)
 from pandas.core import generic
 
 from pandas.io.common import get_handle

@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import CategoricalDtype, DataFrame, NaT, Series, Timestamp
+from pandas import (
+    CategoricalDtype,
+    DataFrame,
+    NaT,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -107,4 +113,14 @@ class TestUpdate:
     )
     def test_update_extension_array_series(self, result, target, expected):
         result.update(target)
+        tm.assert_series_equal(result, expected)
+
+    def test_update_with_categorical_type(self):
+        # GH 25744
+        dtype = CategoricalDtype(["a", "b", "c", "d"])
+        s1 = Series(["a", "b", "c"], index=[1, 2, 3], dtype=dtype)
+        s2 = Series(["b", "a"], index=[1, 2], dtype=dtype)
+        s1.update(s2)
+        result = s1
+        expected = Series(["b", "a", "c"], index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)

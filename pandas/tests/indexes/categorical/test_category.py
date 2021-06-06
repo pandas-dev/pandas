@@ -6,9 +6,11 @@ from pandas._libs import index as libindex
 import pandas as pd
 from pandas import Categorical
 import pandas._testing as tm
-from pandas.core.indexes.api import CategoricalIndex, Index
-
-from ..common import Base
+from pandas.core.indexes.api import (
+    CategoricalIndex,
+    Index,
+)
+from pandas.tests.indexes.common import Base
 
 
 class TestCategoricalIndex(Base):
@@ -28,53 +30,6 @@ class TestCategoricalIndex(Base):
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
 
-    def test_append(self):
-
-        ci = self.create_index()
-        categories = ci.categories
-
-        # append cats with the same categories
-        result = ci[:3].append(ci[3:])
-        tm.assert_index_equal(result, ci, exact=True)
-
-        foos = [ci[:1], ci[1:3], ci[3:]]
-        result = foos[0].append(foos[1:])
-        tm.assert_index_equal(result, ci, exact=True)
-
-        # empty
-        result = ci.append([])
-        tm.assert_index_equal(result, ci, exact=True)
-
-        # appending with different categories or reordered is not ok
-        msg = "all inputs must be Index"
-        with pytest.raises(TypeError, match=msg):
-            ci.append(ci.values.set_categories(list("abcd")))
-        with pytest.raises(TypeError, match=msg):
-            ci.append(ci.values.reorder_categories(list("abc")))
-
-        # with objects
-        result = ci.append(Index(["c", "a"]))
-        expected = CategoricalIndex(list("aabbcaca"), categories=categories)
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # invalid objects -> cast to object via concat_compat
-        result = ci.append(Index(["a", "d"]))
-        expected = Index(["a", "a", "b", "b", "c", "a", "a", "d"])
-        tm.assert_index_equal(result, expected, exact=True)
-
-        # GH14298 - if base object is not categorical -> coerce to object
-        result = Index(["c", "a"]).append(ci)
-        expected = Index(list("caaabbca"))
-        tm.assert_index_equal(result, expected, exact=True)
-
-    def test_append_to_another(self):
-        # hits Index._concat
-        fst = Index(["a", "b"])
-        snd = CategoricalIndex(["d", "e"])
-        result = fst.append(snd)
-        expected = Index(["a", "b", "d", "e"])
-        tm.assert_index_equal(result, expected)
-
     def test_insert(self):
 
         ci = self.create_index()
@@ -91,14 +46,14 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected, exact=True)
 
         # test empty
-        result = CategoricalIndex(categories=categories).insert(0, "a")
+        result = CategoricalIndex([], categories=categories).insert(0, "a")
         expected = CategoricalIndex(["a"], categories=categories)
         tm.assert_index_equal(result, expected, exact=True)
 
-        # invalid
-        msg = "'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(TypeError, match=msg):
-            ci.insert(0, "d")
+        # invalid -> cast to object
+        expected = ci.astype(object).insert(0, "d")
+        result = ci.insert(0, "d")
+        tm.assert_index_equal(result, expected, exact=True)
 
         # GH 18295 (test missing)
         expected = CategoricalIndex(["a", np.nan, "a", "b", "c", "b"])
@@ -108,9 +63,9 @@ class TestCategoricalIndex(Base):
 
     def test_insert_na_mismatched_dtype(self):
         ci = CategoricalIndex([0, 1, 1])
-        msg = "'fill_value=NaT' is not present in this Categorical's categories"
-        with pytest.raises(TypeError, match=msg):
-            ci.insert(0, pd.NaT)
+        result = ci.insert(0, pd.NaT)
+        expected = Index([pd.NaT, 0, 1, 1], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_delete(self):
 
@@ -304,7 +259,7 @@ class TestCategoricalIndex(Base):
         assert _base(index.values) is not _base(result.values)
 
         result = CategoricalIndex(index.values, copy=False)
-        assert _base(index.values) is _base(result.values)
+        assert result._data._codes is index._data._codes
 
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
@@ -323,12 +278,6 @@ class TestCategoricalIndex(Base):
 
 class TestCategoricalIndex2:
     # Tests that are not overriding a test in Base
-
-    def test_format_different_scalar_lengths(self):
-        # GH35439
-        idx = CategoricalIndex(["aaaaaaaaa", "b"])
-        expected = ["aaaaaaaaa", "b"]
-        assert idx.format() == expected
 
     @pytest.mark.parametrize(
         "dtype, engine_type",
@@ -349,7 +298,7 @@ class TestCategoricalIndex2:
             # having 2**32 - 2**31 categories would be very memory-intensive,
             # so we cheat a bit with the dtype
             ci = CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
-            ci.values._codes = ci.values._codes.astype("int64")
+            ci.values._ndarray = ci.values._ndarray.astype("int64")
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
 

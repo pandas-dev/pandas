@@ -1,6 +1,9 @@
 import pytest
 
-from pandas import Index, Series
+from pandas import (
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 

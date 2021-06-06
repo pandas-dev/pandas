@@ -1,7 +1,13 @@
 import textwrap
-from typing import List, Set
+from typing import (
+    List,
+    Set,
+)
 
-from pandas._libs import NaT, lib
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas.errors import InvalidIndexError
 
 from pandas.core.indexes.base import (
@@ -282,7 +288,4 @@ def all_indexes_same(indexes):
     """
     itr = iter(indexes)
     first = next(itr)
-    for index in itr:
-        if not first.equals(index):
-            return False
-    return True
+    return all(first.equals(index) for index in itr)

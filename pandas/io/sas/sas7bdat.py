@@ -14,20 +14,46 @@ Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
 from collections import abc
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import struct
-from typing import IO, Any, Union, cast
+from typing import (
+    IO,
+    Any,
+    Union,
+    cast,
+)
 
 import numpy as np
 
-from pandas.errors import EmptyDataError, OutOfBoundsDatetime
+from pandas.errors import (
+    EmptyDataError,
+    OutOfBoundsDatetime,
+)
 
 import pandas as pd
+from pandas import isna
 
 from pandas.io.common import get_handle
 from pandas.io.sas._sas import Parser
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
+
+
+def _parse_datetime(sas_datetime: float, unit: str):
+    if isna(sas_datetime):
+        return pd.NaT
+
+    if unit == "s":
+        return datetime(1960, 1, 1) + timedelta(seconds=sas_datetime)
+
+    elif unit == "d":
+        return datetime(1960, 1, 1) + timedelta(days=sas_datetime)
+
+    else:
+        raise ValueError("unit must be 'd' or 's'")
 
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
@@ -51,16 +77,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     try:
         return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
     except OutOfBoundsDatetime:
-        if unit == "s":
-            return sas_datetimes.apply(
-                lambda sas_float: datetime(1960, 1, 1) + timedelta(seconds=sas_float)
-            )
-        elif unit == "d":
-            return sas_datetimes.apply(
-                lambda sas_float: datetime(1960, 1, 1) + timedelta(days=sas_float)
-            )
-        else:
-            raise ValueError("unit must be 'd' or 's'")
+        s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
+        s_series = cast(pd.Series, s_series)
+        return s_series
 
 
 class _SubheaderPointer:

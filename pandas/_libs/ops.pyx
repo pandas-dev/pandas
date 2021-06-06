@@ -14,13 +14,20 @@ import cython
 from cython import Py_ssize_t
 import numpy as np
 
-from numpy cimport import_array, ndarray, uint8_t
+from numpy cimport (
+    import_array,
+    ndarray,
+    uint8_t,
+)
 
 import_array()
 
 
 from pandas._libs.missing cimport checknull
-from pandas._libs.util cimport UINT8_MAX, is_nan
+from pandas._libs.util cimport (
+    UINT8_MAX,
+    is_nan,
+)
 
 
 @cython.wraparound(False)

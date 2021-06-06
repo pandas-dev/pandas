@@ -21,7 +21,10 @@ import json
 import os
 import sys
 import tempfile
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
 
 import flake8.main.application
 

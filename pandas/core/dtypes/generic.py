@@ -1,10 +1,15 @@
 """ define generic base classes for pandas objects """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Type, cast
+from typing import (
+    TYPE_CHECKING,
+    Type,
+    cast,
+)
 
 if TYPE_CHECKING:
     from pandas import (
+        Categorical,
         CategoricalIndex,
         DataFrame,
         DatetimeIndex,
@@ -18,6 +23,13 @@ if TYPE_CHECKING:
         Series,
         TimedeltaIndex,
         UInt64Index,
+    )
+    from pandas.core.arrays import (
+        DatetimeArray,
+        ExtensionArray,
+        PandasArray,
+        PeriodArray,
+        TimedeltaArray,
     )
     from pandas.core.generic import NDFrame
 
@@ -111,16 +123,32 @@ ABCDataFrame = cast(
     "Type[DataFrame]", create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe",))
 )
 
-ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ", ("categorical"))
-ABCDatetimeArray = create_pandas_abc_type("ABCDatetimeArray", "_typ", ("datetimearray"))
-ABCTimedeltaArray = create_pandas_abc_type(
-    "ABCTimedeltaArray", "_typ", ("timedeltaarray")
+ABCCategorical = cast(
+    "Type[Categorical]",
+    create_pandas_abc_type("ABCCategorical", "_typ", ("categorical")),
 )
-ABCPeriodArray = create_pandas_abc_type("ABCPeriodArray", "_typ", ("periodarray",))
-ABCExtensionArray = create_pandas_abc_type(
-    "ABCExtensionArray",
-    "_typ",
-    # Note: IntervalArray and SparseArray are included bc they have _typ="extension"
-    {"extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"},
+ABCDatetimeArray = cast(
+    "Type[DatetimeArray]",
+    create_pandas_abc_type("ABCDatetimeArray", "_typ", ("datetimearray")),
 )
-ABCPandasArray = create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",))
+ABCTimedeltaArray = cast(
+    "Type[TimedeltaArray]",
+    create_pandas_abc_type("ABCTimedeltaArray", "_typ", ("timedeltaarray")),
+)
+ABCPeriodArray = cast(
+    "Type[PeriodArray]",
+    create_pandas_abc_type("ABCPeriodArray", "_typ", ("periodarray",)),
+)
+ABCExtensionArray = cast(
+    "Type[ExtensionArray]",
+    create_pandas_abc_type(
+        "ABCExtensionArray",
+        "_typ",
+        # Note: IntervalArray and SparseArray are included bc they have _typ="extension"
+        {"extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"},
+    ),
+)
+ABCPandasArray = cast(
+    "Type[PandasArray]",
+    create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",)),
+)

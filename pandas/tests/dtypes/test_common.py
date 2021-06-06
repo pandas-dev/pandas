@@ -557,6 +557,11 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype("boolean")
 
 
+def test_is_bool_dtype_numpy_error():
+    # GH39010
+    assert not com.is_bool_dtype("0 - Name")
+
+
 @pytest.mark.filterwarnings("ignore:'is_extension_type' is deprecated:FutureWarning")
 @pytest.mark.parametrize(
     "check_scipy", [False, pytest.param(True, marks=td.skip_if_no_scipy)]
@@ -641,7 +646,6 @@ def test_is_complex_dtype():
         (pd.CategoricalIndex(["a", "b"]).dtype, CategoricalDtype(["a", "b"])),
         (pd.CategoricalIndex(["a", "b"]), CategoricalDtype(["a", "b"])),
         (CategoricalDtype(), CategoricalDtype()),
-        (CategoricalDtype(["a", "b"]), CategoricalDtype()),
         (pd.DatetimeIndex([1, 2]), np.dtype("=M8[ns]")),
         (pd.DatetimeIndex([1, 2]).dtype, np.dtype("=M8[ns]")),
         ("<M8[ns]", np.dtype("<M8[ns]")),
@@ -720,7 +724,20 @@ def test_astype_nansafe(val, typ):
 
     msg = "Cannot convert NaT values to integer"
     with pytest.raises(ValueError, match=msg):
-        astype_nansafe(arr, dtype=typ)
+        with tm.assert_produces_warning(FutureWarning):
+            # datetimelike astype(int64) deprecated
+            astype_nansafe(arr, dtype=typ)
+
+
+def test_astype_nansafe_copy_false(any_int_dtype):
+    # GH#34457 use astype, not view
+    arr = np.array([1, 2, 3], dtype=any_int_dtype)
+
+    dtype = np.dtype("float64")
+    result = astype_nansafe(arr, dtype, copy=False)
+
+    expected = np.array([1.0, 2.0, 3.0], dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
@@ -748,7 +765,7 @@ def test_astype_datetime64_bad_dtype_raises(from_type, to_type):
 
 @pytest.mark.parametrize("from_type", [np.datetime64, np.timedelta64])
 def test_astype_object_preserves_datetime_na(from_type):
-    arr = np.array([from_type("NaT")])
+    arr = np.array([from_type("NaT", "ns")])
     result = astype_nansafe(arr, dtype=np.dtype("object"))
 
     assert isna(result)[0]

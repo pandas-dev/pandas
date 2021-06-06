@@ -1,4 +1,8 @@
-from typing import Dict, List, Tuple
+from typing import (
+    Dict,
+    List,
+    Tuple,
+)
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions

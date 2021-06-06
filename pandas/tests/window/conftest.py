@@ -1,11 +1,19 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, bdate_range, notna
+from pandas import (
+    DataFrame,
+    Series,
+    bdate_range,
+    notna,
+)
 
 
 @pytest.fixture(params=[True, False])
@@ -47,9 +55,23 @@ def win_types_special(request):
         "kurt",
         "skew",
         "count",
+        "sem",
     ]
 )
 def arithmetic_win_operators(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "sum",
+        "mean",
+        "median",
+        "max",
+        "min",
+    ]
+)
+def arithmetic_numba_supported_operators(request):
     return request.param
 
 
@@ -99,12 +121,7 @@ def ignore_na(request):
 
 
 @pytest.fixture(
-    params=[
-        pytest.param(
-            "numba", marks=td.skip_if_no("numba", "0.46.0")
-        ),  # type: ignore[list-item]
-        "cython",
-    ]
+    params=[pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")), "cython"]
 )
 def engine(request):
     """engine keyword argument for rolling.apply"""
@@ -318,7 +335,7 @@ def halflife_with_times(request):
         "float64",
         "m8[ns]",
         "M8[ns]",
-        pytest.param(  # type: ignore[list-item]
+        pytest.param(
             "datetime64[ns, UTC]",
             marks=pytest.mark.skip(
                 "direct creation of extension dtype datetime64[ns, UTC] "

@@ -1,4 +1,7 @@
-from typing import TYPE_CHECKING, Dict
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+)
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions

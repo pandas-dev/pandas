@@ -5,7 +5,11 @@ import pytest
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
-from pandas import DatetimeIndex, Series, Timestamp
+from pandas import (
+    DatetimeIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -91,9 +95,9 @@ def test_datetime_likes_nan(klass):
 def test_datetime_with_timezone(as_asi):
     # see gh-15426
     ts = Timestamp("2016-01-01 12:00:00", tz="US/Pacific")
-    exp = DatetimeIndex([ts, ts])
+    exp = DatetimeIndex([ts, ts])._data
 
     obj = exp.asi8 if as_asi else exp
     res = maybe_downcast_to_dtype(obj, exp.dtype)
 
-    tm.assert_index_equal(res, exp)
+    tm.assert_datetime_array_equal(res, exp)

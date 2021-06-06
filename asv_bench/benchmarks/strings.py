@@ -2,7 +2,11 @@ import warnings
 
 import numpy as np
 
-from pandas import Categorical, DataFrame, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+)
 
 from .pandas_vb_common import tm
 

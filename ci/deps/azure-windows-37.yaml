@@ -33,7 +33,7 @@ dependencies:
   - s3fs>=0.4.2
   - scipy
   - sqlalchemy
-  - xlrd<2.0
+  - xlrd>=2.0
   - xlsxwriter
   - xlwt
   - pyreadstat
