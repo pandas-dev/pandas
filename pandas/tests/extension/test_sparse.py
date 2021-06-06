@@ -177,7 +177,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         super().test_transpose(data)
 
     # Inherited tests that fail on Python 3.10 (TODO: remove test once passed)
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
     @pytest.mark.parametrize(
         "columns",
         [
