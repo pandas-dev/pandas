@@ -201,42 +201,6 @@ from present information back to past information. This allows the rolling windo
 
    df
 
-.. _window.reverse_rolling_window:
-
-Reverse rolling window
-~~~~~~~~~~~~~~~~~~~~~~
-
-Get the window of a rolling function to look forward.
-
-We can achieve this by using slicing in python by applying rolling aggregation and then flipping the result
-as shown in example below:
-
-.. ipython:: python
-
-   df = pd.DataFrame(
-       data=[
-           [pd.Timestamp("2018-01-01 00:00:00"), 100],
-           [pd.Timestamp("2018-01-01 00:00:01"), 101],
-           [pd.Timestamp("2018-01-01 00:00:03"), 103],
-           [pd.Timestamp("2018-01-01 00:00:04"), 111],
-       ],
-       columns=["time", "value"],
-   ).set_index("time")
-   df
-
-   reversed_df = df[::-1].rolling("2s").sum()[::-1]
-   reversed_df
-
-Or we can also do it using :meth:`api.indexers.FixedForwardWindowIndexer` which basically creates window boundaries
-for fixed-length windows that include the current row.
-
-.. ipython:: python
-
-   indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
-
-   reversed_df = df.rolling(window=indexer, min_periods=1).sum()
-   reversed_df
-
 
 .. _window.custom_rolling_window:
 
@@ -312,12 +276,16 @@ rolling operations over a non-fixed offset like a ``BusinessDay``.
    df
    df.rolling(indexer).sum()
 
-For some problems knowledge of the future is available for analysis. For example, this occurs when
-each data point is a full time series read from an experiment, and the task is to extract underlying
-conditions. In these cases it can be useful to perform forward-looking rolling window computations.
-:func:`FixedForwardWindowIndexer <pandas.api.indexers.FixedForwardWindowIndexer>` class is available for this purpose.
-This :func:`BaseIndexer <pandas.api.indexers.BaseIndexer>` subclass implements a closed fixed-width
-forward-looking rolling window, and we can use it as follows:
+
+.. _window.reverse_rolling_window:
+
+Reverse rolling window
+~~~~~~~~~~~~~~~~~~~~~~
+
+Get the window of a rolling function to look forward.
+
+We can achieve this by using slicing in python by applying rolling aggregation and then flipping the result
+as shown in example below:
 
 .. ipython:: python
 
@@ -332,10 +300,18 @@ forward-looking rolling window, and we can use it as follows:
    ).set_index("time")
    df
 
+   reversed_df = df[::-1].rolling("2s").sum()[::-1]
+   reversed_df
+
+Or we can also do it using :meth:`api.indexers.FixedForwardWindowIndexer` which basically creates window boundaries
+for fixed-length windows that include the current row.
+
+.. ipython:: python
+
    indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
 
-   df_out = df.rolling(window=indexer, min_periods=1).sum()
-   df_out
+   reversed_df = df.rolling(window=indexer, min_periods=1).sum()
+   reversed_df
 
 
 .. _window.rolling_apply:
