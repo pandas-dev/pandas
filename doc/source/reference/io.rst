@@ -22,7 +22,7 @@ Flat file
 
    read_table
    read_csv
-   to_csv
+   DataFrame.to_csv
    read_fwf
 
 Clipboard
