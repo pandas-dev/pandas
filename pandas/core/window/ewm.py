@@ -823,13 +823,22 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 raise ValueError(
                     "Must call mean with update=None first before passing update"
                 )
-            obj = np.concatenate(([self._mean.last_ewm], update.to_numpy()))
+            # if len(self._mean.last_ewm.shape) != len(update.shape):
+            #     # update can be 1D or 2D, self._mean.last_ewm is 1D
+            #     last_values = self._mean.last_ewm.reshape(
+            #     update.shape[self.axis - 1], - 1
+            #     )
+            # else:
+            #     last_values = self._mean.last_ewm
+            obj = np.concatenate((self._mean.last_ewm, update.to_numpy()))
             result_from = 1
         else:
             obj = self._selected_obj.astype(np.float64).to_numpy()
             result_from = 0
         if update_times is None:
-            update_times = np.ones(max(len(obj) - 1, 0), dtype=np.float64)
+            update_times = np.ones(
+                max(self.obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
+            )
         else:
             update_times = _calculate_deltas(update_times, self.halflife)
         ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)

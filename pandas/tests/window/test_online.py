@@ -41,7 +41,7 @@ class TestEWM:
             result = online_ewm.mean()
             tm.assert_frame_equal(result, expected.head(2))
 
-            result = online_ewm.update(update=obj.tail(3))
+            result = online_ewm.mean(update=obj.tail(3))
             tm.assert_frame_equal(result, expected.tail(3))
 
             online_ewm.reset()
@@ -69,7 +69,7 @@ class TestEWM:
             result = online_ewm.mean()
             tm.assert_frame_equal(result, expected.head(2))
 
-            result = online_ewm.update(update=obj.tail(3), update_times=times.tail(3))
+            result = online_ewm.mean(update=obj.tail(3), update_times=times.tail(3))
             tm.assert_frame_equal(result, expected.tail(3))
 
             online_ewm.reset()
