@@ -749,7 +749,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def var(self, bias: bool = False, *args, **kwargs):
         return NotImplementedError
 
-    def mean(self, update=None, update_deltas=None):
+    def mean(self, *args, update=None, update_deltas=None, **kwargs):
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
