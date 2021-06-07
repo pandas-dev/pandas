@@ -1762,7 +1762,7 @@ the string values returned are correct."""
             columns = data.columns
             replacement_df = DataFrame(replacements)
             replaced = concat(
-                [data.drop(replacement_df.columns, axis=1), replacement_df], 1
+                [data.drop(replacement_df.columns, axis=1), replacement_df], axis=1
             )
             data = replaced[columns]
         return data
