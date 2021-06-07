@@ -22,15 +22,17 @@ class TestEWM:
         ):
             online_ewm.mean(update=df.head(1))
 
+    @pytest.mark.parametrize(
+        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5))]
+    )
     def test_online_vs_non_online_mean(
-        self, nogil, parallel, nopython, adjust, ignore_na
+        self, obj, nogil, parallel, nopython, adjust, ignore_na
     ):
-        df = DataFrame({"a": range(5), "b": range(5)})
-        expected = df.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()
+        expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         online_ewm = (
-            df.head(2)
+            obj.head(2)
             .ewm(0.5, adjust=adjust, ignore_na=ignore_na)
             .online(engine_kwargs=engine_kwargs)
         )
@@ -39,24 +41,26 @@ class TestEWM:
             result = online_ewm.mean()
             tm.assert_frame_equal(result, expected.head(2))
 
-            result = online_ewm.update(update=df.tail(3))
+            result = online_ewm.update(update=obj.tail(3))
             tm.assert_frame_equal(result, expected.tail(3))
 
             online_ewm.reset()
 
-    def test_update_times_mean(self, nogil, parallel, nopython, adjust, ignore_na):
+    @pytest.mark.parametrize(
+        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5))]
+    )
+    def test_update_times_mean(self, obj, nogil, parallel, nopython, adjust, ignore_na):
         times = Series(
             np.array(
                 ["2020-01-01", "2020-01-02", "2020-01-04", "2020-01-17", "2020-01-21"],
                 dtype="datetime64",
             )
         )
-        df = DataFrame({"a": range(5), "b": range(5)})
-        expected = df.ewm(0.5, adjust=adjust, ignore_na=ignore_na, times=times).mean()
+        expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na, times=times).mean()
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         online_ewm = (
-            df.head(2)
+            obj.head(2)
             .ewm(0.5, adjust=adjust, ignore_na=ignore_na, times=times.head(2))
             .online(engine_kwargs=engine_kwargs)
         )
@@ -65,7 +69,7 @@ class TestEWM:
             result = online_ewm.mean()
             tm.assert_frame_equal(result, expected.head(2))
 
-            result = online_ewm.update(update=df.tail(3), update_times=times.tail(3))
+            result = online_ewm.update(update=obj.tail(3), update_times=times.tail(3))
             tm.assert_frame_equal(result, expected.tail(3))
 
             online_ewm.reset()
