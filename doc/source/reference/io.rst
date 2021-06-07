@@ -42,13 +42,18 @@ Excel
    DataFrame.to_excel
    ExcelFile.parse
 
+.. currentmodule:: pandas.io.formats.style
+.. autosummary::
+   :toctree: api/
+
+   Styler.to_excel
+
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
    ExcelWriter
-   
-.. currentmodule:: pandas.io
+
 .. currentmodule:: pandas.io.json
 JSON
 ~~~~
@@ -74,6 +79,13 @@ HTML
    read_html
    DataFrame.to_html
 
+.. currentmodule:: pandas.io.formats.style
+.. autosummary::
+   :toctree: api/
+
+   Styler.to_html
+
+.. currentmodule:: pandas
 XML
 ~~~~
 .. autosummary::
@@ -82,6 +94,20 @@ XML
    read_xml
    DataFrame.to_xml
 
+LaTeX
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   DataFrame.to_latex
+
+.. currentmodule:: pandas.io.formats.style
+.. autosummary::
+   :toctree: api/
+
+   Styler.to_latex
+
+.. currentmodule:: pandas
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -155,7 +181,6 @@ Google BigQuery
    :toctree: api/
 
    read_gbq
-   DataFrame.to_gpq
 
 STATA
 ~~~~~
