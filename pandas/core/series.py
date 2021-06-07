@@ -5002,7 +5002,7 @@ Keep all original rows and also all original values
         dtype: bool
         """
 
-        if inclusive == "both" or inclusive is True:
+        if inclusive == "both":
             lmask = self >= left
             rmask = self <= right
         elif inclusive == "left":
@@ -5023,6 +5023,15 @@ Keep all original rows and also all original values
             )
             lmask = self > left
             rmask = self < right
+        elif inclusive is True:
+            warnings.warn(
+                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "favour of `both` or `neither`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            lmask = self >= left
+            rmask = self <= right
         else:
             raise ValueError(
                 "Inclusive has to be either string of 'both','left', 'right', "
