@@ -43,7 +43,7 @@ from pandas.core.window.indexers import (
 )
 from pandas.core.window.numba_ import generate_numba_ewma_func
 from pandas.core.window.online import (
-    EWMeanState,
+    EWMMeanState,
     generate_online_numba_ewma_func,
 )
 from pandas.core.window.rolling import (
@@ -711,7 +711,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             times=times,
             selection=selection,
         )
-        self._mean = EWMeanState(
+        self._mean = EWMMeanState(
             self._com, self.adjust, self.ignore_na, self.axis, obj.shape
         )
         self.engine = engine
@@ -749,7 +749,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def var(self, bias: bool = False, *args, **kwargs):
         return NotImplementedError
 
-    def mean(self, *args, update=None, update_deltas=None, **kwargs):
+    def mean(self, *args, update=None, update_times=None, **kwargs):
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -760,9 +760,11 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         else:
             obj = self._selected_obj.astype(np.float64).to_numpy()
             result_from = 0
-        if update_deltas is None:
-            update_deltas = np.ones(max(len(obj) - 1, 0), dtype=np.float64)
+        if update_times is None:
+            update_times = np.ones(max(len(obj) - 1, 0), dtype=np.float64)
+        else:
+            update_times = _calculate_deltas(update_times, self.halflife)
         ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
-        result = self._mean.run_ewm(obj, update_deltas, self.min_periods, ewma_func)
+        result = self._mean.run_ewm(obj, update_times, self.min_periods, ewma_func)
         result = self._selected_obj._constructor(result)
         return result.iloc[result_from:]

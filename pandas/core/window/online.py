@@ -79,7 +79,7 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
     return online_ewma
 
 
-class EWMeanState:
+class EWMMeanState:
     def __init__(self, com, adjust, ignore_na, axis, shape):
         alpha = 1.0 / (1.0 + com)
         self.axis = axis
