@@ -101,7 +101,6 @@ pip install pandas
 ```
 
 ## Dependencies
-- [Setuptools - A fully-featured, actively-maintained, and stable library designed to facilitate packaging Python projects](https://setuptools.readthedocs.io/en/latest/)
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
 - [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://github.com/stub42/pytz)
