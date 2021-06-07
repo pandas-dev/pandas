@@ -2775,6 +2775,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
+        fill_value=None,
         **kwargs,
     ):
         """
@@ -2825,6 +2826,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        fill_value : any, default None
+            The scalar value to use for newly introduced missing values.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2923,7 +2926,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = result.reshape(-1)
 
             if result_is_index:
-                result = algorithms.take_nd(values, result)
+                result = algorithms.take_nd(values, result, fill_value=fill_value)
 
             if post_processing:
                 result = post_processing(result, inferences)
@@ -2972,7 +2975,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         tshift : Shift the time index, using the index’s frequency
             if available.
         """
-        if freq is not None or axis != 0 or not isna(fill_value):
+        if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 
         return self._get_cythonized_result(
@@ -2982,6 +2985,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             needs_ngroups=True,
             result_is_index=True,
             periods=periods,
+            fill_value=fill_value
         )
 
     @final
