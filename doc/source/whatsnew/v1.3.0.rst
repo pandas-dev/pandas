@@ -691,6 +691,7 @@ Deprecations
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
 - Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
+- Deprecated the :attr:`Timestamp.freq` attribute.  For the properties that use it (``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end``), when you have a ``freq``, use e.g. ``freq.is_month_start(ts)`` (:issue:`15146`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.sort_values` (other than ``"by"``) and :meth:`Series.sort_values` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.dropna` and :meth:`Series.dropna` (:issue:`41485`)
