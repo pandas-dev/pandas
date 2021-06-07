@@ -50,16 +50,16 @@ As noted above, some operations support specifying a window based on a time offs
 
 .. ipython:: python
 
-   s = pd.Series(range(5), index=pd.date_range("2020-01-01", periods=5, freq="1D"))
-   s.rolling(window="2D").sum()
+   s = pd.Series(range(5), index=pd.date_range('2020-01-01', periods=5, freq='1D'))
+   s.rolling(window='2D').sum()
 
 Additionally, some methods support chaining a ``groupby`` operation with a windowing operation
 which will first group the data by the specified keys and then perform a windowing operation per group.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": ["a", "b", "a", "b", "a"], "B": range(5)})
-   df.groupby("A").expanding().sum()
+   df = pd.DataFrame({'A': ['a', 'b', 'a', 'b', 'a'], 'B': range(5)})
+   df.groupby('A').expanding().sum()
 
 .. note::
 
@@ -104,7 +104,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
-``min_peridos`` defaults to 1 for time-based windows and ``window`` for fixed windows
+``min_periods`` defaults to 1 for time-based windows and ``window`` for fixed windows
 
 .. ipython:: python
 
@@ -141,7 +141,7 @@ time based index must be monotonic.
    # Window with 2 observations
    s.rolling(window=2).sum()
    # Window with 2 days worth of observations
-   s.rolling(window="2D").sum()
+   s.rolling(window='2D').sum()
 
 For all supported aggregation functions, see :ref:`api.functions_rolling`.
 
