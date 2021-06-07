@@ -1105,7 +1105,7 @@ Styler
 - Bug in :meth:`.Styler.set_table_styles` where multiple elements in CSS-selectors of the ``table_styles`` argument were not correctly added (:issue:`34061`)
 - Bug in :class:`.Styler` where copying from Jupyter dropped the top left cell and misaligned headers (:issue:`12147`)
 - Bug in :class:`Styler.where` where ``kwargs`` were not passed to the applicable callable (:issue:`40845`)
-- Bug in :class:`.Styler` caused CSS to duplicate on multiple renders (:issue:`39395`, :issue:`40334`)
+- Bug in :class:`.Styler` causing CSS to duplicate on multiple renders (:issue:`39395`, :issue:`40334`)
 
 
 Other
