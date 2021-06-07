@@ -8,7 +8,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
     CategoricalIndex,
@@ -25,6 +25,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.api.types import (
     is_datetime64tz_dtype,
+    is_signed_integer_dtype,
     pandas_dtype,
 )
 
@@ -48,7 +49,11 @@ def test_union_different_types(index_flat, index_flat2):
     idx1 = index_flat
     idx2 = index_flat2
 
-    type_pair = tuple(sorted([idx1.dtype.type, idx2.dtype.type], key=lambda x: str(x)))
+    common_dtype = find_common_type([idx1.dtype, idx2.dtype])
+
+    any_uint64 = idx1.dtype == np.uint64 or idx2.dtype == np.uint64
+    idx1_signed = is_signed_integer_dtype(idx1.dtype)
+    idx2_signed = is_signed_integer_dtype(idx2.dtype)
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
@@ -58,23 +63,12 @@ def test_union_different_types(index_flat, index_flat2):
     res1 = idx1.union(idx2)
     res2 = idx2.union(idx1)
 
-    if is_dtype_equal(idx1.dtype, idx2.dtype):
-        assert res1.dtype == idx1.dtype
-        assert res2.dtype == idx1.dtype
-
-    elif type_pair not in COMPATIBLE_INCONSISTENT_PAIRS:
-        # A union with a CategoricalIndex (even as dtype('O')) and a
-        # non-CategoricalIndex can only be made if both indices are monotonic.
-        # This is true before this PR as well.
+    if any_uint64 and (idx1_signed or idx2_signed):
         assert res1.dtype == np.dtype("O")
         assert res2.dtype == np.dtype("O")
-
-    elif idx1.dtype.kind in ["f", "i", "u"] and idx2.dtype.kind in ["f", "i", "u"]:
-        assert res1.dtype == np.dtype("f8")
-        assert res2.dtype == np.dtype("f8")
-
     else:
-        raise NotImplementedError
+        assert res1.dtype == common_dtype
+        assert res2.dtype == common_dtype
 
 
 @pytest.mark.parametrize(

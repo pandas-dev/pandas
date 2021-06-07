@@ -73,6 +73,7 @@ def maybe_convert_objects(
     convert_datetime: Literal[False] = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[False] = ...,
+    convert_interval: Literal[False] = ...,
     convert_to_nullable_integer: Literal[False] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> np.ndarray: ...
@@ -86,6 +87,7 @@ def maybe_convert_objects(
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
@@ -99,6 +101,7 @@ def maybe_convert_objects(
     convert_datetime: Literal[True] = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
@@ -112,6 +115,7 @@ def maybe_convert_objects(
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: Literal[True] = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
@@ -125,6 +129,7 @@ def maybe_convert_objects(
     convert_datetime: bool = ...,
     convert_timedelta: bool = ...,
     convert_period: bool = ...,
+    convert_interval: bool = ...,
     convert_to_nullable_integer: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
@@ -190,11 +195,7 @@ def maybe_indices_to_slice(
     max_len: int,
 ) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
 
-def clean_index_list(obj: list) -> tuple[
-    list | np.ndarray,  # np.ndarray[object | np.int64 | np.uint64]
-    bool,
-]: ...
-
+def is_all_arraylike(obj: list) -> bool: ...
 
 # -----------------------------------------------------------------
 # Functions which in reality take memoryviews

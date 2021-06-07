@@ -26,6 +26,8 @@ Properties
     DateOffset.normalize
     DateOffset.rule_code
     DateOffset.n
+    DateOffset.is_month_start
+    DateOffset.is_month_end
 
 Methods
 ~~~~~~~
@@ -40,6 +42,12 @@ Methods
     DateOffset.is_anchored
     DateOffset.is_on_offset
     DateOffset.__call__
+    DateOffset.is_month_start
+    DateOffset.is_month_end
+    DateOffset.is_quarter_start
+    DateOffset.is_quarter_end
+    DateOffset.is_year_start
+    DateOffset.is_year_end
 
 BusinessDay
 -----------
@@ -86,6 +94,12 @@ Methods
     BusinessDay.is_anchored
     BusinessDay.is_on_offset
     BusinessDay.__call__
+    BusinessDay.is_month_start
+    BusinessDay.is_month_end
+    BusinessDay.is_quarter_start
+    BusinessDay.is_quarter_end
+    BusinessDay.is_year_start
+    BusinessDay.is_year_end
 
 BusinessHour
 ------------
@@ -125,6 +139,12 @@ Methods
     BusinessHour.is_anchored
     BusinessHour.is_on_offset
     BusinessHour.__call__
+    BusinessHour.is_month_start
+    BusinessHour.is_month_end
+    BusinessHour.is_quarter_start
+    BusinessHour.is_quarter_end
+    BusinessHour.is_year_start
+    BusinessHour.is_year_end
 
 CustomBusinessDay
 -----------------
@@ -171,6 +191,12 @@ Methods
     CustomBusinessDay.is_anchored
     CustomBusinessDay.is_on_offset
     CustomBusinessDay.__call__
+    CustomBusinessDay.is_month_start
+    CustomBusinessDay.is_month_end
+    CustomBusinessDay.is_quarter_start
+    CustomBusinessDay.is_quarter_end
+    CustomBusinessDay.is_year_start
+    CustomBusinessDay.is_year_end
 
 CustomBusinessHour
 ------------------
@@ -210,6 +236,12 @@ Methods
     CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
     CustomBusinessHour.__call__
+    CustomBusinessHour.is_month_start
+    CustomBusinessHour.is_month_end
+    CustomBusinessHour.is_quarter_start
+    CustomBusinessHour.is_quarter_end
+    CustomBusinessHour.is_year_start
+    CustomBusinessHour.is_year_end
 
 MonthEnd
 --------
@@ -244,6 +276,12 @@ Methods
     MonthEnd.is_anchored
     MonthEnd.is_on_offset
     MonthEnd.__call__
+    MonthEnd.is_month_start
+    MonthEnd.is_month_end
+    MonthEnd.is_quarter_start
+    MonthEnd.is_quarter_end
+    MonthEnd.is_year_start
+    MonthEnd.is_year_end
 
 MonthBegin
 ----------
@@ -278,6 +316,12 @@ Methods
     MonthBegin.is_anchored
     MonthBegin.is_on_offset
     MonthBegin.__call__
+    MonthBegin.is_month_start
+    MonthBegin.is_month_end
+    MonthBegin.is_quarter_start
+    MonthBegin.is_quarter_end
+    MonthBegin.is_year_start
+    MonthBegin.is_year_end
 
 BusinessMonthEnd
 ----------------
@@ -321,6 +365,12 @@ Methods
     BusinessMonthEnd.is_anchored
     BusinessMonthEnd.is_on_offset
     BusinessMonthEnd.__call__
+    BusinessMonthEnd.is_month_start
+    BusinessMonthEnd.is_month_end
+    BusinessMonthEnd.is_quarter_start
+    BusinessMonthEnd.is_quarter_end
+    BusinessMonthEnd.is_year_start
+    BusinessMonthEnd.is_year_end
 
 BusinessMonthBegin
 ------------------
@@ -364,6 +414,12 @@ Methods
     BusinessMonthBegin.is_anchored
     BusinessMonthBegin.is_on_offset
     BusinessMonthBegin.__call__
+    BusinessMonthBegin.is_month_start
+    BusinessMonthBegin.is_month_end
+    BusinessMonthBegin.is_quarter_start
+    BusinessMonthBegin.is_quarter_end
+    BusinessMonthBegin.is_year_start
+    BusinessMonthBegin.is_year_end
 
 CustomBusinessMonthEnd
 ----------------------
@@ -411,6 +467,12 @@ Methods
     CustomBusinessMonthEnd.is_anchored
     CustomBusinessMonthEnd.is_on_offset
     CustomBusinessMonthEnd.__call__
+    CustomBusinessMonthEnd.is_month_start
+    CustomBusinessMonthEnd.is_month_end
+    CustomBusinessMonthEnd.is_quarter_start
+    CustomBusinessMonthEnd.is_quarter_end
+    CustomBusinessMonthEnd.is_year_start
+    CustomBusinessMonthEnd.is_year_end
 
 CustomBusinessMonthBegin
 ------------------------
@@ -458,6 +520,12 @@ Methods
     CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
     CustomBusinessMonthBegin.__call__
+    CustomBusinessMonthBegin.is_month_start
+    CustomBusinessMonthBegin.is_month_end
+    CustomBusinessMonthBegin.is_quarter_start
+    CustomBusinessMonthBegin.is_quarter_end
+    CustomBusinessMonthBegin.is_year_start
+    CustomBusinessMonthBegin.is_year_end
 
 SemiMonthEnd
 ------------
@@ -493,6 +561,12 @@ Methods
     SemiMonthEnd.is_anchored
     SemiMonthEnd.is_on_offset
     SemiMonthEnd.__call__
+    SemiMonthEnd.is_month_start
+    SemiMonthEnd.is_month_end
+    SemiMonthEnd.is_quarter_start
+    SemiMonthEnd.is_quarter_end
+    SemiMonthEnd.is_year_start
+    SemiMonthEnd.is_year_end
 
 SemiMonthBegin
 --------------
@@ -528,6 +602,12 @@ Methods
     SemiMonthBegin.is_anchored
     SemiMonthBegin.is_on_offset
     SemiMonthBegin.__call__
+    SemiMonthBegin.is_month_start
+    SemiMonthBegin.is_month_end
+    SemiMonthBegin.is_quarter_start
+    SemiMonthBegin.is_quarter_end
+    SemiMonthBegin.is_year_start
+    SemiMonthBegin.is_year_end
 
 Week
 ----
@@ -563,6 +643,12 @@ Methods
     Week.is_anchored
     Week.is_on_offset
     Week.__call__
+    Week.is_month_start
+    Week.is_month_end
+    Week.is_quarter_start
+    Week.is_quarter_end
+    Week.is_year_start
+    Week.is_year_end
 
 WeekOfMonth
 -----------
@@ -599,6 +685,12 @@ Methods
     WeekOfMonth.is_on_offset
     WeekOfMonth.__call__
     WeekOfMonth.weekday
+    WeekOfMonth.is_month_start
+    WeekOfMonth.is_month_end
+    WeekOfMonth.is_quarter_start
+    WeekOfMonth.is_quarter_end
+    WeekOfMonth.is_year_start
+    WeekOfMonth.is_year_end
 
 LastWeekOfMonth
 ---------------
@@ -635,6 +727,12 @@ Methods
     LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
     LastWeekOfMonth.__call__
+    LastWeekOfMonth.is_month_start
+    LastWeekOfMonth.is_month_end
+    LastWeekOfMonth.is_quarter_start
+    LastWeekOfMonth.is_quarter_end
+    LastWeekOfMonth.is_year_start
+    LastWeekOfMonth.is_year_end
 
 BQuarterEnd
 -----------
@@ -670,6 +768,12 @@ Methods
     BQuarterEnd.is_anchored
     BQuarterEnd.is_on_offset
     BQuarterEnd.__call__
+    BQuarterEnd.is_month_start
+    BQuarterEnd.is_month_end
+    BQuarterEnd.is_quarter_start
+    BQuarterEnd.is_quarter_end
+    BQuarterEnd.is_year_start
+    BQuarterEnd.is_year_end
 
 BQuarterBegin
 -------------
@@ -705,6 +809,12 @@ Methods
     BQuarterBegin.is_anchored
     BQuarterBegin.is_on_offset
     BQuarterBegin.__call__
+    BQuarterBegin.is_month_start
+    BQuarterBegin.is_month_end
+    BQuarterBegin.is_quarter_start
+    BQuarterBegin.is_quarter_end
+    BQuarterBegin.is_year_start
+    BQuarterBegin.is_year_end
 
 QuarterEnd
 ----------
@@ -740,6 +850,12 @@ Methods
     QuarterEnd.is_anchored
     QuarterEnd.is_on_offset
     QuarterEnd.__call__
+    QuarterEnd.is_month_start
+    QuarterEnd.is_month_end
+    QuarterEnd.is_quarter_start
+    QuarterEnd.is_quarter_end
+    QuarterEnd.is_year_start
+    QuarterEnd.is_year_end
 
 QuarterBegin
 ------------
@@ -775,6 +891,12 @@ Methods
     QuarterBegin.is_anchored
     QuarterBegin.is_on_offset
     QuarterBegin.__call__
+    QuarterBegin.is_month_start
+    QuarterBegin.is_month_end
+    QuarterBegin.is_quarter_start
+    QuarterBegin.is_quarter_end
+    QuarterBegin.is_year_start
+    QuarterBegin.is_year_end
 
 BYearEnd
 --------
@@ -810,6 +932,12 @@ Methods
     BYearEnd.is_anchored
     BYearEnd.is_on_offset
     BYearEnd.__call__
+    BYearEnd.is_month_start
+    BYearEnd.is_month_end
+    BYearEnd.is_quarter_start
+    BYearEnd.is_quarter_end
+    BYearEnd.is_year_start
+    BYearEnd.is_year_end
 
 BYearBegin
 ----------
@@ -845,6 +973,12 @@ Methods
     BYearBegin.is_anchored
     BYearBegin.is_on_offset
     BYearBegin.__call__
+    BYearBegin.is_month_start
+    BYearBegin.is_month_end
+    BYearBegin.is_quarter_start
+    BYearBegin.is_quarter_end
+    BYearBegin.is_year_start
+    BYearBegin.is_year_end
 
 YearEnd
 -------
@@ -880,6 +1014,12 @@ Methods
     YearEnd.is_anchored
     YearEnd.is_on_offset
     YearEnd.__call__
+    YearEnd.is_month_start
+    YearEnd.is_month_end
+    YearEnd.is_quarter_start
+    YearEnd.is_quarter_end
+    YearEnd.is_year_start
+    YearEnd.is_year_end
 
 YearBegin
 ---------
@@ -915,6 +1055,12 @@ Methods
     YearBegin.is_anchored
     YearBegin.is_on_offset
     YearBegin.__call__
+    YearBegin.is_month_start
+    YearBegin.is_month_end
+    YearBegin.is_quarter_start
+    YearBegin.is_quarter_end
+    YearBegin.is_year_start
+    YearBegin.is_year_end
 
 FY5253
 ------
@@ -954,6 +1100,12 @@ Methods
     FY5253.is_anchored
     FY5253.is_on_offset
     FY5253.__call__
+    FY5253.is_month_start
+    FY5253.is_month_end
+    FY5253.is_quarter_start
+    FY5253.is_quarter_end
+    FY5253.is_year_start
+    FY5253.is_year_end
 
 FY5253Quarter
 -------------
@@ -995,6 +1147,12 @@ Methods
     FY5253Quarter.is_on_offset
     FY5253Quarter.year_has_extra_week
     FY5253Quarter.__call__
+    FY5253Quarter.is_month_start
+    FY5253Quarter.is_month_end
+    FY5253Quarter.is_quarter_start
+    FY5253Quarter.is_quarter_end
+    FY5253Quarter.is_year_start
+    FY5253Quarter.is_year_end
 
 Easter
 ------
@@ -1029,6 +1187,12 @@ Methods
     Easter.is_anchored
     Easter.is_on_offset
     Easter.__call__
+    Easter.is_month_start
+    Easter.is_month_end
+    Easter.is_quarter_start
+    Easter.is_quarter_end
+    Easter.is_year_start
+    Easter.is_year_end
 
 Tick
 ----
@@ -1064,6 +1228,12 @@ Methods
     Tick.__call__
     Tick.apply
     Tick.apply_index
+    Tick.is_month_start
+    Tick.is_month_end
+    Tick.is_quarter_start
+    Tick.is_quarter_end
+    Tick.is_year_start
+    Tick.is_year_end
 
 Day
 ---
@@ -1099,6 +1269,12 @@ Methods
     Day.__call__
     Day.apply
     Day.apply_index
+    Day.is_month_start
+    Day.is_month_end
+    Day.is_quarter_start
+    Day.is_quarter_end
+    Day.is_year_start
+    Day.is_year_end
 
 Hour
 ----
@@ -1134,6 +1310,12 @@ Methods
     Hour.__call__
     Hour.apply
     Hour.apply_index
+    Hour.is_month_start
+    Hour.is_month_end
+    Hour.is_quarter_start
+    Hour.is_quarter_end
+    Hour.is_year_start
+    Hour.is_year_end
 
 Minute
 ------
@@ -1169,6 +1351,12 @@ Methods
     Minute.__call__
     Minute.apply
     Minute.apply_index
+    Minute.is_month_start
+    Minute.is_month_end
+    Minute.is_quarter_start
+    Minute.is_quarter_end
+    Minute.is_year_start
+    Minute.is_year_end
 
 Second
 ------
@@ -1204,6 +1392,12 @@ Methods
     Second.__call__
     Second.apply
     Second.apply_index
+    Second.is_month_start
+    Second.is_month_end
+    Second.is_quarter_start
+    Second.is_quarter_end
+    Second.is_year_start
+    Second.is_year_end
 
 Milli
 -----
@@ -1239,6 +1433,12 @@ Methods
     Milli.__call__
     Milli.apply
     Milli.apply_index
+    Milli.is_month_start
+    Milli.is_month_end
+    Milli.is_quarter_start
+    Milli.is_quarter_end
+    Milli.is_year_start
+    Milli.is_year_end
 
 Micro
 -----
@@ -1274,6 +1474,12 @@ Methods
     Micro.__call__
     Micro.apply
     Micro.apply_index
+    Micro.is_month_start
+    Micro.is_month_end
+    Micro.is_quarter_start
+    Micro.is_quarter_end
+    Micro.is_year_start
+    Micro.is_year_end
 
 Nano
 ----
@@ -1309,6 +1515,12 @@ Methods
     Nano.__call__
     Nano.apply
     Nano.apply_index
+    Nano.is_month_start
+    Nano.is_month_end
+    Nano.is_quarter_start
+    Nano.is_quarter_end
+    Nano.is_year_start
+    Nano.is_year_end
 
 .. _api.frequencies:
 
