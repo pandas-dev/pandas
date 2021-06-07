@@ -771,11 +771,13 @@ class IntervalIndex(ExtensionIndex):
                     missing.append(i)
             else:
                 try:
-                    locs = self.get_loc(key)
-                    if isinstance(locs, slice):
+                    nlocs = self.get_loc(key)
+                    if isinstance(nlocs, slice):
                         # Only needed for get_indexer_non_unique
-                        locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                    locs = np.array(locs, ndmin=1)
+                        nlocs = np.arange(
+                            nlocs.start, nlocs.stop, nlocs.step, dtype="intp"
+                        )
+                    locs = np.array(nlocs, ndmin=1)
                 except KeyError:
                     missing.append(i)
                     locs = np.array([-1])
