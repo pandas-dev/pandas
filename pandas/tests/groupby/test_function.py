@@ -906,11 +906,19 @@ def test_cummax(dtypes_for_minmax):
 
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize("dtype", ["float", "Int64", "Float64"])
-def test_cummin_max_skipna(method, dtype):
+@pytest.mark.parametrize(
+    "groups,expected_data",
+    [
+        ([1, 1, 1], [1, None, None]),
+        ([1, 2, 3], [1, None, 2]),
+        ([1, 3, 3], [1, None, None]),
+    ],
+)
+def test_cummin_max_skipna(method, dtype, groups, expected_data):
     # GH-34047
-    df = DataFrame({"a": Series([1, None, 1], dtype=dtype)})
-    result = getattr(df.groupby([1, 1, 1])["a"], method)(skipna=False)
-    expected = Series([1, None, None], dtype=dtype, name="a")
+    df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
+    result = getattr(df.groupby(groups)["a"], method)(skipna=False)
+    expected = Series(expected_data, dtype=dtype, name="a")
     tm.assert_series_equal(result, expected)
 
 
