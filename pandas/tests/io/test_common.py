@@ -262,6 +262,9 @@ bar2,12,13,14,15
     @pytest.mark.filterwarnings(
         "ignore:CategoricalBlock is deprecated:DeprecationWarning"
     )
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -309,6 +312,9 @@ bar2,12,13,14,15
 
             assert result == expected
 
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) IO HDF5
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't

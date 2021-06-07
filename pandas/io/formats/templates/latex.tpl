@@ -9,8 +9,11 @@
 {% if position_float is not none%}
 \{{position_float}}
 {% endif %}
-{% if caption %}
+{% if caption and caption is string %}
 \caption{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
+
+{% elif caption and caption is sequence %}
+\caption[{{caption[1]}}]{% raw %}{{% endraw %}{{caption[0]}}{% raw %}}{% endraw %}
 
 {% endif %}
 {% for style in table_styles %}
