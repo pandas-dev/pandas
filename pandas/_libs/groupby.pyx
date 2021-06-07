@@ -1349,11 +1349,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t N, K
         groupby_t[:, ::1] accum
 
-    N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=values.dtype)
+    accum = np.empty((ngroups, (<object>values).shape[1]), dtype=values.dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1391,8 +1389,8 @@ cdef cummin_max(groupby_t[:, ::1] out,
     elif is_datetimelike:
         na_val = NPY_NAT
 
-    seen_na = np.zeros((<object>values).shape[0], dtype=np.uint8)
     N, K = (<object>values).shape
+    seen_na = np.zeros((<object>accum).shape[0], dtype=np.uint8)
     with nogil:
         for i in range(N):
             lab = labels[i]
@@ -1436,8 +1434,8 @@ cdef masked_cummin_max(groupby_t[:, ::1] out,
         uint8_t[::1] seen_na
         intp_t lab
 
-    seen_na = np.zeros((<object>values).shape[0], dtype=np.uint8)
     N, K = (<object>values).shape
+    seen_na = np.zeros((<object>accum).shape[0], dtype=np.uint8)
     with nogil:
         for i in range(N):
             lab = labels[i]
