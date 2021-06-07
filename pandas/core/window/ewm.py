@@ -750,6 +750,48 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         return NotImplementedError
 
     def mean(self, *args, update=None, update_times=None, **kwargs):
+        """
+        Calculate an online exponentially weighted mean.
+
+        Parameters
+        ----------
+        update: DataFrame or Series, default None
+            New values to continue calculating the
+            exponentially weighted mean from the last values and weights.
+            Values should be float64 dtype.
+
+            ``update`` needs to be ``None`` the first time the
+            exponentially weighted mean is calculated.
+
+        update_times: Series or np.ndarray, default None
+            New times to continue calculating the
+            exponentially weighted mean from the last values and weights.
+            If ``None``, values are assumed to be evenly spaced
+            in time.
+
+        Returns
+        -------
+        DataFrame or Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"a": range(5), "b": range(5, 10)})
+        >>> online_ewm = df.head(2).ewm(0.5).online()
+        >>> online_ewm.mean()
+              0     1
+        0  0.00  5.00
+        1  0.75  5.75
+        >>> online_ewm.mean(update=df.tail(3))
+                  0         1
+        1  1.615385  6.615385
+        2  2.550000  7.550000
+        3  3.520661  8.520661
+        >>> online_ewm.reset()
+        >>> online_ewm.mean()
+              0     1
+        0  0.00  5.00
+        1  0.75  5.75
+        """
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
