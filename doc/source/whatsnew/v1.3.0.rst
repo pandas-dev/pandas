@@ -711,6 +711,7 @@ Deprecations
 - Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.drop` (other than ``"labels"``) and :meth:`Series.drop` (:issue:`41485`)
 - Deprecated passing arguments as positional (other than ``filepath_or_buffer``) in :func:`read_table` (:issue:`41485`)
+- Deprecated passing arguments as positional (other than ``objs``) in :func:`concat` (:issue:`41485`)
 
 
 .. _whatsnew_130.deprecations.nuisance_columns:

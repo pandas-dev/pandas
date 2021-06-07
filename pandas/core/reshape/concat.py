@@ -16,7 +16,10 @@ from typing import (
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    deprecate_nonkeyword_arguments,
+)
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -84,6 +87,7 @@ def concat(
     ...
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
     axis=0,

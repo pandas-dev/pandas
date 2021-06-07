@@ -423,7 +423,7 @@ Other enhancements
 
   .. code-block:: ipython
 
-     In [1]: pd.concat([foo, bar, baz], 1)
+     In [1]: pd.concat([foo, bar, baz], axis=1)
      Out[1]:
            0  1  2
         0  1  1  4
@@ -433,7 +433,7 @@ Other enhancements
 
   .. ipython:: python
 
-    pd.concat([foo, bar, baz], 1)
+    pd.concat([foo, bar, baz], axis=1)
 
 - ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
 
