@@ -823,13 +823,6 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 raise ValueError(
                     "Must call mean with update=None first before passing update"
                 )
-            # if len(self._mean.last_ewm.shape) != len(update.shape):
-            #     # update can be 1D or 2D, self._mean.last_ewm is 1D
-            #     last_values = self._mean.last_ewm.reshape(
-            #     update.shape[self.axis - 1], - 1
-            #     )
-            # else:
-            #     last_values = self._mean.last_ewm
             obj = np.concatenate((self._mean.last_ewm, update.to_numpy()))
             result_from = 1
         else:
