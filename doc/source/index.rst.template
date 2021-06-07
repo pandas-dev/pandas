@@ -17,88 +17,81 @@ pandas documentation
 `Source Repository <https://github.com/pandas-dev/pandas>`__ |
 `Issues & Ideas <https://github.com/pandas-dev/pandas/issues>`__ |
 `Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
-`Mailing List <https://groups.google.com/forum/#!forum/pydata>`__
+`Mailing List <https://groups.google.com/g/pydata>`__
 
 :mod:`pandas` is an open source, BSD-licensed library providing high-performance,
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
-.. raw:: html
+.. panels::
+    :card: + intro-card text-center
+    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
 
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="_static/index_getting_started.svg" class="card-img-top" alt="getting started with pandas action icon" height="52">
-                <div class="card-body flex-fill">
-                    <h5 class="card-title">Getting started</h5>
-                    <p class="card-text">New to <em>pandas</em>? Check out the getting started guides. They
-                    contain an introduction to <em>pandas'</em> main concepts and links to additional tutorials.</p>
+    ---
+    :img-top: _static/index_getting_started.svg
 
-.. container:: custom-button
+    Getting started
+    ^^^^^^^^^^^^^^^
 
-    :ref:`To the getting started guides<getting_started>`
+    New to *pandas*? Check out the getting started guides. They contain an
+    introduction to *pandas'* main concepts and links to additional tutorials.
 
-.. raw:: html
+    +++
 
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="_static/index_user_guide.svg" class="card-img-top" alt="pandas user guide action icon" height="52">
-                <div class="card-body flex-fill">
-                    <h5 class="card-title">User guide</h5>
-                    <p class="card-text">The user guide provides in-depth information on the
-                    key concepts of pandas with useful background information and explanation.</p>
+    .. link-button:: getting_started
+            :type: ref
+            :text: To the getting started guides
+            :classes: btn-block btn-secondary stretched-link
 
-.. container:: custom-button
+    ---
+    :img-top: _static/index_user_guide.svg
 
-    :ref:`To the user guide<user_guide>`
+    User guide
+    ^^^^^^^^^^
 
-.. raw:: html
+    The user guide provides in-depth information on the
+    key concepts of pandas with useful background information and explanation.
 
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="_static/index_api.svg" class="card-img-top" alt="api of pandas action icon" height="52">
-                <div class="card-body flex-fill">
-                    <h5 class="card-title">API reference</h5>
-                    <p class="card-text">The reference guide contains a detailed description of
-                    the pandas API. The reference describes how the methods work and which parameters can
-                    be used. It assumes that you have an understanding of the key concepts.</p>
+    +++
 
-.. container:: custom-button
+    .. link-button:: user_guide
+            :type: ref
+            :text: To the user guide
+            :classes: btn-block btn-secondary stretched-link
 
-    :ref:`To the reference guide<api>`
+    ---
+    :img-top: _static/index_api.svg
 
-.. raw:: html
+    API reference
+    ^^^^^^^^^^^^^
 
-                </div>
-                </div>
-            </div>
-            <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div class="card text-center intro-card shadow">
-                <img src="_static/index_contribute.svg" class="card-img-top" alt="contribute to pandas action icon" height="52">
-                <div class="card-body flex-fill">
-                    <h5 class="card-title">Developer guide</h5>
-                    <p class="card-text">Saw a typo in the documentation? Want to improve
-                    existing functionalities? The contributing guidelines will guide
-                    you through the process of improving pandas.</p>
+    The reference guide contains a detailed description of
+    the pandas API. The reference describes how the methods work and which parameters can
+    be used. It assumes that you have an understanding of the key concepts.
 
-.. container:: custom-button
+    +++
 
-    :ref:`To the development guide<development>`
+    .. link-button:: api
+            :type: ref
+            :text: To the reference guide
+            :classes: btn-block btn-secondary stretched-link
 
-.. raw:: html
+    ---
+    :img-top: _static/index_contribute.svg
 
-                </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    Developer guide
+    ^^^^^^^^^^^^^^^
+
+    Saw a typo in the documentation? Want to improve
+    existing functionalities? The contributing guidelines will guide
+    you through the process of improving pandas.
+
+    +++
+
+    .. link-button:: development
+            :type: ref
+            :text: To the development guide
+            :classes: btn-block btn-secondary stretched-link
 
 
 {% if single_doc and single_doc.endswith('.rst') -%}

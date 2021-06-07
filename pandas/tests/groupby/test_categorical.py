@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas.compat import PY37, is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -13,14 +13,13 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
-    _np_version_under1p17,
     qcut,
 )
 import pandas._testing as tm
 
 
-def cartesian_product_for_groupers(result, args, names):
-    """ Reindex to a cartesian production for the groupers,
+def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
+    """Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper
     """
 
@@ -33,42 +32,40 @@ def cartesian_product_for_groupers(result, args, names):
         return a
 
     index = MultiIndex.from_product(map(f, args), names=names)
-    return result.reindex(index).sort_index()
+    return result.reindex(index, fill_value=fill_value).sort_index()
 
 
-_results_for_groupbys_with_missing_categories = dict(
+_results_for_groupbys_with_missing_categories = {
     # This maps the builtin groupby functions to their expected outputs for
     # missing categories when they are called on a categorical grouper with
     # observed=False. Some functions are expected to return NaN, some zero.
     # These expected values can be used across several tests (i.e. they are
     # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
     # hardcoded in one place.
-    [
-        ("all", np.NaN),
-        ("any", np.NaN),
-        ("count", 0),
-        ("corrwith", np.NaN),
-        ("first", np.NaN),
-        ("idxmax", np.NaN),
-        ("idxmin", np.NaN),
-        ("last", np.NaN),
-        ("mad", np.NaN),
-        ("max", np.NaN),
-        ("mean", np.NaN),
-        ("median", np.NaN),
-        ("min", np.NaN),
-        ("nth", np.NaN),
-        ("nunique", 0),
-        ("prod", np.NaN),
-        ("quantile", np.NaN),
-        ("sem", np.NaN),
-        ("size", 0),
-        ("skew", np.NaN),
-        ("std", np.NaN),
-        ("sum", 0),
-        ("var", np.NaN),
-    ]
-)
+    "all": np.NaN,
+    "any": np.NaN,
+    "count": 0,
+    "corrwith": np.NaN,
+    "first": np.NaN,
+    "idxmax": np.NaN,
+    "idxmin": np.NaN,
+    "last": np.NaN,
+    "mad": np.NaN,
+    "max": np.NaN,
+    "mean": np.NaN,
+    "median": np.NaN,
+    "min": np.NaN,
+    "nth": np.NaN,
+    "nunique": 0,
+    "prod": np.NaN,
+    "quantile": np.NaN,
+    "sem": np.NaN,
+    "size": 0,
+    "skew": np.NaN,
+    "std": np.NaN,
+    "sum": 0,
+    "var": np.NaN,
+}
 
 
 def test_apply_use_categorical_name(df):
@@ -244,12 +241,28 @@ def test_level_get_group(observed):
     tm.assert_frame_equal(result, expected)
 
 
-# GH#21636 flaky on py37; may be related to older numpy, see discussion
-#  https://github.com/MacPython/pandas-wheels/pull/64
-@pytest.mark.xfail(
-    PY37 and _np_version_under1p17 and not is_platform_windows(),
-    reason="Flaky, GH-27902",
-)
+def test_sorting_with_different_categoricals():
+    # GH 24271
+    df = DataFrame(
+        {
+            "group": ["A"] * 6 + ["B"] * 6,
+            "dose": ["high", "med", "low"] * 4,
+            "outcomes": np.arange(12.0),
+        }
+    )
+
+    df.dose = Categorical(df.dose, categories=["low", "med", "high"], ordered=True)
+
+    result = df.groupby("group")["dose"].value_counts()
+    result = result.sort_index(level=0, sort_remaining=True)
+    index = ["low", "med", "high", "low", "med", "high"]
+    index = Categorical(index, categories=["low", "med", "high"], ordered=True)
+    index = [["A", "A", "A", "B", "B", "B"], CategoricalIndex(index)]
+    index = MultiIndex.from_arrays(index, names=["group", None])
+    expected = Series([2] * 6, index=index, name="dose")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("ordered", [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -269,11 +282,12 @@ def test_apply(ordered):
     # GH#21636 tracking down the xfail, in some builds np.mean(df.loc[[0]])
     #  is coming back as Series([0., 1., 0.], index=["missing", "dense", "values"])
     #  when we expect Series(0., index=["values"])
-    result = grouped.apply(lambda x: np.mean(x))
+    with tm.assert_produces_warning(
+        FutureWarning, match="Select only valid", check_stacklevel=False
+    ):
+        result = grouped.apply(lambda x: np.mean(x))
     tm.assert_frame_equal(result, expected)
 
-    # we coerce back to ints
-    expected = expected.astype("int")
     result = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -287,7 +301,9 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(observed):
+# TODO(ArrayManager) incorrect dtype for mean()
+@td.skip_array_manager_not_yet_implemented
+def test_observed(observed, using_array_manager):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -309,7 +325,7 @@ def test_observed(observed):
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
-            expected, [cat1, cat2, ["foo", "bar"]], list("ABC")
+            expected, [cat1, cat2, ["foo", "bar"]], list("ABC"), fill_value=0
         )
 
     tm.assert_frame_equal(result, expected)
@@ -319,7 +335,9 @@ def test_observed(observed):
     expected = DataFrame({"values": [1, 2, 3, 4]}, index=exp_index)
     result = gb.sum()
     if not observed:
-        expected = cartesian_product_for_groupers(expected, [cat1, cat2], list("AB"))
+        expected = cartesian_product_for_groupers(
+            expected, [cat1, cat2], list("AB"), fill_value=0
+        )
 
     tm.assert_frame_equal(result, expected)
 
@@ -354,7 +372,7 @@ def test_observed(observed):
     result = groups_double_key.agg("mean")
     expected = DataFrame(
         {
-            "val": [10, 30, 20, 40],
+            "val": [10.0, 30.0, 20.0, 40.0],
             "cat": Categorical(
                 ["a", "a", "b", "b"], categories=["a", "b", "c"], ordered=True
             ),
@@ -401,7 +419,9 @@ def test_observed_codes_remap(observed):
     groups_double_key = df.groupby([values, "C2"], observed=observed)
 
     idx = MultiIndex.from_arrays([values, [1, 2, 3, 4]], names=["cat", "C2"])
-    expected = DataFrame({"C1": [3, 3, 4, 5], "C3": [10, 100, 200, 34]}, index=idx)
+    expected = DataFrame(
+        {"C1": [3.0, 3.0, 4.0, 5.0], "C3": [10.0, 100.0, 200.0, 34.0]}, index=idx
+    )
     if not observed:
         expected = cartesian_product_for_groupers(
             expected, [values.values, [1, 2, 3, 4]], ["cat", "C2"]
@@ -476,14 +496,14 @@ def test_observed_groups_with_nan(observed):
 
 def test_observed_nth():
     # GH 26385
-    cat = pd.Categorical(["a", np.nan, np.nan], categories=["a", "b", "c"])
-    ser = pd.Series([1, 2, 3])
-    df = pd.DataFrame({"cat": cat, "ser": ser})
+    cat = Categorical(["a", np.nan, np.nan], categories=["a", "b", "c"])
+    ser = Series([1, 2, 3])
+    df = DataFrame({"cat": cat, "ser": ser})
 
     result = df.groupby("cat", observed=False)["ser"].nth(0)
 
-    index = pd.Categorical(["a", "b", "c"], categories=["a", "b", "c"])
-    expected = pd.Series([1, np.nan, np.nan], index=index, name="ser")
+    index = Categorical(["a", "b", "c"], categories=["a", "b", "c"])
+    expected = Series([1, np.nan, np.nan], index=index, name="ser")
     expected.index.name = "cat"
 
     tm.assert_series_equal(result, expected)
@@ -774,14 +794,20 @@ def test_preserve_categorical_dtype():
 def test_preserve_on_ordered_ops(func, values):
     # gh-18502
     # preserve the categoricals on ops
-    c = pd.Categorical(["first", "second", "third", "fourth"], ordered=True)
-    df = pd.DataFrame({"payload": [-1, -2, -1, -2], "col": c})
+    c = Categorical(["first", "second", "third", "fourth"], ordered=True)
+    df = DataFrame({"payload": [-1, -2, -1, -2], "col": c})
     g = df.groupby("payload")
     result = getattr(g, func)()
-    expected = pd.DataFrame(
-        {"payload": [-2, -1], "col": pd.Series(values, dtype=c.dtype)}
+    expected = DataFrame(
+        {"payload": [-2, -1], "col": Series(values, dtype=c.dtype)}
     ).set_index("payload")
     tm.assert_frame_equal(result, expected)
+
+    # we should also preserve categorical for SeriesGroupBy
+    sgb = df.groupby("payload")["col"]
+    result = getattr(sgb, func)()
+    expected = expected["col"]
+    tm.assert_series_equal(result, expected)
 
 
 def test_categorical_no_compress():
@@ -825,13 +851,11 @@ def test_groupby_empty_with_category():
     # GH-9614
     # test fix for when group by on None resulted in
     # coercion of dtype categorical -> float
-    df = pd.DataFrame(
-        {"A": [None] * 3, "B": pd.Categorical(["train", "train", "test"])}
-    )
+    df = DataFrame({"A": [None] * 3, "B": Categorical(["train", "train", "test"])})
     result = df.groupby("A").first()["B"]
-    expected = pd.Series(
-        pd.Categorical([], categories=["test", "train"]),
-        index=pd.Series([], dtype="object", name="A"),
+    expected = Series(
+        Categorical([], categories=["test", "train"]),
+        index=Series([], dtype="object", name="A"),
         name="B",
     )
     tm.assert_series_equal(result, expected)
@@ -1160,7 +1184,7 @@ def df_cat(df):
 
 
 @pytest.mark.parametrize(
-    "operation, kwargs", [("agg", dict(dtype="category")), ("apply", dict())]
+    "operation, kwargs", [("agg", {"dtype": "category"}), ("apply", {})]
 )
 def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
     # GH 24880
@@ -1189,6 +1213,8 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     ).sortlevel()
 
     expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
+    if operation == "agg":
+        expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
@@ -1260,12 +1286,13 @@ def test_groupby_categorical_series_dataframe_consistent(df_cat):
 def test_groupby_categorical_axis_1(code):
     # GH 13420
     df = DataFrame({"a": [1, 2, 3, 4], "b": [-1, -2, -3, -4], "c": [5, 6, 7, 8]})
-    cat = pd.Categorical.from_codes(code, categories=list("abc"))
+    cat = Categorical.from_codes(code, categories=list("abc"))
     result = df.groupby(cat, axis=1).mean()
     expected = df.T.groupby(cat, axis=0).mean().T
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_groupby_cat_preserves_structure(observed, ordered):
     # GH 28787
     df = DataFrame(
@@ -1276,7 +1303,7 @@ def test_groupby_cat_preserves_structure(observed, ordered):
 
     result = (
         df.groupby("Name", observed=observed)
-        .agg(pd.DataFrame.sum, skipna=True)
+        .agg(DataFrame.sum, skipna=True)
         .reset_index()
     )
 
@@ -1285,18 +1312,16 @@ def test_groupby_cat_preserves_structure(observed, ordered):
 
 def test_get_nonexistent_category():
     # Accessing a Category that is not in the dataframe
-    df = pd.DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
+    df = DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
     with pytest.raises(KeyError, match="'vau'"):
         df.groupby("var").apply(
-            lambda rows: pd.DataFrame(
+            lambda rows: DataFrame(
                 {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
             )
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(
-    reduction_func: str, observed: bool, request
-):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
@@ -1307,10 +1332,10 @@ def test_series_groupby_on_2_categoricals_unobserved(
         )
         request.node.add_marker(mark)
 
-    df = pd.DataFrame(
+    df = DataFrame(
         {
-            "cat_1": pd.Categorical(list("AABB"), categories=list("ABCD")),
-            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABCD")),
+            "cat_1": Categorical(list("AABB"), categories=list("ABCD")),
+            "cat_2": Categorical(list("AB") * 2, categories=list("ABCD")),
             "value": [0.1] * 4,
         }
     )
@@ -1326,7 +1351,7 @@ def test_series_groupby_on_2_categoricals_unobserved(
 
 
 def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
-    reduction_func: str, request
+    reduction_func, request
 ):
     # GH 17605
     # Tests whether the unobserved categories in the result contain 0 or NaN
@@ -1340,19 +1365,10 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         )
         request.node.add_marker(mark)
 
-    if reduction_func == "sum":  # GH 31422
-        mark = pytest.mark.xfail(
-            reason=(
-                "sum should return 0 but currently returns NaN. "
-                "This is a known bug. See GH 31422."
-            )
-        )
-        request.node.add_marker(mark)
-
-    df = pd.DataFrame(
+    df = DataFrame(
         {
-            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
-            "cat_2": pd.Categorical(list("AB") * 2, categories=list("ABC")),
+            "cat_1": Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": Categorical(list("AB") * 2, categories=list("ABC")),
             "value": [0.1] * 4,
         }
     )
@@ -1369,23 +1385,26 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         val = result.loc[idx]
         assert (pd.isna(zero_or_nan) and pd.isna(val)) or (val == zero_or_nan)
 
-    # If we expect unobserved values to be zero, we also expect the dtype to be int
-    if zero_or_nan == 0:
+    # If we expect unobserved values to be zero, we also expect the dtype to be int.
+    # Except for .sum(). If the observed categories sum to dtype=float (i.e. their
+    # sums have decimals), then the zeros for the missing categories should also be
+    # floats.
+    if zero_or_nan == 0 and reduction_func != "sum":
         assert np.issubdtype(result.dtype, np.integer)
 
 
-def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func: str):
+def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func):
     # GH 23865
     # GH 27075
-    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # Ensure that df.groupby, when 'by' is two Categorical variables,
     # does not return the categories that are not in df when observed=True
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
 
-    df = pd.DataFrame(
+    df = DataFrame(
         {
-            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
-            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "cat_1": Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": Categorical(list("1111"), categories=list("12")),
             "value": [0.1, 0.1, 0.1, 0.1],
         }
     )
@@ -1402,38 +1421,20 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
 @pytest.mark.parametrize("observed", [False, None])
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
-    reduction_func: str, observed: bool, request
+    reduction_func, observed, request
 ):
     # GH 23865
     # GH 27075
-    # Ensure that df.groupby, when 'by' is two pd.Categorical variables,
+    # Ensure that df.groupby, when 'by' is two Categorical variables,
     # returns the categories that are not in df when observed=False/None
 
     if reduction_func == "ngroup":
         pytest.skip("ngroup does not return the Categories on the index")
 
-    if reduction_func == "count":  # GH 35028
-        mark = pytest.mark.xfail(
-            reason=(
-                "DataFrameGroupBy.count returns np.NaN for missing "
-                "categories, when it should return 0. See GH 35028"
-            )
-        )
-        request.node.add_marker(mark)
-
-    if reduction_func == "sum":  # GH 31422
-        mark = pytest.mark.xfail(
-            reason=(
-                "sum should return 0 but currently returns NaN. "
-                "This is a known bug. See GH 31422."
-            )
-        )
-        request.node.add_marker(mark)
-
-    df = pd.DataFrame(
+    df = DataFrame(
         {
-            "cat_1": pd.Categorical(list("AABB"), categories=list("ABC")),
-            "cat_2": pd.Categorical(list("1111"), categories=list("12")),
+            "cat_1": Categorical(list("AABB"), categories=list("ABC")),
+            "cat_2": Categorical(list("1111"), categories=list("12")),
             "value": [0.1, 0.1, 0.1, 0.1],
         }
     )
@@ -1455,7 +1456,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
 def test_series_groupby_categorical_aggregation_getitem():
     # GH 8870
     d = {"foo": [10, 8, 4, 1], "bar": [10, 20, 30, 40], "baz": ["d", "c", "d", "c"]}
-    df = pd.DataFrame(d)
+    df = DataFrame(d)
     cat = pd.cut(df["foo"], np.linspace(0, 20, 5))
     df["range"] = cat
     groups = df.groupby(["range", "baz"], as_index=True, sort=True)
@@ -1466,32 +1467,30 @@ def test_series_groupby_categorical_aggregation_getitem():
 
 @pytest.mark.parametrize(
     "func, expected_values",
-    [(pd.Series.nunique, [1, 1, 2]), (pd.Series.count, [1, 2, 2])],
+    [(Series.nunique, [1, 1, 2]), (Series.count, [1, 2, 2])],
 )
 def test_groupby_agg_categorical_columns(func, expected_values):
     # 31256
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "id": [0, 1, 2, 3, 4],
             "groups": [0, 1, 1, 2, 2],
-            "value": pd.Categorical([0, 0, 0, 0, 1]),
+            "value": Categorical([0, 0, 0, 0, 1]),
         }
     ).set_index("id")
     result = df.groupby("groups").agg(func)
 
-    expected = pd.DataFrame(
-        {"value": expected_values}, index=pd.Index([0, 1, 2], name="groups"),
+    expected = DataFrame(
+        {"value": expected_values}, index=Index([0, 1, 2], name="groups")
     )
     tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_agg_non_numeric():
-    df = pd.DataFrame(
-        {"A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"])}
-    )
-    expected = pd.DataFrame({"A": [2, 1]}, index=[1, 2])
+    df = DataFrame({"A": Categorical(["a", "a", "b"], categories=["a", "b", "c"])})
+    expected = DataFrame({"A": [2, 1]}, index=[1, 2])
 
-    result = df.groupby([1, 2, 1]).agg(pd.Series.nunique)
+    result = df.groupby([1, 2, 1]).agg(Series.nunique)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby([1, 2, 1]).nunique()
@@ -1502,12 +1501,14 @@ def test_groupby_agg_non_numeric():
 def test_groupy_first_returned_categorical_instead_of_dataframe(func):
     # GH 28641: groupby drops index, when grouping over categorical column with
     # first/last. Renamed Categorical instead of DataFrame previously.
-    df = pd.DataFrame(
-        {"A": [1997], "B": pd.Series(["b"], dtype="category").cat.as_ordered()}
-    )
+    df = DataFrame({"A": [1997], "B": Series(["b"], dtype="category").cat.as_ordered()})
     df_grouped = df.groupby("A")["B"]
     result = getattr(df_grouped, func)()
-    expected = pd.Series(["b"], index=pd.Index([1997], name="A"), name="B")
+
+    # ordered categorical dtype should be preserved
+    expected = Series(
+        ["b"], index=Index([1997], name="A"), name="B", dtype=df["B"].dtype
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -1518,14 +1519,16 @@ def test_read_only_category_no_sort():
     df = DataFrame(
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
-    expected = DataFrame(data={"a": [2, 6]}, index=CategoricalIndex([1, 2], name="b"))
+    expected = DataFrame(
+        data={"a": [2.0, 6.0]}, index=CategoricalIndex([1, 2], name="b")
+    )
     result = df.groupby("b", sort=False).mean()
     tm.assert_frame_equal(result, expected)
 
 
 def test_sorted_missing_category_values():
     # GH 28597
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "foo": [
                 "small",
@@ -1546,7 +1549,7 @@ def test_sorted_missing_category_values():
         .cat.set_categories(["tiny", "small", "medium", "large"], ordered=True)
     )
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "tiny": {"A": 0, "C": 0},
             "small": {"A": 0, "C": 1},
@@ -1555,7 +1558,7 @@ def test_sorted_missing_category_values():
         }
     )
     expected = expected.rename_axis("bar", axis="index")
-    expected.columns = pd.CategoricalIndex(
+    expected.columns = CategoricalIndex(
         ["tiny", "small", "medium", "large"],
         categories=["tiny", "small", "medium", "large"],
         ordered=True,
@@ -1570,12 +1573,18 @@ def test_sorted_missing_category_values():
 
 def test_agg_cython_category_not_implemented_fallback():
     # https://github.com/pandas-dev/pandas/issues/31450
-    df = pd.DataFrame({"col_num": [1, 1, 2, 3]})
+    df = DataFrame({"col_num": [1, 1, 2, 3]})
     df["col_cat"] = df["col_num"].astype("category")
 
     result = df.groupby("col_num").col_cat.first()
-    expected = pd.Series(
-        [1, 2, 3], index=pd.Index([1, 2, 3], name="col_num"), name="col_cat"
+
+    # ordered categorical dtype should definitely be preserved;
+    #  this is unordered, so is less-clear case (if anything, it should raise)
+    expected = Series(
+        [1, 2, 3],
+        index=Index([1, 2, 3], name="col_num"),
+        name="col_cat",
+        dtype=df["col_cat"].dtype,
     )
     tm.assert_series_equal(result, expected)
 
@@ -1587,16 +1596,20 @@ def test_agg_cython_category_not_implemented_fallback():
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_aggregate_categorical_lost_index(func: str):
     # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
-    df = pd.DataFrame({"A": [1997], "B": ds})
+    ds = Series(["b"], dtype="category").cat.as_ordered()
+    df = DataFrame({"A": [1997], "B": ds})
     result = df.groupby("A").agg({"B": func})
-    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    expected = DataFrame({"B": ["b"]}, index=Index([1997], name="A"))
+
+    # ordered categorical dtype should be preserved
+    expected["B"] = expected["B"].astype(ds.dtype)
+
     tm.assert_frame_equal(result, expected)
 
 
 def test_aggregate_categorical_with_isnan():
     # GH 29837
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "A": [1, 1, 1, 1],
             "B": [1, 2, 1, 2],
@@ -1609,10 +1622,10 @@ def test_aggregate_categorical_with_isnan():
     df = df.astype({"categorical_col": "category"})
 
     result = df.groupby(["A", "B"]).agg(lambda df: df.isna().sum())
-    index = pd.MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
-    expected = pd.DataFrame(
+    index = MultiIndex.from_arrays([[1, 1], [1, 2]], names=("A", "B"))
+    expected = DataFrame(
         data={
-            "numerical_col": [1.0, 0.0],
+            "numerical_col": [1, 0],
             "object_col": [0, 0],
             "categorical_col": [0, 0],
         },
@@ -1623,7 +1636,7 @@ def test_aggregate_categorical_with_isnan():
 
 def test_categorical_transform():
     # GH 29037
-    df = pd.DataFrame(
+    df = DataFrame(
         {
             "package_id": [1, 1, 1, 2, 2, 3],
             "status": [
@@ -1644,7 +1657,7 @@ def test_categorical_transform():
     df["last_status"] = df.groupby("package_id")["status"].transform(max)
     result = df.copy()
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {
             "package_id": [1, 1, 1, 2, 2, 3],
             "status": [
@@ -1668,6 +1681,9 @@ def test_categorical_transform():
 
     expected["status"] = expected["status"].astype(delivery_status_type)
 
+    # .transform(max) should preserve ordered categoricals
+    expected["last_status"] = expected["last_status"].astype(delivery_status_type)
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -1676,15 +1692,15 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     func: str, observed: bool
 ):
     # GH 34951
-    cat = pd.Categorical([0, 0, 1, 1])
+    cat = Categorical([0, 0, 1, 1])
     val = [0, 1, 1, 0]
-    df = pd.DataFrame({"a": cat, "b": cat, "c": val})
+    df = DataFrame({"a": cat, "b": cat, "c": val})
 
-    idx = pd.Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    cat2 = Categorical([0, 1])
+    idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
-        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
     }
 
     expected = expected_dict[func]
@@ -1701,15 +1717,15 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     func: str, observed: bool
 ):
     # GH 34951
-    cat = pd.Categorical([0, 0, 1, 1])
+    cat = Categorical([0, 0, 1, 1])
     val = [0, 1, 1, 0]
-    df = pd.DataFrame({"a": cat, "b": cat, "c": val})
+    df = DataFrame({"a": cat, "b": cat, "c": val})
 
-    idx = pd.Categorical([0, 1])
-    idx = pd.MultiIndex.from_product([idx, idx], names=["a", "b"])
+    cat2 = Categorical([0, 1])
+    idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
-        "first": pd.Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": pd.Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
+        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
     }
 
     expected = expected_dict[func].to_frame()
@@ -1719,3 +1735,23 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     df_grp = df.groupby(["a", "b"], observed=observed)
     result = getattr(df_grp, func)()
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_categorical_indices_unused_categories():
+    # GH#38642
+    df = DataFrame(
+        {
+            "key": Categorical(["b", "b", "a"], categories=["a", "b", "c"]),
+            "col": range(3),
+        }
+    )
+    grouped = df.groupby("key", sort=False)
+    result = grouped.indices
+    expected = {
+        "b": np.array([0, 1], dtype="intp"),
+        "a": np.array([2], dtype="intp"),
+        "c": np.array([], dtype="intp"),
+    }
+    assert result.keys() == expected.keys()
+    for key in result.keys():
+        tm.assert_numpy_array_equal(result[key], expected[key])

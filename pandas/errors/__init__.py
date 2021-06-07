@@ -6,7 +6,19 @@ Expose public exceptions & warnings
 
 from pandas._config.config import OptionError
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, OutOfBoundsTimedelta
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
+
+
+class IntCastingNaNError(ValueError):
+    """
+    raised when attempting an astype operation on an array with NaN to an integer
+    dtype.
+    """
+
+    pass
 
 
 class NullFrequencyError(ValueError):
@@ -202,9 +214,30 @@ class NumbaUtilError(Exception):
     """
 
 
+class DuplicateLabelError(ValueError):
+    """
+    Error raised when an operation would introduce duplicate labels.
+
+    .. versionadded:: 1.2.0
+
+    Examples
+    --------
+    >>> s = pd.Series([0, 1, 2], index=['a', 'b', 'c']).set_flags(
+    ...     allows_duplicate_labels=False
+    ... )
+    >>> s.reindex(['a', 'a', 'b'])
+    Traceback (most recent call last):
+       ...
+    DuplicateLabelError: Index has duplicates.
+          positions
+    label
+    a        [0, 1]
+    """
+
+
 class InvalidIndexError(Exception):
     """
-    Exception raised when attemping to use an invalid index key.
+    Exception raised when attempting to use an invalid index key.
 
     .. versionadded:: 1.1.0
     """

@@ -68,6 +68,13 @@ HTML
 
    read_html
 
+XML
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_xml
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
@@ -82,6 +89,11 @@ HDFStore: PyTables (HDF5)
    HDFStore.keys
    HDFStore.groups
    HDFStore.walk
+
+.. warning::
+
+   One can store a subclass of ``DataFrame`` or ``Series`` to HDF5,
+   but the type of the subclass is lost upon storing.
 
 Feather
 ~~~~~~~

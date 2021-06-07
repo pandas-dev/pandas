@@ -4,7 +4,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range, isna
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -30,14 +36,14 @@ import pandas._testing as tm
     ]
 )
 def nontemporal_method(request):
-    """ Fixture that returns an (method name, required kwargs) pair.
+    """Fixture that returns an (method name, required kwargs) pair.
 
     This fixture does not include method 'time' as a parameterization; that
     method requires a Series with a DatetimeIndex, and is generally tested
     separately from these non-temporal methods.
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -60,14 +66,14 @@ def nontemporal_method(request):
     ]
 )
 def interp_methods_ind(request):
-    """ Fixture that returns a (method name, required kwargs) pair to
+    """Fixture that returns a (method name, required kwargs) pair to
     be tested for various Index types.
 
     This fixture does not include methods - 'time', 'index', 'nearest',
     'values' as a parameterization
     """
     method = request.param
-    kwargs = dict(order=1) if method in ("spline", "polynomial") else dict()
+    kwargs = {"order": 1} if method in ("spline", "polynomial") else {}
     return method, kwargs
 
 
@@ -314,14 +320,14 @@ class TestSeriesInterpolateData:
     @pytest.mark.parametrize("limit", [-1, 0])
     def test_interpolate_invalid_nonpositive_limit(self, nontemporal_method, limit):
         # GH 9217: make sure limit is greater than zero.
-        s = pd.Series([1, 2, np.nan, 4])
+        s = Series([1, 2, np.nan, 4])
         method, kwargs = nontemporal_method
         with pytest.raises(ValueError, match="Limit must be greater than 0"):
             s.interpolate(limit=limit, method=method, **kwargs)
 
     def test_interpolate_invalid_float_limit(self, nontemporal_method):
         # GH 9217: make sure limit is an integer.
-        s = pd.Series([1, 2, np.nan, 4])
+        s = Series([1, 2, np.nan, 4])
         method, kwargs = nontemporal_method
         limit = 2.0
         with pytest.raises(ValueError, match="Limit must be an integer"):
@@ -339,6 +345,14 @@ class TestSeriesInterpolateData:
         # provided, the error message reflects the invalid method.
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=invalid_method, limit=-1)
+
+    def test_interp_invalid_method_and_value(self):
+        # GH#36624
+        ser = Series([1, 3, np.nan, 12, np.nan, 25])
+
+        msg = "Cannot pass both fill_value and method"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(fill_value=3, method="pad")
 
     def test_interp_limit_forward(self):
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -450,6 +464,82 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             s.interpolate(method=method, limit_direction=limit_direction)
 
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, 3.0, 3.0, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 3.0, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "pad", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, 7.0],
+                {"method": "pad", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, 7.0, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+            (
+                range(5),
+                range(5),
+                {"method": "pad", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_pad(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, expected_data, kwargs",
+        (
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, 7.0, 7.0, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, np.nan, 3.0, np.nan, np.nan, 7.0, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "inside", "limit": 1},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [3.0, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside"},
+            ),
+            (
+                [np.nan, np.nan, 3, np.nan, np.nan, np.nan, 7, np.nan, np.nan],
+                [np.nan, 3.0, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, np.nan],
+                {"method": "bfill", "limit_area": "outside", "limit": 1},
+            ),
+        ),
+    )
+    def test_interp_limit_area_with_backfill(self, data, expected_data, kwargs):
+        # GH26796
+
+        s = Series(data)
+        expected = Series(expected_data)
+        result = s.interpolate(**kwargs)
+        tm.assert_series_equal(result, expected)
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])
@@ -552,18 +642,18 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
-        ser = pd.Series(dti)
+        dti = date_range("2015-04-05", periods=3, tz="US/Central")
+        ser = Series(dti)
         ser[1] = pd.NaT
         result = ser.interpolate(method="pad")
 
-        expected = pd.Series(dti)
+        expected = Series(dti)
         expected[1] = expected[0]
         tm.assert_series_equal(result, expected)
 
     def test_interp_limit_no_nans(self):
         # GH 7173
-        s = pd.Series([1.0, 2.0, 3.0])
+        s = Series([1.0, 2.0, 3.0])
         result = s.interpolate(limit=1)
         expected = s
         tm.assert_series_equal(result, expected)
@@ -645,14 +735,14 @@ class TestSeriesInterpolateData:
 
     def test_series_interpolate_intraday(self):
         # #1698
-        index = pd.date_range("1/1/2012", periods=4, freq="12D")
-        ts = pd.Series([0, 12, 24, 36], index)
+        index = date_range("1/1/2012", periods=4, freq="12D")
+        ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = pd.date_range("1/1/2012", periods=4, freq="12H")
-        ts = pd.Series([0, 12, 24, 36], index)
+        index = date_range("1/1/2012", periods=4, freq="12H")
+        ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")
 
@@ -676,7 +766,7 @@ class TestSeriesInterpolateData:
 
         if method == "linear":
             result = df[0].interpolate(**kwargs)
-            expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+            expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
             tm.assert_series_equal(result, expected)
         else:
             expected_error = (
@@ -704,7 +794,7 @@ class TestSeriesInterpolateData:
 
         if method in {"linear", "pchip"}:
             result = df[0].interpolate(method=method, **kwargs)
-            expected = pd.Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
+            expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
             tm.assert_series_equal(result, expected)
         else:
             pytest.skip(
@@ -717,7 +807,19 @@ class TestSeriesInterpolateData:
     )
     def test_interpolate_unsorted_index(self, ascending, expected_values):
         # GH 21037
-        ts = pd.Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
+        ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
-        expected = pd.Series(data=expected_values, index=expected_values, dtype=float)
+        expected = Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.interpolate except "
+            r"for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.interpolate("pad", 0)
+        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

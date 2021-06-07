@@ -8,7 +8,11 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -21,7 +25,7 @@ KORD2,19990127, 20:00:00, 19:56:00, 0.0100, 2.2100, 7.2000, 0.0000, 260.0000
 KORD3,19990127, 21:00:00, 20:56:00, -0.5900, 2.2100, 5.7000, 0.0000, 280.0000
 KORD4,19990127, 21:00:00, 21:18:00, -0.9900, 2.0100, 3.6000, 0.0000, 270.0000
 KORD5,19990127, 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
-KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""  # noqa
+KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
     header = "ID,date,NominalTime,ActualTime,TDew,TAir,Windspeed,Precip,WindDir\n"
 
     if with_header:
@@ -86,35 +90,39 @@ baz,7,8,9
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
-        (None, dict(columns=["x", "y", "z"])),
-        (False, dict(columns=["x", "y", "z"])),
-        (0, dict(columns=["y", "z"], index=Index([], name="x"))),
-        (1, dict(columns=["x", "z"], index=Index([], name="y"))),
-        ("x", dict(columns=["y", "z"], index=Index([], name="x"))),
-        ("y", dict(columns=["x", "z"], index=Index([], name="y"))),
+        (None, {"columns": ["x", "y", "z"]}),
+        (False, {"columns": ["x", "y", "z"]}),
+        (0, {"columns": ["y", "z"], "index": Index([], name="x")}),
+        (1, {"columns": ["x", "z"], "index": Index([], name="y")}),
+        ("x", {"columns": ["y", "z"], "index": Index([], name="x")}),
+        ("y", {"columns": ["x", "z"], "index": Index([], name="y")}),
         (
             [0, 1],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["x", "y"]),
+            },
         ),
         (
             ["x", "y"],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["x", "y"]),
+            },
         ),
         (
             [1, 0],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["y", "x"]),
+            },
         ),
         (
             ["y", "x"],
-            dict(
-                columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
-            ),
+            {
+                "columns": ["z"],
+                "index": MultiIndex.from_arrays([[]] * 2, names=["y", "x"]),
+            },
         ),
     ],
 )
@@ -206,4 +214,72 @@ I2,1,3
     expected = DataFrame([["B", "B"], ["1", "3"]], index=idx, columns=col_idx)
 
     result = parser.read_csv(StringIO(data), index_col="I11", header=0)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.slow
+def test_index_col_large_csv(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/37094
+    parser = all_parsers
+
+    N = 1_000_001
+    df = DataFrame({"a": range(N), "b": np.random.randn(N)})
+
+    with tm.ensure_clean() as path:
+        df.to_csv(path, index=False)
+        result = parser.read_csv(path, index_col=[0])
+
+    tm.assert_frame_equal(result, df.set_index("a"))
+
+
+def test_index_col_multiindex_columns_no_data(all_parsers):
+    # GH#38292
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1], index_col=0
+    )
+    expected = DataFrame(
+        [],
+        columns=MultiIndex.from_arrays(
+            [["a1", "a2"], ["b1", "b2"]], names=["a0", "b0"]
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_index_col_header_no_data(all_parsers):
+    # GH#38292
+    parser = all_parsers
+    result = parser.read_csv(StringIO("a0,a1,a2\n"), header=[0], index_col=0)
+    expected = DataFrame(
+        [],
+        columns=["a1", "a2"],
+        index=Index([], name="a0"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_multiindex_columns_no_data(all_parsers):
+    # GH#38292
+    parser = all_parsers
+    result = parser.read_csv(StringIO("a0,a1,a2\nb0,b1,b2\n"), header=[0, 1])
+    expected = DataFrame(
+        [], columns=MultiIndex.from_arrays([["a0", "a1", "a2"], ["b0", "b1", "b2"]])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_multiindex_columns_index_col_with_data(all_parsers):
+    # GH#38292
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO("a0,a1,a2\nb0,b1,b2\ndata,data,data"), header=[0, 1], index_col=0
+    )
+    expected = DataFrame(
+        [["data", "data"]],
+        columns=MultiIndex.from_arrays(
+            [["a1", "a2"], ["b1", "b2"]], names=["a0", "b0"]
+        ),
+        index=Index(["data"]),
+    )
     tm.assert_frame_equal(result, expected)

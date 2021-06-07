@@ -21,12 +21,19 @@ when calling :meth:`~DataFrame.info`:
 
 .. ipython:: python
 
-    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
-              'complex128', 'object', 'bool']
+    dtypes = [
+        "int64",
+        "float64",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+        "complex128",
+        "object",
+        "bool",
+    ]
     n = 5000
     data = {t: np.random.randint(100, size=n).astype(t) for t in dtypes}
     df = pd.DataFrame(data)
-    df['categorical'] = df['object'].astype('category')
+    df["categorical"] = df["object"].astype("category")
 
     df.info()
 
@@ -40,7 +47,7 @@ as it can be expensive to do this deeper introspection.
 
 .. ipython:: python
 
-   df.info(memory_usage='deep')
+   df.info(memory_usage="deep")
 
 By default the display option is set to ``True`` but can be explicitly
 overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
@@ -155,7 +162,7 @@ index, not membership among the values.
 
 .. ipython:: python
 
-    s = pd.Series(range(5), index=list('abcde'))
+    s = pd.Series(range(5), index=list("abcde"))
     2 in s
     'b' in s
 
@@ -170,6 +177,77 @@ To test for membership in the values, use the method :meth:`~pandas.Series.isin`
 
 For ``DataFrames``, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
+
+.. _gotchas.udf-mutation:
+
+Mutating with User Defined Function (UDF) methods
+-------------------------------------------------
+
+This section applies to pandas methods that take a UDF. In particular, the methods
+``.apply``, ``.aggregate``, ``.transform``, and ``.filter``.
+
+It is a general rule in programming that one should not mutate a container
+while it is being iterated over. Mutation will invalidate the iterator,
+causing unexpected behavior. Consider the example:
+
+.. ipython:: python
+
+   values = [0, 1, 2, 3, 4, 5]
+   n_removed = 0
+   for k, value in enumerate(values):
+       idx = k - n_removed
+       if value % 2 == 1:
+           del values[idx]
+           n_removed += 1
+       else:
+           values[idx] = value + 1
+   values
+
+One probably would have expected that the result would be ``[1, 3, 5]``.
+When using a pandas method that takes a UDF, internally pandas is often
+iterating over the
+``DataFrame`` or other pandas object. Therefore, if the UDF mutates (changes)
+the ``DataFrame``, unexpected behavior can arise.
+
+Here is a similar example with :meth:`DataFrame.apply`:
+
+.. ipython:: python
+
+   def f(s):
+       s.pop("a")
+       return s
+
+   df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+   try:
+       df.apply(f, axis="columns")
+   except Exception as err:
+       print(repr(err))
+
+To resolve this issue, one can make a copy so that the mutation does
+not apply to the container being iterated over.
+
+.. ipython:: python
+
+   values = [0, 1, 2, 3, 4, 5]
+   n_removed = 0
+   for k, value in enumerate(values.copy()):
+       idx = k - n_removed
+       if value % 2 == 1:
+           del values[idx]
+           n_removed += 1
+       else:
+           values[idx] = value + 1
+   values
+
+.. ipython:: python
+
+   def f(s):
+       s = s.copy()
+       s.pop("a")
+       return s
+
+   df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
+   df.apply(f, axis="columns")
 
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
 ---------------------------------------------------------
@@ -206,11 +284,11 @@ arrays. For example:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3, 4, 5], index=list('abcde'))
+   s = pd.Series([1, 2, 3, 4, 5], index=list("abcde"))
    s
    s.dtype
 
-   s2 = s.reindex(['a', 'b', 'c', 'f', 'u'])
+   s2 = s.reindex(["a", "b", "c", "f", "u"])
    s2
    s2.dtype
 
@@ -227,12 +305,11 @@ the nullable-integer extension dtypes provided by pandas
 
 .. ipython:: python
 
-   s_int = pd.Series([1, 2, 3, 4, 5], index=list('abcde'),
-                     dtype=pd.Int64Dtype())
+   s_int = pd.Series([1, 2, 3, 4, 5], index=list("abcde"), dtype=pd.Int64Dtype())
    s_int
    s_int.dtype
 
-   s2_int = s_int.reindex(['a', 'b', 'c', 'f', 'u'])
+   s2_int = s_int.reindex(["a", "b", "c", "f", "u"])
    s2_int
    s2_int.dtype
 
@@ -334,7 +411,7 @@ constructors using something similar to the following:
 
 .. ipython:: python
 
-   x = np.array(list(range(10)), '>i4')  # big endian
+   x = np.array(list(range(10)), ">i4")  # big endian
    newx = x.byteswap().newbyteorder()  # force native byteorder
    s = pd.Series(newx)
 

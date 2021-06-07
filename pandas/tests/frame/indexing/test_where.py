@@ -6,7 +6,15 @@ import pytest
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    StringDtype,
+    Timestamp,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -356,11 +364,11 @@ class TestDataFrameIndexingWhere:
 
         # GH 3311
         df = DataFrame(
-            dict(
-                A=date_range("20130102", periods=5),
-                B=date_range("20130104", periods=5),
-                C=np.random.randn(5),
-            )
+            {
+                "A": date_range("20130102", periods=5),
+                "B": date_range("20130104", periods=5),
+                "C": np.random.randn(5),
+            }
         )
 
         stamp = datetime(2013, 1, 3)
@@ -399,7 +407,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
-        df = pd.DataFrame(columns=["a"])
+        df = DataFrame(columns=["a"])
         cond = df
         assert (cond.dtypes == object).all()
 
@@ -499,6 +507,7 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
+    def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
@@ -618,7 +627,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("kwargs", [dict(), dict(other=None)])
+    @pytest.mark.parametrize("kwargs", [{}, {"other": None}])
     def test_df_where_with_category(self, kwargs):
         # GH#16979
         df = DataFrame(np.arange(2 * 3).reshape(2, 3), columns=list("ABC"))
@@ -642,3 +651,123 @@ class TestDataFrameIndexingWhere:
         expected = Series(A, name="A")
 
         tm.assert_series_equal(result, expected)
+
+    def test_where_categorical_filtering(self):
+        # GH#22609 Verify filtering operations on DataFrames with categorical Series
+        df = DataFrame(data=[[0, 0], [1, 1]], columns=["a", "b"])
+        df["b"] = df["b"].astype("category")
+
+        result = df.where(df["a"] > 0)
+        expected = df.copy()
+        expected.loc[0, :] = np.nan
+
+        tm.assert_equal(result, expected)
+
+    def test_where_ea_other(self):
+        # GH#38729/GH#38742
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        arr = pd.array([7, pd.NA, 9])
+        ser = Series(arr)
+        mask = np.ones(df.shape, dtype=bool)
+        mask[1, :] = False
+
+        # TODO: ideally we would get Int64 instead of object
+        result = df.where(mask, ser, axis=0)
+        expected = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        ser2 = Series(arr[:2], index=["A", "B"])
+        expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
+        expected["B"] = expected["B"].astype(object)
+        result = df.where(mask, ser2, axis=1)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_where_try_cast_deprecated(frame_or_series):
+    obj = DataFrame(np.random.randn(4, 3))
+    if frame_or_series is not DataFrame:
+        obj = obj[0]
+
+    mask = obj > 0
+
+    with tm.assert_produces_warning(FutureWarning):
+        # try_cast keyword deprecated
+        obj.where(mask, -1, try_cast=False)
+
+
+def test_where_copies_with_noop(frame_or_series):
+    # GH-39595
+    result = frame_or_series([1, 2, 3, 4])
+    expected = result.copy()
+    col = result[0] if frame_or_series is DataFrame else result
+
+    where_res = result.where(col < 5)
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+    where_res = result.where(col > 5, [1, 2, 3, 4])
+    where_res *= 2
+
+    tm.assert_equal(result, expected)
+
+
+def test_where_string_dtype(frame_or_series):
+    # GH40824
+    obj = frame_or_series(
+        ["a", "b", "c", "d"], index=["id1", "id2", "id3", "id4"], dtype=StringDtype()
+    )
+    filtered_obj = frame_or_series(
+        ["b", "c"], index=["id2", "id3"], dtype=StringDtype()
+    )
+    filter_ser = Series([False, True, True, False])
+
+    result = obj.where(filter_ser, filtered_obj)
+    expected = frame_or_series(
+        [pd.NA, "b", "c", pd.NA],
+        index=["id1", "id2", "id3", "id4"],
+        dtype=StringDtype(),
+    )
+    tm.assert_equal(result, expected)
+
+
+def test_where_bool_comparison():
+    # GH 10336
+    df_mask = DataFrame(
+        {"AAA": [True] * 4, "BBB": [False] * 4, "CCC": [True, False, True, False]}
+    )
+    result = df_mask.where(df_mask == False)  # noqa:E712
+    expected = DataFrame(
+        {
+            "AAA": np.array([np.nan] * 4, dtype=object),
+            "BBB": [False] * 4,
+            "CCC": [np.nan, False, np.nan, False],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_none_nan_coerce():
+    # GH 15613
+    expected = DataFrame(
+        {
+            "A": [Timestamp("20130101"), pd.NaT, Timestamp("20130103")],
+            "B": [1, 2, np.nan],
+        }
+    )
+    result = expected.where(expected.notnull(), None)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_non_keyword_deprecation():
+    # GH 41485
+    s = DataFrame(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.where(s > 1, 10, False)
+    expected = DataFrame([10, 10, 2, 3, 4])
+    tm.assert_frame_equal(expected, result)

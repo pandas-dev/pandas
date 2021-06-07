@@ -11,20 +11,35 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
-from collections import UserDict, abc
+from __future__ import annotations
+
+from collections import (
+    UserDict,
+    abc,
+)
 import itertools
 import numbers
 import random
 import string
 import sys
-from typing import Any, Mapping, Type
+from typing import (
+    Any,
+    Mapping,
+)
 
 import numpy as np
 
+from pandas._typing import type_t
+
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
 
 import pandas as pd
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.extensions import (
+    ExtensionArray,
+    ExtensionDtype,
+)
+from pandas.api.types import is_bool_dtype
 
 
 class JSONDtype(ExtensionDtype):
@@ -33,7 +48,7 @@ class JSONDtype(ExtensionDtype):
     na_value: Mapping[str, Any] = UserDict()
 
     @classmethod
-    def construct_array_type(cls) -> Type["JSONArray"]:
+    def construct_array_type(cls) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -70,6 +85,16 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
+        if isinstance(item, tuple):
+            if len(item) > 1:
+                if item[0] is Ellipsis:
+                    item = item[1:]
+                elif item[-1] is Ellipsis:
+                    item = item[:-1]
+            if len(item) > 1:
+                raise IndexError("too many indices for array.")
+            item = item[0]
+
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
@@ -80,7 +105,7 @@ class JSONArray(ExtensionArray):
             return type(self)(self.data[item])
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
-            if pd.api.types.is_bool_dtype(item.dtype):
+            if is_bool_dtype(item.dtype):
                 return self._from_sequence([x for x, m in zip(self, item) if m])
             # integer
             return type(self)([self.data[i] for i in item])
@@ -189,16 +214,14 @@ class JSONArray(ExtensionArray):
     def _values_for_factorize(self):
         frozen = self._values_for_argsort()
         if len(frozen) == 0:
-            # _factorize_array expects 1-d array, this is a len-0 2-d array.
+            # factorize_array expects 1-d array, this is a len-0 2-d array.
             frozen = frozen.ravel()
         return frozen, ()
 
     def _values_for_argsort(self):
-        # Disable NumPy's shape inference by including an empty tuple...
-        # If all the elements of self are the same size P, NumPy will
-        # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + [tuple(x.items()) for x in self]
-        return np.array(frozen, dtype=object)[1:]
+        # Bypass NumPy's shape inference to get a (N,) array of tuples.
+        frozen = [tuple(x.items()) for x in self]
+        return construct_1d_object_array_from_listlike(frozen)
 
 
 def make_data():

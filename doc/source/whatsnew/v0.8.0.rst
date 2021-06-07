@@ -69,19 +69,19 @@ Time Series changes and improvements
   series. Replaces now deprecated DateRange class
 - New ``PeriodIndex`` and ``Period`` classes for representing
   :ref:`time spans <timeseries.periods>` and performing **calendar logic**,
-  including the `12 fiscal quarterly frequencies <timeseries.quarterly>`.
+  including the ``12 fiscal quarterly frequencies <timeseries.quarterly>``.
   This is a partial port of, and a substantial enhancement to,
   elements of the scikits.timeseries code base. Support for conversion between
   PeriodIndex and DatetimeIndex
-- New Timestamp data type subclasses `datetime.datetime`, providing the same
+- New Timestamp data type subclasses ``datetime.datetime``, providing the same
   interface while enabling working with nanosecond-resolution data. Also
   provides :ref:`easy time zone conversions <timeseries.timezone>`.
 - Enhanced support for :ref:`time zones <timeseries.timezone>`. Add
-  `tz_convert` and ``tz_localize`` methods to TimeSeries and DataFrame. All
+  ``tz_convert`` and ``tz_localize`` methods to TimeSeries and DataFrame. All
   timestamps are stored as UTC; Timestamps from DatetimeIndex objects with time
   zone set will be localized to local time. Time zone conversions are therefore
   essentially free. User needs to know very little about pytz library now; only
-  time zone names as as strings are required. Time zone-aware timestamps are
+  time zone names as strings are required. Time zone-aware timestamps are
   equal if and only if their UTC timestamps match. Operations between time
   zone-aware time series with different time zones will result in a UTC-indexed
   time series.
@@ -91,7 +91,7 @@ Time Series changes and improvements
   matplotlib-based plotting code
 - New ``date_range``, ``bdate_range``, and ``period_range`` :ref:`factory
   functions <timeseries.daterange>`
-- Robust **frequency inference** function `infer_freq` and ``inferred_freq``
+- Robust **frequency inference** function ``infer_freq`` and ``inferred_freq``
   property of DatetimeIndex, with option to infer frequency on construction of
   DatetimeIndex
 - to_datetime function efficiently **parses array of strings** to
@@ -159,7 +159,8 @@ New plotting methods
 .. code-block:: python
 
    import pandas as pd
-   fx = pd.read_pickle('data/fx_prices')
+
+   fx = pd.read_pickle("data/fx_prices")
    import matplotlib.pyplot as plt
 
 ``Series.plot`` now supports a ``secondary_y`` option:
@@ -168,20 +169,21 @@ New plotting methods
 
    plt.figure()
 
-   fx['FR'].plot(style='g')
+   fx["FR"].plot(style="g")
 
-   fx['IT'].plot(style='k--', secondary_y=True)
+   fx["IT"].plot(style="k--", secondary_y=True)
 
 Vytautas Jancauskas, the 2012 GSOC participant, has added many new plot
 types. For example, ``'kde'`` is a new option:
 
-.. ipython:: python
+.. code-block:: python
 
-   s = pd.Series(np.concatenate((np.random.randn(1000),
-                                 np.random.randn(1000) * 0.5 + 3)))
+   s = pd.Series(
+       np.concatenate((np.random.randn(1000), np.random.randn(1000) * 0.5 + 3))
+   )
    plt.figure()
    s.hist(density=True, alpha=0.2)
-   s.plot(kind='kde')
+   s.plot(kind="kde")
 
 See :ref:`the plotting page <visualization.other>` for much more.
 
@@ -205,7 +207,8 @@ with code using scalar values because you are handing control over to NumPy:
 .. ipython:: python
 
    import datetime
-   rng = pd.date_range('1/1/2000', periods=10)
+
+   rng = pd.date_range("1/1/2000", periods=10)
    rng[5]
    isinstance(rng[5], datetime.datetime)
    rng_asarray = np.asarray(rng)
@@ -251,7 +254,7 @@ type. See `matplotlib documentation
 
     .. ipython:: python
 
-       rng = pd.date_range('1/1/2000', periods=10)
+       rng = pd.date_range("1/1/2000", periods=10)
        rng
        np.asarray(rng)
        converted = np.asarray(rng, dtype=object)

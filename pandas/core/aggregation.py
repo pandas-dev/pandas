@@ -3,35 +3,42 @@ aggregation.py contains utility functions to handle multiple named and lambda
 kwarg aggregations in groupby and DataFrame/Series aggregation
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from functools import partial
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     DefaultDict,
-    Dict,
-    List,
-    Optional,
+    Hashable,
+    Iterable,
     Sequence,
-    Tuple,
-    Union,
 )
 
-from pandas._typing import AggFuncType, Label
+from pandas._typing import (
+    AggFuncType,
+    FrameOrSeries,
+)
 
-from pandas.core.dtypes.common import is_dict_like, is_list_like
+from pandas.core.dtypes.common import (
+    is_dict_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.indexes.api import Index
-from pandas.core.series import FrameOrSeriesUnion, Series
+
+if TYPE_CHECKING:
+    from pandas.core.series import Series
 
 
 def reconstruct_func(
-    func: Optional[AggFuncType], **kwargs,
-) -> Tuple[
-    bool, Optional[AggFuncType], Optional[List[str]], Optional[List[int]],
-]:
+    func: AggFuncType | None, **kwargs
+) -> tuple[bool, AggFuncType | None, list[str] | None, list[int] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -63,14 +70,14 @@ def reconstruct_func(
     Examples
     --------
     >>> reconstruct_func(None, **{"foo": ("col", "min")})
-    (True, defaultdict(None, {'col': ['min']}), ('foo',), array([0]))
+    (True, defaultdict(<class 'list'>, {'col': ['min']}), ('foo',), array([0]))
 
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    columns: Optional[List[str]] = None
-    order: Optional[List[int]] = None
+    columns: list[str] | None = None
+    order: list[int] | None = None
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
@@ -87,7 +94,6 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
-    func = maybe_mangle_lambdas(func)
 
     return relabeling, func, columns, order
 
@@ -118,7 +124,7 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
     )
 
 
-def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[int]]:
+def normalize_keyword_aggregation(kwargs: dict) -> tuple[dict, list[str], list[int]]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
@@ -151,7 +157,7 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
     order = []
     columns, pairs = list(zip(*kwargs.items()))
 
-    for name, (column, aggfunc) in zip(columns, pairs):
+    for column, aggfunc in pairs:
         aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
@@ -170,12 +176,14 @@ def normalize_keyword_aggregation(kwargs: dict) -> Tuple[dict, List[str], List[i
 
     # get the new index of columns by comparison
     col_idx_order = Index(uniquified_aggspec).get_indexer(uniquified_order)
-    return aggspec, columns, col_idx_order
+    # error: Incompatible return value type (got "Tuple[defaultdict[Any, Any],
+    # Any, ndarray]", expected "Tuple[Dict[Any, Any], List[str], List[int]]")
+    return aggspec, columns, col_idx_order  # type: ignore[return-value]
 
 
 def _make_unique_kwarg_list(
-    seq: Sequence[Tuple[Any, Any]]
-) -> Sequence[Tuple[Any, Any]]:
+    seq: Sequence[tuple[Any, Any]]
+) -> Sequence[tuple[Any, Any]]:
     """
     Uniquify aggfunc name of the pairs in the order list
 
@@ -278,12 +286,13 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def relabel_result(
-    result: FrameOrSeriesUnion,
-    func: Dict[str, List[Union[Callable, str]]],
-    columns: Tuple,
-    order: List[int],
-) -> Dict[Label, Series]:
-    """Internal function to reorder result if relabelling is True for
+    result: FrameOrSeries,
+    func: dict[str, list[Callable | str]],
+    columns: Iterable[Hashable],
+    order: Iterable[int],
+) -> dict[Hashable, Series]:
+    """
+    Internal function to reorder result if relabelling is True for
     dataframe.agg, and return the reordered result in dict.
 
     Parameters:
@@ -308,10 +317,10 @@ def relabel_result(
     reordered_indexes = [
         pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
     ]
-    reordered_result_in_dict: Dict[Label, Series] = {}
+    reordered_result_in_dict: dict[Hashable, Series] = {}
     idx = 0
 
-    reorder_mask = not isinstance(result, Series) and len(result.columns) > 1
+    reorder_mask = not isinstance(result, ABCSeries) and len(result.columns) > 1
     for col, fun in func.items():
         s = result[col].dropna()
 
@@ -352,7 +361,7 @@ def relabel_result(
 
 def validate_func_kwargs(
     kwargs: dict,
-) -> Tuple[List[str], List[Union[str, Callable[..., Any]]]]:
+) -> tuple[list[str], list[str | Callable[..., Any]]]:
     """
     Validates types of user-provided "named aggregation" kwargs.
     `TypeError` is raised if aggfunc is not `str` or callable.
@@ -373,8 +382,7 @@ def validate_func_kwargs(
     >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
     (['one', 'two'], ['min', 'max'])
     """
-    no_arg_message = "Must provide 'func' or named aggregation **kwargs."
-    tuple_given_message = "func is expected but recieved {} in **kwargs."
+    tuple_given_message = "func is expected but received {} in **kwargs."
     columns = list(kwargs)
     func = []
     for col_func in kwargs.values():
@@ -382,5 +390,6 @@ def validate_func_kwargs(
             raise TypeError(tuple_given_message.format(type(col_func).__name__))
         func.append(col_func)
     if not columns:
+        no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func

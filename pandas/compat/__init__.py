@@ -8,25 +8,30 @@ Other items:
 * platform checker
 """
 import platform
-import struct
 import sys
 import warnings
 
 from pandas._typing import F
+from pandas.compat.numpy import (
+    is_numpy_dev,
+    np_array_datetime64_compat,
+    np_datetime64_compat,
+    np_version_under1p18,
+    np_version_under1p19,
+    np_version_under1p20,
+)
+from pandas.compat.pyarrow import (
+    pa_version_under1p0,
+    pa_version_under2p0,
+    pa_version_under3p0,
+    pa_version_under4p0,
+)
 
-PY37 = sys.version_info >= (3, 7)
 PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
+PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
 IS64 = sys.maxsize > 2 ** 32
-
-
-# ----------------------------------------------------------------------------
-# functions largely based / taken from the six module
-
-# Much of the code in this module comes from Benjamin Peterson's six library.
-# The license for this library can be found in LICENSES/SIX and the code can be
-# found at https://bitbucket.org/gutworth/six
 
 
 def set_function_name(f: F, name: str, cls) -> F:
@@ -39,7 +44,6 @@ def set_function_name(f: F, name: str, cls) -> F:
     return f
 
 
-# https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian() -> bool:
     """
     Checking if the running platform is little endian.
@@ -61,7 +65,7 @@ def is_platform_windows() -> bool:
     bool
         True if the running platform is windows.
     """
-    return sys.platform == "win32" or sys.platform == "cygwin"
+    return sys.platform in ["win32", "cygwin"]
 
 
 def is_platform_linux() -> bool:
@@ -73,7 +77,7 @@ def is_platform_linux() -> bool:
     bool
         True if the running platform is linux.
     """
-    return sys.platform == "linux2"
+    return sys.platform == "linux"
 
 
 def is_platform_mac() -> bool:
@@ -88,19 +92,19 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
-def is_platform_32bit() -> bool:
+def is_platform_arm() -> bool:
     """
-    Checking if the running platform is 32-bit.
+    Checking if he running platform use ARM architecture.
 
     Returns
     -------
     bool
-        True if the running platform is 32-bit.
+        True if the running platform uses ARM architecture.
     """
-    return struct.calcsize("P") * 8 < 64
+    return platform.machine() in ("arm64", "aarch64")
 
 
-def _import_lzma():
+def import_lzma():
     """
     Importing the `lzma` module.
 
@@ -120,7 +124,7 @@ def _import_lzma():
         warnings.warn(msg)
 
 
-def _get_lzma_file(lzma):
+def get_lzma_file(lzma):
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -141,3 +145,17 @@ def _get_lzma_file(lzma):
             "might be required to solve this issue."
         )
     return lzma.LZMAFile
+
+
+__all__ = [
+    "is_numpy_dev",
+    "np_array_datetime64_compat",
+    "np_datetime64_compat",
+    "np_version_under1p18",
+    "np_version_under1p19",
+    "np_version_under1p20",
+    "pa_version_under1p0",
+    "pa_version_under2p0",
+    "pa_version_under3p0",
+    "pa_version_under4p0",
+]

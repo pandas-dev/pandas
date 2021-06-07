@@ -12,6 +12,7 @@
 *.log
 *.swp
 *.pdb
+*.zip
 .project
 .pydevproject
 .settings
@@ -103,13 +104,14 @@ asv_bench/env/
 asv_bench/html/
 asv_bench/results/
 asv_bench/pandas/
+test-data.xml
 
 # Documentation generated files #
 #################################
 doc/source/generated
 doc/source/user_guide/styled.xlsx
 doc/source/reference/api
-doc/source/_static
+doc/source/_static/*.html
 doc/source/vbench
 doc/source/vbench.rst
 doc/source/index.rst

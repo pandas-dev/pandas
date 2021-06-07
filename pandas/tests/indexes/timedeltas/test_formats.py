@@ -1,7 +1,10 @@
 import pytest
 
 import pandas as pd
-from pandas import TimedeltaIndex
+from pandas import (
+    Series,
+    TimedeltaIndex,
+)
 
 
 class TestTimedeltaIndexRendering:
@@ -62,7 +65,7 @@ class TestTimedeltaIndexRendering:
             for idx, expected in zip(
                 [idx1, idx2, idx3, idx4, idx5], [exp1, exp2, exp3, exp4, exp5]
             ):
-                result = repr(pd.Series(idx))
+                result = repr(Series(idx))
                 assert result == expected
 
     def test_summary(self):

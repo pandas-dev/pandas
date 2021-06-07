@@ -50,7 +50,7 @@ Parquet is designed to faithfully serialize and de-serialize ``DataFrame`` s, su
 dtypes, including extension dtypes such as datetime with timezones.
 
 This functionality depends on either the `pyarrow <http://arrow.apache.org/docs/python/>`__ or `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__ library.
-For more details, see see :ref:`the IO docs on Parquet <io.parquet>`.
+For more details, see :ref:`the IO docs on Parquet <io.parquet>`.
 
 
 .. _whatsnew_0210.enhancements.infer_objects:
@@ -900,13 +900,13 @@ New behavior:
 No automatic Matplotlib converters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas no longer registers our ``date``, ``time``, ``datetime``,
+pandas no longer registers our ``date``, ``time``, ``datetime``,
 ``datetime64``, and ``Period`` converters with matplotlib when pandas is
 imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
 nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
 must explicitly register these methods:
 
-Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
+pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
 converters on first-use (:issue:`17710`).
 
 .. note::

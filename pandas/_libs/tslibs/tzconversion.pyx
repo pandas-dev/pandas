@@ -5,21 +5,38 @@ import cython
 from cython import Py_ssize_t
 
 from cpython.datetime cimport (
-    PyDateTime_IMPORT, PyDelta_Check, datetime, timedelta, tzinfo)
+    PyDateTime_IMPORT,
+    PyDelta_Check,
+    datetime,
+    timedelta,
+    tzinfo,
+)
+
 PyDateTime_IMPORT
 
-import pytz
 from dateutil.tz import tzutc
-
 import numpy as np
+import pytz
+
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, uint8_t, intp_t
+from numpy cimport (
+    int64_t,
+    intp_t,
+    ndarray,
+    uint8_t,
+)
+
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    HOUR_NANOS,
+)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
-    npy_datetimestruct, dt64_to_dtstruct)
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+)
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     get_utcoffset,
@@ -349,7 +366,9 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz, bint* fold=NULL):
+cdef int64_t tz_convert_utc_to_tzlocal(
+    int64_t utc_val, tzinfo tz, bint* fold=NULL
+) except? -1:
     """
     Parameters
     ----------
@@ -404,7 +423,7 @@ cpdef int64_t tz_convert_from_utc_single(int64_t val, tzinfo tz):
         return val + deltas[pos]
 
 
-def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
+def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     Convert the values (in i8) from UTC to tz
 
@@ -418,7 +437,7 @@ def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
     int64 ndarray of converted
     """
     cdef:
-        int64_t[:] converted
+        const int64_t[:] converted
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -429,7 +448,7 @@ def tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
+cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -451,7 +470,7 @@ cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
         str typ
 
     if is_utc(tz):
-        converted = vals
+        return vals
     elif is_tzlocal(tz):
         converted = np.empty(n, dtype=np.int64)
         for i in range(n):
@@ -494,9 +513,11 @@ cdef int64_t[:] _tz_convert_from_utc(int64_t[:] vals, tzinfo tz):
     return converted
 
 
+# OSError may be thrown by tzlocal on windows at or close to 1970-01-01
+#  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
 cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
                                                    bint to_utc,
-                                                   bint *fold=NULL):
+                                                   bint *fold=NULL) except? -1:
     """
     Calculate offset in nanoseconds needed to convert the i8 representation of
     a datetime from a tzlocal timezone to UTC, or vice-versa.
@@ -541,8 +562,10 @@ cdef inline int64_t _tzlocal_get_offset_components(int64_t val, tzinfo tz,
     return int(td.total_seconds() * 1_000_000_000)
 
 
+# OSError may be thrown by tzlocal on windows at or close to 1970-01-01
+#  see https://github.com/pandas-dev/pandas/pull/37591#issuecomment-720628241
 cdef int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz, bint to_utc=True,
-                                     bint* fold=NULL):
+                                     bint* fold=NULL) except? -1:
     """
     Convert the i8 representation of a datetime from a tzlocal timezone to
     UTC, or vice-versa.

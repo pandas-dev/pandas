@@ -5,7 +5,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
@@ -56,7 +60,7 @@ def test_numpy_reduction():
 def test_apply_iteration():
     # #2300
     N = 1000
-    ind = pd.date_range(start="2000-01-01", freq="D", periods=N)
+    ind = date_range(start="2000-01-01", freq="D", periods=N)
     df = DataFrame({"open": 1, "close": 2}, index=ind)
     tg = Grouper(freq="M")
 
@@ -119,8 +123,6 @@ def test_aaa_group_order():
 
 def test_aggregate_normal(resample_method):
     """Check TimeGrouper's aggregation is identical as normal groupby."""
-    if resample_method == "ohlc":
-        pytest.xfail(reason="DataError: No numeric types to aggregate")
 
     data = np.random.randn(20, 4)
     normal_df = DataFrame(data, columns=["A", "B", "C", "D"])
@@ -158,18 +160,18 @@ def test_aggregate_normal(resample_method):
 @pytest.mark.parametrize(
     "method, method_args, unit",
     [
-        ("sum", dict(), 0),
-        ("sum", dict(min_count=0), 0),
-        ("sum", dict(min_count=1), np.nan),
-        ("prod", dict(), 1),
-        ("prod", dict(min_count=0), 1),
-        ("prod", dict(min_count=1), np.nan),
+        ("sum", {}, 0),
+        ("sum", {"min_count": 0}, 0),
+        ("sum", {"min_count": 1}, np.nan),
+        ("prod", {}, 1),
+        ("prod", {"min_count": 0}, 1),
+        ("prod", {"min_count": 1}, np.nan),
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
-    s = pd.Series([0] * 2 + [np.nan] * 2, index=pd.date_range("2017", periods=4))
+    s = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
     result = methodcaller(method, **method_args)(s.resample("2d"))
-    expected = pd.Series(
+    expected = Series(
         [0.0, unit], index=pd.DatetimeIndex(["2017-01-01", "2017-01-03"], freq="2D")
     )
     tm.assert_series_equal(result, expected)
@@ -267,23 +269,88 @@ def test_repr():
 @pytest.mark.parametrize(
     "method, method_args, expected_values",
     [
-        ("sum", dict(), [1, 0, 1]),
-        ("sum", dict(min_count=0), [1, 0, 1]),
-        ("sum", dict(min_count=1), [1, np.nan, 1]),
-        ("sum", dict(min_count=2), [np.nan, np.nan, np.nan]),
-        ("prod", dict(), [1, 1, 1]),
-        ("prod", dict(min_count=0), [1, 1, 1]),
-        ("prod", dict(min_count=1), [1, np.nan, 1]),
-        ("prod", dict(min_count=2), [np.nan, np.nan, np.nan]),
+        ("sum", {}, [1, 0, 1]),
+        ("sum", {"min_count": 0}, [1, 0, 1]),
+        ("sum", {"min_count": 1}, [1, np.nan, 1]),
+        ("sum", {"min_count": 2}, [np.nan, np.nan, np.nan]),
+        ("prod", {}, [1, 1, 1]),
+        ("prod", {"min_count": 0}, [1, 1, 1]),
+        ("prod", {"min_count": 1}, [1, np.nan, 1]),
+        ("prod", {"min_count": 2}, [np.nan, np.nan, np.nan]),
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
-    s = pd.Series(1, index=pd.date_range("2017", periods=2, freq="H"))
+    s = Series(1, index=date_range("2017", periods=2, freq="H"))
     resampled = s.resample("30T")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
         freq="30T",
     )
     result = methodcaller(method, **method_args)(resampled)
-    expected = pd.Series(expected_values, index=index)
+    expected = Series(expected_values, index=index)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_resample_interpolate():
+    # GH 35325
+    d = {"price": [10, 11, 9], "volume": [50, 60, 50]}
+
+    df = DataFrame(d)
+
+    df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
+
+    result = (
+        df.set_index("week_starting")
+        .groupby("volume")
+        .resample("1D")
+        .interpolate(method="linear")
+    )
+
+    msg = "containing strings is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected_ind = pd.MultiIndex.from_tuples(
+            [
+                (50, "2018-01-07"),
+                (50, Timestamp("2018-01-08")),
+                (50, Timestamp("2018-01-09")),
+                (50, Timestamp("2018-01-10")),
+                (50, Timestamp("2018-01-11")),
+                (50, Timestamp("2018-01-12")),
+                (50, Timestamp("2018-01-13")),
+                (50, Timestamp("2018-01-14")),
+                (50, Timestamp("2018-01-15")),
+                (50, Timestamp("2018-01-16")),
+                (50, Timestamp("2018-01-17")),
+                (50, Timestamp("2018-01-18")),
+                (50, Timestamp("2018-01-19")),
+                (50, Timestamp("2018-01-20")),
+                (50, Timestamp("2018-01-21")),
+                (60, Timestamp("2018-01-14")),
+            ],
+            names=["volume", "week_starting"],
+        )
+    expected = DataFrame(
+        data={
+            "price": [
+                10.0,
+                9.928571428571429,
+                9.857142857142858,
+                9.785714285714286,
+                9.714285714285714,
+                9.642857142857142,
+                9.571428571428571,
+                9.5,
+                9.428571428571429,
+                9.357142857142858,
+                9.285714285714286,
+                9.214285714285714,
+                9.142857142857142,
+                9.071428571428571,
+                9.0,
+                11.0,
+            ],
+            "volume": [50.0] * 15 + [60],
+        },
+        index=expected_ind,
+    )
+    tm.assert_frame_equal(result, expected)

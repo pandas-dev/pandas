@@ -3,11 +3,15 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
+import pandas as pd
 from pandas import (
     Categorical,
     CategoricalDtype,
     DataFrame,
     DatetimeTZDtype,
+    Interval,
     IntervalDtype,
     NaT,
     Series,
@@ -19,7 +23,6 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.arrays import integer_array
 
 
 def _check_cast(df, v):
@@ -295,8 +298,8 @@ class TestAstype:
 
         expected1 = DataFrame(
             {
-                "a": integer_array([1, 3, 5], dtype=dtype),
-                "b": integer_array([2, 4, 6], dtype=dtype),
+                "a": pd.array([1, 3, 5], dtype=dtype),
+                "b": pd.array([2, 4, 6], dtype=dtype),
             }
         )
         tm.assert_frame_equal(df.astype(dtype), expected1)
@@ -306,7 +309,7 @@ class TestAstype:
         df = DataFrame([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], columns=["a", "b"])
         df["b"] = df["b"].astype(dtype)
         expected2 = DataFrame(
-            {"a": [1.0, 3.0, 5.0], "b": integer_array([2, 4, 6], dtype=dtype)}
+            {"a": [1.0, 3.0, 5.0], "b": pd.array([2, 4, 6], dtype=dtype)}
         )
         tm.assert_frame_equal(df, expected2)
 
@@ -318,13 +321,13 @@ class TestAstype:
         # GH#22578
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
 
-        expected1 = DataFrame({"a": integer_array([1, 2, 3], dtype=dtype)})
+        expected1 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
         tm.assert_frame_equal(df.astype(dtype), expected1)
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
         df = DataFrame({"a": [1.0, 2.0, 3.0]})
         df["a"] = df["a"].astype(dtype)
-        expected2 = DataFrame({"a": integer_array([1, 2, 3], dtype=dtype)})
+        expected2 = DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
         tm.assert_frame_equal(df, expected2)
 
         tm.assert_frame_equal(df.astype(dtype), expected1)
@@ -425,16 +428,26 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = (
-            fr"cannot astype a datetimelike from \[datetime64\[ns\]\] to "
-            fr"\[timedelta64\[{unit}\]\]"
+        msg = "|".join(
+            [
+                # BlockManager path
+                fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a datetimelike from "
+                fr"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = (
-            fr"cannot astype a timedelta from \[timedelta64\[ns\]\] to "
-            fr"\[datetime64\[{unit}\]\]"
+        msg = "|".join(
+            [
+                # BlockManager path
+                fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a timedelta from "
+                fr"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
+            ]
         )
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
@@ -505,7 +518,9 @@ class TestAstype:
         result = timezone_frame.astype(object)
         tm.assert_frame_equal(result, expected)
 
-        result = timezone_frame.astype("datetime64[ns]")
+        with tm.assert_produces_warning(FutureWarning):
+            # dt64tz->dt64 deprecated
+            result = timezone_frame.astype("datetime64[ns]")
         expected = DataFrame(
             {
                 "A": date_range("20130101", periods=3),
@@ -562,6 +577,121 @@ class TestAstype:
         # issue mentioned further down in the following issue's thread
         # https://github.com/pandas-dev/pandas/issues/33113
         df = DataFrame()
-        result = df.astype(dict())
+        result = df.astype({})
         tm.assert_frame_equal(result, df)
         assert result is not df
+
+    @pytest.mark.parametrize(
+        "data, dtype",
+        [
+            (["x", "y", "z"], "string"),
+            pytest.param(
+                ["x", "y", "z"],
+                "arrow_string",
+                marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
+            ),
+            (["x", "y", "z"], "category"),
+            (3 * [Timestamp("2020-01-01", tz="UTC")], None),
+            (3 * [Interval(0, 1)], None),
+        ],
+    )
+    @pytest.mark.parametrize("errors", ["raise", "ignore"])
+    def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
+        # https://github.com/pandas-dev/pandas/issues/35471
+        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
+
+        df = DataFrame(Series(data, dtype=dtype))
+        if errors == "ignore":
+            expected = df
+            result = df.astype(float, errors=errors)
+            tm.assert_frame_equal(result, expected)
+        else:
+            msg = "(Cannot cast)|(could not convert)"
+            with pytest.raises((ValueError, TypeError), match=msg):
+                df.astype(float, errors=errors)
+
+    def test_astype_tz_conversion(self):
+        # GH 35973
+        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        df = DataFrame(val)
+        result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
+
+        expected = df
+        expected["tz"] = expected["tz"].dt.tz_convert("Europe/Berlin")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
+    def test_astype_tz_object_conversion(self, tz):
+        # GH 35973
+        val = {"tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")}
+        expected = DataFrame(val)
+
+        # convert expected to object dtype from other tz str (independently tested)
+        result = expected.astype({"tz": f"datetime64[ns, {tz}]"})
+        result = result.astype({"tz": "object"})
+
+        # do real test: object dtype to a specified tz, different from construction tz.
+        result = result.astype({"tz": "datetime64[ns, Europe/London]"})
+        tm.assert_frame_equal(result, expected)
+
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture, request):
+        tz = tz_naive_fixture
+        if tz is None:
+            mark = pytest.mark.xfail(
+                reason="GH#36153 uses ndarray formatting instead of DTA formatting"
+            )
+            request.node.add_marker(mark)
+
+        dti = date_range("2016-01-01", periods=3, tz=tz)
+        dta = dti._data
+        dta[0] = NaT
+
+        obj = frame_or_series(dta)
+        result = obj.astype("string")
+
+        # Check that Series/DataFrame.astype matches DatetimeArray.astype
+        expected = frame_or_series(dta.astype("string"))
+        tm.assert_equal(result, expected)
+
+        item = result.iloc[0]
+        if frame_or_series is DataFrame:
+            item = item.iloc[0]
+        assert item is pd.NA
+
+        # For non-NA values, we should match what we get for non-EA str
+        alt = obj.astype(str)
+        assert np.all(alt.iloc[1:] == result.iloc[1:])
+
+    def test_astype_bytes(self):
+        # GH#39474
+        result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
+        assert result.dtypes[0] == np.dtype("S3")
+
+
+class TestAstypeCategorical:
+    def test_astype_from_categorical3(self):
+        df = DataFrame({"cats": [1, 2, 3, 4, 5, 6], "vals": [1, 2, 3, 4, 5, 6]})
+        cats = Categorical([1, 2, 3, 4, 5, 6])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+    def test_astype_from_categorical4(self):
+        df = DataFrame(
+            {"cats": ["a", "b", "b", "a", "a", "d"], "vals": [1, 2, 3, 4, 5, 6]}
+        )
+        cats = Categorical(["a", "b", "b", "a", "a", "d"])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
+        # GH#39402
+
+        df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
+        df.col1 = df.col1.astype("category")
+        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
+        expected = DataFrame(
+            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
+        )
+        tm.assert_frame_equal(df, expected)

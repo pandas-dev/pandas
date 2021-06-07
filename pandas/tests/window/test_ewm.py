@@ -3,7 +3,12 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.window import ExponentialMovingWindow
 
@@ -15,9 +20,9 @@ def test_doc_string():
     df.ewm(com=0.5).mean()
 
 
-def test_constructor(which):
+def test_constructor(frame_or_series):
 
-    c = which.ewm
+    c = frame_or_series(range(5)).ewm
 
     # valid
     c(com=0.5)
@@ -108,7 +113,7 @@ def test_ewma_halflife_without_times(halflife_with_times):
 @pytest.mark.parametrize("min_periods", [0, 2])
 def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     halflife = halflife_with_times
-    data = np.arange(10)
+    data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
     result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
@@ -127,3 +132,52 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture):
     result = df.ewm(halflife=halflife, times=times).mean()
     expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
     tm.assert_frame_equal(result, expected)
+
+
+def test_ewm_with_nat_raises(halflife_with_times):
+    # GH#38535
+    ser = Series(range(1))
+    times = DatetimeIndex(["NaT"])
+    with pytest.raises(ValueError, match="Cannot convert NaT values to integer"):
+        ser.ewm(com=0.1, halflife=halflife_with_times, times=times)
+
+
+def test_ewm_with_times_getitem(halflife_with_times):
+    # GH 40164
+    halflife = halflife_with_times
+    data = np.arange(10.0)
+    data[::2] = np.nan
+    times = date_range("2000", freq="D", periods=10)
+    df = DataFrame({"A": data, "B": data})
+    result = df.ewm(halflife=halflife, times=times)["A"].mean()
+    expected = df.ewm(halflife=1.0)["A"].mean()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("arg", ["com", "halflife", "span", "alpha"])
+def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
+    # GH 40164
+    kwargs = {arg: 1, "adjust": adjust, "ignore_na": ignore_na}
+    ewm = DataFrame({"A": range(1), "B": range(1)}).ewm(**kwargs)
+    expected = {attr: getattr(ewm, attr) for attr in ewm._attributes}
+    ewm_slice = ewm["A"]
+    result = {attr: getattr(ewm, attr) for attr in ewm_slice._attributes}
+    assert result == expected
+
+
+def test_ewm_vol_deprecated():
+    ser = Series(range(1))
+    with tm.assert_produces_warning(FutureWarning):
+        result = ser.ewm(com=0.1).vol()
+    expected = ser.ewm(com=0.1).std()
+    tm.assert_series_equal(result, expected)
+
+
+def test_ewma_times_adjust_false_raises():
+    # GH 40098
+    with pytest.raises(
+        NotImplementedError, match="times is not supported with adjust=False."
+    ):
+        Series(range(1)).ewm(
+            0.1, adjust=False, times=date_range("2000", freq="D", periods=1)
+        )

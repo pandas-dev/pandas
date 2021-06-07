@@ -1,39 +1,57 @@
+from __future__ import annotations
+
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import Optional, Union
+import warnings
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import FrameOrSeries, TimedeltaConvertibleTypes
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+    TimedeltaConvertibleTypes,
+)
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution, doc
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.missing import isna
 
-from pandas.core.base import DataError
-import pandas.core.common as common
-from pandas.core.window.common import _doc_template, _shared_docs, zsqrt
-from pandas.core.window.rolling import _flex_binary_moment, _Rolling
-
-_bias_template = """
-        Parameters
-        ----------
-        bias : bool, default False
-            Use a standard estimation bias correction.
-        *args, **kwargs
-            Arguments and keyword arguments to be passed into func.
-"""
+import pandas.core.common as common  # noqa: PDF018
+from pandas.core.util.numba_ import maybe_use_numba
+from pandas.core.window.common import zsqrt
+from pandas.core.window.doc import (
+    _shared_docs,
+    args_compat,
+    create_section_header,
+    kwargs_compat,
+    numba_notes,
+    template_header,
+    template_returns,
+    template_see_also,
+    window_agg_numba_parameters,
+)
+from pandas.core.window.indexers import (
+    BaseIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+)
+from pandas.core.window.numba_ import generate_numba_ewma_func
+from pandas.core.window.rolling import (
+    BaseWindow,
+    BaseWindowGroupby,
+)
 
 
 def get_center_of_mass(
-    comass: Optional[float],
-    span: Optional[float],
-    halflife: Optional[float],
-    alpha: Optional[float],
+    comass: float | None,
+    span: float | None,
+    halflife: float | None,
+    alpha: float | None,
 ) -> float:
     valid_count = common.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
@@ -46,7 +64,7 @@ def get_center_of_mass(
     elif span is not None:
         if span < 1:
             raise ValueError("span must satisfy: span >= 1")
-        comass = (span - 1) / 2.0
+        comass = (span - 1) / 2
     elif halflife is not None:
         if halflife <= 0:
             raise ValueError("halflife must satisfy: halflife > 0")
@@ -55,14 +73,46 @@ def get_center_of_mass(
     elif alpha is not None:
         if alpha <= 0 or alpha > 1:
             raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        comass = (1.0 - alpha) / alpha
+        comass = (1 - alpha) / alpha
     else:
         raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
     return float(comass)
 
 
-class ExponentialMovingWindow(_Rolling):
+def _calculate_deltas(
+    times: str | np.ndarray | FrameOrSeries | None,
+    halflife: float | TimedeltaConvertibleTypes | None,
+) -> np.ndarray:
+    """
+    Return the diff of the times divided by the half-life. These values are used in
+    the calculation of the ewm mean.
+
+    Parameters
+    ----------
+    times : str, np.ndarray, Series, default None
+        Times corresponding to the observations. Must be monotonically increasing
+        and ``datetime64[ns]`` dtype.
+    halflife : float, str, timedelta, optional
+        Half-life specifying the decay
+
+    Returns
+    -------
+    np.ndarray
+        Diff of the times divided by the half-life
+    """
+    # error: Item "str" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # attribute "view"
+    # error: Item "None" of "Union[str, ndarray, FrameOrSeries, None]" has no
+    # attribute "view"
+    _times = np.asarray(
+        times.view(np.int64), dtype=np.float64  # type: ignore[union-attr]
+    )
+    _halflife = float(Timedelta(halflife).value)
+    return np.diff(_times) / _halflife
+
+
+class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponential weighted (EW) functions.
 
@@ -161,7 +211,7 @@ class ExponentialMovingWindow(_Rolling):
     -----
 
     More details can be found at:
-    :ref:`Exponentially weighted windows <stats.moments.exponentially_weighted>`.
+    :ref:`Exponentially weighted windows <window.exponentially_weighted>`.
 
     Examples
     --------
@@ -194,93 +244,127 @@ class ExponentialMovingWindow(_Rolling):
     4  3.233686
     """
 
-    _attributes = ["com", "min_periods", "adjust", "ignore_na", "axis"]
+    _attributes = [
+        "com",
+        "span",
+        "halflife",
+        "alpha",
+        "min_periods",
+        "adjust",
+        "ignore_na",
+        "axis",
+        "times",
+    ]
 
     def __init__(
         self,
-        obj,
-        com: Optional[float] = None,
-        span: Optional[float] = None,
-        halflife: Optional[Union[float, TimedeltaConvertibleTypes]] = None,
-        alpha: Optional[float] = None,
+        obj: FrameOrSeries,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | TimedeltaConvertibleTypes | None = None,
+        alpha: float | None = None,
         min_periods: int = 0,
         adjust: bool = True,
         ignore_na: bool = False,
-        axis: int = 0,
-        times: Optional[Union[str, np.ndarray, FrameOrSeries]] = None,
+        axis: Axis = 0,
+        times: str | np.ndarray | FrameOrSeries | None = None,
+        *,
+        selection=None,
     ):
-        self.com: Optional[float]
-        self.obj = obj
-        self.min_periods = max(int(min_periods), 1)
+        super().__init__(
+            obj=obj,
+            min_periods=max(int(min_periods), 1),
+            on=None,
+            center=False,
+            closed=None,
+            method="single",
+            axis=axis,
+            selection=selection,
+        )
+        self.com = com
+        self.span = span
+        self.halflife = halflife
+        self.alpha = alpha
         self.adjust = adjust
         self.ignore_na = ignore_na
-        self.axis = axis
-        self.on = None
-        if times is not None:
-            if isinstance(times, str):
-                times = self._selected_obj[times]
-            if not is_datetime64_ns_dtype(times):
+        self.times = times
+        if self.times is not None:
+            if not self.adjust:
+                raise NotImplementedError("times is not supported with adjust=False.")
+            if isinstance(self.times, str):
+                self.times = self._selected_obj[self.times]
+            if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
-            if len(times) != len(obj):
+            # error: Argument 1 to "len" has incompatible type "Union[str, ndarray,
+            # FrameOrSeries, None]"; expected "Sized"
+            if len(self.times) != len(obj):  # type: ignore[arg-type]
                 raise ValueError("times must be the same length as the object.")
-            if not isinstance(halflife, (str, datetime.timedelta)):
+            if not isinstance(self.halflife, (str, datetime.timedelta)):
                 raise ValueError(
                     "halflife must be a string or datetime.timedelta object"
                 )
-            self.times = np.asarray(times.astype(np.int64))
-            self.halflife = Timedelta(halflife).value
+            if isna(self.times).any():
+                raise ValueError("Cannot convert NaT values to integer")
+            self._deltas = _calculate_deltas(self.times, self.halflife)
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
-            if common.count_not_none(com, span, alpha) > 0:
-                self.com = get_center_of_mass(com, span, None, alpha)
+            if common.count_not_none(self.com, self.span, self.alpha) > 0:
+                self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
-                self.com = None
+                self._com = 1.0
         else:
-            if halflife is not None and isinstance(halflife, (str, datetime.timedelta)):
+            if self.halflife is not None and isinstance(
+                self.halflife, (str, datetime.timedelta)
+            ):
                 raise ValueError(
                     "halflife can only be a timedelta convertible argument if "
                     "times is not None."
                 )
-            self.times = None
-            self.halflife = None
-            self.com = get_center_of_mass(com, span, halflife, alpha)
+            # Without times, points are equally spaced
+            self._deltas = np.ones(max(len(self.obj) - 1, 0), dtype=np.float64)
+            self._com = get_center_of_mass(
+                # error: Argument 3 to "get_center_of_mass" has incompatible type
+                # "Union[float, Any, None, timedelta64, signedinteger[_64Bit]]";
+                # expected "Optional[float]"
+                self.com,
+                self.span,
+                self.halflife,  # type: ignore[arg-type]
+                self.alpha,
+            )
 
-    @property
-    def _constructor(self):
-        return ExponentialMovingWindow
-
-    _agg_see_also_doc = dedent(
+    def _get_window_indexer(self) -> BaseIndexer:
         """
-    See Also
-    --------
-    pandas.DataFrame.rolling.aggregate
-    """
-    )
-
-    _agg_examples_doc = dedent(
+        Return an indexer class that will compute the window start and end bounds
         """
-    Examples
-    --------
-    >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
-    >>> df
-       A  B  C
-    0  1  4  7
-    1  2  5  8
-    2  3  6  9
-
-    >>> df.ewm(alpha=0.5).mean()
-              A         B         C
-    0  1.000000  4.000000  7.000000
-    1  1.666667  4.666667  7.666667
-    2  2.428571  5.428571  8.428571
-    """
-    )
+        return ExponentialMovingWindowIndexer()
 
     @doc(
         _shared_docs["aggregate"],
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        versionadded="",
+        see_also=dedent(
+            """
+        See Also
+        --------
+        pandas.DataFrame.rolling.aggregate
+        """
+        ),
+        examples=dedent(
+            """
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        >>> df
+           A  B  C
+        0  1  4  7
+        1  2  5  8
+        2  3  6  9
+
+        >>> df.ewm(alpha=0.5).mean()
+                  A         B         C
+        0  1.000000  4.000000  7.000000
+        1  1.666667  4.666667  7.666667
+        2  2.428571  5.428571  8.428571
+        """
+        ),
         klass="Series/Dataframe",
         axis="",
     )
@@ -289,118 +373,121 @@ class ExponentialMovingWindow(_Rolling):
 
     agg = aggregate
 
-    def _apply(self, func):
-        """
-        Rolling statistical measure using supplied function. Designed to be
-        used with passed-in Cython array-based functions.
-
-        Parameters
-        ----------
-        func : str/callable to apply
-
-        Returns
-        -------
-        y : same type as input argument
-        """
-        blocks, obj = self._create_blocks(self._selected_obj)
-        block_list = list(blocks)
-
-        results = []
-        exclude = []
-        for i, b in enumerate(blocks):
-            try:
-                values = self._prep_values(b.values)
-
-            except (TypeError, NotImplementedError) as err:
-                if isinstance(obj, ABCDataFrame):
-                    exclude.extend(b.columns)
-                    del block_list[i]
-                    continue
-                else:
-                    raise DataError("No numeric types to aggregate") from err
-
-            if values.size == 0:
-                results.append(values.copy())
-                continue
-
-            results.append(np.apply_along_axis(func, self.axis, values))
-
-        return self._wrap_results(results, block_list, obj, exclude)
-
-    @Substitution(name="ewm", func_name="mean")
-    @Appender(_doc_template)
-    def mean(self, *args, **kwargs):
-        """
-        Exponential weighted moving average.
-
-        Parameters
-        ----------
-        *args, **kwargs
-            Arguments and keyword arguments to be passed into func.
-        """
-        nv.validate_window_func("mean", args, kwargs)
-        if self.times is not None:
-            window_func = self._get_roll_func("ewma_time")
-            window_func = partial(
-                window_func,
-                minp=self.min_periods,
-                times=self.times,
-                halflife=self.halflife,
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        args_compat,
+        window_agg_numba_parameters,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also,
+        create_section_header("Notes"),
+        numba_notes.replace("\n", "", 1),
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) mean",
+        agg_method="mean",
+    )
+    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
+        if maybe_use_numba(engine):
+            ewma_func = generate_numba_ewma_func(
+                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
             )
-        else:
-            window_func = self._get_roll_func("ewma")
+            return self._apply(
+                ewma_func,
+                numba_cache_key=(lambda x: x, "ewma"),
+            )
+        elif engine in ("cython", None):
+            if engine_kwargs is not None:
+                raise ValueError("cython engine does not accept engine_kwargs")
+            nv.validate_window_func("mean", args, kwargs)
             window_func = partial(
-                window_func,
-                com=self.com,
+                window_aggregations.ewma,
+                com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                minp=self.min_periods,
+                deltas=self._deltas,
             )
-        return self._apply(window_func)
+            return self._apply(window_func)
+        else:
+            raise ValueError("engine must be either 'numba' or 'cython'")
 
-    @Substitution(name="ewm", func_name="std")
-    @Appender(_doc_template)
-    @Appender(_bias_template)
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
+        bias : bool, default False
+            Use a standard estimation bias correction.
+        """
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) standard deviation",
+        agg_method="std",
+    )
     def std(self, bias: bool = False, *args, **kwargs):
-        """
-        Exponential weighted moving stddev.
-        """
         nv.validate_window_func("std", args, kwargs)
         return zsqrt(self.var(bias=bias, **kwargs))
 
-    vol = std
+    def vol(self, bias: bool = False, *args, **kwargs):
+        warnings.warn(
+            (
+                "vol is deprecated will be removed in a future version. "
+                "Use std instead."
+            ),
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self.std(bias, *args, **kwargs)
 
-    @Substitution(name="ewm", func_name="var")
-    @Appender(_doc_template)
-    @Appender(_bias_template)
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
+        bias : bool, default False
+            Use a standard estimation bias correction.
+        """
+        ).replace("\n", "", 1),
+        args_compat,
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) variance",
+        agg_method="var",
+    )
     def var(self, bias: bool = False, *args, **kwargs):
-        """
-        Exponential weighted moving variance.
-        """
         nv.validate_window_func("var", args, kwargs)
+        window_func = window_aggregations.ewmcov
+        wfunc = partial(
+            window_func,
+            com=self._com,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            bias=bias,
+        )
 
-        def f(arg):
-            return window_aggregations.ewmcov(
-                arg, arg, self.com, self.adjust, self.ignore_na, self.min_periods, bias,
-            )
+        def var_func(values, begin, end, min_periods):
+            return wfunc(values, begin, end, min_periods, values)
 
-        return self._apply(f)
+        return self._apply(var_func)
 
-    @Substitution(name="ewm", func_name="cov")
-    @Appender(_doc_template)
-    def cov(
-        self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
-        bias: bool = False,
-        **kwargs,
-    ):
-        """
-        Exponential weighted sample covariance.
-
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
+        other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -412,47 +499,64 @@ class ExponentialMovingWindow(_Rolling):
             observations will be used.
         bias : bool, default False
             Use a standard estimation bias correction.
-        **kwargs
-           Keyword arguments to be passed into func.
         """
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
-
-        def _get_cov(X, Y):
-            X = self._shallow_copy(X)
-            Y = self._shallow_copy(Y)
-            cov = window_aggregations.ewmcov(
-                X._prep_values(),
-                Y._prep_values(),
-                self.com,
-                self.adjust,
-                self.ignore_na,
-                self.min_periods,
-                bias,
-            )
-            return X._wrap_result(cov)
-
-        return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_cov, pairwise=bool(pairwise)
-        )
-
-    @Substitution(name="ewm", func_name="corr")
-    @Appender(_doc_template)
-    def corr(
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sample covariance",
+        agg_method="cov",
+    )
+    def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
+        bias: bool = False,
         **kwargs,
     ):
-        """
-        Exponential weighted sample correlation.
+        from pandas import Series
 
-        Parameters
-        ----------
-        other : Series, DataFrame, or ndarray, optional
+        def cov_func(x, y):
+            x_array = self._prep_values(x)
+            y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
+            result = window_aggregations.ewmcov(
+                x_array,
+                start,
+                end,
+                # error: Argument 4 to "ewmcov" has incompatible type
+                # "Optional[int]"; expected "int"
+                self.min_periods,  # type: ignore[arg-type]
+                y_array,
+                self._com,
+                self.adjust,
+                self.ignore_na,
+                bias,
+            )
+            return Series(result, index=x.index, name=x.name)
+
+        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
+
+    @doc(
+        template_header,
+        create_section_header("Parameters"),
+        dedent(
+            """
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -462,33 +566,92 @@ class ExponentialMovingWindow(_Rolling):
             output will be a MultiIndex DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
-        **kwargs
-           Keyword arguments to be passed into func.
         """
-        if other is None:
-            other = self._selected_obj
-            # only default unset
-            pairwise = True if pairwise is None else pairwise
-        other = self._shallow_copy(other)
+        ).replace("\n", "", 1),
+        kwargs_compat,
+        create_section_header("Returns"),
+        template_returns,
+        create_section_header("See Also"),
+        template_see_also[:-1],
+        window_method="ewm",
+        aggregation_description="(exponential weighted moment) sample correlation",
+        agg_method="corr",
+    )
+    def corr(
+        self,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
+        **kwargs,
+    ):
+        from pandas import Series
 
-        def _get_corr(X, Y):
-            X = self._shallow_copy(X)
-            Y = self._shallow_copy(Y)
+        def cov_func(x, y):
+            x_array = self._prep_values(x)
+            y_array = self._prep_values(y)
+            window_indexer = self._get_window_indexer()
+            min_periods = (
+                self.min_periods
+                if self.min_periods is not None
+                else window_indexer.window_size
+            )
+            start, end = window_indexer.get_window_bounds(
+                num_values=len(x_array),
+                min_periods=min_periods,
+                center=self.center,
+                closed=self.closed,
+            )
 
-            def _cov(x, y):
+            def _cov(X, Y):
                 return window_aggregations.ewmcov(
-                    x, y, self.com, self.adjust, self.ignore_na, self.min_periods, 1,
+                    X,
+                    start,
+                    end,
+                    min_periods,
+                    Y,
+                    self._com,
+                    self.adjust,
+                    self.ignore_na,
+                    True,
                 )
 
-            x_values = X._prep_values()
-            y_values = Y._prep_values()
             with np.errstate(all="ignore"):
-                cov = _cov(x_values, y_values)
-                x_var = _cov(x_values, x_values)
-                y_var = _cov(y_values, y_values)
-                corr = cov / zsqrt(x_var * y_var)
-            return X._wrap_result(corr)
+                cov = _cov(x_array, y_array)
+                x_var = _cov(x_array, x_array)
+                y_var = _cov(y_array, y_array)
+                result = cov / zsqrt(x_var * y_var)
+            return Series(result, index=x.index, name=x.name)
 
-        return _flex_binary_moment(
-            self._selected_obj, other._selected_obj, _get_corr, pairwise=bool(pairwise)
+        return self._apply_pairwise(self._selected_obj, other, pairwise, cov_func)
+
+
+class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
+    """
+    Provide an exponential moving window groupby implementation.
+    """
+
+    _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
+
+    def __init__(self, obj, *args, _grouper=None, **kwargs):
+        super().__init__(obj, *args, _grouper=_grouper, **kwargs)
+
+        if not obj.empty and self.times is not None:
+            # sort the times and recalculate the deltas according to the groups
+            groupby_order = np.concatenate(list(self._grouper.indices.values()))
+            self._deltas = _calculate_deltas(
+                self.times.take(groupby_order),  # type: ignore[union-attr]
+                self.halflife,
+            )
+
+    def _get_window_indexer(self) -> GroupbyIndexer:
+        """
+        Return an indexer class that will compute the window start and end bounds
+
+        Returns
+        -------
+        GroupbyIndexer
+        """
+        window_indexer = GroupbyIndexer(
+            groupby_indicies=self._grouper.indices,
+            window_indexer=ExponentialMovingWindowIndexer,
         )
+        return window_indexer

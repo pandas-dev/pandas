@@ -55,12 +55,6 @@ class TestSlicing:
         expected = df[df.index.year == 2005]
         tm.assert_frame_equal(result, expected)
 
-        rng = date_range("1/1/2000", "1/1/2010")
-
-        result = rng.get_loc("2009")
-        expected = slice(3288, 3653)
-        assert result == expected
-
     @pytest.mark.parametrize(
         "partial_dtime",
         [
@@ -228,7 +222,9 @@ class TestSlicing:
                     tm.assert_series_equal(result, expected)
 
                     # Frame should return slice as well
-                    result = df[ts_string]
+                    with tm.assert_produces_warning(FutureWarning):
+                        # GH#36179 deprecated this indexing
+                        result = df[ts_string]
                     expected = df[theslice]
                     tm.assert_frame_equal(result, expected)
 
@@ -310,17 +306,22 @@ class TestSlicing:
 
     def test_partial_slice_doesnt_require_monotonicity(self):
         # For historical reasons.
-        s = Series(np.arange(10), date_range("2014-01-01", periods=10))
+        ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
-        nonmonotonic = s[[3, 5, 4]]
+        nonmonotonic = ser[[3, 5, 4]]
         expected = nonmonotonic.iloc[:0]
         timestamp = Timestamp("2014-01-10")
+        with tm.assert_produces_warning(FutureWarning):
+            result = nonmonotonic["2014-01-10":]
+        tm.assert_series_equal(result, expected)
 
-        tm.assert_series_equal(nonmonotonic["2014-01-10":], expected)
         with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
             nonmonotonic[timestamp:]
 
-        tm.assert_series_equal(nonmonotonic.loc["2014-01-10":], expected)
+        with tm.assert_produces_warning(FutureWarning):
+            result = nonmonotonic.loc["2014-01-10":]
+        tm.assert_series_equal(result, expected)
+
         with pytest.raises(KeyError, match=r"Timestamp\('2014-01-10 00:00:00'\)"):
             nonmonotonic.loc[timestamp:]
 

@@ -2,14 +2,18 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
 def test_filter_series():
-    s = pd.Series([1, 3, 20, 5, 22, 24, 7])
-    expected_odd = pd.Series([1, 3, 5, 7], index=[0, 1, 3, 6])
-    expected_even = pd.Series([20, 22, 24], index=[2, 4, 5])
+    s = Series([1, 3, 20, 5, 22, 24, 7])
+    expected_odd = Series([1, 3, 5, 7], index=[0, 1, 3, 6])
+    expected_even = Series([20, 22, 24], index=[2, 4, 5])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     tm.assert_series_equal(grouped.filter(lambda x: x.mean() < 10), expected_odd)
@@ -26,9 +30,9 @@ def test_filter_series():
 
 
 def test_filter_single_column_df():
-    df = pd.DataFrame([1, 3, 20, 5, 22, 24, 7])
-    expected_odd = pd.DataFrame([1, 3, 5, 7], index=[0, 1, 3, 6])
-    expected_even = pd.DataFrame([20, 22, 24], index=[2, 4, 5])
+    df = DataFrame([1, 3, 20, 5, 22, 24, 7])
+    expected_odd = DataFrame([1, 3, 5, 7], index=[0, 1, 3, 6])
+    expected_even = DataFrame([20, 22, 24], index=[2, 4, 5])
     grouper = df[0].apply(lambda x: x % 2)
     grouped = df.groupby(grouper)
     tm.assert_frame_equal(grouped.filter(lambda x: x.mean() < 10), expected_odd)
@@ -45,41 +49,41 @@ def test_filter_single_column_df():
 
 
 def test_filter_multi_column_df():
-    df = pd.DataFrame({"A": [1, 12, 12, 1], "B": [1, 1, 1, 1]})
+    df = DataFrame({"A": [1, 12, 12, 1], "B": [1, 1, 1, 1]})
     grouper = df["A"].apply(lambda x: x % 2)
     grouped = df.groupby(grouper)
-    expected = pd.DataFrame({"A": [12, 12], "B": [1, 1]}, index=[1, 2])
+    expected = DataFrame({"A": [12, 12], "B": [1, 1]}, index=[1, 2])
     tm.assert_frame_equal(
         grouped.filter(lambda x: x["A"].sum() - x["B"].sum() > 10), expected
     )
 
 
 def test_filter_mixed_df():
-    df = pd.DataFrame({"A": [1, 12, 12, 1], "B": "a b c d".split()})
+    df = DataFrame({"A": [1, 12, 12, 1], "B": "a b c d".split()})
     grouper = df["A"].apply(lambda x: x % 2)
     grouped = df.groupby(grouper)
-    expected = pd.DataFrame({"A": [12, 12], "B": ["b", "c"]}, index=[1, 2])
+    expected = DataFrame({"A": [12, 12], "B": ["b", "c"]}, index=[1, 2])
     tm.assert_frame_equal(grouped.filter(lambda x: x["A"].sum() > 10), expected)
 
 
 def test_filter_out_all_groups():
-    s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+    s = Series([1, 3, 20, 5, 22, 24, 7])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     tm.assert_series_equal(grouped.filter(lambda x: x.mean() > 1000), s[[]])
-    df = pd.DataFrame({"A": [1, 12, 12, 1], "B": "a b c d".split()})
+    df = DataFrame({"A": [1, 12, 12, 1], "B": "a b c d".split()})
     grouper = df["A"].apply(lambda x: x % 2)
     grouped = df.groupby(grouper)
     tm.assert_frame_equal(grouped.filter(lambda x: x["A"].sum() > 1000), df.loc[[]])
 
 
 def test_filter_out_no_groups():
-    s = pd.Series([1, 3, 20, 5, 22, 24, 7])
+    s = Series([1, 3, 20, 5, 22, 24, 7])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     filtered = grouped.filter(lambda x: x.mean() > 0)
     tm.assert_series_equal(filtered, s)
-    df = pd.DataFrame({"A": [1, 12, 12, 1], "B": "a b c d".split()})
+    df = DataFrame({"A": [1, 12, 12, 1], "B": "a b c d".split()})
     grouper = df["A"].apply(lambda x: x % 2)
     grouped = df.groupby(grouper)
     filtered = grouped.filter(lambda x: x["A"].mean() > 0)
@@ -88,16 +92,16 @@ def test_filter_out_no_groups():
 
 def test_filter_out_all_groups_in_df():
     # GH12768
-    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 0]})
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 2, 0]})
     res = df.groupby("a")
     res = res.filter(lambda x: x["b"].sum() > 5, dropna=False)
-    expected = pd.DataFrame({"a": [np.nan] * 3, "b": [np.nan] * 3})
+    expected = DataFrame({"a": [np.nan] * 3, "b": [np.nan] * 3})
     tm.assert_frame_equal(expected, res)
 
-    df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 0]})
+    df = DataFrame({"a": [1, 1, 2], "b": [1, 2, 0]})
     res = df.groupby("a")
     res = res.filter(lambda x: x["b"].sum() > 5, dropna=True)
-    expected = pd.DataFrame({"a": [], "b": []}, dtype="int64")
+    expected = DataFrame({"a": [], "b": []}, dtype="int64")
     tm.assert_frame_equal(expected, res)
 
 
@@ -108,7 +112,7 @@ def test_filter_condition_raises():
         else:
             return x.sum() > 0
 
-    s = pd.Series([-1, 0, 1, 2])
+    s = Series([-1, 0, 1, 2])
     grouper = s.apply(lambda x: x % 2)
     grouped = s.groupby(grouper)
     msg = "the filter must return a boolean result"
@@ -119,7 +123,7 @@ def test_filter_condition_raises():
 def test_filter_with_axis_in_groupby():
     # issue 11041
     index = pd.MultiIndex.from_product([range(10), [0, 1]])
-    data = pd.DataFrame(np.arange(100).reshape(-1, 20), columns=index, dtype="int64")
+    data = DataFrame(np.arange(100).reshape(-1, 20), columns=index, dtype="int64")
     result = data.groupby(level=0, axis=1).filter(lambda x: x.iloc[0, 0] > 10)
     expected = data.iloc[:, 12:20]
     tm.assert_frame_equal(result, expected)
@@ -551,7 +555,7 @@ def test_filter_has_access_to_grouped_cols():
 
 
 def test_filter_enforces_scalarness():
-    df = pd.DataFrame(
+    df = DataFrame(
         [
             ["best", "a", "x"],
             ["worst", "b", "y"],
@@ -568,7 +572,7 @@ def test_filter_enforces_scalarness():
 
 
 def test_filter_non_bool_raises():
-    df = pd.DataFrame(
+    df = DataFrame(
         [
             ["best", "a", 1],
             ["worst", "b", 1],
@@ -586,12 +590,25 @@ def test_filter_non_bool_raises():
 
 def test_filter_dropna_with_empty_groups():
     # GH 10780
-    data = pd.Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
+    data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
     groupped = data.groupby(level=0)
     result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
-    expected_false = pd.Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
+    expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
     tm.assert_series_equal(result_false, expected_false)
 
     result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
-    expected_true = pd.Series(index=pd.Index([], dtype=int), dtype=np.float64)
+    expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)
+
+
+def test_filter_consistent_result_before_after_agg_func():
+    # GH 17091
+    df = DataFrame({"data": range(6), "key": list("ABCABC")})
+    grouper = df.groupby("key")
+    result = grouper.filter(lambda x: True)
+    expected = DataFrame({"data": range(6), "key": list("ABCABC")})
+    tm.assert_frame_equal(result, expected)
+
+    grouper.sum()
+    result = grouper.filter(lambda x: True)
+    tm.assert_frame_equal(result, expected)

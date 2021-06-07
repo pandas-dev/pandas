@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
@@ -56,9 +59,18 @@ class TestTimestampComparison:
         if reverse:
             left, right = arr, ts
 
-        msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            op(left, right)
+        if op is operator.eq:
+            expected = np.array([False, False], dtype=bool)
+            result = op(left, right)
+            tm.assert_numpy_array_equal(result, expected)
+        elif op is operator.ne:
+            expected = np.array([True, True], dtype=bool)
+            result = op(left, right)
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            msg = "Cannot compare tz-naive and tz-aware timestamps"
+            with pytest.raises(TypeError, match=msg):
+                op(left, right)
 
     def test_comparison_object_array(self):
         # GH#15183
@@ -133,16 +145,50 @@ class TestTimestampComparison:
         assert val != np.float64(1)
         assert val != np.int64(1)
 
+    @pytest.mark.parametrize("tz", [None, "US/Pacific"])
+    def test_compare_date(self, tz):
+        # GH#36131 comparing Timestamp with date object is deprecated
+        ts = Timestamp.now(tz)
+        dt = ts.to_pydatetime().date()
+        # These are incorrectly considered as equal because they
+        #  dispatch to the date comparisons which truncates ts
+
+        for left, right in [(ts, dt), (dt, ts)]:
+            with tm.assert_produces_warning(FutureWarning):
+                assert left == right
+            with tm.assert_produces_warning(FutureWarning):
+                assert not left != right
+            with tm.assert_produces_warning(FutureWarning):
+                assert not left < right
+            with tm.assert_produces_warning(FutureWarning):
+                assert left <= right
+            with tm.assert_produces_warning(FutureWarning):
+                assert not left > right
+            with tm.assert_produces_warning(FutureWarning):
+                assert left >= right
+
+        # Once the deprecation is enforced, the following assertions
+        #  can be enabled:
+        #    assert not left == right
+        #    assert left != right
+        #
+        #    with pytest.raises(TypeError):
+        #        left < right
+        #    with pytest.raises(TypeError):
+        #        left <= right
+        #    with pytest.raises(TypeError):
+        #        left > right
+        #    with pytest.raises(TypeError):
+        #        left >= right
+
     def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404
         a = Timestamp("3/12/2012")
         b = Timestamp("3/12/2012", tz=utc_fixture)
 
         msg = "Cannot compare tz-naive and tz-aware timestamps"
-        with pytest.raises(TypeError, match=msg):
-            a == b
-        with pytest.raises(TypeError, match=msg):
-            a != b
+        assert not a == b
+        assert a != b
         with pytest.raises(TypeError, match=msg):
             a < b
         with pytest.raises(TypeError, match=msg):
@@ -152,10 +198,8 @@ class TestTimestampComparison:
         with pytest.raises(TypeError, match=msg):
             a >= b
 
-        with pytest.raises(TypeError, match=msg):
-            b == a
-        with pytest.raises(TypeError, match=msg):
-            b != a
+        assert not b == a
+        assert b != a
         with pytest.raises(TypeError, match=msg):
             b < a
         with pytest.raises(TypeError, match=msg):
@@ -202,6 +246,25 @@ class TestTimestampComparison:
         assert stamp >= datetime(1600, 1, 1)
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
+
+        other = Timestamp.min.to_pydatetime(warn=False)
+        assert other - timedelta(microseconds=1) < Timestamp.min
+
+    def test_timestamp_compare_oob_dt64(self):
+        us = np.timedelta64(1, "us")
+        other = np.datetime64(Timestamp.min).astype("M8[us]")
+
+        # This may change if the implementation bound is dropped to match
+        #  DatetimeArray/DatetimeIndex GH#24124
+        assert Timestamp.min > other
+        # Note: numpy gets the reversed comparison wrong
+
+        other = np.datetime64(Timestamp.max).astype("M8[us]")
+        assert Timestamp.max > other  # not actually OOB
+        assert other < Timestamp.max
+
+        assert Timestamp.max < other + us
+        # Note: numpy gets the reversed comparison wrong
 
     def test_compare_zerodim_array(self):
         # GH#26916

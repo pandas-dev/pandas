@@ -1,17 +1,21 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p17
-
 import pandas as pd
-from pandas import Index, MultiIndex, date_range, period_range
+from pandas import (
+    Index,
+    MultiIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
 def test_shift(idx):
 
     # GH8083 test the base class for shift
-    msg = "Not supported for type MultiIndex"
+    msg = "This method is only implemented for DatetimeIndex, PeriodIndex and "
+    "TimedeltaIndex; Got type MultiIndex"
     with pytest.raises(NotImplementedError, match=msg):
         idx.shift(1)
     with pytest.raises(NotImplementedError, match=msg):
@@ -127,9 +131,9 @@ def test_append_mixed_dtypes():
             [1, 2, 3, "x", "y", "z"],
             [1.1, np.nan, 3.3, "x", "y", "z"],
             ["a", "b", "c", "x", "y", "z"],
-            dti.append(pd.Index(["x", "y", "z"])),
-            dti_tz.append(pd.Index(["x", "y", "z"])),
-            pi.append(pd.Index(["x", "y", "z"])),
+            dti.append(Index(["x", "y", "z"])),
+            dti_tz.append(Index(["x", "y", "z"])),
+            pi.append(Index(["x", "y", "z"])),
         ]
     )
     tm.assert_index_equal(res, exp)
@@ -203,7 +207,7 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
     # empty mappable
-    expected = pd.Index([np.nan] * len(idx))
+    expected = Index([np.nan] * len(idx))
     result = idx.map(mapper(expected, idx))
     tm.assert_index_equal(result, expected)
 
@@ -240,15 +244,11 @@ def test_numpy_ufuncs(idx, func):
     # test ufuncs of numpy. see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
-    if _np_version_under1p17:
-        expected_exception = AttributeError
-        msg = f"'tuple' object has no attribute '{func.__name__}'"
-    else:
-        expected_exception = TypeError
-        msg = (
-            "loop of ufunc does not support argument 0 of type tuple which "
-            f"has no callable {func.__name__} method"
-        )
+    expected_exception = TypeError
+    msg = (
+        "loop of ufunc does not support argument 0 of type tuple which "
+        f"has no callable {func.__name__} method"
+    )
     with pytest.raises(expected_exception, match=msg):
         func(idx)
 

@@ -3,7 +3,12 @@ import sqlite3
 import numpy as np
 from sqlalchemy import create_engine
 
-from pandas import DataFrame, date_range, read_sql_query, read_sql_table
+from pandas import (
+    DataFrame,
+    date_range,
+    read_sql_query,
+    read_sql_table,
+)
 
 from ..pandas_vb_common import tm
 

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
@@ -35,7 +35,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 class Base:
@@ -63,7 +66,7 @@ class Base:
 
         # clear the cache
         type(dtype).reset_cache()
-        assert not len(dtype._cache)
+        assert not len(dtype._cache_dtypes)
 
         # force back to the cache
         result = tm.round_trip_pickle(dtype)
@@ -71,7 +74,7 @@ class Base:
             # Because PeriodDtype has a cython class as a base class,
             #  it has different pickle semantics, and its cache is re-populated
             #  on un-pickling.
-            assert not len(dtype._cache)
+            assert not len(dtype._cache_dtypes)
         assert result == dtype
 
 
@@ -90,9 +93,20 @@ class TestCategoricalDtype(Base):
         assert hash(dtype) == hash(dtype2)
 
     def test_equality(self, dtype):
+        assert dtype == "category"
         assert is_dtype_equal(dtype, "category")
+        assert "category" == dtype
+        assert is_dtype_equal("category", dtype)
+
+        assert dtype == CategoricalDtype()
         assert is_dtype_equal(dtype, CategoricalDtype())
+        assert CategoricalDtype() == dtype
+        assert is_dtype_equal(CategoricalDtype(), dtype)
+
+        assert dtype != "foo"
         assert not is_dtype_equal(dtype, "foo")
+        assert "foo" != dtype
+        assert not is_dtype_equal("foo", dtype)
 
     def test_construction_from_string(self, dtype):
         result = CategoricalDtype.construct_from_string("category")
@@ -198,6 +212,20 @@ class TestCategoricalDtype(Base):
     def test_not_string(self):
         # though CategoricalDtype has object kind, it cannot be string
         assert not is_string_dtype(CategoricalDtype())
+
+    def test_repr_range_categories(self):
+        rng = pd.Index(range(3))
+        dtype = CategoricalDtype(categories=rng, ordered=False)
+        result = repr(dtype)
+
+        expected = "CategoricalDtype(categories=range(0, 3), ordered=False)"
+        assert result == expected
+
+    def test_update_dtype(self):
+        # GH 27338
+        result = CategoricalDtype(["a"]).update_dtype(Categorical(["b"], ordered=True))
+        expected = CategoricalDtype(["b"], ordered=True)
+        assert result == expected
 
 
 class TestDatetimeTZDtype(Base):
@@ -508,11 +536,11 @@ class TestIntervalDtype(Base):
         """
         Class level fixture of dtype for TestIntervalDtype
         """
-        return IntervalDtype("int64")
+        return IntervalDtype("int64", "right")
 
     def test_hash_vs_equality(self, dtype):
         # make sure that we satisfy is semantics
-        dtype2 = IntervalDtype("int64")
+        dtype2 = IntervalDtype("int64", "right")
         dtype3 = IntervalDtype(dtype2)
         assert dtype == dtype2
         assert dtype2 == dtype
@@ -540,9 +568,23 @@ class TestIntervalDtype(Base):
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
     )
     def test_construction(self, subtype):
-        i = IntervalDtype(subtype)
+        i = IntervalDtype(subtype, closed="right")
         assert i.subtype == np.dtype("int64")
         assert is_interval_dtype(i)
+
+    @pytest.mark.parametrize(
+        "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
+    )
+    def test_construction_allows_closed_none(self, subtype):
+        # GH#38394
+        dtype = IntervalDtype(subtype)
+
+        assert dtype.closed is None
+
+    def test_closed_mismatch(self):
+        msg = "'closed' keyword does not match value specified in dtype string"
+        with pytest.raises(ValueError, match=msg):
+            IntervalDtype("interval[int64, left]", "right")
 
     @pytest.mark.parametrize("subtype", [None, "interval", "Interval"])
     def test_construction_generic(self, subtype):
@@ -578,10 +620,22 @@ class TestIntervalDtype(Base):
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
 
+    def test_closed_must_match(self):
+        # GH#37933
+        dtype = IntervalDtype(np.float64, "left")
+
+        msg = "dtype.closed and 'closed' do not match"
+        with pytest.raises(ValueError, match=msg):
+            IntervalDtype(dtype, closed="both")
+
+    def test_closed_invalid(self):
+        with pytest.raises(ValueError, match="closed must be one of"):
+            IntervalDtype(np.float64, "foo")
+
     def test_construction_from_string(self, dtype):
-        result = IntervalDtype("interval[int64]")
+        result = IntervalDtype("interval[int64, right]")
         assert is_dtype_equal(dtype, result)
-        result = IntervalDtype.construct_from_string("interval[int64]")
+        result = IntervalDtype.construct_from_string("interval[int64, right]")
         assert is_dtype_equal(dtype, result)
 
     @pytest.mark.parametrize("string", [0, 3.14, ("a", "b"), None])
@@ -605,8 +659,8 @@ class TestIntervalDtype(Base):
             IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
-        a = IntervalDtype("interval[int64]")
-        b = IntervalDtype("interval[int64]")
+        a = IntervalDtype("interval[int64, right]")
+        b = IntervalDtype("interval[int64, right]")
 
         assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
@@ -617,6 +671,9 @@ class TestIntervalDtype(Base):
         assert IntervalDtype.is_dtype(IntervalDtype("float64"))
         assert IntervalDtype.is_dtype(IntervalDtype("int64"))
         assert IntervalDtype.is_dtype(IntervalDtype(np.int64))
+        assert IntervalDtype.is_dtype(IntervalDtype("float64", "left"))
+        assert IntervalDtype.is_dtype(IntervalDtype("int64", "right"))
+        assert IntervalDtype.is_dtype(IntervalDtype(np.int64, "both"))
 
         assert not IntervalDtype.is_dtype("D")
         assert not IntervalDtype.is_dtype("3D")
@@ -629,16 +686,29 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype(np.float64)
 
     def test_equality(self, dtype):
-        assert is_dtype_equal(dtype, "interval[int64]")
-        assert is_dtype_equal(dtype, IntervalDtype("int64"))
-        assert is_dtype_equal(IntervalDtype("int64"), IntervalDtype("int64"))
+        assert is_dtype_equal(dtype, "interval[int64, right]")
+        assert is_dtype_equal(dtype, IntervalDtype("int64", "right"))
+        assert is_dtype_equal(
+            IntervalDtype("int64", "right"), IntervalDtype("int64", "right")
+        )
+
+        assert not is_dtype_equal(dtype, "interval[int64]")
+        assert not is_dtype_equal(dtype, IntervalDtype("int64"))
+        assert not is_dtype_equal(
+            IntervalDtype("int64", "right"), IntervalDtype("int64")
+        )
 
         assert not is_dtype_equal(dtype, "int64")
-        assert not is_dtype_equal(IntervalDtype("int64"), IntervalDtype("float64"))
+        assert not is_dtype_equal(
+            IntervalDtype("int64", "neither"), IntervalDtype("float64", "right")
+        )
+        assert not is_dtype_equal(
+            IntervalDtype("int64", "both"), IntervalDtype("int64", "left")
+        )
 
         # invalid subtype comparisons do not raise when directly compared
-        dtype1 = IntervalDtype("float64")
-        dtype2 = IntervalDtype("datetime64[ns, US/Eastern]")
+        dtype1 = IntervalDtype("float64", "left")
+        dtype2 = IntervalDtype("datetime64[ns, US/Eastern]", "left")
         assert dtype1 != dtype2
         assert dtype2 != dtype1
 
@@ -659,7 +729,8 @@ class TestIntervalDtype(Base):
     )
     def test_equality_generic(self, subtype):
         # GH 18980
-        dtype = IntervalDtype(subtype)
+        closed = "right" if subtype is not None else None
+        dtype = IntervalDtype(subtype, closed=closed)
         assert is_dtype_equal(dtype, "interval")
         assert is_dtype_equal(dtype, IntervalDtype())
 
@@ -677,8 +748,9 @@ class TestIntervalDtype(Base):
     )
     def test_name_repr(self, subtype):
         # GH 18980
-        dtype = IntervalDtype(subtype)
-        expected = f"interval[{subtype}]"
+        closed = "right" if subtype is not None else None
+        dtype = IntervalDtype(subtype, closed=closed)
+        expected = f"interval[{subtype}, {closed}]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
 
@@ -703,7 +775,7 @@ class TestIntervalDtype(Base):
         assert is_interval_dtype(s)
 
     def test_basic_dtype(self):
-        assert is_interval_dtype("interval[int64]")
+        assert is_interval_dtype("interval[int64, both]")
         assert is_interval_dtype(IntervalIndex.from_tuples([(0, 1)]))
         assert is_interval_dtype(IntervalIndex.from_breaks(np.arange(4)))
         assert is_interval_dtype(
@@ -718,19 +790,27 @@ class TestIntervalDtype(Base):
 
     def test_caching(self):
         IntervalDtype.reset_cache()
-        dtype = IntervalDtype("int64")
-        assert len(IntervalDtype._cache) == 1
+        dtype = IntervalDtype("int64", "right")
+        assert len(IntervalDtype._cache_dtypes) == 1
 
         IntervalDtype("interval")
-        assert len(IntervalDtype._cache) == 2
+        assert len(IntervalDtype._cache_dtypes) == 2
 
         IntervalDtype.reset_cache()
         tm.round_trip_pickle(dtype)
-        assert len(IntervalDtype._cache) == 0
+        assert len(IntervalDtype._cache_dtypes) == 0
 
     def test_not_string(self):
         # GH30568: though IntervalDtype has object kind, it cannot be string
         assert not is_string_dtype(IntervalDtype())
+
+    def test_unpickling_without_closed(self):
+        # GH#38394
+        dtype = IntervalDtype("interval")
+
+        assert dtype._closed is None
+
+        tm.round_trip_pickle(dtype)
 
 
 class TestCategoricalDtypeParametrized:
@@ -741,7 +821,7 @@ class TestCategoricalDtypeParametrized:
             np.arange(1000),
             ["a", "b", 10, 2, 1.3, True],
             [True, False],
-            pd.date_range("2017", periods=4),
+            date_range("2017", periods=4),
         ],
     )
     def test_basic(self, categories, ordered):
@@ -826,9 +906,26 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(list("abc"), ordered1)
         c2 = CategoricalDtype(None, ordered2)
         c3 = CategoricalDtype(None, ordered1)
-        assert c1 == c2
-        assert c2 == c1
+        assert c1 != c2
+        assert c2 != c1
         assert c2 == c3
+
+    def test_categorical_dtype_equality_requires_categories(self):
+        # CategoricalDtype with categories=None is *not* equal to
+        #  any fully-initialized CategoricalDtype
+        first = CategoricalDtype(["a", "b"])
+        second = CategoricalDtype()
+        third = CategoricalDtype(ordered=True)
+
+        assert second == second
+        assert third == third
+
+        assert first != second
+        assert second != first
+        assert first != third
+        assert third != first
+        assert second == third
+        assert third == second
 
     @pytest.mark.parametrize("categories", [list("abc"), None])
     @pytest.mark.parametrize("other", ["category", "not a category"])
@@ -934,8 +1031,8 @@ def test_registry(dtype):
     [
         ("int64", None),
         ("interval", IntervalDtype()),
-        ("interval[int64]", IntervalDtype()),
-        ("interval[datetime64[ns]]", IntervalDtype("datetime64[ns]")),
+        ("interval[int64, neither]", IntervalDtype()),
+        ("interval[datetime64[ns], left]", IntervalDtype("datetime64[ns]", "left")),
         ("period[D]", PeriodDtype("D")),
         ("category", CategoricalDtype()),
         ("datetime64[ns, US/Eastern]", DatetimeTZDtype("ns", "US/Eastern")),
@@ -953,9 +1050,9 @@ def test_registry_find(dtype, expected):
         (bool, True),
         (np.bool_, True),
         (np.array(["a", "b"]), False),
-        (pd.Series([1, 2]), False),
+        (Series([1, 2]), False),
         (np.array([True, False]), True),
-        (pd.Series([True, False]), True),
+        (Series([True, False]), True),
         (SparseArray([True, False]), True),
         (SparseDtype(bool), True),
     ],
@@ -966,7 +1063,7 @@ def test_is_bool_dtype(dtype, expected):
 
 
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(pd.Series(SparseArray([True, False])))
+    result = is_bool_dtype(Series(SparseArray([True, False])))
     assert result is True
 
 
@@ -991,3 +1088,10 @@ def test_is_dtype_no_warning(check):
 
     with tm.assert_produces_warning(None):
         check(data["A"])
+
+
+def test_period_dtype_compare_to_string():
+    # https://github.com/pandas-dev/pandas/issues/37265
+    dtype = PeriodDtype(freq="M")
+    assert (dtype == "period[M]") is True
+    assert (dtype != "period[M]") is False

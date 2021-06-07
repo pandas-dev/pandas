@@ -12,7 +12,10 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 
-from pandas import Timestamp, date_range
+from pandas import (
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -75,6 +78,14 @@ def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
 )
 def test_tz_convert_corner(arr):
     result = tzconversion.tz_convert_from_utc(arr, timezones.maybe_get_tz("Asia/Tokyo"))
+    tm.assert_numpy_array_equal(result, arr)
+
+
+def test_tz_convert_readonly():
+    # GH#35530
+    arr = np.array([0], dtype=np.int64)
+    arr.setflags(write=False)
+    result = tzconversion.tz_convert_from_utc(arr, UTC)
     tm.assert_numpy_array_equal(result, arr)
 
 

@@ -1,10 +1,17 @@
 import numpy as np
 import pytest
 
-from pandas import Timedelta, timedelta_range, to_timedelta
+from pandas import (
+    Timedelta,
+    timedelta_range,
+    to_timedelta,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day, Second
+from pandas.tseries.offsets import (
+    Day,
+    Second,
+)
 
 
 class TestTimedeltas:
@@ -38,7 +45,6 @@ class TestTimedeltas:
         result = timedelta_range(start="0 days", end="4 days", periods=periods)
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
-        assert result.freq == freq
 
     def test_errors(self):
         # not enough params
@@ -79,3 +85,8 @@ class TestTimedeltas:
         assert Timedelta(start) == res[0]
         assert Timedelta(end) >= res[-1]
         assert len(res) == expected_periods
+
+    def test_timedelta_range_infer_freq(self):
+        # https://github.com/pandas-dev/pandas/issues/35897
+        result = timedelta_range("0s", "1s", periods=31)
+        assert result.freq is None

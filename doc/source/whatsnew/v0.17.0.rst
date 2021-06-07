@@ -40,7 +40,7 @@ Highlights include:
 - Plotting methods are now available as attributes of the ``.plot`` accessor, see :ref:`here <whatsnew_0170.plot>`
 - The sorting API has been revamped to remove some long-time inconsistencies, see :ref:`here <whatsnew_0170.api_breaking.sorting>`
 - Support for a ``datetime64[ns]`` with timezones as a first-class dtype, see :ref:`here <whatsnew_0170.tz>`
-- The default for ``to_datetime`` will now be to ``raise`` when presented with unparseable formats,
+- The default for ``to_datetime`` will now be to ``raise`` when presented with unparsable formats,
   previously this would return the original input. Also, date parse
   functions now return consistent results. See :ref:`here <whatsnew_0170.api_breaking.to_datetime>`
 - The default for ``dropna`` in ``HDFStore`` has changed to ``False``, to store by default all rows even
@@ -80,9 +80,13 @@ The new implementation allows for having a single-timezone across all rows, with
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': pd.date_range('20130101', periods=3),
-                      'B': pd.date_range('20130101', periods=3, tz='US/Eastern'),
-                      'C': pd.date_range('20130101', periods=3, tz='CET')})
+   df = pd.DataFrame(
+       {
+           "A": pd.date_range("20130101", periods=3),
+           "B": pd.date_range("20130101", periods=3, tz="US/Eastern"),
+           "C": pd.date_range("20130101", periods=3, tz="CET"),
+       }
+   )
    df
    df.dtypes
 
@@ -95,8 +99,8 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
 .. ipython:: python
 
-   df['B'].dtype
-   type(df['B'].dtype)
+   df["B"].dtype
+   type(df["B"].dtype)
 
 .. note::
 
@@ -119,8 +123,8 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
    .. ipython:: python
 
-      pd.date_range('20130101', periods=3, tz='US/Eastern')
-      pd.date_range('20130101', periods=3, tz='US/Eastern').dtype
+      pd.date_range("20130101", periods=3, tz="US/Eastern")
+      pd.date_range("20130101", periods=3, tz="US/Eastern").dtype
 
 .. _whatsnew_0170.gil:
 
@@ -138,9 +142,10 @@ as well as the ``.sum()`` operation.
 
    N = 1000000
    ngroups = 10
-   df = DataFrame({'key': np.random.randint(0, ngroups, size=N),
-                   'data': np.random.randn(N)})
-   df.groupby('key')['data'].sum()
+   df = DataFrame(
+       {"key": np.random.randint(0, ngroups, size=N), "data": np.random.randn(N)}
+   )
+   df.groupby("key")["data"].sum()
 
 Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performing multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
 
@@ -189,16 +194,16 @@ We are now supporting a ``Series.dt.strftime`` method for datetime-likes to gene
 .. ipython:: python
 
    # DatetimeIndex
-   s = pd.Series(pd.date_range('20130101', periods=4))
+   s = pd.Series(pd.date_range("20130101", periods=4))
    s
-   s.dt.strftime('%Y/%m/%d')
+   s.dt.strftime("%Y/%m/%d")
 
 .. ipython:: python
 
    # PeriodIndex
-   s = pd.Series(pd.period_range('20130101', periods=4))
+   s = pd.Series(pd.period_range("20130101", periods=4))
    s
-   s.dt.strftime('%Y/%m/%d')
+   s.dt.strftime("%Y/%m/%d")
 
 The string format is as the python standard library and details can be found `here <https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior>`_
 
@@ -210,7 +215,7 @@ Series.dt.total_seconds
 .. ipython:: python
 
    # TimedeltaIndex
-   s = pd.Series(pd.timedelta_range('1 minutes', periods=4))
+   s = pd.Series(pd.timedelta_range("1 minutes", periods=4))
    s
    s.dt.total_seconds()
 
@@ -225,18 +230,18 @@ A multiplied freq represents a span of corresponding length. The example below c
 
 .. ipython:: python
 
-   p = pd.Period('2015-08-01', freq='3D')
+   p = pd.Period("2015-08-01", freq="3D")
    p
    p + 1
    p - 2
    p.to_timestamp()
-   p.to_timestamp(how='E')
+   p.to_timestamp(how="E")
 
 You can use the multiplied freq in ``PeriodIndex`` and ``period_range``.
 
 .. ipython:: python
 
-   idx = pd.period_range('2015-08-01', periods=4, freq='2D')
+   idx = pd.period_range("2015-08-01", periods=4, freq="2D")
    idx
    idx + 1
 
@@ -249,14 +254,14 @@ Support for SAS XPORT files
 
 .. code-block:: python
 
-    df = pd.read_sas('sas_xport.xpt')
+    df = pd.read_sas("sas_xport.xpt")
 
 It is also possible to obtain an iterator and read an XPORT file
 incrementally.
 
 .. code-block:: python
 
-    for df in pd.read_sas('sas_xport.xpt', chunksize=10000):
+    for df in pd.read_sas("sas_xport.xpt", chunksize=10000):
         do_something(df)
 
 See the :ref:`docs <io.sas>` for more details.
@@ -270,12 +275,12 @@ Support for math functions in .eval()
 
 .. code-block:: python
 
-    df = pd.DataFrame({'a': np.random.randn(10)})
+    df = pd.DataFrame({"a": np.random.randn(10)})
     df.eval("b = sin(a)")
 
-The support math functions are `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
-`sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
-`arcsinh`, `arctanh`, `abs` and `arctan2`.
+The support math functions are ``sin``, ``cos``, ``exp``, ``log``, ``expm1``, ``log1p``,
+``sqrt``, ``sinh``, ``cosh``, ``tanh``, ``arcsin``, ``arccos``, ``arctan``, ``arccosh``,
+``arcsinh``, ``arctanh``, ``abs`` and ``arctan2``.
 
 These functions map to the intrinsics for the ``NumExpr`` engine.  For the Python
 engine, they are mapped to ``NumPy`` calls.
@@ -292,23 +297,26 @@ See the :ref:`documentation <io.excel>` for more details.
 
 .. ipython:: python
 
-   df = pd.DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]],
-                     columns=pd.MultiIndex.from_product(
-                     [['foo', 'bar'], ['a', 'b']], names=['col1', 'col2']),
-                     index=pd.MultiIndex.from_product([['j'], ['l', 'k']],
-                                                      names=['i1', 'i2']))
+   df = pd.DataFrame(
+       [[1, 2, 3, 4], [5, 6, 7, 8]],
+       columns=pd.MultiIndex.from_product(
+           [["foo", "bar"], ["a", "b"]], names=["col1", "col2"]
+       ),
+       index=pd.MultiIndex.from_product([["j"], ["l", "k"]], names=["i1", "i2"]),
+   )
 
    df
-   df.to_excel('test.xlsx')
+   df.to_excel("test.xlsx")
 
-   df = pd.read_excel('test.xlsx', header=[0, 1], index_col=[0, 1])
+   df = pd.read_excel("test.xlsx", header=[0, 1], index_col=[0, 1])
    df
 
 .. ipython:: python
    :suppress:
 
    import os
-   os.remove('test.xlsx')
+
+   os.remove("test.xlsx")
 
 Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``,
 if the serialized data had index names.  For version 0.17.0 the output format of ``to_excel``
@@ -354,14 +362,14 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 
 .. ipython:: python
 
-   df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
+   df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
    df;
 
 .. image:: ../_static/option_unicode01.png
 
 .. ipython:: python
 
-   pd.set_option('display.unicode.east_asian_width', True)
+   pd.set_option("display.unicode.east_asian_width", True)
    df;
 
 .. image:: ../_static/option_unicode02.png
@@ -371,7 +379,7 @@ For further details, see :ref:`here <options.east_asian_width>`
 .. ipython:: python
    :suppress:
 
-   pd.set_option('display.unicode.east_asian_width', False)
+   pd.set_option("display.unicode.east_asian_width", False)
 
 .. _whatsnew_0170.enhancements.other:
 
@@ -391,9 +399,9 @@ Other enhancements
 
   .. ipython:: python
 
-    df1 = pd.DataFrame({'col1':[0,1], 'col_left':['a','b']})
-    df2 = pd.DataFrame({'col1':[1,2,2],'col_right':[2,2,2]})
-    pd.merge(df1, df2, on='col1', how='outer', indicator=True)
+    df1 = pd.DataFrame({"col1": [0, 1], "col_left": ["a", "b"]})
+    df2 = pd.DataFrame({"col1": [1, 2, 2], "col_right": [2, 2, 2]})
+    pd.merge(df1, df2, on="col1", how="outer", indicator=True)
 
   For more, see the :ref:`updated docs <merging.indicator>`
 
@@ -407,7 +415,7 @@ Other enhancements
 
   .. ipython:: python
 
-     foo = pd.Series([1, 2], name='foo')
+     foo = pd.Series([1, 2], name="foo")
      bar = pd.Series([1, 2])
      baz = pd.Series([4, 5])
 
@@ -415,7 +423,7 @@ Other enhancements
 
   .. code-block:: ipython
 
-     In [1]: pd.concat([foo, bar, baz], 1)
+     In [1]: pd.concat([foo, bar, baz], axis=1)
      Out[1]:
            0  1  2
         0  1  1  4
@@ -425,7 +433,7 @@ Other enhancements
 
   .. ipython:: python
 
-    pd.concat([foo, bar, baz], 1)
+    pd.concat([foo, bar, baz], axis=1)
 
 - ``DataFrame`` has gained the ``nlargest`` and ``nsmallest`` methods (:issue:`10393`)
 
@@ -434,46 +442,43 @@ Other enhancements
   .. ipython:: python
 
      ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
-     ser.interpolate(limit=1, limit_direction='both')
+     ser.interpolate(limit=1, limit_direction="both")
 
 - Added a ``DataFrame.round`` method to round the values to a variable number of decimal places (:issue:`10568`).
 
   .. ipython:: python
 
-     df = pd.DataFrame(np.random.random([3, 3]),
-                       columns=['A', 'B', 'C'],
-                       index=['first', 'second', 'third'])
+     df = pd.DataFrame(
+         np.random.random([3, 3]),
+         columns=["A", "B", "C"],
+         index=["first", "second", "third"],
+     )
      df
      df.round(2)
-     df.round({'A': 0, 'C': 2})
+     df.round({"A": 0, "C": 2})
 
 - ``drop_duplicates`` and ``duplicated`` now accept a ``keep`` keyword to target first, last, and all duplicates. The ``take_last`` keyword is deprecated, see :ref:`here <whatsnew_0170.deprecations>` (:issue:`6511`, :issue:`8505`)
 
   .. ipython:: python
 
-     s = pd.Series(['A', 'B', 'C', 'A', 'B', 'D'])
+     s = pd.Series(["A", "B", "C", "A", "B", "D"])
      s.drop_duplicates()
-     s.drop_duplicates(keep='last')
+     s.drop_duplicates(keep="last")
      s.drop_duplicates(keep=False)
 
 - Reindex now has a ``tolerance`` argument that allows for finer control of :ref:`basics.limits_on_reindex_fill` (:issue:`10411`):
 
   .. ipython:: python
 
-     df = pd.DataFrame({'x': range(5),
-                        't': pd.date_range('2000-01-01', periods=5)})
-     df.reindex([0.1, 1.9, 3.5],
-                method='nearest',
-                tolerance=0.2)
+     df = pd.DataFrame({"x": range(5), "t": pd.date_range("2000-01-01", periods=5)})
+     df.reindex([0.1, 1.9, 3.5], method="nearest", tolerance=0.2)
 
   When used on a ``DatetimeIndex``, ``TimedeltaIndex`` or ``PeriodIndex``, ``tolerance`` will coerced into a ``Timedelta`` if possible. This allows you to specify tolerance with a string:
 
   .. ipython:: python
 
-     df = df.set_index('t')
-     df.reindex(pd.to_datetime(['1999-12-31']),
-                method='nearest',
-                tolerance='1 day')
+     df = df.set_index("t")
+     df.reindex(pd.to_datetime(["1999-12-31"]), method="nearest", tolerance="1 day")
 
   ``tolerance`` is also exposed by the lower level ``Index.get_indexer`` and ``Index.get_loc`` methods.
 
@@ -519,7 +524,7 @@ Other enhancements
 
 - ``DataFrame.apply`` will return a Series of dicts if the passed function returns a dict and ``reduce=True`` (:issue:`8735`).
 
-- Allow passing `kwargs` to the interpolation methods (:issue:`10378`).
+- Allow passing ``kwargs`` to the interpolation methods (:issue:`10378`).
 
 - Improved error message when concatenating an empty iterable of ``Dataframe`` objects (:issue:`9157`)
 
@@ -627,13 +632,13 @@ Of course you can coerce this as well.
 
 .. ipython:: python
 
-   pd.to_datetime(['2009-07-31', 'asd'], errors='coerce')
+   pd.to_datetime(["2009-07-31", "asd"], errors="coerce")
 
 To keep the previous behavior, you can use ``errors='ignore'``:
 
 .. ipython:: python
 
-   pd.to_datetime(['2009-07-31', 'asd'], errors='ignore')
+   pd.to_datetime(["2009-07-31", "asd"], errors="ignore")
 
 Furthermore, ``pd.to_timedelta`` has gained a similar API, of ``errors='raise'|'ignore'|'coerce'``, and the ``coerce`` keyword
 has been deprecated in favor of ``errors='coerce'``.
@@ -667,9 +672,9 @@ New behavior:
 
 .. ipython:: python
 
-   pd.Timestamp('2012Q2')
-   pd.Timestamp('2014')
-   pd.DatetimeIndex(['2012Q2', '2014'])
+   pd.Timestamp("2012Q2")
+   pd.Timestamp("2014")
+   pd.DatetimeIndex(["2012Q2", "2014"])
 
 .. note::
 
@@ -678,6 +683,7 @@ New behavior:
    .. ipython:: python
 
       import pandas.tseries.offsets as offsets
+
       pd.Timestamp.now()
       pd.Timestamp.now() + offsets.DateOffset(years=1)
 
@@ -762,7 +768,7 @@ Usually you simply want to know which values are null.
 .. warning::
 
    You generally will want to use ``isnull/notnull`` for these types of comparisons, as ``isnull/notnull`` tells you which elements are null. One has to be
-   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
+   mindful that ``nan's`` don't compare equal, but ``None's`` do. Note that pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
    .. ipython:: python
 
@@ -780,8 +786,9 @@ Previous behavior:
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame({'col1': [0, np.nan, 2],
-                                   'col2': [1, np.nan, np.nan]})
+   df_with_missing = pd.DataFrame(
+       {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
+   )
 
    df_with_missing
 
@@ -806,18 +813,16 @@ New behavior:
 
 .. ipython:: python
 
-   df_with_missing.to_hdf('file.h5',
-                          'df_with_missing',
-                          format='table',
-                          mode='w')
+   df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
 
-   pd.read_hdf('file.h5', 'df_with_missing')
+   pd.read_hdf("file.h5", "df_with_missing")
 
 .. ipython:: python
    :suppress:
 
    import os
-   os.remove('file.h5')
+
+   os.remove("file.h5")
 
 See the :ref:`docs <io.hdf5>` for more details.
 
@@ -848,8 +853,8 @@ regular formatting as well as scientific notation, similar to how numpy's ``prec
 
 .. ipython:: python
 
-  pd.set_option('display.precision', 2)
-  pd.DataFrame({'x': [123.456789]})
+  pd.set_option("display.precision", 2)
+  pd.DataFrame({"x": [123.456789]})
 
 To preserve output behavior with prior versions the default value of ``display.precision`` has been reduced to ``6``
 from ``7``.
@@ -857,7 +862,7 @@ from ``7``.
 .. ipython:: python
   :suppress:
 
-  pd.set_option('display.precision', 6)
+  pd.set_option("display.precision", 6)
 
 .. _whatsnew_0170.api_breaking.categorical_unique:
 
@@ -871,14 +876,11 @@ Changes to ``Categorical.unique``
 
 .. ipython:: python
 
-   cat = pd.Categorical(['C', 'A', 'B', 'C'],
-                        categories=['A', 'B', 'C'],
-                        ordered=True)
+   cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"], ordered=True)
    cat
    cat.unique()
 
-   cat = pd.Categorical(['C', 'A', 'B', 'C'],
-                        categories=['A', 'B', 'C'])
+   cat = pd.Categorical(["C", "A", "B", "C"], categories=["A", "B", "C"])
    cat
    cat.unique()
 
@@ -909,7 +911,7 @@ Other API changes
 - The metadata properties of subclasses of pandas objects will now be serialized (:issue:`10553`).
 - ``groupby`` using ``Categorical`` follows the same rule as ``Categorical.unique`` described above  (:issue:`10508`)
 - When constructing ``DataFrame`` with an array of ``complex64`` dtype previously meant the corresponding column
-  was automatically promoted to the ``complex128`` dtype. Pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
+  was automatically promoted to the ``complex128`` dtype. pandas will now preserve the itemsize of the input for complex data (:issue:`10952`)
 - some numeric reduction operators would return ``ValueError``, rather than ``TypeError`` on object types that includes strings and numbers (:issue:`11131`)
 - Passing currently unsupported ``chunksize`` argument to ``read_excel`` or ``ExcelFile.parse`` will now raise ``NotImplementedError`` (:issue:`8011`)
 - Allow an ``ExcelFile`` object to be passed into ``read_excel`` (:issue:`11198`)
@@ -980,9 +982,11 @@ Removal of prior version deprecations/changes
   .. ipython:: python
 
      np.random.seed(1234)
-     df = pd.DataFrame(np.random.randn(5, 2),
-                       columns=list('AB'),
-                       index=pd.date_range('2013-01-01', periods=5))
+     df = pd.DataFrame(
+         np.random.randn(5, 2),
+         columns=list("AB"),
+         index=pd.date_range("2013-01-01", periods=5),
+     )
      df
 
   Previously
@@ -1005,7 +1009,7 @@ Removal of prior version deprecations/changes
 
   .. ipython:: python
 
-     df.add(df.A, axis='index')
+     df.add(df.A, axis="index")
 
 
 - Remove ``table`` keyword in ``HDFStore.put/append``, in favor of using ``format=`` (:issue:`4645`)

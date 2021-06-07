@@ -23,7 +23,8 @@ New features
 .. code-block:: python
 
    from pandas.tools.plotting import scatter_matrix
-   scatter_matrix(df, alpha=0.2)        # noqa F821
+
+   scatter_matrix(df, alpha=0.2)  # noqa F821
 
 
 - Add ``stacked`` argument to Series and DataFrame's ``plot`` method for
@@ -31,12 +32,12 @@ New features
 
 .. code-block:: python
 
-   df.plot(kind='bar', stacked=True)    # noqa F821
+   df.plot(kind="bar", stacked=True)  # noqa F821
 
 
 .. code-block:: python
 
-   df.plot(kind='barh', stacked=True)   # noqa F821
+   df.plot(kind="barh", stacked=True)  # noqa F821
 
 
 - Add log x and y :ref:`scaling options <visualization.basic>` to
@@ -50,21 +51,37 @@ NA boolean comparison API change
 Reverted some changes to how NA values (represented typically as ``NaN`` or
 ``None``) are handled in non-numeric Series:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   series = pd.Series(['Steve', np.nan, 'Joe'])
-   series == 'Steve'
-   series != 'Steve'
+   In [1]: series = pd.Series(["Steve", np.nan, "Joe"])
+
+   In [2]: series == "Steve"
+   Out[2]:
+   0     True
+   1    False
+   2    False
+   Length: 3, dtype: bool
+
+   In [3]: series != "Steve"
+   Out[3]:
+   0    False
+   1     True
+   2     True
+   Length: 3, dtype: bool
 
 In comparisons, NA / NaN will always come through as ``False`` except with
 ``!=`` which is ``True``. *Be very careful* with boolean arithmetic, especially
 negation, in the presence of NA data. You may wish to add an explicit NA
 filter into boolean array operations if you are worried about this:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   mask = series == 'Steve'
-   series[mask & series.notnull()]
+   In [4]: mask = series == "Steve"
+
+   In [5]: series[mask & series.notnull()]
+   Out[5]:
+   0    Steve
+   Length: 1, dtype: object
 
 While propagating NA in comparisons may seem like the right behavior to some
 users (and you could argue on purely technical grounds that this is the right
@@ -79,18 +96,51 @@ Other API changes
 When calling ``apply`` on a grouped Series, the return value will also be a
 Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 
-.. ipython:: python
-    :okwarning:
+.. code-block:: ipython
 
-    df = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
-                             'foo', 'bar', 'foo', 'foo'],
-                       'B': ['one', 'one', 'two', 'three',
-                             'two', 'two', 'one', 'three'],
-                       'C': np.random.randn(8), 'D': np.random.randn(8)})
-    df
-    grouped = df.groupby('A')['C']
-    grouped.describe()
-    grouped.apply(lambda x: x.sort_values()[-2:])    # top 2 values
+      In [6]: df = pd.DataFrame(
+         ...:     {
+         ...:         "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+         ...:         "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+         ...:         "C": np.random.randn(8),
+         ...:         "D": np.random.randn(8),
+         ...:     }
+         ...: )
+         ...:
+
+      In [7]: df
+      Out[7]:
+         A      B         C         D
+      0  foo    one  0.469112 -0.861849
+      1  bar    one -0.282863 -2.104569
+      2  foo    two -1.509059 -0.494929
+      3  bar  three -1.135632  1.071804
+      4  foo    two  1.212112  0.721555
+      5  bar    two -0.173215 -0.706771
+      6  foo    one  0.119209 -1.039575
+      7  foo  three -1.044236  0.271860
+
+      [8 rows x 4 columns]
+
+      In [8]: grouped = df.groupby("A")["C"]
+
+      In [9]: grouped.describe()
+      Out[9]:
+         count      mean       std       min       25%       50%       75%       max
+      A
+      bar    3.0 -0.530570  0.526860 -1.135632 -0.709248 -0.282863 -0.228039 -0.173215
+      foo    5.0 -0.150572  1.113308 -1.509059 -1.044236  0.119209  0.469112  1.212112
+
+      [2 rows x 8 columns]
+
+      In [10]: grouped.apply(lambda x: x.sort_values()[-2:])  # top 2 values
+      Out[10]:
+      A
+      bar  1   -0.282863
+           5   -0.173215
+      foo  0    0.469112
+           4    1.212112
+      Name: C, Length: 4, dtype: float64
 
 
 .. _whatsnew_0.7.3.contributors:

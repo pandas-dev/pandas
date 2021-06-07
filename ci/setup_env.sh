@@ -1,10 +1,5 @@
 #!/bin/bash -e
 
-if [ "$JOB" == "3.9-dev" ]; then
-    /bin/bash ci/build39.sh
-    exit 0
-fi
-
 # edit the locale file if needed
 if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo "Adding locale to the first line of pandas/__init__.py"
@@ -17,42 +12,30 @@ if [[ "$(uname)" == "Linux" && -n "$LC_ALL" ]]; then
     echo
 fi
 
-MINICONDA_DIR="$HOME/miniconda3"
-
-
-if [ -d "$MINICONDA_DIR" ]; then
-    echo
-    echo "rm -rf "$MINICONDA_DIR""
-    rm -rf "$MINICONDA_DIR"
-fi
 
 echo "Install Miniconda"
-UNAME_OS=$(uname)
-if [[ "$UNAME_OS" == 'Linux' ]]; then
+DEFAULT_CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest"
+if [[ "$(uname -m)" == 'aarch64' ]]; then
+    CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.10.1-4/Miniforge3-4.10.1-4-Linux-aarch64.sh"
+elif [[ "$(uname)" == 'Linux' ]]; then
     if [[ "$BITS32" == "yes" ]]; then
-        CONDA_OS="Linux-x86"
+        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86.sh"
     else
-        CONDA_OS="Linux-x86_64"
+        CONDA_URL="$DEFAULT_CONDA_URL-Linux-x86_64.sh"
     fi
-elif [[ "$UNAME_OS" == 'Darwin' ]]; then
-    CONDA_OS="MacOSX-x86_64"
+elif [[ "$(uname)" == 'Darwin' ]]; then
+    CONDA_URL="$DEFAULT_CONDA_URL-MacOSX-x86_64.sh"
 else
-  echo "OS $UNAME_OS not supported"
+  echo "OS $(uname) not supported"
   exit 1
 fi
-
-if [ "${TRAVIS_CPU_ARCH}" == "arm64" ]; then
-  sudo apt-get -y install xvfb
-  CONDA_URL="https://github.com/conda-forge/miniforge/releases/download/4.8.2-1/Miniforge3-4.8.2-1-Linux-aarch64.sh"
-else
-  CONDA_URL="https://repo.continuum.io/miniconda/Miniconda3-latest-$CONDA_OS.sh"
-fi
+echo "Downloading $CONDA_URL"
 wget -q $CONDA_URL -O miniconda.sh
 chmod +x miniconda.sh
 
-# Installation path is required for ARM64 platform as miniforge script installs in path $HOME/miniforge3.
+MINICONDA_DIR="$HOME/miniconda3"
+rm -rf $MINICONDA_DIR
 ./miniconda.sh -b -p $MINICONDA_DIR
-
 export PATH=$MINICONDA_DIR/bin:$PATH
 
 echo
@@ -69,29 +52,6 @@ conda update -n base conda
 echo "conda info -a"
 conda info -a
 
-echo
-echo "set the compiler cache to work"
-if [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-    echo "Using ccache"
-    export PATH=/usr/lib/ccache:/usr/lib64/ccache:$PATH
-    GCC=$(which gcc)
-    echo "gcc: $GCC"
-    CCACHE=$(which ccache)
-    echo "ccache: $CCACHE"
-    export CC='ccache gcc'
-elif [ -z "$NOCACHE" ] && [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    echo "Install ccache"
-    brew install ccache > /dev/null 2>&1
-    echo "Using ccache"
-    export PATH=/usr/local/opt/ccache/libexec:$PATH
-    gcc=$(which gcc)
-    echo "gcc: $gcc"
-    CCACHE=$(which ccache)
-    echo "ccache: $CCACHE"
-else
-    echo "Not using ccache"
-fi
-
 echo "source deactivate"
 source deactivate
 
@@ -99,8 +59,6 @@ echo "conda list (root environment)"
 conda list
 
 # Clean up any left-over from a previous build
-# (note workaround for https://github.com/conda/conda/issues/2679:
-#  `conda env remove` issue)
 conda remove --all -q -y -n pandas-dev
 
 echo
@@ -115,6 +73,12 @@ fi
 
 echo "activate pandas-dev"
 source activate pandas-dev
+
+# Explicitly set an environment variable indicating that this is pandas' CI environment.
+#
+# This allows us to enable things like -Werror that shouldn't be activated in
+# downstream CI jobs that may also build pandas from source.
+export PANDAS_CI=1
 
 echo
 echo "remove any installed pandas package"
@@ -139,14 +103,8 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
-python setup.py build_ext -q -i -j2
+python setup.py build_ext -q -j2
 
-# TODO: Some of our environments end up with old versions of pip (10.x)
-# Adding a new enough version of pip to the requirements explodes the
-# solve time. Just using pip to update itself.
-# - py35_macos
-# - py35_compat
-# - py36_32bit
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
 

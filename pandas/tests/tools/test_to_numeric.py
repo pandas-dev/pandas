@@ -4,8 +4,15 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+from pandas.compat import is_platform_arm
+
 import pandas as pd
-from pandas import DataFrame, Index, Series, to_numeric
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    to_numeric,
+)
 import pandas._testing as tm
 
 
@@ -48,8 +55,8 @@ def transform_assert_equal(request):
 @pytest.mark.parametrize(
     "input_kwargs,result_kwargs",
     [
-        (dict(), dict(dtype=np.int64)),
-        (dict(errors="coerce", downcast="integer"), dict(dtype=np.int8)),
+        ({}, {"dtype": np.int64}),
+        ({"errors": "coerce", "downcast": "integer"}, {"dtype": np.int8}),
     ],
 )
 def test_empty(input_kwargs, result_kwargs):
@@ -147,10 +154,10 @@ def test_list():
 @pytest.mark.parametrize(
     "data,arr_kwargs",
     [
-        ([1, 3, 4, 5], dict(dtype=np.int64)),
-        ([1.0, 3.0, 4.0, 5.0], dict()),
+        ([1, 3, 4, 5], {"dtype": np.int64}),
+        ([1.0, 3.0, 4.0, 5.0], {}),
         # Boolean is regarded as numeric.
-        ([True, False, True, True], dict()),
+        ([True, False, True, True], {}),
     ],
 )
 def test_list_numeric(data, arr_kwargs):
@@ -159,7 +166,7 @@ def test_list_numeric(data, arr_kwargs):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(dtype="O"), dict()])
+@pytest.mark.parametrize("kwargs", [{"dtype": "O"}, {}])
 def test_numeric(kwargs):
     data = [1, -3.14, 7]
 
@@ -182,13 +189,13 @@ def test_numeric(kwargs):
 def test_numeric_df_columns(columns):
     # see gh-14827
     df = DataFrame(
-        dict(
-            a=[1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), "0.1"],
-            b=[1.0, 2.0, 3.0, 4.0],
-        )
+        {
+            "a": [1.2, decimal.Decimal(3.14), decimal.Decimal("infinity"), "0.1"],
+            "b": [1.0, 2.0, 3.0, 4.0],
+        }
     )
 
-    expected = DataFrame(dict(a=[1.2, 3.14, np.inf, 0.1], b=[1.0, 2.0, 3.0, 4.0]))
+    expected = DataFrame({"a": [1.2, 3.14, np.inf, 0.1], "b": [1.0, 2.0, 3.0, 4.0]})
 
     df_copy = df.copy()
     df_copy[columns] = df_copy[columns].apply(to_numeric)
@@ -208,10 +215,10 @@ def test_numeric_df_columns(columns):
 )
 def test_numeric_embedded_arr_likes(data, exp_data):
     # Test to_numeric with embedded lists and arrays
-    df = DataFrame(dict(a=data))
+    df = DataFrame({"a": data})
     df["a"] = df["a"].apply(to_numeric)
 
-    expected = DataFrame(dict(a=exp_data))
+    expected = DataFrame({"a": exp_data})
     tm.assert_frame_equal(df, expected)
 
 
@@ -226,10 +233,8 @@ def test_all_nan():
 def test_type_check(errors):
     # see gh-11776
     df = DataFrame({"a": [1, -3.14, 7], "b": ["4", "5", "6"]})
-    kwargs = dict(errors=errors) if errors is not None else dict()
-    error_ctx = pytest.raises(TypeError, match="1-d array")
-
-    with error_ctx:
+    kwargs = {"errors": errors} if errors is not None else {}
+    with pytest.raises(TypeError, match="1-d array"):
         to_numeric(df, **kwargs)
 
 
@@ -241,7 +246,7 @@ def test_scalar(val, signed, transform):
 
 def test_really_large_scalar(large_val, signed, transform, errors):
     # see gh-24910
-    kwargs = dict(errors=errors) if errors is not None else dict()
+    kwargs = {"errors": errors} if errors is not None else {}
     val = -large_val if signed else large_val
 
     val = transform(val)
@@ -258,7 +263,7 @@ def test_really_large_scalar(large_val, signed, transform, errors):
 
 def test_really_large_in_arr(large_val, signed, transform, multiple_elts, errors):
     # see gh-24910
-    kwargs = dict(errors=errors) if errors is not None else dict()
+    kwargs = {"errors": errors} if errors is not None else {}
     val = -large_val if signed else large_val
     val = transform(val)
 
@@ -300,7 +305,7 @@ def test_really_large_in_arr_consistent(large_val, signed, multiple_elts, errors
     #
     # Even if we discover that we have to hold float, does not mean
     # we should be lenient on subsequent elements that fail to be integer.
-    kwargs = dict(errors=errors) if errors is not None else dict()
+    kwargs = {"errors": errors} if errors is not None else {}
     arr = [str(-large_val if signed else large_val)]
 
     if multiple_elts:
@@ -452,12 +457,12 @@ def test_errors_invalid_value():
     "kwargs,exp_dtype",
     [
         # Basic function tests.
-        (dict(), np.int64),
-        (dict(downcast=None), np.int64),
+        ({}, np.int64),
+        ({"downcast": None}, np.int64),
         # Support below np.float32 is rare and far between.
-        (dict(downcast="float"), np.dtype(np.float32).char),
+        ({"downcast": "float"}, np.dtype(np.float32).char),
         # Basic dtype support.
-        (dict(downcast="unsigned"), np.dtype(np.typecodes["UnsignedInteger"][0])),
+        ({"downcast": "unsigned"}, np.dtype(np.typecodes["UnsignedInteger"][0])),
     ],
 )
 def test_downcast_basic(data, kwargs, exp_dtype):
@@ -571,8 +576,8 @@ def test_downcast_limits(dtype, downcast, min_max):
     "ser,expected",
     [
         (
-            pd.Series([0, 9223372036854775808]),
-            pd.Series([0, 9223372036854775808], dtype=np.uint64),
+            Series([0, 9223372036854775808]),
+            Series([0, 9223372036854775808], dtype=np.uint64),
         )
     ],
 )
@@ -580,7 +585,7 @@ def test_downcast_uint64(ser, expected):
     # see gh-14422:
     # BUG: to_numeric doesn't work uint64 numbers
 
-    result = pd.to_numeric(ser, downcast="unsigned")
+    result = to_numeric(ser, downcast="unsigned")
 
     tm.assert_series_equal(result, expected)
 
@@ -635,8 +640,8 @@ def test_downcast_empty(dc1, dc2):
     # GH32493
 
     tm.assert_numpy_array_equal(
-        pd.to_numeric([], downcast=dc1),
-        pd.to_numeric([], downcast=dc2),
+        to_numeric([], downcast=dc1),
+        to_numeric([], downcast=dc2),
         check_dtype=False,
     )
 
@@ -647,5 +652,140 @@ def test_failure_to_convert_uint64_string_to_NaN():
     assert np.isnan(result)
 
     ser = Series([32, 64, np.nan])
-    result = to_numeric(pd.Series(["32", "64", "uint64"]), errors="coerce")
+    result = to_numeric(Series(["32", "64", "uint64"]), errors="coerce")
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize(
+    "strrep",
+    [
+        "243.164",
+        "245.968",
+        "249.585",
+        "259.745",
+        "265.742",
+        "272.567",
+        "279.196",
+        "280.366",
+        "275.034",
+        "271.351",
+        "272.889",
+        "270.627",
+        "280.828",
+        "290.383",
+        "308.153",
+        "319.945",
+        "336.0",
+        "344.09",
+        "351.385",
+        "356.178",
+        "359.82",
+        "361.03",
+        "367.701",
+        "380.812",
+        "387.98",
+        "391.749",
+        "391.171",
+        "385.97",
+        "385.345",
+        "386.121",
+        "390.996",
+        "399.734",
+        "413.073",
+        "421.532",
+        "430.221",
+        "437.092",
+        "439.746",
+        "446.01",
+        "451.191",
+        "460.463",
+        "469.779",
+        "472.025",
+        "479.49",
+        "474.864",
+        "467.54",
+        "471.978",
+    ],
+)
+def test_precision_float_conversion(strrep):
+    # GH 31364
+    result = to_numeric(strrep)
+
+    assert result == float(strrep)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (["1", "2", None], Series([1, 2, np.nan])),
+        (["1", "2", "3"], Series([1, 2, 3])),
+        (["1", "2", 3], Series([1, 2, 3])),
+        (["1", "2", 3.5], Series([1, 2, 3.5])),
+        (["1", None, 3.5], Series([1, np.nan, 3.5])),
+        (["1", "2", "3.5"], Series([1, 2, 3.5])),
+    ],
+)
+def test_to_numeric_from_nullable_string(values, nullable_string_dtype, expected):
+    # https://github.com/pandas-dev/pandas/issues/37262
+    s = Series(values, dtype=nullable_string_dtype)
+    result = to_numeric(s)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, input_dtype, downcast, expected_dtype",
+    (
+        ([1, 1], "Int64", "integer", "Int8"),
+        ([1.0, pd.NA], "Float64", "integer", "Int8"),
+        ([1.0, 1.1], "Float64", "integer", "Float64"),
+        ([1, pd.NA], "Int64", "integer", "Int8"),
+        ([450, 300], "Int64", "integer", "Int16"),
+        ([1, 1], "Float64", "integer", "Int8"),
+        ([np.iinfo(np.int64).max - 1, 1], "Int64", "integer", "Int64"),
+        ([1, 1], "Int64", "signed", "Int8"),
+        ([1.0, 1.0], "Float32", "signed", "Int8"),
+        ([1.0, 1.1], "Float64", "signed", "Float64"),
+        ([1, pd.NA], "Int64", "signed", "Int8"),
+        ([450, -300], "Int64", "signed", "Int16"),
+        pytest.param(
+            [np.iinfo(np.uint64).max - 1, 1],
+            "UInt64",
+            "signed",
+            "UInt64",
+            marks=pytest.mark.xfail(not is_platform_arm(), reason="GH38798"),
+        ),
+        ([1, 1], "Int64", "unsigned", "UInt8"),
+        ([1.0, 1.0], "Float32", "unsigned", "UInt8"),
+        ([1.0, 1.1], "Float64", "unsigned", "Float64"),
+        ([1, pd.NA], "Int64", "unsigned", "UInt8"),
+        ([450, -300], "Int64", "unsigned", "Int64"),
+        ([-1, -1], "Int32", "unsigned", "Int32"),
+        ([1, 1], "Float64", "float", "Float32"),
+        ([1, 1.1], "Float64", "float", "Float32"),
+    ),
+)
+def test_downcast_nullable_numeric(data, input_dtype, downcast, expected_dtype):
+    arr = pd.array(data, dtype=input_dtype)
+    result = to_numeric(arr, downcast=downcast)
+    expected = pd.array(data, dtype=expected_dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_downcast_nullable_mask_is_copied():
+    # GH38974
+
+    arr = pd.array([1, 2, pd.NA], dtype="Int64")
+
+    result = to_numeric(arr, downcast="integer")
+    expected = pd.array([1, 2, pd.NA], dtype="Int8")
+    tm.assert_extension_array_equal(result, expected)
+
+    arr[1] = pd.NA  # should not modify result
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_numeric_scientific_notation():
+    # GH 15898
+    result = to_numeric("1.7e+308")
+    expected = np.float64(1.7e308)
+    assert result == expected

@@ -1,6 +1,7 @@
 
 from cpython.object cimport PyTypeObject
 
+
 cdef extern from *:
     """
     PyObject* char_to_string(const char* data) {
@@ -26,7 +27,11 @@ cdef extern from "Python.h":
     const char* PyUnicode_AsUTF8AndSize(object obj,
                                         Py_ssize_t* length) except NULL
 
-from numpy cimport int64_t, float64_t
+from numpy cimport (
+    float64_t,
+    int64_t,
+)
+
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
@@ -119,6 +124,10 @@ cdef inline bint is_bool_object(object obj) nogil:
     """
     return (PyBool_Check(obj) or
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
+
+
+cdef inline bint is_real_number_object(object obj) nogil:
+    return is_bool_object(obj) or is_integer_object(obj) or is_float_object(obj)
 
 
 cdef inline bint is_timedelta64_object(object obj) nogil:

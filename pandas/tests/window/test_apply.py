@@ -1,10 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas.errors import NumbaUtilError
-import pandas.util._test_decorators as td
-
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, compat, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -47,7 +51,7 @@ def test_rolling_apply_with_pandas_objects(window):
     expected = df.iloc[2:].reindex_like(df)
     tm.assert_frame_equal(result, expected)
 
-    with pytest.raises(AttributeError):
+    with tm.external_error_raised(AttributeError):
         df.rolling(window).apply(f, raw=True)
 
 
@@ -133,16 +137,7 @@ def test_invalid_raw_numba():
         Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
 
 
-@td.skip_if_no("numba")
-def test_invalid_kwargs_nopython():
-    with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
-        Series(range(1)).rolling(1).apply(
-            lambda x: x, kwargs={"a": 1}, engine="numba", raw=True
-        )
-
-
 @pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
-@pytest.mark.xfail(not compat.IS64, reason="GH-35294")
 def test_rolling_apply_args_kwargs(args_kwargs):
     # GH 33433
     def foo(x, par):
@@ -155,8 +150,6 @@ def test_rolling_apply_args_kwargs(args_kwargs):
 
     result = df.rolling(1).apply(foo, args=args_kwargs[0], kwargs=args_kwargs[1])
     tm.assert_frame_equal(result, expected)
-
-    result = df.rolling(1).apply(foo, args=(10,))
 
     midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
     expected = Series([11.0, 12.0], index=midx, name="a")

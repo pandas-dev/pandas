@@ -7,9 +7,15 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.core.computation.check import _NUMEXPR_INSTALLED
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 PARSERS = "python", "pandas"
 ENGINES = "python", pytest.param("numexpr", marks=td.skip_if_no_ne)
@@ -39,7 +45,7 @@ class TestCompat:
     def test_query_default(self):
 
         # GH 12749
-        # this should always work, whether _NUMEXPR_INSTALLED or not
+        # this should always work, whether NUMEXPR_INSTALLED or not
         df = self.df
         result = df.query("A>0")
         tm.assert_frame_equal(result, self.expected1)
@@ -65,7 +71,7 @@ class TestCompat:
     def test_query_numexpr(self):
 
         df = self.df
-        if _NUMEXPR_INSTALLED:
+        if NUMEXPR_INSTALLED:
             result = df.query("A>0", engine="numexpr")
             tm.assert_frame_equal(result, self.expected1)
             result = df.eval("A+1", engine="numexpr")
@@ -127,7 +133,7 @@ class TestDataFrameEval:
     def test_dataframe_sub_numexpr_path(self):
         # GH7192: Note we need a large number of rows to ensure this
         #  goes through the numexpr path
-        df = DataFrame(dict(A=np.random.randn(25000)))
+        df = DataFrame({"A": np.random.randn(25000)})
         df.iloc[0:5] = np.nan
         expected = 1 - np.isnan(df.iloc[0:25])
         result = (1 - np.isnan(df)).iloc[0:25]
@@ -135,7 +141,7 @@ class TestDataFrameEval:
 
     def test_query_non_str(self):
         # GH 11485
-        df = pd.DataFrame({"A": [1, 2, 3], "B": ["a", "b", "b"]})
+        df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "b"]})
 
         msg = "expr must be a string to be evaluated"
         with pytest.raises(ValueError, match=msg):
@@ -146,7 +152,7 @@ class TestDataFrameEval:
 
     def test_query_empty_string(self):
         # GH 13139
-        df = pd.DataFrame({"A": [1, 2, 3]})
+        df = DataFrame({"A": [1, 2, 3]})
 
         msg = "expr cannot be an empty string"
         with pytest.raises(ValueError, match=msg):
@@ -159,6 +165,13 @@ class TestDataFrameEval:
         dict2 = {"b": 2}
         assert df.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
         assert pd.eval("a + b", resolvers=[dict1, dict2]) == dict1["a"] + dict2["b"]
+
+    def test_eval_object_dtype_binop(self):
+        # GH#24883
+        df = DataFrame({"a1": ["Y", "N"]})
+        res = df.eval("c = ((a1 == 'Y') & True)")
+        expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
+        tm.assert_frame_equal(res, expected)
 
 
 class TestDataFrameQueryWithMultiIndex:
@@ -626,9 +639,7 @@ class TestDataFrameQueryNumExprPandas:
         res = df.query(
             "a < b < c and a not in b not in c", engine=engine, parser=parser
         )
-        ind = (
-            (df.a < df.b) & (df.b < df.c) & ~df.b.isin(df.a) & ~df.c.isin(df.b)
-        )  # noqa
+        ind = (df.a < df.b) & (df.b < df.c) & ~df.b.isin(df.a) & ~df.c.isin(df.b)
         expec = df[ind]
         tm.assert_frame_equal(res, expec)
 
@@ -708,15 +719,15 @@ class TestDataFrameQueryNumExprPandas:
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
-        df_index = pd.date_range(
+        df_index = date_range(
             start="2019-01-01", freq="1d", periods=10, tz=tz, name="time"
         )
-        expected = pd.DataFrame(index=df_index)
-        df = pd.DataFrame(index=df_index)
+        expected = DataFrame(index=df_index)
+        df = DataFrame(index=df_index)
         result = df.query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
-        expected = pd.DataFrame(df_index)
+        expected = DataFrame(df_index)
         result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
@@ -1040,7 +1051,7 @@ class TestDataFrameQueryStrings:
 
     def test_query_string_scalar_variable(self, parser, engine):
         skip_if_no_pandas_parser(parser)
-        df = pd.DataFrame(
+        df = DataFrame(
             {
                 "Symbol": ["BUD US", "BUD US", "IBM US", "IBM US"],
                 "Price": [109.70, 109.72, 183.30, 183.35],

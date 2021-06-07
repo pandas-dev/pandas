@@ -82,7 +82,7 @@ API changes
 
 - The :meth:`DataFrame.interpolate` keyword ``downcast`` default has been changed from ``infer`` to
   ``None``. This is to preserve the original dtype unless explicitly requested otherwise (:issue:`6290`).
-- When converting a dataframe to HTML it used to return `Empty DataFrame`. This special case has
+- When converting a dataframe to HTML it used to return ``Empty DataFrame``. This special case has
   been removed, instead a header with the column names is returned (:issue:`6062`).
 - ``Series`` and ``Index`` now internally share more common operations, e.g. ``factorize(),nunique(),value_counts()`` are
   now supported on ``Index`` types as well. The ``Series.weekday`` property from is removed
@@ -171,7 +171,7 @@ API changes
   ``expanding_cov``, ``expanding_corr`` to allow the calculation of moving
   window covariance and correlation matrices (:issue:`4950`). See
   :ref:`Computing rolling pairwise covariances and correlations
-  <stats.moments.corr_pairwise>` in the docs.
+  <window.corr_pairwise>` in the docs.
 
   .. code-block:: ipython
 
@@ -291,12 +291,12 @@ Display changes
 - Regression in the display of a MultiIndexed Series with ``display.max_rows`` is less than the
   length of the series (:issue:`7101`)
 - Fixed a bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the
-  `large_repr` set to 'info' (:issue:`7105`)
-- The `verbose` keyword in ``DataFrame.info()``, which controls whether to shorten the ``info``
+  ``large_repr`` set to 'info' (:issue:`7105`)
+- The ``verbose`` keyword in ``DataFrame.info()``, which controls whether to shorten the ``info``
   representation, is now ``None`` by default. This will follow the global setting in
   ``display.max_info_columns``. The global setting can be overridden with ``verbose=True`` or
   ``verbose=False``.
-- Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
+- Fixed a bug with the ``info`` repr not honoring the ``display.max_info_columns`` setting (:issue:`6939`)
 - Offset/freq info now in Timestamp __repr__ (:issue:`4553`)
 
 .. _whatsnew_0140.parsing:
@@ -603,11 +603,11 @@ Plotting
 
 - Following keywords are now acceptable for :meth:`DataFrame.plot` with ``kind='bar'`` and ``kind='barh'``:
 
-  - `width`: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
-  - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
-  - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
+  - ``width``: Specify the bar width. In previous versions, static value 0.5 was passed to matplotlib and it cannot be overwritten. (:issue:`6604`)
+  - ``align``: Specify the bar alignment. Default is ``center`` (different from matplotlib). In previous versions, pandas passes ``align='edge'`` to matplotlib and adjust the location to ``center`` by itself, and it results ``align`` keyword is not applied as expected. (:issue:`4525`)
+  - ``position``: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
 
-  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coordinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
+  Because of the default ``align`` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coordinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using ``set_xlim``, ``set_ylim``, etc. In this cases, please modify your script to meet with new coordinates.
 
 - The :func:`parallel_coordinates` function now takes argument ``color``
   instead of ``colors``. A ``FutureWarning`` is raised to alert that
@@ -618,7 +618,7 @@ Plotting
   raised if the old ``data`` argument is used by name. (:issue:`6956`)
 
 - :meth:`DataFrame.boxplot` now supports ``layout`` keyword (:issue:`6769`)
-- :meth:`DataFrame.boxplot` has a new keyword argument, `return_type`. It accepts ``'dict'``,
+- :meth:`DataFrame.boxplot` has a new keyword argument, ``return_type``. It accepts ``'dict'``,
   ``'axes'``, or ``'both'``, in which case a namedtuple with the matplotlib
   axes and a dict of matplotlib Lines is returned.
 
@@ -721,8 +721,8 @@ Deprecations
 
 - The following ``io.sql`` functions have been deprecated: ``tquery``, ``uquery``, ``read_frame``, ``frame_query``, ``write_frame``.
 
-- The `percentile_width` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
-  Use the `percentiles` keyword instead, which takes a list of percentiles to display. The
+- The ``percentile_width`` keyword argument in :meth:`~DataFrame.describe` has been deprecated.
+  Use the ``percentiles`` keyword instead, which takes a list of percentiles to display. The
   default output is unchanged.
 
 - The default return type of :func:`boxplot` will change from a dict to a matplotlib Axes
@@ -851,7 +851,7 @@ Enhancements
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)
 
-- `PeriodIndex` fully supports partial string indexing like `DatetimeIndex` (:issue:`7043`)
+- ``PeriodIndex`` fully supports partial string indexing like ``DatetimeIndex`` (:issue:`7043`)
 
   .. ipython:: python
 
@@ -868,7 +868,7 @@ Enhancements
 - ``Series.rank()`` now has a percentage rank option (:issue:`5971`)
 - ``Series.rank()`` and ``DataFrame.rank()`` now accept ``method='dense'`` for ranks without gaps (:issue:`6514`)
 - Support passing ``encoding`` with xlwt (:issue:`3710`)
-- Refactor Block classes removing `Block.items` attributes to avoid duplication
+- Refactor Block classes removing ``Block.items`` attributes to avoid duplication
   in item handling (:issue:`6745`, :issue:`6988`).
 - Testing statements updated to use specialized asserts (:issue:`6175`)
 
@@ -923,7 +923,7 @@ Bug fixes
 - ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
 - ``HDFStore.select_as_coordinates`` and ``select_column`` works with a ``where`` clause that results in filters (:issue:`6177`)
 - Regression in join of non_unique_indexes (:issue:`6329`)
-- Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
+- Issue with groupby ``agg`` with a single function and a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
 - Raise when trying to align on different levels of a MultiIndex assignment (:issue:`3738`)
@@ -1063,10 +1063,10 @@ Bug fixes
 - Bug in ``MultiIndex.get_level_values`` doesn't preserve ``DatetimeIndex`` and ``PeriodIndex`` attributes (:issue:`7092`)
 - Bug in ``Groupby`` doesn't preserve ``tz`` (:issue:`3950`)
 - Bug in ``PeriodIndex`` partial string slicing (:issue:`6716`)
-- Bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the `large_repr` set to 'info'
+- Bug in the HTML repr of a truncated Series or DataFrame not showing the class name with the ``large_repr`` set to 'info'
   (:issue:`7105`)
 - Bug in ``DatetimeIndex`` specifying ``freq`` raises ``ValueError`` when passed value is too short (:issue:`7098`)
-- Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
+- Fixed a bug with the ``info`` repr not honoring the ``display.max_info_columns`` setting (:issue:`6939`)
 - Bug ``PeriodIndex`` string slicing with out of bounds values (:issue:`5407`)
 - Fixed a memory error in the hashtable implementation/factorizer on resizing of large tables (:issue:`7157`)
 - Bug in ``isnull`` when applied to 0-dimensional object arrays (:issue:`7176`)

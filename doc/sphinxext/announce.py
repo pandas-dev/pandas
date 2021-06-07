@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- encoding:utf-8 -*-
 """
 Script to generate contributor and pull request lists
 
@@ -55,7 +54,7 @@ A total of %d pull requests were merged for this release.
 
 def get_authors(revision_range):
     pat = "^.*\\t(.*)$"
-    lst_release, cur_release = [r.strip() for r in revision_range.split("..")]
+    lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
 
     if "|" in cur_release:
         # e.g. v1.0.1|HEAD
@@ -120,7 +119,7 @@ def get_pull_requests(repo, revision_range):
 
 
 def build_components(revision_range, heading="Contributors"):
-    lst_release, cur_release = [r.strip() for r in revision_range.split("..")]
+    lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
     authors = get_authors(revision_range)
 
     return {

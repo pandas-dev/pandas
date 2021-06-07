@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -33,7 +36,7 @@ class TestTimestampArithmetic:
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp("2017-01-13 00:00:00", freq="D")
+        stamp = Timestamp("2017-01-13 00:00:00")
         offset_overflow = 20169940 * offsets.Day(1)
         msg = (
             "the add operation between "
@@ -113,7 +116,9 @@ class TestTimestampArithmetic:
         td = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        ts = Timestamp(dt, freq="D")
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            # freq deprecated
+            ts = Timestamp(dt, freq="D")
 
         msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
@@ -145,6 +150,8 @@ class TestTimestampArithmetic:
             ("M", None, np.timedelta64(1, "M")),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
         original_freq = ts.freq
@@ -186,8 +193,8 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize(
         "ts",
         [
-            Timestamp("1776-07-04", freq="D"),
-            Timestamp("1776-07-04", tz="UTC", freq="D"),
+            Timestamp("1776-07-04"),
+            Timestamp("1776-07-04", tz="UTC"),
         ],
     )
     @pytest.mark.parametrize(
@@ -213,7 +220,7 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
-    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray(self, shape):
         # GH#33296
         ts = Timestamp("2020-04-04 15:45")
@@ -237,7 +244,7 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
-    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray_tzaware(self, shape):
         # GH#33296
         ts = Timestamp("2020-04-04 15:45", tz="US/Pacific")
