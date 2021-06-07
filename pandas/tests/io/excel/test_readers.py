@@ -4,6 +4,7 @@ from datetime import (
 )
 from functools import partial
 import os
+from pathlib import Path
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -1512,3 +1513,21 @@ class TestExcelFileRead:
             )
         with pd.ExcelFile("chartsheet" + read_ext) as excel:
             assert excel.sheet_names == ["Sheet1"]
+
+    def test_corrupt_files_closed(self, request, engine, read_ext):
+        # GH41778
+        errors = (BadZipFile,)
+        if engine is None:
+            pytest.skip()
+        elif engine == "xlrd":
+            import xlrd
+
+            errors = (BadZipFile, xlrd.biffh.XLRDError)
+
+        with tm.ensure_clean(f"corrupt{read_ext}") as file:
+            Path(file).write_text("corrupt")
+            with tm.assert_produces_warning(False):
+                try:
+                    pd.ExcelFile(file, engine=engine)
+                except errors:
+                    pass
