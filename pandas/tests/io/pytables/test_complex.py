@@ -205,4 +205,4 @@ def test_complex_append(setup_path):
         store.append("df", df, data_columns=["b"])
         store.append("df", df)
         result = store.select("df")
-        tm.assert_frame_equal(pd.concat([df, df], 0), result)
+        tm.assert_frame_equal(pd.concat([df, df], axis=0), result)

@@ -716,6 +716,26 @@ cdef class BaseOffset:
         # if there were a canonical docstring for what is_anchored means.
         return self.n == 1
 
+    # ------------------------------------------------------------------
+
+    def is_month_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_start", self)
+
+    def is_month_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_end", self)
+
+    def is_quarter_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_start", self)
+
+    def is_quarter_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_end", self)
+
+    def is_year_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_start", self)
+
+    def is_year_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_end", self)
+
 
 cdef class SingleConstructorOffset(BaseOffset):
     @classmethod
