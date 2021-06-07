@@ -23,11 +23,15 @@ class TestEWM:
             .ewm(0.5, adjust=adjust, ignore_na=ignore_na)
             .online(engine_kwargs=engine_kwargs)
         )
-        result = online_ewm.mean()
-        tm.assert_frame_equal(result, expected.head(2))
+        # Test resetting once
+        for i in range(2):
+            result = online_ewm.mean()
+            tm.assert_frame_equal(result, expected.head(2))
 
-        result = online_ewm.update(update=df.tail(3))
-        tm.assert_frame_equal(result, expected.tail(3))
+            result = online_ewm.update(update=df.tail(3))
+            tm.assert_frame_equal(result, expected.tail(3))
+
+            online_ewm.reset()
 
     def test_update_times(self, nogil, parallel, nopython, adjust, ignore_na):
         times = Series(
@@ -45,8 +49,12 @@ class TestEWM:
             .ewm(0.5, adjust=adjust, ignore_na=ignore_na, times=times.head(2))
             .online(engine_kwargs=engine_kwargs)
         )
-        result = online_ewm.mean()
-        tm.assert_frame_equal(result, expected.head(2))
+        # Test resetting once
+        for i in range(2):
+            result = online_ewm.mean()
+            tm.assert_frame_equal(result, expected.head(2))
 
-        result = online_ewm.update(update=df.tail(3), update_times=times.tail(3))
-        tm.assert_frame_equal(result, expected.tail(3))
+            result = online_ewm.update(update=df.tail(3), update_times=times.tail(3))
+            tm.assert_frame_equal(result, expected.tail(3))
+
+            online_ewm.reset()
