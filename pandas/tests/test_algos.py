@@ -194,7 +194,7 @@ class TestFactorize:
         # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype="O")
-        rizer = ht.Factorizer(len(key))
+        rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype="int32")

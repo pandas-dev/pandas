@@ -439,12 +439,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                         "explicitly specify the categories order "
                         "by passing in a categories argument."
                     ) from err
-            except ValueError as err:
-
-                # TODO(EA2D)
-                raise NotImplementedError(
-                    "> 1 ndim Categorical are not supported at this time"
-                ) from err
 
             # we're inferring from values
             dtype = CategoricalDtype(categories, dtype.ordered)
@@ -1413,7 +1407,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = np.array(locs, dtype=self.codes.dtype)  # type: ignore[assignment]
         return codes
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
         underlying ndarray, raising TypeError if this is not possible.
@@ -1441,8 +1435,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "in this Categorical's categories"
             )
         return fill_value
-
-    _validate_scalar = _validate_fill_value
 
     # -------------------------------------------------------------
 
@@ -1861,6 +1853,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @_codes.setter
     def _codes(self, value: np.ndarray):
+        warn(
+            "Setting the codes on a Categorical is deprecated and will raise in "
+            "a future version. Create a new Categorical object instead",
+            FutureWarning,
+            stacklevel=2,
+        )  # GH#40606
         NDArrayBacked.__init__(self, value, self.dtype)
 
     def _box_func(self, i: int):
@@ -2183,11 +2181,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if dropna:
             good = self._codes != -1
             codes = self._codes[good]
-        # error: Incompatible types in assignment (expression has type "List[Any]",
-        # variable has type "ndarray")
-        codes = sorted(  # type: ignore[assignment]
-            htable.mode_int64(ensure_int64(codes), dropna)
-        )
+
+        codes = htable.mode(codes, dropna)
+        codes.sort()
         codes = coerce_indexer_dtype(codes, self.dtype.categories)
         return self._from_backing_data(codes)
 
@@ -2449,7 +2445,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------------
     # String methods interface
-    def _str_map(self, f, na_value=np.nan, dtype=np.dtype("object")):
+    def _str_map(
+        self, f, na_value=np.nan, dtype=np.dtype("object"), convert: bool = True
+    ):
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.

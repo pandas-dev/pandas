@@ -261,7 +261,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         apply box func to passed values
         """
-        return lib.map_infer(values, self._box_func)
+        return lib.map_infer(values, self._box_func, convert=False)
 
     def __iter__(self):
         if self.ndim > 1:
@@ -557,27 +557,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return other
 
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to an i8 representation,
-        raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : np.int64, np.datetime64, or np.timedelta64
-
-        Raises
-        ------
-        TypeError
-        """
-        return self._validate_scalar(fill_value)
-
     def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
+        # TODO(2.0): once this deprecation is enforced, use _validate_scalar
         if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
@@ -599,7 +580,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=8,
+                # There is no way to hard-code the level since this might be
+                #  reached directly or called from the Index or Block method
+                stacklevel=find_stack_level(),
             )
             fill_value = new_fill
 
@@ -1693,11 +1676,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
-
-    def copy(self: TimelikeOpsT) -> TimelikeOpsT:
-        result = super().copy()
-        result._freq = self._freq
-        return result
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
