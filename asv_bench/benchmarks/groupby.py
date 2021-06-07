@@ -389,6 +389,26 @@ class FillNA:
         self.df.groupby("group")["value"].fillna(method="bfill")
 
 
+class UInt64:
+    def setup(self):
+        N = 100
+        uints = np.random.randint(0, 10, size=N).astype("uint64")
+        ints = np.random.randint(0, 10, size=N).astype("int64")
+        self.df = DataFrame({"u": uints, "i": ints})
+
+    def time_df_min_uint_groups(self):
+        self.df.groupby("u").min()
+
+    def time_df_min_uint_vals(self):
+        self.df.groupby("i").min()
+
+    def time_srs_min_uint_groups(self):
+        self.df.groupby("u")["i"].min()
+
+    def time_srs_min_uint_vals(self):
+        self.df.groupby("i")["u"].min()
+
+
 class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
