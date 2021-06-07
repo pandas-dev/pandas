@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     Categorical,
     DataFrame,
     Series,
@@ -26,7 +27,6 @@ class Dtypes:
 
 
 class Construction:
-
     params = ["str", "string"]
     param_names = ["dtype"]
 
@@ -61,12 +61,6 @@ class Construction:
 
     def peakmem_cat_frame_construction(self, dtype):
         DataFrame(self.frame_cat_arr, dtype=dtype)
-
-    def time_string_array_construction(self, dtype):
-        StringArray(self.series_arr)
-
-    def peakmem_stringarray_construction(self, dtype):
-        StringArray(self.series_arr)
 
 
 class Methods(Dtypes):
@@ -184,7 +178,6 @@ class Methods(Dtypes):
 
 
 class Repeat:
-
     params = ["int", "array"]
     param_names = ["repeats"]
 
@@ -199,7 +192,6 @@ class Repeat:
 
 
 class Cat:
-
     params = ([0, 3], [None, ","], [None, "-"], [0.0, 0.001, 0.15])
     param_names = ["other_cols", "sep", "na_rep", "na_frac"]
 
@@ -224,7 +216,6 @@ class Cat:
 
 
 class Contains(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "regex"]
 
@@ -236,7 +227,6 @@ class Contains(Dtypes):
 
 
 class Split(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
@@ -252,7 +242,6 @@ class Split(Dtypes):
 
 
 class Extract(Dtypes):
-
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
@@ -294,3 +283,18 @@ class Iter(Dtypes):
     def time_iter(self, dtype):
         for i in self.s:
             pass
+
+
+class StringArrayConstruction:
+    def setup(self):
+        self.series_arr = tm.rands_array(nchars=10, size=10 ** 5)
+        self.series_arr_nan = np.concatenate([self.series_arr, np.array([NA] * 1000)])
+
+    def time_string_array_construction(self):
+        StringArray(self.series_arr)
+
+    def time_string_array_with_nan_construction(self):
+        StringArray(self.series_arr_nan)
+
+    def peakmem_stringarray_construction(self):
+        StringArray(self.series_arr)
