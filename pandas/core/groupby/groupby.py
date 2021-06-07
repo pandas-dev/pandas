@@ -2985,7 +2985,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             needs_ngroups=True,
             result_is_index=True,
             periods=periods,
-            fill_value=fill_value
+            fill_value=fill_value,
         )
 
     @final
