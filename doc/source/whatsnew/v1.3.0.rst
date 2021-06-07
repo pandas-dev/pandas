@@ -193,7 +193,7 @@ Other enhancements
 - :func:`read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
-- Add support for dict-like names in :meth:`Index.set_names` and :meth:`.Index.rename` in the case of a :class:`MultiIndex` (:issue:`20421`)
+- Added support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
 - :func:`read_excel` can now auto-detect .xlsb files and older .xls files (:issue:`35416`, :issue:`41225`)
 - :class:`ExcelWriter` now accepts an ``if_sheet_exists`` parameter to control the behaviour of append mode when writing to existing sheets (:issue:`40230`)
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.ExponentialMovingWindow.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`38895`, :issue:`41267`)
@@ -659,9 +659,10 @@ Deprecations
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
 - Deprecated using :func:`merge`, :meth:`DataFrame.merge`, and :meth:`DataFrame.join` on a different number of levels (:issue:`34862`)
 - Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
-- Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations (e.g. :meth:`DataFrame.sum`); use groupby instead (:issue:`39983`)
+- Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
 - Deprecated the ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.set_categories` and will be removed in a future version (:issue:`37643`)
 - Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
+- Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
 - Deprecated the ``convert_float`` optional argument in :func:`read_excel` and :meth:`ExcelFile.parse` (:issue:`41127`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for :func:`read_csv` with ``engine="c"`` (:issue:`25623`)
@@ -907,7 +908,7 @@ Indexing
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` with timezone aware indexes raising a ``TypeError`` for ``method="ffill"`` and ``method="bfill"`` and specified ``tolerance`` (:issue:`38566`)
 - Bug in :meth:`DataFrame.reindex` with ``datetime64[ns]`` or ``timedelta64[ns]`` incorrectly casting to integers when the ``fill_value`` requires casting to object dtype (:issue:`39755`)
 - Bug in :meth:`DataFrame.__setitem__` raising a ``ValueError`` when setting on an empty :class:`DataFrame` using specified columns and a nonempty :class:`DataFrame` value (:issue:`38831`)
-- Bug in :meth:`DataFrame.loc.__setitem__` raising ValueError when operating on a unique column when the :class:`DataFrame` has duplicate columns (:issue:`38521`)
+- Bug in :meth:`DataFrame.loc.__setitem__` raising a ``ValueError`` when operating on a unique column when the :class:`DataFrame` has duplicate columns (:issue:`38521`)
 - Bug in :meth:`DataFrame.iloc.__setitem__` and :meth:`DataFrame.loc.__setitem__` with mixed dtypes when setting with a dictionary value (:issue:`38335`)
 - Bug in :meth:`Series.loc.__setitem__` and :meth:`DataFrame.loc.__setitem__` raising ``KeyError`` when provided a Boolean generator (:issue:`39614`)
 - Bug in :meth:`Series.iloc` and :meth:`DataFrame.iloc` raising a ``KeyError`` when provided a generator (:issue:`39614`)
@@ -1089,10 +1090,10 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 
-- Bug in :meth:`DataFrame.where` when ``other`` is a Series with :class:`ExtensionArray` dtype (:issue:`38729`)
+- Bug in :meth:`DataFrame.where` when ``other`` is a Series with an :class:`ExtensionDtype` (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Series.argmax`, and :meth:`Series.argmin` would fail when the underlying data is an :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 - Fixed bug where some properties of subclasses of :class:`PandasExtensionDtype` where improperly cached (:issue:`40329`)
-- Bug in :meth:`DataFrame.mask` where masking a DataFrame with an :class:`ExtensionArray` dtype raises ``ValueError`` (:issue:`40941`)
+- Bug in :meth:`DataFrame.mask` where masking a DataFrame with an :class:`ExtensionDtype` raises a ``ValueError`` (:issue:`40941`)
 
 Styler
 ^^^^^^
