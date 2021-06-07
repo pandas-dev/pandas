@@ -15,7 +15,6 @@ from pandas._typing import (
     FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
 )
-from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -344,7 +343,31 @@ class ExponentialMovingWindow(BaseWindow):
         return ExponentialMovingWindowIndexer()
 
     def online(self, engine="numba", engine_kwargs=None):
-        import_optional_dependency("numba")
+        """
+        Return an ``OnlineExponentialMovingWindow`` object to calculate
+        exponentially moving window aggregations in an online method.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        engine: str, default ``'numba'``
+            Execution engine to calculate online aggregations.
+            Applies to all supported aggregation methods.
+
+        engine_kwargs : dict, default None
+            Applies to all supported aggregation methods.
+
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+              applied to the function
+
+        Returns
+        -------
+        OnlineExponentialMovingWindow
+        """
         return OnlineExponentialMovingWindow(
             obj=self.obj,
             com=self.com,
@@ -714,8 +737,11 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         self._mean = EWMMeanState(
             self._com, self.adjust, self.ignore_na, self.axis, obj.shape
         )
-        self.engine = engine
-        self.engine_kwargs = engine_kwargs
+        if maybe_use_numba(engine):
+            self.engine = engine
+            self.engine_kwargs = engine_kwargs
+        else:
+            raise ValueError("'numba' is the only supported engine")
 
     def reset(self):
         """
