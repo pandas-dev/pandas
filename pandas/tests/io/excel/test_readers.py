@@ -4,6 +4,7 @@ from datetime import (
 )
 from functools import partial
 import os
+from pathlib import Path
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -21,6 +22,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.io.excel import xlrd_version
+from pandas.util.version import Version
 
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
@@ -70,7 +72,7 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
     if (
         engine == "xlrd"
         and xlrd_version is not None
-        and xlrd_version >= "2"
+        and xlrd_version >= Version("2")
         and read_ext != ".xls"
     ):
         return False
@@ -433,9 +435,17 @@ class TestReaders:
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        actual = pd.read_excel(
-            basename + read_ext, sheet_name="Sheet1", convert_float=False
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="convert_float is deprecated",
+            raise_on_extra_warnings=False,
+        ):
+            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
+            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
+            # See GH#41176
+            actual = pd.read_excel(
+                basename + read_ext, sheet_name="Sheet1", convert_float=False
+            )
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
@@ -455,12 +465,20 @@ class TestReaders:
 
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        actual = pd.read_excel(
-            basename + read_ext,
-            sheet_name="Sheet1",
-            convert_float=False,
-            converters={"StrCol": str},
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="convert_float is deprecated",
+            raise_on_extra_warnings=False,
+        ):
+            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
+            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
+            # See GH#41176
+            actual = pd.read_excel(
+                basename + read_ext,
+                sheet_name="Sheet1",
+                convert_float=False,
+                converters={"StrCol": str},
+            )
         tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
@@ -553,6 +571,14 @@ class TestReaders:
 
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
+
+    @pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+    def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
+        # GH#35211
+        basename = "df_mangle_dup_col_dtypes"
+        result = pd.read_excel(basename + read_ext, dtype={"a": str, **dtypes})
+        expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        tm.assert_frame_equal(result, expected)
 
     def test_reader_spaces(self, read_ext):
         # see gh-32207
@@ -718,9 +744,20 @@ class TestReaders:
 
     def test_corrupt_bytes_raises(self, read_ext, engine):
         bad_stream = b"foo"
-        if engine is None or engine == "xlrd":
+        if engine is None:
             error = ValueError
-            msg = "File is not a recognized excel file"
+            msg = (
+                "Excel file format cannot be determined, you must "
+                "specify an engine manually."
+            )
+        elif engine == "xlrd":
+            from xlrd import XLRDError
+
+            error = XLRDError
+            msg = (
+                "Unsupported format, or corrupt file: Expected BOF "
+                "record; found b'foo'"
+            )
         else:
             error = BadZipFile
             msg = "File is not a zip file"
@@ -1193,6 +1230,26 @@ class TestReaders:
         result = pd.read_excel(file_name)
         tm.assert_frame_equal(result, expected)
 
+    def test_multiheader_two_blank_lines(self, read_ext):
+        # GH 40442
+        file_name = "testmultiindex" + read_ext
+        columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
+        data = [[np.nan, np.nan], [np.nan, np.nan], [1, 3], [2, 4]]
+        expected = DataFrame(data, columns=columns)
+        result = pd.read_excel(
+            file_name, sheet_name="mi_column_empty_rows", header=[0, 1]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_trailing_blanks(self, read_ext):
+        """
+        Sheets can contain blank cells with no data. Some of our readers
+        were including those cells, creating many empty rows and columns
+        """
+        file_name = "trailing_blanks" + read_ext
+        result = pd.read_excel(file_name)
+        assert result.shape == (3, 3)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
@@ -1393,7 +1450,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(
-        xlrd_version is not None and xlrd_version >= "2",
+        xlrd_version is not None and xlrd_version >= Version("2"),
         reason="xlrd no longer supports xlsx",
     )
     def test_excel_high_surrogate(self, engine):
@@ -1443,3 +1500,21 @@ class TestExcelFileRead:
         with pytest.raises(ValueError, match="Value must be one of *"):
             with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
                 pass
+
+    def test_corrupt_files_closed(self, request, engine, read_ext):
+        # GH41778
+        errors = (BadZipFile,)
+        if engine is None:
+            pytest.skip()
+        elif engine == "xlrd":
+            import xlrd
+
+            errors = (BadZipFile, xlrd.biffh.XLRDError)
+
+        with tm.ensure_clean(f"corrupt{read_ext}") as file:
+            Path(file).write_text("corrupt")
+            with tm.assert_produces_warning(False):
+                try:
+                    pd.ExcelFile(file, engine=engine)
+                except errors:
+                    pass

@@ -214,7 +214,7 @@ class TestPDApi(Base):
             + self.funcs_to
             + self.private_modules
         )
-        self.check(pd, checkthese, self.ignored)
+        self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
 
     def test_depr(self):
         deprecated_list = (
@@ -274,7 +274,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
+        from pandas import testing  # noqa: PDF015
 
         self.check(testing, self.funcs)
 

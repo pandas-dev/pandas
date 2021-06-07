@@ -338,15 +338,21 @@ class TestGetLoc:
             pi2.get_loc(46)
 
     # TODO: This method came from test_period; de-dup with version above
-    def test_get_loc2(self):
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    def test_get_loc_method(self, method):
         idx = period_range("2000-01-01", periods=3)
 
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].asfreq("H", how="start"), method) == 1
-            assert idx.get_loc(idx[1].to_timestamp(), method) == 1
-            assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
+        assert idx.get_loc(idx[1], method) == 1
+        assert idx.get_loc(idx[1].to_timestamp(), method) == 1
+        assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
+        assert idx.get_loc(str(idx[1]), method) == 1
+
+        key = idx[1].asfreq("H", how="start")
+        with pytest.raises(KeyError, match=str(key)):
+            idx.get_loc(key, method=method)
+
+    # TODO: This method came from test_period; de-dup with version above
+    def test_get_loc3(self):
 
         idx = period_range("2000-01-01", periods=5)[::2]
         assert idx.get_loc("2000-01-02T12", method="nearest", tolerance="1 day") == 1
@@ -400,6 +406,21 @@ class TestGetLoc:
 
         assert "A" not in ser
         assert "A" not in pi
+
+    def test_get_loc_mismatched_freq(self):
+        # see also test_get_indexer_mismatched_dtype testing we get analogous
+        # behavior for get_loc
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        pi2 = dti.to_period("W")
+        pi3 = pi.view(pi2.dtype)  # i.e. matching i8 representations
+
+        with pytest.raises(KeyError, match="W-SUN"):
+            pi.get_loc(pi2[0])
+
+        with pytest.raises(KeyError, match="W-SUN"):
+            # even though we have matching i8 values
+            pi.get_loc(pi3[0])
 
 
 class TestGetIndexer:

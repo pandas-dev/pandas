@@ -162,15 +162,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
-    @classmethod
-    def _simple_new(
-        cls: type[DatetimeLikeArrayT],
-        values: np.ndarray,
-        freq: BaseOffset | None = None,
-        dtype: Dtype | None = None,
-    ) -> DatetimeLikeArrayT:
-        raise AbstractMethodError(cls)
-
     @property
     def _scalar_type(self) -> type[DatetimeLikeScalar]:
         """
@@ -254,30 +245,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # NDArrayBackedExtensionArray compat
 
-    def __setstate__(self, state):
-        if isinstance(state, dict):
-            if "_data" in state and "_ndarray" not in state:
-                # backward compat, changed what is property vs attribute
-                state["_ndarray"] = state.pop("_data")
-            for key, value in state.items():
-                setattr(self, key, value)
-        else:
-            # PeriodArray, bc it mixes in a cython class
-            if isinstance(state, tuple) and len(state) == 1:
-                state = state[0]
-                self.__setstate__(state)
-            else:
-                raise TypeError(state)
-
     @cache_readonly
     def _data(self) -> np.ndarray:
         return self._ndarray
-
-    def _from_backing_data(
-        self: DatetimeLikeArrayT, arr: np.ndarray
-    ) -> DatetimeLikeArrayT:
-        # Note: we do not retain `freq`
-        return type(self)._simple_new(arr, dtype=self.dtype)
 
     # ------------------------------------------------------------------
 
@@ -291,9 +261,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         """
         apply box func to passed values
         """
-        # error: Incompatible return value type (got
-        # "Union[ExtensionArray, ndarray]", expected "ndarray")
-        return lib.map_infer(values, self._box_func)  # type: ignore[return-value]
+        return lib.map_infer(values, self._box_func, convert=False)
 
     def __iter__(self):
         if self.ndim > 1:
@@ -589,32 +557,15 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return other
 
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to an i8 representation,
-        raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : np.int64, np.datetime64, or np.timedelta64
-
-        Raises
-        ------
-        TypeError
-        """
-        return self._validate_scalar(fill_value)
-
     def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
+        # TODO(2.0): once this deprecation is enforced, use _validate_scalar
         if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
             fill_value = self._scalar_type(fill_value)
         else:
+            new_fill: DatetimeLikeScalar
+
             # only warn if we're not going to raise
             if self._scalar_type is Period and lib.is_integer(fill_value):
                 # kludge for #31971 since Period(integer) tries to cast to str
@@ -629,7 +580,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 "will raise in a future version, pass "
                 f"{self._scalar_type.__name__} instead.",
                 FutureWarning,
-                stacklevel=8,
+                # There is no way to hard-code the level since this might be
+                #  reached directly or called from the Index or Block method
+                stacklevel=find_stack_level(),
             )
             fill_value = new_fill
 
@@ -1139,7 +1092,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # adding a scalar preserves freq
             new_freq = self.freq
 
-        return type(self)._simple_new(new_values, dtype=self.dtype, freq=new_freq)
+        # error: Unexpected keyword argument "freq" for "_simple_new" of "NDArrayBacked"
+        return type(self)._simple_new(  # type: ignore[call-arg]
+            new_values, dtype=self.dtype, freq=new_freq
+        )
 
     def _add_timedelta_arraylike(self, other):
         """
@@ -1711,6 +1667,9 @@ _ceil_example = """>>> rng.ceil('H')
     2   2018-01-01 13:00:00
     dtype: datetime64[ns]
     """
+
+
+TimelikeOpsT = TypeVar("TimelikeOpsT", bound="TimelikeOps")
 
 
 class TimelikeOps(DatetimeLikeArrayMixin):

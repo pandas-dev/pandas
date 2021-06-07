@@ -19,6 +19,7 @@ from pandas._libs import (
     lib,
     tslib,
 )
+from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
     NaT,
@@ -313,24 +314,22 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             # be incorrect(ish?) for the array as a whole
             dtype = DatetimeTZDtype(tz=timezones.tz_standardize(dtype.tz))
 
-        self._ndarray = values
-        self._dtype = dtype
+        NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
 
         if inferred_freq is None and freq is not None:
             type(self)._validate_frequency(self, freq)
 
+    # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
     @classmethod
-    def _simple_new(
+    def _simple_new(  # type: ignore[override]
         cls, values: np.ndarray, freq: BaseOffset | None = None, dtype=DT64NS_DTYPE
     ) -> DatetimeArray:
         assert isinstance(values, np.ndarray)
         assert values.dtype == DT64NS_DTYPE
 
-        result = object.__new__(cls)
-        result._ndarray = values
+        result = super()._simple_new(values, dtype)
         result._freq = freq
-        result._dtype = dtype
         return result
 
     @classmethod
@@ -744,7 +743,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         assert isinstance(other, (datetime, np.datetime64))
         assert other is not NaT
         other = Timestamp(other)
-        if other is NaT:
+        # error: Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if other is NaT:  # type: ignore[comparison-overlap]
             return self - NaT
 
         if not self._has_same_tz(other):
@@ -857,8 +858,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         This method takes a time zone (tz) naive Datetime Array/Index object
         and makes this time zone aware. It does not move the time to another
         time zone.
-        Time zone localization helps to switch from time zone aware to time
-        zone unaware objects.
+
+        This method can also be used to do the inverse -- to create a time
+        zone unaware object from an aware object. To that end, pass `tz=None`.
 
         Parameters
         ----------
@@ -1117,14 +1119,14 @@ default 'raise'
         ...                                         "2000-08-31 00:00:00"]))
         >>> df.index.to_period("M")
         PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[M]', freq='M')
+                    dtype='period[M]')
 
         Infer the daily frequency
 
         >>> idx = pd.date_range("2017-01-01", periods=2)
         >>> idx.to_period()
         PeriodIndex(['2017-01-01', '2017-01-02'],
-                    dtype='period[D]', freq='D')
+                    dtype='period[D]')
         """
         from pandas.core.arrays import PeriodArray
 
@@ -1173,6 +1175,7 @@ default 'raise'
             "future version.  "
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
             FutureWarning,
+            # stacklevel chosen to be correct for when called from DatetimeIndex
             stacklevel=3,
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -2101,7 +2104,6 @@ def sequence_to_dt64ns(
         result = data.view(DT64NS_DTYPE)
 
     if copy:
-        # TODO: should this be deepcopy?
         result = result.copy()
 
     assert isinstance(result, np.ndarray), type(result)

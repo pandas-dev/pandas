@@ -21,6 +21,7 @@ from pandas.io.parsers import (
     TextFileReader,
     read_csv,
 )
+from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
 
 class TestTextReader:
@@ -139,11 +140,7 @@ class TestTextReader:
             reader.read()
 
         reader = TextReader(
-            StringIO(data),
-            delimiter=":",
-            header=None,
-            error_bad_lines=False,
-            warn_bad_lines=False,
+            StringIO(data), delimiter=":", header=None, on_bad_lines=2  # Skip
         )
         result = reader.read()
         expected = {
@@ -154,11 +151,7 @@ class TestTextReader:
         assert_array_dicts_equal(result, expected)
 
         reader = TextReader(
-            StringIO(data),
-            delimiter=":",
-            header=None,
-            error_bad_lines=False,
-            warn_bad_lines=True,
+            StringIO(data), delimiter=":", header=None, on_bad_lines=1  # Warn
         )
         reader.read()
         captured = capsys.readouterr()
@@ -206,6 +199,8 @@ aaaa,4
 aaaaa,5"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", header=None, **kwds)
 
         reader = _make_reader(dtype="S5,i4")
@@ -233,6 +228,8 @@ one,two
 4,d"""
 
         def _make_reader(**kwds):
+            if "dtype" in kwds:
+                kwds["dtype"] = ensure_dtype_objs(kwds["dtype"])
             return TextReader(StringIO(data), delimiter=",", **kwds)
 
         reader = _make_reader(dtype={"one": "u1", 1: "S1"})
