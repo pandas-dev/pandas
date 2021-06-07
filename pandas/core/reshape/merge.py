@@ -27,7 +27,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Suffixes,
 )
@@ -81,15 +80,18 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.arrays import DatetimeArray
 
 
-@Substitution("\nleft : DataFrame")
+@Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left: FrameOrSeriesUnion,
-    right: FrameOrSeriesUnion,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     how: str = "inner",
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
@@ -322,8 +324,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left: DataFrame,
-    right: DataFrame,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -362,8 +364,8 @@ def merge_asof(
 
     Parameters
     ----------
-    left : DataFrame
-    right : DataFrame
+    left : DataFrame or named Series
+    right : DataFrame or named Series
     on : label
         Field name to join on. Must be found in both DataFrames.
         The data MUST be ordered. Furthermore this must be a numeric column,
@@ -608,8 +610,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: FrameOrSeriesUnion,
-        right: FrameOrSeriesUnion,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         how: str = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
@@ -673,6 +675,8 @@ class _MergeOperation:
                 f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
+            # stacklevel chosen to be correct when this is reached via pd.merge
+            # (and not DataFrame.join)
             warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
@@ -1471,7 +1475,7 @@ def get_join_indexers(
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
-    llab, rlab, shape = [list(x) for x in zipped]
+    llab, rlab, shape = (list(x) for x in zipped)
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1597,8 +1601,8 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1702,8 +1706,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1981,7 +1985,7 @@ def _get_multiindex_indexer(
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
-    rcodes, lcodes, shape = [list(x) for x in zipped]
+    rcodes, lcodes, shape = (list(x) for x in zipped)
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:

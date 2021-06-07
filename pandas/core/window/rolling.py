@@ -111,6 +111,7 @@ class BaseWindow(SelectionMixin):
 
     _attributes: list[str] = []
     exclusions: frozenset[Hashable] = frozenset()
+    _on: Index
 
     def __init__(
         self,
@@ -169,7 +170,7 @@ class BaseWindow(SelectionMixin):
         return self._win_type
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> bool:
         warnings.warn(
             "is_datetimelike is deprecated and will be removed in a future version.",
             FutureWarning,
@@ -290,6 +291,7 @@ class BaseWindow(SelectionMixin):
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
+        obj = obj.set_axis(self._on)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -329,7 +331,7 @@ class BaseWindow(SelectionMixin):
         # expected "ndarray")
         return values  # type: ignore[return-value]
 
-    def _insert_on_column(self, result: DataFrame, obj: DataFrame):
+    def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
         # the results in the same location
         from pandas import Series
@@ -470,6 +472,8 @@ class BaseWindow(SelectionMixin):
             other = target
             # only default unset
             pairwise = True if pairwise is None else pairwise
+        elif not isinstance(other, (ABCDataFrame, ABCSeries)):
+            raise ValueError("other must be a DataFrame or Series")
 
         return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
