@@ -27,6 +27,7 @@ class Dtypes:
 
 
 class Construction:
+
     params = ["str", "string"]
     param_names = ["dtype"]
 
@@ -178,6 +179,7 @@ class Methods(Dtypes):
 
 
 class Repeat:
+
     params = ["int", "array"]
     param_names = ["repeats"]
 
@@ -192,6 +194,7 @@ class Repeat:
 
 
 class Cat:
+
     params = ([0, 3], [None, ","], [None, "-"], [0.0, 0.001, 0.15])
     param_names = ["other_cols", "sep", "na_rep", "na_frac"]
 
@@ -216,6 +219,7 @@ class Cat:
 
 
 class Contains(Dtypes):
+
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "regex"]
 
@@ -227,6 +231,7 @@ class Contains(Dtypes):
 
 
 class Split(Dtypes):
+
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
@@ -242,6 +247,7 @@ class Split(Dtypes):
 
 
 class Extract(Dtypes):
+
     params = (Dtypes.params, [True, False])
     param_names = ["dtype", "expand"]
 
