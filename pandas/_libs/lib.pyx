@@ -2920,3 +2920,41 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
                 result[i, j] = row[j]
 
     return result
+
+
+def is_bool_list(obj: list) -> bool:
+    """
+    Check if this list contains only bool or np.bool_ objects.
+
+    This is appreciably faster than checking `np.array(obj).dtype == bool`
+
+    obj1 = [True, False] * 100
+    obj2 = obj * 100
+    obj3 = obj2 * 100
+    obj4 = [True, None] + obj
+
+    for obj in [obj1, obj2, obj3, obj4]:
+        %timeit is_bool_list(obj)
+        %timeit np.array(obj).dtype.kind == "b"
+
+    59.9 ns ± 7.09 ns per loop
+    9.47 µs ± 1.21 µs per loop
+
+    51 ns ± 0.931 ns per loop
+    858 µs ± 78.6 µs per loop
+
+    52.7 ns ± 1.24 ns per loop
+    82.7 ms ± 1.97 ms per loop
+
+    49.5 ns ± 1.77 ns per loop
+    8.4 µs ± 61.2 ns per loop
+    """
+    cdef:
+        object item
+
+    for item in obj:
+        if not util.is_bool_object(obj):
+            return False
+
+    # Note: we return True for empty list
+    return True

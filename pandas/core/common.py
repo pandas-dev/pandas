@@ -142,8 +142,8 @@ def is_bool_indexer(key: Any) -> bool:
         elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
-        arr = np.asarray(key)
-        return arr.dtype == np.bool_ and len(arr) == len(key)
+        # check if np.array(key).dtype would be bool
+        return len(key) > 0 and lib.is_bool_list(key)
 
     return False
 
