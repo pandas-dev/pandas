@@ -95,7 +95,7 @@ class Rank:
 
 class Correlation:
 
-    params = [["spearman"]]
+    params = [["spearman", "kendall", "pearson"]]
     param_names = ["method"]
 
     def setup(self, method):
