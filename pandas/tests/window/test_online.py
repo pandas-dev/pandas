@@ -17,6 +17,7 @@ class TestEWM:
         df = DataFrame({"a": range(5), "b": range(5)})
         expected = df.ewm(0.5).mean()
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
         online_ewm = df.head(2).ewm(0.5).online(engine_kwargs=engine_kwargs)
         result = online_ewm.mean()
         tm.assert_frame_equal(result, expected.head(2))
@@ -33,6 +34,7 @@ class TestEWM:
         )
         df = DataFrame({"a": range(5), "b": range(5)})
         expected = df.ewm(0.5, times=times).mean()
+
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         online_ewm = (
             df.head(2).ewm(0.5, times=times.head(2)).online(engine_kwargs=engine_kwargs)
