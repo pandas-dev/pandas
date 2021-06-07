@@ -95,10 +95,11 @@ class Rank:
 
 class Correlation:
 
-    params = [["spearman", "kendall", "pearson"]]
+    params = [["spearman"]]
     param_names = ["method"]
 
     def setup(self, method):
+        np.random.seed(0)
         self.df = pd.DataFrame(np.random.randn(500, 15))
         self.df2 = pd.DataFrame(np.random.randn(500, 15))
         self.df_wide = pd.DataFrame(np.random.randn(500, 100))
