@@ -403,6 +403,7 @@ class TestTimezoneConcat:
         expected = DataFrame({"time": [ts2, ts3]})
         tm.assert_frame_equal(results, expected)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_concat_multiindex_with_tz(self):
         # GH 6606
         df = DataFrame(

@@ -18,6 +18,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.tslibs import (
+    BaseOffset,
     NaT,
     NaTType,
     Period,
@@ -56,6 +57,8 @@ class Timestamp(datetime):
         *,
         fold: int | None= ...,
     ) -> _S | NaTType: ...
+
+    def _set_freq(self, freq: BaseOffset | None) -> None: ...
 
     @property
     def year(self) -> int: ...

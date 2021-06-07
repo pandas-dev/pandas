@@ -591,8 +591,8 @@ class TestDatetimeIndexTimezones:
         times = date_range(
             "2013-10-26 23:00", "2013-10-27 01:00", freq="H", tz=tz, ambiguous="infer"
         )
-        assert times[0] == Timestamp("2013-10-26 23:00", tz=tz, freq="H")
-        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz, freq="H")
+        assert times[0] == Timestamp("2013-10-26 23:00", tz=tz)
+        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz)
 
     @pytest.mark.parametrize(
         "tz, option, expected",
@@ -615,7 +615,7 @@ class TestDatetimeIndexTimezones:
         times = date_range(
             "2019-03-10 00:00", "2019-03-10 02:00", freq="H", tz=tz, nonexistent=option
         )
-        assert times[-1] == Timestamp(expected, tz=tz, freq="H")
+        assert times[-1] == Timestamp(expected, tz=tz)
 
     def test_dti_tz_localize_bdate_range(self):
         dr = bdate_range("1/1/2009", "1/1/2010")

@@ -19,6 +19,7 @@ from pandas import (
     Timestamp,
     compat,
 )
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 
@@ -195,11 +196,13 @@ class TestTimestampConstructors:
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
         msg = "Invalid frequency:"
+        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
-            Timestamp("2012-01-01", "US/Pacific")
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                Timestamp("2012-01-01", "US/Pacific")
 
     def test_constructor_strptime(self):
         # GH25016
@@ -287,6 +290,8 @@ class TestTimestampConstructors:
             == repr(Timestamp("2015-11-12 01:02:03.999999"))
         )
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
 
@@ -523,15 +528,18 @@ class TestTimestampConstructors:
 
     def test_construct_timestamp_preserve_original_frequency(self):
         # GH 22311
-        result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
         expected = offsets.Day()
         assert result == expected
 
     def test_constructor_invalid_frequency(self):
         # GH 22311
         msg = "Invalid frequency:"
+        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
-            Timestamp("2012-01-01", freq=[])
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):

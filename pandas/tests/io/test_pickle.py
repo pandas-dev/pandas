@@ -23,6 +23,7 @@ import pickle
 import shutil
 from warnings import (
     catch_warnings,
+    filterwarnings,
     simplefilter,
 )
 import zipfile
@@ -55,7 +56,10 @@ lzma = import_lzma()
 
 
 # TODO(ArrayManager) pickling
-pytestmark = td.skip_array_manager_not_yet_implemented
+pytestmark = [
+    td.skip_array_manager_not_yet_implemented,
+    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
+]
 
 
 @pytest.fixture(scope="module")
@@ -63,7 +67,12 @@ def current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
-    return create_pickle_data()
+    with catch_warnings():
+        filterwarnings(
+            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
+        )
+
+        return create_pickle_data()
 
 
 # ---------------------
@@ -205,6 +214,7 @@ def python_unpickler(path):
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():

@@ -35,13 +35,44 @@ from pandas.tseries import offsets
 
 
 class TestTimestampProperties:
+    def test_freq_deprecation(self):
+        # GH#41586
+        msg = "The 'freq' argument in Timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # warning issued at construction
+            ts = Timestamp("2021-06-01", freq="D")
+            ts2 = Timestamp("2021-06-01", freq="B")
+
+        msg = "Timestamp.freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # warning issued at attribute lookup
+            ts.freq
+
+        for per in ["month", "quarter", "year"]:
+            for side in ["start", "end"]:
+                attr = f"is_{per}_{side}"
+
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    getattr(ts2, attr)
+
+                # is_(month|quarter|year)_(start|end) does _not_ issue a warning
+                #  with freq="D" bc the result will be unaffected by the deprecation
+                with tm.assert_produces_warning(None):
+                    getattr(ts, attr)
+
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_properties_business(self):
         ts = Timestamp("2017-10-01", freq="B")
         control = Timestamp("2017-10-01")
         assert ts.dayofweek == 6
         assert ts.day_of_week == 6
         assert not ts.is_month_start  # not a weekday
+        assert not ts.freq.is_month_start(ts)
+        assert ts.freq.is_month_start(ts + Timedelta(days=1))
         assert not ts.is_quarter_start  # not a weekday
+        assert not ts.freq.is_quarter_start(ts)
+        assert ts.freq.is_quarter_start(ts + Timedelta(days=1))
         # Control case: non-business is month/qtr start
         assert control.is_month_start
         assert control.is_quarter_start
@@ -51,7 +82,11 @@ class TestTimestampProperties:
         assert ts.dayofweek == 5
         assert ts.day_of_week == 5
         assert not ts.is_month_end  # not a weekday
+        assert not ts.freq.is_month_end(ts)
+        assert ts.freq.is_month_end(ts - Timedelta(days=1))
         assert not ts.is_quarter_end  # not a weekday
+        assert not ts.freq.is_quarter_end(ts)
+        assert ts.freq.is_quarter_end(ts - Timedelta(days=1))
         # Control case: non-business is month/qtr start
         assert control.is_month_end
         assert control.is_quarter_end
@@ -398,10 +433,12 @@ class TestTimestamp:
 
     def test_tz_conversion_freq(self, tz_naive_fixture):
         # GH25241
-        t1 = Timestamp("2019-01-01 10:00", freq="H")
-        assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
-        t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
-        assert t2.tz_convert(tz="UTC").freq == t2.freq
+        with tm.assert_produces_warning(FutureWarning, match="freq"):
+            t1 = Timestamp("2019-01-01 10:00", freq="H")
+            assert t1.tz_localize(tz=tz_naive_fixture).freq == t1.freq
+        with tm.assert_produces_warning(FutureWarning, match="freq"):
+            t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
+            assert t2.tz_convert(tz="UTC").freq == t2.freq
 
 
 class TestTimestampNsOperations:
@@ -513,26 +550,26 @@ class TestTimestampConversion:
             assert result == expected
 
     def test_timestamp_to_datetime(self):
-        stamp = Timestamp("20090415", tz="US/Eastern", freq="D")
+        stamp = Timestamp("20090415", tz="US/Eastern")
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_dateutil(self):
-        stamp = Timestamp("20090415", tz="dateutil/US/Eastern", freq="D")
+        stamp = Timestamp("20090415", tz="dateutil/US/Eastern")
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     def test_timestamp_to_datetime_explicit_pytz(self):
-        stamp = Timestamp("20090415", tz=pytz.timezone("US/Eastern"), freq="D")
+        stamp = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
     @td.skip_if_windows_python_3
     def test_timestamp_to_datetime_explicit_dateutil(self):
-        stamp = Timestamp("20090415", tz=gettz("US/Eastern"), freq="D")
+        stamp = Timestamp("20090415", tz=gettz("US/Eastern"))
         dtval = stamp.to_pydatetime()
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
