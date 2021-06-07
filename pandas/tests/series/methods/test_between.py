@@ -80,3 +80,11 @@ class TestBetween:
         with pytest.raises(ValueError, match=value_error_msg):
             series = Series(date_range("1/1/2000", periods=10))
             series.between(left, right, inclusive="yes")
+            
+      def test_between_inclusive_warning(self):
+          series = Series(date_range("1/1/2000", periods=10))
+          left, right = series[[2, 7]]
+          with tm.assert_produces_warning(FutureWarning):
+              result = series.between(left, right, inclusive=False)
+          with tm.assert_produces_warning(FutureWarning):
+              result = series.between(left, right, inclusive=True)
