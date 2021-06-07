@@ -1388,6 +1388,9 @@ cdef cummin_max(groupby_t[:, ::1] out,
         na_val = NaN
     elif is_datetimelike:
         na_val = NPY_NAT
+    # Will never be used, just to avoid uninitialized warning
+    else:
+        na_val = 0
 
     N, K = (<object>values).shape
     seen_na = np.zeros((<object>accum).shape[0], dtype=np.uint8)
