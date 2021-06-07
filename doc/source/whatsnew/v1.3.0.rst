@@ -686,6 +686,7 @@ Deprecations
 - Deprecated passing arguments as positional (except for ``"codes"``) in :meth:`MultiIndex.codes` (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`Index.set_names` and :meth:`MultiIndex.set_names` (except for ``names``) (:issue:`41485`)
 - Deprecated passing arguments (apart from ``cond`` and ``other``) as positional in :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`41485`)
+- Deprecated passing arguments as positional in :meth:`Resampler.interpolate` (other than ``"method"``) (:issue:`41485`)
 - Deprecated passing arguments as positional in :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``"upper"`` and ``"lower"``) (:issue:`41485`)
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
