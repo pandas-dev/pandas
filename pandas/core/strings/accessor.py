@@ -125,7 +125,7 @@ def _map_and_wrap(name, docstring):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(result, returns_bool=True)
+        return self._wrap_result(result)
 
     wrapper.__doc__ = docstring
     return wrapper
@@ -328,17 +328,16 @@ class StringMethods(NoNewAttributesMixin):
             index = self._orig.index
             # This is a mess.
             dtype: DtypeObj | str | None
+            vdtype = getattr(result, "dtype", None)
             if self._is_string:
-                if returns_bool:
-                    dtype = "boolean"
+                if is_bool_dtype(vdtype):
+                    dtype = result.dtype
                 elif returns_string:
                     dtype = self._orig.dtype
                 else:
-                    dtype = result.dtype
-            elif returns_bool:
-                dtype = result.dtype  # i.e. bool
+                    dtype = vdtype
             else:
-                dtype = getattr(result, "dtype", None)
+                dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
@@ -2160,7 +2159,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: bool
         """
         result = self._data.array._str_startswith(pat, na=na)
-        return self._wrap_result(result, returns_string=False, returns_bool=True)
+        return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
     def endswith(self, pat, na=None):
@@ -2217,7 +2216,7 @@ class StringMethods(NoNewAttributesMixin):
         dtype: bool
         """
         result = self._data.array._str_endswith(pat, na=na)
-        return self._wrap_result(result, returns_string=False, returns_bool=True)
+        return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
     def findall(self, pat, flags=0):
