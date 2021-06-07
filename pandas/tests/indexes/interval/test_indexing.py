@@ -326,6 +326,17 @@ class TestGetIndexer:
         expected = np.array([1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_with_nans(self):
+        # GH#41831
+        index = IntervalIndex([np.nan, np.nan])
+        other = IntervalIndex([np.nan])
+
+        assert not index._index_as_unique
+
+        result = index.get_indexer_for(other)
+        expected = np.array([0, 1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):

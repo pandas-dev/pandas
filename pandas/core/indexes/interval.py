@@ -62,6 +62,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.algorithms import (
     take_nd,
@@ -761,29 +762,37 @@ class IntervalIndex(ExtensionIndex):
         """
         indexer, missing = [], []
         for i, key in enumerate(target):
-            try:
-                locs = self.get_loc(key)
-                if isinstance(locs, slice):
-                    # Only needed for get_indexer_non_unique
-                    locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
-                locs = np.array(locs, ndmin=1)
-            except KeyError:
-                missing.append(i)
-                locs = np.array([-1])
-            except InvalidIndexError:
-                # i.e. non-scalar key e.g. a tuple.
-                # see test_append_different_columns_types_raises
-                missing.append(i)
-                locs = np.array([-1])
+            if is_interval_dtype(target.dtype) and isna(key):
+                # self.get_loc(np.nan) will treat it as a float instead of as
+                #  our own dtype.
+                # TODO: handle this in get_loc?
+                locs = self.isna().nonzero()[0]
+                if len(locs) == 0:
+                    missing.append(i)
+            else:
+                try:
+                    locs = self.get_loc(key)
+                    if isinstance(locs, slice):
+                        # Only needed for get_indexer_non_unique
+                        locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
+                    locs = np.array(locs, ndmin=1)
+                except KeyError:
+                    missing.append(i)
+                    locs = np.array([-1])
+                except InvalidIndexError:
+                    # i.e. non-scalar key e.g. a tuple.
+                    # see test_append_different_columns_types_raises
+                    missing.append(i)
+                    locs = np.array([-1])
 
             indexer.append(locs)
 
         indexer = np.concatenate(indexer)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    @property
+    @cache_readonly
     def _index_as_unique(self) -> bool:
-        return not self.is_overlapping
+        return not self.is_overlapping and self._engine._na_count < 2
 
     _requires_unique_msg = (
         "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
