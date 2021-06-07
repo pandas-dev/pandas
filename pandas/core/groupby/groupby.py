@@ -2729,7 +2729,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummin(self, axis=0, *args, **kwargs):
+    def cummin(self, axis=0, **kwargs):
         """
         Cumulative min for each group.
 
@@ -2737,21 +2737,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         -------
         Series or DataFrame
         """
-        # See groupby/test_function::test_cummin_cummax, current behavior allows
-        # but ignores numeric_only
-        if "numeric_only" in kwargs:
-            kwargs = kwargs.copy()
-            del kwargs["numeric_only"]
-        nv.validate_groupby_func("cummin", args, kwargs, ["skipna"])
+        skipna = kwargs.get("skipna", True)
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform("cummin", numeric_only=False, **kwargs)
+        return self._cython_transform("cummin", numeric_only=False, skipna=skipna)
 
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def cummax(self, axis=0, *args, **kwargs):
+    def cummax(self, axis=0, **kwargs):
         """
         Cumulative max for each group.
 
@@ -2759,16 +2754,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         -------
         Series or DataFrame
         """
-        # See groupby/test_function::test_cummin_cummax, current behavior allows
-        # but ignores numeric_only
-        if "numeric_only" in kwargs:
-            kwargs = kwargs.copy()
-            del kwargs["numeric_only"]
-        nv.validate_groupby_func("cummax", args, kwargs, ["skipna"])
+        skipna = kwargs.get("skipna", True)
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform("cummax", numeric_only=False, **kwargs)
+        return self._cython_transform("cummax", numeric_only=False, skipna=skipna)
 
     @final
     def _get_cythonized_result(
