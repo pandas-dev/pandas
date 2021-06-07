@@ -224,10 +224,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
-    .. versionchanged:: 0.24.0
-
-       Implements the ExtensionArray interface.
-
     Parameters
     ----------
     data : array-like

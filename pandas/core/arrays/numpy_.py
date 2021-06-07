@@ -36,8 +36,6 @@ class PandasArray(
     """
     A pandas ExtensionArray for NumPy data.
 
-    .. versionadded:: 0.24.0
-
     This is mostly for internal compatibility, and is not especially
     useful on its own.
 

@@ -250,8 +250,6 @@ class ExtensionArray:
         """
         Construct a new ExtensionArray from a sequence of strings.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         strings : Sequence
@@ -754,8 +752,6 @@ class ExtensionArray:
         Newly introduced missing values are filled with
         ``self.dtype.na_value``.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         periods : int, default 1
@@ -765,8 +761,6 @@ class ExtensionArray:
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
             The default is ``self.dtype.na_value``.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -815,8 +809,6 @@ class ExtensionArray:
     def searchsorted(self, value, side="left", sorter=None):
         """
         Find indices where elements should be inserted to maintain order.
-
-        .. versionadded:: 0.24.0
 
         Find the indices into a sorted array `self` (a) such that, if the
         corresponding elements in `value` were inserted before the indices,

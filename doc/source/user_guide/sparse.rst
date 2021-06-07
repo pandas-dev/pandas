@@ -114,8 +114,6 @@ in many places
 Sparse accessor
 ---------------
 
-.. versionadded:: 0.24.0
-
 pandas provides a ``.sparse`` accessor, similar to ``.str`` for string data, ``.cat``
 for categorical data, and ``.dt`` for datetime-like data. This namespace provides
 attributes and methods that are specific to sparse data.

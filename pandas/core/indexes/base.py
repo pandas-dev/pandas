@@ -1305,8 +1305,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Identity method.
 
-        .. versionadded:: 0.24.0
-
         This is implemented for compatibility with subclass implementations
         when chaining.
 
@@ -1387,8 +1385,6 @@ class Index(IndexOpsMixin, PandasObject):
     def to_frame(self, index: bool = True, name: Hashable = None) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -2862,13 +2858,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             * False : do not sort the result.
 
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
-
         Returns
         -------
         union : Index
@@ -3069,13 +3058,6 @@ class Index(IndexOpsMixin, PandasObject):
             * None : sort the result, except when `self` and `other` are equal
               or when the values cannot be compared.
 
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default from ``True`` to ``False``, to match
-               the behaviour of 0.23.4 and earlier.
-
         Returns
         -------
         intersection : Index
@@ -3164,13 +3146,6 @@ class Index(IndexOpsMixin, PandasObject):
               from comparing incomparable elements.
             * False : Do not sort the result.
 
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
-
         Returns
         -------
         difference : Index
@@ -3228,13 +3203,6 @@ class Index(IndexOpsMixin, PandasObject):
             * None : Attempt to sort the result, but catch any TypeErrors
               from comparing incomparable elements.
             * False : Do not sort the result.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
 
         Returns
         -------

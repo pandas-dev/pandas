@@ -110,8 +110,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, tzinfo tz, object ambiguous=None,
 timedelta-like}
         How to handle non-existent times when converting wall times to UTC
 
-        .. versionadded:: 0.24.0
-
     Returns
     -------
     localized : ndarray[int64_t]

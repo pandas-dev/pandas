@@ -953,8 +953,6 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Return value at the given quantile.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)

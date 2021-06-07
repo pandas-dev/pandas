@@ -237,8 +237,6 @@ class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
 
-    .. versionadded:: 0.24.0
-
     .. versionchanged:: 1.0.0
 
        Now uses :attr:`pandas.NA` as the missing value rather

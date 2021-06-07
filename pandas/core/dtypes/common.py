@@ -631,10 +631,8 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
 
     This function is internal and should not be exposed in the public API.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
-       as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+    as integer by this function.
 
     Parameters
     ----------
@@ -678,10 +676,8 @@ def is_integer_dtype(arr_or_dtype) -> bool:
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
-       as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+    as integer by this function.
 
     Parameters
     ----------
@@ -732,10 +728,8 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
-       as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+    as integer by this function.
 
     Parameters
     ----------
@@ -786,10 +780,8 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an unsigned integer dtype.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.UInt64Dtype) are also
-       considered as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.UInt64Dtype) are also
+    considered as integer by this function.
 
     Parameters
     ----------

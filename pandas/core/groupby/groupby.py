@@ -2959,8 +2959,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         fill_value : optional
             The scalar value to use for newly introduced missing values.
 
-            .. versionadded:: 0.24.0
-
         Returns
         -------
         Series or DataFrame

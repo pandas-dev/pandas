@@ -87,8 +87,6 @@ def read_gbq(
             compliant with the SQL 2011 standard. For more information
             see `BigQuery Standard SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
-
-        .. versionchanged:: 0.24.0
     location : str, optional
         Location where the query job should run. See the `BigQuery locations
         documentation
@@ -112,8 +110,6 @@ def read_gbq(
         :class:`google.oauth2.service_account.Credentials` directly.
 
         *New in version 0.8.0 of pandas-gbq*.
-
-        .. versionadded:: 0.24.0
     use_bqstorage_api : bool, default False
         Use the `BigQuery Storage API
         <https://cloud.google.com/bigquery/docs/reference/storage/>`__ to
