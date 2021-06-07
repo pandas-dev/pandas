@@ -3671,7 +3671,7 @@ class MultiIndex(Index):
                 verify_integrity=False,
             )
         else:
-            return MultiIndex.from_tuples(result, sortorder=0, names=result_names)
+            return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
     def _convert_can_do_setop(self, other):
         result_names = self.names
