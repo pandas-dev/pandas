@@ -40,42 +40,39 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
         minimum_periods: int,
         old_wt_factor: float,
         new_wt: float,
-        old_wt: float,
+        old_wt: np.ndarray,
         adjust: bool,
         ignore_na: bool,
     ):
-        result = np.empty(len(values))
-
+        result = np.empty(values.shape)
         weighted_avg = values[0]
-        nobs = int(not np.isnan(weighted_avg))
-        result[0] = weighted_avg if nobs >= minimum_periods else np.nan
+        nobs = (~np.isnan(weighted_avg)).astype(np.int64)
+        result[0] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
 
-        for j in range(1, len(values)):
-            cur = values[j]
-            is_observation = not np.isnan(cur)
-            nobs += is_observation
-            if not np.isnan(weighted_avg):
+        for i in range(1, len(values)):
+            cur = values[i]
+            is_observations = ~np.isnan(cur)
+            nobs += is_observations.astype(np.int64)
+            for j in range(len(cur)):
+                if not np.isnan(weighted_avg[j]):
+                    if is_observations[j] or not ignore_na:
+                        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
+                        # used in conjunction with vals[i+1]
+                        old_wt[j] *= old_wt_factor ** deltas[j - 1]
+                        if is_observations[j]:
+                            # avoid numerical errors on constant series
+                            if weighted_avg[j] != cur[j]:
+                                weighted_avg[j] = (
+                                    (old_wt[j] * weighted_avg[j]) + (new_wt * cur[j])
+                                ) / (old_wt[j] + new_wt)
+                            if adjust:
+                                old_wt[j] += new_wt
+                            else:
+                                old_wt[j] = 1.0
+                elif is_observations[j]:
+                    weighted_avg[j] = cur[j]
 
-                if is_observation or not ignore_na:
-
-                    # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
-                    # used in conjunction with vals[i+1]
-                    old_wt *= old_wt_factor ** deltas[j - 1]
-                    if is_observation:
-
-                        # avoid numerical errors on constant series
-                        if weighted_avg != cur:
-                            weighted_avg = (
-                                (old_wt * weighted_avg) + (new_wt * cur)
-                            ) / (old_wt + new_wt)
-                        if adjust:
-                            old_wt += new_wt
-                        else:
-                            old_wt = 1.0
-            elif is_observation:
-                weighted_avg = cur
-
-            result[j] = weighted_avg if nobs >= minimum_periods else np.nan
+            result[i] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
 
         return result, old_wt
 
@@ -83,13 +80,15 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
 
 
 class EWMeanState:
-    def __init__(self, com, adjust, ignore_na):
+    def __init__(self, com, adjust, ignore_na, axis, shape):
         alpha = 1.0 / (1.0 + com)
-        self.old_wt_factor = 1.0 - alpha
-        self.new_wt = 1.0 if adjust else alpha
-        self.old_wt = 1.0
+        self.axis = axis
+        self.shape = shape
         self.adjust = adjust
         self.ignore_na = ignore_na
+        self.new_wt = 1.0 if adjust else alpha
+        self.old_wt_factor = 1.0 - alpha
+        self.old_wt = np.ones(self.shape[self.axis - 1])
         self.last_ewm = None
 
     def run_ewm(self, weighted_avg, deltas, min_periods, ewm_func):
@@ -108,5 +107,5 @@ class EWMeanState:
         return result
 
     def reset(self):
-        self.old_wt = 1
+        self.old_wt = np.ones(self.shape[self.axis - 1])
         self.last_ewm = None

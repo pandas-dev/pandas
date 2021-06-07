@@ -711,7 +711,9 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             times=times,
             selection=selection,
         )
-        self._mean = EWMeanState(self._com, self.adjust, self.ignore_na)
+        self._mean = EWMeanState(
+            self._com, self.adjust, self.ignore_na, self.axis, obj.shape
+        )
         self.engine = engine
         self.engine_kwargs = engine_kwargs
 
@@ -747,7 +749,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def var(self, bias: bool = False, *args, **kwargs):
         return NotImplementedError
 
-    def mean(self, engine=None, engine_kwargs=None, update=None, update_deltas=None):
+    def mean(self, update=None, update_deltas=None):
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -756,11 +758,11 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             obj = np.concatenate(([self._mean.last_ewm], update.to_numpy()))
             result_from = 1
         else:
-            obj = self._selected_obj.to_numpy()
+            obj = self._selected_obj.astype(np.float64).to_numpy()
             result_from = 0
         if update_deltas is None:
             update_deltas = np.ones(max(len(obj) - 1, 0), dtype=np.float64)
-        ewma_func = generate_online_numba_ewma_func(engine_kwargs)
+        ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
         result = self._mean.run_ewm(obj, update_deltas, self.min_periods, ewma_func)
         result = self._selected_obj._constructor(result)
         return result.iloc[result_from:]
