@@ -4947,7 +4947,7 @@ Keep all original rows and also all original values
             Right boundary.
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
-            Deprecate boolean values of ``True`` ("both") or false ("neither").
+            Boolean inputs to this argument are deprecated as of version 1.3.0.
 
             .. versionchanged:: 1.3.0
 
@@ -5016,7 +5016,8 @@ Keep all original rows and also all original values
             rmask = self < right
         elif inclusive is False:
             warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in favour of `{"both", or "neither"}`",
+                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "favour of `both` or `neither`.",
                 FutureWarning,
                 stacklevel=2,
             )
