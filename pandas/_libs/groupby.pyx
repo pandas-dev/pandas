@@ -1358,9 +1358,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         accum[:] = -np.inf if compute_max else np.inf
 
     if mask is not None:
-        masked_cummin_max(out, values, mask, labels, accum, N, K, compute_max)
+        masked_cummin_max(out, values, mask, labels, accum, compute_max)
     else:
-        cummin_max(out, values, labels, accum, N, K, is_datetimelike, compute_max)
+        cummin_max(out, values, labels, accum, is_datetimelike, compute_max)
 
 
 @cython.boundscheck(False)
@@ -1369,8 +1369,6 @@ cdef cummin_max(groupby_t[:, ::1] out,
                 ndarray[groupby_t, ndim=2] values,
                 const intp_t[:] labels,
                 groupby_t[:, ::1] accum,
-                Py_ssize_t N,
-                Py_ssize_t K,
                 bint is_datetimelike,
                 bint compute_max):
     """
@@ -1378,10 +1376,11 @@ cdef cummin_max(groupby_t[:, ::1] out,
     `labels`.
     """
     cdef:
-        Py_ssize_t i, j
+        Py_ssize_t i, j, N, K
         groupby_t val, mval
         intp_t lab
 
+    N, K = (<object>values).shape
     with nogil:
         for i in range(N):
             lab = labels[i]
@@ -1409,18 +1408,17 @@ cdef masked_cummin_max(groupby_t[:, ::1] out,
                        uint8_t[:, ::1] mask,
                        const intp_t[:] labels,
                        groupby_t[:, ::1] accum,
-                       Py_ssize_t N,
-                       Py_ssize_t K,
                        bint compute_max):
     """
     Compute the cumulative minimum/maximum of columns of `values`, in row groups
     `labels` with a masked algorithm.
     """
     cdef:
-        Py_ssize_t i, j
+        Py_ssize_t i, j, N, K
         groupby_t val, mval
         intp_t lab
 
+    N, K = (<object>values).shape
     with nogil:
         for i in range(N):
             lab = labels[i]
