@@ -223,8 +223,6 @@ String accessor methods returning integers will return a value with :class:`Int6
 
    s.str.count("a")
 
-See :ref:`text.types` for more.
-
 Centered Datetime-Like Rolling Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
