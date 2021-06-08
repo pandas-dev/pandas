@@ -230,7 +230,7 @@ def group_cumsum(numeric[:, ::1] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        numeric val, next_val, y, t
+        numeric val, y, t
         numeric[:, ::1] accum, compensation
         intp_t lab
 
@@ -253,16 +253,16 @@ def group_cumsum(numeric[:, ::1] out,
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
                         accum[lab, j] = t
-                        out[i, j] = accum[lab, j]
+                        out[i, j] = t
                     else:
                         out[i, j] = NaN
                         if not skipna:
                             accum[lab, j] = NaN
                             break
                 else:
-                    next_val = val + accum[lab, j]
-                    accum[lab, j] = next_val
-                    out[i, j] = next_val
+                    t = val + accum[lab, j]
+                    accum[lab, j] = t
+                    out[i, j] = t
 
 
 @cython.boundscheck(False)
