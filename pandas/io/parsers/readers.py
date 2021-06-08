@@ -308,7 +308,7 @@ encoding : str, optional
        ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
        This behavior was previously only the case for ``engine="python"``.
 
-    .. versionchanged:: 1.3
+    .. versionchanged:: 1.3.0
 
        ``encoding_errors`` is a new argument. ``encoding`` has no longer an
        influence on how encoding errors are handled.
@@ -317,7 +317,7 @@ encoding_errors : str, optional, default "strict"
     How encoding errors are treated. `List of possible values
     <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
-    .. versionadded:: 1.3
+    .. versionadded:: 1.3.0
 
 dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
@@ -331,14 +331,14 @@ error_bad_lines : bool, default ``None``
     If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
 
-    .. deprecated:: 1.3
+    .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
 warn_bad_lines : bool, default ``None``
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
 
-    .. deprecated:: 1.3
+    .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
 on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
@@ -349,7 +349,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'warn', raise a warning when a bad line is encountered and skip that line.
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
-    .. versionadded:: 1.3
+    .. versionadded:: 1.3.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be

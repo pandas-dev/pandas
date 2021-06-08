@@ -159,6 +159,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
 
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return True
+
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
@@ -1189,7 +1193,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(self.astype("O"), np.asarray(other))
+        with warnings.catch_warnings():
+            # filter out warnings about Timestamp.freq
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            res_values = op(self.astype("O"), np.asarray(other))
+
         result = pd_array(res_values.ravel())
         # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
         # "reshape"
