@@ -2929,31 +2929,31 @@ def is_bool_list(obj: list) -> bool:
     This is appreciably faster than checking `np.array(obj).dtype == bool`
 
     obj1 = [True, False] * 100
-    obj2 = obj * 100
+    obj2 = obj1 * 100
     obj3 = obj2 * 100
-    obj4 = [True, None] + obj
+    obj4 = [True, None] + obj1
 
     for obj in [obj1, obj2, obj3, obj4]:
         %timeit is_bool_list(obj)
         %timeit np.array(obj).dtype.kind == "b"
 
-    59.9 ns ± 7.09 ns per loop
-    9.47 µs ± 1.21 µs per loop
+    340 ns ± 8.22 ns
+    8.78 µs ± 253 ns
 
-    51 ns ± 0.931 ns per loop
-    858 µs ± 78.6 µs per loop
+    28.8 µs ± 704 ns
+    813 µs ± 17.8 µs
 
-    52.7 ns ± 1.24 ns per loop
-    82.7 ms ± 1.97 ms per loop
+    3.4 ms ± 168 µs
+    78.4 ms ± 1.05 ms
 
-    49.5 ns ± 1.77 ns per loop
-    8.4 µs ± 61.2 ns per loop
+    48.1 ns ± 1.26 ns
+    8.1 µs ± 198 ns
     """
     cdef:
         object item
 
     for item in obj:
-        if not util.is_bool_object(obj):
+        if not util.is_bool_object(item):
             return False
 
     # Note: we return True for empty list
