@@ -3080,7 +3080,7 @@ def _result_dtype(arr):
     from pandas.core.arrays.string_ import StringDtype
 
     if isinstance(arr.dtype, StringDtype):
-        return arr.dtype.name
+        return arr.dtype
     else:
         return object
 
