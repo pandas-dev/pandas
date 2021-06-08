@@ -171,6 +171,58 @@ a copy will no longer be made (:issue:`32960`)
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
 
+.. _whatsnew_130.arrow_string:
+
+PyArrow backed string data type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We've enhanced the :class:`StringDtype`, an extension type dedicated to string data.
+(:issue:`39908`)
+
+It is now possible to specify a ``storage`` keyword option to :class:`StringDtype`. Use
+pandas options or specify the dtype using ``dtype='string[pyarrow]'`` to allow the
+StringArray to be backed by a PyArrow array instead of a NumPy array of Python objects.
+
+The PyArrow backed StringArray requires pyarrow 1.0.0 or greater to be installed.
+
+.. warning::
+
+   ``string[pyarrow]`` is currently considered experimental. The implementation
+   and parts of the API may change without warning.
+
+.. ipython:: python
+
+   pd.Series(['abc', None, 'def'], dtype=pd.StringDtype(storage="pyarrow"))
+
+You can use the alias ``"string[pyarrow]"`` as well.
+
+.. ipython:: python
+
+   s = pd.Series(['abc', None, 'def'], dtype="string[pyarrow]")
+   s
+
+You can also create a PyArrow backed string array using pandas options.
+
+.. ipython:: python
+
+    with pd.option_context("string_storage", "pyarrow"):
+        s = pd.Series(['abc', None, 'def'], dtype="string")
+    s
+
+The usual string accessor methods work. Where appropriate, the return type of the Series
+or columns of a DataFrame will also have string dtype.
+
+.. ipython:: python
+
+   s.str.upper()
+   s.str.split('b', expand=True).dtypes
+
+String accessor methods returning integers will return a value with :class:`Int64Dtype`
+
+.. ipython:: python
+
+   s.str.count("a")
+
 Centered Datetime-Like Rolling Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
