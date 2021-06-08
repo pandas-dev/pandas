@@ -9,7 +9,7 @@ class TestConvertDtypes:
     @pytest.mark.parametrize(
         "convert_integer, expected", [(False, np.dtype("int32")), (True, "Int32")]
     )
-    def test_convert_dtypes(self, convert_integer, expected):
+    def test_convert_dtypes(self, convert_integer, expected, string_storage):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
         df = pd.DataFrame(
@@ -18,11 +18,12 @@ class TestConvertDtypes:
                 "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
             }
         )
-        result = df.convert_dtypes(True, True, convert_integer, False)
+        with pd.option_context("string_storage", string_storage):
+            result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype=expected),
-                "b": pd.Series(["x", "y", "z"], dtype="string"),
+                "b": pd.Series(["x", "y", "z"], dtype=f"string[{string_storage}]"),
             }
         )
         tm.assert_frame_equal(result, expected)

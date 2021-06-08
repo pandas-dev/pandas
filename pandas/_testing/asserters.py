@@ -48,6 +48,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -638,12 +639,20 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif is_categorical_dtype(left) or isinstance(left, PandasDtype):
+    elif (
+        is_categorical_dtype(left)
+        or isinstance(left, PandasDtype)
+        or isinstance(left, StringDtype)
+    ):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif is_categorical_dtype(right) or isinstance(right, PandasDtype):
+    elif (
+        is_categorical_dtype(right)
+        or isinstance(right, PandasDtype)
+        or isinstance(right, StringDtype)
+    ):
         right = repr(right)
 
     msg += f"""

@@ -419,18 +419,14 @@ def maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import StringArray
-    from pandas.core.arrays.string_arrow import ArrowStringArray
+    from pandas.core.arrays.string_ import BaseStringArray
 
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
 
     # Everything can be converted to StringArrays, but we may not want to convert
-    if (
-        issubclass(cls, (StringArray, ArrowStringArray))
-        and lib.infer_dtype(obj) != "string"
-    ):
+    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
         return obj
 
     try:
