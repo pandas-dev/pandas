@@ -470,8 +470,7 @@ def test_longtable_comprehensive(styler):
         \\endlastfoot
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
-        \\end{longtable}
-        """
+        \\end{longtable}"""
     )
 
 
@@ -489,8 +488,7 @@ def test_longtable_minimal(styler):
         \\endlastfoot
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
-        \\end{longtable}
-        """
+        \\end{longtable}"""
     )
 
 
