@@ -15,13 +15,13 @@
 \caption{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
 {%- set label = parse_table(table_styles, 'label') %}
 {%- if label is not none %}
- \label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
+ \label{{label}}
 {%- endif %} \\
 {% elif caption and caption is sequence %}
 \caption[{{caption[1]}}]{% raw %}{{% endraw %}{{caption[0]}}{% raw %}}{% endraw %}
 {%- set label = parse_table(table_styles, 'label') %}
 {%- if label is not none %}
- \label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
+ \label{{label}}
 {%- endif %} \\
 {% endif %}
 {% set toprule = parse_table(table_styles, 'toprule') %}
@@ -37,35 +37,36 @@
 {% endif %}
 \endfirsthead
 {% if caption and caption is string %}
-\caption[]{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
-{%- if label is not none %}
- \label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
-{%- endif %} \\
+\caption[]{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %} \\
 {% elif caption and caption is sequence %}
-\caption[]{% raw %}{{% endraw %}{{caption[0]}}{% raw %}}{% endraw %}
-{%- if label is not none %}
- \label{% raw %}{{% endraw %}{{label}}{% raw %}}{% endraw %}
-{%- endif %} \\
+\caption[]{% raw %}{{% endraw %}{{caption[0]}}{% raw %}}{% endraw %} \\
 {% endif %}
-{% set toprule = parse_table(table_styles, 'toprule') %}
 {% if toprule is not none %}
 \{{toprule}}
 {% endif %}
 {% for row in head %}
 {% for c in row %}{%- if not loop.first %} & {% endif %}{{parse_header(c, multirow_align, multicol_align, True)}}{% endfor %} \\
 {% endfor %}
-{% set midrule = parse_table(table_styles, 'midrule') %}
 {% if midrule is not none %}
 \{{midrule}}
 {% endif %}
 \endhead
+{% if midrule is not none %}
+\{{midrule}}
+{% endif %}
+\multicolumn{% raw %}{{% endraw %}{{column_format|length}}{% raw %}}{% endraw %}{r}{Continued on next page} \\
+{% if midrule is not none %}
+\{{midrule}}
+{% endif %}
+\endfoot
+{% set bottomrule = parse_table(table_styles, 'bottomrule') %}
+{% if bottomrule is not none %}
+\{{bottomrule}}
+{% endif %}
+\endlastfoot
 {% for row in body %}
 {% for c in row %}{% if not loop.first %} & {% endif %}
   {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align)}}{% else %}{{parse_cell(c.cellstyle, c.display_value)}}{% endif %}
 {%- endfor %} \\
 {% endfor %}
-{% set bottomrule = parse_table(table_styles, 'bottomrule') %}
-{% if bottomrule is not none %}
-\{{bottomrule}}
-{% endif %}
 \end{longtable}

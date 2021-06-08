@@ -443,3 +443,119 @@ def test_parse_latex_table_wrapping(styler):
 def test_short_caption(styler):
     result = styler.to_latex(caption=("full cap", "short cap"))
     assert "\\caption[short cap]{full cap}" in result
+
+
+def test_longtable_comprehensive(styler):
+    result = styler.to_latex(
+        environment="longtable", hrules=True, label="fig:A", caption=("full", "short")
+    )
+    assert result == dedent(
+        """\
+        \\begin{longtable}{lrrl}
+        \\caption[short]{full} \\label{fig:A} \\\\
+        \\toprule
+        {} & {A} & {B} & {C} \\\\
+        \\midrule
+        \\endfirsthead
+        \\caption[]{full} \\\\
+        \\toprule
+        {} & {A} & {B} & {C} \\\\
+        \\midrule
+        \\endhead
+        \\midrule
+        \\multicolumn{4}{r}{Continued on next page} \\\\
+        \\midrule
+        \\endfoot
+        \\bottomrule
+        \\endlastfoot
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{longtable}
+        """
+    )
+
+
+def test_longtable_minimal(styler):
+    result = styler.to_latex(environment="longtable")
+    assert result == dedent(
+        """\
+        \\begin{longtable}{lrrl}
+        {} & {A} & {B} & {C} \\\\
+        \\endfirsthead
+        {} & {A} & {B} & {C} \\\\
+        \\endhead
+        \\multicolumn{4}{r}{Continued on next page} \\\\
+        \\endfoot
+        \\endlastfoot
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{longtable}
+        """
+    )
+
+
+def test_longtable_multiindex_columns(df):
+    cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.columns = cidx
+    expected = dedent(
+        """\
+        \\begin{longtable}{lrrl}
+        {} & \\multicolumn{2}{r}{A} & {B} \\\\
+        {} & {a} & {b} & {c} \\\\
+        \\endfirsthead
+        {} & \\multicolumn{2}{r}{A} & {B} \\\\
+        {} & {a} & {b} & {c} \\\\
+        \\endhead
+        """
+    )
+    assert expected in df.style.to_latex(environment="longtable")
+
+    # non-sparse
+    expected = dedent(
+        """\
+        \\begin{longtable}{lrrl}
+        {} & {A} & {A} & {B} \\\\
+        {} & {a} & {b} & {c} \\\\
+        \\endfirsthead
+        {} & {A} & {A} & {B} \\\\
+        {} & {a} & {b} & {c} \\\\
+        \\endhead
+        """
+    )
+    assert expected in df.style.to_latex(environment="longtable", sparse_columns=False)
+
+
+def test_longtable_caption_label(styler):
+    expected = dedent(
+        """\
+        \\caption{full} \\\\
+        {} & {A} & {B} & {C} \\\\
+        \\endfirsthead
+        \\caption[]{full} \\\\
+        """
+    )
+    assert expected in styler.to_latex(environment="longtable", caption="full")
+
+    expected = dedent(
+        """\
+        \\caption[short]{full} \\label{fig:A} \\\\
+        {} & {A} & {B} & {C} \\\\
+        \\endfirsthead
+        \\caption[]{full} \\\\
+        """
+    )
+    assert expected in styler.to_latex(
+        environment="longtable", caption=("full", "short"), label="fig:A"
+    )
+
+    expected = dedent(
+        """\
+        \\caption{full} \\label{fig:A} \\\\
+        {} & {A} & {B} & {C} \\\\
+        \\endfirsthead
+        \\caption[]{full} \\\\
+        """
+    )
+    assert expected in styler.to_latex(
+        environment="longtable", caption="full", label="fig:A"
+    )
