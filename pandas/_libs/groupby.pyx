@@ -260,10 +260,7 @@ def group_cumsum(numeric[:, ::1] out,
                             accum[lab, j] = NaN
                             break
                 else:
-                    y = val - compensation[lab, j]
-                    t = accum[lab, j] + y
-                    compensation[lab, j] = t - accum[lab, j] - y
-                    accum[lab, j] = t
+                    accum[lab, j] = val + accum[lab, j]
                     out[i, j] = accum[lab, j]
 
 
