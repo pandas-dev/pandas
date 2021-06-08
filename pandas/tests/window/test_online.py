@@ -23,7 +23,7 @@ class TestEWM:
             online_ewm.mean(update=df.head(1))
 
     @pytest.mark.parametrize(
-        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5))]
+        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
     )
     def test_online_vs_non_online_mean(
         self, obj, nogil, parallel, nopython, adjust, ignore_na
@@ -47,7 +47,7 @@ class TestEWM:
             online_ewm.reset()
 
     @pytest.mark.parametrize(
-        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5))]
+        "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
     )
     def test_update_times_mean(self, obj, nogil, parallel, nopython, adjust, ignore_na):
         times = Series(

@@ -789,7 +789,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             ``update`` needs to be ``None`` the first time the
             exponentially weighted mean is calculated.
 
-        update_times: Series or np.ndarray, default None
+        update_times: Series or 1-D np.ndarray, default None
             New times to continue calculating the
             exponentially weighted mean from the last values and weights.
             If ``None``, values are assumed to be evenly spaced
@@ -818,23 +818,37 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         0  0.00  5.00
         1  0.75  5.75
         """
+        result_kwargs = {}
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
                     "Must call mean with update=None first before passing update"
                 )
-            obj = np.concatenate((self._mean.last_ewm, update.to_numpy()))
             result_from = 1
+            result_kwargs["index"] = update.index
+            if update.ndim == 2:
+                last_value = self._mean.last_ewm[np.newaxis, :]
+                result_kwargs["columns"] = update.columns
+            else:
+                last_value = self._mean.last_ewm
+                result_kwargs["name"] = update.name
+            obj = np.concatenate((last_value, update.to_numpy()))
         else:
-            obj = self._selected_obj.astype(np.float64).to_numpy()
             result_from = 0
+            result_kwargs["index"] = self._selected_obj.index
+            if self._selected_obj.ndim == 2:
+                result_kwargs["columns"] = self._selected_obj.columns
+            else:
+                result_kwargs["name"] = self._selected_obj.name
+            obj = self._selected_obj.astype(np.float64).to_numpy()
         if update_times is None:
             update_times = np.ones(
-                max(self.obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
+                max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
             )
         else:
             update_times = _calculate_deltas(update_times, self.halflife)
         ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
         result = self._mean.run_ewm(obj, update_times, self.min_periods, ewma_func)
-        result = self._selected_obj._constructor(result)
-        return result.iloc[result_from:]
+        result = result[result_from:]
+        result = self._selected_obj._constructor(result, **result_kwargs)
+        return result
