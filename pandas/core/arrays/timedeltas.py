@@ -96,8 +96,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
 
-    .. versionadded:: 0.24.0
-
     .. warning::
 
        TimedeltaArray is currently experimental, and its API may change

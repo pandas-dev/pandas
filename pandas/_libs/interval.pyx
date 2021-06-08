@@ -449,8 +449,6 @@ cdef class Interval(IntervalMixin):
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         other : Interval

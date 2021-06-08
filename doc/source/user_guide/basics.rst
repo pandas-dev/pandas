@@ -1490,8 +1490,6 @@ for altering the ``Series.name`` attribute.
 
 .. _basics.rename_axis:
 
-.. versionadded:: 0.24.0
-
 The methods :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis`
 allow specific names of a ``MultiIndex`` to be changed (as opposed to the
 labels).

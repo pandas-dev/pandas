@@ -114,16 +114,10 @@ usecols : int, str, list-like, or callable default None
       both sides.
     * If list of int, then indicates list of column numbers to be parsed.
     * If list of string, then indicates list of column names to be parsed.
-
-      .. versionadded:: 0.24.0
-
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
-
-      .. versionadded:: 0.24.0
-
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
 dtype : Type name or dict of column -> type, default None
@@ -680,8 +674,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-
-        .. versionadded:: 0.24.0
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc., if using a URL that will

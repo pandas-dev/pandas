@@ -1973,8 +1973,6 @@ def maybe_cast_to_integer_array(
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     arr : np.ndarray or list

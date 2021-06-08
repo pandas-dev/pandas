@@ -45,8 +45,6 @@ class SparseDtype(ExtensionDtype):
 
     This dtype implements the pandas ExtensionDtype interface.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     dtype : str, ExtensionDtype, numpy.dtype, type, default numpy.float64

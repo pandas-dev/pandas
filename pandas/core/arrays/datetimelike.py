@@ -1596,8 +1596,6 @@ _round_doc = """
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous
           times.
 
-        .. versionadded:: 0.24.0
-
     nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
         A nonexistent time does not exist in a particular timezone
         where clocks moved forward due to DST.
@@ -1610,8 +1608,6 @@ _round_doc = """
         - timedelta objects will shift nonexistent times by the timedelta
         - 'raise' will raise an NonExistentTimeError if there are
           nonexistent times.
-
-        .. versionadded:: 0.24.0
 
     Returns
     -------

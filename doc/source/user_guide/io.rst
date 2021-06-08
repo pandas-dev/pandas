@@ -297,7 +297,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
   .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
@@ -2714,8 +2713,6 @@ table CSS classes. Note that these classes are *appended* to the existing
 The ``render_links`` argument provides the ability to add hyperlinks to cells
 that contain URLs.
 
-.. versionadded:: 0.24
-
 .. ipython:: python
 
    url_df = pd.DataFrame(
@@ -3590,8 +3587,6 @@ indices to be parsed.
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
-.. versionadded:: 0.24
-
 If ``usecols`` is a list of strings, it is assumed that each string corresponds
 to a column name provided either by the user in ``names`` or inferred from the
 document header row(s). Those strings define which columns will be parsed:
@@ -3601,8 +3596,6 @@ document header row(s). Those strings define which columns will be parsed:
     pd.read_excel("path_to_file.xls", "Sheet1", usecols=["foo", "bar"])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
-
-.. versionadded:: 0.24
 
 If ``usecols`` is callable, the callable function will be evaluated against
 the column names, returning names where the callable function evaluates to ``True``.
@@ -4259,9 +4252,6 @@ everything in the sub-store and **below**, so be *careful*.
 
 You can walk through the group hierarchy using the ``walk`` method which
 will yield a tuple for each group key along with the relative keys of its contents.
-
-.. versionadded:: 0.24.0
-
 
 .. ipython:: python
 
@@ -5439,8 +5429,6 @@ underlying engine's default behavior.
 Partitioning Parquet files
 ''''''''''''''''''''''''''
 
-.. versionadded:: 0.24.0
-
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
@@ -5667,8 +5655,6 @@ will convert the data to UTC.
 
 Insertion method
 ++++++++++++++++
-
-.. versionadded:: 0.24.0
 
 The parameter ``method`` controls the SQL insertion clause used.
 Possible values are:

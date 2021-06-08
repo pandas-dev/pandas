@@ -151,8 +151,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
-    .. versionadded:: 0.24.0
-
     .. warning::
 
        DatetimeArray is currently experimental, and its API may change
@@ -909,8 +907,6 @@ default 'raise'
             - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------

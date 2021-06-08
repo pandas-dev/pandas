@@ -77,8 +77,6 @@ def array(
     """
     Create an array.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     data : Sequence of objects

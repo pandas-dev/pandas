@@ -40,11 +40,6 @@ analysis.
 
 See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
 
-.. versionchanged:: 0.24.0
-
-   :attr:`MultiIndex.labels` has been renamed to :attr:`MultiIndex.codes`
-   and :attr:`MultiIndex.set_labels` to :attr:`MultiIndex.set_codes`.
-
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -86,8 +81,6 @@ to use the :meth:`MultiIndex.from_product` method:
 You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using
 the method :meth:`MultiIndex.from_frame`. This is a complementary method to
 :meth:`MultiIndex.to_frame`.
-
-.. versionadded:: 0.24.0
 
 .. ipython:: python
 

@@ -8,8 +8,6 @@
 Nullable integer data type
 **************************
 
-.. versionadded:: 0.24.0
-
 .. note::
 
    IntegerArray is currently experimental. Its API or implementation may

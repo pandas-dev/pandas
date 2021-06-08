@@ -80,11 +80,6 @@ class ExtensionDtype:
     ``__eq__`` or ``__hash__``, the default implementations here will not
     work.
 
-    .. versionchanged:: 0.24.0
-
-       Added ``_metadata``, ``__hash__``, and changed the default definition
-       of ``__eq__``.
-
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array or ChunkedArray
     as only argument and is expected to return the appropriate pandas
@@ -378,8 +373,6 @@ class ExtensionDtype:
 def register_extension_dtype(cls: type[E]) -> type[E]:
     """
     Register an ExtensionType with pandas as class decorator.
-
-    .. versionadded:: 0.24.0
 
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.

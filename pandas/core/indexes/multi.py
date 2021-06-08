@@ -214,8 +214,6 @@ class MultiIndex(Index):
         The unique labels for each level.
     codes : sequence of arrays
         Integers for each level designating which label at each location.
-
-        .. versionadded:: 0.24.0
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
         level).
@@ -627,8 +625,6 @@ class MultiIndex(Index):
         """
         Make a MultiIndex from a DataFrame.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         df : DataFrame
@@ -995,10 +991,6 @@ class MultiIndex(Index):
     def set_codes(self, codes, level=None, inplace=None, verify_integrity: bool = True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
-
-        .. versionadded:: 0.24.0
-
-           New name for deprecated method `set_labels`.
 
         Parameters
         ----------
@@ -1701,8 +1693,6 @@ class MultiIndex(Index):
         Column ordering is determined by the DataFrame constructor with data as
         a dict.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         index : bool, default True
@@ -1776,8 +1766,6 @@ class MultiIndex(Index):
     def to_flat_index(self) -> Index:
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
-
-        .. versionadded:: 0.24.0
 
         Returns
         -------

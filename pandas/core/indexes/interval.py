@@ -472,8 +472,6 @@ class IntervalIndex(ExtensionIndex):
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
-        .. versionadded:: 0.24.0
-
         Returns
         -------
         bool

@@ -1063,8 +1063,6 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     allow_sets : bool, default True
         If this parameter is False, sets will not be considered list-like.
 
-        .. versionadded:: 0.24.0
-
     Returns
     -------
     bool
