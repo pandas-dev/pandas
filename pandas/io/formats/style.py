@@ -126,7 +126,7 @@ class Styler(StylerRenderer):
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
         LaTeX-safe sequences.
 
-        ... versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
     Attributes
     ----------
