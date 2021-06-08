@@ -781,14 +781,6 @@ class Block(PandasObject):
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
 
-        # https://github.com/pandas-dev/pandas/issues/40371
-        # the following pairs check code caused a regression so we catch that case here
-        # until the issue is fixed properly in can_hold_element
-
-        # error: "Iterable[Any]" has no attribute "tolist"
-        if hasattr(src_list, "tolist"):
-            src_list = src_list.tolist()  # type: ignore[attr-defined]
-
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
