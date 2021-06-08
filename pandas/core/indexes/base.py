@@ -3013,7 +3013,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Self may have duplicates
         # find indexes of things in "other" that are not in "self"
-        if self.is_unique:
+        if self._index_as_unique:
             indexer = self.get_indexer(other)
             missing = (indexer == -1).nonzero()[0]
         else:
@@ -3171,6 +3171,10 @@ class Index(IndexOpsMixin, PandasObject):
             # Note: we do not (yet) sort even if sort=None GH#24959
             return self.rename(result_name)
 
+        if not self._should_compare(other):
+            # Nothing matches -> difference is everything
+            return self.rename(result_name)
+
         result = self._difference(other, sort=sort)
         return self._wrap_setop_result(other, result)
 
@@ -3178,7 +3182,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         this = self._get_unique_index()
 
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer_for(other)
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
