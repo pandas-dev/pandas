@@ -111,6 +111,7 @@ class BaseArrayManager(DataManager):
     ----------
     arrays : Sequence of arrays
     axes : Sequence of Index
+    refs : Sequence of weakrefs or None, optional
     verify_integrity : bool, default True
 
     """
@@ -122,13 +123,13 @@ class BaseArrayManager(DataManager):
 
     arrays: list[np.ndarray | ExtensionArray]
     _axes: list[Index]
-    refs: list | None
+    refs: list[weakref.ref | None] | None
 
     def __init__(
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
-        refs: list | None,
+        refs: list[weakref.ref | None] | None,
         verify_integrity: bool = True,
     ):
         raise NotImplementedError
@@ -180,11 +181,20 @@ class BaseArrayManager(DataManager):
         pass
 
     def _has_no_reference(self, i: int):
+        """
+        Check for column `i` if has references.
+        (whether it references another array or is itself being referenced)
+
+        Returns True if the columns has no references.
+        """
         return (self.refs is None or self.refs[i] is None) and weakref.getweakrefcount(
             self.arrays[i]
         ) == 0
 
     def _clear_reference(self, i: int):
+        """
+        Clear any reference for column `i`.
+        """
         if self.refs is not None:
             self.refs[i] = None
 
@@ -626,6 +636,7 @@ class BaseArrayManager(DataManager):
                     )
                     ref = None
                 else:
+                    # reusing full column array -> track with reference
                     arr = self.arrays[i]
                     ref = weakref.ref(arr)
                 new_arrays.append(arr)
@@ -648,6 +659,8 @@ class BaseArrayManager(DataManager):
                 )
                 for arr in self.arrays
             ]
+            # selecting rows with take always creates a copy -> no need to
+            # track references to original arrays
             refs = None
 
         new_axes = list(self._axes)
@@ -717,7 +730,7 @@ class ArrayManager(BaseArrayManager):
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
-        refs: list | None = None,
+        refs: list[weakref.ref | None] | None = None,
         verify_integrity: bool = True,
     ):
         # Note: we are storing the axes in "_axes" in the (row, columns) order
@@ -794,8 +807,8 @@ class ArrayManager(BaseArrayManager):
 
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
-        # TODO possible optimization is to have `refs` to be a weakref to the
-        # full ArrayManager to indicate it's referencing
+        # slicing results in views -> track references to original arrays
+        # TODO possible to optimizate this with single ref to the full ArrayManager?
         refs = [weakref.ref(arr) for arr in self.arrays]
 
         return type(self)(arrays, new_axes, refs, verify_integrity=False)
@@ -805,6 +818,7 @@ class ArrayManager(BaseArrayManager):
         Return the data as a SingleArrayManager.
         """
         values = self.arrays[i]
+        # getting single column array for Series -> track reference to original
         ref = weakref.ref(values)
         return SingleArrayManager([values], [self._axes[0]], [ref])
 
@@ -834,6 +848,7 @@ class ArrayManager(BaseArrayManager):
             Positional location (already bounds checked)
         value : np.ndarray or ExtensionArray
         """
+        # TODO clear reference for item that is being overwritten
         # single column -> single integer index
         if lib.is_integer(loc):
 
@@ -913,6 +928,8 @@ class ArrayManager(BaseArrayManager):
         arrays = self.arrays.copy()
         arrays.insert(loc, value)
         if self.refs is not None:
+            # inserted `value` is already a copy, no need to track reference
+            # TODO can we use CoW here as well?
             self.refs.insert(loc, None)
 
         self.arrays = arrays
@@ -922,6 +939,7 @@ class ArrayManager(BaseArrayManager):
         """
         Delete selected locations in-place (new block and array, same BlockManager)
         """
+        # TODO update refs
         to_keep = np.ones(self.shape[0], dtype=np.bool_)
         to_keep[indexer] = False
 
@@ -931,8 +949,10 @@ class ArrayManager(BaseArrayManager):
 
     def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value):
         if self._has_no_reference(loc):
+            # if no reference -> set array inplace
             self.arrays[loc][idx] = value
         else:
+            # otherwise perform Copy-on-Write and clear the reference
             arr = self.arrays[loc].copy()
             arr[idx] = value
             self.arrays[loc] = arr
@@ -1220,7 +1240,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
-        refs: list | None = None,
+        refs: list[weakref.ref | None] | None = None,
         verify_integrity: bool = True,
     ):
         self._axes = axes
@@ -1310,6 +1330,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         raise NotImplementedError("Use series._values[loc] instead")
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleArrayManager:
+        # TODO track reference
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
@@ -1331,6 +1352,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
 
     def setitem(self, indexer, value, inplace=False):
         if not self._has_no_reference(0):
+            # if being referenced -> perform Copy-on-Write and clear the reference
             self.arrays[0] = self.arrays[0].copy()
             self._clear_reference(0)
         if inplace:
@@ -1342,6 +1364,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """
         Delete selected locations in-place (new array, same ArrayManager)
         """
+        # TODO clear reference
         to_keep = np.ones(self.shape[0], dtype=np.bool_)
         to_keep[indexer] = False
 

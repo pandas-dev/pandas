@@ -567,6 +567,7 @@ class BaseBlockManager(DataManager):
         BlockManager
         """
         if deep is None:
+            # preserve deep copy for BlockManager with copy=None
             deep = True
         # this preserves the notion of view copying of axes
         if deep:
