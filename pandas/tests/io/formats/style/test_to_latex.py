@@ -559,3 +559,11 @@ def test_longtable_caption_label(styler):
     assert expected in styler.to_latex(
         environment="longtable", caption="full", label="fig:A"
     )
+
+
+def test_latex_environment(styler):
+    result = styler.to_latex(environment="figure*")
+    assert "\\begin{table}" not in result
+    assert "\\end{table}" not in result
+    assert "\\begin{figure*}" in result
+    assert "\\end{figure*}" in result
