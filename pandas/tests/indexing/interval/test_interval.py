@@ -65,10 +65,10 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3]]
 
     @pytest.mark.slow
@@ -107,11 +107,11 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"None of \[\[10\]\] are"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"\[10\] not in index"):
             df.loc[[10, 4]]
 
 

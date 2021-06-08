@@ -351,14 +351,14 @@ error_bad_lines : boolean, default ``None``
   ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
   below.
 
-  .. deprecated:: 1.3
+  .. deprecated:: 1.3.0
      The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
 warn_bad_lines : boolean, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
 
-  .. deprecated:: 1.3
+  .. deprecated:: 1.3.0
      The ``on_bad_lines`` parameter should be used instead to specify behavior upon
      encountering a bad line instead.
 on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
@@ -369,7 +369,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'warn', print a warning when a bad line is encountered and skip that line.
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
-    .. versionadded:: 1.3
+    .. versionadded:: 1.3.0
 
 .. _io.dtypes:
 

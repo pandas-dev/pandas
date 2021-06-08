@@ -76,7 +76,7 @@ which will first group the data by the specified keys and then perform a windowi
     to compute the rolling sums to preserve accuracy as much as possible.
 
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
 performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
@@ -159,7 +159,7 @@ By default the labels are set to the right edge of the window, but a
 
 This can also be applied to datetime-like indices.
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 .. ipython:: python
 
@@ -332,7 +332,7 @@ Numba will be applied in potentially two routines:
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 ``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 
