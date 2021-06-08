@@ -839,9 +839,11 @@ class MPLPlot:
         """Return the index of the axis where the column at col_idx should be plotted"""
         if isinstance(self.subplots, list):
             # Subplots is a list: some columns will be grouped together in the same ax
-            for group_idx, group in enumerate(self.subplots):
-                if col_idx in group:
-                    return group_idx
+            return next(
+                group_idx
+                for (group_idx, group) in enumerate(self.subplots)
+                if col_idx in group
+            )
         else:
             # subplots is True: one ax per column
             return col_idx
