@@ -219,6 +219,25 @@ class TestPyObjectHashTableWithNans:
             table.get_item(other)
         assert str(error.value) == str(other)
 
+    def test_nan_in_tuple(self):
+        nan1 = (float("nan"),)
+        nan2 = (float("nan"),)
+        assert nan1[0] is not nan2[0]
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_in_nested_tuple(self):
+        nan1 = (1, (2, (float("nan"),)))
+        nan2 = (1, (2, (float("nan"),)))
+        other = (1, 2)
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
 
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
