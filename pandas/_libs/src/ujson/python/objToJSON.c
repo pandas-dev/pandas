@@ -35,11 +35,13 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1988-1993 The Regents of the University of California.
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
-#define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <math.h>
+
+#define NO_IMPORT_ARRAY
+#define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
@@ -178,8 +180,6 @@ void *initObjToJSON(void) {
         Py_DECREF(mod_natype);
     }
 
-    /* Initialise numpy API */
-    import_array();
     // GH 31463
     return NULL;
 }
