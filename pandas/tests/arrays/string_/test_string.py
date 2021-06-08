@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
