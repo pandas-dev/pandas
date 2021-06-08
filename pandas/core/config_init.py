@@ -526,6 +526,19 @@ with cf.config_prefix("mode"):
     )
 
 
+string_storage_doc = """
+: string
+    The default storage for StringDtype.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "string_storage",
+        "python",
+        string_storage_doc,
+        validator=is_one_of_factory(["python", "pyarrow"]),
+    )
+
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
 : string
@@ -743,9 +756,22 @@ styler_sparse_columns_doc = """
     display each explicit level element in a hierarchical key for each column.
 """
 
+styler_max_elements = """
+: int
+    The maximum number of data-cell (<td>) elements that will be rendered before
+    trimming will occur over columns, rows or both if needed.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
     cf.register_option(
         "sparse.columns", True, styler_sparse_columns_doc, validator=bool
+    )
+
+    cf.register_option(
+        "render.max_elements",
+        2 ** 18,
+        styler_max_elements,
+        validator=is_nonnegative_int,
     )

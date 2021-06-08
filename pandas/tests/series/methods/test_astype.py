@@ -249,10 +249,10 @@ class TestAstype:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            (["x", "y", "z"], "string"),
+            (["x", "y", "z"], "string[python]"),
             pytest.param(
                 ["x", "y", "z"],
-                "arrow_string",
+                "string[pyarrow]",
                 marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
             ),
             (["x", "y", "z"], "category"),
@@ -263,9 +263,6 @@ class TestAstype:
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
     def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
-
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         ser = Series(data, dtype=dtype)
         if errors == "ignore":
             expected = ser
