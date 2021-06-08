@@ -652,6 +652,7 @@ class PlotAccessor(PandasObject):
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool or list of iterables, default False
+        Whether to group columns into subplots:
 
         - ``False`` - no subplots will be used
         - ``True`` - Make separate subplots for each column.
