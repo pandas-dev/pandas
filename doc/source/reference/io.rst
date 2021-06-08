@@ -43,12 +43,14 @@ Excel
    ExcelFile.parse
 
 .. currentmodule:: pandas.io.formats.style
+
 .. autosummary::
    :toctree: api/
 
    Styler.to_excel
 
 .. currentmodule:: pandas
+
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
@@ -56,6 +58,7 @@ Excel
    ExcelWriter
 
 .. currentmodule:: pandas.io.json
+
 JSON
 ~~~~
 .. autosummary::
@@ -81,12 +84,14 @@ HTML
    DataFrame.to_html
 
 .. currentmodule:: pandas.io.formats.style
+
 .. autosummary::
    :toctree: api/
 
    Styler.to_html
 
 .. currentmodule:: pandas
+
 XML
 ~~~~
 .. autosummary::
@@ -96,19 +101,21 @@ XML
    DataFrame.to_xml
 
 LaTeX
-~~~~
+~~~~~
 .. autosummary::
    :toctree: api/
 
    DataFrame.to_latex
 
 .. currentmodule:: pandas.io.formats.style
+
 .. autosummary::
    :toctree: api/
 
    Styler.to_latex
 
 .. currentmodule:: pandas
+
 HDFStore: PyTables (HDF5)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
