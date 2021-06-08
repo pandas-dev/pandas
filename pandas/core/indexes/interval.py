@@ -62,7 +62,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import (
     take_nd,
@@ -402,6 +402,8 @@ class IntervalIndex(ExtensionIndex):
         """
         hash(key)
         if not isinstance(key, Interval):
+            if is_valid_na_for_dtype(key, self.dtype):
+                return self.hasnans
             return False
 
         try:
@@ -679,6 +681,8 @@ class IntervalIndex(ExtensionIndex):
             if self.closed != key.closed:
                 raise KeyError(key)
             mask = (self.left == key.left) & (self.right == key.right)
+        elif is_valid_na_for_dtype(key, self.dtype):
+            mask = self.isna()
         else:
             # assume scalar
             op_left = le if self.closed_left else lt
@@ -694,7 +698,12 @@ class IntervalIndex(ExtensionIndex):
             raise KeyError(key)
         elif matches == 1:
             return mask.argmax()
-        return lib.maybe_booleans_to_slice(mask.view("u1"))
+
+        res = lib.maybe_booleans_to_slice(mask.view("u1"))
+        if isinstance(res, slice) and res.stop is None:
+            # TODO: DO this in maybe_booleans_to_slice?
+            res = slice(res.start, len(self), res.step)
+        return res
 
     def _get_indexer(
         self,
@@ -762,30 +771,20 @@ class IntervalIndex(ExtensionIndex):
         """
         indexer, missing = [], []
         for i, key in enumerate(target):
-            if is_interval_dtype(target.dtype) and isna(key):
-                # self.get_loc(np.nan) will treat it as a float instead of as
-                #  our own dtype.
-                # TODO: handle this in get_loc?
-                locs = self.isna().nonzero()[0]
-                if len(locs) == 0:
-                    missing.append(i)
-            else:
-                try:
-                    nlocs = self.get_loc(key)
-                    if isinstance(nlocs, slice):
-                        # Only needed for get_indexer_non_unique
-                        nlocs = np.arange(
-                            nlocs.start, nlocs.stop, nlocs.step, dtype="intp"
-                        )
-                    locs = np.array(nlocs, ndmin=1)
-                except KeyError:
-                    missing.append(i)
-                    locs = np.array([-1])
-                except InvalidIndexError:
-                    # i.e. non-scalar key e.g. a tuple.
-                    # see test_append_different_columns_types_raises
-                    missing.append(i)
-                    locs = np.array([-1])
+            try:
+                locs = self.get_loc(key)
+                if isinstance(locs, slice):
+                    # Only needed for get_indexer_non_unique
+                    locs = np.arange(locs.start, locs.stop, locs.step, dtype="intp")
+                locs = np.array(locs, ndmin=1)
+            except KeyError:
+                missing.append(i)
+                locs = np.array([-1])
+            except InvalidIndexError:
+                # i.e. non-scalar key e.g. a tuple.
+                # see test_append_different_columns_types_raises
+                missing.append(i)
+                locs = np.array([-1])
 
             indexer.append(locs)
 

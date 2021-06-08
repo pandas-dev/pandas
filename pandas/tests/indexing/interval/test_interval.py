@@ -114,7 +114,7 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"\[10\] not in index"):
             df.loc[[10, 4]]
 
-    def test_getitem_interval_with_nans(self, frame_or_series, indexer_sl, request):
+    def test_getitem_interval_with_nans(self, frame_or_series, indexer_sl):
         # GH#41831
 
         index = IntervalIndex([np.nan, np.nan])
@@ -126,10 +126,6 @@ class TestIntervalIndex:
 
         result = indexer_sl(obj)[key]
         expected = obj
-
-        if frame_or_series is DataFrame and indexer_sl is tm.setitem:
-            mark = pytest.mark.xfail(reason="__contains__ returns False on np.nan")
-            request.node.add_marker(mark)
 
         tm.assert_equal(result, expected)
 
