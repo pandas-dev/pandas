@@ -239,6 +239,7 @@ class _Unstacker:
         else:
             dtype, fill_value = maybe_promote(values.dtype, fill_value)
             if isinstance(dtype, ExtensionDtype):
+                # GH#41875
                 cls = dtype.construct_array_type()
                 new_values = cls._empty(result_shape, dtype=dtype)
                 new_values[:] = fill_value
