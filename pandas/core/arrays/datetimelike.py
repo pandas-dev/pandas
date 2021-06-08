@@ -159,6 +159,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
 
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return True
+
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
