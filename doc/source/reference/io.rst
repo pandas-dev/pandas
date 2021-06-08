@@ -48,6 +48,7 @@ Excel
 
    Styler.to_excel
 
+.. currentmodule:: pandas
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
