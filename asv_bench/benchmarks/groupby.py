@@ -509,7 +509,7 @@ class CumminMax:
     param_names = ["dtype", "method"]
     params = [
         ["float64", "int64", "Float64", "Int64"],
-        ["cummin", "cummax"],
+        ["cummin", "cummax", "cumsum"],
     ]
 
     def setup(self, dtype, method):
