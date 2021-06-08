@@ -267,3 +267,6 @@ def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,
 ) -> np.ndarray: ...      # np.ndarray[np.intp]
+
+
+def is_bool_list(obj: list) -> bool: ...
