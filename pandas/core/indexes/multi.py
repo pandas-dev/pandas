@@ -3612,9 +3612,7 @@ class MultiIndex(Index):
                 uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
-            left_unique = self.drop_duplicates()
-            indexer = left_unique.get_indexer(other.drop_duplicates())
-            uniq_tuples = left_unique.take(np.sort(indexer[indexer != -1]))
+            uniq_tuples = self._intersection_via_get_indexer(other, sort)
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)

@@ -3098,7 +3098,6 @@ class Index(IndexOpsMixin, PandasObject):
         intersection specialized to the case with matching dtypes.
         """
         # TODO(EA): setops-refactor, clean all this up
-        lvals = self._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -3110,21 +3109,35 @@ class Index(IndexOpsMixin, PandasObject):
                 res = algos.unique1d(result)
                 return ensure_wrapped_if_datetimelike(res)
 
-        try:
-            indexer = other.get_indexer(lvals)
-        except InvalidIndexError:
-            # InvalidIndexError raised by get_indexer if non-unique
-            indexer, _ = other.get_indexer_non_unique(lvals)
+        res_values = self._intersection_via_get_indexer(other, sort=sort)
+        res_values = _maybe_try_sort(res_values, sort)
+        return res_values
+
+    def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
+        """
+        Find the intersection of two Indexes using get_indexer.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+            The returned array will be unique.
+        """
+        # Note: drop_duplicates vs unique matters for MultiIndex, though
+        #  it should not, see GH#41823
+        left_unique = self.drop_duplicates()
+        right_unique = other.drop_duplicates()
+
+        indexer = left_unique.get_indexer(right_unique)
 
         mask = indexer != -1
-        indexer = indexer.take(mask.nonzero()[0])
 
-        result = other.take(indexer).unique()._values
-        result = _maybe_try_sort(result, sort)
+        taker = indexer.take(mask.nonzero()[0])
+        if sort is False:
+            # sort bc we want the elements in the same order they are in self
+            # unnecessary in the case with sort=None bc we will sort later
+            taker = np.sort(taker)
 
-        # Intersection has to be unique
-        assert Index(result).is_unique
-
+        result = left_unique.take(taker)._values
         return result
 
     @final
