@@ -1647,15 +1647,15 @@ class _iLocIndexer(_LocationIndexer):
                                     "cannot set a frame with no "
                                     "defined index and a scalar"
                                 )
-                            self.obj[key] = value
+                            self.obj.loc[:, key] = value
                             return
 
                         # add a new item with the dtype setup
                         if com.is_null_slice(indexer[0]):
                             # We are setting an entire column
-                            self.obj[key] = value
+                            self.obj.loc[:, key] = value
                         else:
-                            self.obj[key] = infer_fill_value(value)
+                            self.obj.loc[:, key] = infer_fill_value(value)
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes
