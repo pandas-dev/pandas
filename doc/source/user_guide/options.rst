@@ -482,6 +482,13 @@ plotting.backend                        matplotlib   Change the plotting backend
                                                      like Bokeh, Altair, etc.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
+styler.sparse.index                     True         "Sparsify" MultiIndex display for rows
+                                                     in Styler output (don't display repeated
+                                                     elements in outer levels within groups).
+styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
+                                                     in Styler output.
+styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
+                                                     trimming either rows, columns or both to fit.
 ======================================= ============ ==================================
 
 

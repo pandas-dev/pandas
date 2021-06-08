@@ -2105,34 +2105,6 @@ class TestDataFramePlots(TestPlotBase):
         ):
             df.plot(subplots=[("a", "b")], kind=kind)
 
-    def test_missing_markers_legend(self):
-        # 14958
-        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
-        ax = df.plot(y=["A"], marker="x", linestyle="solid")
-        df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
-        df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)
-
-        self._check_legend_labels(ax, labels=["A", "B", "C"])
-        self._check_legend_marker(ax, expected_markers=["x", "o", "<"])
-
-    def test_missing_markers_legend_using_style(self):
-        # 14563
-        df = DataFrame(
-            {
-                "A": [1, 2, 3, 4, 5, 6],
-                "B": [2, 4, 1, 3, 2, 4],
-                "C": [3, 3, 2, 6, 4, 2],
-                "X": [1, 2, 3, 4, 5, 6],
-            }
-        )
-
-        fig, ax = self.plt.subplots()
-        for kind in "ABC":
-            df.plot("X", kind, label=kind, ax=ax, style=".")
-
-        self._check_legend_labels(ax, labels=["A", "B", "C"])
-        self._check_legend_marker(ax, expected_markers=[".", ".", "."])
-
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
         [
