@@ -425,7 +425,7 @@ class Styler(StylerRenderer):
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
-        environment: str = None,
+        environment: str | None = None,
         encoding: str | None = None,
     ):
         r"""
