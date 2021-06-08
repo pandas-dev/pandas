@@ -163,17 +163,50 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 
+int PANDAS_INLINE floatobject_cmp(PyObject* a, PyObject* b){
+    return Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
+           Py_IS_NAN(PyFloat_AS_DOUBLE(b));
+}
+
+
+int PANDAS_INLINE complexobject_cmp(PyObject* a, PyObject* b){
+    return (
+                Py_IS_NAN(PyComplex_RealAsDouble(a)) &&
+                Py_IS_NAN(PyComplex_RealAsDouble(b)) &&
+                Py_IS_NAN(PyComplex_ImagAsDouble(a)) &&
+                Py_IS_NAN(PyComplex_ImagAsDouble(b))
+           )
+           ||
+           (
+                Py_IS_NAN(PyComplex_RealAsDouble(a)) &&
+                Py_IS_NAN(PyComplex_RealAsDouble(b)) &&
+                PyComplex_ImagAsDouble(a) == PyComplex_ImagAsDouble(b)
+           )
+           ||
+           (
+                PyComplex_RealAsDouble(a) == PyComplex_RealAsDouble(b) &&
+                Py_IS_NAN(PyComplex_ImagAsDouble(a)) &&
+                Py_IS_NAN(PyComplex_ImagAsDouble(b))
+           );
+}
+
+
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 	int result = PyObject_RichCompareBool(a, b, Py_EQ);
 	if (result < 0) {
 		PyErr_Clear();
 		return 0;
 	}
-    if (result == 0) {  // still could be two NaNs
-        return PyFloat_CheckExact(a) &&
-               PyFloat_CheckExact(b) &&
-               Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
-               Py_IS_NAN(PyFloat_AS_DOUBLE(b));
+    if (result == 0) {  // still could be built-ins with NaNs
+        if (Py_TYPE(a) != Py_TYPE(b)) {
+            return 0;
+        }
+        if (PyFloat_CheckExact(a)) {
+            return floatobject_cmp(a, b);
+        }
+        if (PyComplex_CheckExact(a)) {
+            return complexobject_cmp(a, b);
+        }
     }
 	return result;
 }
