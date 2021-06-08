@@ -351,8 +351,25 @@ class BaseBlockManager(DataManager):
             errors=errors,
         )
 
-    def setitem(self: T, indexer, value) -> T:
-        return self.apply("setitem", indexer=indexer, value=value)
+    def setitem(self: T, indexer, value, inplace: bool = False) -> T:
+        """
+        Set values with indexer.
+
+        For SingleBlockManager, this backs s[indexer] = value
+
+        Parameters
+        ----------
+        indexer, value
+        inplace : bool, default False
+            If True (for a Series), mutate the block/values in place, not
+            returning a new Manager/Block (and thus never changing the dtype).
+        """
+        if inplace:
+            # only passed for Series (single block)
+            assert self.ndim == 1
+            self._block.values[indexer] = value
+        else:
+            return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
 
