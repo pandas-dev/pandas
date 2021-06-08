@@ -123,7 +123,7 @@ class HashTable:
     def map(
         self,
         keys: np.ndarray,  # np.ndarray[subclass-specific]
-        values: np.ndarray,  # const int64_t[:] values
+        values: np.ndarray,  # const int64_t[:]
     ) -> None: ...
     def map_locations(
         self,
