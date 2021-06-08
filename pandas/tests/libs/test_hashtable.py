@@ -178,6 +178,24 @@ class TestHashTable:
             assert n_buckets_start == clean_table.get_state()["n_buckets"]
 
 
+class TestPyObjectHashTableWithNans:
+    def test_nan_float(self):
+        nan1 = float("nan")
+        nan2 = float("nan")
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex(self):
+        nan1 = 1j * float("nan")
+        nan2 = 1j * float("nan")
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
