@@ -2141,10 +2141,10 @@ Name: Max Speed, dtype: float64
             return None
         else:
             return result
-        
+
     def drop_duplicates_index(self, keep="first") -> Series:
         return self[~self.index.duplicated(keep)]
-   
+
     def duplicated(self, keep="first") -> Series:
         """
         Indicate duplicate Series values.
