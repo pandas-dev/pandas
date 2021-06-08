@@ -48,6 +48,7 @@ class ExtensionDtype:
 
     * type
     * name
+    * construct_array_type
 
     The following attributes and methods influence the behavior of the dtype in
     pandas operations
@@ -55,12 +56,6 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
-
-    Optionally one can override construct_array_type for construction
-    with the name of this dtype via the Registry. See
-    :meth:`extensions.register_extension_dtype`.
-
-    * construct_array_type
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
@@ -205,7 +200,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise NotImplementedError
+        raise AbstractMethodError(cls)
 
     @classmethod
     def construct_from_string(cls, string: str):
