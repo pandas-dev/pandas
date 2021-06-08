@@ -67,7 +67,10 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.base import SpecificationError
+from pandas.core.base import (
+    DataError,
+    SpecificationError,
+)
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -513,12 +516,16 @@ class SeriesGroupBy(GroupBy[Series]):
 
         obj = self._selected_obj
 
+        is_numeric = is_numeric_dtype(obj.dtype)
+        if numeric_only and not is_numeric:
+            raise DataError("No numeric types to aggregate")
+
         try:
             result = self.grouper._cython_operation(
                 "transform", obj._values, how, axis, **kwargs
             )
-        except NotImplementedError as err:
-            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
+        except (NotImplementedError, TypeError):
+            raise DataError("No numeric types to aggregate")
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
@@ -675,7 +682,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @doc(Series.describe)
     def describe(self, **kwargs):
         result = self.apply(lambda x: x.describe(**kwargs))
-        if self.axis == 1 or not self.empty:
+        if self.axis == 1 or not isinstance(result.index, MultiIndex):
             return result.T
         return result.unstack()
 
@@ -1057,6 +1064,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
+        orig = data
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -1079,6 +1087,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
+        if not len(new_mgr) and len(orig):
+            # If the original Manager was already empty, no need to raise
+            raise DataError("No numeric types to aggregate")
         if len(new_mgr) < len(data):
             warnings.warn(
                 f"Dropping invalid columns in {type(self).__name__}.{how} "
