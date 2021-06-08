@@ -95,7 +95,7 @@ def backfill(
     old: np.ndarray,  # ndarray[algos_t]
     new: np.ndarray,  # ndarray[algos_t]
     limit=None,
-) -> np.ndarray: ...
+) -> np.ndarray: ...  # np.ndarray[np.intp, ndim=1]
 def backfill_inplace(
     values: np.ndarray,  # algos_t[:]
     mask: np.ndarray,  # uint8_t[:]
