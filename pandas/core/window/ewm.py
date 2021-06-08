@@ -819,6 +819,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         1  0.75  5.75
         """
         result_kwargs = {}
+        is_frame = True if self._selected_obj.ndim == 2 else False
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -826,21 +827,21 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 )
             result_from = 1
             result_kwargs["index"] = update.index
-            if update.ndim == 2:
+            if is_frame:
                 last_value = self._mean.last_ewm[np.newaxis, :]
                 result_kwargs["columns"] = update.columns
             else:
                 last_value = self._mean.last_ewm
                 result_kwargs["name"] = update.name
-            obj = np.concatenate((last_value, update.to_numpy()))
+            np_array = np.concatenate((last_value, update.to_numpy()))
         else:
             result_from = 0
             result_kwargs["index"] = self._selected_obj.index
-            if self._selected_obj.ndim == 2:
+            if is_frame:
                 result_kwargs["columns"] = self._selected_obj.columns
             else:
                 result_kwargs["name"] = self._selected_obj.name
-            obj = self._selected_obj.astype(np.float64).to_numpy()
+            np_array = self._selected_obj.astype(np.float64).to_numpy()
         if update_times is None:
             update_times = np.ones(
                 max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
@@ -848,7 +849,14 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         else:
             update_times = _calculate_deltas(update_times, self.halflife)
         ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
-        result = self._mean.run_ewm(obj, update_times, self.min_periods, ewma_func)
+        result = self._mean.run_ewm(
+            np_array if is_frame else np_array[:, np.newaxis],
+            update_times,
+            self.min_periods,
+            ewma_func,
+        )
+        if not is_frame:
+            result = result.squeeze()
         result = result[result_from:]
         result = self._selected_obj._constructor(result, **result_kwargs)
         return result
