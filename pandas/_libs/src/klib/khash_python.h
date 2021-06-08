@@ -190,6 +190,24 @@ int PANDAS_INLINE complexobject_cmp(PyObject* a, PyObject* b){
            );
 }
 
+int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b);
+
+
+int PANDAS_INLINE tupleobject_cmp(PyObject* a, PyObject* b){
+    Py_ssize_t i;
+
+    if (Py_SIZE(a) != Py_SIZE(b)) {
+        return 0;
+    }
+
+    for (i = 0; i < Py_SIZE(a); ++i) {
+        if (!pyobject_cmp(PyTuple_GET_ITEM(a, i), PyTuple_GET_ITEM(b, i))) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 	int result = PyObject_RichCompareBool(a, b, Py_EQ);
@@ -206,6 +224,9 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
         }
         if (PyComplex_CheckExact(a)) {
             return complexobject_cmp(a, b);
+        }
+        if (PyTuple_CheckExact(a)) {
+            return tupleobject_cmp(a, b);
         }
     }
 	return result;
