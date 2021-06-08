@@ -367,6 +367,13 @@ class ExtensionDtype:
         else:
             return None
 
+    @property
+    def _can_hold_na(self) -> bool:
+        """
+        Can arrays of this dtype hold NA values?
+        """
+        return True
+
 
 def register_extension_dtype(cls: type[E]) -> type[E]:
     """
