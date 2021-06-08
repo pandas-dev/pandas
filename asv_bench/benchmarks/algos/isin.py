@@ -25,8 +25,8 @@ class IsIn:
         "category[object]",
         "category[int]",
         "str",
-        "string",
-        "arrow_string",
+        "string[python]",
+        "string[pyarrow]",
     ]
     param_names = ["dtype"]
 
@@ -62,9 +62,7 @@ class IsIn:
             self.values = np.random.choice(arr, sample_size)
             self.series = Series(arr).astype("category")
 
-        elif dtype in ["str", "string", "arrow_string"]:
-            from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
+        elif dtype in ["str", "string[python]", "string[pyarrow]"]:
             try:
                 self.series = Series(tm.makeStringIndex(N), dtype=dtype)
             except ImportError:

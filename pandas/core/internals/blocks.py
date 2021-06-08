@@ -175,15 +175,15 @@ class Block(PandasObject):
         return values.base is not None
 
     @final
-    @property
+    @cache_readonly
     def _can_hold_na(self) -> bool:
         """
         Can we store NA values in this Block?
         """
-        values = self.values
-        if isinstance(values, np.ndarray):
-            return values.dtype.kind not in ["b", "i", "u"]
-        return values._can_hold_na
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype):
+            return dtype.kind not in ["b", "i", "u"]
+        return dtype._can_hold_na
 
     @final
     @cache_readonly
@@ -780,14 +780,6 @@ class Block(PandasObject):
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
-
-        # https://github.com/pandas-dev/pandas/issues/40371
-        # the following pairs check code caused a regression so we catch that case here
-        # until the issue is fixed properly in can_hold_element
-
-        # error: "Iterable[Any]" has no attribute "tolist"
-        if hasattr(src_list, "tolist"):
-            src_list = src_list.tolist()  # type: ignore[attr-defined]
 
         # Exclude anything that we know we won't contain
         pairs = [
