@@ -505,7 +505,7 @@ class GroupByCythonAgg:
         self.df.groupby("key").agg(method)
 
 
-class CumminMax:
+class Cumulative:
     param_names = ["dtype", "method"]
     params = [
         ["float64", "int64", "Float64", "Int64"],
