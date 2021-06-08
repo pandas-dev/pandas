@@ -394,8 +394,8 @@ two :class:`Series` or any combination of :class:`DataFrame`/:class:`Series` or
   with the passed Series, thus returning a DataFrame.
 * :class:`DataFrame`/:class:`DataFrame`: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
-  passed then computes the statistic for each pair of columns, returning a
-  ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
+  passed then computes the statistic for each pair of columns, returning a :class:`DataFrame` with a
+  :class:`MultiIndex` whose values are the dates in question (see :ref:`the next section
   <window.corr_pairwise>`).
 
 For example:
