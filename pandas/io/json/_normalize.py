@@ -22,6 +22,8 @@ from pandas.util._decorators import deprecate
 import pandas as pd
 from pandas import DataFrame
 
+import re
+
 
 def convert_to_line_delimits(s: str) -> str:
     """
@@ -34,6 +36,18 @@ def convert_to_line_delimits(s: str) -> str:
     s = s[1:-1]
 
     return convert_json_to_lines(s)
+
+
+def remove_null_items(s: str) -> str:
+    """
+    Helper function that removes null items from a JSON object.
+    """
+    s = re.sub(r',"([^"]*)":null', '', s)
+    s = re.sub(r'"([^"]*)":null,', '', s)
+    s = re.sub(r'{"([^"]*)":null}', '', s)
+    s = re.sub(r'\[,', '[', s)
+    s = re.sub(r',\]', ']', s)
+    return s
 
 
 def nested_to_record(

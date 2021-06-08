@@ -1326,6 +1326,28 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
         tm.assert_frame_equal(read_json(result, lines=True), df)
 
+    def test_to_json_drop_na(self):
+        df = DataFrame([[1, 2], [1, np.nan], [np.nan, np.nan]], columns=["a", "b"])
+        result = df.to_json(orient="records", drop_na=False)
+        expected = '[{"a":1.0,"b":2.0},{"a":1.0,"b":null},{"a":null,"b":null}]'
+        assert result == expected
+
+        df = DataFrame([[1, 2], [1, np.nan], [np.nan, np.nan]], columns=["a", "b"])
+        result = df.to_json(orient="records", drop_na=True)
+        expected = '[{"a":1.0,"b":2.0},{"a":1.0}]'
+        assert result == expected
+
+    def test_to_jsonl_drop_na(self):
+        df = DataFrame([[1, 2], [1, np.nan], [np.nan, np.nan]], columns=["a", "b"])
+        result = df.to_json(orient="records", lines=True, drop_na=False)
+        expected = '{"a":1.0,"b":2.0}\n{"a":1.0,"b":null}\n{"a":null,"b":null}\n'
+        assert result == expected
+
+        df = DataFrame([[1, 2], [1, np.nan], [np.nan, np.nan]], columns=["a", "b"])
+        result = df.to_json(orient="records", lines=True, drop_na=True)
+        expected = '{"a":1.0,"b":2.0}\n{"a":1.0}\n'
+        assert result == expected
+
     # TODO: there is a near-identical test for pytables; can we share?
     def test_latin_encoding(self):
         # GH 13774

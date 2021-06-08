@@ -62,6 +62,7 @@ from pandas.io.common import (
     stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
+from pandas.io.json._normalize import remove_null_items
 from pandas.io.json._table_schema import (
     build_table_schema,
     parse_table_schema,
@@ -89,6 +90,7 @@ def to_json(
     index: bool = True,
     indent: int = 0,
     storage_options: StorageOptions = None,
+    drop_na: bool = False,
 ):
 
     if not index and orient not in ["split", "table"]:
@@ -98,6 +100,9 @@ def to_json(
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
+
+    if drop_na and orient != "records":
+        raise ValueError("'drop_na' keyword only valid when 'orient' is records")
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
@@ -123,6 +128,9 @@ def to_json(
         index=index,
         indent=indent,
     ).write()
+
+    if drop_na:
+        s = remove_null_items(s)
 
     if lines:
         s = convert_to_line_delimits(s)

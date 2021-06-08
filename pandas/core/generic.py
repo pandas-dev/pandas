@@ -2309,6 +2309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index: bool_t = True,
         indent: int | None = None,
         storage_options: StorageOptions = None,
+        drop_na: bool_t = False,
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2369,6 +2370,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If 'orient' is 'records' write out line delimited json format. Will
             throw ValueError if incorrect 'orient' since others are not list
             like.
+        drop_na : bool, default False
+            If 'orient' is 'records' remove `null` items from the output. Will
+            throw ValueError if incorrect 'orient'.
 
         compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}
 
@@ -2574,6 +2578,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index=index,
             indent=indent,
             storage_options=storage_options,
+            drop_na=drop_na,
         )
 
     @final
