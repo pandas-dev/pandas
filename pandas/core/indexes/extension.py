@@ -13,16 +13,12 @@ import numpy as np
 
 from pandas._typing import ArrayLike
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import rewrite_exception
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from,
-)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_object_dtype,
@@ -33,6 +29,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -296,6 +293,21 @@ class ExtensionIndex(Index):
         # overriding IndexOpsMixin improves performance GH#38083
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
+    def putmask(self, mask, value) -> Index:
+        mask, noop = validate_putmask(self._data, mask)
+        if noop:
+            return self.copy()
+
+        try:
+            self._validate_fill_value(value)
+        except (ValueError, TypeError):
+            dtype = self._find_common_type_compat(value)
+            return self.astype(dtype).putmask(mask, value)
+
+        arr = self._data.copy()
+        arr.putmask(mask, value)
+        return type(self)._simple_new(arr, name=self.name)
+
     # ---------------------------------------------------------------------
 
     def _get_engine_target(self) -> np.ndarray:
@@ -322,9 +334,30 @@ class ExtensionIndex(Index):
         result = self._data.repeat(repeats, axis=axis)
         return type(self)._simple_new(result, name=self.name)
 
-    def insert(self, loc: int, item):
-        # ExtensionIndex subclasses must override Index.insert
-        raise AbstractMethodError(self)
+    def insert(self, loc: int, item) -> Index:
+        """
+        Make new Index inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : Index
+        """
+        try:
+            result = self._data.insert(loc, item)
+        except (ValueError, TypeError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
+            dtype = self._find_common_type_compat(item)
+            return self.astype(dtype).insert(loc, item)
+        else:
+            return type(self)._simple_new(result, name=self.name)
 
     def _validate_fill_value(self, value):
         """
@@ -365,11 +398,17 @@ class ExtensionIndex(Index):
                 return self
             return self.copy()
 
-        if isinstance(dtype, np.dtype) and dtype.kind == "M" and dtype != "M8[ns]":
+        if (
+            isinstance(self.dtype, np.dtype)
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == "M"
+            and dtype != "M8[ns]"
+        ):
             # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
-            raise TypeError(f"Cannot cast {type(self._data).__name__} to dtype")
+            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
 
-        new_values = self._data.astype(dtype, copy=copy)
+        with rewrite_exception(type(self._data).__name__, type(self).__name__):
+            new_values = self._data.astype(dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
@@ -419,60 +458,3 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         assert result.dtype == self._data._ndarray.dtype
         return self._data._from_backing_data(result)
-
-    def insert(self: _T, loc: int, item) -> Index:
-        """
-        Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values.
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        new_index : Index
-
-        Raises
-        ------
-        ValueError if the item is not valid for this dtype.
-        """
-        arr = self._data
-        try:
-            code = arr._validate_scalar(item)
-        except (ValueError, TypeError):
-            # e.g. trying to insert an integer into a DatetimeIndex
-            #  We cannot keep the same dtype, so cast to the (often object)
-            #  minimal shared dtype before doing the insert.
-            dtype, _ = infer_dtype_from(item, pandas_dtype=True)
-            dtype = find_common_type([self.dtype, dtype])
-            return self.astype(dtype).insert(loc, item)
-        else:
-            new_vals = np.concatenate(
-                (
-                    arr._ndarray[:loc],
-                    np.asarray([code], dtype=arr._ndarray.dtype),
-                    arr._ndarray[loc:],
-                )
-            )
-            new_arr = arr._from_backing_data(new_vals)
-            return type(self)._simple_new(new_arr, name=self.name)
-
-    def putmask(self, mask, value) -> Index:
-        res_values = self._data.copy()
-        try:
-            res_values.putmask(mask, value)
-        except (TypeError, ValueError):
-            return self.astype(object).putmask(mask, value)
-
-        return type(self)._simple_new(res_values, name=self.name)
-
-    # error: Argument 1 of "_wrap_joined_index" is incompatible with supertype
-    # "Index"; supertype defines the argument type as "Union[ExtensionArray, ndarray]"
-    def _wrap_joined_index(  # type: ignore[override]
-        self: _T, joined: NDArrayBackedExtensionArray, other: _T
-    ) -> _T:
-        name = get_op_result_name(self, other)
-
-        return type(self)._simple_new(joined, name=name)

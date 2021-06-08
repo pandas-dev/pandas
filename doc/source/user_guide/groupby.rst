@@ -1000,6 +1000,7 @@ instance method on each data group. This is pretty easy to do by passing lambda
 functions:
 
 .. ipython:: python
+   :okwarning:
 
    grouped = df.groupby("A")
    grouped.agg(lambda x: x.std())
@@ -1009,6 +1010,7 @@ arguments. Using a bit of metaprogramming cleverness, GroupBy now has the
 ability to "dispatch" method calls to the groups:
 
 .. ipython:: python
+   :okwarning:
 
    grouped.std()
 

@@ -25,7 +25,6 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
-    ints_to_pydatetime,
     parsing,
     timezones,
     to_offset,
@@ -257,11 +256,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _comparables = ["name", "freqstr", "tz"]
-    _attributes = ["name", "tz", "freq"]
-
-    _is_numeric_dtype = False
-
     _data: DatetimeArray
     inferred_freq: str | None
     tz: tzinfo | None
@@ -329,10 +323,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> DatetimeIndex:
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -391,10 +382,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-
-    def _mpl_repr(self) -> np.ndarray:
-        # how to represent ourselves to matplotlib
-        return ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):

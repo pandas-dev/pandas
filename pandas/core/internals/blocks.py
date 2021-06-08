@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterable,
+    Sequence,
     cast,
 )
 import warnings
@@ -173,15 +175,15 @@ class Block(PandasObject):
         return values.base is not None
 
     @final
-    @property
+    @cache_readonly
     def _can_hold_na(self) -> bool:
         """
         Can we store NA values in this Block?
         """
-        values = self.values
-        if isinstance(values, np.ndarray):
-            return values.dtype.kind not in ["b", "i", "u"]
-        return values._can_hold_na
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype):
+            return dtype.kind not in ["b", "i", "u"]
+        return dtype._can_hold_na
 
     @final
     @cache_readonly
@@ -393,7 +395,7 @@ class Block(PandasObject):
                 return []
             raise
 
-        if np.ndim(result) == 0:
+        if self.values.ndim == 1:
             # TODO(EA2D): special case not needed with 2D EAs
             res_values = np.array([[result]])
         else:
@@ -763,8 +765,8 @@ class Block(PandasObject):
     @final
     def _replace_list(
         self,
-        src_list: list[Any],
-        dest_list: list[Any],
+        src_list: Iterable[Any],
+        dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
     ) -> list[Block]:
@@ -1316,7 +1318,6 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
-
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
 

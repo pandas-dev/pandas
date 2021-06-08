@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import copy as copy_func
 from datetime import datetime
 import functools
 from itertools import zip_longest
@@ -54,6 +53,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -76,7 +76,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_hashable,
     is_integer,
-    is_integer_dtype,
     is_interval_dtype,
     is_iterator,
     is_list_like,
@@ -360,9 +359,6 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype: bool = False
     _can_hold_na: bool = True
     _can_hold_strings: bool = True
-
-    # would we like our indexing holder to defer to us
-    _defer_to_indexing = False
 
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
@@ -775,6 +771,7 @@ class Index(IndexOpsMixin, PandasObject):
         target_values = self._get_engine_target()
         return self._engine_type(lambda: target_values, len(self))
 
+    @final
     @cache_readonly
     def _dir_additions_for_owner(self) -> set[str_t]:
         """
@@ -813,6 +810,7 @@ class Index(IndexOpsMixin, PandasObject):
             return result
 
         attrs = self._get_attributes_dict()
+        attrs.pop("freq", None)  # For DatetimeIndex/TimedeltaIndex
         return Index(result, **attrs)
 
     @cache_readonly
@@ -904,13 +902,10 @@ class Index(IndexOpsMixin, PandasObject):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
 
-        elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
-
-            return CategoricalIndex(self, name=self.name, dtype=dtype, copy=copy)
-
-        elif is_extension_array_dtype(dtype):
-            return Index(np.asarray(self), name=self.name, dtype=dtype, copy=copy)
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            new_values = cls._from_sequence(self, dtype=dtype, copy=False)
+            return Index(new_values, dtype=dtype, copy=copy, name=self.name)
 
         try:
             casted = self._values.astype(dtype, copy=copy)
@@ -1158,18 +1153,25 @@ class Index(IndexOpsMixin, PandasObject):
                 is_justify = False
 
         return format_object_summary(
-            self, self._formatter_func, is_justify=is_justify, name=name
+            self,
+            self._formatter_func,
+            is_justify=is_justify,
+            name=name,
+            line_break_each_value=self._is_multi,
         )
 
-    def _format_attrs(self):
+    def _format_attrs(self) -> list[tuple[str_t, str_t | int]]:
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        return format_object_attrs(self)
+        return format_object_attrs(self, include_dtype=not self._is_multi)
 
-    def _mpl_repr(self):
+    @final
+    def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
-        return self.values
+        if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
+            return cast(np.ndarray, self.values)
+        return self.astype(object, copy=False)._values
 
     def format(
         self,
@@ -1529,7 +1531,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     names = property(fset=_set_names, fget=_get_names)
 
-    @final
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "names"])
     def set_names(self, names, level=None, inplace: bool = False):
         """
         Set Index or MultiIndex name.
@@ -2407,6 +2409,13 @@ class Index(IndexOpsMixin, PandasObject):
         )
         return self._is_all_dates
 
+    @cache_readonly
+    def _is_multi(self) -> bool:
+        """
+        Cached check equivalent to isinstance(self, MultiIndex)
+        """
+        return isinstance(self, ABCMultiIndex)
+
     # --------------------------------------------------------------------
     # Pickle Methods
 
@@ -2636,7 +2645,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = super().unique()
         return self._shallow_copy(result)
 
-    @final
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self"])
     def drop_duplicates(self: _IndexT, keep: str_t | bool = "first") -> _IndexT:
         """
         Return Index with duplicate values removed.
@@ -2949,20 +2958,7 @@ class Index(IndexOpsMixin, PandasObject):
                     stacklevel=2,
                 )
 
-            dtype = find_common_type([self.dtype, other.dtype])
-            if self._is_numeric_dtype and other._is_numeric_dtype:
-                # Right now, we treat union(int, float) a bit special.
-                # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
-                # We may change union(int, float) to go to object.
-                # float | [u]int -> float  (the special case)
-                # <T>   | <T>    -> T
-                # <T>   | <U>    -> object
-                if not (is_integer_dtype(self.dtype) and is_integer_dtype(other.dtype)):
-                    dtype = np.dtype("float64")
-                else:
-                    # one is int64 other is uint64
-                    dtype = np.dtype("object")
-
+            dtype = self._find_common_type_compat(other)
             left = self.astype(dtype, copy=False)
             right = other.astype(dtype, copy=False)
             return left.union(right, sort=sort)
@@ -3429,7 +3425,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> np.ndarray:
         # returned ndarray is np.intp
         method = missing.clean_reindex_fill_method(method)
-        target = ensure_index(target)
+        target = self._maybe_cast_listlike_indexer(target)
 
         self._check_indexing_method(method)
 
@@ -3721,7 +3717,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             keyarr = self._convert_arr_indexer(keyarr)
 
-        indexer = self._convert_list_indexer(keyarr)
+        indexer = None
         return indexer, keyarr
 
     def _convert_arr_indexer(self, keyarr) -> np.ndarray:
@@ -3738,22 +3734,6 @@ class Index(IndexOpsMixin, PandasObject):
         converted_keyarr : array-like
         """
         return com.asarray_tuplesafe(keyarr)
-
-    def _convert_list_indexer(self, keyarr):
-        """
-        Convert a list-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : Index (or sub-class)
-            Indexer to convert.
-        kind : iloc, loc, optional
-
-        Returns
-        -------
-        positional indexer or None
-        """
-        return None
 
     @final
     def _invalid_indexer(self, form: str_t, key) -> TypeError:
@@ -5396,7 +5376,21 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalDtype(np.float64, closed=self.closed)
 
         target_dtype, _ = infer_dtype_from(target, pandas_dtype=True)
+
+        # special case: if one dtype is uint64 and the other a signed int, return object
+        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+        # Now it's:
+        # * float | [u]int -> float
+        # * uint64 | signed int  -> object
+        # We may change union(float | [u]int) to go to object.
+        if self.dtype == "uint64" or target_dtype == "uint64":
+            if is_signed_integer_dtype(self.dtype) or is_signed_integer_dtype(
+                target_dtype
+            ):
+                return np.dtype("object")
+
         dtype = find_common_type([self.dtype, target_dtype])
+
         if dtype.kind in ["i", "u"]:
             # TODO: what about reversed with self being categorical?
             if (
@@ -5680,6 +5674,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not self.is_floating():
             return com.cast_scalar_indexer(key)
         return key
+
+    def _maybe_cast_listlike_indexer(self, target) -> Index:
+        """
+        Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
+        """
+        return ensure_index(target)
 
     @final
     def _validate_indexer(self, form: str_t, key, kind: str_t):
@@ -6196,6 +6196,7 @@ class Index(IndexOpsMixin, PandasObject):
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)
 
+    @final
     def _deprecated_arg(self, value, name: str_t, methodname: str_t) -> None:
         """
         Issue a FutureWarning if the arg/kwarg is not no_default.
@@ -6284,51 +6285,29 @@ def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Ind
         if copy:
             index_like = index_like.copy()
         return index_like
-    if hasattr(index_like, "name"):
-        # https://github.com/python/mypy/issues/1424
-        # error: Item "ExtensionArray" of "Union[ExtensionArray,
-        # Sequence[Any]]" has no attribute "name"
-        # error: Item "Sequence[Any]" of "Union[ExtensionArray, Sequence[Any]]"
-        # has no attribute "name"
-        # error: "Sequence[Any]" has no attribute "name"
-        # error: Item "Sequence[Any]" of "Union[Series, Sequence[Any]]" has no
-        # attribute "name"
-        # error: Item "Sequence[Any]" of "Union[Any, Sequence[Any]]" has no
-        # attribute "name"
-        name = index_like.name  # type: ignore[union-attr, attr-defined]
+
+    if isinstance(index_like, ABCSeries):
+        name = index_like.name
         return Index(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
 
-    # must check for exactly list here because of strict type
-    # check in clean_index_list
     if isinstance(index_like, list):
-        if type(index_like) != list:
+        if type(index_like) is not list:
+            # must check for exactly list here because of strict type
+            # check in clean_index_list
             index_like = list(index_like)
 
-        converted, all_arrays = lib.clean_index_list(index_like)
-
-        if len(converted) > 0 and all_arrays:
+        if len(index_like) and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
-            return MultiIndex.from_arrays(converted)
+            return MultiIndex.from_arrays(index_like)
         else:
-            if isinstance(converted, np.ndarray) and converted.dtype == np.int64:
-                # Check for overflows if we should actually be uint64
-                # xref GH#35481
-                alt = np.asarray(index_like)
-                if alt.dtype == np.uint64:
-                    converted = alt
-
-            index_like = converted
+            return Index(index_like, copy=copy, tupleize_cols=False)
     else:
-        # clean_index_list does the equivalent of copying
-        # so only need to do this if not list instance
-        if copy:
-            index_like = copy_func(index_like)
 
-    return Index(index_like)
+        return Index(index_like, copy=copy)
 
 
 def ensure_has_len(seq):
@@ -6428,12 +6407,8 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
         return data
 
     elif inferred == "interval":
-        try:
-            ia_data = IntervalArray._from_sequence(subarr, copy=False)
-            return ia_data
-        except (ValueError, TypeError):
-            # GH27172: mixed closed Intervals --> object dtype
-            pass
+        ia_data = IntervalArray._from_sequence(subarr, copy=False)
+        return ia_data
     elif inferred == "boolean":
         # don't support boolean explicitly ATM
         pass
@@ -6452,11 +6427,8 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
             tda = TimedeltaArray._from_sequence(subarr, copy=False)
             return tda
         elif inferred == "period":
-            try:
-                parr = PeriodArray._from_sequence(subarr)
-                return parr
-            except IncompatibleFrequency:
-                pass
+            parr = PeriodArray._from_sequence(subarr)
+            return parr
 
     return subarr
 

@@ -55,7 +55,9 @@ Builtin styles
    Styler.highlight_max
    Styler.highlight_min
    Styler.highlight_between
+   Styler.highlight_quantile
    Styler.background_gradient
+   Styler.text_gradient
    Styler.bar
 
 Style export and import
@@ -66,5 +68,6 @@ Style export and import
    Styler.render
    Styler.export
    Styler.use
+   Styler.to_html
    Styler.to_excel
    Styler.to_latex

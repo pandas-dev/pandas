@@ -434,10 +434,10 @@ def test_internal_null_byte(c_parser_only):
 def test_read_nrows_large(c_parser_only):
     # gh-7626 - Read only nrows of data in for large inputs (>262144b)
     parser = c_parser_only
-    header_narrow = "\t".join(["COL_HEADER_" + str(i) for i in range(10)]) + "\n"
-    data_narrow = "\t".join(["somedatasomedatasomedata1" for _ in range(10)]) + "\n"
-    header_wide = "\t".join(["COL_HEADER_" + str(i) for i in range(15)]) + "\n"
-    data_wide = "\t".join(["somedatasomedatasomedata2" for _ in range(15)]) + "\n"
+    header_narrow = "\t".join("COL_HEADER_" + str(i) for i in range(10)) + "\n"
+    data_narrow = "\t".join("somedatasomedatasomedata1" for _ in range(10)) + "\n"
+    header_wide = "\t".join("COL_HEADER_" + str(i) for i in range(15)) + "\n"
+    data_wide = "\t".join("somedatasomedatasomedata2" for _ in range(15)) + "\n"
     test_input = header_narrow + data_narrow * 1050 + header_wide + data_wide * 2
 
     df = parser.read_csv(StringIO(test_input), sep="\t", nrows=1010)
@@ -498,7 +498,7 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
         header=None,
         delimiter="\\s+",
         skiprows=0,
-        error_bad_lines=False,
+        on_bad_lines="warn",
     )
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
@@ -565,7 +565,7 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a high_memory test")
 
-    csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
+    csv = StringIO("strings\n" + "\n".join("x" * (1 << 20) for _ in range(2100)))
     df = parser.read_csv(csv)
     assert not df.empty
 

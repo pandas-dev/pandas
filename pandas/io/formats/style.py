@@ -74,7 +74,7 @@ def _mpl(func: Callable):
 
 
 class Styler(StylerRenderer):
-    """
+    r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
     Parameters
@@ -87,8 +87,8 @@ class Styler(StylerRenderer):
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
         A unique identifier to avoid CSS collisions; generated automatically.
-    caption : str, default None
-        Caption to attach to the table.
+    caption : str, tuple, default None
+        String caption to attach to the table. Tuple only used for LaTeX dual captions.
     table_attributes : str, default None
         Items that show up in the opening ``<table>`` tag
         in addition to automatic (by default) id.
@@ -119,11 +119,14 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.3.0
 
-    escape : bool, default False
-        Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
-        strings with HTML-safe sequences.
+    escape : str, optional
+        Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+        in cell display string with HTML-safe sequences.
+        Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+        ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+        LaTeX-safe sequences.
 
-        ... versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
     Attributes
     ----------
@@ -172,14 +175,14 @@ class Styler(StylerRenderer):
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
         na_rep: str | None = None,
         uuid_len: int = 5,
         decimal: str = ".",
         thousands: str | None = None,
-        escape: bool = False,
+        escape: str | None = None,
     ):
         super().__init__(
             data=data,
@@ -416,7 +419,7 @@ class Styler(StylerRenderer):
         position_float: str | None = None,
         hrules: bool = False,
         label: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         multirow_align: str = "c",
@@ -457,8 +460,10 @@ class Styler(StylerRenderer):
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
-        caption : str, optional
-            The LaTeX table caption included as: \\caption{<caption>}.
+        caption : str, tuple, optional
+            If string, the LaTeX table caption included as: \\caption{<caption>}.
+            If tuple, i.e ("full caption", "short caption"), the caption included
+            as: \\caption[<caption[1]>]{<caption[0]>}.
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -738,6 +743,74 @@ class Styler(StylerRenderer):
         )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
+
+    def to_html(
+        self,
+        buf: FilePathOrBuffer[str] | None = None,
+        *,
+        table_uuid: str | None = None,
+        table_attributes: str | None = None,
+        encoding: str | None = None,
+        doctype_html: bool = False,
+        exclude_styles: bool = False,
+    ):
+        """
+        Write Styler to a file, buffer or string in HTML-CSS format.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        table_uuid : str, optional
+            Id attribute assigned to the <table> HTML element in the format:
+
+            ``<table id="T_<table_uuid>" ..>``
+
+            If not given uses Styler's initially assigned value.
+        table_attributes : str, optional
+            Attributes to assign within the `<table>` HTML element in the format:
+
+            ``<table .. <table_attributes> >``
+
+            If not given defaults to Styler's preexisting value.
+        encoding : str, optional
+            Character encoding setting for file output, and HTML meta tags,
+            defaults to "utf-8" if None.
+        doctype_html : bool, default False
+            Whether to output a fully structured HTML file including all
+            HTML elements, or just the core ``<style>`` and ``<table>`` elements.
+        exclude_styles : bool, default False
+            Whether to include the ``<style>`` element and all associated element
+            ``class`` and ``id`` identifiers, or solely the ``<table>`` element without
+            styling identifiers.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
+        """
+        if table_uuid:
+            self.set_uuid(table_uuid)
+
+        if table_attributes:
+            self.set_table_attributes(table_attributes)
+
+        # Build HTML string..
+        html = self.render(
+            exclude_styles=exclude_styles,
+            encoding=encoding if encoding else "utf-8",
+            doctype_html=doctype_html,
+        )
+
+        return save_to_buffer(
+            html, buf=buf, encoding=(encoding if buf is not None else None)
+        )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
@@ -1273,13 +1346,16 @@ class Styler(StylerRenderer):
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str) -> Styler:
+    def set_caption(self, caption: str | tuple) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
 
         Parameters
         ----------
-        caption : str
+        caption : str, tuple
+            For HTML output either the string input is used or the first element of the
+            tuple. For LaTeX the string input provides a caption and the additional
+            tuple input allows for full captions and short captions, in that order.
 
         Returns
         -------
@@ -1470,6 +1546,13 @@ class Styler(StylerRenderer):
     # A collection of "builtin" styles
     # -----------------------------------------------------------------------
 
+    @doc(
+        name="background",
+        alt="text",
+        image_prefix="bg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="",
+    )
     def background_gradient(
         self,
         cmap="PuBu",
@@ -1483,9 +1566,9 @@ class Styler(StylerRenderer):
         gmap: Sequence | None = None,
     ) -> Styler:
         """
-        Color the background in a gradient style.
+        Color the {name} in a gradient style.
 
-        The background color is determined according
+        The {name} color is determined according
         to the data in each column, row or frame, or by a given
         gradient map. Requires matplotlib.
 
@@ -1501,7 +1584,7 @@ class Styler(StylerRenderer):
             Compress the color range at the high end. This is a multiple of the data
             range to extend above the maximum; good values usually in [0, 1],
             defaults to 0.
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {axis}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
@@ -1510,6 +1593,7 @@ class Styler(StylerRenderer):
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
         text_color_threshold : float or int
+            {text_threshold}
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
             light if 1, defaults to 0.408.
@@ -1529,7 +1613,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.0.0
 
         gmap : array-like, optional
-            Gradient map for determining the background colors. If not supplied
+            Gradient map for determining the {name} colors. If not supplied
             will use the underlying data from rows, columns or frame. If given as an
             ndarray or list-like must be an identical shape to the underlying data
             considering ``axis`` and ``subset``. If given as DataFrame or Series must
@@ -1542,6 +1626,10 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.{alt}_gradient: Color the {alt} in a gradient style.
 
         Notes
         -----
@@ -1560,52 +1648,50 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> df = pd.DataFrame({
-        ...          'City': ['Stockholm', 'Oslo', 'Copenhagen'],
-        ...          'Temp (c)': [21.6, 22.4, 24.5],
-        ...          'Rain (mm)': [5.0, 13.3, 0.0],
-        ...          'Wind (m/s)': [3.2, 3.1, 6.7]
-        ... })
+        >>> df = pd.DataFrame(columns=["City", "Temp (c)", "Rain (mm)", "Wind (m/s)"],
+        ...                   data=[["Stockholm", 21.6, 5.0, 3.2],
+        ...                         ["Oslo", 22.4, 13.3, 3.1],
+        ...                         ["Copenhagen", 24.5, 0.0, 6.7]])
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
-        >>> df.style.background_gradient(axis=0)
+        >>> df.style.{name}_gradient(axis=0)
 
-        .. figure:: ../../_static/style/bg_ax0.png
+        .. figure:: ../../_static/style/{image_prefix}_ax0.png
 
         Shading all values collectively using ``axis=None``
 
-        >>> df.style.background_gradient(axis=None)
+        >>> df.style.{name}_gradient(axis=None)
 
-        .. figure:: ../../_static/style/bg_axNone.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone.png
 
         Compress the color map from the both ``low`` and ``high`` ends
 
-        >>> df.style.background_gradient(axis=None, low=0.75, high=1.0)
+        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)
 
-        .. figure:: ../../_static/style/bg_axNone_lowhigh.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
-        >>> df.style.background_gradient(axis=None, vmin=6.7, vmax=21.6)
+        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)
 
-        .. figure:: ../../_static/style/bg_axNone_vminvmax.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
-        >>> df.style.background_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+        >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
 
-        .. figure:: ../../_static/style/bg_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
         Setting the gradient map for a dataframe (i.e. ``axis=None``), we need to
         explicitly state ``subset`` to match the ``gmap`` shape
 
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
-        >>> df.style.background_gradient(axis=None, gmap=gmap,
+        >>> df.style.{name}_gradient(axis=None, gmap=gmap,
         ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
         ... )
 
-        .. figure:: ../../_static/style/bg_axNone_gmap.png
+        .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
         if subset is None and gmap is None:
             subset = self.data.select_dtypes(include=np.number).columns
@@ -1623,6 +1709,41 @@ class Styler(StylerRenderer):
             gmap=gmap,
         )
         return self
+
+    @doc(
+        background_gradient,
+        name="text",
+        alt="background",
+        image_prefix="tg",
+        axis="{0 or 'index', 1 or 'columns', None}",
+        text_threshold="This argument is ignored (only used in `background_gradient`).",
+    )
+    def text_gradient(
+        self,
+        cmap="PuBu",
+        low: float = 0,
+        high: float = 0,
+        axis: Axis | None = 0,
+        subset: Subset | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        gmap: Sequence | None = None,
+    ) -> Styler:
+        if subset is None and gmap is None:
+            subset = self.data.select_dtypes(include=np.number).columns
+
+        return self.apply(
+            _background_gradient,
+            cmap=cmap,
+            subset=subset,
+            axis=axis,
+            low=low,
+            high=high,
+            vmin=vmin,
+            vmax=vmax,
+            gmap=gmap,
+            text_only=True,
+        )
 
     def set_properties(self, subset: Subset | None = None, **kwargs) -> Styler:
         """
@@ -2332,6 +2453,7 @@ def _background_gradient(
     vmin: float | None = None,
     vmax: float | None = None,
     gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    text_only: bool = False,
 ):
     """
     Color background in a range according to the data or a gradient map
@@ -2371,16 +2493,19 @@ def _background_gradient(
             )
             return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-        def css(rgba) -> str:
-            dark = relative_luminance(rgba) < text_color_threshold
-            text_color = "#f1f1f1" if dark else "#000000"
-            return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+        def css(rgba, text_only) -> str:
+            if not text_only:
+                dark = relative_luminance(rgba) < text_color_threshold
+                text_color = "#f1f1f1" if dark else "#000000"
+                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+            else:
+                return f"color: {colors.rgb2hex(rgba)};"
 
         if data.ndim == 1:
-            return [css(rgba) for rgba in rgbas]
+            return [css(rgba, text_only) for rgba in rgbas]
         else:
             return DataFrame(
-                [[css(rgba) for rgba in row] for row in rgbas],
+                [[css(rgba, text_only) for rgba in row] for row in rgbas],
                 index=data.index,
                 columns=data.columns,
             )

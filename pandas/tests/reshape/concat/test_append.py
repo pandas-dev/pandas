@@ -184,18 +184,12 @@ class TestAppend:
                 dt.datetime(2013, 1, 3, 7, 12),
             ]
         ),
+        pd.MultiIndex.from_arrays(["A B C".split(), "D E F".split()]),
     ]
 
-    indexes_cannot_append_with_other = [
-        pd.MultiIndex.from_arrays(["A B C".split(), "D E F".split()])
-    ]
-
-    # error: Unsupported operand types for + ("List[Index]" and "List[MultiIndex]")
-    all_indexes = (
-        indexes_can_append + indexes_cannot_append_with_other  # type: ignore[operator]
+    @pytest.mark.parametrize(
+        "index", indexes_can_append, ids=lambda x: type(x).__name__
     )
-
-    @pytest.mark.parametrize("index", all_indexes, ids=lambda x: type(x).__name__)
     def test_append_same_columns_type(self, index):
         # GH18359
 
@@ -248,41 +242,6 @@ class TestAppend:
             columns=combined_columns,
         )
         tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "index_can_append", indexes_can_append, ids=lambda x: type(x).__name__
-    )
-    @pytest.mark.parametrize(
-        "index_cannot_append_with_other",
-        indexes_cannot_append_with_other,
-        ids=lambda x: type(x).__name__,
-    )
-    def test_append_different_columns_types_raises(
-        self, index_can_append, index_cannot_append_with_other
-    ):
-        # GH18359
-        # Dataframe.append will raise if MultiIndex appends
-        # or is appended to a different index type
-        #
-        # See also test 'test_append_different_columns_types' above for
-        # appending without raising.
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
-        ser = Series([7, 8, 9], index=index_cannot_append_with_other, name=2)
-        msg = (
-            r"Expected tuple, got (int|long|float|str|"
-            r"pandas._libs.interval.Interval)|"
-            r"object of type '(int|float|Timestamp|"
-            r"pandas._libs.interval.Interval)' has no len\(\)|"
-        )
-        with pytest.raises(TypeError, match=msg):
-            df.append(ser)
-
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_cannot_append_with_other)
-        ser = Series([7, 8, 9], index=index_can_append, name=2)
-
-        with pytest.raises(TypeError, match=msg):
-            df.append(ser)
 
     def test_append_dtype_coerce(self, sort):
 

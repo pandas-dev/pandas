@@ -74,9 +74,6 @@ class PythonParser(ParserBase):
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
-        self.warn_bad_lines = kwds["warn_bad_lines"]
-        self.error_bad_lines = kwds["error_bad_lines"]
-
         self.names_passed = kwds["names"] or None
 
         self.has_index_names = False
@@ -707,10 +704,11 @@ class PythonParser(ParserBase):
 
     def _alert_malformed(self, msg, row_num):
         """
-        Alert a user about a malformed row.
+        Alert a user about a malformed row, depending on value of
+        `self.on_bad_lines` enum.
 
-        If `self.error_bad_lines` is True, the alert will be `ParserError`.
-        If `self.warn_bad_lines` is True, the alert will be printed out.
+        If `self.on_bad_lines` is ERROR, the alert will be `ParserError`.
+        If `self.on_bad_lines` is WARN, the alert will be printed out.
 
         Parameters
         ----------
@@ -719,9 +717,9 @@ class PythonParser(ParserBase):
                   Because this row number is displayed, we 1-index,
                   even though we 0-index internally.
         """
-        if self.error_bad_lines:
+        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        elif self.warn_bad_lines:
+        elif self.on_bad_lines == self.BadLineHandleMethod.WARN:
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 
@@ -742,7 +740,10 @@ class PythonParser(ParserBase):
             assert self.data is not None
             return next(self.data)
         except csv.Error as e:
-            if self.warn_bad_lines or self.error_bad_lines:
+            if (
+                self.on_bad_lines == self.BadLineHandleMethod.ERROR
+                or self.on_bad_lines == self.BadLineHandleMethod.WARN
+            ):
                 msg = str(e)
 
                 if "NULL byte" in msg or "line contains NUL" in msg:
@@ -947,11 +948,14 @@ class PythonParser(ParserBase):
                 actual_len = len(l)
 
                 if actual_len > col_len:
-                    if self.error_bad_lines or self.warn_bad_lines:
+                    if (
+                        self.on_bad_lines == self.BadLineHandleMethod.ERROR
+                        or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                    ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
 
-                        if self.error_bad_lines:
+                        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
                     content.append(l)

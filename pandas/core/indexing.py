@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -51,8 +52,11 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
+    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -886,25 +890,21 @@ class _LocationIndexer(NDFrameIndexerBase):
         # handle the multi-axis by taking sections and reducing
         # this is iterative
         obj = self.obj
-        axis = 0
-        for key in tup:
+        # GH#41369 Loop in reverse order ensures indexing along columns before rows
+        # which selects only necessary blocks which avoids dtype conversion if possible
+        axis = len(tup) - 1
+        for key in tup[::-1]:
 
             if com.is_null_slice(key):
-                axis += 1
+                axis -= 1
                 continue
 
-            current_ndim = obj.ndim
             obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
-            axis += 1
+            axis -= 1
 
             # if we have a scalar, we are done
             if is_scalar(obj) or not hasattr(obj, "ndim"):
                 break
-
-            # has the dim of the obj changed?
-            # GH 7199
-            if obj.ndim < current_ndim:
-                axis -= 1
 
         return obj
 
@@ -1301,6 +1301,20 @@ class _LocIndexer(_LocationIndexer):
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
         self._validate_read_indexer(keyarr, indexer, axis)
+
+        if needs_i8_conversion(ax.dtype) or isinstance(
+            ax, (IntervalIndex, CategoricalIndex)
+        ):
+            # For CategoricalIndex take instead of reindex to preserve dtype.
+            #  For IntervalIndex this is to map integers to the Intervals they match to.
+            keyarr = ax.take(indexer)
+            if keyarr.dtype.kind in ["m", "M"]:
+                # DTI/TDI.take can infer a freq in some cases when we dont want one
+                if isinstance(key, list) or (
+                    isinstance(key, type(ax)) and key.freq is None
+                ):
+                    keyarr = keyarr._with_freq(None)
+
         return keyarr, indexer
 
     def _validate_read_indexer(self, key, indexer, axis: int):
@@ -1333,13 +1347,22 @@ class _LocIndexer(_LocationIndexer):
         missing = (missing_mask).sum()
 
         if missing:
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
             ax = self.obj._get_axis(axis)
 
-            not_found = list(set(key) - set(ax))
+            # TODO: remove special-case; this is just to keep exception
+            #  message tests from raising while debugging
+            use_interval_msg = isinstance(ax, IntervalIndex) or (
+                isinstance(ax, CategoricalIndex)
+                and isinstance(ax.categories, IntervalIndex)
+            )
+
+            if missing == len(indexer):
+                axis_name = self.obj._get_axis_name(axis)
+                if use_interval_msg:
+                    key = list(key)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
             raise KeyError(f"{not_found} not in index")
 
 
@@ -1938,7 +1961,9 @@ class _iLocIndexer(_LocationIndexer):
             # e.g. 0.0 -> 0
             # GH#12246
             if index.is_unique:
-                new_indexer = index.get_indexer([new_index[-1]])
+                # pass new_index[-1:] instead if [new_index[-1]]
+                #  so that we retain dtype
+                new_indexer = index.get_indexer(new_index[-1:])
                 if (new_indexer != -1).any():
                     # We get only here with loc, so can hard code
                     return self._setitem_with_indexer(new_indexer, value, "loc")

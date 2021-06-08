@@ -438,3 +438,8 @@ def test_parse_latex_table_wrapping(styler):
         overwrite=False,
     )
     assert _parse_latex_table_wrapping(styler.table_styles, None) is True
+
+
+def test_short_caption(styler):
+    result = styler.to_latex(caption=("full cap", "short cap"))
+    assert "\\caption[short cap]{full cap}" in result

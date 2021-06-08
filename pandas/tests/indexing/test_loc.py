@@ -284,7 +284,12 @@ class TestLoc2:
         df.loc[:, cols] = df.loc[:, cols].astype("float32")
 
         expected = DataFrame(
-            {"id": ["A"], "a": [1.2], "b": [0.0], "c": [-2.5]}, dtype="float32"
+            {
+                "id": ["A"],
+                "a": np.array([1.2], dtype="float32"),
+                "b": np.array([0.0], dtype="float32"),
+                "c": np.array([-2.5], dtype="float32"),
+            }
         )  # id is inferred as object
 
         tm.assert_frame_equal(df, expected)
@@ -1005,18 +1010,32 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_uint64(self):
         # GH20722
         # Test whether loc accept uint64 max value as index.
-        s = Series([1, 2], index=[np.iinfo("uint64").max - 1, np.iinfo("uint64").max])
+        umax = np.iinfo("uint64").max
+        ser = Series([1, 2], index=[umax - 1, umax])
 
-        result = s.loc[np.iinfo("uint64").max - 1]
-        expected = s.iloc[0]
+        result = ser.loc[umax - 1]
+        expected = ser.iloc[0]
         assert result == expected
 
-        result = s.loc[[np.iinfo("uint64").max - 1]]
-        expected = s.iloc[[0]]
+        result = ser.loc[[umax - 1]]
+        expected = ser.iloc[[0]]
         tm.assert_series_equal(result, expected)
 
-        result = s.loc[[np.iinfo("uint64").max - 1, np.iinfo("uint64").max]]
-        tm.assert_series_equal(result, s)
+        result = ser.loc[[umax - 1, umax]]
+        tm.assert_series_equal(result, ser)
+
+    def test_loc_uint64_disallow_negative(self):
+        # GH#41775
+        umax = np.iinfo("uint64").max
+        ser = Series([1, 2], index=[umax - 1, umax])
+
+        with pytest.raises(KeyError, match="-1"):
+            # don't wrap around
+            ser.loc[-1]
+
+        with pytest.raises(KeyError, match="-1"):
+            # don't wrap around
+            ser.loc[[-1]]
 
     def test_loc_setitem_empty_append_expands_rows(self):
         # GH6173, various appends to an empty dataframe
@@ -1352,9 +1371,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = DataFrame([[0, 2, 0], [0, 5, 0]], columns=mi)
         tm.assert_frame_equal(obj, expected)
 
-        df = df.sort_index(1)
+        df = df.sort_index(axis=1)
         df.loc[:, key] = np.zeros((2, 2), dtype=int)
-        expected = expected.sort_index(1)
+        expected = expected.sort_index(axis=1)
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_uint_drop(self, any_int_dtype):
@@ -1564,6 +1583,19 @@ class TestLocWithMultiIndex:
         ser = Series(range(100000), times)
         result = ser.loc[datetime(1900, 1, 1) : datetime(2100, 1, 1)]
         tm.assert_series_equal(result, ser)
+
+    def test_loc_getitem_datetime_string_with_datetimeindex(self):
+        # GH 16710
+        df = DataFrame(
+            {"a": range(10), "b": range(10)},
+            index=date_range("2010-01-01", "2010-01-10"),
+        )
+        result = df.loc[["2010-01-01", "2010-01-05"], ["a", "b"]]
+        expected = DataFrame(
+            {"a": [0, 4], "b": [0, 4]},
+            index=DatetimeIndex(["2010-01-01", "2010-01-05"]),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_sorted_index_level_with_duplicates(self):
         # GH#4516 sorting a MultiIndex with duplicates and multiple dtypes
@@ -2037,8 +2069,8 @@ class TestLabelSlicing:
         )
         series2 = Series([0, 1, 2, 3, 4], index=idx)
 
-        t_1 = Timestamp("2017-10-29 02:30:00+02:00", tz="Europe/Berlin", freq="30min")
-        t_2 = Timestamp("2017-10-29 02:00:00+01:00", tz="Europe/Berlin", freq="30min")
+        t_1 = Timestamp("2017-10-29 02:30:00+02:00", tz="Europe/Berlin")
+        t_2 = Timestamp("2017-10-29 02:00:00+01:00", tz="Europe/Berlin")
         result = series2.loc[t_1:t_2]
         expected = Series([2, 3], index=idx[2:4])
         tm.assert_series_equal(result, expected)

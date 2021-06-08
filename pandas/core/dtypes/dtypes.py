@@ -89,12 +89,6 @@ class PandasExtensionDtype(ExtensionDtype):
     isnative = 0
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __str__(self) -> str_type:
-        """
-        Return a string representation for a particular Object
-        """
-        return self.name
-
     def __repr__(self) -> str_type:
         """
         Return a string representation for a particular object.

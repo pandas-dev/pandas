@@ -1475,7 +1475,7 @@ def get_join_indexers(
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
-    llab, rlab, shape = [list(x) for x in zipped]
+    llab, rlab, shape = (list(x) for x in zipped)
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1985,7 +1985,7 @@ def _get_multiindex_indexer(
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
-    rcodes, lcodes, shape = [list(x) for x in zipped]
+    rcodes, lcodes, shape = (list(x) for x in zipped)
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:

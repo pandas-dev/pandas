@@ -638,7 +638,7 @@ def test_as_index_select_column():
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
     df = DataFrame(columns=["A", "B", "C"])
-    left = df.groupby(by="A", as_index=False)["B"].sum()
+    left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
     assert type(left) is DataFrame
     assert left.to_dict() == {"A": {}, "B": {}}
 
@@ -923,7 +923,8 @@ def test_wrap_aggregated_output_multindex(mframe):
         else:
             return ser.sum()
 
-    agged2 = df.groupby(keys).aggregate(aggfun)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        agged2 = df.groupby(keys).aggregate(aggfun)
     assert len(agged2.columns) + 1 == len(df.columns)
 
 
@@ -1757,12 +1758,21 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "mad", "min", "max", "sum", "prod", "skew"]
 )
+@pytest.mark.filterwarnings("ignore:Dropping invalid columns:FutureWarning")
 @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_empty_groupby(columns, keys, values, method, op, request):
     # GH8093 & GH26411
     override_dtype = None
 
-    if isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
+    if (
+        isinstance(values, Categorical)
+        and not isinstance(columns, list)
+        and op in ["sum", "prod"]
+        and method != "apply"
+    ):
+        # handled below GH#41291
+        pass
+    elif isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
         mark = pytest.mark.xfail(raises=TypeError, match="'str' object is not callable")
         request.node.add_marker(mark)
     elif (
@@ -1823,11 +1833,79 @@ def test_empty_groupby(columns, keys, values, method, op, request):
     df = df.iloc[:0]
 
     gb = df.groupby(keys)[columns]
-    if method == "attr":
-        result = getattr(gb, op)()
-    else:
-        result = getattr(gb, method)(op)
 
+    def get_result():
+        if method == "attr":
+            return getattr(gb, op)()
+        else:
+            return getattr(gb, method)(op)
+
+    if columns == "C":
+        # i.e. SeriesGroupBy
+        if op in ["prod", "sum"]:
+            # ops that require more than just ordered-ness
+            if method != "apply":
+                # FIXME: apply goes through different code path
+                if df.dtypes[0].kind == "M":
+                    # GH#41291
+                    # datetime64 -> prod and sum are invalid
+                    msg = "datetime64 type does not support"
+                    with pytest.raises(TypeError, match=msg):
+                        get_result()
+
+                    return
+                elif isinstance(values, Categorical):
+                    # GH#41291
+                    msg = "category type does not support"
+                    with pytest.raises(TypeError, match=msg):
+                        get_result()
+
+                    return
+    else:
+        # ie. DataFrameGroupBy
+        if op in ["prod", "sum"]:
+            # ops that require more than just ordered-ness
+            if method != "apply":
+                # FIXME: apply goes through different code path
+                if df.dtypes[0].kind == "M":
+                    # GH#41291
+                    # datetime64 -> prod and sum are invalid
+                    result = get_result()
+
+                    # with numeric_only=True, these are dropped, and we get
+                    # an empty DataFrame back
+                    expected = df.set_index(keys)[[]]
+                    tm.assert_equal(result, expected)
+                    return
+
+                elif isinstance(values, Categorical):
+                    # GH#41291
+                    # Categorical doesn't implement sum or prod
+                    result = get_result()
+
+                    # with numeric_only=True, these are dropped, and we get
+                    # an empty DataFrame back
+                    expected = df.set_index(keys)[[]]
+                    if len(keys) != 1 and op == "prod":
+                        # TODO: why just prod and not sum?
+                        # Categorical is special without 'observed=True'
+                        lev = Categorical([0], dtype=values.dtype)
+                        mi = MultiIndex.from_product([lev, lev], names=["A", "B"])
+                        expected = DataFrame([], columns=[], index=mi)
+
+                    tm.assert_equal(result, expected)
+                    return
+
+                elif df.dtypes[0] == object:
+                    # FIXME: the test is actually wrong here, xref #41341
+                    result = get_result()
+                    # In this case we have list-of-list, will raise TypeError,
+                    # and subsequently be dropped as nuisance columns
+                    expected = df.set_index(keys)[[]]
+                    tm.assert_equal(result, expected)
+                    return
+
+    result = get_result()
     expected = df.set_index(keys)[columns]
     if override_dtype is not None:
         expected = expected.astype(override_dtype)
@@ -2278,11 +2356,16 @@ def test_groupby_all_nan_groups_drop():
 
 def test_groupby_empty_multi_column():
     # GH 15106
-    result = DataFrame(data=[], columns=["A", "B", "C"]).groupby(["A", "B"]).sum()
+    df = DataFrame(data=[], columns=["A", "B", "C"])
+    gb = df.groupby(["A", "B"])
+    result = gb.sum(numeric_only=False)
     expected = DataFrame(
         [], columns=["C"], index=MultiIndex([[], []], [[], []], names=["A", "B"])
     )
     tm.assert_frame_equal(result, expected)
+
+    result = gb.sum(numeric_only=True)
+    tm.assert_frame_equal(result, expected[[]])
 
 
 def test_groupby_filtered_df_std():
@@ -2303,3 +2386,24 @@ def test_groupby_filtered_df_std():
         index=Index([True], name="groupby_col"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_datetime_categorical_multikey_groupby_indices():
+    # GH 26859
+    df = DataFrame(
+        {
+            "a": Series(list("abc")),
+            "b": Series(
+                to_datetime(["2018-01-01", "2018-02-01", "2018-03-01"]),
+                dtype="category",
+            ),
+            "c": Categorical.from_codes([-1, 0, 1], categories=[0, 1]),
+        }
+    )
+    result = df.groupby(["a", "b"]).indices
+    expected = {
+        ("a", Timestamp("2018-01-01 00:00:00")): np.array([0]),
+        ("b", Timestamp("2018-02-01 00:00:00")): np.array([1]),
+        ("c", Timestamp("2018-03-01 00:00:00")): np.array([2]),
+    }
+    assert result == expected

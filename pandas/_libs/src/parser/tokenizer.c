@@ -93,8 +93,7 @@ void parser_set_default_options(parser_t *self) {
     self->allow_embedded_newline = 1;
 
     self->expected_fields = -1;
-    self->error_bad_lines = 0;
-    self->warn_bad_lines = 0;
+    self->on_bad_lines = ERROR;
 
     self->commentchar = '#';
     self->thousands = '\0';
@@ -457,7 +456,7 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
 
         // file_lines is now the actual file line number (starting at 1)
-        if (self->error_bad_lines) {
+        if (self->on_bad_lines == ERROR) {
             self->error_msg = malloc(bufsize);
             snprintf(self->error_msg, bufsize,
                     "Expected %d fields in line %" PRIu64 ", saw %" PRId64 "\n",
@@ -468,7 +467,7 @@ static int end_line(parser_t *self) {
             return -1;
         } else {
             // simply skip bad lines
-            if (self->warn_bad_lines) {
+            if (self->on_bad_lines == WARN) {
                 // pass up error message
                 msg = malloc(bufsize);
                 snprintf(msg, bufsize,
