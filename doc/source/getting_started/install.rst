@@ -221,7 +221,6 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`__    38.6.0
 `NumPy <https://numpy.org>`__                                    1.17.3
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
 `pytz <https://pypi.org/project/pytz/>`__                        2017.3
@@ -263,6 +262,7 @@ Visualization
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
+setuptools                38.6.0             Utils for entry points of plotting backend
 matplotlib                2.2.3              Plotting library
 Jinja2                    2.10               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
