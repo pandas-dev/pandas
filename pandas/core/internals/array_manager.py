@@ -528,11 +528,9 @@ class BaseArrayManager(DataManager):
         -------
         BlockManager
         """
-        if deep is not True:
-            refs = [weakref.ref(arr) for arr in self.arrays]
-            return type(self)(
-                list(self.arrays), list(self._axes), refs, verify_integrity=False
-            )
+        if deep is None:
+            # use shallow copy
+            deep = False
 
         # this preserves the notion of view copying of axes
         if deep:
@@ -547,13 +545,12 @@ class BaseArrayManager(DataManager):
 
         if deep:
             new_arrays = [arr.copy() for arr in self.arrays]
-        else:
-            new_arrays = list(self.arrays)
-        if deep:
             refs = None
         else:
-            refs = list(self.refs) if isinstance(self.refs, list) else self.refs
-        return type(self)(new_arrays, new_axes)
+            new_arrays = list(self.arrays)
+            refs = [weakref.ref(arr) for arr in self.arrays]
+
+        return type(self)(new_arrays, new_axes, refs, verify_integrity=False)
 
     def reindex_indexer(
         self: T,
