@@ -976,34 +976,6 @@ def test_aggregate_udf_na_extension_type():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_groupby_aggregate_period_column(func):
-    # GH 31471
-    groups = [1, 2]
-    periods = pd.period_range("2020", periods=2, freq="Y")
-    df = DataFrame({"a": groups, "b": periods})
-
-    result = getattr(df.groupby("a")["b"], func)()
-    idx = pd.Int64Index([1, 2], name="a")
-    expected = Series(periods, index=idx, name="b")
-
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("func", ["min", "max"])
-def test_groupby_aggregate_period_frame(func):
-    # GH 31471
-    groups = [1, 2]
-    periods = pd.period_range("2020", periods=2, freq="Y")
-    df = DataFrame({"a": groups, "b": periods})
-
-    result = getattr(df.groupby("a"), func)()
-    idx = pd.Int64Index([1, 2], name="a")
-    expected = DataFrame({"b": periods}, index=idx)
-
-    tm.assert_frame_equal(result, expected)
-
-
 class TestLambdaMangling:
     def test_basic(self):
         df = DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
@@ -1265,30 +1237,6 @@ def test_aggregate_datetime_objects():
     result = df.groupby("A").B.max()
     expected = df.set_index("A")["B"]
     tm.assert_series_equal(result, expected)
-
-
-def test_aggregate_numeric_object_dtype():
-    # https://github.com/pandas-dev/pandas/issues/39329
-    # simplified case: multiple object columns where one is all-NaN
-    # -> gets split as the all-NaN is inferred as float
-    df = DataFrame(
-        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": [np.nan] * 4},
-    ).astype(object)
-    result = df.groupby("key").min()
-    expected = DataFrame(
-        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]}
-    ).set_index("key")
-    tm.assert_frame_equal(result, expected)
-
-    # same but with numbers
-    df = DataFrame(
-        {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": range(4)},
-    ).astype(object)
-    result = df.groupby("key").min()
-    expected = DataFrame(
-        {"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]}
-    ).set_index("key")
-    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_index_object_dtype():
