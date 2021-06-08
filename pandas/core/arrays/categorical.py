@@ -353,7 +353,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
-    _can_hold_na = True
 
     _dtype: CategoricalDtype
 
@@ -1407,7 +1406,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = np.array(locs, dtype=self.codes.dtype)  # type: ignore[assignment]
         return codes
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
         underlying ndarray, raising TypeError if this is not possible.
@@ -1435,8 +1434,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "in this Categorical's categories"
             )
         return fill_value
-
-    _validate_scalar = _validate_fill_value
 
     # -------------------------------------------------------------
 

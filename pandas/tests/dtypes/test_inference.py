@@ -665,6 +665,57 @@ class TestInference:
         )
         tm.assert_numpy_array_equal(out, exp)
 
+    def test_maybe_convert_objects_dtype_if_all_nat(self):
+        arr = np.array([pd.NaT, pd.NaT], dtype=object)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
+        # no dtype_if_all_nat passed -> we dont guess
+        tm.assert_numpy_array_equal(out, arr)
+
+        out = lib.maybe_convert_objects(
+            arr,
+            convert_datetime=True,
+            convert_timedelta=True,
+            dtype_if_all_nat=np.dtype("timedelta64[ns]"),
+        )
+        exp = np.array(["NaT", "NaT"], dtype="timedelta64[ns]")
+        tm.assert_numpy_array_equal(out, exp)
+
+        out = lib.maybe_convert_objects(
+            arr,
+            convert_datetime=True,
+            convert_timedelta=True,
+            dtype_if_all_nat=np.dtype("datetime64[ns]"),
+        )
+        exp = np.array(["NaT", "NaT"], dtype="datetime64[ns]")
+        tm.assert_numpy_array_equal(out, exp)
+
+    def test_maybe_convert_objects_dtype_if_all_nat_invalid(self):
+        # we accept datetime64[ns], timedelta64[ns], and EADtype
+        arr = np.array([pd.NaT, pd.NaT], dtype=object)
+
+        with pytest.raises(ValueError, match="int64"):
+            lib.maybe_convert_objects(
+                arr,
+                convert_datetime=True,
+                convert_timedelta=True,
+                dtype_if_all_nat=np.dtype("int64"),
+            )
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    def test_maybe_convert_objects_datetime_overflow_safe(self, dtype):
+        stamp = datetime(2363, 10, 4)  # Enterprise-D launch date
+        if dtype == "timedelta64[ns]":
+            stamp = stamp - datetime(1970, 1, 1)
+        arr = np.array([stamp], dtype=object)
+
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
+        # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
+        tm.assert_numpy_array_equal(out, arr)
+
     def test_maybe_convert_objects_timedelta64_nat(self):
         obj = np.timedelta64("NaT", "ns")
         arr = np.array([obj], dtype=object)
@@ -812,6 +863,22 @@ class TestInference:
         arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_datetime=True)
         tm.assert_numpy_array_equal(result, arr)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.IntervalIndex.from_breaks(range(5), closed="both"),
+            pd.period_range("2016-01-01", periods=3, freq="D"),
+        ],
+    )
+    def test_maybe_convert_objects_ea(self, idx):
+
+        result = lib.maybe_convert_objects(
+            np.array(idx, dtype=object),
+            convert_period=True,
+            convert_interval=True,
+        )
+        tm.assert_extension_array_equal(result, idx._data)
 
 
 class TestTypeInference:
@@ -1169,7 +1236,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_datetime(self, data):
-        assert lib.infer_datetimelike_array(data) == "datetime"
+        assert lib.infer_datetimelike_array(data) == ("datetime", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -1181,11 +1248,11 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_timedelta(self, data):
-        assert lib.infer_datetimelike_array(data) == "timedelta"
+        assert lib.infer_datetimelike_array(data) == ("timedelta", False)
 
     def test_infer_datetimelike_array_date(self):
         arr = [date(2017, 6, 12), date(2017, 3, 11)]
-        assert lib.infer_datetimelike_array(arr) == "date"
+        assert lib.infer_datetimelike_array(arr) == ("date", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -1200,7 +1267,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_mixed(self, data):
-        assert lib.infer_datetimelike_array(data) == "mixed"
+        assert lib.infer_datetimelike_array(data)[0] == "mixed"
 
     @pytest.mark.parametrize(
         "first, expected",
@@ -1218,7 +1285,7 @@ class TestTypeInference:
     @pytest.mark.parametrize("second", [None, np.nan])
     def test_infer_datetimelike_array_nan_nat_like(self, first, second, expected):
         first.append(second)
-        assert lib.infer_datetimelike_array(first) == expected
+        assert lib.infer_datetimelike_array(first) == (expected, False)
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
@@ -1458,16 +1525,53 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-    def test_interval(self):
+    @pytest.mark.parametrize("asobject", [True, False])
+    def test_interval(self, asobject):
         idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
+        if asobject:
+            idx = idx.astype(object)
+
         inferred = lib.infer_dtype(idx, skipna=False)
         assert inferred == "interval"
 
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx, dtype=idx.dtype), skipna=False)
         assert inferred == "interval"
+
+    @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
+    def test_interval_mismatched_closed(self, value):
+
+        first = Interval(value, value, closed="left")
+        second = Interval(value, value, closed="right")
+
+        # if closed match, we should infer "interval"
+        arr = np.array([first, first], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
+
+        # if closed dont match, we should _not_ get "interval"
+        arr2 = np.array([first, second], dtype=object)
+        assert lib.infer_dtype(arr2, skipna=False) == "mixed"
+
+    def test_interval_mismatched_subtype(self):
+        first = Interval(0, 1, closed="left")
+        second = Interval(Timestamp(0), Timestamp(1), closed="left")
+        third = Interval(Timedelta(0), Timedelta(1), closed="left")
+
+        arr = np.array([first, second])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([second, third])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([first, third])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        # float vs int subdtype are compatible
+        flt_interval = Interval(1.5, 2.5, closed="left")
+        arr = np.array([first, flt_interval], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
 
     @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])

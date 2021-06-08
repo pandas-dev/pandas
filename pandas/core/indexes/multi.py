@@ -2541,9 +2541,11 @@ class MultiIndex(Index):
             elif (indexer >= 0).all():
                 target = self.take(indexer)
             else:
-                # hopefully?
-                target = MultiIndex.from_tuples(target)
-
+                try:
+                    target = MultiIndex.from_tuples(target)
+                except TypeError:
+                    # not all tuples, see test_constructor_dict_multiindex_reindex_flat
+                    return target, indexer
         if (
             preserve_names
             and target.nlevels == self.nlevels
@@ -2811,7 +2813,7 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup, side="left"):
+    def _partial_tup_index(self, tup: tuple, side="left"):
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "

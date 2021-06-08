@@ -516,7 +516,7 @@ def group_add(add_t[:, ::1] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if not checknull(val):
                     nobs[lab, j] += 1
 
                     if nobs[lab, j] == 1:

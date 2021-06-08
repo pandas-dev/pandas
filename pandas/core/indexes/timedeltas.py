@@ -130,10 +130,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
