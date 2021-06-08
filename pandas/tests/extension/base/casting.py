@@ -48,16 +48,14 @@ class BaseCastingTests(BaseExtensionTests):
     @pytest.mark.parametrize(
         "nullable_string_dtype",
         [
-            "string",
+            "string[python]",
             pytest.param(
-                "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+                "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
             ),
         ],
     )
     def test_astype_string(self, data, nullable_string_dtype):
         # GH-33465
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         result = pd.Series(data[:5]).astype(nullable_string_dtype)
         expected = pd.Series([str(x) for x in data[:5]], dtype=nullable_string_dtype)
         self.assert_series_equal(result, expected)

@@ -35,6 +35,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    cache_readonly,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -1273,7 +1274,9 @@ class ExtensionArray:
     # such as take(), reindex(), shift(), etc.  In addition, those results
     # will then be of the ExtensionArray subclass rather than an array
     # of objects
-    _can_hold_na = True
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return self.dtype._can_hold_na
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
