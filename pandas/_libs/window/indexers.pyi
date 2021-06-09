@@ -7,7 +7,4 @@ def calculate_variable_window_bounds(
     center: bool,
     closed: str | None,
     index: np.ndarray,  # const int64_t[:]
-) -> tuple[
-    np.ndarray,
-    np.ndarray,
-]: ...  # (np.ndarray[np.int64]  # np.ndarray[np.int64])
+) -> tuple[np.ndarray, np.ndarray,]: ...  # np.ndarray[np.int64]  # np.ndarray[np.int64]
