@@ -107,7 +107,8 @@ def backfill_2d_inplace(
     limit=None,
 ) -> None: ...
 def is_monotonic(
-    arr: np.ndarray, timelike: bool  # ndarray[algos_t, ndim=1]
+    arr: np.ndarray,  # ndarray[algos_t, ndim=1]
+    timelike: bool,
 ) -> tuple[bool, bool, bool]: ...
 
 # ----------------------------------------------------------------------
