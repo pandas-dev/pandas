@@ -126,7 +126,7 @@ class Styler(StylerRenderer):
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
         LaTeX-safe sequences.
 
-        ... versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
     Attributes
     ----------
@@ -1597,9 +1597,6 @@ class Styler(StylerRenderer):
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
             light if 1, defaults to 0.408.
-
-            .. versionadded:: 0.24.0
-
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
@@ -1880,15 +1877,10 @@ class Styler(StylerRenderer):
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
             When None (default): the minimum value of the data will be used.
-
-            .. versionadded:: 0.24.0
-
         vmax : float, optional
             Maximum bar value, defining the right hand limit
             of the bar drawing range, higher values are clipped to `vmax`.
             When None (default): the maximum value of the data will be used.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2322,8 +2314,6 @@ class Styler(StylerRenderer):
     def pipe(self, func: Callable, *args, **kwargs):
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
