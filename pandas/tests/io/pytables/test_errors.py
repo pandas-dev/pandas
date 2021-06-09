@@ -6,6 +6,8 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -25,7 +27,7 @@ from pandas.io.pytables import (
     _maybe_adjust_name,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
 
 
 def test_pass_spec_to_storer(setup_path):

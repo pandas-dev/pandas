@@ -1,6 +1,7 @@
 codecov:
   branch: master
-
+  notify:
+    after_n_builds: 10
 comment: false
 
 coverage:

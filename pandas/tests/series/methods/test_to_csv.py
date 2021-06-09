@@ -25,7 +25,7 @@ class TestSeriesToCSV:
         return out
 
     def test_from_csv(self, datetime_series, string_series):
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         datetime_series.index = datetime_series.index._with_freq(None)
 
         with tm.ensure_clean() as path:

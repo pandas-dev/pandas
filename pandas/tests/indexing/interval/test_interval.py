@@ -65,13 +65,13 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3]]
 
-    @pytest.mark.arm_slow
+    @pytest.mark.slow
     def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))
@@ -107,11 +107,11 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"None of \[\[10\]\] are"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"\[10\] not in index"):
             df.loc[[10, 4]]
 
 
@@ -124,7 +124,7 @@ class TestIntervalIndexInsideMultiIndex:
                 pd.Index(
                     ["RID1", "RID1", "RID2", "RID2", "RID1", "RID1", "RID2", "RID2"]
                 ),
-                pd.IntervalIndex.from_arrays(
+                IntervalIndex.from_arrays(
                     [0, 1, 10, 11, 0, 1, 10, 11], [1, 2, 11, 12, 1, 2, 11, 12]
                 ),
             ]

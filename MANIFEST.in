@@ -17,8 +17,10 @@ global-exclude *.h5
 global-exclude *.html
 global-exclude *.json
 global-exclude *.jsonl
+global-exclude *.pdf
 global-exclude *.pickle
 global-exclude *.png
+global-exclude *.pptx
 global-exclude *.pyc
 global-exclude *.pyd
 global-exclude *.ods

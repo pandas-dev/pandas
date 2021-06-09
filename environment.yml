@@ -3,8 +3,8 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.16.5, <1.20 # gh-39513
-  - python=3
+  - numpy>=1.17.3
+  - python=3.8
   - python-dateutil>=2.7.3
   - pytz
 
@@ -20,8 +20,9 @@ dependencies:
   # code checks
   - black=20.8b1
   - cpplint
-  - flake8
-  - flake8-comprehensions>=3.1.0  # used by flake8, linting of unnecessary comprehensions
+  - flake8=3.9.2
+  - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
+  - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
   - mypy=0.812
   - pre-commit>=2.9.2
@@ -32,6 +33,7 @@ dependencies:
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
   - sphinx
+  - sphinx-panels
 
   # documentation (jupyter notebooks)
   - nbconvert>=5.4.1
@@ -68,7 +70,7 @@ dependencies:
 
   # unused (required indirectly may be?)
   - ipywidgets
-  - nbformat=5.0.8
+  - nbformat
   - notebook>=5.7.5
   - pip
 
@@ -77,9 +79,9 @@ dependencies:
   - bottleneck>=1.2.1
   - ipykernel
   - ipython>=7.11.1
-  - jinja2  # pandas.Styler
+  - jinja2<3.0.0  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
-  - numexpr>=2.6.8
+  - numexpr>=2.7.0
   - scipy>=1.2
   - numba>=0.46.0
 
@@ -98,7 +100,7 @@ dependencies:
   - odfpy
 
   - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
-  - pyarrow>=0.15.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
+  - pyarrow>=0.17.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
   - pyqt>=5.9.2  # pandas.read_clipboard
@@ -113,5 +115,6 @@ dependencies:
   - tabulate>=0.8.3  # DataFrame.to_markdown
   - natsort  # DataFrame.sort_values
   - pip:
-    - git+https://github.com/pandas-dev/pydata-sphinx-theme.git@2488b7defbd3d753dd5fcfc890fc4a7e79d25103
+    - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
+    - pandas-dev-flaker==0.2.0

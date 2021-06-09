@@ -358,7 +358,7 @@ class TestDataFrameReshape:
                 "E": Series([1.0, 50.0, 100.0]).astype("float32"),
                 "F": Series([3.0, 4.0, 5.0]).astype("float64"),
                 "G": False,
-                "H": Series([1, 200, 923442], dtype="int8"),
+                "H": Series([1, 200, 923442]).astype("int8"),
             }
         )
 
@@ -905,7 +905,7 @@ class TestDataFrameReshape:
         if using_array_manager:
             # INFO(ArrayManager) with ArrayManager preserve dtype where possible
             cols = right.columns[[1, 2, 3, 5]]
-            right[cols] = right[cols].astype("int64")
+            right[cols] = right[cols].astype(df["C"].dtype)
         tm.assert_frame_equal(left, right)
 
     def test_unstack_nan_index4(self):
@@ -1062,6 +1062,27 @@ class TestDataFrameReshape:
         # it's tested elsewhere.
         midx = MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [False, True])
+    @pytest.mark.parametrize(
+        "labels,data",
+        [
+            (list("xyz"), [10, 11, 12, 13, 14, 15]),
+            (list("zyx"), [14, 15, 12, 13, 10, 11]),
+        ],
+    )
+    def test_stack_multi_preserve_categorical_dtype(self, ordered, labels, data):
+        # GH-36991
+        cidx = pd.CategoricalIndex(labels, categories=sorted(labels), ordered=ordered)
+        cidx2 = pd.CategoricalIndex(["u", "v"], ordered=ordered)
+        midx = MultiIndex.from_product([cidx, cidx2])
+        df = DataFrame([sorted(data)], columns=midx)
+        result = df.stack([0, 1])
+
+        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
+        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
 
         tm.assert_series_equal(result, expected)
 
@@ -1441,9 +1462,9 @@ Sat,Dinner,No,139.63,45
 Sat,Dinner,Yes,120.77,42
 Sun,Dinner,No,180.57,57
 Sun,Dinner,Yes,66.82,19
-Thur,Dinner,No,3.0,1
-Thur,Lunch,No,117.32,44
-Thur,Lunch,Yes,51.51,17"""
+Thu,Dinner,No,3.0,1
+Thu,Lunch,No,117.32,44
+Thu,Lunch,Yes,51.51,17"""
 
         df = pd.read_csv(StringIO(data)).set_index(["day", "time", "smoker"])
 
@@ -1469,7 +1490,7 @@ Thur,Lunch,Yes,51.51,17"""
     def test_unstack_bug(self):
         df = DataFrame(
             {
-                "state": ["naive", "naive", "naive", "activ", "activ", "activ"],
+                "state": ["naive", "naive", "naive", "active", "active", "active"],
                 "exp": ["a", "b", "b", "b", "a", "a"],
                 "barcode": [1, 2, 3, 4, 1, 3],
                 "v": ["hi", "hi", "bye", "bye", "bye", "peace"],
@@ -1976,4 +1997,72 @@ Thur,Lunch,Yes,51.51,17"""
             index=Index([(0, None), (0, 0), (0, 1)]),
             columns=Index([(0, None), (0, 2), (0, 3)]),
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_multi_level_stack_categorical(self):
+        # GH 15239
+        midx = MultiIndex.from_arrays(
+            [
+                ["A"] * 2 + ["B"] * 2,
+                pd.Categorical(list("abab")),
+                pd.Categorical(list("ccdd")),
+            ]
+        )
+        df = DataFrame(np.arange(8).reshape(2, 4), columns=midx)
+        result = df.stack([1, 2])
+        expected = DataFrame(
+            [
+                [0, np.nan],
+                [np.nan, 2],
+                [1, np.nan],
+                [np.nan, 3],
+                [4, np.nan],
+                [np.nan, 6],
+                [5, np.nan],
+                [np.nan, 7],
+            ],
+            columns=["A", "B"],
+            index=MultiIndex.from_arrays(
+                [
+                    [0] * 4 + [1] * 4,
+                    pd.Categorical(list("aabbaabb")),
+                    pd.Categorical(list("cdcdcdcd")),
+                ]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_stack_nan_level(self):
+        # GH 9406
+        df_nan = DataFrame(
+            np.arange(4).reshape(2, 2),
+            columns=MultiIndex.from_tuples(
+                [("A", np.nan), ("B", "b")], names=["Upper", "Lower"]
+            ),
+            index=Index([0, 1], name="Num"),
+            dtype=np.float64,
+        )
+        result = df_nan.stack()
+        expected = DataFrame(
+            [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
+            columns=Index(["A", "B"], name="Upper"),
+            index=MultiIndex.from_tuples(
+                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_categorical_columns(self):
+        # GH 14018
+        idx = MultiIndex.from_product([["A"], [0, 1]])
+        df = DataFrame({"cat": pd.Categorical(["a", "b"])}, index=idx)
+        result = df.unstack()
+        expected = DataFrame(
+            {
+                0: pd.Categorical(["a"], categories=["a", "b"]),
+                1: pd.Categorical(["b"], categories=["a", "b"]),
+            },
+            index=["A"],
+        )
+        expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
         tm.assert_frame_equal(result, expected)

@@ -84,7 +84,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ["boxes", "whiskers", "medians", "caps"]
-                for key, values in self.color.items():
+                for key in self.color:
                     if key not in valid_keys:
                         raise ValueError(
                             f"color dict contains invalid key '{key}'. "
@@ -101,7 +101,7 @@ class BoxPlot(LinePlot):
         self._boxes_c = colors[0]
         self._whiskers_c = colors[0]
         self._medians_c = colors[2]
-        self._caps_c = "k"  # mpl default
+        self._caps_c = colors[0]
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
         pass

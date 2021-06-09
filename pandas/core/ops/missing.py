@@ -31,11 +31,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-from pandas.core.ops.roperator import (
-    rdivmod,
-    rfloordiv,
-    rmod,
-)
+from pandas.core.ops import roperator
 
 
 def fill_zeros(result, x, y):
@@ -167,7 +163,7 @@ def dispatch_fill_zeros(op, left, right, result):
             mask_zero_div_zero(left, right, result[0]),
             fill_zeros(result[1], left, right),
         )
-    elif op is rdivmod:
+    elif op is roperator.rdivmod:
         result = (
             mask_zero_div_zero(right, left, result[0]),
             fill_zeros(result[1], right, left),
@@ -176,12 +172,12 @@ def dispatch_fill_zeros(op, left, right, result):
         # Note: no need to do this for truediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(left, right, result)
-    elif op is rfloordiv:
+    elif op is roperator.rfloordiv:
         # Note: no need to do this for rtruediv; in py3 numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(right, left, result)
     elif op is operator.mod:
         result = fill_zeros(result, left, right)
-    elif op is rmod:
+    elif op is roperator.rmod:
         result = fill_zeros(result, right, left)
     return result

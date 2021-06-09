@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from typing import (
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
 import warnings
 
 import numpy as np
@@ -63,7 +57,7 @@ class FloatingDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type[FloatingArray]:
+    def construct_array_type(cls) -> type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -73,12 +67,15 @@ class FloatingDtype(NumericDtype):
         """
         return FloatingArray
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # for now only handle other floating types
         if not all(isinstance(t, FloatingDtype) for t in dtypes):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype for t in dtypes], []  # type: ignore[union-attr]
+            # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype]" has no
+            # attribute "numpy_dtype"
+            [t.numpy_dtype for t in dtypes],  # type: ignore[union-attr]
+            [],
         )
         if np.issubdtype(np_dtype, np.floating):
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
@@ -87,7 +84,7 @@ class FloatingDtype(NumericDtype):
 
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -271,7 +268,7 @@ class FloatingArray(NumericArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
@@ -309,11 +306,15 @@ class FloatingArray(NumericArray):
             # In astype, we consider dtype=float to also mean na_value=np.nan
             kwargs = {"na_value": np.nan}
         elif is_datetime64_dtype(dtype):
-            kwargs = {"na_value": np.datetime64("NaT")}
+            # error: Dict entry 0 has incompatible type "str": "datetime64"; expected
+            # "str": "float"
+            kwargs = {"na_value": np.datetime64("NaT")}  # type: ignore[dict-item]
         else:
             kwargs = {}
 
-        data = self.to_numpy(dtype=dtype, **kwargs)
+        # error: Argument 2 to "to_numpy" of "BaseMaskedArray" has incompatible
+        # type "**Dict[str, float]"; expected "bool"
+        data = self.to_numpy(dtype=dtype, **kwargs)  # type: ignore[arg-type]
         return astype_nansafe(data, dtype, copy=False)
 
     def _values_for_argsort(self) -> np.ndarray:

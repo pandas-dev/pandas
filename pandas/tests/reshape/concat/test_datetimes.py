@@ -403,6 +403,7 @@ class TestTimezoneConcat:
         expected = DataFrame({"time": [ts2, ts3]})
         tm.assert_frame_equal(results, expected)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_concat_multiindex_with_tz(self):
         # GH 6606
         df = DataFrame(
@@ -457,7 +458,7 @@ class TestTimezoneConcat:
     )
     def test_concat_tz_NaT(self, t1):
         # GH#22796
-        # Concating tz-aware multicolumn DataFrames
+        # Concatenating tz-aware multicolumn DataFrames
         ts1 = Timestamp(t1, tz="UTC")
         ts2 = Timestamp("2015-01-01", tz="UTC")
         ts3 = Timestamp("2015-01-01", tz="UTC")
@@ -468,6 +469,14 @@ class TestTimezoneConcat:
         result = concat([df1, df2])
         expected = DataFrame([[ts1, ts2], [ts3, pd.NaT]], index=[0, 0])
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_tz_with_empty(self):
+        # GH 9188
+        result = concat(
+            [DataFrame(date_range("2000", periods=1, tz="UTC")), DataFrame()]
+        )
+        expected = DataFrame(date_range("2000", periods=1, tz="UTC"))
         tm.assert_frame_equal(result, expected)
 
 

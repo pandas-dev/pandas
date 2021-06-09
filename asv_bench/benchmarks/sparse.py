@@ -28,7 +28,7 @@ class SparseSeriesToFrame:
             data = np.random.randn(N)[:-i]
             idx = rng[:-i]
             data[100:] = np.nan
-            self.series[i] = pd.Series(pd.SparseArray(data), index=idx)
+            self.series[i] = Series(SparseArray(data), index=idx)
 
     def time_series_to_frame(self):
         pd.DataFrame(self.series)
@@ -63,7 +63,7 @@ class FromCoo:
         )
 
     def time_sparse_series_from_coo(self):
-        pd.Series.sparse.from_coo(self.matrix)
+        Series.sparse.from_coo(self.matrix)
 
 
 class ToCoo:

@@ -137,8 +137,8 @@ class TestResetIndex:
 
         # preserve column names
         float_frame.columns.name = "columns"
-        resetted = float_frame.reset_index()
-        assert resetted.columns.name == "columns"
+        reset = float_frame.reset_index()
+        assert reset.columns.name == "columns"
 
         # only remove certain columns
         df = float_frame.reset_index().set_index(["index", "A", "B"])
@@ -159,10 +159,10 @@ class TestResetIndex:
 
         # test resetting in place
         df = float_frame.copy()
-        resetted = float_frame.reset_index()
+        reset = float_frame.reset_index()
         return_value = df.reset_index(inplace=True)
         assert return_value is None
-        tm.assert_frame_equal(df, resetted, check_names=False)
+        tm.assert_frame_equal(df, reset, check_names=False)
 
         df = float_frame.reset_index().set_index(["index", "A", "B"])
         rs = df.reset_index("A", drop=True)
@@ -224,11 +224,11 @@ class TestResetIndex:
         )
         df = DataFrame(s1)
 
-        resetted = s1.reset_index()
-        assert resetted["time"].dtype == np.float64
+        reset = s1.reset_index()
+        assert reset["time"].dtype == np.float64
 
-        resetted = df.reset_index()
-        assert resetted["time"].dtype == np.float64
+        reset = df.reset_index()
+        assert reset["time"].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
         vals = np.random.randn(3, 3).astype(object)
@@ -341,7 +341,7 @@ class TestResetIndex:
         )
         df.index.name = name
 
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             result = df.reset_index()
 
         item = name if name is not None else "index"
@@ -421,6 +421,7 @@ class TestResetIndex:
         result = df2.rename_axis([("c", "ii")]).reset_index(col_level=1, col_fill="C")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
@@ -509,9 +510,7 @@ class TestResetIndex:
             },
             columns=["level_0", "level_1", "a"],
         )
-        expected["level_1"] = expected["level_1"].apply(
-            lambda d: Timestamp(d, freq="D", tz=tz)
-        )
+        expected["level_1"] = expected["level_1"].apply(lambda d: Timestamp(d, tz=tz))
         result = df.reset_index()
         tm.assert_frame_equal(result, expected)
 
@@ -656,4 +655,31 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_multiindex_nat():
+    # GH 11479
+    idx = range(3)
+    tstamp = date_range("2015-07-01", freq="D", periods=3)
+    df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
+    df.loc[2, "tstamp"] = pd.NaT
+    result = df.set_index(["id", "tstamp"]).reset_index("id")
+    expected = DataFrame(
+        {"id": range(3), "a": list("abc")},
+        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_drop_pos_args_deprecation():
+    # https://github.com/pandas-dev/pandas/issues/41485
+    df = DataFrame({"a": [1, 2, 3]}).set_index("a")
+    msg = (
+        r"In a future version of pandas all arguments of DataFrame\.reset_index "
+        r"except for the argument 'level' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.reset_index("a", False)
+    expected = DataFrame({"a": [1, 2, 3]})
     tm.assert_frame_equal(result, expected)

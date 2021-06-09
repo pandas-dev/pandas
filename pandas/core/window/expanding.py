@@ -1,16 +1,16 @@
+from __future__ import annotations
+
 from textwrap import dedent
 from typing import (
     Any,
     Callable,
-    Dict,
-    Optional,
-    Tuple,
-    Union,
 )
 
-import numpy as np
-
-from pandas._typing import FrameOrSeries
+from pandas._typing import (
+    Axis,
+    FrameOrSeries,
+    FrameOrSeriesUnion,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -94,9 +94,22 @@ class Expanding(RollingAndExpandingMixin):
 
     _attributes = ["min_periods", "center", "axis", "method"]
 
-    def __init__(self, obj, min_periods=1, center=None, axis=0, method="single"):
+    def __init__(
+        self,
+        obj: FrameOrSeries,
+        min_periods: int = 1,
+        center=None,
+        axis: Axis = 0,
+        method: str = "single",
+        selection=None,
+    ):
         super().__init__(
-            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+            obj=obj,
+            min_periods=min_periods,
+            center=center,
+            axis=axis,
+            method=method,
+            selection=selection,
         )
 
     def _get_window_indexer(self) -> BaseIndexer:
@@ -170,10 +183,10 @@ class Expanding(RollingAndExpandingMixin):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
     ):
         return super().apply(
             func,
@@ -200,7 +213,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="sum",
         agg_method="sum",
     )
-    def sum(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def sum(
+        self,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("sum", args, kwargs)
         return super().sum(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -220,7 +239,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="maximum",
         agg_method="max",
     )
-    def max(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def max(
+        self,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("max", args, kwargs)
         return super().max(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -240,7 +265,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="minimum",
         agg_method="min",
     )
-    def min(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def min(
+        self,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("min", args, kwargs)
         return super().min(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -260,7 +291,13 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="mean",
         agg_method="mean",
     )
-    def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
+    def mean(
+        self,
+        *args,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         nv.validate_expanding_func("mean", args, kwargs)
         return super().mean(*args, engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
@@ -279,7 +316,12 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="median",
         agg_method="median",
     )
-    def median(self, engine=None, engine_kwargs=None, **kwargs):
+    def median(
+        self,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        **kwargs,
+    ):
         return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
 
     @doc(
@@ -508,8 +550,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def quantile(
         self,
-        quantile,
-        interpolation="linear",
+        quantile: float,
+        interpolation: str = "linear",
         **kwargs,
     ):
         return super().quantile(
@@ -523,7 +565,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -549,8 +591,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
@@ -561,7 +603,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Parameters"),
         dedent(
             """
-        other : Series, DataFrame, or ndarray, optional
+        other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
         pairwise : bool, default None
@@ -614,8 +656,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[Union[np.ndarray, FrameOrSeries]] = None,
-        pairwise: Optional[bool] = None,
+        other: FrameOrSeriesUnion | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):

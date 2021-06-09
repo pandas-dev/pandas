@@ -31,7 +31,7 @@ try:
 except ImportError:
     from pandas import algos
 try:
-    from pandas._testing import test_parallel
+    from pandas._testing import test_parallel  # noqa: PDF014
 
     have_real_test_parallel = True
 except ImportError:

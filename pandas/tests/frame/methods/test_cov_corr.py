@@ -207,7 +207,7 @@ class TestDataFrameCorr:
 
         _ = df.corr()
 
-        # Check that the corr didnt break link between ser and df
+        # Check that the corr didn't break link between ser and df
         ser.values[0] = 99
         assert df.loc[0, "A"] == 99
         assert df["A"] is ser
@@ -230,6 +230,16 @@ class TestDataFrameCorr:
         )
         result = df.corr()
         expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
+        tm.assert_frame_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
+    def test_corr_min_periods_greater_than_length(self, method):
+        df = DataFrame({"A": [1, 2], "B": [1, 2]})
+        result = df.corr(method=method, min_periods=3)
+        expected = DataFrame(
+            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+        )
         tm.assert_frame_equal(result, expected)
 
 

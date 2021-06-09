@@ -494,14 +494,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    S = pd.Series([i / 100.0 for i in range(1, 11)])
 
-
    def cum_ret(x, y):
        return x * (1 + y)
 
-
    def red(x):
        return functools.reduce(cum_ret, x, 1.0)
-
 
    S.expanding().apply(red, raw=True)
 
@@ -514,11 +511,9 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
    gb = df.groupby("A")
 
-
    def replace(g):
        mask = g < 0
        return g.where(mask, g[~mask].mean())
-
 
    gb.transform(replace)
 
@@ -551,12 +546,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    rng = pd.date_range(start="2014-10-07", periods=10, freq="2min")
    ts = pd.Series(data=list(range(10)), index=rng)
 
-
    def MyCust(x):
        if len(x) > 2:
            return x[1] * 1.234
        return pd.NaT
-
 
    mhc = {"Mean": np.mean, "Max": np.max, "Custom": MyCust}
    ts.resample("5min").apply(mhc)
@@ -803,10 +796,8 @@ Apply
        index=["I", "II", "III"],
    )
 
-
    def SeriesFromSubList(aList):
        return pd.Series(aList)
-
 
    df_orgz = pd.concat(
        {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
@@ -827,11 +818,9 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
    )
    df
 
-
    def gm(df, const):
        v = ((((df["A"] + df["B"]) + 1).cumprod()) - 1) * const
        return v.iloc[-1]
-
 
    s = pd.Series(
        {
@@ -859,10 +848,8 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
    )
    df
 
-
    def vwap(bars):
        return (bars.Close * bars.Volume).sum() / bars.Volume.sum()
-
 
    window = 5
    s = pd.concat(

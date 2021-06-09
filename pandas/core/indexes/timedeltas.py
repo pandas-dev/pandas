@@ -1,4 +1,5 @@
 """ implement the TimedeltaIndex """
+from __future__ import annotations
 
 from pandas._libs import (
     index as libindex,
@@ -112,10 +113,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _data_cls = TimedeltaArray
     _engine_type = libindex.TimedeltaEngine
 
-    _comparables = ["name", "freq"]
-    _attributes = ["name", "freq"]
-    _is_numeric_dtype = False
-
     _data: TimedeltaArray
 
     # -------------------------------------------------------------------
@@ -134,10 +131,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -192,7 +186,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key, method, tolerance)
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string, cast it to timedelta according to resolution.
 
@@ -206,7 +200,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         label : object
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
             parsed = Timedelta(label)

@@ -136,9 +136,9 @@ class Base:
         if f is None:
             return
         axes = f.axes
-        indicies = itertools.product(*axes)
+        indices = itertools.product(*axes)
 
-        for i in indicies:
+        for i in indices:
             result = getattr(f, func)[i]
 
             # check against values

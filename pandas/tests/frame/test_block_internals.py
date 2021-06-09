@@ -45,7 +45,7 @@ class TestDataFrameBlockInternals:
         ts = dti[1]
 
         df = DataFrame({"B": dti})
-        assert df["B"]._values.freq == "D"
+        assert df["B"]._values.freq is None
 
         df.iloc[1, 0] = pd.NaT
         assert df["B"]._values.freq is None
@@ -258,8 +258,11 @@ class TestDataFrameBlockInternals:
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
-        f("int64")
-        f("float64")
+        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("int64")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("float64")
 
         # 10822
         # invalid error message on dt inference
@@ -388,7 +391,7 @@ def test_update_inplace_sets_valid_block_values():
     # inplace update of a single column
     df["a"].fillna(1, inplace=True)
 
-    # check we havent put a Series into any block.values
+    # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
     # smoketest for OP bug from GH#35731

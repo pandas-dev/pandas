@@ -89,6 +89,7 @@ class HistPlot(LinePlot):
             kwds = self.kwds.copy()
 
             label = pprint_thing(label)
+            label = self._mark_right_label(label, index=i)
             kwds["label"] = label
 
             style, kwds = self._apply_style_colors(colors, kwds, i, label)
@@ -105,7 +106,7 @@ class HistPlot(LinePlot):
                 kwds["weights"] = weights[:, i]
 
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
-            self._add_legend_handle(artists[0], label, index=i)
+            self._append_legend_handles_labels(artists[0], label)
 
     def _make_plot_keywords(self, kwds, y):
         """merge BoxPlot/KdePlot properties to passed kwds"""

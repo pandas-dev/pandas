@@ -1,5 +1,7 @@
 import numpy as np
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Series,
@@ -11,6 +13,8 @@ from pandas.io.pytables import (
     HDFStore,
     read_hdf,
 )
+
+pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestHDFStoreSubclass:

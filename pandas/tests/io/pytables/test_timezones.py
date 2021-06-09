@@ -137,7 +137,7 @@ def test_append_with_timezones_as_index(setup_path, gettz):
     # GH#4098 example
 
     dti = date_range("2000-1-1", periods=3, freq="H", tz=gettz("US/Eastern"))
-    dti = dti._with_freq(None)  # freq doesnt round-trip
+    dti = dti._with_freq(None)  # freq doesn't round-trip
 
     df = DataFrame({"A": Series(range(3), index=dti)})
 
@@ -217,7 +217,7 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
 
         # index
         rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
-        rng = rng._with_freq(None)  # freq doesnt round-trip
+        rng = rng._with_freq(None)  # freq doesn't round-trip
         df = DataFrame(np.random.randn(len(rng), 4), index=rng)
         store["df"] = df
         result = store["df"]
@@ -334,7 +334,7 @@ def test_dst_transitions(setup_path):
             freq="H",
             ambiguous="infer",
         )
-        times = times._with_freq(None)  # freq doesnt round-trip
+        times = times._with_freq(None)  # freq doesn't round-trip
 
         for i in [times, times + pd.Timedelta("10min")]:
             _maybe_remove(store, "df")

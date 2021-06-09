@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 from pandas._libs import lib
@@ -164,11 +166,10 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
+    mask: np.ndarray | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
-    else:
-        mask = None
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -179,7 +180,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values = lib.maybe_convert_numeric(
+            values, _ = lib.maybe_convert_numeric(
                 values, set(), coerce_numeric=coerce_numeric
             )
         except (ValueError, TypeError):

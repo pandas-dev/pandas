@@ -8,11 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterable,
-    List,
     Mapping,
-    Optional,
-    Type,
-    Union,
     cast,
     overload,
 )
@@ -20,7 +16,10 @@ from typing import (
 import numpy as np
 
 from pandas._typing import FrameOrSeriesUnion
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    deprecate_nonkeyword_arguments,
+)
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -58,7 +57,7 @@ if TYPE_CHECKING:
 
 @overload
 def concat(
-    objs: Union[Iterable[DataFrame], Mapping[Hashable, DataFrame]],
+    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -74,7 +73,7 @@ def concat(
 
 @overload
 def concat(
-    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
     axis=0,
     join: str = "outer",
     ignore_index: bool = False,
@@ -88,8 +87,9 @@ def concat(
     ...
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
-    objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
     axis=0,
     join="outer",
     ignore_index: bool = False,
@@ -314,7 +314,7 @@ class _Concatenator:
 
     def __init__(
         self,
-        objs: Union[Iterable[NDFrame], Mapping[Hashable, NDFrame]],
+        objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
         axis=0,
         join: str = "outer",
         keys=None,
@@ -383,7 +383,7 @@ class _Concatenator:
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample: Optional[NDFrame] = None
+        sample: NDFrame | None = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
@@ -474,7 +474,7 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: Type[FrameOrSeriesUnion]
+        cons: type[FrameOrSeriesUnion]
         sample: FrameOrSeriesUnion
 
         # series only
@@ -539,7 +539,7 @@ class _Concatenator:
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self) -> List[Index]:
+    def _get_new_axes(self) -> list[Index]:
         ndim = self._get_result_dim()
         return [
             self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
@@ -568,7 +568,7 @@ class _Concatenator:
                 idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
-                names: List[Hashable] = [None] * len(self.objs)
+                names: list[Hashable] = [None] * len(self.objs)
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):

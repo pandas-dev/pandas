@@ -328,7 +328,7 @@ class TestDatetime64SeriesComparison:
             box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
         )
 
-        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), "NaT"])
+        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), NaT])
         ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser
@@ -1968,6 +1968,7 @@ class TestTimestampSeriesArithmetic:
         td1 = Series(pd.timedelta_range("1 days 1 min", periods=5, freq="H"))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
+        assert td2._values.freq is None
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)

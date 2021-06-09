@@ -25,6 +25,7 @@ to other string extension arrays.
 #     - StringArray
 #     - PandasArray
 #     - Categorical
+#     - ArrowStringArray
 
 from pandas.core.strings.accessor import StringMethods
 from pandas.core.strings.base import BaseStringArrayMethods
