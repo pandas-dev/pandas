@@ -3013,7 +3013,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Self may have duplicates
         # find indexes of things in "other" that are not in "self"
-        if self.is_unique:
+        if self._index_as_unique:
             indexer = self.get_indexer(other)
             missing = (indexer == -1).nonzero()[0]
         else:
@@ -3098,7 +3098,6 @@ class Index(IndexOpsMixin, PandasObject):
         intersection specialized to the case with matching dtypes.
         """
         # TODO(EA): setops-refactor, clean all this up
-        lvals = self._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -3110,21 +3109,36 @@ class Index(IndexOpsMixin, PandasObject):
                 res = algos.unique1d(result)
                 return ensure_wrapped_if_datetimelike(res)
 
-        try:
-            indexer = other.get_indexer(lvals)
-        except InvalidIndexError:
-            # InvalidIndexError raised by get_indexer if non-unique
-            indexer, _ = other.get_indexer_non_unique(lvals)
+        res_values = self._intersection_via_get_indexer(other, sort=sort)
+        res_values = _maybe_try_sort(res_values, sort)
+        return res_values
+
+    def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
+        """
+        Find the intersection of two Indexes using get_indexer.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+            The returned array will be unique.
+        """
+        # Note: drop_duplicates vs unique matters for MultiIndex, though
+        #  it should not, see GH#41823
+        left_unique = self.drop_duplicates()
+        right_unique = other.drop_duplicates()
+
+        # even though we are unique, we need get_indexer_for for IntervalIndex
+        indexer = left_unique.get_indexer_for(right_unique)
 
         mask = indexer != -1
-        indexer = indexer.take(mask.nonzero()[0])
 
-        result = other.take(indexer).unique()._values
-        result = _maybe_try_sort(result, sort)
+        taker = indexer.take(mask.nonzero()[0])
+        if sort is False:
+            # sort bc we want the elements in the same order they are in self
+            # unnecessary in the case with sort=None bc we will sort later
+            taker = np.sort(taker)
 
-        # Intersection has to be unique
-        assert Index(result).is_unique
-
+        result = left_unique.take(taker)._values
         return result
 
     @final
@@ -3171,6 +3185,10 @@ class Index(IndexOpsMixin, PandasObject):
             # Note: we do not (yet) sort even if sort=None GH#24959
             return self.rename(result_name)
 
+        if not self._should_compare(other):
+            # Nothing matches -> difference is everything
+            return self.rename(result_name)
+
         result = self._difference(other, sort=sort)
         return self._wrap_setop_result(other, result)
 
@@ -3178,7 +3196,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         this = self._get_unique_index()
 
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer_for(other)
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
