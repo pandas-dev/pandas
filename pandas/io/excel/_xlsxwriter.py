@@ -1,10 +1,6 @@
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
@@ -17,7 +13,7 @@ class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
-    STYLE_MAPPING: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
+    STYLE_MAPPING: dict[str, list[tuple[tuple[str, ...], str]]] = {
         "font": [
             (("name",), "font_name"),
             (("sz",), "font_size"),
@@ -177,8 +173,8 @@ class XlsxWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        if_sheet_exists: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, Any]] = None,
+        if_sheet_exists: str | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
