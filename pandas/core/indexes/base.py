@@ -3127,7 +3127,8 @@ class Index(IndexOpsMixin, PandasObject):
         left_unique = self.drop_duplicates()
         right_unique = other.drop_duplicates()
 
-        indexer = left_unique.get_indexer(right_unique)
+        # even though we are unique, we need get_indexer_for for IntervalIndex
+        indexer = left_unique.get_indexer_for(right_unique)
 
         mask = indexer != -1
 
