@@ -340,10 +340,12 @@ class IntervalIndex(ExtensionIndex):
     def from_strings(
         cls,
         data: Sequence[str],
+        closed: str = "right",
+        dtype: Dtype | None = None,
         name: Hashable = None,
     ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
-            arr = IntervalArray.from_strings(data=data)
+            arr = IntervalArray.from_strings(data=data, dtype=dtype, closed=closed)
 
         return cls._simple_new(arr, name=name)
 

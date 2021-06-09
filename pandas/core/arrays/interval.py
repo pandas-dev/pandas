@@ -571,8 +571,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         ----------
         data : array-like (1-dimensional)
             Strings representing the Interval's to parse.
-        copy : bool, default False
-            Copy the data.
+        closed : {'left', 'right', 'both', 'neither'}, default 'right'
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
         dtype : dtype, optional
             If None, dtype will be inferred.
 
@@ -618,23 +619,28 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def from_strings(
         cls: type[IntervalArrayT],
         data: Sequence[str],
+        closed: str = "right",
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         # These need to be imported here to avoid circular dependencies.
-        from pandas.core.tools.datetimes import to_datetime
-        from pandas.core.tools.timedeltas import to_timedelta
+        from pandas import (
+            to_datetime,
+            to_timedelta,
+        )
 
-        intervals: list[Interval] = []
+        pattern = re.compile(r"\(.*,.*]")
+
+        left, right = [], []
         for string in data:
 
             # Try to match "(left, right]" where 'left' and 'right' are breaks.
-            breaks_match = re.match(r"\(.*,.*]", string)
-            # Raise ValueError if no match was found.
+            breaks_match = pattern.match(string)
+
             if breaks_match is None:
                 raise ValueError(
                     "Could not find opening '(' and closing ']' "
                     f"brackets in string: '{string}'"
                 )
-
             # Try to split 'left' and 'right' based on a comma and a space.
             breaks = breaks_match.string[1:-1].split(", ", 1)
 
@@ -650,7 +656,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if i == 0 and not all(b.isdigit() for b in breaks):
                     continue
                 try:
-                    interval = Interval(*map(conversion, breaks))
+                    newleft, newright = map(conversion, breaks)
+                    left.append(newleft)
+                    right.append(newright)
                     break
                 except ValueError:
                     continue
@@ -659,9 +667,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     "Could not parse string as Interval of float, Timedelta "
                     f"or Timestamp: {string}"
                 )
-            intervals.append(interval)
 
-        return cls(intervals)
+        # If dtype was not an IntervalDtype, try to parse it as such.
+        if dtype is not None and not isinstance(dtype, IntervalDtype):
+            dtype = IntervalDtype(subtype=dtype, closed=closed)
+
+        return cls.from_arrays(left, right, closed=closed, copy=False, dtype=dtype)
 
     def _validate(self):
         """

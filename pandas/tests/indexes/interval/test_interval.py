@@ -906,40 +906,55 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, idx)
 
 
-def test_from_strings():
-    """Test the IntervalIndex.from_strings class method."""
-    # Create (expected, string_repr) tuples for test-cases.
-    test_cases = [
+@pytest.mark.parametrize(
+    "test_case",
+    [
         (
+            "float64",
             IntervalIndex.from_breaks([0.0, 0.5, 1.0]),
             ["(0.0, 0.5]", "(0.5, 1.0]"],
         ),
-        (IntervalIndex.from_breaks([0, 5, 10]), ["(0, 5]", "(5, 10]"]),
+        ("int64", IntervalIndex.from_breaks([0, 5, 10]), ["(0, 5]", "(5, 10]"]),
         (
+            "datetime64[ns]",
             IntervalIndex.from_breaks(
                 [Timestamp(2015, 7, 1), Timestamp(2016, 8, 1), Timestamp(2018, 9, 1)]
             ),
             ["(2015-07-01, 2016-08-01]", "(2016-08-01, 2018-09-01]"],
         ),
-    ]
-    # Validate each test case.
-    for expected, string in test_cases:
-        parsed_index = IntervalIndex.from_strings(string)
-        assert np.array_equal(parsed_index, expected)
+    ],
+)
+def test_from_strings(test_case):
+    """Test the IntervalIndex.from_strings class method."""
+    # See https://github.com/pandas-dev/pandas/pull/41451
+    dtype, expected, string = test_case
+
+    # Attempt to parse the type dynamically
+    parsed_index = IntervalIndex.from_strings(string)
+    assert np.array_equal(parsed_index, expected)
+    assert parsed_index.left.dtype == dtype
+
+    # Parse it with a fixed dtype and assert that the result is correct.
+    parsed_index_static = IntervalIndex.from_strings(string, dtype=np.dtype(dtype))
+    assert np.array_equal(parsed_index, parsed_index_static)
+    assert parsed_index.dtype == parsed_index_static.dtype
 
 
-def test_from_strings_errors():
-    """Validate the error messages from the IntervalIndex.from_strings method."""
-    # Create invalid interval indices (to make sure it fails correctly)
-    wrong_indices = [
+@pytest.mark.parametrize(
+    "wrong_indices",
+    [
         ("('hello', 'there']", r"Could not parse string as Interval"),
         ("(0.1,0.1)", r"Could not find opening '\(' and closing ']'"),
         ("(0.0,0.5]", r"Delimiter ', ' .* not found"),
-    ]
-    # Validate that all cases raise ValueErrors with the correct message
-    for string, error in wrong_indices:
-        with pytest.raises(ValueError, match=error):
-            IntervalIndex.from_strings([string])
+    ],
+)
+def test_from_strings_errors(wrong_indices):
+    """Validate the error messages from the IntervalIndex.from_strings method."""
+    # See https://github.com/pandas-dev/pandas/pull/41451
+    string, error = wrong_indices
+
+    with pytest.raises(ValueError, match=error):
+        IntervalIndex.from_strings([string])
 
 
 def test_dir():
