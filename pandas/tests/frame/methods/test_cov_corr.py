@@ -232,6 +232,16 @@ class TestDataFrameCorr:
         expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
+    def test_corr_min_periods_greater_than_length(self, method):
+        df = DataFrame({"A": [1, 2], "B": [1, 2]})
+        result = df.corr(method=method, min_periods=3)
+        expected = DataFrame(
+            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameCorrWith:
     def test_corrwith(self, datetime_frame):

@@ -1,4 +1,5 @@
 """ implement the TimedeltaIndex """
+from __future__ import annotations
 
 from pandas._libs import (
     index as libindex,
