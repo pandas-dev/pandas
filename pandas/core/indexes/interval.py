@@ -1,7 +1,6 @@
 """ define the IntervalIndex """
 from __future__ import annotations
 
-from functools import wraps
 from operator import (
     le,
     lt,
@@ -63,11 +62,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas.core.algorithms import (
-    take_nd,
-    unique,
-)
-from pandas.core.array_algos.putmask import validate_putmask
+from pandas.core.algorithms import take_nd
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -94,7 +89,6 @@ from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,
 )
-from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
     from pandas import CategoricalIndex
@@ -152,59 +146,6 @@ def _new_IntervalIndex(cls, d):
     return cls.from_arrays(**d)
 
 
-def setop_check(method):
-    """
-    This is called to decorate the set operations of IntervalIndex
-    to perform the type check in advance.
-    """
-    op_name = method.__name__
-
-    @wraps(method)
-    def wrapped(self, other, sort=False):
-        self._validate_sort_keyword(sort)
-        self._assert_can_do_setop(other)
-        other, result_name = self._convert_can_do_setop(other)
-
-        if op_name == "difference":
-            if not isinstance(other, IntervalIndex):
-                result = getattr(self.astype(object), op_name)(other, sort=sort)
-                return result.astype(self.dtype)
-
-            elif not self._should_compare(other):
-                # GH#19016: ensure set op will not return a prohibited dtype
-                result = getattr(self.astype(object), op_name)(other, sort=sort)
-                return result.astype(self.dtype)
-
-        return method(self, other, sort)
-
-    return wrapped
-
-
-def _setop(op_name: str):
-    """
-    Implement set operation.
-    """
-
-    def func(self, other, sort=None):
-        # At this point we are assured
-        #  isinstance(other, IntervalIndex)
-        #  other.closed == self.closed
-
-        result = getattr(self._multiindex, op_name)(other._multiindex, sort=sort)
-        result_name = get_op_result_name(self, other)
-
-        # GH 19101: ensure empty results have correct dtype
-        if result.empty:
-            result = result._values.astype(self.dtype.subtype)
-        else:
-            result = result._values
-
-        return type(self).from_tuples(result, closed=self.closed, name=result_name)
-
-    func.__name__ = op_name
-    return setop_check(func)
-
-
 @Appender(
     _interval_shared_docs["class"]
     % {
@@ -258,9 +199,6 @@ class IntervalIndex(ExtensionIndex):
     is_non_overlapping_monotonic: bool
     closed_left: bool
     closed_right: bool
-
-    # we would like our indexing holder to defer to us
-    _defer_to_indexing = True
 
     _data: IntervalArray
     _values: IntervalArray
@@ -475,8 +413,6 @@ class IntervalIndex(ExtensionIndex):
         Two intervals overlap if they share a common point, including closed
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
-
-        .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -774,9 +710,11 @@ class IntervalIndex(ExtensionIndex):
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])
-            except InvalidIndexError as err:
-                # i.e. non-scalar key
-                raise TypeError(key) from err
+            except InvalidIndexError:
+                # i.e. non-scalar key e.g. a tuple.
+                # see test_append_different_columns_types_raises
+                missing.append(i)
+                locs = np.array([-1])
 
             indexer.append(locs)
 
@@ -814,20 +752,6 @@ class IntervalIndex(ExtensionIndex):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
         return getattr(self, side)._maybe_cast_slice_bound(label, side)
 
-    @Appender(Index._convert_list_indexer.__doc__)
-    def _convert_list_indexer(self, keyarr):
-        """
-        we are passed a list-like indexer. Return the
-        indexer for matching intervals.
-        """
-        locs = self.get_indexer_for(keyarr)
-
-        # we have missing values
-        if (locs == -1).any():
-            raise KeyError(keyarr[locs == -1].tolist())
-
-        return locs
-
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
         if not isinstance(dtype, IntervalDtype):
             return False
@@ -851,46 +775,6 @@ class IntervalIndex(ExtensionIndex):
     @property
     def length(self) -> Index:
         return Index(self._data.length, copy=False)
-
-    def putmask(self, mask, value) -> Index:
-        mask, noop = validate_putmask(self._data, mask)
-        if noop:
-            return self.copy()
-
-        try:
-            self._validate_fill_value(value)
-        except (ValueError, TypeError):
-            dtype = self._find_common_type_compat(value)
-            return self.astype(dtype).putmask(mask, value)
-
-        arr = self._data.copy()
-        arr.putmask(mask, value)
-        return type(self)._simple_new(arr, name=self.name)
-
-    def insert(self, loc: int, item):
-        """
-        Return a new IntervalIndex inserting new item at location. Follows
-        Python list.append semantics for negative values.  Only Interval
-        objects and NA can be inserted into an IntervalIndex
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        try:
-            result = self._data.insert(loc, item)
-        except (ValueError, TypeError):
-            # e.g trying to insert a string
-            dtype, _ = infer_dtype_from_scalar(item, pandas_dtype=True)
-            dtype = find_common_type([self.dtype, dtype])
-            return self.astype(dtype).insert(loc, item)
-
-        return type(self)._simple_new(result, name=self.name)
 
     # --------------------------------------------------------------------
     # Rendering Methods
@@ -917,11 +801,11 @@ class IntervalIndex(ExtensionIndex):
         """
         # For IntervalIndex we also know other.closed == self.closed
         if self.left.is_unique and self.right.is_unique:
-            taken = self._intersection_unique(other)
+            return super()._intersection(other, sort=sort)
         elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
             # Swap other/self if other is unique and self does not have
             # multiple NaNs
-            taken = other._intersection_unique(self)
+            return super()._intersection(other, sort=sort)
         else:
             # duplicates
             taken = self._intersection_non_unique(other)
@@ -930,29 +814,6 @@ class IntervalIndex(ExtensionIndex):
             taken = taken.sort_values()
 
         return taken
-
-    def _intersection_unique(self, other: IntervalIndex) -> IntervalIndex:
-        """
-        Used when the IntervalIndex does not have any common endpoint,
-        no matter left or right.
-        Return the intersection with another IntervalIndex.
-
-        Parameters
-        ----------
-        other : IntervalIndex
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        lindexer = self.left.get_indexer(other.left)
-        rindexer = self.right.get_indexer(other.right)
-
-        match = (lindexer == rindexer) & (lindexer != -1)
-        indexer = lindexer.take(match.nonzero()[0])
-        indexer = unique(indexer)
-
-        return self.take(indexer)
 
     def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
         """
@@ -980,9 +841,6 @@ class IntervalIndex(ExtensionIndex):
                 mask[i] = True
 
         return self[mask]
-
-    _union = _setop("union")
-    _difference = _setop("difference")
 
     # --------------------------------------------------------------------
 

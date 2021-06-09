@@ -328,7 +328,7 @@ class TestDatetime64SeriesComparison:
             box_with_array if box_with_array not in [pd.Index, pd.array] else np.ndarray
         )
 
-        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), "NaT"])
+        ser = Series([Timestamp("2000-01-29 01:59:00"), Timestamp("2000-01-30"), NaT])
         ser = tm.box_expected(ser, box_with_array)
 
         result = ser != ser

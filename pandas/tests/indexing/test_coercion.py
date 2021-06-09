@@ -1,9 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import itertools
-from typing import (
-    Dict,
-    List,
-)
 
 import numpy as np
 import pytest
@@ -134,7 +132,10 @@ class TestSetitemCoercion(CoercionBase):
             )
             request.node.add_marker(mark)
 
-        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        warn = None if exp_dtype is np.int8 else FutureWarning
+        msg = "Values are too large to be losslessly cast to int8"
+        with tm.assert_produces_warning(warn, match=msg):
+            exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -1021,7 +1022,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep: Dict[str, List] = {}
+    rep: dict[str, list] = {}
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]

@@ -18,7 +18,6 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
-from pandas.core.groupby.groupby import DataError
 
 
 @pytest.mark.parametrize(
@@ -98,9 +97,9 @@ def test_cython_agg_nothing_to_agg():
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    msg = "No numeric types to aggregate"
-    with pytest.raises(DataError, match=msg):
-        frame[["b"]].groupby(frame["a"]).mean()
+    result = frame[["b"]].groupby(frame["a"]).mean()
+    expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
+    tm.assert_frame_equal(result, expected)
 
 
 def test_cython_agg_nothing_to_agg_with_dates():

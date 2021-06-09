@@ -247,6 +247,16 @@ class TestIntervalIndex:
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
         assert idx.is_unique is True
 
+        # unique NaN
+        idx = IntervalIndex.from_tuples([(np.NaN, np.NaN)], closed=closed)
+        assert idx.is_unique is True
+
+        # non-unique NaN
+        idx = IntervalIndex.from_tuples(
+            [(np.NaN, np.NaN), (np.NaN, np.NaN)], closed=closed
+        )
+        assert idx.is_unique is False
+
     def test_monotonic(self, closed):
         # increasing non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)

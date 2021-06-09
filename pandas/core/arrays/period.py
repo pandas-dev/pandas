@@ -866,7 +866,7 @@ class PeriodArray(dtl.DatelikeOps):
     def end_time(self) -> DatetimeArray:
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other, base=False):
+    def _require_matching_freq(self, other, base: bool = False) -> None:
         # See also arrays.period.raise_on_incompatible
         if isinstance(other, BaseOffset):
             other_freq = other
@@ -1057,7 +1057,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     Returns
     -------
-    ordinals : ndarray[int]
+    ordinals : ndarray[int64]
     freq : Tick
         The frequency extracted from the Series or DatetimeIndex if that's
         used.
