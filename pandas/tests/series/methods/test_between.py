@@ -60,14 +60,6 @@ class TestBetween:
         expected = (series > left) & (series < right)
         tm.assert_series_equal(result, expected)
 
-        result = series.between(left, right, inclusive=True)
-        expected = (series >= left) & (series <= right)
-        tm.assert_series_equal(result, expected)
-
-        result = series.between(left, right, inclusive=False)
-        expected = (series > left) & (series < right)
-        tm.assert_series_equal(result, expected)
-
     def test_between_error_args(self):  # :issue:`40628`
         series = Series(date_range("1/1/2000", periods=10))
         left, right = series[[2, 7]]
@@ -85,6 +77,10 @@ class TestBetween:
         series = Series(date_range("1/1/2000", periods=10))
         left, right = series[[2, 7]]
         with tm.assert_produces_warning(FutureWarning):
-            series.between(left, right, inclusive=False)
+            result = series.between(left, right, inclusive=False)
+            expected = (series > left) & (series < right)
+            tm.assert_series_equal(result, expected)
         with tm.assert_produces_warning(FutureWarning):
-            series.between(left, right, inclusive=True)
+            result = series.between(left, right, inclusive=True)
+            expected = (series >= left) & (series <= right)
+            tm.assert_series_equal(result, expected)
