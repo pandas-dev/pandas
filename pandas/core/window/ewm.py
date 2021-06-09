@@ -809,17 +809,17 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         >>> df = pd.DataFrame({"a": range(5), "b": range(5, 10)})
         >>> online_ewm = df.head(2).ewm(0.5).online()
         >>> online_ewm.mean()
-              0     1
+              a     b
         0  0.00  5.00
         1  0.75  5.75
         >>> online_ewm.mean(update=df.tail(3))
-                  0         1
+                  a         b
         1  1.615385  6.615385
         2  2.550000  7.550000
         3  3.520661  8.520661
         >>> online_ewm.reset()
         >>> online_ewm.mean()
-              0     1
+              a     b
         0  0.00  5.00
         1  0.75  5.75
         """
