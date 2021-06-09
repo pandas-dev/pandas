@@ -17,6 +17,10 @@ from pandas.compat import (
     PY38,
     is_platform_windows,
 )
+from pandas.compat.pyarrow import (
+    pa_version_under1p0,
+    pa_version_under2p0,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -653,8 +657,6 @@ class TestParquetPyArrow(Base):
     )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
-        if Version(pyarrow.__version__) <= Version("0.17.0"):
-            pytest.skip()
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
         check_round_trip(
@@ -666,8 +668,6 @@ class TestParquetPyArrow(Base):
         )
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
-        if Version(pyarrow.__version__) <= Version("0.17.0"):
-            pytest.skip()
         # GH #19134
         s3so = {"storage_options": s3so}
         check_round_trip(
@@ -698,14 +698,12 @@ class TestParquetPyArrow(Base):
         # These are added to back of dataframe on read. In new API category dtype is
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
-        pa10 = (Version(pyarrow.__version__) >= Version("1.0.0")) and (
-            Version(pyarrow.__version__) < Version("2.0.0")
-        )
         if partition_col:
-            if pa10:
-                partition_col_type = "int32"
-            else:
-                partition_col_type = "category"
+            partition_col_type = (
+                "int32"
+                if (not pa_version_under1p0) and pa_version_under2p0
+                else "category"
+            )
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -795,7 +793,7 @@ class TestParquetPyArrow(Base):
         out_df = df.astype(bool)
         check_round_trip(df, pa, write_kwargs={"schema": schema}, expected=out_df)
 
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol
@@ -806,22 +804,10 @@ class TestParquetPyArrow(Base):
                 "c": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        if Version(pyarrow.__version__) >= Version("0.16.0"):
-            expected = df
-        else:
-            # de-serialized as plain int / object
-            expected = df.assign(
-                a=df.a.astype("int64"), b=df.b.astype("int64"), c=df.c.astype("object")
-            )
-        check_round_trip(df, pa, expected=expected)
+        check_round_trip(df, pa)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        if Version(pyarrow.__version__) >= Version("0.16.0"):
-            expected = df
-        else:
-            # if missing values in integer, currently de-serialized as float
-            expected = df.assign(a=df.a.astype("float64"))
-        check_round_trip(df, pa, expected=expected)
+        check_round_trip(df, pa)
 
     @td.skip_if_no("pyarrow", min_version="1.0.0")
     def test_pyarrow_backed_string_array(self, pa):
@@ -831,7 +817,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="arrow_string")})
         check_round_trip(df, pa, expected=df)
 
-    @td.skip_if_no("pyarrow", min_version="0.16.0")
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -844,7 +830,7 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="0.16.0")
+    @td.skip_if_no("pyarrow")
     def test_use_nullable_dtypes(self, pa):
         import pyarrow.parquet as pq
 
@@ -880,7 +866,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        if Version(pyarrow.__version__) >= Version("2.0.0"):
+        if not pa_version_under2p0:
             # temporary skip this test until it is properly resolved
             # https://github.com/pandas-dev/pandas/issues/37286
             pytest.skip()

@@ -6,6 +6,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Iterable,
+    Sequence,
     cast,
 )
 import warnings
@@ -49,6 +51,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_list_like,
     is_sparse,
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -392,7 +395,7 @@ class Block(PandasObject):
                 return []
             raise
 
-        if np.ndim(result) == 0:
+        if self.values.ndim == 1:
             # TODO(EA2D): special case not needed with 2D EAs
             res_values = np.array([[result]])
         else:
@@ -762,8 +765,8 @@ class Block(PandasObject):
     @final
     def _replace_list(
         self,
-        src_list: list[Any],
-        dest_list: list[Any],
+        src_list: Iterable[Any],
+        dest_list: Sequence[Any],
         inplace: bool = False,
         regex: bool = False,
     ) -> list[Block]:
@@ -778,6 +781,14 @@ class Block(PandasObject):
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
 
+        # https://github.com/pandas-dev/pandas/issues/40371
+        # the following pairs check code caused a regression so we catch that case here
+        # until the issue is fixed properly in can_hold_element
+
+        # error: "Iterable[Any]" has no attribute "tolist"
+        if hasattr(src_list, "tolist"):
+            src_list = src_list.tolist()  # type: ignore[attr-defined]
+
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
@@ -788,7 +799,7 @@ class Block(PandasObject):
 
         src_len = len(pairs) - 1
 
-        if values.dtype == _dtype_obj:
+        if is_string_dtype(values):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             mask = ~isna(values)
@@ -1315,7 +1326,6 @@ class Block(PandasObject):
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
-
         return new_block(result, placement=self._mgr_locs, ndim=2)
 
 
@@ -1858,6 +1868,10 @@ def maybe_coerce_values(values) -> ArrayLike:
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
+
+    if isinstance(values, (DatetimeArray, TimedeltaArray)) and values.freq is not None:
+        # freq is only stored in DatetimeIndex/TimedeltaIndex, not in Series/DataFrame
+        values = values._with_freq(None)
 
     return values
 

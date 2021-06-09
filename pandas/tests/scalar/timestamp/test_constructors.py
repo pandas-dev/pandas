@@ -437,6 +437,13 @@ class TestTimestampConstructors:
                 dt64 = np.datetime64(date_string, unit)
                 Timestamp(dt64)
 
+    @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
+    def test_out_of_bounds_string_consistency(self, arg):
+        # GH 15829
+        msg = "Out of bounds"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(arg)
+
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp
         Timestamp(Timestamp.min)

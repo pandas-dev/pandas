@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
+        GroupBy,
         SeriesGroupBy,
     )
     from pandas.core.indexes.base import Index
@@ -158,6 +159,7 @@ AggFuncType = Union[
 AggObjType = Union[
     "Series",
     "DataFrame",
+    "GroupBy",
     "SeriesGroupBy",
     "DataFrameGroupBy",
     "BaseWindow",

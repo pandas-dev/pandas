@@ -11,7 +11,6 @@ from pandas import (
     concat,
 )
 import pandas._testing as tm
-from pandas.core.base import DataError
 
 
 def test_rank_apply():
@@ -462,7 +461,6 @@ def test_rank_avg_even_vals(dtype, upper):
     tm.assert_frame_equal(result, exp_df)
 
 
-@pytest.mark.xfail(reason="Works now, needs tests")
 @pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
@@ -470,13 +468,25 @@ def test_rank_avg_even_vals(dtype, upper):
 @pytest.mark.parametrize(
     "vals", [["bar", "bar", "foo", "bar", "baz"], ["bar", np.nan, "foo", np.nan, "baz"]]
 )
-def test_rank_object_raises(ties_method, ascending, na_option, pct, vals):
+def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
+    mask = df["val"].isna()
 
-    with pytest.raises(DataError, match="No numeric types to aggregate"):
-        df.groupby("key").rank(
-            method=ties_method, ascending=ascending, na_option=na_option, pct=pct
-        )
+    gb = df.groupby("key")
+    res = gb.rank(method=ties_method, ascending=ascending, na_option=na_option, pct=pct)
+
+    # construct our expected by using numeric values with the same ordering
+    if mask.any():
+        df2 = DataFrame({"key": ["foo"] * 5, "val": [0, np.nan, 2, np.nan, 1]})
+    else:
+        df2 = DataFrame({"key": ["foo"] * 5, "val": [0, 0, 2, 0, 1]})
+
+    gb2 = df2.groupby("key")
+    alt = gb2.rank(
+        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+    )
+
+    tm.assert_frame_equal(res, alt)
 
 
 @pytest.mark.parametrize("na_option", [True, "bad", 1])
@@ -584,21 +594,23 @@ def test_rank_multiindex():
     # GH27721
     df = concat(
         {
-            "a": DataFrame({"col1": [1, 2], "col2": [3, 4]}),
+            "a": DataFrame({"col1": [3, 4], "col2": [1, 2]}),
             "b": DataFrame({"col3": [5, 6], "col4": [7, 8]}),
         },
         axis=1,
     )
 
-    result = df.groupby(level=0, axis=1).rank(axis=1, ascending=False, method="first")
-    expected = concat(
-        {
-            "a": DataFrame({"col1": [2.0, 2.0], "col2": [1.0, 1.0]}),
-            "b": DataFrame({"col3": [2.0, 2.0], "col4": [1.0, 1.0]}),
-        },
-        axis=1,
-    )
+    gb = df.groupby(level=0, axis=1)
+    result = gb.rank(axis=1)
 
+    expected = concat(
+        [
+            df["a"].rank(axis=1),
+            df["b"].rank(axis=1),
+        ],
+        axis=1,
+        keys=["a", "b"],
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -615,3 +627,24 @@ def test_groupby_axis0_rank_axis1():
     # This should match what we get when "manually" operating group-by-group
     expected = concat([df.loc["a"].rank(axis=1), df.loc["b"].rank(axis=1)], axis=0)
     tm.assert_frame_equal(res, expected)
+
+    # check that we haven't accidentally written a case that coincidentally
+    # matches rank(axis=0)
+    alt = gb.rank(axis=0)
+    assert not alt.equals(expected)
+
+
+def test_groupby_axis0_cummax_axis1():
+    # case where groupby axis is 0 and axis keyword in transform is 1
+
+    # df has mixed dtype -> multiple blocks
+    df = DataFrame(
+        {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
+        index=["a", "a", "b", "b"],
+    )
+    gb = df.groupby(level=0, axis=0)
+
+    cmax = gb.cummax(axis=1)
+    expected = df[[0, 1]].astype(np.float64)
+    expected[2] = expected[1]
+    tm.assert_frame_equal(cmax, expected)

@@ -306,7 +306,9 @@ class SharedTests:
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(
+                    raises=TypeError, reason="timezone comparisons inconsistent"
+                )
                 request.node.add_marker(mark)
 
         arr = arr1d
@@ -471,7 +473,9 @@ class SharedTests:
                 # If we have e.g. tzutc(), when we cast to string and parse
                 #  back we get pytz.UTC, and then consider them different timezones
                 #  so incorrectly raise.
-                mark = pytest.mark.xfail(reason="timezone comparisons inconsistent")
+                mark = pytest.mark.xfail(
+                    raises=TypeError, reason="timezone comparisons inconsistent"
+                )
                 request.node.add_marker(mark)
 
         # Setting list-like of strs
@@ -557,7 +561,8 @@ class SharedTests:
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10 ** 9
         arr = self.array_cls(data, freq="D")
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Passing <class 'int'> to shift"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = arr.shift(1, fill_value=1)
 
         expected = arr.copy()
@@ -779,10 +784,13 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "to_perioddelta is deprecated and will be removed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             # Deprecation GH#34853
             expected = dti.to_perioddelta(freq=freqstr)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             # stacklevel is chosen to be "correct" for DatetimeIndex, not
             #  DatetimeArray
             result = arr.to_perioddelta(freq=freqstr)

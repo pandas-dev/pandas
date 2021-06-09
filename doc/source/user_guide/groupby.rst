@@ -1000,6 +1000,7 @@ instance method on each data group. This is pretty easy to do by passing lambda
 functions:
 
 .. ipython:: python
+   :okwarning:
 
    grouped = df.groupby("A")
    grouped.agg(lambda x: x.std())
@@ -1009,6 +1010,7 @@ arguments. Using a bit of metaprogramming cleverness, GroupBy now has the
 ability to "dispatch" method calls to the groups:
 
 .. ipython:: python
+   :okwarning:
 
    grouped.std()
 
@@ -1617,11 +1619,9 @@ column index name will be used as the name of the inserted column:
        }
    )
 
-
    def compute_metrics(x):
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
-
 
    result = df.groupby("a").apply(compute_metrics)
 

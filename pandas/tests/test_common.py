@@ -163,6 +163,5 @@ def test_serializable(obj):
 class TestIsBoolIndexer:
     def test_non_bool_array_with_na(self):
         # in particular, this should not raise
-        arr = np.array(["A", "B", np.nan])
-
+        arr = np.array(["A", "B", np.nan], dtype=object)
         assert not com.is_bool_indexer(arr)

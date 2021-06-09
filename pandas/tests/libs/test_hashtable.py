@@ -278,7 +278,7 @@ class TestHashTableWithNans:
 
 
 def get_ht_function(fun_name, type_suffix):
-    return getattr(ht, fun_name + "_" + type_suffix)
+    return getattr(ht, fun_name)
 
 
 @pytest.mark.parametrize(
@@ -374,7 +374,7 @@ def test_modes_with_nans():
     values = np.array([True, pd.NA, np.nan], dtype=np.object_)
     # pd.Na and np.nan will have the same representative: np.nan
     # thus we have 2 nans and 1 True
-    modes = ht.mode_object(values, False)
+    modes = ht.mode(values, False)
     assert modes.size == 1
     assert np.isnan(modes[0])
 

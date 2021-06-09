@@ -31,9 +31,9 @@ dtypes = [('Complex128', 'complex128', 'complex128',
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cpdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, navalue=np.NaN):
+cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, navalue=np.NaN):
 {{else}}
-cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
+cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         Py_ssize_t i = 0
@@ -107,9 +107,9 @@ cpdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-def duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
+cdef duplicated_{{dtype}}(ndarray[{{dtype}}] values, object keep='first'):
 {{else}}
-def duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
+cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
 {{endif}}
     cdef:
         int ret = 0
@@ -189,9 +189,9 @@ def duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first'):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-def ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
+cdef ismember_{{dtype}}(ndarray[{{c_type}}] arr, ndarray[{{c_type}}] values):
 {{else}}
-def ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
+cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 {{endif}}
     """
     Return boolean of values in arr on an
@@ -256,9 +256,9 @@ def ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-def mode_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
+cdef mode_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
-def mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
+cdef mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
     cdef:
         {{if dtype == 'object'}}
@@ -310,3 +310,163 @@ def mode_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
     return modes[:j + 1]
 
 {{endfor}}
+
+
+ctypedef fused htfunc_t:
+    complex128_t
+    complex64_t
+    float64_t
+    float32_t
+    uint64_t
+    uint32_t
+    uint16_t
+    uint8_t
+    int64_t
+    int32_t
+    int16_t
+    int8_t
+    object
+
+
+cpdef value_count(ndarray[htfunc_t] values, bint dropna):
+    if htfunc_t is object:
+        return value_count_object(values, dropna)
+
+    elif htfunc_t is int8_t:
+        return value_count_int8(values, dropna)
+    elif htfunc_t is int16_t:
+        return value_count_int16(values, dropna)
+    elif htfunc_t is int32_t:
+        return value_count_int32(values, dropna)
+    elif htfunc_t is int64_t:
+        return value_count_int64(values, dropna)
+
+    elif htfunc_t is uint8_t:
+        return value_count_uint8(values, dropna)
+    elif htfunc_t is uint16_t:
+        return value_count_uint16(values, dropna)
+    elif htfunc_t is uint32_t:
+        return value_count_uint32(values, dropna)
+    elif htfunc_t is uint64_t:
+        return value_count_uint64(values, dropna)
+
+    elif htfunc_t is float64_t:
+        return value_count_float64(values, dropna)
+    elif htfunc_t is float32_t:
+        return value_count_float32(values, dropna)
+
+    elif htfunc_t is complex128_t:
+        return value_count_complex128(values, dropna)
+    elif htfunc_t is complex64_t:
+        return value_count_complex64(values, dropna)
+
+    else:
+        raise TypeError(values.dtype)
+
+
+cpdef duplicated(ndarray[htfunc_t] values, object keep="first"):
+    if htfunc_t is object:
+        return duplicated_object(values, keep)
+
+    elif htfunc_t is int8_t:
+        return duplicated_int8(values, keep)
+    elif htfunc_t is int16_t:
+        return duplicated_int16(values, keep)
+    elif htfunc_t is int32_t:
+        return duplicated_int32(values, keep)
+    elif htfunc_t is int64_t:
+        return duplicated_int64(values, keep)
+
+    elif htfunc_t is uint8_t:
+        return duplicated_uint8(values, keep)
+    elif htfunc_t is uint16_t:
+        return duplicated_uint16(values, keep)
+    elif htfunc_t is uint32_t:
+        return duplicated_uint32(values, keep)
+    elif htfunc_t is uint64_t:
+        return duplicated_uint64(values, keep)
+
+    elif htfunc_t is float64_t:
+        return duplicated_float64(values, keep)
+    elif htfunc_t is float32_t:
+        return duplicated_float32(values, keep)
+
+    elif htfunc_t is complex128_t:
+        return duplicated_complex128(values, keep)
+    elif htfunc_t is complex64_t:
+        return duplicated_complex64(values, keep)
+
+    else:
+        raise TypeError(values.dtype)
+
+
+cpdef ismember(ndarray[htfunc_t] arr, ndarray[htfunc_t] values):
+    if htfunc_t is object:
+        return ismember_object(arr, values)
+
+    elif htfunc_t is int8_t:
+        return ismember_int8(arr, values)
+    elif htfunc_t is int16_t:
+        return ismember_int16(arr, values)
+    elif htfunc_t is int32_t:
+        return ismember_int32(arr, values)
+    elif htfunc_t is int64_t:
+        return ismember_int64(arr, values)
+
+    elif htfunc_t is uint8_t:
+        return ismember_uint8(arr, values)
+    elif htfunc_t is uint16_t:
+        return ismember_uint16(arr, values)
+    elif htfunc_t is uint32_t:
+        return ismember_uint32(arr, values)
+    elif htfunc_t is uint64_t:
+        return ismember_uint64(arr, values)
+
+    elif htfunc_t is float64_t:
+        return ismember_float64(arr, values)
+    elif htfunc_t is float32_t:
+        return ismember_float32(arr, values)
+
+    elif htfunc_t is complex128_t:
+        return ismember_complex128(arr, values)
+    elif htfunc_t is complex64_t:
+        return ismember_complex64(arr, values)
+
+    else:
+        raise TypeError(values.dtype)
+
+
+cpdef mode(ndarray[htfunc_t] values, bint dropna):
+    if htfunc_t is object:
+        return mode_object(values, dropna)
+
+    elif htfunc_t is int8_t:
+        return mode_int8(values, dropna)
+    elif htfunc_t is int16_t:
+        return mode_int16(values, dropna)
+    elif htfunc_t is int32_t:
+        return mode_int32(values, dropna)
+    elif htfunc_t is int64_t:
+        return mode_int64(values, dropna)
+
+    elif htfunc_t is uint8_t:
+        return mode_uint8(values, dropna)
+    elif htfunc_t is uint16_t:
+        return mode_uint16(values, dropna)
+    elif htfunc_t is uint32_t:
+        return mode_uint32(values, dropna)
+    elif htfunc_t is uint64_t:
+        return mode_uint64(values, dropna)
+
+    elif htfunc_t is float64_t:
+        return mode_float64(values, dropna)
+    elif htfunc_t is float32_t:
+        return mode_float32(values, dropna)
+
+    elif htfunc_t is complex128_t:
+        return mode_complex128(values, dropna)
+    elif htfunc_t is complex64_t:
+        return mode_complex64(values, dropna)
+
+    else:
+        raise TypeError(values.dtype)

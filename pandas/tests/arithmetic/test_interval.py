@@ -135,7 +135,8 @@ class TestComparison:
 
         if nulls_fixture is pd.NA and interval_array.dtype.subtype != "int64":
             mark = pytest.mark.xfail(
-                reason="broken for non-integer IntervalArray; see GH 31882"
+                raises=AssertionError,
+                reason="broken for non-integer IntervalArray; see GH 31882",
             )
             request.node.add_marker(mark)
 
@@ -220,7 +221,7 @@ class TestComparison:
 
         if nulls_fixture is pd.NA and interval_array.dtype.subtype != "i8":
             reason = "broken for non-integer IntervalArray; see GH 31882"
-            mark = pytest.mark.xfail(reason=reason)
+            mark = pytest.mark.xfail(raises=AssertionError, reason=reason)
             request.node.add_marker(mark)
 
         tm.assert_numpy_array_equal(result, expected)
@@ -237,7 +238,7 @@ class TestComparison:
             Categorical(list("abab")),
             Categorical(date_range("2017-01-01", periods=4)),
             pd.array(list("abcd")),
-            pd.array(["foo", 3.14, None, object()]),
+            pd.array(["foo", 3.14, None, object()], dtype=object),
         ],
         ids=lambda x: str(x.dtype),
     )

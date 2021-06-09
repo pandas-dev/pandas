@@ -146,6 +146,11 @@ cdef extern from "parser/tokenizer.h":
 
     enum: ERROR_OVERFLOW
 
+    ctypedef enum BadLineHandleMethod:
+        ERROR,
+        WARN,
+        SKIP
+
     ctypedef void* (*io_callback)(void *src, size_t nbytes, size_t *bytes_read,
                                   int *status, const char *encoding_errors)
     ctypedef int (*io_cleanup)(void *src)
@@ -198,8 +203,7 @@ cdef extern from "parser/tokenizer.h":
         int usecols
 
         int expected_fields
-        int error_bad_lines
-        int warn_bad_lines
+        BadLineHandleMethod on_bad_lines
 
         # floating point options
         char decimal
@@ -351,8 +355,7 @@ cdef class TextReader:
                   thousands=None,       # bytes | str
                   dtype=None,
                   usecols=None,
-                  bint error_bad_lines=True,
-                  bint warn_bad_lines=True,
+                  on_bad_lines = ERROR,
                   bint na_filter=True,
                   na_values=None,
                   na_fvalues=None,
@@ -435,9 +438,7 @@ cdef class TextReader:
                 raise ValueError('Only length-1 comment characters supported')
             self.parser.commentchar = ord(comment)
 
-        # error handling of bad lines
-        self.parser.error_bad_lines = int(error_bad_lines)
-        self.parser.warn_bad_lines = int(warn_bad_lines)
+        self.parser.on_bad_lines = on_bad_lines
 
         self.skiprows = skiprows
         if skiprows is not None:
@@ -454,8 +455,7 @@ cdef class TextReader:
 
         # XXX
         if skipfooter > 0:
-            self.parser.error_bad_lines = 0
-            self.parser.warn_bad_lines = 0
+            self.parser.on_bad_lines = SKIP
 
         self.delimiter = delimiter
 
@@ -570,9 +570,6 @@ cdef class TextReader:
             kh_destroy_str_starts(self.false_set)
             self.false_set = NULL
 
-    def set_error_bad_lines(self, int status) -> None:
-        self.parser.error_bad_lines = status
-
     def _set_quoting(self, quote_char: str | bytes | None, quoting: int):
         if not isinstance(quoting, int):
             raise TypeError('"quoting" must be an integer')
@@ -685,10 +682,17 @@ cdef class TextReader:
                     count = counts.get(name, 0)
 
                     if not self.has_mi_columns and self.mangle_dupe_cols:
-                        while count > 0:
-                            counts[name] = count + 1
-                            name = f'{name}.{count}'
-                            count = counts.get(name, 0)
+                        if count > 0:
+                            while count > 0:
+                                counts[name] = count + 1
+                                name = f'{name}.{count}'
+                                count = counts.get(name, 0)
+                            if (
+                                self.dtype is not None
+                                and self.dtype.get(old_name) is not None
+                                and self.dtype.get(name) is None
+                            ):
+                                self.dtype.update({name: self.dtype.get(old_name)})
 
                     if old_name == '':
                         unnamed_cols.add(name)
@@ -939,6 +943,17 @@ cdef class TextReader:
             raise ParserError(f"Too many columns specified: expected "
                               f"{self.table_width - self.leading_cols} "
                               f"and found {num_cols}")
+
+        if (self.usecols is not None and not callable(self.usecols) and
+                all(isinstance(u, int) for u in self.usecols)):
+            missing_usecols = [col for col in self.usecols if col >= num_cols]
+            if missing_usecols:
+                warnings.warn(
+                    "Defining usecols with out of bounds indices is deprecated "
+                    "and will raise a ParserError in a future version.",
+                    FutureWarning,
+                    stacklevel=6,
+                )
 
         results = {}
         nused = 0

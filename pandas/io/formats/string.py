@@ -74,11 +74,14 @@ class StringFormatter:
 
         return strcols
 
+    @property
+    def _adjusted_tr_col_num(self) -> int:
+        return self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
+
     def _insert_dot_separator_horizontal(
         self, strcols: List[List[str]], index_length: int
     ) -> List[List[str]]:
-        tr_col_num = self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
-        strcols.insert(tr_col_num, [" ..."] * index_length)
+        strcols.insert(self._adjusted_tr_col_num, [" ..."] * index_length)
         return strcols
 
     def _insert_dot_separator_vertical(
@@ -90,7 +93,7 @@ class StringFormatter:
             cwidth = self.adj.len(col[row_num])
 
             if self.fmt.is_truncated_horizontally:
-                is_dot_col = ix == self.fmt.tr_col_num + 1
+                is_dot_col = ix == self._adjusted_tr_col_num
             else:
                 is_dot_col = False
 
@@ -99,7 +102,7 @@ class StringFormatter:
             else:
                 dots = ".."
 
-            if ix == 0:
+            if ix == 0 and self.fmt.index:
                 dot_mode = "left"
             elif is_dot_col:
                 cwidth = 4

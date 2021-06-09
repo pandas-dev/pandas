@@ -81,7 +81,8 @@ class TestDataFrameToDict:
     def test_to_dict_short_orient_warns(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Using short name for 'orient' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -304,3 +305,10 @@ class TestDataFrameToDict:
         d = df.to_dict(orient="records")
         result = type(d[0]["a"])
         assert result is expected_dtype
+
+    def test_to_dict_mixed_numeric_frame(self):
+        # GH 12859
+        df = DataFrame({"a": [1.0], "b": [9.0]})
+        result = df.reset_index().to_dict("records")
+        expected = [{"index": 0, "a": 1.0, "b": 9.0}]
+        assert result == expected

@@ -1664,19 +1664,9 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    # error: No overload variant of "__getitem__" of "list" matches argument type
-    # "Union[bool_, ndarray]"
-    out[int_idx] = (
-        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
-    )
+    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
 
-    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
-    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
-    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
-    # float]], List[float], List[Union[str, float]]]"; expected type "int"
-    out[~int_idx] = (
-        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
-    )
+    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
 
 

@@ -552,7 +552,7 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-        msg = "DatetimeIndex\\(\\) must be called with a collection"
+        msg = r"DatetimeIndex\(\.\.\.\) must be called with a collection"
         with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
 

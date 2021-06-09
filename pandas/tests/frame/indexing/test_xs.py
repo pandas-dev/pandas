@@ -106,7 +106,8 @@ class TestXS:
         expected = df[:1]
         tm.assert_frame_equal(result, expected)
 
-        result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.xs([2008, "sat"], level=["year", "day"], drop_level=False)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_view(self, using_array_manager):
@@ -187,7 +188,11 @@ class TestXSWithMultiIndex:
         assert df.index.is_unique is False
         expected = concat([frame.xs("one", level="second")] * 2)
 
-        result = df.xs(key, level=level)
+        if isinstance(key, list):
+            with tm.assert_produces_warning(FutureWarning):
+                result = df.xs(key, level=level)
+        else:
+            result = df.xs(key, level=level)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_missing_values_in_index(self):
@@ -358,3 +363,11 @@ class TestXSWithMultiIndex:
         df.iloc[0, 0] = 2
         expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
+
+    def test_xs_list_indexer_droplevel_false(self):
+        # GH#41760
+        mi = MultiIndex.from_tuples([("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        with tm.assert_produces_warning(FutureWarning):
+            with pytest.raises(KeyError, match="y"):
+                df.xs(["x", "y"], drop_level=False, axis=1)

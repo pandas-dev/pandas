@@ -12,34 +12,28 @@ def unique_label_indices(
 
 
 class Factorizer:
-    table: PyObjectHashTable
-    uniques: ObjectVector
     count: int
 
     def __init__(self, size_hint: int): ...
     def get_count(self) -> int: ...
 
+
+class ObjectFactorizer(Factorizer):
+    table: PyObjectHashTable
+    uniques: ObjectVector
+
     def factorize(
         self,
-        values: np.ndarray,  # np.ndarray[object]
+        values: np.ndarray,  # ndarray[object]
         sort: bool = ...,
         na_sentinel=...,
         na_value=...,
     ) -> np.ndarray: ...  # np.ndarray[intp]
 
-    def unique(
-        self,
-        values: np.ndarray,  # np.ndarray[object]
-    ) -> np.ndarray: ... # np.ndarray[object]
 
-
-class Int64Factorizer:
+class Int64Factorizer(Factorizer):
     table: Int64HashTable
     uniques: Int64Vector
-    count: int
-
-    def __init__(self, size_hint: int): ...
-    def get_count(self) -> int: ...
 
     def factorize(
         self,
@@ -240,3 +234,26 @@ def value_count_int64(
     np.ndarray,  # np.ndarray[np.int64]
     np.ndarray,  # np.ndarray[np.int64]
 ]: ...
+
+
+def duplicated(
+    values: np.ndarray,
+    keep: Literal["last", "first", False] = ...,
+) -> np.ndarray: ...  # np.ndarray[bool]
+
+def mode(values: np.ndarray, dropna: bool) -> np.ndarray: ...
+
+def value_count(
+    values: np.ndarray,
+    dropna: bool,
+) -> tuple[
+    np.ndarray,
+    np.ndarray,  # np.ndarray[np.int64]
+]: ...
+
+
+# arr and values should have same dtype
+def ismember(
+    arr: np.ndarray,
+    values: np.ndarray,
+) -> np.ndarray: ...  # np.ndarray[bool]

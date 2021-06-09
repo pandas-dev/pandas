@@ -410,7 +410,9 @@ class StringArray(PandasArray):
     # String methods interface
     _str_na_value = StringDtype.na_value
 
-    def _str_map(self, f, na_value=None, dtype: Dtype | None = None):
+    def _str_map(
+        self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
+    ):
         from pandas.arrays import BooleanArray
 
         if dtype is None:
