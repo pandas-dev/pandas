@@ -100,6 +100,7 @@ class StylerRenderer:
         self.hidden_index: bool = False
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
@@ -146,6 +147,7 @@ class StylerRenderer:
         (application method, *args, **kwargs)
         """
         self.ctx.clear()
+        self.ctx_index.clear()
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
@@ -209,6 +211,9 @@ class StylerRenderer:
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
+        self.cellstyle_map_index: DefaultDict[
+            tuple[CSSPair, ...], list[str]
+        ] = defaultdict(list)
         body = self._translate_body(
             DATA_CLASS,
             ROW_HEADING_CLASS,
@@ -224,7 +229,11 @@ class StylerRenderer:
             {"props": list(props), "selectors": selectors}
             for props, selectors in self.cellstyle_map.items()
         ]
-        d.update({"cellstyle": cellstyle})
+        cellstyle_index: list[dict[str, CSSList | list[str]]] = [
+            {"props": list(props), "selectors": selectors}
+            for props, selectors in self.cellstyle_map_index.items()
+        ]
+        d.update({"cellstyle": cellstyle, "cellstyle_index": cellstyle_index})
 
         table_attr = self.table_attributes
         use_mathjax = get_option("display.html.use_mathjax")
@@ -472,6 +481,11 @@ class StylerRenderer:
                 )
                 for c, value in enumerate(rlabels[r])
             ]
+            for c, _ in enumerate(rlabels[r]):  # add for index css id styling
+                if (r, c) in self.ctx_index and self.ctx_index[r, c]:  # if non-empty
+                    self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
+                        f"level{c}_row{r}"
+                    )
 
             data = []
             for c, value in enumerate(row_tup[1:]):

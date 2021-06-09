@@ -915,6 +915,27 @@ class Styler(StylerRenderer):
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
                 self.ctx[(i, j)].extend(css_list)
 
+    def _update_ctx_index(self, attrs: DataFrame) -> None:
+        """
+        Update the state of the ``Styler`` for index cells.
+
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
+
+        Parameters
+        ----------
+        attrs : Series
+            Should contain strings of '<property>: <value>;<prop2>: <val2>', and an
+            integer index.
+            Whitespace shouldn't matter and the final trailing ';' shouldn't
+            matter.
+        """
+        for j in attrs.columns:
+            for i, c in attrs[[j]].itertuples():
+                if not c:
+                    continue
+                css_list = maybe_convert_css_to_tuples(c)
+                self.ctx_index[(i, j)].extend(css_list)
+
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
             self.data,
@@ -1088,6 +1109,52 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+        )
+        return self
+
+    def _apply_index(
+        self, func: Callable[..., Styler], levels: list(int) | None = None, **kwargs
+    ) -> Styler:
+        if isinstance(self.index, pd.MultiIndex) and levels is not None:
+            levels = [levels] if isinstance(levels, int) else levels
+            data = DataFrame(self.index.to_list()).loc[:, levels]
+        else:
+            data = DataFrame(self.index.to_list())
+        result = data.apply(func, axis=0, **kwargs)
+        self._update_ctx_index(result)
+        return self
+
+    def apply_index(
+        self,
+        func: Callable[..., Styler],
+        levels: list(int) | int | None = None,
+        **kwargs,
+    ) -> Styler:
+        """
+        Apply a CSS-styling function to the index.
+
+        Updates the HTML representation with the result.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        func : function
+            ``func`` should take a Series
+
+            .. versionchanged:: 1.3.0
+
+        levels : int, list of ints, optional
+            If index is MultiIndex the level(s) over which to apply the function.
+        **kwargs : dict
+            Pass along to ``func``.
+
+        Returns
+        -------
+        self : Styler
+        """
+        self._todo.append(
+            (lambda instance: getattr(instance, "_apply_index"), (func, levels), kwargs)
         )
         return self
 

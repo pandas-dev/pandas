@@ -19,6 +19,13 @@
 {% endfor %}
 }
 {% endfor %}
+{% for s in cellstyle_index %}
+{% for selector in s.selectors %}{% if not loop.first %}, {% endif %}#T_{{uuid}}{{selector}}{% endfor %} {
+{% for p,val in s.props %}
+  {{p}}: {{val}};
+{% endfor %}
+}
+{% endfor %}
 {% endblock cellstyle %}
 </style>
 {% endblock style %}
