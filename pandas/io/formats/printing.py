@@ -1,7 +1,6 @@
 """
 Printing tools.
 """
-from __future__ import annotations
 
 import sys
 from typing import (
@@ -9,9 +8,12 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    List,
     Mapping,
+    Optional,
     Sequence,
     Sized,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -25,7 +27,7 @@ _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
 
-def adjoin(space: int, *lists: list[str], **kwargs) -> str:
+def adjoin(space: int, *lists: List[str], **kwargs) -> str:
     """
     Glues together two sets of strings using the amount of space requested.
     The idea is to prettify.
@@ -60,7 +62,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     return "\n".join(out_lines)
 
 
-def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
+def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> List[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -97,7 +99,7 @@ def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str
 
 
 def _pprint_seq(
-    seq: Sequence, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
+    seq: Sequence, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -132,7 +134,7 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds
+    seq: Mapping, _nest_lvl: int = 0, max_seq_items: Optional[int] = None, **kwds
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -165,10 +167,10 @@ def _pprint_dict(
 def pprint_thing(
     thing: Any,
     _nest_lvl: int = 0,
-    escape_chars: EscapeChars | None = None,
+    escape_chars: Optional[EscapeChars] = None,
     default_escapes: bool = False,
     quote_strings: bool = False,
-    max_seq_items: int | None = None,
+    max_seq_items: Optional[int] = None,
 ) -> str:
     """
     This function is the sanctioned way of converting objects
@@ -194,7 +196,7 @@ def pprint_thing(
     """
 
     def as_escaped_string(
-        thing: Any, escape_chars: EscapeChars | None = escape_chars
+        thing: Any, escape_chars: Optional[EscapeChars] = escape_chars
     ) -> str:
         translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
         if isinstance(escape_chars, dict):
@@ -275,7 +277,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
             formatters[mimetype].enabled = False
 
 
-def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
+def default_pprint(thing: Any, max_seq_items: Optional[int] = None) -> str:
     return pprint_thing(
         thing,
         escape_chars=("\t", "\r", "\n"),
@@ -288,7 +290,7 @@ def format_object_summary(
     obj,
     formatter: Callable,
     is_justify: bool = True,
-    name: str | None = None,
+    name: Optional[str] = None,
     indent_for_name: bool = True,
     line_break_each_value: bool = False,
 ) -> str:
@@ -353,7 +355,7 @@ def format_object_summary(
 
     def _extend_line(
         s: str, line: str, value: str, display_width: int, next_line_prefix: str
-    ) -> tuple[str, str]:
+    ) -> Tuple[str, str]:
 
         if adj.len(line.rstrip()) + adj.len(value.rstrip()) >= display_width:
             s += line.rstrip()
@@ -361,7 +363,7 @@ def format_object_summary(
         line += value
         return s, line
 
-    def best_len(values: list[str]) -> int:
+    def best_len(values: List[str]) -> int:
         if values:
             return max(adj.len(x) for x in values)
         else:
@@ -461,8 +463,8 @@ def format_object_summary(
 
 
 def _justify(
-    head: list[Sequence[str]], tail: list[Sequence[str]]
-) -> tuple[list[tuple[str, ...]], list[tuple[str, ...]]]:
+    head: List[Sequence[str]], tail: List[Sequence[str]]
+) -> Tuple[List[Tuple[str, ...]], List[Tuple[str, ...]]]:
     """
     Justify items in head and tail, so they are right-aligned when stacked.
 
@@ -507,7 +509,7 @@ def _justify(
 
 def format_object_attrs(
     obj: Sized, include_dtype: bool = True
-) -> list[tuple[str, str | int]]:
+) -> List[Tuple[str, Union[str, int]]]:
     """
     Return a list of tuples of the (attr, formatted_value)
     for common attrs, including dtype, name, length
@@ -524,7 +526,7 @@ def format_object_attrs(
     list of 2-tuple
 
     """
-    attrs: list[tuple[str, str | int]] = []
+    attrs: List[Tuple[str, Union[str, int]]] = []
     if hasattr(obj, "dtype") and include_dtype:
         # error: "Sized" has no attribute "dtype"
         attrs.append(("dtype", f"'{obj.dtype}'"))  # type: ignore[attr-defined]
