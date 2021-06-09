@@ -719,36 +719,37 @@ Deprecations
 - Deprecated the ``convert_float`` optional argument in :func:`read_excel` and :meth:`ExcelFile.parse` (:issue:`41127`)
 - Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
 - Deprecated using ``usecols`` with out of bounds indices for :func:`read_csv` with ``engine="c"`` (:issue:`25623`)
-- Deprecated passing arguments as positional (except for ``"codes"``) in :meth:`MultiIndex.codes` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`Index.set_names` and :meth:`MultiIndex.set_names` (except for ``names``) (:issue:`41485`)
-- Deprecated passing arguments (apart from ``cond`` and ``other``) as positional in :meth:`DataFrame.mask` and :meth:`Series.mask` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`Resampler.interpolate` (other than ``"method"``) (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``"upper"`` and ``"lower"``) (:issue:`41485`)
 - Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
 - Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
-- Deprecated passing arguments as positional (except for ``"method"``) in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (:issue:`41485`)
 - Deprecated the :attr:`Timestamp.freq` attribute.  For the properties that use it (``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end``), when you have a ``freq``, use e.g. ``freq.is_month_start(ts)`` (:issue:`15146`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.sort_values` (other than ``"by"``) and :meth:`Series.sort_values` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.dropna` and :meth:`Series.dropna` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.set_index` (other than ``"keys"``) (:issue:`41485`)
-- Deprecated passing arguments as positional (except for ``"levels"``) in :meth:`MultiIndex.set_levels` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates` (:issue:`41485`)
-- Deprecated passing arguments (apart from ``value``) as positional in :meth:`DataFrame.fillna` and :meth:`Series.fillna` (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.reset_index` (other than ``"level"``) and :meth:`Series.reset_index` (:issue:`41485`)
 - Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`, :issue:`33401`)
 - Deprecated behavior of :class:`Series` construction with large-integer values and small-integer dtype silently overflowing; use ``Series(data).astype(dtype)`` instead (:issue:`41734`)
 - Deprecated behavior of :class:`DataFrame` construction with floating data and integer dtype casting even when lossy; in a future version this will remain floating, matching :class:`Series` behavior (:issue:`41770`)
 - Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
 - In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``"labels"``) (:issue:`41485`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.where` and :meth:`Series.where` (other than ``"cond"`` and ``"other"``) (:issue:`41485`)
-- Deprecated passing arguments as positional (other than ``filepath_or_buffer``) in :func:`read_csv` (:issue:`41485`)
 - Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
-- Deprecated passing arguments as positional in :meth:`DataFrame.drop` (other than ``"labels"``) and :meth:`Series.drop` (:issue:`41485`)
-- Deprecated passing arguments as positional (other than ``filepath_or_buffer``) in :func:`read_table` (:issue:`41485`)
-- Deprecated passing arguments as positional (other than ``objs``) in :func:`concat` (:issue:`41485`)
+- Deprecated passing arguments as positional for all of the following, with exceptions noted (:issue:`41485`):
+  - :func:`concat` (other than ``objs``)
+  - :func:`read_csv` (other than ``filepath_or_buffer``)
+  - :func:`read_table` (other than ``filepath_or_buffer``)
+  - :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``upper`` and ``lower``)
+  - :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates`
+  - :meth:`DataFrame.drop` (other than ``labels``) and :meth:`Series.drop`
+  - :meth:`DataFrame.dropna` and :meth:`Series.dropna`
+  - :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill`
+  - :meth:`DataFrame.fillna` and :meth:`Series.fillna` (apart from ``value``)
+  - :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (other than ``method``)
+  - :meth:`DataFrame.mask` and :meth:`Series.mask` (other than ``cond`` and ``other``)
+  - :meth:`DataFrame.reset_index` (other than ``level``) and :meth:`Series.reset_index`
+  - :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``labels``)
+  - :meth:`DataFrame.set_index` (other than ``keys``)
+  - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index`
+  - :meth:`DataFrame.sort_values` (other than ``by``) and :meth:`Series.sort_values`
+  - :meth:`DataFrame.where` and :meth:`Series.where` (other than ``cond`` and ``other``)
+  - :meth:`Index.set_names` and :meth:`MultiIndex.set_names` (except for ``names``)
+  - :meth:`MultiIndex.codes` (except for ``codes``)
+  - :meth:`MultiIndex.set_levels` (except for ``levels``)
+  - :meth:`Resampler.interpolate` (other than ``method``)
 
 
 .. _whatsnew_130.deprecations.nuisance_columns:
