@@ -29,17 +29,16 @@ class TestDataFrameCov:
         frame = float_frame.copy()
         frame["A"][:5] = np.nan
         frame["B"][5:10] = np.nan
-
-        expected = float_frame.cov()
+        result = frame.cov(min_periods=len(frame) - 8)
+        expected = frame.cov()
         expected.loc["A", "B"] = np.nan
         expected.loc["B", "A"] = np.nan
+        tm.assert_frame_equal(result, expected)
 
         # regular
-        float_frame["A"][:5] = np.nan
-        float_frame["B"][:10] = np.nan
-        cov = float_frame.cov()
-
-        tm.assert_almost_equal(cov["A"]["C"], float_frame["A"].cov(float_frame["C"]))
+        result = frame.cov()
+        expected = frame["A"].cov(frame["C"])
+        tm.assert_almost_equal(result["A"]["C"], expected)
 
         # exclude non-numeric types
         result = float_string_frame.cov()
