@@ -3,11 +3,11 @@ Table Schema builders
 
 https://specs.frictionlessdata.io/json-table-schema/
 """
-from __future__ import annotations
-
 from typing import (
     TYPE_CHECKING,
     Any,
+    Dict,
+    Optional,
     cast,
 )
 import warnings
@@ -117,7 +117,7 @@ def convert_pandas_type_to_json_field(arr):
         name = "values"
     else:
         name = arr.name
-    field: dict[str, JSONSerializable] = {
+    field: Dict[str, JSONSerializable] = {
         "name": name,
         "type": as_json_table_type(dtype),
     }
@@ -206,9 +206,9 @@ def convert_json_field_to_pandas_type(field):
 def build_table_schema(
     data: FrameOrSeries,
     index: bool = True,
-    primary_key: bool | None = None,
+    primary_key: Optional[bool] = None,
     version: bool = True,
-) -> dict[str, JSONSerializable]:
+) -> Dict[str, JSONSerializable]:
     """
     Create a Table schema from ``data``.
 
@@ -260,7 +260,7 @@ def build_table_schema(
     if index is True:
         data = set_default_names(data)
 
-    schema: dict[str, Any] = {}
+    schema: Dict[str, Any] = {}
     fields = []
 
     if index:
