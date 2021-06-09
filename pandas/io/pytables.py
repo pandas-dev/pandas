@@ -1453,8 +1453,6 @@ class HDFStore:
         child groups (following an alphanumerical order) is also traversed,
         following the same procedure.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         where : str, default "/"
