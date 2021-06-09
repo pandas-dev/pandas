@@ -1,9 +1,10 @@
-from __future__ import annotations
-
 import functools
 from typing import (
     Any,
     Callable,
+    Dict,
+    Optional,
+    Tuple,
 )
 
 import numpy as np
@@ -19,10 +20,10 @@ from pandas.core.util.numba_ import (
 
 
 def generate_numba_apply_func(
-    args: tuple,
-    kwargs: dict[str, Any],
+    args: Tuple,
+    kwargs: Dict[str, Any],
     func: Callable[..., Scalar],
-    engine_kwargs: dict[str, bool] | None,
+    engine_kwargs: Optional[Dict[str, bool]],
     name: str,
 ):
     """
@@ -80,7 +81,7 @@ def generate_numba_apply_func(
 
 
 def generate_numba_ewma_func(
-    engine_kwargs: dict[str, bool] | None,
+    engine_kwargs: Optional[Dict[str, bool]],
     com: float,
     adjust: bool,
     ignore_na: bool,
@@ -169,10 +170,10 @@ def generate_numba_ewma_func(
 
 
 def generate_numba_table_func(
-    args: tuple,
-    kwargs: dict[str, Any],
+    args: Tuple,
+    kwargs: Dict[str, Any],
     func: Callable[..., np.ndarray],
-    engine_kwargs: dict[str, bool] | None,
+    engine_kwargs: Optional[Dict[str, bool]],
     name: str,
 ):
     """

@@ -1,8 +1,10 @@
-from __future__ import annotations
-
 from datetime import (
     datetime,
     time,
+)
+from typing import (
+    List,
+    Optional,
 )
 
 import numpy as np
@@ -59,7 +61,7 @@ def to_time(arg, format=None, infer_time_format=False, errors="raise"):
         if infer_time_format and format is None:
             format = _guess_time_format_for_array(arg)
 
-        times: list[time | None] = []
+        times: List[Optional[time]] = []
         if format is not None:
             for element in arg:
                 try:
