@@ -697,6 +697,7 @@ Other API changes
 - Accessing ``_constructor_expanddim`` on a :class:`DataFrame` and ``_constructor_sliced`` on a :class:`Series` now raise an ``AttributeError``. Previously a ``NotImplementedError`` was raised (:issue:`38782`)
 - Added new ``engine`` and ``**engine_kwargs`` parameters to :meth:`DataFrame.to_sql` to support other future "SQL engines". Currently we still only use ``SQLAlchemy`` under the hood, but more engines are planned to be supported such as ``turbodbc`` (:issue:`36893`)
 - Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
+- :meth:`ExtensionDtype.construct_array_type` is now a required method instead of an optional one for :class:`ExtensionDtype` subclasses (:issue:`24860`)
 
 Build
 =====
@@ -858,6 +859,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.isin` for nullable data types (:issue:`38340`)
 - Performance improvement in :meth:`DataFrame.fillna` with ``method="pad|backfill"`` for nullable floating and nullable integer dtypes (:issue:`39953`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method=kendall`` (:issue:`28329`)
+- Performance improvement in :meth:`DataFrame.corr` for ``method=spearman`` (:issue:`40956`)
 - Performance improvement in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` (:issue:`39388`)
 - Performance improvement in :meth:`.RollingGroupby.corr`, :meth:`.ExpandingGroupby.corr`, :meth:`.ExpandingGroupby.corr` and :meth:`.ExpandingGroupby.cov` (:issue:`39591`)
 - Performance improvement in :func:`unique` for object data type (:issue:`37615`)
