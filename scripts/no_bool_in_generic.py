@@ -10,23 +10,18 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 The function `visit` is adapted from a function by the same name in pyupgrade:
 https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
 """
+from __future__ import annotations
 
 import argparse
 import ast
 import collections
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import Sequence
 
 
-def visit(tree: ast.Module) -> Dict[int, List[int]]:
+def visit(tree: ast.Module) -> dict[int, list[int]]:
     "Step through tree, recording when nodes are in annotations."
     in_annotation = False
-    nodes: List[Tuple[bool, ast.AST]] = [(in_annotation, tree)]
+    nodes: list[tuple[bool, ast.AST]] = [(in_annotation, tree)]
     to_replace = collections.defaultdict(list)
 
     while nodes:
@@ -62,7 +57,7 @@ def replace_bool_with_bool_t(to_replace, content: str) -> str:
     return "\n".join(new_lines)
 
 
-def check_for_bool_in_generic(content: str) -> Tuple[bool, str]:
+def check_for_bool_in_generic(content: str) -> tuple[bool, str]:
     tree = ast.parse(content)
     to_replace = visit(tree)
 
@@ -74,7 +69,7 @@ def check_for_bool_in_generic(content: str) -> Tuple[bool, str]:
     return mutated, replace_bool_with_bool_t(to_replace, content)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)

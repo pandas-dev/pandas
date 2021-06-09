@@ -1,11 +1,9 @@
 """
 Assertion helpers and base class for offsets tests
 """
+from __future__ import annotations
+
 from datetime import datetime
-from typing import (
-    Optional,
-    Type,
-)
 
 from dateutil.tz.tz import tzlocal
 import pytest
@@ -61,7 +59,7 @@ class WeekDay:
 
 
 class Base:
-    _offset: Optional[Type[DateOffset]] = None
+    _offset: type[DateOffset] | None = None
     d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [
