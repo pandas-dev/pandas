@@ -395,6 +395,12 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
     # For compatibility when calling rank_1d
     labels_n = np.zeros(N, dtype=np.int64)
 
+    # Handle the edge case where we know all results will be nan
+    # to keep conditional logic inside loop simpler
+    if N < minp:
+        result = np.full((K, K), np.nan, dtype=np.float64)
+        return result
+
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
     no_nans = mask.all()
