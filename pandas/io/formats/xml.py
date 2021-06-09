@@ -1,16 +1,11 @@
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
+from __future__ import annotations
 
 import codecs
 import io
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Union,
-)
+from typing import Any
 
 from pandas._typing import (
     CompressionOptions,
@@ -95,19 +90,19 @@ class BaseXMLFormatter:
     def __init__(
         self,
         frame: DataFrame,
-        path_or_buffer: Optional[FilePathOrBuffer] = None,
-        index: Optional[bool] = True,
-        root_name: Optional[str] = "data",
-        row_name: Optional[str] = "row",
-        na_rep: Optional[str] = None,
-        attr_cols: Optional[List[str]] = None,
-        elem_cols: Optional[List[str]] = None,
-        namespaces: Optional[Dict[Optional[str], str]] = None,
-        prefix: Optional[str] = None,
+        path_or_buffer: FilePathOrBuffer | None = None,
+        index: bool | None = True,
+        root_name: str | None = "data",
+        row_name: str | None = "row",
+        na_rep: str | None = None,
+        attr_cols: list[str] | None = None,
+        elem_cols: list[str] | None = None,
+        namespaces: dict[str | None, str] | None = None,
+        prefix: str | None = None,
         encoding: str = "utf-8",
-        xml_declaration: Optional[bool] = True,
-        pretty_print: Optional[bool] = True,
-        stylesheet: Optional[FilePathOrBuffer] = None,
+        xml_declaration: bool | None = True,
+        pretty_print: bool | None = True,
+        stylesheet: FilePathOrBuffer | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
@@ -175,7 +170,7 @@ class BaseXMLFormatter:
 
         codecs.lookup(self.encoding)
 
-    def process_dataframe(self) -> Dict[Union[int, str], Dict[str, Any]]:
+    def process_dataframe(self) -> dict[int | str, dict[str, Any]]:
         """
         Adjust Data Frame to fit xml output.
 
@@ -200,7 +195,7 @@ class BaseXMLFormatter:
         This method will add indexes into attr_cols or elem_cols.
         """
 
-        indexes: List[str] = [
+        indexes: list[str] = [
             x for x in self.frame_dicts[0].keys() if x not in self.orig_cols
         ]
 
@@ -233,7 +228,7 @@ class BaseXMLFormatter:
         prefix.
         """
 
-        nmsp_dict: Dict[str, str] = {}
+        nmsp_dict: dict[str, str] = {}
         if self.namespaces and self.prefix is None:
             nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p != ""}
 
@@ -262,10 +257,10 @@ class BaseXMLFormatter:
 
         raise AbstractMethodError(self)
 
-    def write_output(self) -> Optional[str]:
+    def write_output(self) -> str | None:
         xml_doc = self.build_tree()
 
-        out_str: Optional[str]
+        out_str: str | None
 
         if self.path_or_buffer is not None:
             with get_handle(
