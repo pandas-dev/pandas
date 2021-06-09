@@ -383,8 +383,8 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         Py_ssize_t i, j, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=2] ranked_mat
-        ndarray[float64_t, ndim=1] maskedx
-        ndarray[float64_t, ndim=1] maskedy
+        ndarray[float64_t, ndim=1] rankedx, rankedy
+        float64_t[::1] maskedx, maskedy
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
@@ -399,56 +399,61 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
 
+    # Note: we index into maskedx, maskedy in loops up to nobs, but using N is safe
+    # here since N >= nobs and values are stored contiguously
+    maskedx = np.empty(N, dtype=np.float64)
+    maskedy = np.empty(N, dtype=np.float64)
     for i in range(K):
         ranked_mat[:, i] = rank_1d(mat[:, i], labels=labels_n)
 
-    for xi in range(K):
-        for yi in range(xi + 1):
-            nobs = 0
-            # Keep track of whether we need to recompute ranks
-            all_ranks = True
-            for i in range(N):
-                all_ranks &= not (mask[i, xi] ^ mask[i, yi])
-                if mask[i, xi] and mask[i, yi]:
-                    nobs += 1
-
-            if nobs < minp:
-                result[xi, yi] = result[yi, xi] = NaN
-            else:
-                maskedx = np.empty(nobs, dtype=np.float64)
-                maskedy = np.empty(nobs, dtype=np.float64)
-                j = 0
-
+    with nogil:
+        for xi in range(K):
+            for yi in range(xi + 1):
+                nobs = 0
+                # Keep track of whether we need to recompute ranks
+                all_ranks = True
                 for i in range(N):
+                    all_ranks &= not (mask[i, xi] ^ mask[i, yi])
                     if mask[i, xi] and mask[i, yi]:
-                        maskedx[j] = ranked_mat[i, xi]
-                        maskedy[j] = ranked_mat[i, yi]
-                        j += 1
+                        maskedx[nobs] = ranked_mat[i, xi]
+                        maskedy[nobs] = ranked_mat[i, yi]
+                        nobs += 1
 
-                if not all_ranks:
-                    labels_nobs = np.zeros(nobs, dtype=np.int64)
-                    maskedx = rank_1d(maskedx, labels=labels_nobs)
-                    maskedy = rank_1d(maskedy, labels=labels_nobs)
-
-                mean = (nobs + 1) / 2.
-
-                # now the cov numerator
-                sumx = sumxx = sumyy = 0
-
-                for i in range(nobs):
-                    vx = maskedx[i] - mean
-                    vy = maskedy[i] - mean
-
-                    sumx += vx * vy
-                    sumxx += vx * vx
-                    sumyy += vy * vy
-
-                divisor = sqrt(sumxx * sumyy)
-
-                if divisor != 0:
-                    result[xi, yi] = result[yi, xi] = sumx / divisor
-                else:
+                if nobs < minp:
                     result[xi, yi] = result[yi, xi] = NaN
+                else:
+                    if not all_ranks:
+                        with gil:
+                            # We need to slice back to nobs because rank_1d will
+                            # require arrays of nobs length
+                            labels_nobs = np.zeros(nobs, dtype=np.int64)
+                            rankedx = rank_1d(np.array(maskedx)[:nobs],
+                                              labels=labels_nobs)
+                            rankedy = rank_1d(np.array(maskedy)[:nobs],
+                                              labels=labels_nobs)
+                        for i in range(nobs):
+                            maskedx[i] = rankedx[i]
+                            maskedy[i] = rankedy[i]
+
+                    mean = (nobs + 1) / 2.
+
+                    # now the cov numerator
+                    sumx = sumxx = sumyy = 0
+
+                    for i in range(nobs):
+                        vx = maskedx[i] - mean
+                        vy = maskedy[i] - mean
+
+                        sumx += vx * vy
+                        sumxx += vx * vx
+                        sumyy += vy * vy
+
+                    divisor = sqrt(sumxx * sumyy)
+
+                    if divisor != 0:
+                        result[xi, yi] = result[yi, xi] = sumx / divisor
+                    else:
+                        result[xi, yi] = result[yi, xi] = NaN
 
     return result
 
