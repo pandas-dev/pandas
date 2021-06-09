@@ -5041,7 +5041,17 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-
+        if inclusive is True or inclusive is False:
+            warnings.warn(
+                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "favour of `both` or `neither`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if inclusive:
+                inclusive = "both"
+            else:
+                inclusive = "neither"
         if inclusive == "both":
             lmask = self >= left
             rmask = self <= right
@@ -5054,24 +5064,6 @@ Keep all original rows and also all original values
         elif inclusive == "neither":
             lmask = self > left
             rmask = self < right
-        elif inclusive is False:
-            warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in"
-                "favour of `both` or `neither`.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            lmask = self > left
-            rmask = self < right
-        elif inclusive is True:
-            warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in"
-                "favour of `both` or `neither`.",
-                FutureWarning,
-                stacklevel=2,
-            )
-            lmask = self >= left
-            rmask = self <= right
         else:
             raise ValueError(
                 "Inclusive has to be either string of 'both',"
