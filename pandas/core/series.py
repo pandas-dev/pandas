@@ -1067,7 +1067,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
                 # this is equivalent to self._values[key] = value
-                self._mgr.setitem(key, value, inplace=True)
+                self._mgr.setitem_inplace(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
@@ -1100,7 +1100,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem(loc, value, inplace=True)
+        self._mgr.setitem_inplace(loc, value)
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise

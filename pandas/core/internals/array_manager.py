@@ -1286,24 +1286,24 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             new_array = getattr(self.array, func)(**kwargs)
         return type(self)([new_array], self._axes)
 
-    def setitem(self, indexer, value, inplace: bool = False):
+    def setitem(self, indexer, value):
         """
         Set values with indexer.
 
         For SingleArrayManager, this backs s[indexer] = value
-
-        Parameters
-        ----------
-        indexer, value
-        inplace : bool, default False
-            If True (for a Series), mutate the manager/values in place, not
-            returning a new Manager (and thus never changing the dtype).
         """
-        if inplace:
-            self.arrays[0][indexer] = value
-            return
-        else:
-            return self.apply_with_block("setitem", indexer=indexer, value=value)
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
+
+    def setitem_inplace(self, indexer, value):
+        """
+        Set values with indexer.
+
+        For SingleArrayManager, this backs s[indexer] = value.
+
+        This is an inplace version of `setitem`, mutating the manager/values
+        in place, not returning a new Manager (and thus never changing the dtype).
+        """
+        self.arrays[0][indexer] = value
 
     def idelete(self, indexer) -> SingleArrayManager:
         """
