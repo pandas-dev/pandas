@@ -781,9 +781,11 @@ because its data contents are not [string] but [mixed] object dtype"""
         df["foo"] = "bar"
         msg = re.escape(
             "invalid combination of [values_axes] on appending data "
-            "[name->values_block_1,cname->values_block_1,dtype->bytes24,kind->string,shape->(1, 30)] "
+            "[name->values_block_1,cname->values_block_1,"
+            "dtype->bytes24,kind->string,shape->(1, 30)] "
             "vs current table "
-            "[name->values_block_1,cname->values_block_1,dtype->datetime64,kind->datetime64,shape->None]"
+            "[name->values_block_1,cname->values_block_1,"
+            "dtype->datetime64,kind->datetime64,shape->None]"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)
