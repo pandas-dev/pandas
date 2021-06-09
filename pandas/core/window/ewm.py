@@ -267,7 +267,7 @@ class ExponentialMovingWindow(BaseWindow):
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
         alpha: float | None = None,
-        min_periods: int = 0,
+        min_periods: int | None = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
@@ -277,7 +277,7 @@ class ExponentialMovingWindow(BaseWindow):
     ):
         super().__init__(
             obj=obj,
-            min_periods=max(int(min_periods), 1),
+            min_periods=1 if min_periods is None else max(int(min_periods), 1),
             on=None,
             center=False,
             closed=None,
@@ -711,7 +711,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
         alpha: float | None = None,
-        min_periods: int = 0,
+        min_periods: int | None = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
