@@ -412,6 +412,9 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         for xi in range(K):
             for yi in range(xi + 1):
                 sumx = sumxx = sumyy = 0
+
+                # Fastpath for data with no nans/infs, allows avoiding mask checks
+                # and array reassignments
                 if no_nans:
                     mean = (N + 1) / 2.
 
@@ -462,12 +465,12 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                             sumxx += vx * vx
                             sumyy += vy * vy
 
-                    divisor = sqrt(sumxx * sumyy)
+                divisor = sqrt(sumxx * sumyy)
 
-                    if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = sumx / divisor
-                    else:
-                        result[xi, yi] = result[yi, xi] = NaN
+                if divisor != 0:
+                    result[xi, yi] = result[yi, xi] = sumx / divisor
+                else:
+                    result[xi, yi] = result[yi, xi] = NaN
 
     return result
 
