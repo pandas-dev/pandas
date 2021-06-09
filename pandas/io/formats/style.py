@@ -482,9 +482,10 @@ class Styler(StylerRenderer):
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
-            If given the environment that will replace 'table' in ``\\begin{table}``.
-            If 'longtable' is specified then a custom, more suitable template, will be
-            rendered where the argument ``position_float`` has no effect.
+            If given, the environment that will replace 'table' in ``\\begin{table}``.
+            If 'longtable' is specified then a more suitable template is
+            rendered for which the ``position_float`` argument is nullified and does not
+            impact the result.
         encoding : str, default "utf-8"
             Character encoding setting.
 
