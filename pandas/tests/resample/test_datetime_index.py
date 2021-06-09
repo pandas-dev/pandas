@@ -1597,7 +1597,11 @@ def test_downsample_dst_at_midnight():
     dti = date_range("2018-11-03", periods=3).tz_localize(
         "America/Havana", ambiguous=True
     )
-    dti = DatetimeIndex(dti, freq="D")
+    with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst"):
+        # Check that we are requiring ambiguous be passed explicitly
+        dti = DatetimeIndex(dti, freq="D")
+    dti = DatetimeIndex(dti, freq="D", ambiguous=True)
+
     expected = DataFrame([7.5, 28.0, 44.5], index=dti)
     tm.assert_frame_equal(result, expected)
 
