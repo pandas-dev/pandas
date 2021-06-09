@@ -2,11 +2,9 @@
 Base class for the internal managers. Both BlockManager and ArrayManager
 inherit from this class.
 """
-from typing import (
-    List,
-    Optional,
-    TypeVar,
-)
+from __future__ import annotations
+
+from typing import TypeVar
 
 from pandas._typing import (
     DtypeObj,
@@ -27,7 +25,7 @@ class DataManager(PandasObject):
 
     # TODO share more methods/attributes
 
-    axes: List[Index]
+    axes: list[Index]
 
     @property
     def items(self) -> Index:
@@ -123,7 +121,7 @@ class DataManager(PandasObject):
     def apply(
         self: T,
         f,
-        align_keys: Optional[List[str]] = None,
+        align_keys: list[str] | None = None,
         ignore_failures: bool = False,
         **kwargs,
     ) -> T:
@@ -144,7 +142,7 @@ class SingleDataManager(DataManager):
         return self.arrays[0]  # type: ignore[attr-defined]
 
 
-def interleaved_dtype(dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
     """
     Find the common dtype for `blocks`.
 

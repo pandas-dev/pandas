@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 import numpy as np
 
@@ -166,7 +166,7 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
-    mask: Optional[np.ndarray] = None
+    mask: np.ndarray | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
         values = values._data[~mask]
