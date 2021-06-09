@@ -1113,11 +1113,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_scalar(key):
             key = [key]
 
-        if isinstance(key, Index):
-            key_type = key.inferred_type
-            key = key._values
-        else:
-            key_type = lib.infer_dtype(key, skipna=False)
+        key_type = lib.infer_dtype(key, skipna=False)
 
         # Note: key_type == "boolean" should not occur because that
         #  should be caught by the is_bool_indexer check in __setitem__
@@ -1138,7 +1134,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._set_values(indexer, value)
 
     def _set_values(self, key, value) -> None:
-        if isinstance(key, Series):
+        if isinstance(key, (Index, Series)):
             key = key._values
 
         self._mgr = self._mgr.setitem(indexer=key, value=value)
