@@ -269,6 +269,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
+
+        elif other._is_multi:
+            # preempt raising NotImplementedError in isna call
+            raise TypeError("MultiIndex is not dtype-compatible with CategoricalIndex")
         else:
             values = other
 

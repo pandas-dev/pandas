@@ -3127,7 +3127,8 @@ class Index(IndexOpsMixin, PandasObject):
         left_unique = self.drop_duplicates()
         right_unique = other.drop_duplicates()
 
-        indexer = left_unique.get_indexer(right_unique)
+        # even though we are unique, we need get_indexer_for for IntervalIndex
+        indexer = left_unique.get_indexer_for(right_unique)
 
         mask = indexer != -1
 
@@ -3245,33 +3246,13 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
-        if not self._should_compare(other):
-            return self.union(other, sort=sort).rename(result_name)
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype, copy=False)
-            that = other.astype(dtype, copy=False)
-            return this.symmetric_difference(that, sort=sort).rename(result_name)
+        left = self.difference(other, sort=False)
+        right = other.difference(self, sort=False)
+        result = left.union(right, sort=sort)
 
-        this = self._get_unique_index()
-        other = other._get_unique_index()
-        indexer = this.get_indexer_for(other)
-
-        # {this} minus {other}
-        common_indexer = indexer.take((indexer != -1).nonzero()[0])
-        left_indexer = np.setdiff1d(
-            np.arange(this.size), common_indexer, assume_unique=True
-        )
-        left_diff = this._values.take(left_indexer)
-
-        # {other} minus {this}
-        right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other._values.take(right_indexer)
-
-        the_diff = concat_compat([left_diff, right_diff])
-        the_diff = _maybe_try_sort(the_diff, sort)
-
-        return Index(the_diff, name=result_name)
+        if result_name is not None:
+            result = result.rename(result_name)
+        return result
 
     @final
     def _assert_can_do_setop(self, other) -> bool:
@@ -3682,43 +3663,6 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self.slice_indexer(start, stop, step)
 
         return indexer
-
-    def _convert_listlike_indexer(self, keyarr):
-        """
-        Parameters
-        ----------
-        keyarr : list-like
-            Indexer to convert.
-
-        Returns
-        -------
-        indexer : numpy.ndarray or None
-            Return an ndarray or None if cannot convert.
-        keyarr : numpy.ndarray
-            Return tuple-safe keys.
-        """
-        if isinstance(keyarr, Index):
-            pass
-        else:
-            keyarr = self._convert_arr_indexer(keyarr)
-
-        indexer = None
-        return indexer, keyarr
-
-    def _convert_arr_indexer(self, keyarr) -> np.ndarray:
-        """
-        Convert an array-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : array-like
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : array-like
-        """
-        return com.asarray_tuplesafe(keyarr)
 
     @final
     def _invalid_indexer(self, form: str_t, key) -> TypeError:
