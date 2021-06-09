@@ -526,6 +526,19 @@ with cf.config_prefix("mode"):
     )
 
 
+string_storage_doc = """
+: string
+    The default storage for StringDtype.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "string_storage",
+        "python",
+        string_storage_doc,
+        validator=is_one_of_factory(["python", "pyarrow"]),
+    )
+
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
 : string
