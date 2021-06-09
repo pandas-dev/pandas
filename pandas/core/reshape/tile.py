@@ -552,7 +552,7 @@ def _convert_bin_to_datelike_type(bins, dtype):
 def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
-    """ based on the dtype, return our labels """
+    """based on the dtype, return our labels"""
     closed = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]

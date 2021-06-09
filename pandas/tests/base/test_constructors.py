@@ -47,7 +47,7 @@ class TestPandasDelegate:
         foo = property(_get_foo, _set_foo, doc="foo property")
 
         def bar(self, *args, **kwargs):
-            """ a test bar method """
+            """a test bar method"""
             pass
 
     class Delegate(PandasDelegate, PandasObject):

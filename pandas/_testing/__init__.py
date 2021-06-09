@@ -278,7 +278,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
-    """ make a length k index or n categories """
+    """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
@@ -286,7 +286,7 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
-    """ make a length k IntervalIndex """
+    """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 

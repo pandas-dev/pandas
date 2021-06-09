@@ -9,13 +9,13 @@ import pandas as pd
 # ========
 @pytest.fixture
 def df():
-    """DataFrame with columns 'L1', 'L2', and 'L3' """
+    """DataFrame with columns 'L1', 'L2', and 'L3'"""
     return pd.DataFrame({"L1": [1, 2, 3], "L2": [11, 12, 13], "L3": ["A", "B", "C"]})
 
 
 @pytest.fixture(params=[[], ["L1"], ["L1", "L2"], ["L1", "L2", "L3"]])
 def df_levels(request, df):
-    """DataFrame with columns or index levels 'L1', 'L2', and 'L3' """
+    """DataFrame with columns or index levels 'L1', 'L2', and 'L3'"""
     levels = request.param
 
     if levels:
@@ -26,7 +26,7 @@ def df_levels(request, df):
 
 @pytest.fixture
 def df_ambig(df):
-    """DataFrame with levels 'L1' and 'L2' and labels 'L1' and 'L3' """
+    """DataFrame with levels 'L1' and 'L2' and labels 'L1' and 'L3'"""
     df = df.set_index(["L1", "L2"])
 
     df["L1"] = df["L3"]
@@ -36,7 +36,7 @@ def df_ambig(df):
 
 @pytest.fixture
 def df_duplabels(df):
-    """DataFrame with level 'L1' and labels 'L2', 'L3', and 'L2' """
+    """DataFrame with level 'L1' and labels 'L2', 'L3', and 'L2'"""
     df = df.set_index(["L1"])
     df = pd.concat([df, df["L2"]], axis=1)
 
