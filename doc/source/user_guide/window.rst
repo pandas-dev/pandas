@@ -322,15 +322,6 @@ We can achieve this by using slicing in python by applying rolling aggregation a
    reversed_df = df[::-1].rolling("2s").sum()[::-1]
    reversed_df
 
-Or we can also do it using :meth:`api.indexers.FixedForwardWindowIndexer` which basically creates window boundaries for fixed-length windows that include the current row.
-
-.. ipython:: python
-
-   indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=2)
-
-   reversed_df = df.rolling(window=indexer, min_periods=1).sum()
-   reversed_df
-
 .. _window.rolling_apply:
 
 Rolling apply
