@@ -120,22 +120,20 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
 
  - The method :meth:`.Styler.set_table_styles` can now accept more natural CSS language for arguments, such as ``'color:red;'`` instead of ``[('color', 'red')]`` (:issue:`39563`)
  - The methods :meth:`.Styler.highlight_null`, :meth:`.Styler.highlight_min`, and :meth:`.Styler.highlight_max` now allow custom CSS highlighting instead of the default background coloring (:issue:`40242`)
- - :meth:`.Styler.set_tooltips` allows on hover tooltips to be added to styled HTML dataframes (:issue:`35643`, :issue:`21266`, :issue:`39317`, :issue:`39708`, :issue:`40284`)
 - :meth:`.Styler.apply` now accepts functions that return an ``ndarray`` when ``axis=None``, making it now consistent with the ``axis=0`` and ``axis=1`` behavior (:issue:`39359`)
 - When incorrectly formatted CSS is given via :meth:`.Styler.apply` or :meth:`.Styler.applymap`, an error is now raised upon rendering (:issue:`39660`)
- - :meth:`.Styler.format` now accepts the keyword argument ``escape`` for optional HTML escaping (:issue:`40437`)
+ - :meth:`.Styler.format` now accepts the keyword argument ``escape`` for optional HTML and LaTex escaping (:issue:`40388`, :issue:`41619`)
 - :meth:`.Styler.background_gradient` has gained the argument ``gmap`` to supply a specific gradient map for shading (:issue:`22727`)
 - :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
  - Added the method :meth:`.Styler.highlight_between` (:issue:`39821`)
  - Added the method :meth:`.Styler.highlight_quantile` (:issue:`40926`)
  - Added the method :meth:`.Styler.text_gradient` (:issue:`41098`)
- - Added the method :meth:`.Styler.set_tooltips` allowing hover tooltips; this can be used enhance interactive displays (:issue:`21266`)
- - Added the parameter ``escape`` to the method :meth:`.Styler.format` to escape data before it is passed to the formatter (:issue:`40388`)
+ - Added the method :meth:`.Styler.set_tooltips` to allow hover tooltips; this can be used enhance interactive displays (:issue:`21266`, :issue:`40284`)
  - Added the parameter ``precision`` to the method :meth:`.Styler.format` to control the display of floating point numbers (:issue:`40134`)
  - :class:`.Styler` rendered HTML output now follows the `w3 HTML Style Guide <https://www.w3schools.com/html/html5_syntax.asp>`_ (:issue:`39626`)
  - Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41143`)
  - One has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options <options.available>`, which are also usable via :func:`option_context` (:issue:`41142`)
-- Added the option ``sytler.max.elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
+- Added the option ``styler.render.max_elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
  - Added the method :meth:`.Styler.to_latex` (:issue:`21673`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
 
@@ -162,6 +160,8 @@ a copy will no longer be made (:issue:`32960`).
 
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
+
+.. _whatsnew_130.centered_datetimelike_rolling_window:
 
 Centered datetime-like rolling windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
