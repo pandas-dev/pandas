@@ -300,6 +300,8 @@ forward-looking rolling window, and we can use it as follows:
    df.rolling(indexer, min_periods=1).sum()
 
 Reverse rolling window
+~~~~~~~~~~~~~~~~~~~~~~
+
 Get the window of a rolling function to look forward.
 
 We can achieve this by using slicing in python by applying rolling aggregation and then flipping the result as shown in example below:
