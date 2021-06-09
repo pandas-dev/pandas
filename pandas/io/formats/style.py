@@ -1113,7 +1113,10 @@ class Styler(StylerRenderer):
         return self
 
     def _apply_index(
-        self, func: Callable[..., Styler], levels: list(int) | None = None, **kwargs
+        self,
+        func: Callable[..., Styler],
+        levels: list[int] | int | None = None,
+        **kwargs,
     ) -> Styler:
         if isinstance(self.index, pd.MultiIndex) and levels is not None:
             levels = [levels] if isinstance(levels, int) else levels
@@ -1127,7 +1130,7 @@ class Styler(StylerRenderer):
     def apply_index(
         self,
         func: Callable[..., Styler],
-        levels: list(int) | int | None = None,
+        levels: list[int] | int | None = None,
         **kwargs,
     ) -> Styler:
         """
@@ -1221,6 +1224,59 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
+        )
+        return self
+
+    def _applymap_index(
+        self,
+        func: Callable[..., Styler],
+        levels: list[int] | int | None = None,
+        **kwargs,
+    ) -> Styler:
+        if isinstance(self.index, pd.MultiIndex) and levels is not None:
+            levels = [levels] if isinstance(levels, int) else levels
+            data = DataFrame(self.index.to_list()).loc[:, levels]
+        else:
+            data = DataFrame(self.index.to_list())
+        result = data.applymap(func, **kwargs)
+        self._update_ctx_index(result)
+        return self
+
+    def applymap_index(
+        self,
+        func: Callable[..., Styler],
+        levels: list[int] | int | None = None,
+        **kwargs,
+    ) -> Styler:
+        """
+        Apply a CSS-styling function to the index, element-wise.
+
+        Updates the HTML representation with the result.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        func : function
+            ``func`` should take a Series
+
+            .. versionchanged:: 1.3.0
+
+        levels : int, list of ints, optional
+            If index is MultiIndex the level(s) over which to apply the function.
+        **kwargs : dict
+            Pass along to ``func``.
+
+        Returns
+        -------
+        self : Styler
+        """
+        self._todo.append(
+            (
+                lambda instance: getattr(instance, "_applymap_index"),
+                (func, levels),
+                kwargs,
+            )
         )
         return self
 
