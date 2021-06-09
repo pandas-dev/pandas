@@ -1635,7 +1635,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
-    def setitem_inplace(self, indexer, value) -> SingleBlockManager:
+    def setitem_inplace(self, indexer, value):
         """
         Set values with indexer.
 
