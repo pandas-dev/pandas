@@ -101,8 +101,9 @@ def to_json(
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
 
-    if drop_na and orient != "records":
-        raise ValueError("'drop_na' keyword only valid when 'orient' is records")
+    if drop_na and (orient != "records" or not isinstance(obj, DataFrame)):
+        raise ValueError(("'drop_na' keyword only valid when 'orient' is "
+                          "records and input is a DataFrame"))
 
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
