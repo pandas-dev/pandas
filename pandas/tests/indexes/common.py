@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
 import gc
-from typing import Type
 
 import numpy as np
 import pytest
@@ -36,7 +37,7 @@ class Base:
     Base class for index sub-class tests.
     """
 
-    _index_cls: Type[Index]
+    _index_cls: type[Index]
 
     @pytest.fixture
     def simple_index(self):
