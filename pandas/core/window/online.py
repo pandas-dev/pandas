@@ -44,18 +44,25 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
         adjust: bool,
         ignore_na: bool,
     ):
+        """
+        Compute online exponentially weighted mean per column over 2D values.
+
+        Takes the first observation as is, then computes the subsequent
+        exponentially weighted mean accounting minimum periods.
+        """
         result = np.empty(values.shape)
         weighted_avg = values[0]
         nobs = (~np.isnan(weighted_avg)).astype(np.int64)
         result[0] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
 
-        for i in range(1, len(values)):
+        for i in numba.prange(1, len(values)):
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
-            for j in range(len(cur)):
+            for j in numba.prange(len(cur)):
                 if not np.isnan(weighted_avg[j]):
                     if is_observations[j] or not ignore_na:
+
                         # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
                         # used in conjunction with vals[i+1]
                         old_wt[j] *= old_wt_factor ** deltas[j - 1]

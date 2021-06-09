@@ -112,6 +112,9 @@ the ``update`` argument to continue the windowing calculation.
 
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
    df.ewm(0.5).mean()
+
+.. ipython:: python
+
    online_ewm = df.head(2).ewm(0.5).online()
    online_ewm.mean()
    online_ewm.mean(update=df.tail(1))
