@@ -8,6 +8,34 @@ from pandas import (
 from pandas.core.reshape.reshape import from_dummies
 
 
+@pytest.fixture
+def dummies_basic():
+    return DataFrame(
+        {
+            "C": [1, 2, 3],
+            "col1_a": [1, 0, 1],
+            "col1_b": [0, 1, 0],
+            "col2_a": [0, 1, 0],
+            "col2_b": [1, 0, 0],
+            "col2_c": [0, 0, 1],
+        },
+    )
+
+
+@pytest.fixture
+def dummies_with_unassigned():
+    return DataFrame(
+        {
+            "C": [1, 2, 3],
+            "col1_a": [1, 0, 0],
+            "col1_b": [0, 1, 0],
+            "col2_a": [0, 1, 0],
+            "col2_b": [0, 0, 0],
+            "col2_c": [0, 0, 1],
+        },
+    )
+
+
 def test_from_dummies_to_series_basic():
     dummies = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
     expected = Series(list("abca"))
@@ -72,69 +100,29 @@ def test_from_dummies_no_dummies():
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_basic():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_basic(dummies_basic):
     expected = DataFrame(
         {"C": [1, 2, 3], "col1": ["a", "b", "a"], "col2": ["b", "a", "c"]}
     )
-    result = from_dummies(dummies)
+    result = from_dummies(dummies_basic)
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_variable_string():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_variable_string(dummies_basic):
     expected = DataFrame(
         {"C": [1, 2, 3], "varname0": ["a", "b", "a"], "varname1": ["b", "a", "c"]}
     )
-    result = from_dummies(dummies, variables="varname")
+    result = from_dummies(dummies_basic, variables="varname")
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_variable_list():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_variable_list(dummies_basic):
     expected = DataFrame({"C": [1, 2, 3], "A": ["a", "b", "a"], "B": ["b", "a", "c"]})
-    result = from_dummies(dummies, variables=["A", "B"])
+    result = from_dummies(dummies_basic, variables=["A", "B"])
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_variable_list_not_complete():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_variable_list_not_complete(dummies_basic):
     with pytest.raises(
         ValueError,
         match=(
@@ -142,36 +130,16 @@ def test_from_dummies_to_df_variable_list_not_complete():
             r"the length of the columns being encoded \(2\)."
         ),
     ):
-        from_dummies(dummies, variables=["A"])
+        from_dummies(dummies_basic, variables=["A"])
 
 
-def test_from_dummies_to_df_variable_dict():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_variable_dict(dummies_basic):
     expected = DataFrame({"C": [1, 2, 3], "A": ["b", "a", "c"], "B": ["a", "b", "a"]})
-    result = from_dummies(dummies, variables={"col2": "A", "col1": "B"})
+    result = from_dummies(dummies_basic, variables={"col2": "A", "col1": "B"})
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_variable_dict_not_complete():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_variable_dict_not_complete(dummies_basic):
     with pytest.raises(
         ValueError,
         match=(
@@ -179,7 +147,7 @@ def test_from_dummies_to_df_variable_dict_not_complete():
             r"the length of the columns being encoded \(2\)."
         ),
     ):
-        from_dummies(dummies, variables={"col1": "A"})
+        from_dummies(dummies_basic, variables={"col1": "A"})
 
 
 def test_from_dummies_to_df_prefix_sep_list():
@@ -248,21 +216,11 @@ def test_from_dummies_to_df_dummy_na():
     assert result["col2"][1] is expected["col2"][1]
 
 
-def test_from_dummies_to_df_contains_nan():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [0, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_contains_nan(dummies_with_unassigned):
     expected = DataFrame(
         {"C": [1, 2, 3], "col1": ["a", "b", np.nan], "col2": [np.nan, "a", "c"]}
     )
-    result = from_dummies(dummies)
+    result = from_dummies(dummies_with_unassigned)
     assert all(result["C"] == expected["C"])
     assert all(result["col1"][:2] == expected["col1"][:2])
     assert all(result["col2"][1:] == expected["col2"][1:])
@@ -270,71 +228,31 @@ def test_from_dummies_to_df_contains_nan():
     assert result["col2"][1] is expected["col2"][1]
 
 
-def test_from_dummies_to_df_columns():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 1],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_columns(dummies_basic):
     expected = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
     result = from_dummies(
-        dummies, columns=["col1_a", "col1_b", "col2_a", "col2_b", "col2_c"]
+        dummies_basic, columns=["col1_a", "col1_b", "col2_a", "col2_b", "col2_c"]
     )
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_dropped_first_str():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [0, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_dropped_first_str(dummies_with_unassigned):
     expected = DataFrame(
         {"C": [1, 2, 3], "col1": ["a", "b", "x"], "col2": ["x", "a", "c"]}
     )
-    result = from_dummies(dummies, dropped_first="x")
+    result = from_dummies(dummies_with_unassigned, dropped_first="x")
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_dropped_first_list():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [0, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_dropped_first_list(dummies_with_unassigned):
     expected = DataFrame(
         {"C": [1, 2, 3], "col1": ["a", "b", "x"], "col2": ["y", "a", "c"]}
     )
-    result = from_dummies(dummies, dropped_first=["x", "y"])
+    result = from_dummies(dummies_with_unassigned, dropped_first=["x", "y"])
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_dropped_first_list_not_complete():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [0, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_dropped_first_list_not_complete(dummies_with_unassigned):
     with pytest.raises(
         ValueError,
         match=(
@@ -342,38 +260,20 @@ def test_from_dummies_to_df_dropped_first_list_not_complete():
             r"the length of the columns being encoded \(2\)."
         ),
     ):
-        from_dummies(dummies, dropped_first=["x"])
+        from_dummies(dummies_with_unassigned, dropped_first=["x"])
 
 
-def test_from_dummies_to_df_dropped_first_dict():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [0, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_dropped_first_dict(dummies_with_unassigned):
     expected = DataFrame(
         {"C": [1, 2, 3], "col1": ["a", "b", "y"], "col2": ["x", "a", "c"]}
     )
-    result = from_dummies(dummies, dropped_first={"col2": "x", "col1": "y"})
+    result = from_dummies(
+        dummies_with_unassigned, dropped_first={"col2": "x", "col1": "y"}
+    )
     assert all(result == expected)
 
 
-def test_from_dummies_to_df_dropped_first_dict_not_complete():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [0, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_dropped_first_dict_not_complete(dummies_with_unassigned):
     with pytest.raises(
         ValueError,
         match=(
@@ -381,32 +281,22 @@ def test_from_dummies_to_df_dropped_first_dict_not_complete():
             r"the length of the columns being encoded \(2\)."
         ),
     ):
-        from_dummies(dummies, dropped_first={"col1": "x"})
+        from_dummies(dummies_with_unassigned, dropped_first={"col1": "x"})
 
 
-def test_from_dummies_to_df_wrong_column_type():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_wrong_column_type(dummies_basic):
     with pytest.raises(
         TypeError,
         match=r"Input must be a list-like for parameter 'columns'",
     ):
-        from_dummies(dummies, columns="col1_a")
+        from_dummies(dummies_basic, columns="col1_a")
 
 
 def test_from_dummies_to_df_double_assignment():
     dummies = DataFrame(
         {
             "C": [1, 2, 3],
-            "col1_a": [1, 0, 0],
+            "col1_a": [1, 0, 1],
             "col1_b": [1, 1, 0],
             "col2_a": [0, 1, 0],
             "col2_b": [1, 0, 0],
@@ -423,19 +313,9 @@ def test_from_dummies_to_df_double_assignment():
         from_dummies(dummies)
 
 
-def test_from_dummies_to_df_no_assignment():
-    dummies = DataFrame(
-        {
-            "C": [1, 2, 3],
-            "col1_a": [0, 0, 0],
-            "col1_b": [0, 1, 0],
-            "col2_a": [0, 1, 0],
-            "col2_b": [1, 0, 0],
-            "col2_c": [0, 0, 1],
-        },
-    )
+def test_from_dummies_to_df_no_assignment(dummies_with_unassigned):
     with pytest.raises(
         ValueError,
-        match=r"Dummy DataFrame contains no assignment for prefix: 'col1' in row 0.",
+        match=r"Dummy DataFrame contains no assignment for prefix: 'col2' in row 0.",
     ):
-        from_dummies(dummies, dummy_na=True)
+        from_dummies(dummies_with_unassigned, dummy_na=True)
