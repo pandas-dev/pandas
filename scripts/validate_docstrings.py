@@ -13,8 +13,6 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
-from __future__ import annotations
-
 import argparse
 import doctest
 import glob
@@ -24,6 +22,10 @@ import os
 import subprocess
 import sys
 import tempfile
+from typing import (
+    List,
+    Optional,
+)
 
 try:
     from io import StringIO
@@ -313,7 +315,7 @@ def validate_all(prefix, ignore_deprecated=False):
 
 def print_validate_all_results(
     prefix: str,
-    errors: list[str] | None,
+    errors: Optional[List[str]],
     output_format: str,
     ignore_deprecated: bool,
 ):

@@ -1,4 +1,7 @@
-from __future__ import annotations
+from typing import (
+    Optional,
+    Type,
+)
 
 import pytest
 
@@ -64,10 +67,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
     * divmod_exc = TypeError
     """
 
-    series_scalar_exc: type[TypeError] | None = TypeError
-    frame_scalar_exc: type[TypeError] | None = TypeError
-    series_array_exc: type[TypeError] | None = TypeError
-    divmod_exc: type[TypeError] | None = TypeError
+    series_scalar_exc: Optional[Type[TypeError]] = TypeError
+    frame_scalar_exc: Optional[Type[TypeError]] = TypeError
+    series_array_exc: Optional[Type[TypeError]] = TypeError
+    divmod_exc: Optional[Type[TypeError]] = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar

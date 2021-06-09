@@ -9,12 +9,13 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
 """
 
-from __future__ import annotations
-
 import argparse
 import ast
 import sys
-from typing import Sequence
+from typing import (
+    Optional,
+    Sequence,
+)
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "
@@ -61,7 +62,7 @@ def use_pd_array(content: str, path: str) -> None:
     visitor.visit(tree)
 
 
-def main(argv: Sequence[str] | None = None) -> None:
+def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="*")
     args = parser.parse_args(argv)
