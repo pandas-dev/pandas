@@ -100,12 +100,14 @@ class TestDataFrameCorr:
 
     # ---------------------------------------------------------------------
 
+    @td.skip_if_no_scipy
     def test_corr_non_numeric(self, float_string_frame):
         # exclude non-numeric types
         result = float_string_frame.corr()
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].corr()
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_nooverlap(self, meth):
         # nothing in common
@@ -123,6 +125,7 @@ class TestDataFrameCorr:
         assert rs.loc["B", "B"] == 1
         assert isna(rs.loc["C", "C"])
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "spearman"])
     def test_corr_constant(self, meth):
         # constant --> all NA
@@ -136,6 +139,7 @@ class TestDataFrameCorr:
         rs = df.corr(meth)
         assert isna(rs.values).all()
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_int_and_boolean(self, meth):
         # when dtypes of pandas series are different
