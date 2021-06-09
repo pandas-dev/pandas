@@ -100,7 +100,7 @@ def test_on_offset_implementations(dt, offset):
     #   (dt + offset) - offset == dt
     try:
         compare = (dt + offset) - offset
-    except pytz.NonExistentTimeError:
+    except (pytz.NonExistentTimeError, pytz.AmbiguousTimeError):
         # dt + offset does not exist, assume(False) to indicate
         #  to hypothesis that this is not a valid test case
         assume(False)
