@@ -40,7 +40,7 @@ class TestBetween:
         expected = (ser >= left) & (ser <= right)
         tm.assert_series_equal(result, expected)
 
-    def test_between_inclusive_is_boolean_string(self):  # :issue:`40628`
+    def test_between_inclusive_string(self):  # :issue:`40628`
         series = Series(date_range("1/1/2000", periods=10))
         left, right = series[[2, 7]]
 
