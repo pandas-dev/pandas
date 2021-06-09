@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -72,6 +78,13 @@ class TestDataFrameSortValues:
         msg = r"Length of ascending \(5\) != length of by \(2\)"
         with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=["A", "B"], axis=0, ascending=[True] * 5)
+
+    def test_sort_values_by_empty_list(self):
+        # https://github.com/pandas-dev/pandas/issues/40258
+        expected = DataFrame({"a": [1, 4, 2, 5, 3, 6]})
+        result = expected.sort_values(by=[])
+        tm.assert_frame_equal(result, expected)
+        assert result is not expected
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
@@ -839,7 +852,19 @@ class TestSortValuesLevelAsStr:
         if len(levels) > 1:
             # Accessing multi-level columns that are not lexsorted raises a
             # performance warning
-            with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame\.sort_values "
+            r"except for the argument 'by' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.sort_values("a", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)

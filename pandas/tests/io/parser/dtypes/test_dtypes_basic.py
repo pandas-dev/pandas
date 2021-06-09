@@ -10,7 +10,10 @@ import pytest
 from pandas.errors import ParserWarning
 
 import pandas as pd
-from pandas import DataFrame, Timestamp
+from pandas import (
+    DataFrame,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -234,4 +237,14 @@ no,yyy
         {"a": [True, False, True, False], "b": ["xxx", "yyy", "zzz", "aaa"]}
     )
     expected["a"] = expected["a"].astype("boolean")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtypes, exp_value", [({}, "1"), ({"a.1": "int64"}, 1)])
+def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
+    # GH#35211
+    parser = all_parsers
+    data = """a,a\n1,1"""
+    result = parser.read_csv(StringIO(data), dtype={"a": str, **dtypes})
+    expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
     tm.assert_frame_equal(result, expected)

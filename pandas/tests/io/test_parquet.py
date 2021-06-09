@@ -1,19 +1,31 @@
 """ test parquet compat """
 import datetime
-from distutils.version import LooseVersion
 from io import BytesIO
 import os
 import pathlib
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, is_platform_windows
+from pandas._config import get_option
+
+from pandas.compat import (
+    PY38,
+    is_platform_windows,
+)
+from pandas.compat.pyarrow import (
+    pa_version_under1p0,
+    pa_version_under2p0,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 from pandas.io.parquet import (
     FastParquetImpl,
@@ -31,7 +43,10 @@ except ImportError:
     _HAVE_PYARROW = False
 
 try:
-    import fastparquet
+    with catch_warnings():
+        # `np.bool` is a deprecated alias...
+        filterwarnings("ignore", "`np.bool`", category=DeprecationWarning)
+        import fastparquet
 
     _HAVE_FASTPARQUET = True
 except ImportError:
@@ -43,13 +58,16 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
+# TODO(ArrayManager) fastparquet relies on BlockManager internals
+
 # setup engines & skips
 @pytest.fixture(
     params=[
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET, reason="fastparquet is not installed"
+                not _HAVE_FASTPARQUET or get_option("mode.data_manager") == "array",
+                reason="fastparquet is not installed or ArrayManager is used",
             ),
         ),
         pytest.param(
@@ -75,6 +93,8 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
+    elif get_option("mode.data_manager") == "array":
+        pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
 
@@ -263,12 +283,12 @@ def test_get_engine_auto_error_message():
     have_pa_bad_version = (
         False
         if not _HAVE_PYARROW
-        else LooseVersion(pyarrow.__version__) < LooseVersion(pa_min_ver)
+        else Version(pyarrow.__version__) < Version(pa_min_ver)
     )
     have_fp_bad_version = (
         False
         if not _HAVE_FASTPARQUET
-        else LooseVersion(fastparquet.__version__) < LooseVersion(fp_min_ver)
+        else Version(fastparquet.__version__) < Version(fp_min_ver)
     )
     # Do we have usable engines installed?
     have_usable_pa = _HAVE_PYARROW and not have_pa_bad_version
@@ -311,18 +331,6 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
 
 def test_cross_engine_fp_pa(request, df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
-
-    if (
-        LooseVersion(pyarrow.__version__) < "0.15"
-        and LooseVersion(pyarrow.__version__) >= "0.13"
-    ):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                "Reading fastparquet with pyarrow in 0.14 fails: "
-                "https://issues.apache.org/jira/browse/ARROW-6492"
-            )
-        )
-
     df = df_cross_compat
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
@@ -356,7 +364,7 @@ class Base:
             "https://raw.githubusercontent.com/pandas-dev/pandas/"
             "master/pandas/tests/io/data/parquet/simple.parquet"
         )
-        df = pd.read_parquet(url)
+        df = read_parquet(url)
         tm.assert_frame_equal(df, df_compat)
 
 
@@ -435,7 +443,7 @@ class TestBasic(Base):
         for index in indexes:
             df.index = index
             if isinstance(index, pd.DatetimeIndex):
-                df.index = df.index._with_freq(None)  # freq doesnt round-trip
+                df.index = df.index._with_freq(None)  # freq doesn't round-trip
             check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
@@ -568,6 +576,7 @@ class TestBasic(Base):
         self.check_error_on_write(df, engine, ValueError, msg)
 
 
+@pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
     def test_basic(self, pa, df_full):
 
@@ -575,7 +584,7 @@ class TestParquetPyArrow(Base):
 
         # additional supported types for pyarrow
         dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
+        dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
 
@@ -602,7 +611,7 @@ class TestParquetPyArrow(Base):
         assert isinstance(buf_bytes, bytes)
 
         buf_stream = BytesIO(buf_bytes)
-        res = pd.read_parquet(buf_stream)
+        res = read_parquet(buf_stream)
 
         tm.assert_frame_equal(df_full, res)
 
@@ -612,13 +621,6 @@ class TestParquetPyArrow(Base):
         self.check_error_on_write(df, pa, ValueError, "Duplicate column names found")
 
     def test_unsupported(self, pa):
-        if LooseVersion(pyarrow.__version__) < LooseVersion("0.15.1.dev"):
-            # period - will be supported using an extension type with pyarrow 1.0
-            df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-            # pyarrow 0.11 raises ArrowTypeError
-            # older pyarrows raise ArrowInvalid
-            self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
-
         # timedelta
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
         self.check_external_error_on_write(df, pa, NotImplementedError)
@@ -646,12 +648,7 @@ class TestParquetPyArrow(Base):
             ["a", "b", "c", "a", "c", "b"], categories=["b", "c", "d"], ordered=True
         )
 
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.15.0"):
-            check_round_trip(df, pa)
-        else:
-            # de-serialized as object for pyarrow < 0.15
-            expected = df.astype(object)
-            check_round_trip(df, pa, expected=expected)
+        check_round_trip(df, pa)
 
     @pytest.mark.xfail(
         is_platform_windows() and PY38,
@@ -660,8 +657,6 @@ class TestParquetPyArrow(Base):
     )
     def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
-        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
-            pytest.skip()
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
         check_round_trip(
@@ -673,8 +668,6 @@ class TestParquetPyArrow(Base):
         )
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
-        if LooseVersion(pyarrow.__version__) <= LooseVersion("0.17.0"):
-            pytest.skip()
         # GH #19134
         s3so = {"storage_options": s3so}
         check_round_trip(
@@ -705,14 +698,12 @@ class TestParquetPyArrow(Base):
         # These are added to back of dataframe on read. In new API category dtype is
         # only used if partition field is string, but this changed again to use
         # category dtype for all types (not only strings) in pyarrow 2.0.0
-        pa10 = (LooseVersion(pyarrow.__version__) >= LooseVersion("1.0.0")) and (
-            LooseVersion(pyarrow.__version__) < LooseVersion("2.0.0")
-        )
         if partition_col:
-            if pa10:
-                partition_col_type = "int32"
-            else:
-                partition_col_type = "category"
+            partition_col_type = (
+                "int32"
+                if (not pa_version_under1p0) and pa_version_under2p0
+                else "category"
+            )
 
             expected_df[partition_col] = expected_df[partition_col].astype(
                 partition_col_type
@@ -737,7 +728,7 @@ class TestParquetPyArrow(Base):
     def test_read_file_like_obj_support(self, df_compat):
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
-        df_from_buf = pd.read_parquet(buffer)
+        df_from_buf = read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
     @td.skip_if_no("pyarrow")
@@ -745,7 +736,7 @@ class TestParquetPyArrow(Base):
         monkeypatch.setenv("HOME", "TestingUser")
         monkeypatch.setenv("USERPROFILE", "TestingUser")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
-            pd.read_parquet("~/file.parquet")
+            read_parquet("~/file.parquet")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
             df_compat.to_parquet("~/file.parquet")
 
@@ -802,7 +793,7 @@ class TestParquetPyArrow(Base):
         out_df = df.astype(bool)
         check_round_trip(df, pa, write_kwargs={"schema": schema}, expected=out_df)
 
-    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol
@@ -813,24 +804,19 @@ class TestParquetPyArrow(Base):
                 "c": pd.Series(["a", None, "c"], dtype="string"),
             }
         )
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
-            expected = df
-        else:
-            # de-serialized as plain int / object
-            expected = df.assign(
-                a=df.a.astype("int64"), b=df.b.astype("int64"), c=df.c.astype("object")
-            )
-        check_round_trip(df, pa, expected=expected)
+        check_round_trip(df, pa)
 
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("0.16.0"):
-            expected = df
-        else:
-            # if missing values in integer, currently de-serialized as float
-            expected = df.assign(a=df.a.astype("float64"))
-        check_round_trip(df, pa, expected=expected)
+        check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="0.16.0")
+    @td.skip_if_no("pyarrow", min_version="1.0.0")
+    def test_pyarrow_backed_string_array(self, pa, string_storage):
+        # test ArrowStringArray supported through the __arrow_array__ protocol
+        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
+        with pd.option_context("string_storage", string_storage):
+            check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
+
+    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
@@ -843,7 +829,7 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow", min_version="0.16")
+    @td.skip_if_no("pyarrow")
     def test_use_nullable_dtypes(self, pa):
         import pyarrow.parquet as pq
 
@@ -872,7 +858,6 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result2, expected)
 
-    @td.skip_if_no("pyarrow", min_version="0.14")
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.0, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
@@ -880,7 +865,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa, write_kwargs={"version": "2.0"})
 
     def test_timezone_aware_index(self, pa, timezone_aware_date_list):
-        if LooseVersion(pyarrow.__version__) >= LooseVersion("2.0.0"):
+        if not pa_version_under2p0:
             # temporary skip this test until it is properly resolved
             # https://github.com/pandas-dev/pandas/issues/37286
             pytest.skip()
@@ -909,14 +894,25 @@ class TestParquetPyArrow(Base):
             )
         assert len(result) == 1
 
+    def test_read_parquet_manager(self, pa, using_array_manager):
+        # ensure that read_parquet honors the pandas.options.mode.data_manager option
+        df = pd.DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = read_parquet(path, pa)
+        if using_array_manager:
+            assert isinstance(result._mgr, pd.core.internals.ArrayManager)
+        else:
+            assert isinstance(result._mgr, pd.core.internals.BlockManager)
+
 
 class TestParquetFastParquet(Base):
-    @td.skip_if_no("fastparquet", min_version="0.3.2")
     def test_basic(self, fp, df_full):
         df = df_full
 
         dti = pd.date_range("20130101", periods=3, tz="US/Eastern")
-        dti = dti._with_freq(None)  # freq doesnt round-trip
+        dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["timedelta"] = pd.timedelta_range("1 day", periods=3)
         check_round_trip(df, fp)
@@ -938,7 +934,8 @@ class TestParquetFastParquet(Base):
 
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
-        self.check_error_on_write(df, fp, ValueError, "cannot infer type for")
+        # error from fastparquet -> don't check exact error message
+        self.check_error_on_write(df, fp, ValueError, None)
 
         # mixed
         df = pd.DataFrame({"a": ["a", 1, 2.0]})

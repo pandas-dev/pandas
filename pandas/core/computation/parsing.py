@@ -1,12 +1,16 @@
 """
 :func:`~pandas.eval` source string parsing functions
 """
+from __future__ import annotations
 
 from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import Hashable, Iterator, Tuple
+from typing import (
+    Hashable,
+    Iterator,
+)
 
 # A token value Python's tokenizer probably will never use.
 BACKTICK_QUOTED_STRING = 100
@@ -62,7 +66,7 @@ def create_valid_python_identifier(name: str) -> str:
     return name
 
 
-def clean_backtick_quoted_toks(tok: Tuple[int, str]) -> Tuple[int, str]:
+def clean_backtick_quoted_toks(tok: tuple[int, str]) -> tuple[int, str]:
     """
     Clean up a column name if surrounded by backticks.
 
@@ -127,7 +131,7 @@ def clean_column_name(name: Hashable) -> Hashable:
 
 def tokenize_backtick_quoted_string(
     token_generator: Iterator[tokenize.TokenInfo], source: str, string_start: int
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     """
     Creates a token from a backtick quoted string.
 
@@ -159,7 +163,7 @@ def tokenize_backtick_quoted_string(
     return BACKTICK_QUOTED_STRING, source[string_start:string_end]
 
 
-def tokenize_string(source: str) -> Iterator[Tuple[int, str]]:
+def tokenize_string(source: str) -> Iterator[tuple[int, str]]:
     """
     Tokenize a Python source code string.
 

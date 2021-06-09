@@ -1,18 +1,21 @@
 """
 Ops for masked arrays.
 """
-from typing import Optional, Union
+from __future__ import annotations
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 
 
 def kleene_or(
-    left: Union[bool, np.ndarray],
-    right: Union[bool, np.ndarray],
-    left_mask: Optional[np.ndarray],
-    right_mask: Optional[np.ndarray],
+    left: bool | np.ndarray,
+    right: bool | np.ndarray,
+    left_mask: np.ndarray | None,
+    right_mask: np.ndarray | None,
 ):
     """
     Boolean ``or`` using Kleene logic.
@@ -70,10 +73,10 @@ def kleene_or(
 
 
 def kleene_xor(
-    left: Union[bool, np.ndarray],
-    right: Union[bool, np.ndarray],
-    left_mask: Optional[np.ndarray],
-    right_mask: Optional[np.ndarray],
+    left: bool | np.ndarray,
+    right: bool | np.ndarray,
+    left_mask: np.ndarray | None,
+    right_mask: np.ndarray | None,
 ):
     """
     Boolean ``xor`` using Kleene logic.
@@ -103,7 +106,9 @@ def kleene_xor(
     if right is libmissing.NA:
         result = np.zeros_like(left)
     else:
-        result = left ^ right
+        # error: Incompatible types in assignment (expression has type
+        # "Union[bool, Any]", variable has type "ndarray")
+        result = left ^ right  # type: ignore[assignment]
 
     if right_mask is None:
         if right is libmissing.NA:
@@ -117,10 +122,10 @@ def kleene_xor(
 
 
 def kleene_and(
-    left: Union[bool, libmissing.NAType, np.ndarray],
-    right: Union[bool, libmissing.NAType, np.ndarray],
-    left_mask: Optional[np.ndarray],
-    right_mask: Optional[np.ndarray],
+    left: bool | libmissing.NAType | np.ndarray,
+    right: bool | libmissing.NAType | np.ndarray,
+    left_mask: np.ndarray | None,
+    right_mask: np.ndarray | None,
 ):
     """
     Boolean ``and`` using Kleene logic.
@@ -173,6 +178,6 @@ def kleene_and(
     return result, mask
 
 
-def raise_for_nan(value, method):
+def raise_for_nan(value, method: str):
     if lib.is_float(value) and np.isnan(value):
         raise ValueError(f"Cannot perform logical '{method}' with floating NaN")

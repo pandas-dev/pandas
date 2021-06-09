@@ -1,9 +1,18 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Index, Int64Index, RangeIndex, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 

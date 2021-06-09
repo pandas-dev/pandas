@@ -9,13 +9,22 @@ from cython import Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int32_t, int64_t, ndarray, uint32_t
+from numpy cimport (
+    int8_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint32_t,
+)
 
 cnp.import_array()
 
 from pandas._config.localization import set_locale
 
-from pandas._libs.tslibs.ccalendar import DAYS_FULL, MONTHS_FULL
+from pandas._libs.tslibs.ccalendar import (
+    DAYS_FULL,
+    MONTHS_FULL,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -84,7 +93,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     return out
 
 
-def month_position_check(fields, weekdays):
+def month_position_check(fields, weekdays) -> str | None:
     cdef:
         int32_t daysinmonth, y, m, d
         bint calendar_end = True
@@ -626,9 +635,9 @@ def get_locale_names(name_type: str, locale: object = None):
 
     Parameters
     ----------
-    name_type : string, attribute of LocaleTime() in which to return localized
-        names
-    locale : string
+    name_type : str
+        Attribute of LocaleTime() in which to return localized names.
+    locale : str
 
     Returns
     -------
@@ -746,7 +755,7 @@ cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
 
 
-def round_nsint64(values: np.ndarray, mode: RoundTo, nanos) -> np.ndarray:
+def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
     """
     Applies rounding mode at given frequency
 

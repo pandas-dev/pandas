@@ -28,7 +28,10 @@ __all__ = [
 ]
 
 from pandas._libs.tslibs import dtypes
-from pandas._libs.tslibs.conversion import OutOfBoundsTimedelta, localize_pydatetime
+from pandas._libs.tslibs.conversion import (
+    OutOfBoundsTimedelta,
+    localize_pydatetime,
+)
 from pandas._libs.tslibs.dtypes import Resolution
 from pandas._libs.tslibs.nattype import (
     NaT,
@@ -38,8 +41,15 @@ from pandas._libs.tslibs.nattype import (
     nat_strings,
 )
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
-from pandas._libs.tslibs.offsets import BaseOffset, Tick, to_offset
-from pandas._libs.tslibs.period import IncompatibleFrequency, Period
+from pandas._libs.tslibs.offsets import (
+    BaseOffset,
+    Tick,
+    to_offset,
+)
+from pandas._libs.tslibs.period import (
+    IncompatibleFrequency,
+    Period,
+)
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     delta_to_nanoseconds,

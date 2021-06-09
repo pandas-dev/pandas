@@ -4,7 +4,12 @@ Assertion helpers for arithmetic tests.
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, array as pd_array
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    array,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PandasArray
 
@@ -55,7 +60,7 @@ def assert_invalid_comparison(left, right, box):
     # Not for tznaive-tzaware comparison
 
     # Note: not quite the same as how we do this for tm.box_expected
-    xbox = box if box not in [Index, pd_array] else np.array
+    xbox = box if box not in [Index, array] else np.array
 
     def xbox2(x):
         # Eventually we'd like this to be tighter, but for now we'll

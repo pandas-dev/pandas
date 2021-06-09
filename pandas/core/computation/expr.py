@@ -1,12 +1,19 @@
 """
 :func:`~pandas.eval` parsers.
 """
+from __future__ import annotations
 
 import ast
-from functools import partial, reduce
+from functools import (
+    partial,
+    reduce,
+)
 from keyword import iskeyword
 import tokenize
-from typing import Callable, Optional, Set, Tuple, Type, TypeVar
+from typing import (
+    Callable,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -31,13 +38,16 @@ from pandas.core.computation.ops import (
     UndefinedVariableError,
     is_term,
 )
-from pandas.core.computation.parsing import clean_backtick_quoted_toks, tokenize_string
+from pandas.core.computation.parsing import (
+    clean_backtick_quoted_toks,
+    tokenize_string,
+)
 from pandas.core.computation.scope import Scope
 
 import pandas.io.formats.printing as printing
 
 
-def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:
+def _rewrite_assign(tok: tuple[int, str]) -> tuple[int, str]:
     """
     Rewrite the assignment operator for PyTables expressions that use ``=``
     as a substitute for ``==``.
@@ -56,7 +66,7 @@ def _rewrite_assign(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, "==" if tokval == "=" else tokval
 
 
-def _replace_booleans(tok: Tuple[int, str]) -> Tuple[int, str]:
+def _replace_booleans(tok: tuple[int, str]) -> tuple[int, str]:
     """
     Replace ``&`` with ``and`` and ``|`` with ``or`` so that bitwise
     precedence is changed to boolean precedence.
@@ -81,7 +91,7 @@ def _replace_booleans(tok: Tuple[int, str]) -> Tuple[int, str]:
     return toknum, tokval
 
 
-def _replace_locals(tok: Tuple[int, str]) -> Tuple[int, str]:
+def _replace_locals(tok: tuple[int, str]) -> tuple[int, str]:
     """
     Replace local variables with a syntactically valid name.
 
@@ -258,7 +268,7 @@ def _node_not_implemented(node_name: str) -> Callable[..., None]:
 _T = TypeVar("_T", bound="BaseExprVisitor")
 
 
-def disallow(nodes: Set[str]) -> Callable[[Type[_T]], Type[_T]]:
+def disallow(nodes: set[str]) -> Callable[[type[_T]], type[_T]]:
     """
     Decorator to disallow certain nodes from parsing. Raises a
     NotImplementedError instead.
@@ -268,7 +278,7 @@ def disallow(nodes: Set[str]) -> Callable[[Type[_T]], Type[_T]]:
     callable
     """
 
-    def disallowed(cls: Type[_T]) -> Type[_T]:
+    def disallowed(cls: type[_T]) -> type[_T]:
         cls.unsupported_nodes = ()
         for node in nodes:
             new_method = _node_not_implemented(node)
@@ -339,7 +349,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     preparser : callable
     """
 
-    const_type: Type[Term] = Constant
+    const_type: type[Term] = Constant
     term_type = Term
 
     binary_ops = CMP_OPS_SYMS + BOOL_OPS_SYMS + ARITH_OPS_SYMS
@@ -377,7 +387,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         ast.NotIn: ast.NotIn,
     }
 
-    unsupported_nodes: Tuple[str, ...]
+    unsupported_nodes: tuple[str, ...]
 
     def __init__(self, env, engine, parser, preparser=_preparse):
         self.env = env
@@ -659,8 +669,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            # pandas\core\computation\expr.py:663: error: "expr" has no
-            # attribute "id"  [attr-defined]
+            # error: "expr" has no attribute "id"
             raise ValueError(
                 f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
             )
@@ -684,8 +693,7 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    # pandas\core\computation\expr.py:684: error: "expr" has no
-                    # attribute "id"  [attr-defined]
+                    # error: "expr" has no attribute "id"
                     raise ValueError(
                         "keyword error in function call "  # type: ignore[attr-defined]
                         f"'{node.func.id}'"
@@ -787,7 +795,7 @@ class Expr:
         expr,
         engine: str = "numexpr",
         parser: str = "pandas",
-        env: Optional[Scope] = None,
+        env: Scope | None = None,
         level: int = 0,
     ):
         self.expr = expr

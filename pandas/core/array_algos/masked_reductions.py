@@ -8,7 +8,6 @@ from typing import Callable
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas.compat import np_version_under1p17
 
 from pandas.core.nanops import check_below_min_count
 
@@ -46,11 +45,7 @@ def _sumprod(
     else:
         if check_below_min_count(values.shape, mask, min_count):
             return libmissing.NA
-
-        if np_version_under1p17:
-            return func(values[~mask])
-        else:
-            return func(values, where=~mask)
+        return func(values, where=~mask)
 
 
 def sum(

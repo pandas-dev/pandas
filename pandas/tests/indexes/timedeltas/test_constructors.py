@@ -4,9 +4,17 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, timedelta_range, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    timedelta_range,
+    to_timedelta,
+)
 import pandas._testing as tm
-from pandas.core.arrays.timedeltas import TimedeltaArray, sequence_to_td64ns
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArray,
+    sequence_to_td64ns,
+)
 
 
 class TestTimedeltaIndex:
@@ -185,7 +193,7 @@ class TestTimedeltaIndex:
             timedelta_range(start="1 days", periods="foo", freq="D")
 
         msg = (
-            r"TimedeltaIndex\(\) must be called with a collection of some kind, "
+            r"TimedeltaIndex\(\.\.\.\) must be called with a collection of some kind, "
             "'1 days' was passed"
         )
         with pytest.raises(TypeError, match=msg):

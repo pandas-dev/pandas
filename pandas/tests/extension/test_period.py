@@ -184,3 +184,7 @@ class TestParsing(BasePeriodTests, base.BaseParsingTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
         super().test_EA_types(engine, data)
+
+
+class Test2DCompat(BasePeriodTests, base.Dim2CompatTests):
+    pass

@@ -5,9 +5,14 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, DatetimeIndex, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.window.common import flex_binary_moment
 
 
 def _rolling_consistency_cases():
@@ -125,14 +130,6 @@ def test_rolling_corr_with_zero_variance(window):
     other = Series(np.arange(20))
 
     assert s.rolling(window=window).corr(other=other).isna().all()
-
-
-def test_flex_binary_moment():
-    # GH3155
-    # don't blow the stack
-    msg = "arguments to moment function must be of type np.ndarray/Series/DataFrame"
-    with pytest.raises(TypeError, match=msg):
-        flex_binary_moment(5, 6, None)
 
 
 def test_corr_sanity():

@@ -4,7 +4,14 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import CategoricalIndex, DataFrame, Index, Series, date_range, offsets
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 
 

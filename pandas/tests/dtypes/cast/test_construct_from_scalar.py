@@ -4,7 +4,11 @@ import pytest
 from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import Categorical, Timedelta, Timestamp
+from pandas import (
+    Categorical,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 
 

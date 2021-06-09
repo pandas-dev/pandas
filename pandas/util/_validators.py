@@ -2,7 +2,12 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
-from typing import Iterable, Union
+from __future__ import annotations
+
+from typing import (
+    Iterable,
+    Sequence,
+)
 import warnings
 
 import numpy as np
@@ -205,9 +210,39 @@ def validate_args_and_kwargs(fname, args, kwargs, max_fname_arg_count, compat_ar
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(value, arg_name):
-    """ Ensures that argument passed in arg_name is of type bool. """
-    if not (is_bool(value) or value is None):
+def validate_bool_kwarg(value, arg_name, none_allowed=True, int_allowed=False):
+    """
+    Ensure that argument passed in arg_name can be interpreted as boolean.
+
+    Parameters
+    ----------
+    value : bool
+        Value to be validated.
+    arg_name : str
+        Name of the argument. To be reflected in the error message.
+    none_allowed : bool, default True
+        Whether to consider None to be a valid boolean.
+    int_allowed : bool, default False
+        Whether to consider integer value to be a valid boolean.
+
+    Returns
+    -------
+    value
+        The same value as input.
+
+    Raises
+    ------
+    ValueError
+        If the value is not a valid boolean.
+    """
+    good_value = is_bool(value)
+    if none_allowed:
+        good_value = good_value or value is None
+
+    if int_allowed:
+        good_value = good_value or isinstance(value, int)
+
+    if not good_value:
         raise ValueError(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
@@ -349,7 +384,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     return value, method
 
 
-def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
+def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
 
@@ -381,3 +416,14 @@ def validate_percentile(q: Union[float, Iterable[float]]) -> np.ndarray:
         if not all(0 <= qs <= 1 for qs in q_arr):
             raise ValueError(msg.format(q_arr / 100.0))
     return q_arr
+
+
+def validate_ascending(
+    ascending: bool | int | Sequence[bool | int] = True,
+):
+    """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    kwargs = {"none_allowed": False, "int_allowed": True}
+    if not isinstance(ascending, (list, tuple)):
+        return validate_bool_kwarg(ascending, "ascending", **kwargs)
+
+    return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]

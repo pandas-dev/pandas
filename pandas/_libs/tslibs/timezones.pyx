@@ -1,6 +1,13 @@
-from datetime import timedelta, timezone
+from datetime import (
+    timedelta,
+    timezone,
+)
 
-from cpython.datetime cimport datetime, timedelta, tzinfo
+from cpython.datetime cimport (
+    datetime,
+    timedelta,
+    tzinfo,
+)
 
 # dateutil compat
 
@@ -24,7 +31,10 @@ from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from pandas._libs.tslibs.util cimport get_nat, is_integer_object
+from pandas._libs.tslibs.util cimport (
+    get_nat,
+    is_integer_object,
+)
 
 
 cdef int64_t NPY_NAT = get_nat()
@@ -57,6 +67,7 @@ cdef inline bint treat_tz_as_dateutil(tzinfo tz):
     return hasattr(tz, '_trans_list') and hasattr(tz, '_trans_idx')
 
 
+# Returns str or tzinfo object
 cpdef inline object get_timezone(tzinfo tz):
     """
     We need to do several things here:
@@ -70,6 +81,8 @@ cpdef inline object get_timezone(tzinfo tz):
     the tz name. It needs to be a string so that we can serialize it with
     UJSON/pytables. maybe_get_tz (below) is the inverse of this process.
     """
+    if tz is None:
+        raise TypeError("tz argument cannot be None")
     if is_utc(tz):
         return tz
     else:
@@ -354,6 +367,8 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
     elif is_utc(end):
         # Ensure we don't treat tzlocal as equal to UTC when running in UTC
         return False
+    elif start is None or end is None:
+        return start is None and end is None
     return get_timezone(start) == get_timezone(end)
 
 

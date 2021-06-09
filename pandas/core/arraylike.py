@@ -5,7 +5,7 @@ Methods that can be shared by many array-like classes or subclasses:
     ExtensionArray
 """
 import operator
-from typing import Any, Callable
+from typing import Any
 import warnings
 
 import numpy as np
@@ -13,7 +13,10 @@ import numpy as np
 from pandas._libs import lib
 
 from pandas.core.construction import extract_array
-from pandas.core.ops import maybe_dispatch_ufunc_to_dunder_op, roperator
+from pandas.core.ops import (
+    maybe_dispatch_ufunc_to_dunder_op,
+    roperator,
+)
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 
@@ -166,7 +169,7 @@ def _is_aligned(frame, other):
         return frame.columns.equals(other.index)
 
 
-def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+def _maybe_fallback(ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
     """
     In the future DataFrame, inputs to ufuncs will be aligned before applying
     the ufunc, but for now we ignore the index but raise a warning if behaviour
@@ -228,7 +231,7 @@ def _maybe_fallback(ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
     return NotImplemented
 
 
-def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any):
+def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any):
     """
     Compatibility with numpy ufuncs.
 
@@ -252,7 +255,12 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         return result
 
     # Determine if we should defer.
-    no_defer = (np.ndarray.__array_ufunc__, cls.__array_ufunc__)
+
+    # error: "Type[ndarray]" has no attribute "__array_ufunc__"
+    no_defer = (
+        np.ndarray.__array_ufunc__,  # type: ignore[attr-defined]
+        cls.__array_ufunc__,
+    )
 
     for item in inputs:
         higher_priority = (
@@ -334,16 +342,14 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
                 result, **reconstruct_axes, **reconstruct_kwargs, copy=False
             )
         # TODO: When we support multiple values in __finalize__, this
-        # should pass alignable to `__fianlize__` instead of self.
+        # should pass alignable to `__finalize__` instead of self.
         # Then `np.add(a, b)` would consider attrs from both a and b
         # when a and b are NDFrames.
         if len(alignable) == 1:
             result = result.__finalize__(self)
         return result
 
-    if self.ndim > 1 and (
-        len(inputs) > 1 or ufunc.nout > 1  # type: ignore[attr-defined]
-    ):
+    if self.ndim > 1 and (len(inputs) > 1 or ufunc.nout > 1):
         # Just give up on preserving types in the complex case.
         # In theory we could preserve them for them.
         # * nout>1 is doable if BlockManager.apply took nout and
@@ -351,15 +357,17 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
         inputs = tuple(np.asarray(x) for x in inputs)
-        result = getattr(ufunc, method)(*inputs)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
     elif self.ndim == 1:
         # ufunc(series, ...)
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
-        if method == "__call__":
+        if method == "__call__" and not kwargs:
             # for np.<ufunc>(..) calls
+            # kwargs cannot necessarily be handled block-by-block, so only
+            # take this path if there are no kwargs
             mgr = inputs[0]._mgr
             result = mgr.apply(getattr(ufunc, method))
         else:
@@ -367,7 +375,7 @@ def array_ufunc(self, ufunc: Callable, method: str, *inputs: Any, **kwargs: Any)
             # Those can have an axis keyword and thus can't be called block-by-block
             result = getattr(ufunc, method)(np.asarray(inputs[0]), **kwargs)
 
-    if ufunc.nout > 1:  # type: ignore[attr-defined]
+    if ufunc.nout > 1:
         result = tuple(reconstruct(x) for x in result)
     else:
         result = reconstruct(result)

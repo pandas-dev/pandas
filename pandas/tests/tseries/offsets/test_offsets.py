@@ -1,22 +1,41 @@
 """
 Tests of pandas.tseries.offsets
 """
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from datetime import (
+    datetime,
+    timedelta,
+)
+from typing import (
+    Dict,
+    List,
+    Tuple,
+)
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, Timestamp, conversion, timezones
+from pandas._libs.tslibs import (
+    NaT,
+    Timestamp,
+    conversion,
+    timezones,
+)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import _get_offset, _offset_map
+from pandas._libs.tslibs.offsets import (
+    _get_offset,
+    _offset_map,
+)
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import np_datetime64_compat
 from pandas.errors import PerformanceWarning
 
 from pandas import DatetimeIndex
 import pandas._testing as tm
-from pandas.tests.tseries.offsets.common import Base, WeekDay, assert_offset_equal
+from pandas.tests.tseries.offsets.common import (
+    Base,
+    WeekDay,
+    assert_offset_equal,
+)
 
 import pandas.tseries.offsets as offsets
 from pandas.tseries.offsets import (
@@ -45,7 +64,7 @@ _ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 
 class TestCommon(Base):
-    # exected value created by Base._get_offset
+    # executed value created by Base._get_offset
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {
@@ -175,7 +194,7 @@ class TestCommon(Base):
             exp_warning = UserWarning
 
         # test nanosecond is preserved
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+        with tm.assert_produces_warning(exp_warning):
             result = func(ts)
         assert isinstance(result, Timestamp)
         if normalize is False:
@@ -212,7 +231,7 @@ class TestCommon(Base):
                 exp_warning = UserWarning
 
             # test nanosecond is preserved
-            with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            with tm.assert_produces_warning(exp_warning):
                 result = func(ts)
             assert isinstance(result, Timestamp)
             if normalize is False:
@@ -851,3 +870,21 @@ def test_dateoffset_immutable(attribute):
     msg = "DateOffset objects are immutable"
     with pytest.raises(AttributeError, match=msg):
         setattr(offset, attribute, 5)
+
+
+@pytest.mark.parametrize(
+    "weekmask, expected_time, mult",
+    [
+        ["Mon Tue Wed Thu Fri Sat", "2018-11-10 09:00:00", 10],
+        ["Tue Wed Thu Fri Sat", "2018-11-13 08:00:00", 18],
+    ],
+)
+def test_custom_businesshour_weekmask_and_holidays(weekmask, expected_time, mult):
+    # GH 23542
+    holidays = ["2018-11-09"]
+    bh = CustomBusinessHour(
+        start="08:00", end="17:00", weekmask=weekmask, holidays=holidays
+    )
+    result = Timestamp("2018-11-08 08:00") + mult * bh
+    expected = Timestamp(expected_time)
+    assert result == expected

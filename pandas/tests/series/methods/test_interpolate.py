@@ -4,7 +4,13 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, MultiIndex, Series, date_range, isna
+from pandas import (
+    Index,
+    MultiIndex,
+    Series,
+    date_range,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -636,7 +642,7 @@ class TestSeriesInterpolateData:
 
     def test_interp_pad_datetime64tz_values(self):
         # GH#27628 missing.interpolate_2d should handle datetimetz values
-        dti = pd.date_range("2015-04-05", periods=3, tz="US/Central")
+        dti = date_range("2015-04-05", periods=3, tz="US/Central")
         ser = Series(dti)
         ser[1] = pd.NaT
         result = ser.interpolate(method="pad")
@@ -729,13 +735,13 @@ class TestSeriesInterpolateData:
 
     def test_series_interpolate_intraday(self):
         # #1698
-        index = pd.date_range("1/1/2012", periods=4, freq="12D")
+        index = date_range("1/1/2012", periods=4, freq="12D")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(days=1)).sort_values()
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = pd.date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12H")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")
@@ -804,4 +810,16 @@ class TestSeriesInterpolateData:
         ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
+        tm.assert_series_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.interpolate except "
+            r"for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.interpolate("pad", 0)
+        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

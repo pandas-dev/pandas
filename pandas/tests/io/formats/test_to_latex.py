@@ -5,7 +5,10 @@ from textwrap import dedent
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 from pandas.io.formats.format import DataFrameFormatter
@@ -115,6 +118,24 @@ class TestToLatex:
             \midrule
             0 &  1 &  b1 \\
             1 &  2 &  b2 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_float_format_object_col(self):
+        # GH#40024
+        ser = Series([1000.0, "test"])
+        result = ser.to_latex(float_format="{:,.0f}".format)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{ll}
+            \toprule
+            {} &     0 \\
+            \midrule
+            0 & 1,000 \\
+            1 &  test \\
             \bottomrule
             \end{tabular}
             """
@@ -1366,6 +1387,44 @@ class TestToLatexMultiindex:
             \midrule
             1 & 2 &  3 \\
               & 2 &  3 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
+    def test_to_latex_multiindex_multirow(self):
+        # GH 16719
+        mi = pd.MultiIndex.from_product(
+            [[0.0, 1.0], [3.0, 2.0, 1.0], ["0", "1"]], names=["i", "val0", "val1"]
+        )
+        df = DataFrame(index=mi)
+        result = df.to_latex(multirow=True, escape=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{lll}
+            \toprule
+                &     &   \\
+            i & val0 & val1 \\
+            \midrule
+            \multirow{6}{*}{0.0} & \multirow{2}{*}{3.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{2.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{1.0} & 0 \\
+                &     & 1 \\
+            \cline{1-3}
+            \cline{2-3}
+            \multirow{6}{*}{1.0} & \multirow{2}{*}{3.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{2.0} & 0 \\
+                &     & 1 \\
+            \cline{2-3}
+                & \multirow{2}{*}{1.0} & 0 \\
+                &     & 1 \\
             \bottomrule
             \end{tabular}
             """

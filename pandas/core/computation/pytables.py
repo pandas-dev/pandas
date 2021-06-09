@@ -3,37 +3,50 @@ from __future__ import annotations
 
 import ast
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import numpy as np
 
-from pandas._libs.tslibs import Timedelta, Timestamp
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
 
 import pandas.core.common as com
-from pandas.core.computation import expr, ops, scope as _scope
+from pandas.core.computation import (
+    expr,
+    ops,
+    scope as _scope,
+)
 from pandas.core.computation.common import ensure_decoded
 from pandas.core.computation.expr import BaseExprVisitor
-from pandas.core.computation.ops import UndefinedVariableError, is_term
+from pandas.core.computation.ops import (
+    UndefinedVariableError,
+    is_term,
+)
 from pandas.core.construction import extract_array
 from pandas.core.indexes.base import Index
 
-from pandas.io.formats.printing import pprint_thing, pprint_thing_encoded
+from pandas.io.formats.printing import (
+    pprint_thing,
+    pprint_thing_encoded,
+)
 
 
 class PyTablesScope(_scope.Scope):
     __slots__ = ("queryables",)
 
-    queryables: Dict[str, Any]
+    queryables: dict[str, Any]
 
     def __init__(
         self,
         level: int,
         global_dict=None,
         local_dict=None,
-        queryables: Optional[Dict[str, Any]] = None,
+        queryables: dict[str, Any] | None = None,
     ):
         super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
         self.queryables = queryables or {}
@@ -86,10 +99,10 @@ class BinOp(ops.BinOp):
     _max_selectors = 31
 
     op: str
-    queryables: Dict[str, Any]
-    condition: Optional[str]
+    queryables: dict[str, Any]
+    condition: str | None
 
-    def __init__(self, op: str, lhs, rhs, queryables: Dict[str, Any], encoding):
+    def __init__(self, op: str, lhs, rhs, queryables: dict[str, Any], encoding):
         super().__init__(op, lhs, rhs)
         self.queryables = queryables
         self.encoding = encoding
@@ -213,7 +226,11 @@ class BinOp(ops.BinOp):
             if v not in metadata:
                 result = -1
             else:
-                result = metadata.searchsorted(v, side="left")
+                # error: Incompatible types in assignment (expression has type
+                # "Union[Any, ndarray]", variable has type "int")
+                result = metadata.searchsorted(  # type: ignore[assignment]
+                    v, side="left"
+                )
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))
@@ -248,7 +265,7 @@ class BinOp(ops.BinOp):
 
 
 class FilterBinOp(BinOp):
-    filter: Optional[Tuple[Any, Any, Index]] = None
+    filter: tuple[Any, Any, Index] | None = None
 
     def __repr__(self) -> str:
         if self.filter is None:
@@ -527,13 +544,14 @@ class PyTablesExpr(expr.Expr):
     "major_axis>=20130101"
     """
 
-    _visitor: Optional[PyTablesExprVisitor]
+    _visitor: PyTablesExprVisitor | None
     env: PyTablesScope
+    expr: str
 
     def __init__(
         self,
         where,
-        queryables: Optional[Dict[str, Any]] = None,
+        queryables: dict[str, Any] | None = None,
         encoding=None,
         scope_level: int = 0,
     ):
@@ -553,7 +571,7 @@ class PyTablesExpr(expr.Expr):
             local_dict = where.env.scope
             _where = where.expr
 
-        elif isinstance(where, (list, tuple)):
+        elif is_list_like(where):
             where = list(where)
             for idx, w in enumerate(where):
                 if isinstance(w, PyTablesExpr):
@@ -563,6 +581,7 @@ class PyTablesExpr(expr.Expr):
                     where[idx] = w
             _where = " & ".join(f"({w})" for w in com.flatten(where))
         else:
+            # _validate_where ensures we otherwise have a string
             _where = where
 
         self.expr = _where

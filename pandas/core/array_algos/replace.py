@@ -1,13 +1,21 @@
 """
 Methods used by Block.replace and related methods.
 """
+from __future__ import annotations
+
 import operator
 import re
-from typing import Any, Optional, Pattern, Union
+from typing import (
+    Any,
+    Pattern,
+)
 
 import numpy as np
 
-from pandas._typing import ArrayLike, Scalar
+from pandas._typing import (
+    ArrayLike,
+    Scalar,
+)
 
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -34,8 +42,8 @@ def should_use_regex(regex: bool, to_replace: Any) -> bool:
 
 
 def compare_or_regex_search(
-    a: ArrayLike, b: Union[Scalar, Pattern], regex: bool, mask: np.ndarray
-) -> Union[ArrayLike, bool]:
+    a: ArrayLike, b: Scalar | Pattern, regex: bool, mask: np.ndarray
+) -> ArrayLike | bool:
     """
     Compare two array_like inputs of the same shape or two scalar values
 
@@ -57,7 +65,7 @@ def compare_or_regex_search(
         return ~mask
 
     def _check_comparison_types(
-        result: Union[ArrayLike, bool], a: ArrayLike, b: Union[Scalar, Pattern]
+        result: ArrayLike | bool, a: ArrayLike, b: Scalar | Pattern
     ):
         """
         Raises an error if the two arrays (a,b) cannot be compared.
@@ -107,7 +115,7 @@ def compare_or_regex_search(
     return result
 
 
-def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.ndarray]):
+def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: np.ndarray | None):
     """
     Parameters
     ----------
@@ -141,7 +149,7 @@ def replace_regex(values: ArrayLike, rx: re.Pattern, value, mask: Optional[np.nd
             else:
                 return s
 
-    f = np.vectorize(re_replacer, otypes=[values.dtype])
+    f = np.vectorize(re_replacer, otypes=[np.object_])
 
     if mask is None:
         values[:] = f(values)

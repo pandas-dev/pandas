@@ -1,11 +1,17 @@
 from datetime import timedelta
 import itertools
-from typing import Dict, List
+from typing import (
+    Dict,
+    List,
+)
 
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -128,7 +134,10 @@ class TestSetitemCoercion(CoercionBase):
             )
             request.node.add_marker(mark)
 
-        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        warn = None if exp_dtype is np.int8 else FutureWarning
+        msg = "Values are too large to be losslessly cast to int8"
+        with tm.assert_produces_warning(warn, match=msg):
+            exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -251,6 +260,15 @@ class TestSetitemCoercion(CoercionBase):
             [pd.Timedelta("1 day"), val, pd.Timedelta("3 day"), pd.Timedelta("4 day")]
         )
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
+
+    def test_setitem_series_no_coercion_from_values_list(self):
+        # GH35865 - int casted to str when internally calling np.array(ser.values)
+        ser = pd.Series(["a", 1])
+        ser[:] = list(ser.values)
+
+        expected = pd.Series(["a", 1])
+
+        tm.assert_series_equal(ser, expected)
 
     def _assert_setitem_index_conversion(
         self, original_series, loc_key, expected_index, expected_dtype
@@ -437,7 +455,7 @@ class TestInsertIndexCoercion(CoercionBase):
             assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
-            # mismatched tz --> cast to object (could reasonably cast to commom tz)
+            # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)
@@ -635,7 +653,7 @@ class TestWhereCoercion(CoercionBase):
             values = klass([True, False, True, True])
         else:
             values = klass(x * fill_val for x in [5, 6, 7, 8])
-        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]])
+        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]], dtype=exp_dtype)
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -802,10 +820,13 @@ class TestWhereCoercion(CoercionBase):
         result = tdi.where(cond, value)
         tm.assert_index_equal(result, expected)
 
-        msg = "value should be a 'Timedelta', 'NaT', or array of thos"
-        with pytest.raises(TypeError, match=msg):
-            # wrong-dtyped NaT
-            tdi.where(cond, np.datetime64("NaT", "ns"))
+        # wrong-dtyped NaT
+        dtnat = np.datetime64("NaT", "ns")
+        expected = pd.Index([tdi[0], dtnat, dtnat, tdi[3]], dtype=object)
+        assert expected[1] is dtnat
+
+        result = tdi.where(cond, dtnat)
+        tm.assert_index_equal(result, expected)
 
     def test_where_index_period(self):
         dti = pd.date_range("2016-01-01", periods=3, freq="QS")
@@ -825,14 +846,16 @@ class TestWhereCoercion(CoercionBase):
         expected = pd.PeriodIndex([other[0], pi[1], other[2]])
         tm.assert_index_equal(result, expected)
 
-        # Passing a mismatched scalar
-        msg = "value should be a 'Period', 'NaT', or array of those"
-        with pytest.raises(TypeError, match=msg):
-            pi.where(cond, pd.Timedelta(days=4))
+        # Passing a mismatched scalar -> casts to object
+        td = pd.Timedelta(days=4)
+        expected = pd.Index([td, pi[1], td], dtype=object)
+        result = pi.where(cond, td)
+        tm.assert_index_equal(result, expected)
 
-        msg = r"Input has different freq=D from PeriodArray\(freq=Q-DEC\)"
-        with pytest.raises(ValueError, match=msg):
-            pi.where(cond, pd.Period("2020-04-21", "D"))
+        per = pd.Period("2020-04-21", "D")
+        expected = pd.Index([per, pi[1], per], dtype=object)
+        result = pi.where(cond, per)
+        tm.assert_index_equal(result, expected)
 
 
 class TestFillnaSeriesCoercion(CoercionBase):

@@ -8,7 +8,7 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py37_np16:
+      py37_np17:
         ENV_FILE: ci/deps/azure-windows-37.yaml
         CONDA_PY: "37"
         PATTERN: "not slow and not network"
