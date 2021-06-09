@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from io import (
     BytesIO,
     StringIO,
 )
 import os
-from typing import Union
 from urllib.error import HTTPError
 
 import numpy as np
@@ -792,7 +793,7 @@ def test_stylesheet_io(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    xsl_obj: Union[BytesIO, StringIO]
+    xsl_obj: BytesIO | StringIO
 
     with open(xsl, mode) as f:
         if mode == "rb":
@@ -942,7 +943,7 @@ def test_stylesheet_file_close(datapath, mode):
     kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
     xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
 
-    xsl_obj: Union[BytesIO, StringIO]
+    xsl_obj: BytesIO | StringIO
 
     with open(xsl, mode) as f:
         if mode == "rb":

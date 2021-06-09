@@ -1,7 +1,6 @@
 import operator
 import re
 import time
-from typing import Any
 import warnings
 
 import cython
@@ -364,7 +363,7 @@ cdef class BaseOffset:
         self.normalize = normalize
         self._cache = {}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an

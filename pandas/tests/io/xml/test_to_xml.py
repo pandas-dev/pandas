@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from io import (
     BytesIO,
     StringIO,
 )
 import os
-from typing import Union
 
 import numpy as np
 import pytest
@@ -963,7 +964,7 @@ def test_stylesheet_file_like(datapath, mode):
 def test_stylesheet_io(datapath, mode):
     xsl_path = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    xsl_obj: Union[BytesIO, StringIO]
+    xsl_obj: BytesIO | StringIO
 
     with open(xsl_path, mode) as f:
         if mode == "rb":
