@@ -1286,13 +1286,21 @@ class _LocIndexer(_LocationIndexer):
         """
         ax = self.obj._get_axis(axis)
 
-        # Have the index compute an indexer or return None
-        # if it cannot handle:
-        indexer, keyarr = ax._convert_listlike_indexer(key)
-        # We only act on all found values:
-        if indexer is not None and (indexer != -1).all():
-            # _validate_read_indexer is a no-op if no -1s, so skip
-            return ax[indexer], indexer
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
+
+        if isinstance(ax, MultiIndex):
+            # get_indexer expects a MultiIndex or sequence of tuples, but
+            #  we may be doing partial-indexing, so need an extra check
+
+            # Have the index compute an indexer or return None
+            # if it cannot handle:
+            indexer = ax._convert_listlike_indexer(keyarr)
+            # We only act on all found values:
+            if indexer is not None and (indexer != -1).all():
+                # _validate_read_indexer is a no-op if no -1s, so skip
+                return ax[indexer], indexer
 
         if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)

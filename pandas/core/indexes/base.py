@@ -3664,43 +3664,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return indexer
 
-    def _convert_listlike_indexer(self, keyarr):
-        """
-        Parameters
-        ----------
-        keyarr : list-like
-            Indexer to convert.
-
-        Returns
-        -------
-        indexer : numpy.ndarray or None
-            Return an ndarray or None if cannot convert.
-        keyarr : numpy.ndarray
-            Return tuple-safe keys.
-        """
-        if isinstance(keyarr, Index):
-            pass
-        else:
-            keyarr = self._convert_arr_indexer(keyarr)
-
-        indexer = None
-        return indexer, keyarr
-
-    def _convert_arr_indexer(self, keyarr) -> np.ndarray:
-        """
-        Convert an array-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : array-like
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : array-like
-        """
-        return com.asarray_tuplesafe(keyarr)
-
     @final
     def _invalid_indexer(self, form: str_t, key) -> TypeError:
         """
