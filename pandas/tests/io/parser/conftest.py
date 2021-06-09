@@ -1,6 +1,8 @@
-from __future__ import annotations
-
 import os
+from typing import (
+    List,
+    Optional,
+)
 
 import pytest
 
@@ -11,9 +13,9 @@ from pandas import (
 
 
 class BaseParser:
-    engine: str | None = None
+    engine: Optional[str] = None
     low_memory = True
-    float_precision_choices: list[str | None] = []
+    float_precision_choices: List[Optional[str]] = []
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()

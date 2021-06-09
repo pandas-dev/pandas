@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import contextlib
 import datetime as pydt
 from datetime import (
@@ -8,7 +6,13 @@ from datetime import (
     tzinfo,
 )
 import functools
-from typing import Any
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -165,7 +169,7 @@ class TimeConverter(units.ConversionInterface):
         return value
 
     @staticmethod
-    def axisinfo(unit, axis) -> units.AxisInfo | None:
+    def axisinfo(unit, axis) -> Optional[units.AxisInfo]:
         if unit != "time":
             return None
 
@@ -315,7 +319,7 @@ class DatetimeConverter(dates.DateConverter):
         return values
 
     @staticmethod
-    def axisinfo(unit: tzinfo | None, axis) -> units.AxisInfo:
+    def axisinfo(unit: Optional[tzinfo], axis) -> units.AxisInfo:
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
@@ -443,7 +447,7 @@ class MilliSecondLocator(dates.DateLocator):
         return self.nonsingular(vmin, vmax)
 
 
-def _from_ordinal(x, tz: tzinfo | None = None) -> datetime:
+def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
     ix = int(x)
     dt = datetime.fromordinal(ix)
     remainder = float(x) - ix
@@ -472,7 +476,7 @@ def _from_ordinal(x, tz: tzinfo | None = None) -> datetime:
 # -------------------------------------------------------------------------
 
 
-def _get_default_annual_spacing(nyears) -> tuple[int, int]:
+def _get_default_annual_spacing(nyears) -> Tuple[int, int]:
     """
     Returns a default spacing between consecutive ticks for annual data.
     """
@@ -1023,8 +1027,8 @@ class TimeSeries_DateFormatter(Formatter):
         freq = to_offset(freq)
         self.format = None
         self.freq = freq
-        self.locs: list[Any] = []  # unused, for matplotlib compat
-        self.formatdict: dict[Any, Any] | None = None
+        self.locs: List[Any] = []  # unused, for matplotlib compat
+        self.formatdict: Optional[Dict[Any, Any]] = None
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0

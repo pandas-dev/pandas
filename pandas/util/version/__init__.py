@@ -6,7 +6,6 @@
 # This file is dual licensed under the terms of the Apache License, Version
 # 2.0, and the BSD License. See the LICENSE file in the root of this repository
 # for complete details.
-from __future__ import annotations
 
 import collections
 import itertools
@@ -14,6 +13,8 @@ import re
 from typing import (
     Callable,
     Iterator,
+    List,
+    Optional,
     SupportsInt,
     Tuple,
     Union,
@@ -48,7 +49,7 @@ class InfinityType:
     def __ge__(self, other: object) -> bool:
         return True
 
-    def __neg__(self: object) -> NegativeInfinityType:
+    def __neg__(self: object) -> "NegativeInfinityType":
         return NegativeInfinity
 
 
@@ -114,7 +115,7 @@ _Version = collections.namedtuple(
 )
 
 
-def parse(version: str) -> LegacyVersion | Version:
+def parse(version: str) -> Union["LegacyVersion", "Version"]:
     """
     Parse the given version string and return either a :class:`Version` object
     or a :class:`LegacyVersion` object depending on if the given version is
@@ -133,7 +134,7 @@ class InvalidVersion(ValueError):
 
 
 class _BaseVersion:
-    _key: CmpKey | LegacyCmpKey
+    _key: Union[CmpKey, LegacyCmpKey]
 
     def __hash__(self) -> int:
         return hash(self._key)
@@ -141,13 +142,13 @@ class _BaseVersion:
     # Please keep the duplicated `isinstance` check
     # in the six comparisons hereunder
     # unless you find a way to avoid adding overhead function calls.
-    def __lt__(self, other: _BaseVersion) -> bool:
+    def __lt__(self, other: "_BaseVersion") -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
         return self._key < other._key
 
-    def __le__(self, other: _BaseVersion) -> bool:
+    def __le__(self, other: "_BaseVersion") -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
@@ -159,13 +160,13 @@ class _BaseVersion:
 
         return self._key == other._key
 
-    def __ge__(self, other: _BaseVersion) -> bool:
+    def __ge__(self, other: "_BaseVersion") -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
         return self._key >= other._key
 
-    def __gt__(self, other: _BaseVersion) -> bool:
+    def __gt__(self, other: "_BaseVersion") -> bool:
         if not isinstance(other, _BaseVersion):
             return NotImplemented
 
@@ -278,7 +279,7 @@ def _legacy_cmpkey(version: str) -> LegacyCmpKey:
 
     # This scheme is taken from pkg_resources.parse_version setuptools prior to
     # it's adoption of the packaging library.
-    parts: list[str] = []
+    parts: List[str] = []
     for part in _parse_version_parts(version.lower()):
         if part.startswith("*"):
             # remove "-" before a prerelease tag
@@ -399,25 +400,25 @@ class Version(_BaseVersion):
         return _epoch
 
     @property
-    def release(self) -> tuple[int, ...]:
-        _release: tuple[int, ...] = self._version.release
+    def release(self) -> Tuple[int, ...]:
+        _release: Tuple[int, ...] = self._version.release
         return _release
 
     @property
-    def pre(self) -> tuple[str, int] | None:
-        _pre: tuple[str, int] | None = self._version.pre
+    def pre(self) -> Optional[Tuple[str, int]]:
+        _pre: Optional[Tuple[str, int]] = self._version.pre
         return _pre
 
     @property
-    def post(self) -> int | None:
+    def post(self) -> Optional[int]:
         return self._version.post[1] if self._version.post else None
 
     @property
-    def dev(self) -> int | None:
+    def dev(self) -> Optional[int]:
         return self._version.dev[1] if self._version.dev else None
 
     @property
-    def local(self) -> str | None:
+    def local(self) -> Optional[str]:
         if self._version.local:
             return ".".join(str(x) for x in self._version.local)
         else:
@@ -466,8 +467,8 @@ class Version(_BaseVersion):
 
 
 def _parse_letter_version(
-    letter: str, number: str | bytes | SupportsInt
-) -> tuple[str, int] | None:
+    letter: str, number: Union[str, bytes, SupportsInt]
+) -> Optional[Tuple[str, int]]:
 
     if letter:
         # We consider there to be an implicit 0 in a pre-release if there is
@@ -504,7 +505,7 @@ def _parse_letter_version(
 _local_version_separators = re.compile(r"[\._-]")
 
 
-def _parse_local_version(local: str) -> LocalType | None:
+def _parse_local_version(local: str) -> Optional[LocalType]:
     """
     Takes a string like abc.1.twelve and turns it into ("abc", 1, "twelve").
     """
@@ -518,11 +519,11 @@ def _parse_local_version(local: str) -> LocalType | None:
 
 def _cmpkey(
     epoch: int,
-    release: tuple[int, ...],
-    pre: tuple[str, int] | None,
-    post: tuple[str, int] | None,
-    dev: tuple[str, int] | None,
-    local: tuple[SubLocalType] | None,
+    release: Tuple[int, ...],
+    pre: Optional[Tuple[str, int]],
+    post: Optional[Tuple[str, int]],
+    dev: Optional[Tuple[str, int]],
+    local: Optional[Tuple[SubLocalType]],
 ) -> CmpKey:
 
     # When we compare a release version, we want to compare it with all of the
