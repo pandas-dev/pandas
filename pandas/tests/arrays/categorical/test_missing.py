@@ -101,7 +101,7 @@ class TestCategoricalMissing:
         tm.assert_categorical_equal(result, expected)
 
         # Case where the Point is not among our categories; we want ValueError,
-        #  not NotImplementedError
+        #  not NotImplementedError GH#41914
         cat = Categorical(np.array([Point(1, 0), Point(0, 1), None], dtype=object))
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
