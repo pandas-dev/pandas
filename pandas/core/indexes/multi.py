@@ -2581,29 +2581,29 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def _convert_listlike_indexer(self, keyarr):
+    def _convert_listlike_indexer(self, keyarr) -> np.ndarray | None:
         """
+        Analogous to get_indexer when we are partial-indexing on our first level.
+
         Parameters
         ----------
-        keyarr : list-like
+        keyarr : Index, np.ndarray, or ExtensionArray
             Indexer to convert.
 
         Returns
         -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+        np.ndarray[intp] or None
         """
-        indexer, keyarr = super()._convert_listlike_indexer(keyarr)
+        indexer = None
 
         # are we indexing a specific level
-        if indexer is None and len(keyarr) and not isinstance(keyarr[0], tuple):
-            level = 0
-            _, indexer = self.reindex(keyarr, level=level)
+        if len(keyarr) and not isinstance(keyarr[0], tuple):
+            _, indexer = self.reindex(keyarr, level=0)
 
             # take all
             if indexer is None:
-                indexer = np.arange(len(self))
+                indexer = np.arange(len(self), dtype=np.intp)
+                return indexer
 
             check = self.levels[0].get_indexer(keyarr)
             mask = check == -1
@@ -2614,7 +2614,7 @@ class MultiIndex(Index):
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
 
-        return indexer, keyarr
+        return indexer
 
     def _get_partial_string_timestamp_match_key(self, key):
         """
