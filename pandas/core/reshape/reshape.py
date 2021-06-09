@@ -1053,6 +1053,168 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols)
 
 
+def from_dummies(
+    data,
+    to_series: bool = False,
+    variables: None | str | list[str] | dict[str, str] = None,
+    prefix_sep: str | list[str] | dict[str, str] = "_",
+    dummy_na: bool = False,
+    columns: None | list[str] = None,
+    dropped_first: None | str | list[str] | dict[str, str] = None,
+) -> Series | DataFrame:
+    """
+    soon
+    """
+    from pandas.core.reshape.concat import concat
+
+    if to_series:
+        return _from_dummies_1d(data, dummy_na, dropped_first)
+
+    data_to_decode: DataFrame
+    if columns is None:
+        # index data with a list of all columns that are dummies
+        cat_columns = []
+        non_cat_columns = []
+        for col in data.columns:
+            if any(ps in col for ps in prefix_sep):
+                cat_columns.append(col)
+            else:
+                non_cat_columns.append(col)
+        data_to_decode = data[cat_columns]
+        non_cat_data = data[non_cat_columns]
+    elif not is_list_like(columns):
+        raise TypeError("Input must be a list-like for parameter 'columns'")
+    else:
+        data_to_decode = data[columns]
+        non_cat_data = data[[col for col in data.columns if col not in columns]]
+
+    # get separator for each prefix and lists to slice data for each prefix
+    if isinstance(prefix_sep, dict):
+        variables_slice = {prefix: [] for prefix in prefix_sep}
+        for col in data_to_decode.columns:
+            for prefix in prefix_sep:
+                if prefix in col:
+                    variables_slice[prefix].append(col)
+    else:
+        sep_for_prefix = {}
+        variables_slice = {}
+        for col in data_to_decode.columns:
+            ps = [ps for ps in prefix_sep if ps in col][0]
+            prefix = col.split(ps)[0]
+            if prefix not in sep_for_prefix:
+                sep_for_prefix[prefix] = ps
+            if prefix not in variables_slice:
+                variables_slice[prefix] = [col]
+            else:
+                variables_slice[prefix].append(col)
+        prefix_sep = sep_for_prefix
+
+    # validate number of passed arguments
+    def check_len(item, name) -> None:
+        if not len(item) == len(variables_slice):
+            len_msg = (
+                f"Length of '{name}' ({len(item)}) did not match the "
+                "length of the columns being encoded "
+                f"({len(variables_slice)})."
+            )
+            raise ValueError(len_msg)
+
+    # obtain prefix to category mapping
+    variables: dict[str, str]
+    if isinstance(variables, dict):
+        check_len(variables, "variables")
+        variables = variables
+    elif is_list_like(variables):
+        check_len(variables, "variables")
+        variables = dict(zip(variables_slice, variables))
+    elif isinstance(variables, str):
+        variables = dict(
+            zip(
+                variables_slice,
+                (f"{variables}{i}" for i in range(len(variables_slice))),
+            )
+        )
+    else:
+        variables = dict(zip(variables_slice, variables_slice))
+
+    if dropped_first:
+        if isinstance(dropped_first, dict):
+            check_len(dropped_first, "dropped_first")
+        elif is_list_like(dropped_first):
+            check_len(dropped_first, "dropped_first")
+            dropped_first = dict(zip(variables_slice, dropped_first))
+        else:
+            dropped_first = dict(
+                zip(variables_slice, [dropped_first] * len(variables_slice))
+            )
+
+    cat_data = {var: [] for _, var in variables.items()}
+    for index, row in data.iterrows():
+        for prefix, prefix_slice in variables_slice.items():
+            slice_sum = row[prefix_slice].sum()
+            if slice_sum > 1:
+                raise ValueError(
+                    f"Dummy DataFrame contains multi-assignment(s) for prefix: "
+                    f"'{prefix}' in row {index}."
+                )
+            elif slice_sum == 0:
+                if dropped_first:
+                    category = dropped_first[prefix]
+                elif not dummy_na:
+                    category = np.nan
+                else:
+                    raise ValueError(
+                        f"Dummy DataFrame contains no assignment for prefix: "
+                        f"'{prefix}' in row {index}."
+                    )
+            else:
+                cat_index = row[prefix_slice].argmax()
+                category = prefix_slice[cat_index].split(prefix_sep[prefix])[1]
+                if dummy_na and category == "NaN":
+                    category = np.nan
+            cat_data[variables[prefix]].append(category)
+
+    if columns:
+        return DataFrame(cat_data)
+    else:
+        return concat([non_cat_data, DataFrame(cat_data)], axis=1)
+
+
+def _from_dummies_1d(
+    data,
+    dummy_na: bool = False,
+    dropped_first: None | str = None,
+) -> Series:
+    """
+    soon
+    """
+    if dropped_first and not isinstance(dropped_first, str):
+        raise ValueError("Only one dropped first value possible in 1D dummy DataFrame.")
+
+    cat_data = []
+    for index, row in data.iterrows():
+        row_sum = row.sum()
+        if row_sum > 1:
+            raise ValueError(
+                f"Dummy DataFrame contains multi-assignment in row {index}."
+            )
+        elif row_sum == 0:
+            if dropped_first:
+                category = dropped_first
+            elif not dummy_na:
+                category = np.nan
+            else:
+                raise ValueError(
+                    f"Dummy DataFrame contains no assignment in row {index}."
+                )
+        else:
+            category = data.columns[row.argmax()]
+            if dummy_na and category == "NaN":
+                category = np.nan
+        cat_data.append(category)
+    return Series(cat_data)
+
+
 def _reorder_for_extension_array_stack(
     arr: ExtensionArray, n_rows: int, n_columns: int
 ) -> ExtensionArray:
