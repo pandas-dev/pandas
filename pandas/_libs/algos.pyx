@@ -954,10 +954,10 @@ def rank_1d(
         int64_t[::1] grp_sizes
         intp_t[:] lexsort_indexer
         float64_t[::1] out
-        ndarray [rank_t, ndim=1] masked_vals
+        ndarray[rank_t, ndim=1] masked_vals
         rank_t[:] masked_vals_memview
         uint8_t[:] mask
-        bint keep_na, check_labels
+        bint keep_na, check_labels, check_mask
         rank_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
@@ -1088,8 +1088,11 @@ cdef void rank_sorted_1d(
         Array to store group counts.
     labels : See rank_1d.__doc__
     sort_indexer : intp_t[:]
+        Array of indices which sorts masked_vals
     masked_vals : rank_t[:]
+        The values input to rank_1d, with missing values replaced by fill values
     mask : uint8_t[:]
+        Array where entries are True if the value is missing, False otherwise
     tiebreak : TiebreakEnumType
         See rank_1d.__doc__ for the different modes
     check_mask : bint
