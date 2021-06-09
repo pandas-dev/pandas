@@ -1,12 +1,11 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
+from __future__ import annotations
+
 from typing import (
     Hashable,
-    List,
-    Type,
     TypeVar,
-    Union,
 )
 
 import numpy as np
@@ -117,7 +116,7 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     return method
 
 
-def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = False):
+def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = False):
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -227,20 +226,20 @@ class ExtensionIndex(Index):
     # The base class already passes through to _data:
     #  size, __len__, dtype
 
-    _data: Union[IntervalArray, NDArrayBackedExtensionArray]
+    _data: IntervalArray | NDArrayBackedExtensionArray
 
-    _data_cls: Union[
-        Type[Categorical],
-        Type[DatetimeArray],
-        Type[TimedeltaArray],
-        Type[PeriodArray],
-        Type[IntervalArray],
-    ]
+    _data_cls: (
+        type[Categorical]
+        | type[DatetimeArray]
+        | type[TimedeltaArray]
+        | type[PeriodArray]
+        | type[IntervalArray]
+    )
 
     @classmethod
     def _simple_new(
         cls,
-        array: Union[IntervalArray, NDArrayBackedExtensionArray],
+        array: IntervalArray | NDArrayBackedExtensionArray,
         name: Hashable = None,
     ):
         """

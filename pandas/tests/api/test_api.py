@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import subprocess
 import sys
-from typing import List
 
 import pytest
 
@@ -46,7 +47,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules: List[str] = ["np", "datetime"]
+    deprecated_modules: list[str] = ["np", "datetime"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -98,13 +99,13 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: List[str] = []
+    deprecated_classes: list[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = ["SparseArray"]
+    deprecated_classes_in_future: list[str] = ["SparseArray"]
 
     # external modules exposed in pandas namespace
-    modules: List[str] = []
+    modules: list[str] = []
 
     # top-level functions
     funcs = [
@@ -181,10 +182,10 @@ class TestPDApi(Base):
     funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future: List[str] = []
+    deprecated_funcs_in_future: list[str] = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs: List[str] = []
+    deprecated_funcs: list[str] = []
 
     # private modules in pandas namespace
     private_modules = [

@@ -1,12 +1,9 @@
 """
 Engine classes for :func:`~pandas.eval`
 """
+from __future__ import annotations
 
 import abc
-from typing import (
-    Dict,
-    Type,
-)
 
 from pandas.core.computation.align import (
     align_terms,
@@ -140,7 +137,7 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-ENGINES: Dict[str, Type[AbstractEngine]] = {
+ENGINES: dict[str, type[AbstractEngine]] = {
     "numexpr": NumExprEngine,
     "python": PythonEngine,
 }
