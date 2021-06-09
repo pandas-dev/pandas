@@ -1,10 +1,9 @@
 """
 EA-compatible analogue to to np.putmask
 """
-from typing import (
-    Any,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 import warnings
 
 import numpy as np
@@ -171,7 +170,7 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
         np.putmask(values, mask, new)
 
 
-def validate_putmask(values: ArrayLike, mask: np.ndarray) -> Tuple[np.ndarray, bool]:
+def validate_putmask(values: ArrayLike, mask: np.ndarray) -> tuple[np.ndarray, bool]:
     """
     Validate mask and check if this putmask operation is a no-op.
     """

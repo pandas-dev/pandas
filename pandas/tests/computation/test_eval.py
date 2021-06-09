@@ -1,11 +1,8 @@
+from __future__ import annotations
+
 from functools import reduce
 from itertools import product
 import operator
-from typing import (
-    Dict,
-    List,
-    Type,
-)
 import warnings
 
 import numpy as np
@@ -147,8 +144,8 @@ midhs = lhs
 
 @td.skip_if_no_ne
 class TestEvalNumexprPandas:
-    exclude_cmp: List[str] = []
-    exclude_bool: List[str] = []
+    exclude_cmp: list[str] = []
+    exclude_bool: list[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1125,7 +1122,7 @@ class TestAlignment:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPandas:
-    exclude_arith: List[str] = []
+    exclude_arith: list[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1629,7 +1626,7 @@ class TestOperationsNumExprPandas:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
-    exclude_arith: List[str] = ["in", "not in"]
+    exclude_arith: list[str] = ["in", "not in"]
 
     engine = "numexpr"
     parser = "python"
@@ -1723,7 +1720,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
-    exclude_arith: List[str] = []
+    exclude_arith: list[str] = []
 
     engine = "python"
     parser = "pandas"
@@ -1878,7 +1875,7 @@ def test_invalid_parser():
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, parser="asdf")
 
 
-_parsers: Dict[str, Type[BaseExprVisitor]] = {
+_parsers: dict[str, type[BaseExprVisitor]] = {
     "python": PythonExprVisitor,
     "pytables": pytables.PyTablesExprVisitor,
     "pandas": PandasExprVisitor,
