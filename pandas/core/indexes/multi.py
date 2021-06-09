@@ -3680,9 +3680,9 @@ class MultiIndex(Index):
             return type(self)(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                names=tups.name,
+                names=tups.names,
             )
-        return type(self).from_tuples(tups, names=tups.name)
+        return tups
 
     # --------------------------------------------------------------------
 

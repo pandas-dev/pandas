@@ -3246,33 +3246,13 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
-        if not self._should_compare(other):
-            return self.union(other, sort=sort).rename(result_name)
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype, copy=False)
-            that = other.astype(dtype, copy=False)
-            return this.symmetric_difference(that, sort=sort).rename(result_name)
+        left = self.difference(other, sort=False)
+        right = other.difference(self, sort=False)
+        result = left.union(right, sort=sort)
 
-        this = self._get_unique_index()
-        other = other._get_unique_index()
-        indexer = this.get_indexer_for(other)
-
-        # {this} minus {other}
-        common_indexer = indexer.take((indexer != -1).nonzero()[0])
-        left_indexer = np.setdiff1d(
-            np.arange(this.size), common_indexer, assume_unique=True
-        )
-        left_diff = this._values.take(left_indexer)
-
-        # {other} minus {this}
-        right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other._values.take(right_indexer)
-
-        the_diff = concat_compat([left_diff, right_diff])
-        the_diff = _maybe_try_sort(the_diff, sort)
-
-        return Index(the_diff, name=result_name)
+        if result_name is not None:
+            result = result.rename(result_name)
+        return result
 
     @final
     def _assert_can_do_setop(self, other) -> bool:
