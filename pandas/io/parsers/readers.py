@@ -19,7 +19,6 @@ from pandas._typing import (
     DtypeArg,
     FilePathOrBuffer,
     StorageOptions,
-    Union,
 )
 from pandas.errors import (
     AbstractMethodError,
@@ -1142,7 +1141,7 @@ def TextParser(*args, **kwds):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-    na_fvalues: Union[set, dict]
+    na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
@@ -1193,7 +1192,7 @@ def _floatify_na_values(na_values):
 
 def _stringify_na_values(na_values):
     """ return a stringified and numeric for these values """
-    result: list[Union[int, str, float]] = []
+    result: list[int | str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -1217,16 +1216,16 @@ def _stringify_na_values(na_values):
 
 
 def _refine_defaults_read(
-    dialect: Union[str, csv.Dialect],
-    delimiter: Union[str, object],
+    dialect: str | csv.Dialect,
+    delimiter: str | object,
     delim_whitespace: bool,
     engine: str,
-    sep: Union[str, object],
+    sep: str | object,
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,
     on_bad_lines: str | None,
-    names: Union[ArrayLike | None, object],
-    prefix: Union[str | None, object],
+    names: ArrayLike | None | object,
+    prefix: str | None | object,
     defaults: dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
