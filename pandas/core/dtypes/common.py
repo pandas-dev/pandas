@@ -1,11 +1,11 @@
 """
 Common type operations.
 """
+from __future__ import annotations
 
 from typing import (
     Any,
     Callable,
-    Union,
 )
 import warnings
 
@@ -102,7 +102,7 @@ ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 
-def ensure_str(value: Union[bytes, Any]) -> str:
+def ensure_str(value: bytes | Any) -> str:
     """
     Ensure that bytes and non-strings get converted into ``str`` objects.
     """
@@ -113,7 +113,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_python_int(value: Union[int, np.integer]) -> int:
+def ensure_python_int(value: int | np.integer) -> int:
     """
     Ensure that a value is a python int.
 

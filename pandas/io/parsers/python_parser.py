@@ -18,10 +18,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import (
-    FilePathOrBuffer,
-    Union,
-)
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -42,7 +39,7 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: Union[FilePathOrBuffer, list], **kwds):
+    def __init__(self, f: FilePathOrBuffer | list, **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
