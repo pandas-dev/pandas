@@ -46,6 +46,7 @@ class TestEWM:
 
             online_ewm.reset()
 
+    @pytest.mark.xfail(raises=NotImplementedError)
     @pytest.mark.parametrize(
         "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
     )
@@ -54,7 +55,7 @@ class TestEWM:
     ):
         times = Series(
             np.array(
-                ["2020-01-01", "2020-01-02", "2020-01-04", "2020-01-17", "2020-01-21"],
+                ["2020-01-01", "2020-01-05", "2020-01-07", "2020-01-17", "2020-01-21"],
                 dtype="datetime64",
             )
         )

@@ -721,6 +721,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         *,
         selection=None,
     ):
+        if times is not None:
+            raise NotImplementedError(
+                "times is not implemented with online operations."
+            )
         super().__init__(
             obj=obj,
             com=com,
@@ -794,6 +798,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             exponentially weighted mean from the last values and weights.
             If ``None``, values are assumed to be evenly spaced
             in time.
+            This feature is currently unsupported.
 
         Returns
         -------
@@ -820,6 +825,12 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         """
         result_kwargs = {}
         is_frame = True if self._selected_obj.ndim == 2 else False
+        if update_times is not None:
+            raise NotImplementedError("update_times is not implemented.")
+        else:
+            update_deltas = np.ones(
+                max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
+            )
         if update is not None:
             if self._mean.last_ewm is None:
                 raise ValueError(
@@ -842,16 +853,10 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
             else:
                 result_kwargs["name"] = self._selected_obj.name
             np_array = self._selected_obj.astype(np.float64).to_numpy()
-        if update_times is None:
-            update_times = np.ones(
-                max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
-            )
-        else:
-            update_times = _calculate_deltas(update_times, self.halflife)
         ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
         result = self._mean.run_ewm(
             np_array if is_frame else np_array[:, np.newaxis],
-            update_times,
+            update_deltas,
             self.min_periods,
             ewma_func,
         )
