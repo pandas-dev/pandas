@@ -3295,7 +3295,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(storage_options=_shared_docs["storage_options"])
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer | None = None,
+        path_or_buf: FilePathOrBuffer[str] | FilePathOrBuffer[bytes] | None = None,
         sep: str = ",",
         na_rep: str = "",
         float_format: str | None = None,
