@@ -1138,15 +1138,12 @@ class Styler(StylerRenderer):
 
         Updates the HTML representation with the result.
 
-        .. versionadded:: 1.3.0
+        .. versionadded:: 1.4.0
 
         Parameters
         ----------
         func : function
-            ``func`` should take a Series
-
-            .. versionchanged:: 1.3.0
-
+            ``func`` should take a Series, being the index or level of a MultiIndex.
         levels : int, list of ints, optional
             If index is MultiIndex the level(s) over which to apply the function.
         **kwargs : dict
@@ -1253,15 +1250,12 @@ class Styler(StylerRenderer):
 
         Updates the HTML representation with the result.
 
-        .. versionadded:: 1.3.0
+        .. versionadded:: 1.4.0
 
         Parameters
         ----------
         func : function
             ``func`` should take a Series
-
-            .. versionchanged:: 1.3.0
-
         levels : int, list of ints, optional
             If index is MultiIndex the level(s) over which to apply the function.
         **kwargs : dict
