@@ -247,24 +247,24 @@ def group_cumsum(numeric[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
+                # For floats, use Kahan summation to reduce floating-point
+                # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
                 if numeric == float32_t or numeric == float64_t:
                     if val == val:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
                         accum[lab, j] = t
-                        out[i, j] = accum[lab, j]
+                        out[i, j] = t
                     else:
                         out[i, j] = NaN
                         if not skipna:
                             accum[lab, j] = NaN
                             break
                 else:
-                    y = val - compensation[lab, j]
-                    t = accum[lab, j] + y
-                    compensation[lab, j] = t - accum[lab, j] - y
+                    t = val + accum[lab, j]
                     accum[lab, j] = t
-                    out[i, j] = accum[lab, j]
+                    out[i, j] = t
 
 
 @cython.boundscheck(False)
