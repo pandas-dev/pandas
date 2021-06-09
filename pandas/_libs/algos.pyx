@@ -1038,30 +1038,30 @@ def rank_1d(
     if not ascending:
         lexsort_indexer = lexsort_indexer[::-1]
 
-    with nogil:
-        rank_sorted_1d(
-            out,
-            grp_sizes,
-            labels,
-            lexsort_indexer,
-            masked_vals_memview,
-            mask,
-            tiebreak,
-            check_mask,
-            check_labels,
-            keep_na,
-            N,
-        )
-        if pct:
-            for i in range(N):
-                if grp_sizes[i] != 0:
-                    out[i] = out[i] / grp_sizes[i]
+    # with nogil:
+    rank_sorted_1d(
+        out,
+        grp_sizes,
+        labels,
+        lexsort_indexer,
+        masked_vals_memview,
+        mask,
+        tiebreak,
+        check_mask,
+        check_labels,
+        keep_na,
+        N,
+    )
+    if pct:
+        for i in range(N):
+            if grp_sizes[i] != 0:
+                out[i] = out[i] / grp_sizes[i]
 
     return np.array(out)
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
+# @cython.wraparound(False)
+# @cython.boundscheck(False)
 cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
@@ -1075,7 +1075,7 @@ cdef void rank_sorted_1d(
     bint check_labels,
     bint keep_na,
     Py_ssize_t N,
-) nogil:
+):
     """
     See rank_1d.__doc__. Handles only actual ranking, so sorting and masking should
     be handled in the caller. Note that `out` and `grp_sizes` are modified inplace.
@@ -1119,7 +1119,7 @@ cdef void rank_sorted_1d(
     # values / masked_vals arrays
     # TODO: de-duplicate once cython supports conditional nogil
     if rank_t is object:
-        with gil:
+        # with gil:
             for i in range(N):
                 at_end = i == N - 1
 
@@ -1220,6 +1220,7 @@ cdef void rank_sorted_1d(
                         grp_vals_seen = 1
     else:
         for i in range(N):
+            print(i)
             at_end = i == N - 1
 
             # dups and sum_ranks will be incremented each loop where
@@ -1227,15 +1228,18 @@ cdef void rank_sorted_1d(
             # when either of those change. Used to calculate tiebreakers
             dups += 1
             sum_ranks += i - grp_start + 1
-
+            print(sort_indexer[i])
+            print(sort_indexer[i+1])
             next_val_diff = at_end or (masked_vals[sort_indexer[i]]
                                        != masked_vals[sort_indexer[i+1]])
+            print("here")
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
             group_changed = at_end or (check_labels and
                                        (labels[sort_indexer[i]]
                                         != labels[sort_indexer[i+1]]))
+            print("here")
 
             # Update out only when there is a transition of values or labels.
             # When a new value or group is encountered, go back #dups steps(
@@ -1333,17 +1337,16 @@ def rank_2d(
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
     cdef:
-        Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
-        Py_ssize_t infs
-        ndarray[float64_t, ndim=2] ranks
+        Py_ssize_t k, n, col
+        float64_t[::1, :] out  # Column-major so columns are contiguous
+        int64_t[::1, :] grp_sizes
+        const intp_t[:] labels
         ndarray[rank_t, ndim=2] values
-        ndarray[intp_t, ndim=2] argsort_indexer
-        ndarray[uint8_t, ndim=2] mask
-        rank_t val, nan_value
-        float64_t count, sum_ranks = 0.0
-        int tiebreak = 0
-        int64_t idx
-        bint check_mask, condition, keep_na
+        rank_t[:, :] masked_vals_memview
+        intp_t[:, :] argsort_indexer
+        uint8_t[:, :] mask
+        TiebreakEnumType tiebreak
+        bint check_mask, keep_na
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1396,85 +1399,56 @@ def rank_2d(
         mask = np.zeros_like(values, dtype=bool)
 
     n, k = (<object>values).shape
-    ranks = np.empty((n, k), dtype='f8')
+    out = np.empty((n, k), dtype='f8', order='F')
+    grp_sizes = np.ones((n, k), dtype='i8', order='F')
+    labels = np.ones(n, dtype=np.intp)
 
     if tiebreak == TIEBREAK_FIRST:
         # need to use a stable sort here
-        argsort_indexer = values.argsort(axis=1, kind='mergesort')
+        argsort_indexer = values.argsort(axis=1, kind='mergesort').astype(
+            np.intp, copy=False
+        )
         if not ascending:
             tiebreak = TIEBREAK_FIRST_DESCENDING
     else:
-        argsort_indexer = values.argsort(1)
+        argsort_indexer = values.argsort(1).astype(np.intp, copy=False)
 
     if not ascending:
         argsort_indexer = argsort_indexer[:, ::-1]
 
-    values = _take_2d(values, argsort_indexer)
+    masked_vals_memview = values
+    print(np.array(argsort_indexer))
 
-    for i in range(n):
-        dups = sum_ranks = infs = 0
+    print(k)
+    print(n)
+    print(values)
+    for col in range(k):
+        print("col" + str(col))
+        # print(np.array(masked_vals_memview[:, col]))
 
-        total_tie_count = 0
-        count = 0.0
-        for j in range(k):
-            val = values[i, j]
-            idx = argsort_indexer[i, j]
-            if keep_na and check_mask and mask[i, idx]:
-                ranks[i, idx] = NaN
-                infs += 1
-                continue
+        print(np.array(argsort_indexer[:, col]))
+        print(np.array(masked_vals_memview[:, col]))
+        # print(np.array(mask[:, col]))
+        # print(np.array(grp_sizes[:, col]))
+        # print(np.array(out[:, col]))
+        rank_sorted_1d(
+            out[:, col],
+            grp_sizes[:, col],
+            labels,
+            argsort_indexer[:, col],
+            masked_vals_memview[:, col],
+            mask[:, col],
+            tiebreak,
+            check_mask,
+            False,
+            keep_na,
+            n,
+        )
 
-            count += 1.0
-
-            sum_ranks += (j - infs) + 1
-            dups += 1
-
-            if rank_t is object:
-                condition = (
-                    j == k - 1 or
-                    are_diff(values[i, j + 1], val) or
-                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
-                )
-            else:
-                condition = (
-                    j == k - 1 or
-                    values[i, j + 1] != val or
-                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
-                )
-
-            if condition:
-                if tiebreak == TIEBREAK_AVERAGE:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = sum_ranks / dups
-                elif tiebreak == TIEBREAK_MIN:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = j - dups + 2
-                elif tiebreak == TIEBREAK_MAX:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = j + 1
-                elif tiebreak == TIEBREAK_FIRST:
-                    if rank_t is object:
-                        raise ValueError('first not supported for non-numeric data')
-                    else:
-                        for z in range(j - dups + 1, j + 1):
-                            ranks[i, argsort_indexer[i, z]] = z + 1
-                elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = 2 * j - z - dups + 2
-                elif tiebreak == TIEBREAK_DENSE:
-                    total_tie_count += 1
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = total_tie_count
-                sum_ranks = dups = 0
-        if pct:
-            if tiebreak == TIEBREAK_DENSE:
-                ranks[i, :] /= total_tie_count
-            else:
-                ranks[i, :] /= count
     if axis == 0:
-        return ranks.T
+        return np.array(out.T)
     else:
-        return ranks
+        return np.array(out)
 
 
 ctypedef fused diff_t:
