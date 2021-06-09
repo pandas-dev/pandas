@@ -6,7 +6,7 @@ python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.21
-black==20.8b1
+black==21.5b2
 cpplint
 flake8==3.9.2
 flake8-bugbear==21.3.2
