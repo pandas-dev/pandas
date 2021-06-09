@@ -287,10 +287,10 @@ class IndexingMixin:
         - An alignable boolean Series. The index of the key will be aligned before
           masking.
         - An alignable Index. The Index of the returned selection will be the input.
-        
+
           .. warning:: Preferred syntax to assign a column: `df[]` instead of
-              allocation through `df.loc[]`        
-        
+              allocation through `df.loc[]`
+
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above)
 
@@ -391,9 +391,9 @@ class IndexingMixin:
         sidewinder          7       8
 
         **Setting values**
-        
+
           .. warning:: Preferred syntax to assign a column: `df['shield']`
-             instead of allocation through `df.loc[]` such as `df.loc['shield']`        
+             instead of allocation through `df.loc[]` such as `df.loc['shield']`
 
         Set value for all items matching the list of labels
 
