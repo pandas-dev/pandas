@@ -1301,6 +1301,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """
         if inplace:
             self.arrays[0][indexer] = value
+            return
         else:
             return self.apply_with_block("setitem", indexer=indexer, value=value)
 

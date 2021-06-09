@@ -367,7 +367,8 @@ class BaseBlockManager(DataManager):
         if inplace:
             # only passed for Series (single block)
             assert self.ndim == 1
-            self._block.values[indexer] = value
+            self._block.values[indexer] = value  # type: ignore[attr-defined]
+            return
         else:
             return self.apply("setitem", indexer=indexer, value=value)
 
