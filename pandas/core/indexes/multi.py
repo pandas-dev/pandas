@@ -214,8 +214,6 @@ class MultiIndex(Index):
         The unique labels for each level.
     codes : sequence of arrays
         Integers for each level designating which label at each location.
-
-        .. versionadded:: 0.24.0
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
         level).
@@ -627,8 +625,6 @@ class MultiIndex(Index):
         """
         Make a MultiIndex from a DataFrame.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         df : DataFrame
@@ -995,10 +991,6 @@ class MultiIndex(Index):
     def set_codes(self, codes, level=None, inplace=None, verify_integrity: bool = True):
         """
         Set new codes on MultiIndex. Defaults to returning new index.
-
-        .. versionadded:: 0.24.0
-
-           New name for deprecated method `set_labels`.
 
         Parameters
         ----------
@@ -1701,8 +1693,6 @@ class MultiIndex(Index):
         Column ordering is determined by the DataFrame constructor with data as
         a dict.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         index : bool, default True
@@ -1776,8 +1766,6 @@ class MultiIndex(Index):
     def to_flat_index(self) -> Index:
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
-
-        .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2593,29 +2581,29 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def _convert_listlike_indexer(self, keyarr):
+    def _convert_listlike_indexer(self, keyarr) -> np.ndarray | None:
         """
+        Analogous to get_indexer when we are partial-indexing on our first level.
+
         Parameters
         ----------
-        keyarr : list-like
+        keyarr : Index, np.ndarray, or ExtensionArray
             Indexer to convert.
 
         Returns
         -------
-        tuple (indexer, keyarr)
-            indexer is an ndarray or None if cannot convert
-            keyarr are tuple-safe keys
+        np.ndarray[intp] or None
         """
-        indexer, keyarr = super()._convert_listlike_indexer(keyarr)
+        indexer = None
 
         # are we indexing a specific level
-        if indexer is None and len(keyarr) and not isinstance(keyarr[0], tuple):
-            level = 0
-            _, indexer = self.reindex(keyarr, level=level)
+        if len(keyarr) and not isinstance(keyarr[0], tuple):
+            _, indexer = self.reindex(keyarr, level=0)
 
             # take all
             if indexer is None:
-                indexer = np.arange(len(self))
+                indexer = np.arange(len(self), dtype=np.intp)
+                return indexer
 
             check = self.levels[0].get_indexer(keyarr)
             mask = check == -1
@@ -2626,7 +2614,7 @@ class MultiIndex(Index):
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
 
-        return indexer, keyarr
+        return indexer
 
     def _get_partial_string_timestamp_match_key(self, key):
         """
@@ -3624,9 +3612,7 @@ class MultiIndex(Index):
                 uniq_tuples = algos.unique(inner_tuples)
 
         if uniq_tuples is None:
-            left_unique = self.drop_duplicates()
-            indexer = left_unique.get_indexer(other.drop_duplicates())
-            uniq_tuples = left_unique.take(np.sort(indexer[indexer != -1]))
+            uniq_tuples = self._intersection_via_get_indexer(other, sort)
 
         if sort is None:
             uniq_tuples = sorted(uniq_tuples)
@@ -3694,9 +3680,9 @@ class MultiIndex(Index):
             return type(self)(
                 levels=[[] for _ in range(self.nlevels)],
                 codes=[[] for _ in range(self.nlevels)],
-                names=tups.name,
+                names=tups.names,
             )
-        return type(self).from_tuples(tups, names=tups.name)
+        return tups
 
     # --------------------------------------------------------------------
 
