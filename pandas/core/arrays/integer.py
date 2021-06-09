@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import warnings
 
 import numpy as np
@@ -16,7 +15,6 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
-
 from pandas.core.dtypes.base import (
     ExtensionDtype,
     register_extension_dtype,
@@ -32,7 +30,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.missing import isna
-
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -41,6 +38,12 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
+from pandas.core.arrays import (
+    BooleanArray,
+    TimedeltaArray,
+    FloatingArray,
+)
+from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
@@ -109,8 +112,6 @@ class _IntegerDtype(NumericDtype):
         if np.issubdtype(np_dtype, np.integer):
             return INT_STR_TO_DTYPE[str(np_dtype)]
         elif np.issubdtype(np_dtype, np.floating):
-            from pandas.core.arrays.floating import FLOAT_STR_TO_DTYPE
-
             return FLOAT_STR_TO_DTYPE[str(np_dtype)]
         return None
 
@@ -120,12 +121,10 @@ def safe_cast(values, dtype, copy: bool):
     Safely cast the values to the dtype if they
     are equivalent, meaning floats must be equivalent to the
     ints.
-
     """
     try:
         return values.astype(dtype, casting="safe", copy=copy)
     except TypeError as err:
-
         casted = values.astype(dtype, copy=copy)
         if (casted == values).all():
             return casted
@@ -395,8 +394,6 @@ class IntegerArray(NumericArray):
         return data
 
     def _cmp_method(self, other, op):
-        from pandas.core.arrays import BooleanArray
-
         mask = None
 
         if isinstance(other, BaseMaskedArray):
@@ -468,18 +465,12 @@ class IntegerArray(NumericArray):
         # a float result
         # or our op is a divide
         if (is_float_dtype(other) or is_float(other)) or (
-            op_name in ["rtruediv", "truediv"]
-        ):
-            from pandas.core.arrays import FloatingArray
-
+            op_name in ["rtruediv", "truediv"]):
             return FloatingArray(result, mask, copy=False)
 
         if result.dtype == "timedelta64[ns]":
-            from pandas.core.arrays import TimedeltaArray
-
             result[mask] = iNaT
             return TimedeltaArray._simple_new(result)
-
         return type(self)(result, mask, copy=False)
 
 
