@@ -176,6 +176,7 @@ class TestDataFrameCorr:
         df.cov()
         df.corr()
 
+    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "nullable_column", [pd.array([1, 2, 3]), pd.array([1, 2, None])]
     )
