@@ -77,8 +77,6 @@ def array(
     """
     Create an array.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     data : Sequence of objects
@@ -109,18 +107,22 @@ def array(
 
         Currently, pandas will infer an extension dtype for sequences of
 
-        ============================== =====================================
+        ============================== =======================================
         Scalar Type                    Array Type
-        ============================== =====================================
+        ============================== =======================================
         :class:`pandas.Interval`       :class:`pandas.arrays.IntervalArray`
         :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
         :class:`float`                 :class:`pandas.arrays.FloatingArray`
-        :class:`str`                   :class:`pandas.arrays.StringArray`
+        :class:`str`                   :class:`pandas.arrays.StringArray` or
+                                       :class:`pandas.arrays.ArrowStringArray`
         :class:`bool`                  :class:`pandas.arrays.BooleanArray`
-        ============================== =====================================
+        ============================== =======================================
+
+        The ExtensionArray created when the scalar type is :class:`str` is determined by
+        ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
 
@@ -236,6 +238,14 @@ def array(
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
+    >>> with pd.option_context("string_storage", "pyarrow"):
+    ...     arr = pd.array(["a", None, "c"])
+    ...
+    >>> arr
+    <ArrowStringArray>
+    ['a', <NA>, 'c']
+    Length: 3, dtype: string
+
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
     <PeriodArray>
     ['2000-01-01', '2000-01-01']
@@ -289,9 +299,9 @@ def array(
         IntervalArray,
         PandasArray,
         PeriodArray,
-        StringArray,
         TimedeltaArray,
     )
+    from pandas.core.arrays.string_ import StringDtype
 
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
@@ -332,7 +342,8 @@ def array(
             return TimedeltaArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "string":
-            return StringArray._from_sequence(data, copy=copy)
+            # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
+            return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)

@@ -810,12 +810,11 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @td.skip_if_no("pyarrow", min_version="1.0.0")
-    def test_pyarrow_backed_string_array(self, pa):
+    def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="arrow_string")})
-        check_round_trip(df, pa, expected=df)
+        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
+        with pd.option_context("string_storage", string_storage):
+            check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
