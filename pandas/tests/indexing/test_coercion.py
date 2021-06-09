@@ -1,9 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import itertools
-from typing import (
-    Dict,
-    List,
-)
 
 import numpy as np
 import pytest
@@ -1024,7 +1022,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep: Dict[str, List] = {}
+    rep: dict[str, list] = {}
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]
