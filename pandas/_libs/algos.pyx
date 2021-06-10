@@ -931,7 +931,7 @@ ctypedef fused rank_t:
     int64_t
 
 
-cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, ndarray[rank_t, ndim=1] _):
+cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
     """
     Return the value we'll use to represent missing values when sorting depending
     on if we'd like missing values to end up at the top/bottom. (The second parameter
@@ -1053,7 +1053,7 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == 'top')
-    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, masked_vals)
+    nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
     if nans_rank_highest:
         order = (masked_vals, mask, labels)
     else:
@@ -1376,16 +1376,12 @@ def rank_2d(
         int64_t[::1, :] grp_sizes
         const intp_t[:] labels
         ndarray[rank_t, ndim=2] values
-        ndarray[rank_t, ndim=1] unused
         rank_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
         uint8_t[:, :] mask
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
         rank_t nan_fill_val
-
-    if in_arr.shape[0] == 0 or in_arr.shape[1] == 0:
-        return np.empty_like(in_arr, dtype="f8")
 
     tiebreak = tiebreakers[ties_method]
     if tiebreak == TIEBREAK_FIRST:
@@ -1408,9 +1404,7 @@ def rank_2d(
 
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        # For fused type specialization
-        unused = values[:, 0]
-        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, unused)
+        nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
 
         if rank_t is object:
             mask = missing.isnaobj2d(values).view(np.uint8)
@@ -1434,10 +1428,7 @@ def rank_2d(
     grp_sizes = np.ones((n, k), dtype='i8', order='F')
     labels = np.zeros(n, dtype=np.intp)
 
-    if check_mask and not keep_na:
-        sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
-    else:
-        sort_indexer = values.argsort(axis=0).astype(np.intp, copy=False)
+    sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
 
     if not ascending:
         sort_indexer = sort_indexer[::-1, :]
