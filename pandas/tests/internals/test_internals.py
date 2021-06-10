@@ -561,7 +561,7 @@ class TestBlockManager:
 
     def test_convert(self):
         def _compare(old_mgr, new_mgr):
-            """ compare the blocks, numeric compare ==, object don't """
+            """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
             new_blocks = set(new_mgr.blocks)
             assert len(old_blocks) == len(new_blocks)
