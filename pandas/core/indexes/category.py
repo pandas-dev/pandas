@@ -222,6 +222,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         name = maybe_extract_name(name, data, cls)
 
+        if data is None:
+            # GH#38944
+            warnings.warn(
+                "Constructing a CategoricalIndex without passing data is "
+                "deprecated and will raise in a future version. "
+                "Use CategoricalIndex([], ...) instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            data = []
+
         if is_scalar(data):
             raise cls._scalar_data_error(data)
 
@@ -258,6 +269,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
+
+        elif other._is_multi:
+            # preempt raising NotImplementedError in isna call
+            raise TypeError("MultiIndex is not dtype-compatible with CategoricalIndex")
         else:
             values = other
 
@@ -324,13 +339,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             # error: "CategoricalIndex" has no attribute "ordered"
             ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
-        if self.name is not None:
-            attrs.append(("name", ibase.default_pprint(self.name)))
-        attrs.append(("dtype", f"'{self.dtype.name}'"))
-        max_seq_items = get_option("display.max_seq_items") or len(self)
-        if len(self) > max_seq_items:
-            attrs.append(("length", len(self)))
-        return attrs
+        extra = super()._format_attrs()
+        return attrs + extra
 
     def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         from pandas.io.formats.printing import pprint_thing
@@ -519,18 +529,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    @doc(Index._convert_list_indexer)
-    def _convert_list_indexer(self, keyarr):
-        # Return our indexer or raise if all of the values are not included in
-        # the categories
-
-        if self.categories._defer_to_indexing:
-            # See tests.indexing.interval.test_interval:test_loc_getitem_frame
-            indexer = self.categories._convert_list_indexer(keyarr)
-            return Index(self.codes).get_indexer_for(indexer)
-
-        return self.get_indexer_for(keyarr)
-
     # --------------------------------------------------------------------
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -630,7 +628,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
-        """ method delegation to the ._values """
+        """method delegation to the ._values"""
         method = getattr(self._values, name)
         if "inplace" in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")

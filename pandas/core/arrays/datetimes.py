@@ -151,8 +151,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
-    .. versionadded:: 0.24.0
-
     .. warning::
 
        DatetimeArray is currently experimental, and its API may change
@@ -510,7 +508,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Descriptive Properties
 
     def _box_func(self, x) -> Timestamp | NaTType:
-        return Timestamp(x, freq=self.freq, tz=self.tz)
+        ts = Timestamp(x, tz=self.tz)
+        # Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if ts is not NaT:  # type: ignore[comparison-overlap]
+            # GH#41586
+            # do this instead of passing to the constructor to avoid FutureWarning
+            ts._set_freq(self.freq)
+        return ts
 
     @property
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
@@ -603,13 +608,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             length = len(self)
             chunksize = 10000
             chunks = (length // chunksize) + 1
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, length)
-                converted = ints_to_pydatetime(
-                    data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
-                )
-                yield from converted
+
+            with warnings.catch_warnings():
+                # filter out warnings about Timestamp.freq
+                warnings.filterwarnings("ignore", category=FutureWarning)
+
+                for i in range(chunks):
+                    start_i = i * chunksize
+                    end_i = min((i + 1) * chunksize, length)
+                    converted = ints_to_pydatetime(
+                        data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
+                    )
+                    yield from converted
 
     def astype(self, dtype, copy: bool = True):
         # We handle
@@ -898,8 +908,6 @@ default 'raise'
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
 
-            .. versionadded:: 0.24.0
-
         Returns
         -------
         Same type as self
@@ -1119,14 +1127,14 @@ default 'raise'
         ...                                         "2000-08-31 00:00:00"]))
         >>> df.index.to_period("M")
         PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[M]', freq='M')
+                    dtype='period[M]')
 
         Infer the daily frequency
 
         >>> idx = pd.date_range("2017-01-01", periods=2)
         >>> idx.to_period()
         PeriodIndex(['2017-01-01', '2017-01-02'],
-                    dtype='period[D]', freq='D')
+                    dtype='period[D]')
         """
         from pandas.core.arrays import PeriodArray
 
@@ -1175,6 +1183,7 @@ default 'raise'
             "future version.  "
             "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
             FutureWarning,
+            # stacklevel chosen to be correct for when called from DatetimeIndex
             stacklevel=3,
         )
         from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -2103,7 +2112,6 @@ def sequence_to_dt64ns(
         result = data.view(DT64NS_DTYPE)
 
     if copy:
-        # TODO: should this be deepcopy?
         result = result.copy()
 
     assert isinstance(result, np.ndarray), type(result)

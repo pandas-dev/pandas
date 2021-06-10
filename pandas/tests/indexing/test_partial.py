@@ -386,58 +386,51 @@ class TestPartialSetting:
         with pytest.raises(ValueError, match=msg):
             df.loc[:, 1] = 1
 
+    def test_partial_set_empty_frame2(self):
         # these work as they don't really change
         # anything but the index
         # GH5632
         expected = DataFrame(columns=["foo"], index=Index([], dtype="object"))
 
-        def f():
-            df = DataFrame(index=Index([], dtype="object"))
-            df["foo"] = Series([], dtype="object")
-            return df
+        df = DataFrame(index=Index([], dtype="object"))
+        df["foo"] = Series([], dtype="object")
 
-        tm.assert_frame_equal(f(), expected)
+        tm.assert_frame_equal(df, expected)
 
-        def f():
-            df = DataFrame()
-            df["foo"] = Series(df.index)
-            return df
+        df = DataFrame()
+        df["foo"] = Series(df.index)
 
-        tm.assert_frame_equal(f(), expected)
+        tm.assert_frame_equal(df, expected)
 
-        def f():
-            df = DataFrame()
-            df["foo"] = df.index
-            return df
+        df = DataFrame()
+        df["foo"] = df.index
 
-        tm.assert_frame_equal(f(), expected)
+        tm.assert_frame_equal(df, expected)
 
+    def test_partial_set_empty_frame3(self):
         expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
         expected["foo"] = expected["foo"].astype("float64")
 
-        def f():
-            df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = []
-            return df
+        df = DataFrame(index=Index([], dtype="int64"))
+        df["foo"] = []
 
-        tm.assert_frame_equal(f(), expected)
+        tm.assert_frame_equal(df, expected)
 
-        def f():
-            df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = Series(np.arange(len(df)), dtype="float64")
-            return df
+        df = DataFrame(index=Index([], dtype="int64"))
+        df["foo"] = Series(np.arange(len(df)), dtype="float64")
 
-        tm.assert_frame_equal(f(), expected)
+        tm.assert_frame_equal(df, expected)
 
-        def f():
-            df = DataFrame(index=Index([], dtype="int64"))
-            df["foo"] = range(len(df))
-            return df
+    def test_partial_set_empty_frame4(self):
+        df = DataFrame(index=Index([], dtype="int64"))
+        df["foo"] = range(len(df))
 
         expected = DataFrame(columns=["foo"], index=Index([], dtype="int64"))
-        expected["foo"] = expected["foo"].astype("float64")
-        tm.assert_frame_equal(f(), expected)
+        # range is int-dtype-like, so we get int64 dtype
+        expected["foo"] = expected["foo"].astype("int64")
+        tm.assert_frame_equal(df, expected)
 
+    def test_partial_set_empty_frame5(self):
         df = DataFrame()
         tm.assert_index_equal(df.columns, Index([], dtype=object))
         df2 = DataFrame()
@@ -446,6 +439,7 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, DataFrame([[1]], index=["foo"], columns=[1]))
         tm.assert_frame_equal(df, df2)
 
+    def test_partial_set_empty_frame_no_index(self):
         # no index to start
         expected = DataFrame({0: Series(1, index=range(4))}, columns=["A", "B", 0])
 

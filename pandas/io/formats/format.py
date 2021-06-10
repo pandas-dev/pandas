@@ -1541,7 +1541,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
-        """ we by definition have DO NOT have a TZ """
+        """we by definition have DO NOT have a TZ"""
         values = self.values
 
         if not isinstance(values, DatetimeIndex):
@@ -1664,19 +1664,9 @@ def format_percentiles(
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
-    # error: No overload variant of "__getitem__" of "list" matches argument type
-    # "Union[bool_, ndarray]"
-    out[int_idx] = (
-        percentiles[int_idx].astype(int).astype(str)  # type: ignore[call-overload]
-    )
+    out[int_idx] = percentiles[int_idx].astype(int).astype(str)
 
-    # error: Item "float" of "Union[Any, float, str]" has no attribute "round"
-    # error: Item "str" of "Union[Any, float, str]" has no attribute "round"
-    # error: Invalid index type "Union[bool_, Any]" for "Union[ndarray, List[Union[int,
-    # float]], List[float], List[Union[str, float]]]"; expected type "int"
-    out[~int_idx] = (
-        percentiles[~int_idx].round(prec).astype(str)  # type: ignore[union-attr,index]
-    )
+    out[~int_idx] = percentiles[~int_idx].round(prec).astype(str)
     return [i + "%" for i in out]
 
 
@@ -1739,7 +1729,7 @@ def get_format_datetime64(
 def get_format_datetime64_from_values(
     values: np.ndarray | DatetimeArray | DatetimeIndex, date_format: str | None
 ) -> str | None:
-    """ given values and a date_format, return a string format """
+    """given values and a date_format, return a string format"""
     if isinstance(values, np.ndarray) and values.ndim > 1:
         # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
@@ -1753,7 +1743,7 @@ def get_format_datetime64_from_values(
 
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
-        """ we by definition have a TZ """
+        """we by definition have a TZ"""
         values = self.values.astype(object)
         ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(

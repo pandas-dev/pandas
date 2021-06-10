@@ -55,6 +55,7 @@ class CSSDict(TypedDict):
 
 
 CSSStyles = List[CSSDict]
+Subset = Union[slice, Sequence, Index]
 
 
 class StylerRenderer:
@@ -65,6 +66,7 @@ class StylerRenderer:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
+    template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
@@ -73,7 +75,7 @@ class StylerRenderer:
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         cell_ids: bool = True,
     ):
 
@@ -106,16 +108,33 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
-    def _render_html(self, **kwargs) -> str:
+    def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate()
+        d = self._translate(sparse_index, sparse_columns)
         d.update(kwargs)
         return self.template_html.render(**d)
+
+    def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+        """
+        Render a Styler in latex format
+        """
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, blank="")
+        self._translate_latex(d)
+
+        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
+        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+
+        d.update(kwargs)
+        return self.template_latex.render(**d)
 
     def _compute(self):
         """
@@ -132,9 +151,7 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(
-        self, sparsify_index: bool | None = None, sparsify_cols: bool | None = None
-    ):
+    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp;"):
         """
         Process Styler data and settings into a dict for template rendering.
 
@@ -143,10 +160,12 @@ class StylerRenderer:
 
         Parameters
         ----------
-        sparsify_index : bool, optional
-            Whether to sparsify the index or print all hierarchical index elements
-        sparsify_cols : bool, optional
-            Whether to sparsify the columns or print all hierarchical column elements
+        sparse_index : bool
+            Whether to sparsify the index or print all hierarchical index elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.index`.
+        sparse_cols : bool
+            Whether to sparsify the columns or print all hierarchical column elements.
+            Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
 
         Returns
         -------
@@ -154,18 +173,15 @@ class StylerRenderer:
             The following structure: {uuid, table_styles, caption, head, body,
             cellstyle, table_attributes}
         """
-        if sparsify_index is None:
-            sparsify_index = get_option("display.multi_sparse")
-        if sparsify_cols is None:
-            sparsify_cols = get_option("display.multi_sparse")
-
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
+        TRIMMED_COL_CLASS = "col_trim"
+        TRIMMED_ROW_CLASS = "row_trim"
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
-        BLANK_VALUE = "&nbsp;"
+        BLANK_VALUE = blank
 
         # construct render dict
         d = {
@@ -174,15 +190,34 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
+        max_elements = get_option("styler.render.max_elements")
+        max_rows, max_cols = _get_trimming_maximums(
+            len(self.data.index), len(self.data.columns), max_elements
+        )
+
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparsify_cols
+            BLANK_CLASS,
+            BLANK_VALUE,
+            INDEX_NAME_CLASS,
+            COL_HEADING_CLASS,
+            sparse_cols,
+            max_cols,
+            TRIMMED_COL_CLASS,
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparsify_index)
+        body = self._translate_body(
+            DATA_CLASS,
+            ROW_HEADING_CLASS,
+            sparse_index,
+            max_rows,
+            max_cols,
+            TRIMMED_ROW_CLASS,
+            TRIMMED_COL_CLASS,
+        )
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
@@ -213,6 +248,8 @@ class StylerRenderer:
         index_name_class: str,
         col_heading_class: str,
         sparsify_cols: bool,
+        max_cols: int,
+        trimmed_col_class: str,
     ):
         """
         Build each <tr> within table <head> as a list
@@ -238,6 +275,10 @@ class StylerRenderer:
             CSS class added to elements within the column_names section of structure.
         sparsify_cols : bool
             Whether column_headers section will add colspan attributes (>1) to elements.
+        max_cols : int
+            Maximum number of columns to render. If exceeded will contain `...` filler.
+        trimmed_col_class : str
+            CSS class added to elements within a column including `...` trimmed vals.
 
         Returns
         -------
@@ -246,10 +287,10 @@ class StylerRenderer:
         """
         # for sparsifying a MultiIndex
         col_lengths = _get_level_lengths(
-            self.columns, sparsify_cols, self.hidden_columns
+            self.columns, sparsify_cols, max_cols, self.hidden_columns
         )
 
-        clabels = self.data.columns.tolist()
+        clabels = self.data.columns.tolist()[:max_cols]  # slice to allow trimming
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
@@ -286,6 +327,18 @@ class StylerRenderer:
                     )
                     for c, value in enumerate(clabels[r])
                 ]
+
+                if len(self.data.columns) > max_cols:
+                    # add an extra column with `...` value to indicate trimming
+                    column_headers.append(
+                        _element(
+                            "th",
+                            f"{col_heading_class} level{r} {trimmed_col_class}",
+                            "...",
+                            True,
+                            attributes="",
+                        )
+                    )
                 head.append(index_blanks + column_name + column_headers)
 
         # 2) index names
@@ -304,6 +357,11 @@ class StylerRenderer:
                 for c, name in enumerate(self.data.index.names)
             ]
 
+            if len(self.data.columns) <= max_cols:
+                blank_len = len(clabels[0])
+            else:
+                blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
+
             column_blanks = [
                 _element(
                     "th",
@@ -311,14 +369,21 @@ class StylerRenderer:
                     blank_value,
                     c not in self.hidden_columns,
                 )
-                for c in range(len(clabels[0]))
+                for c in range(blank_len)
             ]
             head.append(index_names + column_blanks)
 
         return head
 
     def _translate_body(
-        self, data_class: str, row_heading_class: str, sparsify_index: bool
+        self,
+        data_class: str,
+        row_heading_class: str,
+        sparsify_index: bool,
+        max_rows: int,
+        max_cols: int,
+        trimmed_row_class: str,
+        trimmed_col_class: str,
     ):
         """
         Build each <tr> within table <body> as a list
@@ -346,14 +411,52 @@ class StylerRenderer:
             The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index, sparsify_index)
+        idx_lengths = _get_level_lengths(self.index, sparsify_index, max_rows)
 
-        rlabels = self.data.index.tolist()
+        rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
         if self.data.index.nlevels == 1:
             rlabels = [[x] for x in rlabels]
 
         body = []
         for r, row_tup in enumerate(self.data.itertuples()):
+            if r >= max_rows:  # used only to add a '...' trimmed row:
+                index_headers = [
+                    _element(
+                        "th",
+                        f"{row_heading_class} level{c} {trimmed_row_class}",
+                        "...",
+                        not self.hidden_index,
+                        attributes="",
+                    )
+                    for c in range(self.data.index.nlevels)
+                ]
+
+                data = [
+                    _element(
+                        "td",
+                        f"{data_class} col{c} {trimmed_row_class}",
+                        "...",
+                        (c not in self.hidden_columns),
+                        attributes="",
+                    )
+                    for c in range(max_cols)
+                ]
+
+                if len(self.data.columns) > max_cols:
+                    # columns are also trimmed so we add the final element
+                    data.append(
+                        _element(
+                            "td",
+                            f"{data_class} {trimmed_row_class} {trimmed_col_class}",
+                            "...",
+                            True,
+                            attributes="",
+                        )
+                    )
+
+                body.append(index_headers + data)
+                break
+
             index_headers = [
                 _element(
                     "th",
@@ -372,6 +475,18 @@ class StylerRenderer:
 
             data = []
             for c, value in enumerate(row_tup[1:]):
+                if c >= max_cols:
+                    data.append(
+                        _element(
+                            "td",
+                            f"{data_class} row{r} {trimmed_col_class}",
+                            "...",
+                            True,
+                            attributes="",
+                        )
+                    )
+                    break
+
                 # add custom classes from cell context
                 cls = ""
                 if (r, c) in self.cell_context:
@@ -399,26 +514,63 @@ class StylerRenderer:
             body.append(index_headers + data)
         return body
 
+    def _translate_latex(self, d: dict) -> None:
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
+          - Remove hidden columns from the non-headers part of the body.
+          - Place cellstyles directly in td cells rather than use cellstyle_map.
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification (so that \multirow and \multicol work correctly).
+        """
+        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        body = []
+        for r, row in enumerate(d["body"]):
+            if self.hidden_index:
+                row_body_headers = []
+            else:
+                row_body_headers = [
+                    {
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                    }
+                    for col in row
+                    if col["type"] == "th"
+                ]
+
+            row_body_cells = [
+                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
+                for c, col in enumerate(row)
+                if (col["is_visible"] and col["type"] == "td")
+            ]
+
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
+
     def format(
         self,
         formatter: ExtFormatter | None = None,
-        subset: slice | Sequence[Any] | None = None,
+        subset: Subset | None = None,
         na_rep: str | None = None,
         precision: int | None = None,
         decimal: str = ".",
         thousands: str | None = None,
-        escape: bool = False,
+        escape: str | None = None,
     ) -> StylerRenderer:
-        """
+        r"""
         Format the text display value of cells.
 
         Parameters
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
+        subset : label, array-like, IndexSlice, optional
+            A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
+            or single key, to `DataFrame.loc[:, <subset>]` where the columns are
+            prioritised, to limit ``data`` to *before* applying the function.
         na_rep : str, optional
             Representation for missing values.
             If ``na_rep`` is None, no special formatting is applied.
@@ -441,9 +593,13 @@ class StylerRenderer:
 
             .. versionadded:: 1.3.0
 
-        escape : bool, default False
-            Replace the characters ``&``, ``<``, ``>``, ``'``, and ``"`` in cell display
-            string with HTML-safe sequences. Escaping is done before ``formatter``.
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
 
             .. versionadded:: 1.3.0
 
@@ -520,13 +676,26 @@ class StylerRenderer:
         Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
 
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
-        >>> s = df.style.format('<a href="a.com/{0}">{0}</a>', escape=True, na_rep="NA")
+        >>> s = df.style.format(
+        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
+        ...     )
         >>> s.render()
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
         <td .. >NA</td>
         ...
+
+        Using a ``formatter`` with LaTeX ``escape``.
+
+        >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
+        >>> s = df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        \begin{tabular}{ll}
+        {} & {0} \\
+        0 & \textbf{123} \\
+        1 & \textbf{\textasciitilde \space \textasciicircum } \\
+        2 & \textbf{\$\%\#} \\
+        \end{tabular}
         """
         if all(
             (
@@ -536,7 +705,7 @@ class StylerRenderer:
                 decimal == ".",
                 thousands is None,
                 na_rep is None,
-                escape is False,
+                escape is None,
             )
         ):
             self._display_funcs.clear()
@@ -587,8 +756,40 @@ def _element(
     }
 
 
+def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
+    """
+    Recursively reduce the number of rows and columns to satisfy max elements.
+
+    Parameters
+    ----------
+    rn, cn : int
+        The number of input rows / columns
+    max_elements : int
+        The number of allowable elements
+
+    Returns
+    -------
+    rn, cn : tuple
+        New rn and cn values that satisfy the max_elements constraint
+    """
+
+    def scale_down(rn, cn):
+        if cn >= rn:
+            return rn, int(cn * scaling_factor)
+        else:
+            return int(rn * scaling_factor), cn
+
+    while rn * cn > max_elements:
+        rn, cn = scale_down(rn, cn)
+
+    return rn, cn
+
+
 def _get_level_lengths(
-    index: Index, sparsify: bool, hidden_elements: Sequence[int] | None = None
+    index: Index,
+    sparsify: bool,
+    max_index: int,
+    hidden_elements: Sequence[int] | None = None,
 ):
     """
     Given an index, find the level length for each element.
@@ -599,6 +800,8 @@ def _get_level_lengths(
         Index or columns to determine lengths of each element
     sparsify : bool
         Whether to hide or show each distinct element in a MultiIndex
+    max_index : int
+        The maximum number of elements to analyse along the index due to trimming
     hidden_elements : sequence of int
         Index positions of elements hidden from display in the index affecting
         length
@@ -625,6 +828,9 @@ def _get_level_lengths(
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
+            if j >= max_index:
+                # stop the loop due to display trimming
+                break
             if not sparsify:
                 lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
@@ -720,10 +926,17 @@ def _wrap_decimal_thousands(
     return wrapper
 
 
-def _str_escape_html(x):
-    """if escaping html: only use on str, else return input"""
+def _str_escape(x, escape):
+    """if escaping: only use on str, else return input"""
     if isinstance(x, str):
-        return escape_html(x)
+        if escape == "html":
+            return escape_html(x)
+        elif escape == "latex":
+            return _escape_latex(x)
+        else:
+            raise ValueError(
+                f"`escape` only permitted in {{'html', 'latex'}}, got {escape}"
+            )
     return x
 
 
@@ -733,7 +946,7 @@ def _maybe_wrap_formatter(
     precision: int | None = None,
     decimal: str = ".",
     thousands: str | None = None,
-    escape: bool = False,
+    escape: str | None = None,
 ) -> Callable:
     """
     Allows formatters to be expressed as str, callable or None, where None returns
@@ -753,9 +966,9 @@ def _maybe_wrap_formatter(
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
-    # Replace HTML chars if escaping
-    if escape:
-        func_1 = lambda x: func_0(_str_escape_html(x))
+    # Replace chars if escaping
+    if escape is not None:
+        func_1 = lambda x: func_0(_str_escape(x, escape=escape))
     else:
         func_1 = func_0
 
@@ -772,7 +985,7 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if isna(x) else func_2(x)
 
 
-def non_reducing_slice(slice_):
+def non_reducing_slice(slice_: Subset):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
@@ -809,7 +1022,9 @@ def non_reducing_slice(slice_):
             # slice(a, b, c)
             slice_ = [slice_]  # to tuplize later
     else:
-        slice_ = [part if pred(part) else [part] for part in slice_]
+        # error: Item "slice" of "Union[slice, Sequence[Any]]" has no attribute
+        # "__iter__" (not iterable) -> is specifically list_like in conditional
+        slice_ = [p if pred(p) else [p] for p in slice_]  # type: ignore[union-attr]
     return tuple(slice_)
 
 
@@ -997,3 +1212,175 @@ class Tooltips:
             d["table_styles"].extend(self.table_styles)
 
         return d
+
+
+def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) -> bool:
+    """
+    Indicate whether LaTeX {tabular} should be wrapped with a {table} environment.
+
+    Parses the `table_styles` and detects any selectors which must be included outside
+    of {tabular}, i.e. indicating that wrapping must occur, and therefore return True,
+    or if a caption exists and requires similar.
+    """
+    IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
+    # ignored selectors are included with {tabular} so do not need wrapping
+    return (
+        table_styles is not None
+        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
+    ) or caption is not None
+
+
+def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:
+    """
+    Return the first 'props' 'value' from ``tables_styles`` identified by ``selector``.
+
+    Examples
+    --------
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
+    ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
+    >>> _parse_latex_table_styles(table_styles, selector='bar')
+    'baz'
+
+    Notes
+    -----
+    The replacement of "§" with ":" is to avoid the CSS problem where ":" has structural
+    significance and cannot be used in LaTeX labels, but is often required by them.
+    """
+    for style in table_styles[::-1]:  # in reverse for most recently applied style
+        if style["selector"] == selector:
+            return str(style["props"][0][1]).replace("§", ":")
+    return None
+
+
+def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
+    r"""
+    Mutate the ``display_value`` string including LaTeX commands from ``latex_styles``.
+
+    This method builds a recursive latex chain of commands based on the
+    CSSList input, nested around ``display_value``.
+
+    If a CSS style is given as ('<command>', '<options>') this is translated to
+    '\<command><options>{display_value}', and this value is treated as the
+    display value for the next iteration.
+
+    The most recent style forms the inner component, for example for styles:
+    `[('c1', 'o1'), ('c2', 'o2')]` this returns: `\c1o1{\c2o2{display_value}}`
+
+    Sometimes latex commands have to be wrapped with curly braces in different ways:
+    We create some parsing flags to identify the different behaviours:
+
+     - `--rwrap`        : `\<command><options>{<display_value>}`
+     - `--wrap`         : `{\<command><options> <display_value>}`
+     - `--nowrap`       : `\<command><options> <display_value>`
+     - `--lwrap`        : `{\<command><options>} <display_value>`
+     - `--dwrap`        : `{\<command><options>}{<display_value>}`
+
+    For example for styles:
+    `[('c1', 'o1--wrap'), ('c2', 'o2')]` this returns: `{\c1o1 \c2o2{display_value}}
+    """
+    for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
+        formatter = {
+            "--wrap": f"{{\\{command}--to_parse {display_value}}}",
+            "--nowrap": f"\\{command}--to_parse {display_value}",
+            "--lwrap": f"{{\\{command}--to_parse}} {display_value}",
+            "--rwrap": f"\\{command}--to_parse{{{display_value}}}",
+            "--dwrap": f"{{\\{command}--to_parse}}{{{display_value}}}",
+        }
+        display_value = f"\\{command}{options} {display_value}"
+        for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
+            if arg in str(options):
+                display_value = formatter[arg].replace(
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
+                )
+                break  # only ever one purposeful entry
+    return display_value
+
+
+def _parse_latex_header_span(
+    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
+) -> str:
+    r"""
+    Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
+
+    'rowspan' and 'colspan' do not occur simultaneouly. If they are detected then
+    the `display_value` is altered to a LaTeX `multirow` or `multicol` command
+    respectively, with the appropriate cell-span.
+
+    ``wrap`` is used to enclose the `display_value` in braces which is needed for
+    column headers using an siunitx package.
+
+    Requires the package {multirow}, whereas multicol support is usually built in
+    to the {tabular} environment.
+
+    Examples
+    --------
+    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> _parse_latex_header_span(cell, 't', 'c')
+    '\multicol{3}{c}{text}'
+    """
+    if "attributes" in cell:
+        attrs = cell["attributes"]
+        if 'colspan="' in attrs:
+            colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
+            colspan = int(colspan[: colspan.find('"')])
+            return (
+                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
+                f"{{{cell['display_value']}}}"
+            )
+        elif 'rowspan="' in attrs:
+            rowspan = attrs[attrs.find('rowspan="') + 9 :]
+            rowspan = int(rowspan[: rowspan.find('"')])
+            return (
+                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
+                f"{{{cell['display_value']}}}"
+            )
+    if wrap:
+        return f"{{{cell['display_value']}}}"
+    else:
+        return cell["display_value"]
+
+
+def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
+    """
+    Strip a css_value which may have latex wrapping arguments, css comment identifiers,
+    and whitespaces, to a valid string for latex options parsing.
+
+    For example: 'red /* --wrap */  ' --> 'red'
+    """
+    return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+
+
+def _escape_latex(s):
+    r"""
+    Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
+    ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
+
+    Use this if you need to display text that might contain such characters in LaTeX.
+
+    Parameters
+    ----------
+    s : str
+        Input to be escaped
+
+    Return
+    ------
+    str :
+        Escaped string
+    """
+    return (
+        s.replace("\\", "ab2§=§8yz")  # rare string for final conversion: avoid \\ clash
+        .replace("ab2§=§8yz ", "ab2§=§8yz\\space ")  # since \backslash gobbles spaces
+        .replace("&", "\\&")
+        .replace("%", "\\%")
+        .replace("$", "\\$")
+        .replace("#", "\\#")
+        .replace("_", "\\_")
+        .replace("{", "\\{")
+        .replace("}", "\\}")
+        .replace("~ ", "~\\space ")  # since \textasciitilde gobbles spaces
+        .replace("~", "\\textasciitilde ")
+        .replace("^ ", "^\\space ")  # since \textasciicircum gobbles spaces
+        .replace("^", "\\textasciicircum ")
+        .replace("ab2§=§8yz", "\\textbackslash ")
+    )

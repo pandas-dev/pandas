@@ -27,7 +27,6 @@ from pandas.core.computation.common import (
     result_type_many,
 )
 from pandas.core.computation.scope import DEFAULT_GLOBALS
-from pandas.util.version import Version
 
 from pandas.io.formats.printing import (
     pprint_thing,
@@ -616,18 +615,8 @@ class MathCall(Op):
 
 class FuncNode:
     def __init__(self, name: str):
-        from pandas.core.computation.check import (
-            NUMEXPR_INSTALLED,
-            NUMEXPR_VERSION,
-        )
-
-        if name not in MATHOPS or (
-            NUMEXPR_INSTALLED
-            and Version(NUMEXPR_VERSION) < Version("2.6.9")
-            and name in ("floor", "ceil")
-        ):
+        if name not in MATHOPS:
             raise ValueError(f'"{name}" is not a supported function')
-
         self.name = name
         self.func = getattr(np, name)
 

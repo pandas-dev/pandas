@@ -77,7 +77,7 @@ def frame_apply(
     args=None,
     kwargs=None,
 ) -> FrameApply:
-    """ construct and return a row or column based frame apply object """
+    """construct and return a row or column based frame apply object"""
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
@@ -376,12 +376,10 @@ class Apply(metaclass=abc.ABCMeta):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)
+            concatenated = concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
-
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
-
             from pandas import Series
 
             result = Series(results, index=keys, name=obj.name)
@@ -390,6 +388,16 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
+        else:
+            # Concat uses the first index to determine the final indexing order.
+            # The union of a shorter first index with the other indices causes
+            # the index sorting to be different from the order of the aggregating
+            # functions. Reindex if this is the case.
+            index_size = concatenated.index.size
+            full_ordered_index = next(
+                result.index for result in results if result.index.size == index_size
+            )
+            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> FrameOrSeriesUnion:
         """
@@ -631,7 +639,7 @@ class FrameApply(NDFrameApply):
         return self.obj.dtypes
 
     def apply(self) -> FrameOrSeriesUnion:
-        """ compute the results """
+        """compute the results"""
         # dispatch to agg
         if is_list_like(self.f):
             return self.apply_multiple()
@@ -725,7 +733,7 @@ class FrameApply(NDFrameApply):
             return self.obj.copy()
 
     def apply_raw(self):
-        """ apply to the values as a numpy array """
+        """apply to the values as a numpy array"""
 
         def wrap_function(func):
             """
@@ -859,7 +867,7 @@ class FrameRowApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the rows """
+        """return the results for the rows"""
 
         if self.result_type == "reduce":
             # e.g. test_apply_dict GH#8735
@@ -942,7 +950,7 @@ class FrameColumnApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the columns """
+        """return the results for the columns"""
         result: FrameOrSeriesUnion
 
         # we have requested to expand
@@ -961,7 +969,7 @@ class FrameColumnApply(FrameApply):
         return result
 
     def infer_to_same_shape(self, results: ResType, res_index: Index) -> DataFrame:
-        """ infer the results to the same shape as the input object """
+        """infer the results to the same shape as the input object"""
         result = self.obj._constructor(data=results)
         result = result.T
 

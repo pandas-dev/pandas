@@ -20,19 +20,19 @@ class Render:
 
     def time_apply_render(self, cols, rows):
         self._style_apply()
-        self.st._render_html()
+        self.st._render_html(True, True)
 
     def peakmem_apply_render(self, cols, rows):
         self._style_apply()
-        self.st._render_html()
+        self.st._render_html(True, True)
 
     def time_classes_render(self, cols, rows):
         self._style_classes()
-        self.st._render_html()
+        self.st._render_html(True, True)
 
     def peakmem_classes_render(self, cols, rows):
         self._style_classes()
-        self.st._render_html()
+        self.st._render_html(True, True)
 
     def time_format_render(self, cols, rows):
         self._style_format()

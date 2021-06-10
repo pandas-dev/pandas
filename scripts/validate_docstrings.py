@@ -13,6 +13,8 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
+from __future__ import annotations
+
 import argparse
 import doctest
 import glob
@@ -23,10 +25,6 @@ import os
 import subprocess
 import sys
 import tempfile
-from typing import (
-    List,
-    Optional,
-)
 
 # Template backend makes matplotlib to not plot anything. This is useful
 # to avoid that plot windows are open from the doctests while running the
@@ -312,7 +310,7 @@ def validate_all(prefix, ignore_deprecated=False):
 
 def print_validate_all_results(
     prefix: str,
-    errors: Optional[List[str]],
+    errors: list[str] | None,
     output_format: str,
     ignore_deprecated: bool,
 ):

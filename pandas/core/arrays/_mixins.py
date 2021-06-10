@@ -94,7 +94,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         axis: int = 0,
     ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
-            fill_value = self._validate_fill_value(fill_value)
+            fill_value = self._validate_scalar(fill_value)
 
         new_data = take(
             self._ndarray,
@@ -106,25 +106,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             axis=axis,
         )
         return self._from_backing_data(new_data)
-
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to a representation
-        suitable for self._ndarray, raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : native representation
-
-        Raises
-        ------
-        TypeError
-        """
-        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
 
@@ -194,7 +175,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _validate_shift_value(self, fill_value):
         # TODO: after deprecation in datetimelikearraymixin is enforced,
         #  we can remove this and ust validate_fill_value directly
-        return self._validate_fill_value(fill_value)
+        return self._validate_scalar(fill_value)
 
     def __setitem__(self, key, value):
         key = check_array_indexer(self, key)
@@ -345,6 +326,36 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
+
+    # ------------------------------------------------------------------------
+    # Index compat methods
+
+    def insert(
+        self: NDArrayBackedExtensionArrayT, loc: int, item
+    ) -> NDArrayBackedExtensionArrayT:
+        """
+        Make new ExtensionArray inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        type(self)
+        """
+        code = self._validate_scalar(item)
+
+        new_vals = np.concatenate(
+            (
+                self._ndarray[:loc],
+                np.asarray([code], dtype=self._ndarray.dtype),
+                self._ndarray[loc:],
+            )
+        )
+        return self._from_backing_data(new_vals)
 
     # ------------------------------------------------------------------------
     # Additional array methods

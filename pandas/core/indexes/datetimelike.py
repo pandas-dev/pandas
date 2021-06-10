@@ -35,7 +35,6 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_bool_dtype,
     is_categorical_dtype,
     is_dtype_equal,
     is_integer,
@@ -61,7 +60,6 @@ from pandas.core.indexes.extension import (
     inherit_names,
     make_wrapped_arith_op,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -83,6 +81,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     Common ops mixin to support a unified interface datetimelike Index.
     """
 
+    _is_numeric_dtype = False
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
     freq: BaseOffset | None
@@ -113,15 +112,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         Gets called after a ufunc and other functions.
         """
-        result = lib.item_from_zerodim(result)
-        if is_bool_dtype(result) or lib.is_scalar(result):
-            return result
-
-        attrs = self._get_attributes_dict()
-        if not is_period_dtype(self.dtype) and attrs["freq"]:
-            # no need to infer if freq is None
-            attrs["freq"] = "infer"
-        return type(self)(result, **attrs)
+        out = super().__array_wrap__(result, context=context)
+        if isinstance(out, DatetimeTimedeltaMixin) and self.freq is not None:
+            out = out._with_freq("infer")
+        return out
 
     # ------------------------------------------------------------------------
 
@@ -361,7 +355,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
                 freq = self.freqstr
                 if freq is not None:
                     freq = repr(freq)
-                attrs.append(("freq", freq))
+                # Argument 1 to "append" of "list" has incompatible type
+                # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
+                attrs.append(("freq", freq))  # type: ignore[arg-type]
         return attrs
 
     def _summary(self, name=None) -> str:
@@ -478,9 +474,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
         freq : pandas.DateOffset, pandas.Timedelta or string, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
@@ -597,12 +590,13 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     # --------------------------------------------------------------------
 
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr):
+    @doc(Index._maybe_cast_listlike_indexer)
+    def _maybe_cast_listlike_indexer(self, keyarr):
         try:
-            return self._data._validate_listlike(keyarr, allow_object=True)
+            res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            return com.asarray_tuplesafe(keyarr)
+            res = com.asarray_tuplesafe(keyarr)
+        return Index(res, dtype=res.dtype)
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
@@ -612,6 +606,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     """
 
     _data: DatetimeArray | TimedeltaArray
+    _comparables = ["name", "freq"]
+    _attributes = ["name", "freq"]
 
     # Compat for frequency inference, see GH#23789
     _is_monotonic_increasing = Index.is_monotonic_increasing
@@ -632,10 +628,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     # --------------------------------------------------------------------
     # Set Operation Methods
-
-    def _difference(self, other, sort=None):
-        new_idx = super()._difference(other, sort=sort)._with_freq(None)
-        return new_idx
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
@@ -782,20 +774,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
         if self._can_fast_union(other):
             result = self._fast_union(other, sort=sort)
-            if sort is None:
-                # In the case where sort is None, _can_fast_union
-                #  implies that result.freq should match self.freq
-                assert result.freq == self.freq, (result.freq, self.freq)
-            elif result.freq is None:
-                # TODO: no tests rely on this; needed?
-                result = result._with_freq("infer")
+            # in the case with sort=None, the _can_fast_union check ensures
+            #  that result.freq == self.freq
             return result
         else:
-            i8self = Int64Index._simple_new(self.asi8)
-            i8other = Int64Index._simple_new(other.asi8)
-            i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
-            return result
+            return super()._union(other, sort=sort)._with_freq("infer")
 
     # --------------------------------------------------------------------
     # Join Methods

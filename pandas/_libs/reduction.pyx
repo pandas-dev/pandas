@@ -1,4 +1,3 @@
-from copy import copy
 
 from libc.stdlib cimport (
     free,
@@ -307,13 +306,11 @@ cpdef inline extract_result(object res):
         # Preserve EA
         res = res._values
         if res.ndim == 1 and len(res) == 1:
+            # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
             res = res[0]
-    if hasattr(res, 'values') and is_array(res.values):
-        res = res.values
     if is_array(res):
-        if res.ndim == 0:
-            res = res.item()
-        elif res.ndim == 1 and len(res) == 1:
+        if res.ndim == 1 and len(res) == 1:
+            # see test_resampler_grouper.py::test_apply
             res = res[0]
     return res
 
@@ -386,7 +383,7 @@ def apply_frame_axis0(object frame, object f, object names,
             # Need to infer if low level index slider will cause segfaults
             require_slow_apply = i == 0 and piece is chunk
             try:
-                if not piece.index is chunk.index:
+                if piece.index is not chunk.index:
                     mutated = True
             except AttributeError:
                 # `piece` might not have an index, could be e.g. an int
@@ -397,7 +394,7 @@ def apply_frame_axis0(object frame, object f, object names,
                 try:
                     piece = piece.copy(deep="all")
                 except (TypeError, AttributeError):
-                    piece = copy(piece)
+                    pass
 
             results.append(piece)
 
