@@ -1384,6 +1384,9 @@ def rank_2d(
         bint check_mask, keep_na, nans_rank_highest
         rank_t nan_fill_val
 
+    if in_arr.shape[0] == 0 or in_arr.shape[1] == 0:
+        return np.empty_like(in_arr, dtype="f8")
+
     tiebreak = tiebreakers[ties_method]
 
     keep_na = na_option == 'keep'
