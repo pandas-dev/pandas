@@ -1428,12 +1428,17 @@ def rank_2d(
     grp_sizes = np.ones((n, k), dtype='i8', order='F')
     labels = np.zeros(n, dtype=np.intp)
 
-    sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
+    # lexsort is slower, so only use if we need to worry about the mask
+    if check_mask:
+        sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
+    else:
+        kind = "stable" if ties_method == "first" else None
+        sort_indexer = values.argsort(axis=0, kind=kind)
 
     if not ascending:
         sort_indexer = sort_indexer[::-1, :]
 
-    # putmask doesn't accept a memoryview, so we assign as a separate step
+    # putmask doesn't accept a memoryview, so we assign in a separate step
     masked_vals = values
     with nogil:
         for col in range(k):
