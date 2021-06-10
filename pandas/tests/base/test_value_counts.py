@@ -242,6 +242,7 @@ def test_value_counts_datetime64(index_or_series):
     expected_s = pd.concat([Series([4], index=DatetimeIndex([pd.NaT])), expected_s])
     tm.assert_series_equal(result, expected_s)
 
+    assert s.dtype == "datetime64[ns]"
     unique = s.unique()
     assert unique.dtype == "datetime64[ns]"
 

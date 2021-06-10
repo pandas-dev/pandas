@@ -6310,91 +6310,19 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
     -------
     np.ndarray or ExtensionArray
     """
-    # Runtime import needed bc IntervalArray imports Index
-    from pandas.core.arrays import (
-        DatetimeArray,
-        IntervalArray,
-        PeriodArray,
-        TimedeltaArray,
+
+    result = lib.maybe_convert_objects(
+        subarr,
+        convert_datetime=True,
+        convert_timedelta=True,
+        convert_period=True,
+        convert_interval=True,
+        dtype_if_all_nat=np.dtype("datetime64[ns]"),
     )
-
-    assert subarr.dtype == object, subarr.dtype
-    inferred = lib.infer_dtype(subarr, skipna=False)
-
-    if inferred == "integer":
-        try:
-            data = _try_convert_to_int_array(subarr)
-            return data
-        except ValueError:
-            pass
-
+    if result.dtype.kind in ["b", "c"]:
         return subarr
-
-    elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
-        # TODO: Returns IntegerArray for integer-na case in the future
-        data = np.asarray(subarr).astype(np.float64, copy=False)
-        return data
-
-    elif inferred == "interval":
-        ia_data = IntervalArray._from_sequence(subarr, copy=False)
-        return ia_data
-    elif inferred == "boolean":
-        # don't support boolean explicitly ATM
-        pass
-    elif inferred != "string":
-        if inferred.startswith("datetime"):
-            try:
-                data = DatetimeArray._from_sequence(subarr, copy=False)
-                return data
-            except (ValueError, OutOfBoundsDatetime):
-                # GH 27011
-                # If we have mixed timezones, just send it
-                # down the base constructor
-                pass
-
-        elif inferred.startswith("timedelta"):
-            tda = TimedeltaArray._from_sequence(subarr, copy=False)
-            return tda
-        elif inferred == "period":
-            parr = PeriodArray._from_sequence(subarr)
-            return parr
-
-    return subarr
-
-
-def _try_convert_to_int_array(data: np.ndarray) -> np.ndarray:
-    """
-    Attempt to convert an array of data into an integer array.
-
-    Parameters
-    ----------
-    data : np.ndarray[object]
-
-    Returns
-    -------
-    int_array : data converted to either an ndarray[int64] or ndarray[uint64]
-
-    Raises
-    ------
-    ValueError if the conversion was not successful.
-    """
-    try:
-        res = data.astype("i8", copy=False)
-        if (res == data).all():
-            return res
-    except (OverflowError, TypeError, ValueError):
-        pass
-
-    # Conversion to int64 failed (possibly due to overflow),
-    # so let's try now with uint64.
-    try:
-        res = data.astype("u8", copy=False)
-        if (res == data).all():
-            return res
-    except (OverflowError, TypeError, ValueError):
-        pass
-
-    raise ValueError
+    result = ensure_wrapped_if_datetimelike(result)
+    return result
 
 
 def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:

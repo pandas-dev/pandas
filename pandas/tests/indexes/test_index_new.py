@@ -138,6 +138,16 @@ class TestIndexConstructorInference:
         tm.assert_index_equal(Index(data), expected)
         tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
 
+    @pytest.mark.parametrize("swap_objs", [True, False])
+    def test_constructor_datetime_and_datetime64(self, swap_objs):
+        data = [Timestamp(2021, 6, 8, 9, 42), np.datetime64("now")]
+        if swap_objs:
+            data = data[::-1]
+        expected = DatetimeIndex(data)
+
+        tm.assert_index_equal(Index(data), expected)
+        tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
+
 
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
