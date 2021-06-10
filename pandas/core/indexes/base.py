@@ -1305,8 +1305,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Identity method.
 
-        .. versionadded:: 0.24.0
-
         This is implemented for compatibility with subclass implementations
         when chaining.
 
@@ -1387,8 +1385,6 @@ class Index(IndexOpsMixin, PandasObject):
     def to_frame(self, index: bool = True, name: Hashable = None) -> DataFrame:
         """
         Create a DataFrame with a column containing the Index.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -2862,13 +2858,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             * False : do not sort the result.
 
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
-
         Returns
         -------
         union : Index
@@ -3024,7 +3013,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Self may have duplicates
         # find indexes of things in "other" that are not in "self"
-        if self.is_unique:
+        if self._index_as_unique:
             indexer = self.get_indexer(other)
             missing = (indexer == -1).nonzero()[0]
         else:
@@ -3069,13 +3058,6 @@ class Index(IndexOpsMixin, PandasObject):
             * None : sort the result, except when `self` and `other` are equal
               or when the values cannot be compared.
 
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default from ``True`` to ``False``, to match
-               the behaviour of 0.23.4 and earlier.
-
         Returns
         -------
         intersection : Index
@@ -3116,7 +3098,6 @@ class Index(IndexOpsMixin, PandasObject):
         intersection specialized to the case with matching dtypes.
         """
         # TODO(EA): setops-refactor, clean all this up
-        lvals = self._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -3128,21 +3109,36 @@ class Index(IndexOpsMixin, PandasObject):
                 res = algos.unique1d(result)
                 return ensure_wrapped_if_datetimelike(res)
 
-        try:
-            indexer = other.get_indexer(lvals)
-        except InvalidIndexError:
-            # InvalidIndexError raised by get_indexer if non-unique
-            indexer, _ = other.get_indexer_non_unique(lvals)
+        res_values = self._intersection_via_get_indexer(other, sort=sort)
+        res_values = _maybe_try_sort(res_values, sort)
+        return res_values
+
+    def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
+        """
+        Find the intersection of two Indexes using get_indexer.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+            The returned array will be unique.
+        """
+        # Note: drop_duplicates vs unique matters for MultiIndex, though
+        #  it should not, see GH#41823
+        left_unique = self.drop_duplicates()
+        right_unique = other.drop_duplicates()
+
+        # even though we are unique, we need get_indexer_for for IntervalIndex
+        indexer = left_unique.get_indexer_for(right_unique)
 
         mask = indexer != -1
-        indexer = indexer.take(mask.nonzero()[0])
 
-        result = other.take(indexer).unique()._values
-        result = _maybe_try_sort(result, sort)
+        taker = indexer.take(mask.nonzero()[0])
+        if sort is False:
+            # sort bc we want the elements in the same order they are in self
+            # unnecessary in the case with sort=None bc we will sort later
+            taker = np.sort(taker)
 
-        # Intersection has to be unique
-        assert Index(result).is_unique
-
+        result = left_unique.take(taker)._values
         return result
 
     @final
@@ -3163,13 +3159,6 @@ class Index(IndexOpsMixin, PandasObject):
             * None : Attempt to sort the result, but catch any TypeErrors
               from comparing incomparable elements.
             * False : Do not sort the result.
-
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
 
         Returns
         -------
@@ -3196,6 +3185,10 @@ class Index(IndexOpsMixin, PandasObject):
             # Note: we do not (yet) sort even if sort=None GH#24959
             return self.rename(result_name)
 
+        if not self._should_compare(other):
+            # Nothing matches -> difference is everything
+            return self.rename(result_name)
+
         result = self._difference(other, sort=sort)
         return self._wrap_setop_result(other, result)
 
@@ -3203,7 +3196,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         this = self._get_unique_index()
 
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer_for(other)
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
@@ -3229,13 +3222,6 @@ class Index(IndexOpsMixin, PandasObject):
               from comparing incomparable elements.
             * False : Do not sort the result.
 
-            .. versionadded:: 0.24.0
-
-            .. versionchanged:: 0.24.1
-
-               Changed the default value from ``True`` to ``None``
-               (without change in behaviour).
-
         Returns
         -------
         symmetric_difference : Index
@@ -3260,33 +3246,13 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
-        if not self._should_compare(other):
-            return self.union(other, sort=sort).rename(result_name)
-        elif not is_dtype_equal(self.dtype, other.dtype):
-            dtype = find_common_type([self.dtype, other.dtype])
-            this = self.astype(dtype, copy=False)
-            that = other.astype(dtype, copy=False)
-            return this.symmetric_difference(that, sort=sort).rename(result_name)
+        left = self.difference(other, sort=False)
+        right = other.difference(self, sort=False)
+        result = left.union(right, sort=sort)
 
-        this = self._get_unique_index()
-        other = other._get_unique_index()
-        indexer = this.get_indexer_for(other)
-
-        # {this} minus {other}
-        common_indexer = indexer.take((indexer != -1).nonzero()[0])
-        left_indexer = np.setdiff1d(
-            np.arange(this.size), common_indexer, assume_unique=True
-        )
-        left_diff = this._values.take(left_indexer)
-
-        # {other} minus {this}
-        right_indexer = (indexer == -1).nonzero()[0]
-        right_diff = other._values.take(right_indexer)
-
-        the_diff = concat_compat([left_diff, right_diff])
-        the_diff = _maybe_try_sort(the_diff, sort)
-
-        return Index(the_diff, name=result_name)
+        if result_name is not None:
+            result = result.rename(result_name)
+        return result
 
     @final
     def _assert_can_do_setop(self, other) -> bool:
@@ -3697,43 +3663,6 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self.slice_indexer(start, stop, step)
 
         return indexer
-
-    def _convert_listlike_indexer(self, keyarr):
-        """
-        Parameters
-        ----------
-        keyarr : list-like
-            Indexer to convert.
-
-        Returns
-        -------
-        indexer : numpy.ndarray or None
-            Return an ndarray or None if cannot convert.
-        keyarr : numpy.ndarray
-            Return tuple-safe keys.
-        """
-        if isinstance(keyarr, Index):
-            pass
-        else:
-            keyarr = self._convert_arr_indexer(keyarr)
-
-        indexer = None
-        return indexer, keyarr
-
-    def _convert_arr_indexer(self, keyarr) -> np.ndarray:
-        """
-        Convert an array-like indexer to the appropriate dtype.
-
-        Parameters
-        ----------
-        keyarr : array-like
-            Indexer to convert.
-
-        Returns
-        -------
-        converted_keyarr : array-like
-        """
-        return com.asarray_tuplesafe(keyarr)
 
     @final
     def _invalid_indexer(self, form: str_t, key) -> TypeError:
@@ -6381,91 +6310,19 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
     -------
     np.ndarray or ExtensionArray
     """
-    # Runtime import needed bc IntervalArray imports Index
-    from pandas.core.arrays import (
-        DatetimeArray,
-        IntervalArray,
-        PeriodArray,
-        TimedeltaArray,
+
+    result = lib.maybe_convert_objects(
+        subarr,
+        convert_datetime=True,
+        convert_timedelta=True,
+        convert_period=True,
+        convert_interval=True,
+        dtype_if_all_nat=np.dtype("datetime64[ns]"),
     )
-
-    assert subarr.dtype == object, subarr.dtype
-    inferred = lib.infer_dtype(subarr, skipna=False)
-
-    if inferred == "integer":
-        try:
-            data = _try_convert_to_int_array(subarr)
-            return data
-        except ValueError:
-            pass
-
+    if result.dtype.kind in ["b", "c"]:
         return subarr
-
-    elif inferred in ["floating", "mixed-integer-float", "integer-na"]:
-        # TODO: Returns IntegerArray for integer-na case in the future
-        data = np.asarray(subarr).astype(np.float64, copy=False)
-        return data
-
-    elif inferred == "interval":
-        ia_data = IntervalArray._from_sequence(subarr, copy=False)
-        return ia_data
-    elif inferred == "boolean":
-        # don't support boolean explicitly ATM
-        pass
-    elif inferred != "string":
-        if inferred.startswith("datetime"):
-            try:
-                data = DatetimeArray._from_sequence(subarr, copy=False)
-                return data
-            except (ValueError, OutOfBoundsDatetime):
-                # GH 27011
-                # If we have mixed timezones, just send it
-                # down the base constructor
-                pass
-
-        elif inferred.startswith("timedelta"):
-            tda = TimedeltaArray._from_sequence(subarr, copy=False)
-            return tda
-        elif inferred == "period":
-            parr = PeriodArray._from_sequence(subarr)
-            return parr
-
-    return subarr
-
-
-def _try_convert_to_int_array(data: np.ndarray) -> np.ndarray:
-    """
-    Attempt to convert an array of data into an integer array.
-
-    Parameters
-    ----------
-    data : np.ndarray[object]
-
-    Returns
-    -------
-    int_array : data converted to either an ndarray[int64] or ndarray[uint64]
-
-    Raises
-    ------
-    ValueError if the conversion was not successful.
-    """
-    try:
-        res = data.astype("i8", copy=False)
-        if (res == data).all():
-            return res
-    except (OverflowError, TypeError, ValueError):
-        pass
-
-    # Conversion to int64 failed (possibly due to overflow),
-    # so let's try now with uint64.
-    try:
-        res = data.astype("u8", copy=False)
-        if (res == data).all():
-            return res
-    except (OverflowError, TypeError, ValueError):
-        pass
-
-    raise ValueError
+    result = ensure_wrapped_if_datetimelike(result)
+    return result
 
 
 def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:

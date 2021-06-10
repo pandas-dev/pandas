@@ -1063,8 +1063,6 @@ def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     allow_sets : bool, default True
         If this parameter is False, sets will not be considered list-like.
 
-        .. versionadded:: 0.24.0
-
     Returns
     -------
     bool
@@ -1956,6 +1954,21 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
+cdef class AnyDatetimeValidator(DatetimeValidator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return util.is_datetime64_object(value) or (
+            PyDateTime_Check(value) and value.tzinfo is None
+        )
+
+
+cdef bint is_datetime_or_datetime64_array(ndarray values):
+    cdef:
+        AnyDatetimeValidator validator = AnyDatetimeValidator(len(values),
+                                                              skipna=True)
+    return validator.validate(values)
+
+
 # Note: only python-exposed for tests
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
@@ -1968,10 +1981,11 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     if n == 0:
         return False
+
     # Get a reference timezone to compare with the rest of the tzs in the array
     for i in range(n):
         base_val = values[i]
-        if base_val is not NaT:
+        if base_val is not NaT and base_val is not None and not util.is_nan(base_val):
             base_tz = getattr(base_val, 'tzinfo', None)
             break
 
@@ -1979,11 +1993,13 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
         # Compare val's timezone with the reference timezone
         # NaT can coexist with tz-aware datetimes, so skip if encountered
         val = values[j]
-        if val is not NaT:
+        if val is not NaT and val is not None and not util.is_nan(val):
             tz = getattr(val, 'tzinfo', None)
             if not tz_compare(base_tz, tz):
                 return False
 
+    # Note: we should only be called if a tzaware datetime has been seen,
+    #  so base_tz should always be set at this point.
     return True
 
 
@@ -2466,6 +2482,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 except OutOfBoundsTimedelta:
                     seen.object_ = True
                     break
+                break
             else:
                 seen.object_ = True
                 break
@@ -2546,6 +2563,32 @@ def maybe_convert_objects(ndarray[object] objects,
 
             # unbox to DatetimeArray
             return dti._data
+        seen.object_ = True
+
+    elif seen.datetime_:
+        if is_datetime_or_datetime64_array(objects):
+            from pandas import DatetimeIndex
+
+            try:
+                dti = DatetimeIndex(objects)
+            except OutOfBoundsDatetime:
+                pass
+            else:
+                # unbox to ndarray[datetime64[ns]]
+                return dti._data._ndarray
+        seen.object_ = True
+
+    elif seen.timedelta_:
+        if is_timedelta_or_timedelta64_array(objects):
+            from pandas import TimedeltaIndex
+
+            try:
+                tdi = TimedeltaIndex(objects)
+            except OutOfBoundsTimedelta:
+                pass
+            else:
+                # unbox to ndarray[timedelta64[ns]]
+                return tdi._data._ndarray
         seen.object_ = True
 
     if seen.period_:
@@ -2920,3 +2963,41 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
                 result[i, j] = row[j]
 
     return result
+
+
+def is_bool_list(obj: list) -> bool:
+    """
+    Check if this list contains only bool or np.bool_ objects.
+
+    This is appreciably faster than checking `np.array(obj).dtype == bool`
+
+    obj1 = [True, False] * 100
+    obj2 = obj1 * 100
+    obj3 = obj2 * 100
+    obj4 = [True, None] + obj1
+
+    for obj in [obj1, obj2, obj3, obj4]:
+        %timeit is_bool_list(obj)
+        %timeit np.array(obj).dtype.kind == "b"
+
+    340 ns ± 8.22 ns
+    8.78 µs ± 253 ns
+
+    28.8 µs ± 704 ns
+    813 µs ± 17.8 µs
+
+    3.4 ms ± 168 µs
+    78.4 ms ± 1.05 ms
+
+    48.1 ns ± 1.26 ns
+    8.1 µs ± 198 ns
+    """
+    cdef:
+        object item
+
+    for item in obj:
+        if not util.is_bool_object(item):
+            return False
+
+    # Note: we return True for empty list
+    return True

@@ -1,7 +1,6 @@
-from typing import (
-    List,
-    MutableMapping,
-)
+from __future__ import annotations
+
+from typing import MutableMapping
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -110,7 +109,7 @@ def _excel2num(x: str) -> int:
     return index - 1
 
 
-def _range2cols(areas: str) -> List[int]:
+def _range2cols(areas: str) -> list[int]:
     """
     Convert comma separated list of column names and ranges to indices.
 
@@ -131,7 +130,7 @@ def _range2cols(areas: str) -> List[int]:
     >>> _range2cols('A,C,Z:AB')
     [0, 2, 25, 26, 27]
     """
-    cols: List[int] = []
+    cols: list[int] = []
 
     for rng in areas.split(","):
         if ":" in rng:

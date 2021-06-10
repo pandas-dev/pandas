@@ -35,7 +35,7 @@ from pandas.io.common import (
 
 
 def get_engine(engine: str) -> BaseImpl:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
@@ -388,16 +388,10 @@ def to_parquet(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-
-        .. versionadded:: 0.24.0
-
     partition_cols : str or list, optional, default None
         Column names by which to partition the dataset.
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
-
-        .. versionadded:: 0.24.0
-
     {storage_options}
 
         .. versionadded:: 1.2.0

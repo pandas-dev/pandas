@@ -938,8 +938,6 @@ def mode(values, dropna: bool = True) -> Series:
     dropna : bool, default True
         Don't consider counts of NaN/NaT.
 
-        .. versionadded:: 0.24.0
-
     Returns
     -------
     mode : Series
@@ -1840,7 +1838,7 @@ def safe_sort(
 
 
 def _sort_mixed(values) -> np.ndarray:
-    """ order ints before strings in 1d arrays, safe in py3 """
+    """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     nums = np.sort(values[~str_pos])
     strs = np.sort(values[str_pos])

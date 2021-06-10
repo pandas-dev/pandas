@@ -6,7 +6,7 @@ python-dateutil>=2.7.3
 pytz
 asv
 cython>=0.29.21
-black==20.8b1
+black==21.5b2
 cpplint
 flake8==3.9.2
 flake8-bugbear==21.3.2
@@ -51,7 +51,7 @@ blosc
 bottleneck>=1.2.1
 ipykernel
 ipython>=7.11.1
-jinja2<3.0.0
+jinja2
 matplotlib>=2.2.2
 numexpr>=2.7.0
 scipy>=1.2
