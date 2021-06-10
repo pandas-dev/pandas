@@ -902,7 +902,6 @@ Timezones
 ^^^^^^^^^
 - Bug in different ``tzinfo`` objects representing UTC not being treated as equivalent (:issue:`39216`)
 - Bug in ``dateutil.tz.gettz("UTC")`` not being recognized as equivalent to other UTC-representing tzinfos (:issue:`39276`)
--
 
 Numeric
 ^^^^^^^
@@ -938,7 +937,6 @@ Conversion
 
 Strings
 ^^^^^^^
-
 - Bug in the conversion from ``pyarrow.ChunkedArray`` to :class:`~arrays.StringArray` when the original had zero chunks (:issue:`41040`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` ignoring replacements with ``regex=True`` for ``StringDType`` data (:issue:`41333`, :issue:`35977`)
 - Bug in :meth:`Series.str.extract` with :class:`~arrays.StringArray` returning object dtype for an empty :class:`DataFrame` (:issue:`41441`)
@@ -953,7 +951,6 @@ Interval
 
 Indexing
 ^^^^^^^^
-
 - Bug in :meth:`Index.union` and :meth:`MultiIndex.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`, :issue:`40862`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
 - Bug in :meth:`Series.loc` raising a ``ValueError`` when input was filtered with a Boolean list and values to set were a list with lower dimension (:issue:`20438`)
@@ -995,7 +992,6 @@ Indexing
 
 Missing
 ^^^^^^^
-
 - Bug in :class:`Grouper` did not correctly propagate the ``dropna`` argument; :meth:`.DataFrameGroupBy.transform` now correctly handles missing values for ``dropna=True`` (:issue:`35612`)
 - Bug in :func:`isna`, :meth:`Series.isna`, :meth:`Index.isna`, :meth:`DataFrame.isna`, and the corresponding ``notna`` functions not recognizing ``Decimal("NaN")`` objects (:issue:`39409`)
 - Bug in :meth:`DataFrame.fillna` not accepting a dictionary for the ``downcast`` keyword (:issue:`40809`)
@@ -1004,7 +1000,6 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-
 - Bug in :meth:`DataFrame.drop` raising a ``TypeError`` when the :class:`MultiIndex` is non-unique and ``level`` is not provided (:issue:`36293`)
 - Bug in :meth:`MultiIndex.intersection` duplicating ``NaN`` in the result (:issue:`38623`)
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when the :class:`MultiIndex` contained ``NaN`` even when they are differently ordered (:issue:`38439`)
@@ -1014,7 +1009,6 @@ MultiIndex
 
 I/O
 ^^^
-
 - Bug in :meth:`Index.__repr__` when ``display.max_seq_items=1`` (:issue:`38415`)
 - Bug in :func:`read_csv` not recognizing scientific notation if the argument ``decimal`` is set and ``engine="python"`` (:issue:`31920`)
 - Bug in :func:`read_csv` interpreting ``NA`` value as comment, when ``NA`` does contain the comment string fixed for ``engine="python"`` (:issue:`34002`)
@@ -1053,18 +1047,14 @@ I/O
 Period
 ^^^^^^
 - Comparisons of :class:`Period` objects or :class:`Index`, :class:`Series`, or :class:`DataFrame` with mismatched ``PeriodDtype`` now behave like other mismatched-type comparisons, returning ``False`` for equals, ``True`` for not-equal, and raising ``TypeError`` for inequality checks (:issue:`39274`)
--
--
 
 Plotting
 ^^^^^^^^
-
 - Bug in :func:`plotting.scatter_matrix` raising when 2d ``ax`` argument passed (:issue:`16253`)
 - Prevent warnings when Matplotlib's ``constrained_layout`` is enabled (:issue:`25261`)
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``yerr`` while others didn't (:issue:`39522`)
 - Bug in :func:`DataFrame.plot` was showing the wrong colors in the legend if the function was called repeatedly and some calls used ``secondary_y`` and others use ``legend=False`` (:issue:`40044`)
 - Bug in :meth:`DataFrame.plot.box` when ``dark_background`` theme was selected, caps or min/max markers for the plot were not visible (:issue:`40769`)
-
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1137,14 +1127,12 @@ Reshaping
 
 Sparse
 ^^^^^^
-
 - Bug in :meth:`DataFrame.sparse.to_coo` raising a ``KeyError`` with columns that are a numeric :class:`Index` without a ``0`` (:issue:`18414`)
 - Bug in :meth:`SparseArray.astype` with ``copy=False`` producing incorrect results when going from integer dtype to floating dtype (:issue:`34456`)
 - Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` would always return an empty result (:issue:`40921`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-
 - Bug in :meth:`DataFrame.where` when ``other`` is a Series with an :class:`ExtensionDtype` (:issue:`38729`)
 - Fixed bug where :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Series.argmax`, and :meth:`Series.argmin` would fail when the underlying data is an :class:`ExtensionArray` (:issue:`32749`, :issue:`33719`, :issue:`36566`)
 - Fixed bug where some properties of subclasses of :class:`PandasExtensionDtype` where improperly cached (:issue:`40329`)
@@ -1152,7 +1140,6 @@ ExtensionArray
 
 Styler
 ^^^^^^
-
 - Bug in :class:`.Styler` where the ``subset`` argument in methods raised an error for some valid MultiIndex slices (:issue:`33562`)
 - :class:`.Styler` rendered HTML output has seen minor alterations to support w3 good code standards (:issue:`39626`)
 - Bug in :class:`.Styler` where rendered HTML was missing a column class identifier for certain header cells (:issue:`39716`)
@@ -1161,7 +1148,6 @@ Styler
 - Bug in :class:`.Styler` where copying from Jupyter dropped the top left cell and misaligned headers (:issue:`12147`)
 - Bug in :class:`Styler.where` where ``kwargs`` were not passed to the applicable callable (:issue:`40845`)
 - Bug in :class:`.Styler` causing CSS to duplicate on multiple renders (:issue:`39395`, :issue:`40334`)
-
 
 Other
 ^^^^^
