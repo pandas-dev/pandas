@@ -169,7 +169,7 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
-You should use a ``black`` version 20.8b1 as previous versions are not compatible
+You should use a ``black`` version 21.5b2 as previous versions are not compatible
 with the pandas codebase.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
