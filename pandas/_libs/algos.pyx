@@ -1433,7 +1433,7 @@ def rank_2d(
         sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
     else:
         kind = "stable" if ties_method == "first" else None
-        sort_indexer = values.argsort(axis=0, kind=kind)
+        sort_indexer = values.argsort(axis=0, kind=kind).astype(np.intp, copy=False)
 
     if not ascending:
         sort_indexer = sort_indexer[::-1, :]
