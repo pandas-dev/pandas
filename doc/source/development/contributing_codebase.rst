@@ -169,7 +169,7 @@ submitting code to run the check yourself::
 to auto-format your code. Additionally, many editors have plugins that will
 apply ``black`` as you edit files.
 
-You should use a ``black`` version 20.8b1 as previous versions are not compatible
+You should use a ``black`` version 21.5b2 as previous versions are not compatible
 with the pandas codebase.
 
 One caveat about ``git diff upstream/master -u -- "*.py" | flake8 --diff``: this
@@ -407,12 +407,12 @@ pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base a
 Testing with continuous integration
 -----------------------------------
 
-The pandas test suite will run automatically on `Travis-CI <https://travis-ci.org/>`__ and
+The pandas test suite will run automatically on `GitHub Actions <https://github.com/features/actions/>`__ and
 `Azure Pipelines <https://azure.microsoft.com/en-us/services/devops/pipelines/>`__
 continuous integration services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__ and
+for `GitHub Actions <https://docs.github.com/en/actions/>`__ and
 `Azure Pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
@@ -420,12 +420,6 @@ then you will get a red 'X', where you can click through to see the individual f
 This is an example of a green build.
 
 .. image:: ../_static/ci.png
-
-.. note::
-
-   Each time you push to *your* fork, a *new* run of the tests will be triggered on the CI.
-   You can enable the auto-cancel feature, which removes any non-currently-running tests for that same pull-request, for
-   `Travis-CI here <https://docs.travis-ci.com/user/customizing-the-build/#Building-only-the-latest-commit>`__.
 
 .. _contributing.tdd:
 
