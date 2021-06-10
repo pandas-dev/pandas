@@ -5058,7 +5058,7 @@ class Index(IndexOpsMixin, PandasObject):
             # try that
             loc = self.get_loc(key)
         except KeyError:
-            if not self._should_fallback_to_positional():
+            if not self._should_fallback_to_positional:
                 raise
             elif is_integer(key):
                 # If the Index cannot hold integer, then this is unambiguously
@@ -5075,6 +5075,7 @@ class Index(IndexOpsMixin, PandasObject):
             # would convert to numpy arrays and raise later any way) - GH29926
             raise InvalidIndexError(key)
 
+    @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
         """
         Should an integer key be treated as positional?
