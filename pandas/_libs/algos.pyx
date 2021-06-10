@@ -1382,6 +1382,7 @@ def rank_2d(
         uint8_t[:, :] mask
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
+        rank_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1404,6 +1405,15 @@ def rank_2d(
         # For fused type specialization
         unused = values[:, 0]
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, unused)
+
+        if rank_t is object:
+            mask = missing.isnaobj2d(values).astype(np.uint8)
+        elif rank_t is float64_t:
+            mask = np.isnan(values).astype(np.uint8)
+
+        # int64 and datetimelike
+        else:
+            mask = (values == NPY_NAT).astype(np.uint8)
         np.putmask(values, mask, nan_fill_val)
     else:
         mask = np.zeros_like(values, dtype=np.uint8)
