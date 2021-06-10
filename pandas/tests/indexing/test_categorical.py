@@ -542,6 +542,7 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_categorical_with_nan(self):
+        # GH#41933
         ci = CategoricalIndex(["A", "B", np.nan])
 
         ser = Series(range(3), index=ci)

@@ -199,6 +199,7 @@ class TestGetLoc:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_loc_nan(self):
+        # GH#41933
         ci = CategoricalIndex(["A", "B", np.nan])
         res = ci.get_loc(np.nan)
 
