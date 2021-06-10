@@ -950,6 +950,7 @@ Interval
 - Bug in :meth:`IntervalIndex.intersection` returning duplicates when at least one of the :class:`Index` objects have duplicates which are present in the other (:issue:`38743`)
 - :meth:`IntervalIndex.union`, :meth:`IntervalIndex.intersection`, :meth:`IntervalIndex.difference`, and :meth:`IntervalIndex.symmetric_difference` now cast to the appropriate dtype instead of raising a ``TypeError`` when operating with another :class:`IntervalIndex` with incompatible dtype (:issue:`39267`)
 - :meth:`PeriodIndex.union`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference`, :meth:`PeriodIndex.difference` now cast to object dtype instead of raising ``IncompatibleFrequency`` when operating with another :class:`PeriodIndex` with incompatible dtype (:issue:`39306`)
+- Bug in :meth:`IntervalIndex.is_monotonic`, :meth:`IntervalIndex.get_loc`, :meth:`IntervalIndex.get_indexer_for`, and :meth:`IntervalIndex.__contains__` when NA values are present (:issue:`41831`)
 
 Indexing
 ^^^^^^^^
