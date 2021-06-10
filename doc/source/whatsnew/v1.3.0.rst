@@ -20,10 +20,12 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_130.enhancements:
+
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_130.read_csv_json_http_headers:
+.. _whatsnew_130.enhancements.read_csv_json_http_headers:
 
 Custom HTTP(s) headers when reading csv or json files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -43,7 +45,7 @@ For example:
         storage_options=headers
     )
 
-.. _whatsnew_130.read_to_xml:
+.. _whatsnew_130.enhancements.read_to_xml:
 
 Read and write XML documents
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,7 +112,7 @@ both XPath 1.0 and XSLT 1.0 are available. (:issue:`27554`)
 
 For more, see :ref:`io.xml` in the user guide on IO tools.
 
-.. _whatsnew_130.styler_enhancements:
+.. _whatsnew_130.enhancements.styler:
 
 Styler enhancements
 ^^^^^^^^^^^^^^^^^^^
@@ -137,7 +139,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - Added the method :meth:`.Styler.to_latex` (:issue:`21673`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
 
-.. _whatsnew_130.dataframe_honors_copy_with_dict:
+.. _whatsnew_130.enhancements.dataframe_honors_copy_with_dict:
 
 DataFrame constructor honors ``copy=False`` with dict
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -161,7 +163,7 @@ a copy will no longer be made (:issue:`32960`).
 The default behavior when not passing ``copy`` will remain unchanged, i.e.
 a copy will be made.
 
-.. _whatsnew_130.arrow_string:
+.. _whatsnew_130.enhancements.arrow_string:
 
 PyArrow backed string data type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -213,7 +215,7 @@ String accessor methods returning integers will return a value with :class:`Int6
 
    s.str.count("a")
 
-.. _whatsnew_130.centered_datetimelike_rolling_window:
+.. _whatsnew_130.enhancements.centered_datetimelike_rolling_window:
 
 Centered datetime-like rolling windows
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -280,6 +282,8 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
+.. _whatsnew_130.notable_bug_fixes.categorical_unique_maintains_dtype:
+
 ``Categorical.unique`` now always maintains same dtype as original
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -313,6 +317,8 @@ As an example of this, given:
         unique
         original.dtype == unique.dtype
 
+.. _whatsnew_130.notable_bug_fixes.combine_first_preserves_dtype:
+
 Preserve dtypes in :meth:`DataFrame.combine_first`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -343,8 +349,10 @@ Preserve dtypes in :meth:`DataFrame.combine_first`
 
    combined.dtypes
 
-Group by methods agg and transform no longer changes return dtype for callables
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _whatsnew_130.notable_bug_fixes.groupby_preserves_dtype:
+
+Groupby methods agg and transform no longer changes return dtype for callables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously the methods :meth:`.DataFrameGroupBy.aggregate`,
 :meth:`.SeriesGroupBy.aggregate`, :meth:`.DataFrameGroupBy.transform`, and
@@ -374,6 +382,8 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
     df.groupby('key').agg(lambda x: x.sum())
 
+.. _whatsnew_130.notable_bug_fixes.groupby_reductions_float_result:
+
 ``float`` result for :meth:`.GroupBy.mean`, :meth:`.GroupBy.median`, and :meth:`.GroupBy.var`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -398,6 +408,8 @@ Now, these methods will always return a float dtype. (:issue:`41137`)
 .. ipython:: python
 
     df.groupby(df.index).mean()
+
+.. _whatsnew_130.notable_bug_fixes.setitem_column_try_inplace:
 
 Try operating inplace when setting values with ``loc`` and ``iloc``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -595,6 +607,13 @@ with a :class:`MultiIndex` in the result. This can lead to a perceived duplicati
     df.groupby('label1').rolling(1).sum()
 
 
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_110.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. _whatsnew_130.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -672,7 +691,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
-.. _whatsnew_130.api.other:
+.. _whatsnew_130.api_breaking.other:
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
@@ -682,9 +701,10 @@ Other API changes
 - Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
 - :meth:`ExtensionDtype.construct_array_type` is now a required method instead of an optional one for :class:`ExtensionDtype` subclasses (:issue:`24860`)
 
+.. _whatsnew_130.api_breaking.build:
+
 Build
 ^^^^^
-
 - Documentation in ``.pptx`` and ``.pdf`` formats are no longer included in wheels or source distributions. (:issue:`30741`)
 
 .. ---------------------------------------------------------------------------
