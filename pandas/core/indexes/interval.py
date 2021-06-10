@@ -803,56 +803,6 @@ class IntervalIndex(ExtensionIndex):
         return self._data._format_data() + "," + self._format_space()
 
     # --------------------------------------------------------------------
-    # Set Operations
-
-    def _intersection(self, other, sort):
-        """
-        intersection specialized to the case with matching dtypes.
-        """
-        # For IntervalIndex we also know other.closed == self.closed
-        if self.left.is_unique and self.right.is_unique:
-            return super()._intersection(other, sort=sort)
-        elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
-            # Swap other/self if other is unique and self does not have
-            # multiple NaNs
-            return super()._intersection(other, sort=sort)
-        else:
-            # duplicates
-            taken = self._intersection_non_unique(other)
-
-        if sort is None:
-            taken = taken.sort_values()
-
-        return taken
-
-    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
-        """
-        Used when the IntervalIndex does have some common endpoints,
-        on either sides.
-        Return the intersection with another IntervalIndex.
-
-        Parameters
-        ----------
-        other : IntervalIndex
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        mask = np.zeros(len(self), dtype=bool)
-
-        if self.hasnans and other.hasnans:
-            first_nan_loc = np.arange(len(self))[self.isna()][0]
-            mask[first_nan_loc] = True
-
-        other_tups = set(zip(other.left, other.right))
-        for i, tup in enumerate(zip(self.left, self.right)):
-            if tup in other_tups:
-                mask[i] = True
-
-        return self[mask]
-
-    # --------------------------------------------------------------------
 
     @property
     def _is_all_dates(self) -> bool:
