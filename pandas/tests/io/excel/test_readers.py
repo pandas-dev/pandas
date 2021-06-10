@@ -1250,6 +1250,34 @@ class TestReaders:
         result = pd.read_excel(file_name)
         assert result.shape == (3, 3)
 
+    def test_ignore_chartsheets_by_str(self, request, read_ext):
+        # GH 41448
+        if pd.read_excel.keywords["engine"] == "odf":
+            pytest.skip("chartsheets do not exist in the ODF format")
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyxlsb can't distinguish chartsheets from worksheets"
+                )
+            )
+        with pytest.raises(ValueError, match="Worksheet named 'Chart1' not found"):
+            pd.read_excel("chartsheet" + read_ext, sheet_name="Chart1")
+
+    def test_ignore_chartsheets_by_int(self, request, read_ext):
+        # GH 41448
+        if pd.read_excel.keywords["engine"] == "odf":
+            pytest.skip("chartsheets do not exist in the ODF format")
+        if pd.read_excel.keywords["engine"] == "pyxlsb":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="pyxlsb can't distinguish chartsheets from worksheets"
+                )
+            )
+        with pytest.raises(
+            ValueError, match="Worksheet index 1 is invalid, 1 worksheets found"
+        ):
+            pd.read_excel("chartsheet" + read_ext, sheet_name=1)
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
