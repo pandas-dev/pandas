@@ -1050,12 +1050,9 @@ def rank_1d(
         check_mask,
         check_labels,
         keep_na,
+        pct,
         N,
     )
-    if pct:
-        for i in range(N):
-            if grp_sizes[i] != 0:
-                out[i] = out[i] / grp_sizes[i]
 
     return np.array(out)
 
@@ -1074,6 +1071,7 @@ cdef void rank_sorted_1d(
     bint check_mask,
     bint check_labels,
     bint keep_na,
+    bint pct,
     Py_ssize_t N,
 ):
     """
@@ -1220,7 +1218,6 @@ cdef void rank_sorted_1d(
                         grp_vals_seen = 1
     else:
         for i in range(N):
-            print(i)
             at_end = i == N - 1
 
             # dups and sum_ranks will be incremented each loop where
@@ -1228,18 +1225,14 @@ cdef void rank_sorted_1d(
             # when either of those change. Used to calculate tiebreakers
             dups += 1
             sum_ranks += i - grp_start + 1
-            print(sort_indexer[i])
-            print(sort_indexer[i+1])
             next_val_diff = at_end or (masked_vals[sort_indexer[i]]
                                        != masked_vals[sort_indexer[i+1]])
-            print("here")
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help
             group_changed = at_end or (check_labels and
                                        (labels[sort_indexer[i]]
                                         != labels[sort_indexer[i+1]]))
-            print("here")
 
             # Update out only when there is a transition of values or labels.
             # When a new value or group is encountered, go back #dups steps(
@@ -1323,6 +1316,11 @@ cdef void rank_sorted_1d(
                     grp_start = i + 1
                     grp_vals_seen = 1
 
+    if pct:
+        for i in range(N):
+            if grp_sizes[i] != 0:
+                out[i] = out[i] / grp_sizes[i]
+
 
 def rank_2d(
     ndarray[rank_t, ndim=2] in_arr,
@@ -1355,7 +1353,7 @@ def rank_2d(
     # For cases where a mask is not possible, we can avoid mask checks
     check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
 
-    if axis == 0:
+    if axis == 1:
         values = np.asarray(in_arr).T.copy()
     else:
         values = np.asarray(in_arr).copy()
@@ -1364,73 +1362,51 @@ def rank_2d(
         if values.dtype != np.object_:
             values = values.astype('O')
 
-    if check_mask:
-        if ascending ^ (na_option == 'top'):
-            if rank_t is object:
-                nan_value = Infinity()
-            elif rank_t is float64_t:
-                nan_value = np.inf
-
-            # int64 and datetimelike
-            else:
-                nan_value = np.iinfo(np.int64).max
-
-        else:
-            if rank_t is object:
-                nan_value = NegInfinity()
-            elif rank_t is float64_t:
-                nan_value = -np.inf
-
-            # int64 and datetimelike
-            else:
-                nan_value = NPY_NAT
-
-        if rank_t is object:
-            mask = missing.isnaobj2d(values)
-        elif rank_t is float64_t:
-            mask = np.isnan(values)
-
-        # int64 and datetimelike
-        else:
-            mask = values == NPY_NAT
-
-        np.putmask(values, mask, nan_value)
+    if rank_t is object:
+        mask = missing.isnaobj2d(values)
+    elif rank_t is int64_t and is_datetimelike:
+        mask = (values == NPY_NAT).astype(np.uint8)
+    elif rank_t is float64_t:
+        mask = np.isnan(values).astype(np.uint8)
     else:
-        mask = np.zeros_like(values, dtype=bool)
+        mask = np.zeros_like(values, dtype=np.uint8)
+
+    if ascending ^ (na_option == 'top'):
+        if rank_t is object:
+            nan_fill_val = Infinity()
+        elif rank_t is int64_t:
+            nan_fill_val = np.iinfo(np.int64).max
+        elif rank_t is uint64_t:
+            nan_fill_val = np.iinfo(np.uint64).max
+        else:
+            nan_fill_val = np.inf
+        order = (values, mask)
+
+    else:
+        if rank_t is object:
+            nan_fill_val = NegInfinity()
+        elif rank_t is int64_t:
+            nan_fill_val = NPY_NAT
+        elif rank_t is uint64_t:
+            nan_fill_val = 0
+        else:
+            nan_fill_val = -np.inf
+
+        order = (values, ~np.array(mask))
+
+    np.putmask(values, mask, nan_fill_val)
 
     n, k = (<object>values).shape
     out = np.empty((n, k), dtype='f8', order='F')
     grp_sizes = np.ones((n, k), dtype='i8', order='F')
-    labels = np.ones(n, dtype=np.intp)
+    labels = np.zeros(n, dtype=np.intp)
 
-    if tiebreak == TIEBREAK_FIRST:
-        # need to use a stable sort here
-        argsort_indexer = values.argsort(axis=1, kind='mergesort').astype(
-            np.intp, copy=False
-        )
-        if not ascending:
-            tiebreak = TIEBREAK_FIRST_DESCENDING
-    else:
-        argsort_indexer = values.argsort(1).astype(np.intp, copy=False)
-
+    argsort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
     if not ascending:
-        argsort_indexer = argsort_indexer[:, ::-1]
+        argsort_indexer = argsort_indexer[::-1, :]
 
     masked_vals_memview = values
-    print(np.array(argsort_indexer))
-
-    print(k)
-    print(n)
-    print(values)
     for col in range(k):
-        print("col" + str(col))
-        # print(np.array(masked_vals_memview[:, col]))
-
-        print(np.array(argsort_indexer[:, col]))
-        print(np.array(masked_vals_memview[:, col]))
-        # print(np.array(mask[:, col]))
-        # print(np.array(grp_sizes[:, col]))
-        # print(np.array(out[:, col]))
         rank_sorted_1d(
             out[:, col],
             grp_sizes[:, col],
@@ -1442,10 +1418,11 @@ def rank_2d(
             check_mask,
             False,
             keep_na,
+            pct,
             n,
         )
 
-    if axis == 0:
+    if axis == 1:
         return np.array(out.T)
     else:
         return np.array(out)
