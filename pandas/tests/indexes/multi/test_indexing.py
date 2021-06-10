@@ -446,6 +446,7 @@ class TestGetIndexer:
         tm.assert_almost_equal(expected, pad_indexer)
 
     def test_get_indexer_kwarg_validation(self):
+        # GH#41918
         mi = MultiIndex.from_product([range(3), ["A", "B"]])
 
         msg = "limit argument only valid if doing pad, backfill or nearest"
