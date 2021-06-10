@@ -931,7 +931,7 @@ ctypedef fused rank_t:
     int64_t
 
 
-cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, ndarray[rank_t, ndim=1] _):
+cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
     """
     Return the value we'll use to represent missing values when sorting depending
     on if we'd like missing values to end up at the top/bottom. (The second parameter
@@ -1053,7 +1053,7 @@ def rank_1d(
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
     nans_rank_highest = ascending ^ (na_option == 'top')
-    nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, masked_vals)
+    nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
     if nans_rank_highest:
         order = (masked_vals, mask, labels)
     else:
@@ -1376,7 +1376,6 @@ def rank_2d(
         Py_ssize_t infs
         ndarray[float64_t, ndim=2] ranks
         ndarray[rank_t, ndim=2] values
-        ndarray[rank_t, ndim=1] unused
         ndarray[intp_t, ndim=2] argsort_indexer
         ndarray[uint8_t, ndim=2] mask
         rank_t val, nan_fill_val
@@ -1384,9 +1383,6 @@ def rank_2d(
         int tiebreak = 0
         int64_t idx
         bint check_mask, condition, keep_na, nans_rank_highest
-
-    if in_arr.shape[0] == 0 or in_arr.shape[1] == 0:
-        return np.empty_like(in_arr, dtype="f8")
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1406,9 +1402,7 @@ def rank_2d(
 
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        # For fused type specialization
-        unused = values[:, 0]
-        nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, unused)
+        nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
 
         if rank_t is object:
             mask = missing.isnaobj2d(values)
