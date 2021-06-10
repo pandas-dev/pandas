@@ -84,7 +84,12 @@ class TestCategoricalMissing:
         # https://github.com/pandas-dev/pandas/issues/13628
         cat = Categorical([1, 2, 3, None, None])
 
-        with pytest.raises(ValueError, match=msg):
+        if len(fillna_kwargs) == 1 and "value" in fillna_kwargs:
+            err = TypeError
+        else:
+            err = ValueError
+
+        with pytest.raises(err, match=msg):
             cat.fillna(**fillna_kwargs)
 
     @pytest.mark.parametrize("named", [True, False])
