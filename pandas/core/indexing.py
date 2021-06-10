@@ -916,7 +916,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                with suppress(KeyError, IndexError):
+                with suppress(KeyError):
                     return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
