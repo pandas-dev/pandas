@@ -1377,7 +1377,7 @@ def rank_2d(
         const intp_t[:] labels
         ndarray[rank_t, ndim=2] values
         ndarray[rank_t, ndim=1] unused
-        rank_t[:, :] masked_vals_memview
+        rank_t[:, :] masked_vals
         intp_t[:, :] argsort_indexer
         uint8_t[:, :] mask
         TiebreakEnumType tiebreak
@@ -1388,6 +1388,9 @@ def rank_2d(
         return np.empty_like(in_arr, dtype="f8")
 
     tiebreak = tiebreakers[ties_method]
+    if tiebreak == TIEBREAK_FIRST:
+        if not ascending:
+            tiebreak = TIEBREAK_FIRST_DESCENDING
 
     keep_na = na_option == 'keep'
 
@@ -1403,20 +1406,29 @@ def rank_2d(
         if values.dtype != np.object_:
             values = values.astype('O')
 
+    if rank_t is object:
+        mask = missing.isnaobj2d(values)
+    elif rank_t is int64_t and is_datetimelike:
+        mask = (values == NPY_NAT).astype(np.uint8)
+    elif rank_t is float64_t:
+        mask = np.isnan(values).astype(np.uint8)
+    else:
+        mask = np.zeros_like(values, dtype=np.uint8)
+
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
         # For fused type specialization
         unused = values[:, 0]
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, unused)
 
-        if rank_t is object:
-            mask = missing.isnaobj2d(values).astype(np.uint8)
-        elif rank_t is float64_t:
-            mask = np.isnan(values).astype(np.uint8)
-
-        # int64 and datetimelike
-        else:
-            mask = (values == NPY_NAT).astype(np.uint8)
+        # if rank_t is object:
+        #     mask = missing.isnaobj2d(values).view(np.uint8)
+        # elif rank_t is float64_t:
+        #     mask = np.isnan(values).view(np.uint8)
+        #
+        # # int64 and datetimelike
+        # else:
+        #     mask = (values == NPY_NAT).view(np.uint8)
         np.putmask(values, mask, nan_fill_val)
     else:
         mask = np.zeros_like(values, dtype=np.uint8)
@@ -1424,7 +1436,7 @@ def rank_2d(
     if nans_rank_highest:
         order = (values, mask)
     else:
-        order = (values, ~np.array(mask))
+        order = (values, ~np.array(mask, copy=False))
 
     n, k = (<object>values).shape
     out = np.empty((n, k), dtype='f8', order='F')
@@ -1436,14 +1448,14 @@ def rank_2d(
         argsort_indexer = argsort_indexer[::-1, :]
 
     # putmask doesn't accept a memoryview, so we assign as a separate step
-    masked_vals_memview = values
+    masked_vals = values
     for col in range(k):
         rank_sorted_1d(
             out[:, col],
             grp_sizes[:, col],
             labels,
             argsort_indexer[:, col],
-            masked_vals_memview[:, col],
+            masked_vals[:, col],
             mask[:, col],
             tiebreak,
             check_mask,
