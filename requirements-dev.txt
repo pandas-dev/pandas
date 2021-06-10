@@ -51,7 +51,7 @@ blosc
 bottleneck>=1.2.1
 ipykernel
 ipython>=7.11.1
-jinja2<3.0.0
+jinja2
 matplotlib>=2.2.2
 numexpr>=2.7.0
 scipy>=1.2
