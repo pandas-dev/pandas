@@ -245,7 +245,8 @@ def _maybe_get_mask(
     """
     if mask is None:
         if is_bool_dtype(values.dtype) or is_integer_dtype(values.dtype):
-            return np.broadcast_to(False, values.shape)
+            # Boolean data cannot contain nulls, so signal via mask being None
+            return None
 
         if skipna or needs_i8_conversion(values.dtype):
             mask = isna(values)
@@ -1449,7 +1450,10 @@ def _maybe_null_out(
                 result[null_mask] = None
     elif result is not NaT:
         if check_below_min_count(shape, mask, min_count):
-            result = np.nan
+            if isinstance(result, np.ndarray):
+                result = np.broadcast_to(np.nan, result.shape)
+            else:
+                result = np.nan
 
     return result
 
