@@ -1646,10 +1646,11 @@ class _iLocIndexer(_LocationIndexer):
                     if self.ndim > 1 and i == info_axis:
 
                         # add the new item, and set the value
-                        # must have all defined axes if we have a scalar
-                        # or a list-like on the non-info axes if we have a
-                        # list-like
-                        if not len(self.obj):
+                        # If we have a scalar as values, must have all defined
+                        # axes or be an empty slice.
+                        # If we have a list-like as value, must have a
+                        # list-like on the non-info axes
+                        if not len(self.obj) and not com.is_null_slice(indexer[0]):
                             if not is_list_like_indexer(value):
                                 raise ValueError(
                                     "cannot set a frame with no "

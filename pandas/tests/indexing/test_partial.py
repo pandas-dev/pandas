@@ -384,7 +384,11 @@ class TestPartialSetting:
 
         msg = "cannot set a frame with no defined index and a scalar"
         with pytest.raises(ValueError, match=msg):
-            df.loc[:, 1] = 1
+            df.loc[3:4, 1] = 1
+
+        df.loc[:, 1] = 1
+        assert df.columns.to_list() == [1]
+        assert len(df) == 0
 
     def test_partial_set_empty_frame2(self):
         # these work as they don't really change
