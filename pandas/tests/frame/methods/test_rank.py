@@ -247,9 +247,8 @@ class TestRank:
                     tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
-    @pytest.mark.parametrize("rank_method", ["average", "min", "max", "dense"])
     @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
-    def test_rank_descending(self, rank_method, dtype):
+    def test_rank_descending(self, method, dtype):
         if "i" in dtype:
             df = self.df.dropna().astype(dtype)
         else:
@@ -259,25 +258,14 @@ class TestRank:
         expected = (df.max() - df).rank()
         tm.assert_frame_equal(res, expected)
 
-        expected = (df.max() - df).rank(method=rank_method)
+        expected = (df.max() - df).rank(method=method)
 
         if dtype != "O":
-            res2 = df.rank(method=rank_method, ascending=False, numeric_only=True)
+            res2 = df.rank(method=method, ascending=False, numeric_only=True)
             tm.assert_frame_equal(res2, expected)
 
-        res3 = df.rank(method=rank_method, ascending=False, numeric_only=False)
+        res3 = df.rank(method=method, ascending=False, numeric_only=False)
         tm.assert_frame_equal(res3, expected)
-
-    @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
-    @pytest.mark.parametrize("ascending", [True, False])
-    def test_rank_first_ties(self, dtype, ascending, frame_or_series):
-        obj = frame_or_series([1, 1], dtype=dtype)
-        result = obj.rank(method="first", ascending=ascending)
-        expected_data = [1, 2]
-        if ascending:
-            expected_data = expected_data[::-1]
-        expected = frame_or_series(expected_data, dtype=np.float64)
-        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("dtype", [None, object])
