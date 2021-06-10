@@ -53,7 +53,7 @@ notable_bug_fix2
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.api_breaking:
+.. _whatsnew_140.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
