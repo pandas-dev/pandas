@@ -609,7 +609,7 @@ with a :class:`MultiIndex` in the result. This can lead to a perceived duplicati
 
 .. ---------------------------------------------------------------------------
 
-.. _whatsnew_110.api_breaking:
+.. _whatsnew_130.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
