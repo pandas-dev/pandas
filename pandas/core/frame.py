@@ -3812,8 +3812,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
             series = self._get_item_cache(col)
-            engine = self.index._engine
-            loc = engine.get_loc(index)
+            loc = self.index.get_loc(index)
             validate_numeric_casting(series.dtype, value)
 
             series._values[loc] = value
