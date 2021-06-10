@@ -1699,7 +1699,7 @@ cdef class Validator:
             if not self.is_valid(values[i]):
                 return False
 
-        return self.finalize_validate()
+        return True
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1712,7 +1712,7 @@ cdef class Validator:
             if not self.is_valid_skipna(values[i]):
                 return False
 
-        return self.finalize_validate_skipna()
+        return True
 
     cdef bint is_valid(self, object value) except -1:
         return self.is_value_typed(value)
@@ -1729,18 +1729,6 @@ cdef class Validator:
 
     cdef bint is_array_typed(self) except -1:
         return False
-
-    cdef inline bint finalize_validate(self):
-        return True
-
-    cdef bint finalize_validate_skipna(self):
-        """
-        If we _only_ saw non-dtype-specific NA values, even if they are valid
-        for this dtype, we do not infer this dtype.
-        """
-        # TODO(phillipc): Remove the existing validate methods and replace them
-        # with the skipna versions upon full deprecation of skipna=False
-        return True
 
 
 @cython.internal
