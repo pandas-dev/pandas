@@ -1038,27 +1038,27 @@ def rank_1d(
     if not ascending:
         lexsort_indexer = lexsort_indexer[::-1]
 
-    # with nogil:
-    rank_sorted_1d(
-        out,
-        grp_sizes,
-        labels,
-        lexsort_indexer,
-        masked_vals_memview,
-        mask,
-        tiebreak,
-        check_mask,
-        check_labels,
-        keep_na,
-        pct,
-        N,
-    )
+    with nogil:
+        rank_sorted_1d(
+            out,
+            grp_sizes,
+            labels,
+            lexsort_indexer,
+            masked_vals_memview,
+            mask,
+            tiebreak,
+            check_mask,
+            check_labels,
+            keep_na,
+            pct,
+            N,
+        )
 
     return np.array(out)
 
 
-# @cython.wraparound(False)
-# @cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
@@ -1117,7 +1117,7 @@ cdef void rank_sorted_1d(
     # values / masked_vals arrays
     # TODO: de-duplicate once cython supports conditional nogil
     if rank_t is object:
-        # with gil:
+        with gil:
             for i in range(N):
                 at_end = i == N - 1
 
