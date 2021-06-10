@@ -1449,21 +1449,22 @@ def rank_2d(
 
     # putmask doesn't accept a memoryview, so we assign as a separate step
     masked_vals = values
-    for col in range(k):
-        rank_sorted_1d(
-            out[:, col],
-            grp_sizes[:, col],
-            labels,
-            argsort_indexer[:, col],
-            masked_vals[:, col],
-            mask[:, col],
-            tiebreak,
-            check_mask,
-            False,
-            keep_na,
-            pct,
-            n,
-        )
+    with nogil:
+        for col in range(k):
+            rank_sorted_1d(
+                out[:, col],
+                grp_sizes[:, col],
+                labels,
+                argsort_indexer[:, col],
+                masked_vals[:, col],
+                mask[:, col],
+                tiebreak,
+                check_mask,
+                False,
+                keep_na,
+                pct,
+                n,
+            )
 
     if axis == 1:
         return np.array(out.T)
