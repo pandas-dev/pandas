@@ -35,22 +35,11 @@ def _skip_if_no_private_key_path():
         pytest.skip("Cannot run integration tests without a private key json file path")
 
 
-def _in_travis_environment():
-    return "TRAVIS_BUILD_DIR" in os.environ and "GBQ_PROJECT_ID" in os.environ
-
-
 def _get_project_id():
-    if _in_travis_environment():
-        return os.environ.get("GBQ_PROJECT_ID")
     return PROJECT_ID or os.environ.get("GBQ_PROJECT_ID")
 
 
 def _get_private_key_path():
-    if _in_travis_environment():
-        return os.path.join(
-            *[os.environ.get("TRAVIS_BUILD_DIR"), "ci", "travis_gbq.json"]
-        )
-
     private_key_path = PRIVATE_KEY_JSON_PATH
     if not private_key_path:
         private_key_path = os.environ.get("GBQ_GOOGLE_APPLICATION_CREDENTIALS")
