@@ -245,6 +245,7 @@ def _maybe_get_mask(
     """
     if mask is None:
         if is_bool_dtype(values.dtype) or is_integer_dtype(values.dtype):
+            # Boolean data cannot contain nulls, so signal via mask being None
             return None
 
         if skipna or needs_i8_conversion(values.dtype):
