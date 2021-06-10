@@ -3413,6 +3413,7 @@ class Index(IndexOpsMixin, PandasObject):
             if (not self._is_multi and self.hasnans) and target.hasnans:
                 # Exclude MultiIndex because hasnans raises NotImplementedError
                 # we should only get here if we are unique, so loc is an integer
+                # GH#41934
                 loc = self.get_loc(np.nan)
                 mask = target.isna()
                 indexer[mask] = loc

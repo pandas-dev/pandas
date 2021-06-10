@@ -276,7 +276,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_categorical_with_nans(self):
-        # nans in both index and in target
+        # GH#41934 nans in both index and in target
         ii = IntervalIndex.from_breaks(range(5))
         ii2 = ii.append(IntervalIndex([np.nan]))
         ci2 = CategoricalIndex(ii2)
