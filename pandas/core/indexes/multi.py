@@ -2673,19 +2673,10 @@ class MultiIndex(Index):
                 #  gets here, and it is checking that we raise with method="nearest"
 
         if method == "pad" or method == "backfill":
-            if tolerance is not None:
-                raise NotImplementedError(
-                    "tolerance not implemented yet for MultiIndex"
-                )
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
             #  but that doesn't appear to be enforced
             indexer = self._engine.get_indexer_with_fill(
                 target=target._values, values=self._values, method=method, limit=limit
-            )
-        elif method == "nearest":
-            raise NotImplementedError(
-                "method='nearest' not implemented yet "
-                "for MultiIndex; see GitHub issue 9365"
             )
         else:
             indexer = self._engine.get_indexer(target._values)

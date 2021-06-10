@@ -3393,7 +3393,7 @@ class Index(IndexOpsMixin, PandasObject):
         method = missing.clean_reindex_fill_method(method)
         target = self._maybe_cast_listlike_indexer(target)
 
-        self._check_indexing_method(method)
+        self._check_indexing_method(method, limit, tolerance)
 
         if not self._index_as_unique:
             raise InvalidIndexError(self._requires_unique_msg)
@@ -3435,6 +3435,45 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
+            indexer = self._engine.get_indexer(target._get_engine_target())
+
+        return ensure_platform_int(indexer)
+
+    @final
+    def _check_indexing_method(
+        self,
+        method: str_t | None,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> None:
+        """
+        Raise if we have a get_indexer `method` that is not supported or valid.
+        """
+        if method not in [None, "bfill", "backfill", "pad", "ffill", "nearest"]:
+            # in practice the clean_reindex_fill_method call would raise
+            #  before we get here
+            raise ValueError("Invalid fill method")  # pragma: no cover
+
+        if self._is_multi:
+            if method == "nearest":
+                raise NotImplementedError(
+                    "method='nearest' not implemented yet "
+                    "for MultiIndex; see GitHub issue 9365"
+                )
+            elif method == "pad" or method == "backfill":
+                if tolerance is not None:
+                    raise NotImplementedError(
+                        "tolerance not implemented yet for MultiIndex"
+                    )
+
+        if is_interval_dtype(self.dtype) or is_categorical_dtype(self.dtype):
+            # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
+            if method is not None:
+                raise NotImplementedError(
+                    f"method {method} not yet implemented for {type(self).__name__}"
+                )
+
+        if method is None:
             if tolerance is not None:
                 raise ValueError(
                     "tolerance argument only valid if doing pad, "
@@ -3445,29 +3484,6 @@ class Index(IndexOpsMixin, PandasObject):
                     "limit argument only valid if doing pad, "
                     "backfill or nearest reindexing"
                 )
-
-            indexer = self._engine.get_indexer(target._get_engine_target())
-
-        return ensure_platform_int(indexer)
-
-    @final
-    def _check_indexing_method(self, method: str_t | None) -> None:
-        """
-        Raise if we have a get_indexer `method` that is not supported or valid.
-        """
-        # GH#37871 for now this is only for IntervalIndex and CategoricalIndex
-        if not (is_interval_dtype(self.dtype) or is_categorical_dtype(self.dtype)):
-            return
-
-        if method is None:
-            return
-
-        if method in ["bfill", "backfill", "pad", "ffill", "nearest"]:
-            raise NotImplementedError(
-                f"method {method} not yet implemented for {type(self).__name__}"
-            )
-
-        raise ValueError("Invalid fill method")
 
     def _convert_tolerance(self, tolerance, target: np.ndarray | Index) -> np.ndarray:
         # override this method on subclasses
