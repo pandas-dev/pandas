@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -152,7 +155,10 @@ def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
     with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
-        df.groupby("key").quantile()
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            df.groupby("key").quantile()
 
 
 def test_quantile_out_of_bounds_q_raises():
@@ -233,7 +239,11 @@ def test_groupby_quantile_nullable_array(values, q):
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 def test_groupby_quantile_skips_invalid_dtype(q):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
-    result = df.groupby("a").quantile(q)
+
+    warn = None if isinstance(q, list) else FutureWarning
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        result = df.groupby("a").quantile(q)
+
     expected = df.groupby("a")[["b"]].quantile(q)
     tm.assert_frame_equal(result, expected)
 
@@ -271,7 +281,7 @@ def test_columns_groupby_quantile():
             [9.6, 8.4, 10.6, 9.4],
         ],
         index=list("XYZ"),
-        columns=Index(
+        columns=pd.MultiIndex.from_tuples(
             [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
         ),
     )

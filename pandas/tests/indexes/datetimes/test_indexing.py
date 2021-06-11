@@ -1,4 +1,9 @@
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -6,10 +11,20 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, bdate_range, date_range, notna
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    bdate_range,
+    date_range,
+    notna,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BDay, CDay
+from pandas.tseries.offsets import (
+    BDay,
+    CDay,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -158,7 +173,7 @@ class TestWhere:
         i = date_range("20130101", periods=3, tz="US/Eastern")
 
         for arr in [np.nan, pd.NaT]:
-            result = i.where(notna(i), other=np.nan)
+            result = i.where(notna(i), other=arr)
             expected = i
             tm.assert_index_equal(result, expected)
 
@@ -175,40 +190,56 @@ class TestWhere:
     def test_where_invalid_dtypes(self):
         dti = date_range("20130101", periods=3, tz="US/Eastern")
 
-        i2 = Index([pd.NaT, pd.NaT] + dti[2:].tolist())
+        tail = dti[2:].tolist()
+        i2 = Index([pd.NaT, pd.NaT] + tail)
 
-        msg = "value should be a 'Timestamp', 'NaT', or array of those. Got"
-        msg2 = "Cannot compare tz-naive and tz-aware datetime-like objects"
-        with pytest.raises(TypeError, match=msg2):
-            # passing tz-naive ndarray to tzaware DTI
-            dti.where(notna(i2), i2.values)
+        mask = notna(i2)
 
-        with pytest.raises(TypeError, match=msg2):
-            # passing tz-aware DTI to tznaive DTI
-            dti.tz_localize(None).where(notna(i2), i2)
+        # passing tz-naive ndarray to tzaware DTI
+        result = dti.where(mask, i2.values)
+        expected = Index([pd.NaT.asm8, pd.NaT.asm8] + tail, dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            dti.where(notna(i2), i2.tz_localize(None).to_period("D"))
+        # passing tz-aware DTI to tznaive DTI
+        naive = dti.tz_localize(None)
+        result = naive.where(mask, i2)
+        expected = Index([i2[0], i2[1]] + naive[2:].tolist(), dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            dti.where(notna(i2), i2.asi8.view("timedelta64[ns]"))
+        pi = i2.tz_localize(None).to_period("D")
+        result = dti.where(mask, pi)
+        expected = Index([pi[0], pi[1]] + tail, dtype=object)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            dti.where(notna(i2), i2.asi8)
+        tda = i2.asi8.view("timedelta64[ns]")
+        result = dti.where(mask, tda)
+        expected = Index([tda[0], tda[1]] + tail, dtype=object)
+        assert isinstance(expected[0], np.timedelta64)
+        tm.assert_index_equal(result, expected)
 
-        with pytest.raises(TypeError, match=msg):
-            # non-matching scalar
-            dti.where(notna(i2), pd.Timedelta(days=4))
+        result = dti.where(mask, i2.asi8)
+        expected = Index([pd.NaT.value, pd.NaT.value] + tail, dtype=object)
+        assert isinstance(expected[0], int)
+        tm.assert_index_equal(result, expected)
+
+        # non-matching scalar
+        td = pd.Timedelta(days=4)
+        result = dti.where(mask, td)
+        expected = Index([td, td] + tail, dtype=object)
+        assert expected[0] is td
+        tm.assert_index_equal(result, expected)
 
     def test_where_mismatched_nat(self, tz_aware_fixture):
         tz = tz_aware_fixture
         dti = date_range("2013-01-01", periods=3, tz=tz)
         cond = np.array([True, False, True])
 
-        msg = "value should be a 'Timestamp', 'NaT', or array of those. Got"
-        with pytest.raises(TypeError, match=msg):
-            # wrong-dtyped NaT
-            dti.where(cond, np.timedelta64("NaT", "ns"))
+        tdnat = np.timedelta64("NaT", "ns")
+        expected = Index([dti[0], tdnat, dti[2]], dtype=object)
+        assert expected[1] is tdnat
+
+        result = dti.where(cond, tdnat)
+        tm.assert_index_equal(result, expected)
 
     def test_where_tz(self):
         i = date_range("20130101", periods=3, tz="US/Eastern")
@@ -520,6 +551,13 @@ class TestGetLoc:
         with pytest.raises(KeyError, match="2000"):
             index.get_loc("1/1/2000")
 
+    def test_get_loc_year_str(self):
+        rng = date_range("1/1/2000", "1/1/2010")
+
+        result = rng.get_loc("2009")
+        expected = slice(3288, 3653)
+        assert result == expected
+
 
 class TestContains:
     def test_dti_contains_with_duplicates(self):
@@ -586,7 +624,8 @@ class TestGetIndexer:
             pd.Timedelta("1 hour").to_timedelta64(),
             "foo",
         ]
-        with pytest.raises(ValueError, match="abbreviation w/o a number"):
+        msg = "Could not convert 'foo' to NumPy timedelta"
+        with pytest.raises(ValueError, match=msg):
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
@@ -613,8 +652,13 @@ class TestGetIndexer:
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
     )
+    # FIXME: these warnings are flaky GH#36131
+    @pytest.mark.filterwarnings(
+        "ignore:Comparison of Timestamp with datetime.date:FutureWarning"
+    )
     def test_get_indexer_out_of_bounds_date(self, target, positions):
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
+
         result = values.get_indexer(target)
         expected = np.array(positions, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -635,18 +679,18 @@ class TestMaybeCastSliceBound:
         # GH#14354
         empty_idx = date_range(freq="1H", periods=0, end="2015")
 
-        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right", "loc")
+        right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")
         assert right == exp
 
-        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left", "loc")
+        left = empty_idx._maybe_cast_slice_bound("2015-01-02", "left")
         exp = Timestamp("2015-01-02 00:00:00")
         assert left == exp
 
     def test_maybe_cast_slice_duplicate_monotonic(self):
         # https://github.com/pandas-dev/pandas/issues/16515
         idx = DatetimeIndex(["2017", "2017"])
-        result = idx._maybe_cast_slice_bound("2017-01-01", "left", "loc")
+        result = idx._maybe_cast_slice_bound("2017-01-01", "left")
         expected = Timestamp("2017-01-01")
         assert result == expected
 
@@ -691,7 +735,7 @@ class TestGetSliceBounds:
         key = box(year=2000, month=1, day=7)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
@@ -709,7 +753,7 @@ class TestGetSliceBounds:
         key = box(year=year, month=1, day=7)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
@@ -723,7 +767,7 @@ class TestGetSliceBounds:
         key = box(2010, 1, 1)
 
         warn = None if tz is None else FutureWarning
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             # GH#36148 will require tzawareness-compat
             result = index.slice_locs(key, box(2010, 1, 2))
         expected = (0, 1)

@@ -1,10 +1,15 @@
-from typing import List
+from __future__ import annotations
+
+from typing import MutableMapping
 
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
 
-_writers = {}
+_writers: MutableMapping[str, str] = {}
 
 
 def register_writer(klass):
@@ -23,32 +28,46 @@ def register_writer(klass):
     _writers[engine_name] = klass
 
 
-def get_default_writer(ext):
+def get_default_engine(ext, mode="reader"):
     """
-    Return the default writer for the given extension.
+    Return the default reader/writer for the given extension.
 
     Parameters
     ----------
     ext : str
         The excel file extension for which to get the default engine.
+    mode : str {'reader', 'writer'}
+        Whether to get the default engine for reading or writing.
+        Either 'reader' or 'writer'
 
     Returns
     -------
     str
         The default engine for the extension.
     """
+    _default_readers = {
+        "xlsx": "openpyxl",
+        "xlsm": "openpyxl",
+        "xlsb": "pyxlsb",
+        "xls": "xlrd",
+        "ods": "odf",
+    }
     _default_writers = {
         "xlsx": "openpyxl",
         "xlsm": "openpyxl",
+        "xlsb": "pyxlsb",
         "xls": "xlwt",
         "ods": "odf",
     }
-    xlsxwriter = import_optional_dependency(
-        "xlsxwriter", raise_on_missing=False, on_version="warn"
-    )
-    if xlsxwriter:
-        _default_writers["xlsx"] = "xlsxwriter"
-    return _default_writers[ext]
+    assert mode in ["reader", "writer"]
+    if mode == "writer":
+        # Prefer xlsxwriter over openpyxl if installed
+        xlsxwriter = import_optional_dependency("xlsxwriter", errors="warn")
+        if xlsxwriter:
+            _default_writers["xlsx"] = "xlsxwriter"
+        return _default_writers[ext]
+    else:
+        return _default_readers[ext]
 
 
 def get_writer(engine_name):
@@ -90,7 +109,7 @@ def _excel2num(x: str) -> int:
     return index - 1
 
 
-def _range2cols(areas: str) -> List[int]:
+def _range2cols(areas: str) -> list[int]:
     """
     Convert comma separated list of column names and ranges to indices.
 
@@ -111,7 +130,7 @@ def _range2cols(areas: str) -> List[int]:
     >>> _range2cols('A,C,Z:AB')
     [0, 2, 25, 26, 27]
     """
-    cols: List[int] = []
+    cols: list[int] = []
 
     for rng in areas.split(","):
         if ":" in rng:

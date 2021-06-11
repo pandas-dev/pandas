@@ -9,7 +9,12 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
+from cpython.datetime cimport (
+    datetime,
+    datetime_new,
+    import_datetime,
+    tzinfo,
+)
 from cpython.object cimport PyObject_Str
 from cpython.version cimport PY_VERSION_HEX
 
@@ -31,7 +36,10 @@ cnp.import_array()
 
 # dateutil compat
 
-from dateutil.parser import DEFAULTPARSER, parse as du_parse
+from dateutil.parser import (
+    DEFAULTPARSER,
+    parse as du_parse,
+)
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
@@ -43,9 +51,15 @@ from dateutil.tz import (
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
-from pandas._libs.tslibs.nattype cimport c_NaT as NaT, c_nat_strings as nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 from pandas._libs.tslibs.offsets cimport is_offset_object
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size, is_array
+from pandas._libs.tslibs.util cimport (
+    get_c_string_buf_and_size,
+    is_array,
+)
 
 
 cdef extern from "../src/headers/portable.h":
@@ -205,7 +219,7 @@ def parse_datetime_string(
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
-):
+) -> datetime:
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -267,7 +281,9 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
     Returns
     -------
-    datetime, datetime/dateutil.parser._result, str
+    datetime
+    str
+        Describing resolution of parsed string.
     """
     if is_offset_object(freq):
         freq = freq.rule_code
@@ -378,7 +394,7 @@ cpdef bint _does_string_look_like_datetime(str py_string):
 
 
 cdef inline object _parse_dateabbr_string(object date_string, datetime default,
-                                          object freq):
+                                          str freq=None):
     cdef:
         object ret
         # year initialized to prevent compiler warnings
@@ -438,21 +454,13 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
                                      f'quarter must be '
                                      f'between 1 and 4: {date_string}')
 
-            if freq is not None:
-                # TODO: hack attack, #1228
-                freq = getattr(freq, "freqstr", freq)
-                try:
-                    mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
-                except (KeyError, ValueError):
-                    raise DateParseError(f'Unable to retrieve month '
-                                         f'information from given '
-                                         f'freq: {freq}')
-
-                month = (mnum + (quarter - 1) * 3) % 12 + 1
-                if month > mnum:
-                    year -= 1
-            else:
-                month = (quarter - 1) * 3 + 1
+            try:
+                # GH#1228
+                year, month = quarter_to_myear(year, quarter, freq)
+            except KeyError:
+                raise DateParseError("Unable to retrieve month "
+                                     "information from given "
+                                     f"freq: {freq}")
 
             ret = default.replace(year=year, month=month)
             return ret, 'quarter'
@@ -480,6 +488,41 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
             pass
 
     raise ValueError(f'Unable to parse {date_string}')
+
+
+cpdef quarter_to_myear(int year, int quarter, str freq):
+    """
+    A quarterly frequency defines a "year" which may not coincide with
+    the calendar-year.  Find the calendar-year and calendar-month associated
+    with the given year and quarter under the `freq`-derived calendar.
+
+    Parameters
+    ----------
+    year : int
+    quarter : int
+    freq : str or None
+
+    Returns
+    -------
+    year : int
+    month : int
+
+    See Also
+    --------
+    Period.qyear
+    """
+    if quarter <= 0 or quarter > 4:
+        raise ValueError("Quarter must be 1 <= q <= 4")
+
+    if freq is not None:
+        mnum = c_MONTH_NUMBERS[get_rule_month(freq)] + 1
+        month = (mnum + (quarter - 1) * 3) % 12 + 1
+        if month > mnum:
+            year -= 1
+    else:
+        month = (quarter - 1) * 3 + 1
+
+    return year, month
 
 
 cdef dateutil_parse(
@@ -554,7 +597,7 @@ cdef dateutil_parse(
 
 def try_parse_dates(
     object[:] values, parser=None, bint dayfirst=False, default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -598,7 +641,7 @@ def try_parse_date_and_time(
     time_parser=None,
     bint dayfirst=False,
     default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -634,7 +677,9 @@ def try_parse_date_and_time(
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(object[:] years, object[:] months, object[:] days):
+def try_parse_year_month_day(
+    object[:] years, object[:] months, object[:] days
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -656,7 +701,7 @@ def try_parse_datetime_components(object[:] years,
                                   object[:] days,
                                   object[:] hours,
                                   object[:] minutes,
-                                  object[:] seconds):
+                                  object[:] seconds) -> np.ndarray:
 
     cdef:
         Py_ssize_t i, n
@@ -947,7 +992,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndarray:
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 

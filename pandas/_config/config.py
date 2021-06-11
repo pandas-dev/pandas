@@ -48,10 +48,20 @@ Implementation
 
 """
 
+from __future__ import annotations
+
 from collections import namedtuple
-from contextlib import ContextDecorator, contextmanager
+from contextlib import (
+    ContextDecorator,
+    contextmanager,
+)
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, cast
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    cast,
+)
 import warnings
 
 from pandas._typing import F
@@ -60,16 +70,16 @@ DeprecatedOption = namedtuple("DeprecatedOption", "key msg rkey removal_ver")
 RegisteredOption = namedtuple("RegisteredOption", "key defval doc validator cb")
 
 # holds deprecated option metadata
-_deprecated_options: Dict[str, DeprecatedOption] = {}
+_deprecated_options: dict[str, DeprecatedOption] = {}
 
 # holds registered option metadata
-_registered_options: Dict[str, RegisteredOption] = {}
+_registered_options: dict[str, RegisteredOption] = {}
 
 # holds the current values for registered options
-_global_config: Dict[str, Any] = {}
+_global_config: dict[str, Any] = {}
 
 # keys which have a special meaning
-_reserved_keys: List[str] = ["all"]
+_reserved_keys: list[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
@@ -147,7 +157,7 @@ def _describe_option(pat: str = "", _print_desc: bool = True):
     if len(keys) == 0:
         raise OptionError("No such keys(s)")
 
-    s = "\n".join([_build_option_description(k) for k in keys])
+    s = "\n".join(_build_option_description(k) for k in keys)
 
     if _print_desc:
         print(s)
@@ -179,9 +189,9 @@ def get_default_val(pat: str):
 
 
 class DictWrapper:
-    """ provide attribute-style access to a nested dict"""
+    """provide attribute-style access to a nested dict"""
 
-    def __init__(self, d: Dict[str, Any], prefix: str = ""):
+    def __init__(self, d: dict[str, Any], prefix: str = ""):
         object.__setattr__(self, "d", d)
         object.__setattr__(self, "prefix", prefix)
 
@@ -415,8 +425,8 @@ def register_option(
     key: str,
     defval: object,
     doc: str = "",
-    validator: Optional[Callable[[Any], Any]] = None,
-    cb: Optional[Callable[[str], Any]] = None,
+    validator: Callable[[Any], Any] | None = None,
+    cb: Callable[[str], Any] | None = None,
 ) -> None:
     """
     Register an option in the package-wide pandas config object
@@ -487,7 +497,7 @@ def register_option(
 
 
 def deprecate_option(
-    key: str, msg: Optional[str] = None, rkey: Optional[str] = None, removal_ver=None
+    key: str, msg: str | None = None, rkey: str | None = None, removal_ver=None
 ) -> None:
     """
     Mark option `key` as deprecated, if code attempts to access this option,
@@ -534,7 +544,7 @@ def deprecate_option(
 # functions internal to the module
 
 
-def _select_options(pat: str) -> List[str]:
+def _select_options(pat: str) -> list[str]:
     """
     returns a list of keys matching `pat`
 
@@ -552,7 +562,7 @@ def _select_options(pat: str) -> List[str]:
     return [k for k in keys if re.search(pat, k, re.I)]
 
 
-def _get_root(key: str) -> Tuple[Dict[str, Any], str]:
+def _get_root(key: str) -> tuple[dict[str, Any], str]:
     path = key.split(".")
     cursor = _global_config
     for p in path[:-1]:
@@ -561,7 +571,7 @@ def _get_root(key: str) -> Tuple[Dict[str, Any], str]:
 
 
 def _is_deprecated(key: str) -> bool:
-    """ Returns True if the given option has been deprecated """
+    """Returns True if the given option has been deprecated"""
     key = key.lower()
     return key in _deprecated_options
 
@@ -633,7 +643,7 @@ def _warn_if_deprecated(key: str) -> bool:
 
 
 def _build_option_description(k: str) -> str:
-    """ Builds a formatted description of a registered option and prints it """
+    """Builds a formatted description of a registered option and prints it"""
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
@@ -657,11 +667,11 @@ def _build_option_description(k: str) -> str:
 
 
 def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
-    """ Builds a concise listing of available options, grouped by prefix """
+    """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
 
-    def pp(name: str, ks: Iterable[str]) -> List[str]:
+    def pp(name: str, ks: Iterable[str]) -> list[str]:
         pfx = "- " + name + ".[" if name else ""
         ls = wrap(
             ", ".join(ks),
@@ -674,7 +684,7 @@ def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
             ls[-1] = ls[-1] + "]"
         return ls
 
-    ls: List[str] = []
+    ls: list[str] = []
     singles = [x for x in sorted(keys) if x.find(".") < 0]
     if singles:
         ls += pp("", singles)
@@ -747,7 +757,7 @@ def config_prefix(prefix):
 # arg in register_option
 
 
-def is_type_factory(_type: Type[Any]) -> Callable[[Any], None]:
+def is_type_factory(_type: type[Any]) -> Callable[[Any], None]:
     """
 
     Parameters
@@ -813,7 +823,7 @@ def is_one_of_factory(legal_values) -> Callable[[Any], None]:
     return inner
 
 
-def is_nonnegative_int(value: Optional[int]) -> None:
+def is_nonnegative_int(value: int | None) -> None:
     """
     Verify that value is None or a positive int.
 

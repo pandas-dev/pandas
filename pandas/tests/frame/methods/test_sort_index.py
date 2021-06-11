@@ -24,7 +24,7 @@ class TestDataFrameSortIndex:
                 levels=[["a", "b"], ["bb", "aa"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
             ),
         )
-        assert df.index.is_lexsorted()
+        assert df.index._is_lexsorted()
         assert not df.index.is_monotonic
 
         # sort it
@@ -35,7 +35,6 @@ class TestDataFrameSortIndex:
             ),
         )
         result = df.sort_index()
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -43,7 +42,6 @@ class TestDataFrameSortIndex:
         # reconstruct
         result = df.sort_index().copy()
         result.index = result.index._sort_levels_monotonic()
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -524,14 +522,13 @@ class TestDataFrameSortIndex:
                 [(0.5, "a"), (0.5, "b"), (0.8, "a"), (0.8, "b")]
             ),
         )
-        assert expected.index.is_lexsorted()
+        assert expected.index._is_lexsorted()
 
         result = DataFrame(
             [[1, 1], [2, 2], [1, 1], [2, 2]],
             index=MultiIndex.from_product([[0.5, 0.8], list("ab")]),
         )
         result = result.sort_index()
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -543,14 +540,13 @@ class TestDataFrameSortIndex:
             ),
         )
         result = result.sort_index()
-        assert result.index.is_lexsorted()
+        assert result.index._is_lexsorted()
 
         tm.assert_frame_equal(result, expected)
 
         concatted = pd.concat([df, df], keys=[0.8, 0.5])
         result = concatted.sort_index()
 
-        assert result.index.is_lexsorted()
         assert result.index.is_monotonic
 
         tm.assert_frame_equal(result, expected)
@@ -567,13 +563,10 @@ class TestDataFrameSortIndex:
         df.columns = df.columns.set_levels(
             pd.to_datetime(df.columns.levels[1]), level=1
         )
-        assert not df.columns.is_lexsorted()
         assert not df.columns.is_monotonic
         result = df.sort_index(axis=1)
-        assert result.columns.is_lexsorted()
         assert result.columns.is_monotonic
         result = df.sort_index(axis=1, level=1)
-        assert result.columns.is_lexsorted()
         assert result.columns.is_monotonic
 
     # TODO: better name, de-duplicate with test_sort_index_level above
@@ -610,20 +603,20 @@ class TestDataFrameSortIndex:
 
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int64)
+        df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
 
         # it works!
         result = df.sort_index(level=0)
-        assert result.index.lexsort_depth == 3
+        assert result.index._lexsort_depth == 3
 
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int32)
+        df = DataFrame(np.random.randn(4000).astype("int32"), index=index)
 
         # it works!
         result = df.sort_index(level=0)
         assert (result.dtypes.values == df.dtypes.values).all()
-        assert result.index.lexsort_depth == 3
+        assert result.index._lexsort_depth == 3
 
     def test_sort_index_level_by_name(self):
         mi = MultiIndex(
@@ -765,6 +758,33 @@ class TestDataFrameSortIndex:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "ascending",
+        [
+            None,
+            [True, None],
+            [False, "True"],
+        ],
+    )
+    def test_sort_index_ascending_bad_value_raises(self, ascending):
+        # GH 39434
+        df = DataFrame(np.arange(64))
+        length = len(df.index)
+        df.index = [(i - length / 2) % length for i in range(length)]
+        match = 'For argument "ascending" expected type bool'
+        with pytest.raises(ValueError, match=match):
+            df.sort_index(axis=0, ascending=ascending, na_position="first")
+
+    def test_sort_index_use_inf_as_na(self):
+        # GH 29687
+        expected = DataFrame(
+            {"col1": [1, 2, 3], "col2": [3, 4, 5]},
+            index=pd.date_range("2020", periods=3),
+        )
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = expected.sort_index()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
@@ -856,4 +876,16 @@ class TestDataFrameSortIndexKey:
 
         result = expected.sort_index(level=0)
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.sort_index "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.sort_index(1)
+        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

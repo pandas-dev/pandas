@@ -2,17 +2,33 @@
 Extend pandas with custom array types.
 """
 
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type, Union
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    TypeVar,
+)
 
 import numpy as np
 
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj,
+    type_t,
+)
 from pandas.errors import AbstractMethodError
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCIndex, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCIndex,
+    ABCSeries,
+)
 
 if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
+
+    # To parameterize on same ExtensionDtype
+    E = TypeVar("E", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -32,6 +48,7 @@ class ExtensionDtype:
 
     * type
     * name
+    * construct_array_type
 
     The following attributes and methods influence the behavior of the dtype in
     pandas operations
@@ -39,12 +56,6 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
-
-    Optionally one can override construct_array_type for construction
-    with the name of this dtype via the Registry. See
-    :meth:`extensions.register_extension_dtype`.
-
-    * construct_array_type
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
@@ -64,11 +75,6 @@ class ExtensionDtype:
     ``__eq__`` or ``__hash__``, the default implementations here will not
     work.
 
-    .. versionchanged:: 0.24.0
-
-       Added ``_metadata``, ``__hash__``, and changed the default definition
-       of ``__eq__``.
-
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array or ChunkedArray
     as only argument and is expected to return the appropriate pandas
@@ -87,7 +93,7 @@ class ExtensionDtype:
     provided for registering virtual subclasses.
     """
 
-    _metadata: Tuple[str, ...] = ()
+    _metadata: tuple[str, ...] = ()
 
     def __str__(self) -> str:
         return self.name
@@ -139,7 +145,7 @@ class ExtensionDtype:
         return np.nan
 
     @property
-    def type(self) -> Type:
+    def type(self) -> type_t[Any]:
         """
         The scalar type for the array, e.g. ``int``
 
@@ -176,7 +182,7 @@ class ExtensionDtype:
         raise AbstractMethodError(self)
 
     @property
-    def names(self) -> Optional[List[str]]:
+    def names(self) -> list[str] | None:
         """
         Ordered list of field names, or None if there are no fields.
 
@@ -186,7 +192,7 @@ class ExtensionDtype:
         return None
 
     @classmethod
-    def construct_array_type(cls) -> Type["ExtensionArray"]:
+    def construct_array_type(cls) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -194,7 +200,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise NotImplementedError
+        raise AbstractMethodError(cls)
 
     @classmethod
     def construct_from_string(cls, string: str):
@@ -323,7 +329,7 @@ class ExtensionDtype:
         """
         return False
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         """
         Return the common dtype, if one exists.
 
@@ -351,12 +357,17 @@ class ExtensionDtype:
         else:
             return None
 
+    @property
+    def _can_hold_na(self) -> bool:
+        """
+        Can arrays of this dtype hold NA values?
+        """
+        return True
 
-def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
+
+def register_extension_dtype(cls: type[E]) -> type[E]:
     """
     Register an ExtensionType with pandas as class decorator.
-
-    .. versionadded:: 0.24.0
 
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.
@@ -374,7 +385,7 @@ def register_extension_dtype(cls: Type[ExtensionDtype]) -> Type[ExtensionDtype]:
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"
     """
-    registry.register(cls)
+    _registry.register(cls)
     return cls
 
 
@@ -395,9 +406,9 @@ class Registry:
     """
 
     def __init__(self):
-        self.dtypes: List[Type[ExtensionDtype]] = []
+        self.dtypes: list[type[ExtensionDtype]] = []
 
-    def register(self, dtype: Type[ExtensionDtype]) -> None:
+    def register(self, dtype: type[ExtensionDtype]) -> None:
         """
         Parameters
         ----------
@@ -408,9 +419,7 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(
-        self, dtype: Union[Type[ExtensionDtype], str]
-    ) -> Optional[Type[ExtensionDtype]]:
+    def find(self, dtype: type[ExtensionDtype] | str) -> type[ExtensionDtype] | None:
         """
         Parameters
         ----------
@@ -438,4 +447,4 @@ class Registry:
         return None
 
 
-registry = Registry()
+_registry = Registry()

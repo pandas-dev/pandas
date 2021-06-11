@@ -154,6 +154,7 @@ Other enhancements:
 - ``Series.all`` and ``Series.any`` now support the ``level`` and ``skipna`` parameters (:issue:`8302`):
 
   .. ipython:: python
+     :okwarning:
 
      s = pd.Series([False, True, False], index=[0, 0, 1])
      s.any(level=0)

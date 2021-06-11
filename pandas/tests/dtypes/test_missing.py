@@ -8,12 +8,23 @@ import pytest
 from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
-from pandas._libs.tslibs import iNaT, is_null_datetimelike
+from pandas._libs.tslibs import (
+    iNaT,
+    is_null_datetimelike,
+)
 
-from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype, IntervalDtype, PeriodDtype
+from pandas.core.dtypes.common import (
+    is_float,
+    is_scalar,
+)
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
+    is_valid_na_for_dtype,
     isna,
     isnull,
     na_value_for_dtype,
@@ -22,7 +33,14 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas import DatetimeIndex, Float64Index, NaT, Series, TimedeltaIndex, date_range
+from pandas import (
+    DatetimeIndex,
+    Float64Index,
+    NaT,
+    Series,
+    TimedeltaIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 now = pd.Timestamp.now()
@@ -188,16 +206,16 @@ class TestIsNA:
 
     def test_isna_old_datetimelike(self):
         # isna_old should work for dt64tz, td64, and period, not just tznaive
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
         dta = dti._data
-        dta[-1] = pd.NaT
+        dta[-1] = NaT
         expected = np.array([False, False, True], dtype=bool)
 
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
             with cf.option_context("mode.use_inf_as_na", True):
-                result = pd.isna(obj)
+                result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -300,6 +318,43 @@ class TestIsNA:
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
+    def test_decimal(self):
+        # scalars GH#23530
+        a = Decimal(1.0)
+        assert isna(a) is False
+        assert notna(a) is True
+
+        b = Decimal("NaN")
+        assert isna(b) is True
+        assert notna(b) is False
+
+        # array
+        arr = np.array([a, b])
+        expected = np.array([False, True])
+        result = isna(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = notna(arr)
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        # series
+        ser = Series(arr)
+        expected = Series(expected)
+        result = isna(ser)
+        tm.assert_series_equal(result, expected)
+
+        result = notna(ser)
+        tm.assert_series_equal(result, ~expected)
+
+        # index
+        idx = pd.Index(arr)
+        expected = np.array([False, True])
+        result = isna(idx)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = notna(idx)
+        tm.assert_numpy_array_equal(result, ~expected)
+
 
 @pytest.mark.parametrize("dtype_equal", [True, False])
 def test_array_equivalent(dtype_equal):
@@ -389,8 +444,10 @@ def test_array_equivalent(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
+    msg = "elementwise comparison failed"
     cm = (
-        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        # stacklevel is chosen to make sense when called from .equals
+        tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
         if isinstance(val, str)
         else nullcontext()
     )
@@ -472,8 +529,8 @@ def test_array_equivalent_nested():
     "dtype, na_value",
     [
         # Datetime-like
-        (np.dtype("M8[ns]"), NaT),
-        (np.dtype("m8[ns]"), NaT),
+        (np.dtype("M8[ns]"), np.datetime64("NaT", "ns")),
+        (np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")),
         (DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]"), NaT),
         (PeriodDtype("M"), NaT),
         # Integer
@@ -499,7 +556,11 @@ def test_array_equivalent_nested():
 )
 def test_na_value_for_dtype(dtype, na_value):
     result = na_value_for_dtype(dtype)
-    assert result is na_value
+    # identify check doesn't work for datetime64/timedelta64("NaT") bc they
+    #  are not singletons
+    assert result is na_value or (
+        isna(result) and isna(na_value) and type(result) is type(na_value)
+    )
 
 
 class TestNAObj:
@@ -520,7 +581,7 @@ class TestNAObj:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
-        arr = np.array([1, None, "foo", -5.1, pd.NaT, np.nan])
+        arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
         expected = np.array([False, True, False, False, True, True])
 
         self._check_behavior(arr, expected)
@@ -598,33 +659,28 @@ never_na_vals = [
 
 
 class TestLibMissing:
-    def test_checknull(self):
-        for value in na_vals:
-            assert libmissing.checknull(value)
+    @pytest.mark.parametrize("func", [libmissing.checknull, isna])
+    def test_checknull(self, func):
+        for value in na_vals + sometimes_na_vals:
+            assert func(value)
 
         for value in inf_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
         for value in int_na_vals:
-            assert not libmissing.checknull(value)
-
-        for value in sometimes_na_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
         for value in never_na_vals:
-            assert not libmissing.checknull(value)
+            assert not func(value)
 
     def test_checknull_old(self):
-        for value in na_vals:
+        for value in na_vals + sometimes_na_vals:
             assert libmissing.checknull_old(value)
 
         for value in inf_vals:
             assert libmissing.checknull_old(value)
 
         for value in int_na_vals:
-            assert not libmissing.checknull_old(value)
-
-        for value in sometimes_na_vals:
             assert not libmissing.checknull_old(value)
 
         for value in never_na_vals:
@@ -649,3 +705,37 @@ class TestLibMissing:
 
         for value in never_na_vals:
             assert not is_null_datetimelike(value)
+
+    def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
+        left = nulls_fixture
+        right = nulls_fixture2
+
+        assert libmissing.is_matching_na(left, left)
+
+        if left is right:
+            assert libmissing.is_matching_na(left, right)
+        elif is_float(left) and is_float(right):
+            # np.nan vs float("NaN") we consider as matching
+            assert libmissing.is_matching_na(left, right)
+        elif type(left) is type(right):
+            # e.g. both Decimal("NaN")
+            assert libmissing.is_matching_na(left, right)
+        else:
+            assert not libmissing.is_matching_na(left, right)
+
+    def test_is_matching_na_nan_matches_none(self):
+
+        assert not libmissing.is_matching_na(None, np.nan)
+        assert not libmissing.is_matching_na(np.nan, None)
+
+        assert libmissing.is_matching_na(None, np.nan, nan_matches_none=True)
+        assert libmissing.is_matching_na(np.nan, None, nan_matches_none=True)
+
+
+class TestIsValidNAForDtype:
+    def test_is_valid_na_for_dtype_interval(self):
+        dtype = IntervalDtype("int64", "left")
+        assert not is_valid_na_for_dtype(NaT, dtype)
+
+        dtype = IntervalDtype("datetime64[ns]", "both")
+        assert not is_valid_na_for_dtype(NaT, dtype)

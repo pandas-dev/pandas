@@ -10,16 +10,21 @@ from pandas.core.arrays.floating import FloatingArray
 from pandas.core.arrays.integer import IntegerArray
 from pandas.core.arrays.interval import IntervalArray
 from pandas.core.arrays.masked import BaseMaskedArray
-from pandas.core.arrays.numpy_ import PandasArray, PandasDtype
-from pandas.core.arrays.period import PeriodArray, period_array
+from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.arrays.period import (
+    PeriodArray,
+    period_array,
+)
 from pandas.core.arrays.sparse import SparseArray
 from pandas.core.arrays.string_ import StringArray
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 
 __all__ = [
     "ExtensionArray",
     "ExtensionOpsMixin",
     "ExtensionScalarOpsMixin",
+    "ArrowStringArray",
     "BaseMaskedArray",
     "BooleanArray",
     "Categorical",
@@ -28,7 +33,6 @@ __all__ = [
     "IntegerArray",
     "IntervalArray",
     "PandasArray",
-    "PandasDtype",
     "PeriodArray",
     "period_array",
     "SparseArray",

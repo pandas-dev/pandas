@@ -5,10 +5,16 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 from decimal import Decimal
 from fractions import Fraction
 from io import StringIO
+import itertools
 from numbers import Number
 import re
 
@@ -16,13 +22,18 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs import lib, missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+    ops as libops,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     ensure_int32,
     is_bool,
+    is_complex,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
@@ -52,7 +63,11 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import IntegerArray
+from pandas.core.arrays import (
+    BooleanArray,
+    FloatingArray,
+    IntegerArray,
+)
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -131,7 +146,7 @@ def test_is_list_like_recursion():
         inference.is_list_like([])
         foo()
 
-    with pytest.raises(RecursionError):
+    with tm.external_error_raised(RecursionError):
         foo()
 
 
@@ -300,7 +315,7 @@ def test_is_file_like():
     assert not is_file(data)
 
 
-test_tuple = collections.namedtuple("Test", ["a", "b", "c"])
+test_tuple = collections.namedtuple("test_tuple", ["a", "b", "c"])
 
 
 @pytest.mark.parametrize("ll", [test_tuple(1, 2, 3)])
@@ -407,73 +422,116 @@ class TestInference:
         result = libmissing.isneginf_scalar(value)
         assert result is expected
 
+    @pytest.mark.parametrize(
+        "convert_to_masked_nullable, exp",
+        [
+            (
+                True,
+                BooleanArray(
+                    np.array([True, False], dtype="bool"), np.array([False, True])
+                ),
+            ),
+            (False, np.array([True, np.nan], dtype="object")),
+        ],
+    )
+    def test_maybe_convert_nullable_boolean(self, convert_to_masked_nullable, exp):
+        # GH 40687
+        arr = np.array([True, np.NaN], dtype=object)
+        result = libops.maybe_convert_bool(
+            arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
+        )
+        if convert_to_masked_nullable:
+            tm.assert_extension_array_equal(BooleanArray(*result), exp)
+        else:
+            result = result[0]
+            tm.assert_numpy_array_equal(result, exp)
+
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
     @pytest.mark.parametrize("coerce_numeric", [True, False])
     @pytest.mark.parametrize(
         "infinity", ["inf", "inF", "iNf", "Inf", "iNF", "InF", "INf", "INF"]
     )
     @pytest.mark.parametrize("prefix", ["", "-", "+"])
-    def test_maybe_convert_numeric_infinities(self, coerce_numeric, infinity, prefix):
+    def test_maybe_convert_numeric_infinities(
+        self, coerce_numeric, infinity, prefix, convert_to_masked_nullable
+    ):
         # see gh-13274
-        result = lib.maybe_convert_numeric(
+        result, _ = lib.maybe_convert_numeric(
             np.array([prefix + infinity], dtype=object),
             na_values={"", "NULL", "nan"},
             coerce_numeric=coerce_numeric,
+            convert_to_masked_nullable=convert_to_masked_nullable,
         )
         expected = np.array([np.inf if prefix in ["", "+"] else -np.inf])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_maybe_convert_numeric_infinities_raises(self):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_maybe_convert_numeric_infinities_raises(self, convert_to_masked_nullable):
         msg = "Unable to parse string"
         with pytest.raises(ValueError, match=msg):
             lib.maybe_convert_numeric(
                 np.array(["foo_inf"], dtype=object),
                 na_values={"", "NULL", "nan"},
                 coerce_numeric=False,
+                convert_to_masked_nullable=convert_to_masked_nullable,
             )
 
-    def test_maybe_convert_numeric_post_floatify_nan(self, coerce):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_maybe_convert_numeric_post_floatify_nan(
+        self, coerce, convert_to_masked_nullable
+    ):
         # see gh-13314
         data = np.array(["1.200", "-999.000", "4.500"], dtype=object)
         expected = np.array([1.2, np.nan, 4.5], dtype=np.float64)
         nan_values = {-999, -999.0}
 
-        out = lib.maybe_convert_numeric(data, nan_values, coerce)
-        tm.assert_numpy_array_equal(out, expected)
+        out = lib.maybe_convert_numeric(
+            data,
+            nan_values,
+            coerce,
+            convert_to_masked_nullable=convert_to_masked_nullable,
+        )
+        if convert_to_masked_nullable:
+            expected = FloatingArray(expected, np.isnan(expected))
+            tm.assert_extension_array_equal(expected, FloatingArray(*out))
+        else:
+            out = out[0]
+            tm.assert_numpy_array_equal(out, expected)
 
     def test_convert_infs(self):
         arr = np.array(["inf", "inf", "inf"], dtype="O")
-        result = lib.maybe_convert_numeric(arr, set(), False)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False)
         assert result.dtype == np.float64
 
         arr = np.array(["-inf", "-inf", "-inf"], dtype="O")
-        result = lib.maybe_convert_numeric(arr, set(), False)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False)
         assert result.dtype == np.float64
 
     def test_scientific_no_exponent(self):
         # See PR 12215
         arr = np.array(["42E", "2E", "99e", "6e"], dtype="O")
-        result = lib.maybe_convert_numeric(arr, set(), False, True)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False, True)
         assert np.all(np.isnan(result))
 
     def test_convert_non_hashable(self):
         # GH13324
         # make sure that we are handing non-hashables
         arr = np.array([[10.0, 2], 1.0, "apple"], dtype=object)
-        result = lib.maybe_convert_numeric(arr, set(), False, True)
+        result, _ = lib.maybe_convert_numeric(arr, set(), False, True)
         tm.assert_numpy_array_equal(result, np.array([np.nan, 1.0, np.nan]))
 
     def test_convert_numeric_uint64(self):
         arr = np.array([2 ** 63], dtype=object)
         exp = np.array([2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
         arr = np.array([str(2 ** 63)], dtype=object)
         exp = np.array([2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
         arr = np.array([np.uint64(2 ** 63)], dtype=object)
         exp = np.array([2 ** 63], dtype=np.uint64)
-        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set()), exp)
+        tm.assert_numpy_array_equal(lib.maybe_convert_numeric(arr, set())[0], exp)
 
     @pytest.mark.parametrize(
         "arr",
@@ -486,17 +544,33 @@ class TestInference:
     )
     def test_convert_numeric_uint64_nan(self, coerce, arr):
         expected = arr.astype(float) if coerce else arr.copy()
-        result = lib.maybe_convert_numeric(arr, set(), coerce_numeric=coerce)
+        result, _ = lib.maybe_convert_numeric(arr, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    def test_convert_numeric_uint64_nan_values(self, coerce):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_convert_numeric_uint64_nan_values(
+        self, coerce, convert_to_masked_nullable
+    ):
         arr = np.array([2 ** 63, 2 ** 63 + 1], dtype=object)
         na_values = {2 ** 63}
 
         expected = (
             np.array([np.nan, 2 ** 63 + 1], dtype=float) if coerce else arr.copy()
         )
-        result = lib.maybe_convert_numeric(arr, na_values, coerce_numeric=coerce)
+        result = lib.maybe_convert_numeric(
+            arr,
+            na_values,
+            coerce_numeric=coerce,
+            convert_to_masked_nullable=convert_to_masked_nullable,
+        )
+        if convert_to_masked_nullable and coerce:
+            expected = IntegerArray(
+                np.array([0, 2 ** 63 + 1], dtype="u8"),
+                np.array([True, False], dtype="bool"),
+            )
+            result = IntegerArray(*result)
+        else:
+            result = result[0]  # discard mask
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -510,16 +584,33 @@ class TestInference:
             np.array([str(-1), str(2 ** 63)], dtype=object),
         ],
     )
-    def test_convert_numeric_int64_uint64(self, case, coerce):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_convert_numeric_int64_uint64(
+        self, case, coerce, convert_to_masked_nullable
+    ):
         expected = case.astype(float) if coerce else case.copy()
-        result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
+        result, _ = lib.maybe_convert_numeric(
+            case,
+            set(),
+            coerce_numeric=coerce,
+            convert_to_masked_nullable=convert_to_masked_nullable,
+        )
+
         tm.assert_almost_equal(result, expected)
 
-    def test_convert_numeric_string_uint64(self):
+    @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
+    def test_convert_numeric_string_uint64(self, convert_to_masked_nullable):
         # GH32394
         result = lib.maybe_convert_numeric(
-            np.array(["uint64"], dtype=object), set(), coerce_numeric=True
+            np.array(["uint64"], dtype=object),
+            set(),
+            coerce_numeric=True,
+            convert_to_masked_nullable=convert_to_masked_nullable,
         )
+        if convert_to_masked_nullable:
+            result = FloatingArray(*result)
+        else:
+            result = result[0]
         assert np.isnan(result)
 
     @pytest.mark.parametrize("value", [-(2 ** 63) - 1, 2 ** 64])
@@ -556,18 +647,96 @@ class TestInference:
             [np.datetime64("2000-01-01"), np.timedelta64(1, "s")], dtype=object
         )
         exp = arr.copy()
-        out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
         exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[ns]")
-        out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
         tm.assert_numpy_array_equal(out, exp)
 
+        # with convert_timedelta=True, the nan is a valid NA value for td64
         arr = np.array([np.timedelta64(1, "s"), np.nan], dtype=object)
-        exp = arr.copy()
-        out = lib.maybe_convert_objects(arr, convert_datetime=1, convert_timedelta=1)
+        exp = exp[::-1]
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
         tm.assert_numpy_array_equal(out, exp)
+
+    def test_maybe_convert_objects_dtype_if_all_nat(self):
+        arr = np.array([pd.NaT, pd.NaT], dtype=object)
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
+        # no dtype_if_all_nat passed -> we dont guess
+        tm.assert_numpy_array_equal(out, arr)
+
+        out = lib.maybe_convert_objects(
+            arr,
+            convert_datetime=True,
+            convert_timedelta=True,
+            dtype_if_all_nat=np.dtype("timedelta64[ns]"),
+        )
+        exp = np.array(["NaT", "NaT"], dtype="timedelta64[ns]")
+        tm.assert_numpy_array_equal(out, exp)
+
+        out = lib.maybe_convert_objects(
+            arr,
+            convert_datetime=True,
+            convert_timedelta=True,
+            dtype_if_all_nat=np.dtype("datetime64[ns]"),
+        )
+        exp = np.array(["NaT", "NaT"], dtype="datetime64[ns]")
+        tm.assert_numpy_array_equal(out, exp)
+
+    def test_maybe_convert_objects_dtype_if_all_nat_invalid(self):
+        # we accept datetime64[ns], timedelta64[ns], and EADtype
+        arr = np.array([pd.NaT, pd.NaT], dtype=object)
+
+        with pytest.raises(ValueError, match="int64"):
+            lib.maybe_convert_objects(
+                arr,
+                convert_datetime=True,
+                convert_timedelta=True,
+                dtype_if_all_nat=np.dtype("int64"),
+            )
+
+    @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+    def test_maybe_convert_objects_datetime_overflow_safe(self, dtype):
+        stamp = datetime(2363, 10, 4)  # Enterprise-D launch date
+        if dtype == "timedelta64[ns]":
+            stamp = stamp - datetime(1970, 1, 1)
+        arr = np.array([stamp], dtype=object)
+
+        out = lib.maybe_convert_objects(
+            arr, convert_datetime=True, convert_timedelta=True
+        )
+        # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
+        tm.assert_numpy_array_equal(out, arr)
+
+    def test_maybe_convert_objects_mixed_datetimes(self):
+        ts = Timestamp("now")
+        vals = [ts, ts.to_pydatetime(), ts.to_datetime64(), pd.NaT, np.nan, None]
+
+        for data in itertools.permutations(vals):
+            data = np.array(list(data), dtype=object)
+            expected = DatetimeIndex(data)._data._ndarray
+            result = lib.maybe_convert_objects(data, convert_datetime=True)
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_maybe_convert_objects_timedelta64_nat(self):
+        obj = np.timedelta64("NaT", "ns")
+        arr = np.array([obj], dtype=object)
+        assert arr[0] is obj
+
+        result = lib.maybe_convert_objects(arr, convert_timedelta=True)
+
+        expected = np.array([obj], dtype="m8[ns]")
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "exp",
@@ -579,9 +748,57 @@ class TestInference:
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
         arr = np.array([2, np.NaN], dtype=object)
-        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=1)
+        result = lib.maybe_convert_objects(arr, convert_to_nullable_integer=True)
 
         tm.assert_extension_array_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "convert_to_masked_nullable, exp",
+        [
+            (True, IntegerArray(np.array([2, 0], dtype="i8"), np.array([False, True]))),
+            (False, np.array([2, np.nan], dtype="float64")),
+        ],
+    )
+    def test_maybe_convert_numeric_nullable_integer(
+        self, convert_to_masked_nullable, exp
+    ):
+        # GH 40687
+        arr = np.array([2, np.NaN], dtype=object)
+        result = lib.maybe_convert_numeric(
+            arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
+        )
+        if convert_to_masked_nullable:
+            result = IntegerArray(*result)
+            tm.assert_extension_array_equal(result, exp)
+        else:
+            result = result[0]
+            tm.assert_numpy_array_equal(result, exp)
+
+    @pytest.mark.parametrize(
+        "convert_to_masked_nullable, exp",
+        [
+            (
+                True,
+                FloatingArray(
+                    np.array([2.0, 0.0], dtype="float64"), np.array([False, True])
+                ),
+            ),
+            (False, np.array([2.0, np.nan], dtype="float64")),
+        ],
+    )
+    def test_maybe_convert_numeric_floating_array(
+        self, convert_to_masked_nullable, exp
+    ):
+        # GH 40687
+        arr = np.array([2.0, np.nan], dtype=object)
+        result = lib.maybe_convert_numeric(
+            arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
+        )
+        if convert_to_masked_nullable:
+            tm.assert_extension_array_equal(FloatingArray(*result), exp)
+        else:
+            result = result[0]
+            tm.assert_numpy_array_equal(result, exp)
 
     def test_maybe_convert_objects_bool_nan(self):
         # GH32146
@@ -590,11 +807,90 @@ class TestInference:
         out = lib.maybe_convert_objects(ind.values, safe=1)
         tm.assert_numpy_array_equal(out, exp)
 
+    @pytest.mark.parametrize(
+        "data0",
+        [
+            True,
+            1,
+            1.0,
+            1.0 + 1.0j,
+            np.int8(1),
+            np.int16(1),
+            np.int32(1),
+            np.int64(1),
+            np.float16(1),
+            np.float32(1),
+            np.float64(1),
+            np.complex64(1),
+            np.complex128(1),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "data1",
+        [
+            True,
+            1,
+            1.0,
+            1.0 + 1.0j,
+            np.int8(1),
+            np.int16(1),
+            np.int32(1),
+            np.int64(1),
+            np.float16(1),
+            np.float32(1),
+            np.float64(1),
+            np.complex64(1),
+            np.complex128(1),
+        ],
+    )
+    def test_maybe_convert_objects_itemsize(self, data0, data1):
+        # GH 40908
+        data = [data0, data1]
+        arr = np.array(data, dtype="object")
+
+        common_kind = np.find_common_type(
+            [type(data0), type(data1)], scalar_types=[]
+        ).kind
+        kind0 = "python" if not hasattr(data0, "dtype") else data0.dtype.kind
+        kind1 = "python" if not hasattr(data1, "dtype") else data1.dtype.kind
+        if kind0 != "python" and kind1 != "python":
+            kind = common_kind
+            itemsize = max(data0.dtype.itemsize, data1.dtype.itemsize)
+        elif is_bool(data0) or is_bool(data1):
+            kind = "bool" if (is_bool(data0) and is_bool(data1)) else "object"
+            itemsize = ""
+        elif is_complex(data0) or is_complex(data1):
+            kind = common_kind
+            itemsize = 16
+        else:
+            kind = common_kind
+            itemsize = 8
+
+        expected = np.array(data, dtype=f"{kind}{itemsize}")
+        result = lib.maybe_convert_objects(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        array = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
-        result = lib.maybe_convert_objects(array, convert_datetime=1)
-        tm.assert_numpy_array_equal(result, array)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        result = lib.maybe_convert_objects(arr, convert_datetime=True)
+        tm.assert_numpy_array_equal(result, arr)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.IntervalIndex.from_breaks(range(5), closed="both"),
+            pd.period_range("2016-01-01", periods=3, freq="D"),
+        ],
+    )
+    def test_maybe_convert_objects_ea(self, idx):
+
+        result = lib.maybe_convert_objects(
+            np.array(idx, dtype=object),
+            convert_period=True,
+            convert_interval=True,
+        )
+        tm.assert_extension_array_equal(result, idx._data)
 
 
 class TestTypeInference:
@@ -784,7 +1080,7 @@ class TestTypeInference:
             (object, None, True, "empty"),
         ],
     )
-    @pytest.mark.parametrize("box", [pd.Series, np.array])
+    @pytest.mark.parametrize("box", [Series, np.array])
     def test_object_empty(self, box, missing, dtype, skipna, expected):
         # GH 23421
         arr = box([missing, missing], dtype=dtype)
@@ -825,7 +1121,7 @@ class TestTypeInference:
             np.array([np.datetime64("2011-01-01"), Timestamp("2011-01-02")]),
             np.array([Timestamp("2011-01-02"), np.datetime64("2011-01-01")]),
             np.array([np.nan, Timestamp("2011-01-02"), 1.1]),
-            np.array([np.nan, "2011-01-01", Timestamp("2011-01-02")]),
+            np.array([np.nan, "2011-01-01", Timestamp("2011-01-02")], dtype=object),
             np.array([np.datetime64("nat"), np.timedelta64(1, "D")], dtype=object),
             np.array([np.timedelta64(1, "D"), np.datetime64("nat")], dtype=object),
         ],
@@ -888,8 +1184,34 @@ class TestTypeInference:
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="D")])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+        # non-homogeneous freqs -> mixed
         arr = np.array([Period("2011-01", freq="D"), Period("2011-02", freq="M")])
-        assert lib.infer_dtype(arr, skipna=True) == "period"
+        assert lib.infer_dtype(arr, skipna=True) == "mixed"
+
+    @pytest.mark.parametrize("klass", [pd.array, Series, Index])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_infer_dtype_period_array(self, klass, skipna):
+        # https://github.com/pandas-dev/pandas/issues/23553
+        values = klass(
+            [
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="D"),
+                pd.NaT,
+            ]
+        )
+        assert lib.infer_dtype(values, skipna=skipna) == "period"
+
+        # periods but mixed freq
+        values = klass(
+            [
+                Period("2011-01-01", freq="D"),
+                Period("2011-01-02", freq="M"),
+                pd.NaT,
+            ]
+        )
+        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        exp = "unknown-array" if klass is pd.array else "mixed"
+        assert lib.infer_dtype(values, skipna=skipna) == exp
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
@@ -926,7 +1248,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_datetime(self, data):
-        assert lib.infer_datetimelike_array(data) == "datetime"
+        assert lib.infer_datetimelike_array(data) == ("datetime", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -938,11 +1260,11 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_timedelta(self, data):
-        assert lib.infer_datetimelike_array(data) == "timedelta"
+        assert lib.infer_datetimelike_array(data) == ("timedelta", False)
 
     def test_infer_datetimelike_array_date(self):
         arr = [date(2017, 6, 12), date(2017, 3, 11)]
-        assert lib.infer_datetimelike_array(arr) == "date"
+        assert lib.infer_datetimelike_array(arr) == ("date", False)
 
     @pytest.mark.parametrize(
         "data",
@@ -957,7 +1279,7 @@ class TestTypeInference:
         ],
     )
     def test_infer_datetimelike_array_mixed(self, data):
-        assert lib.infer_datetimelike_array(data) == "mixed"
+        assert lib.infer_datetimelike_array(data)[0] == "mixed"
 
     @pytest.mark.parametrize(
         "first, expected",
@@ -975,7 +1297,7 @@ class TestTypeInference:
     @pytest.mark.parametrize("second", [None, np.nan])
     def test_infer_datetimelike_array_nan_nat_like(self, first, second, expected):
         first.append(second)
-        assert lib.infer_datetimelike_array(first) == expected
+        assert lib.infer_datetimelike_array(first) == (expected, False)
 
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
@@ -1089,7 +1411,6 @@ class TestTypeInference:
             "is_date_array",
             "is_time_array",
             "is_interval_array",
-            "is_period_array",
         ],
     )
     def test_other_dtypes_for_array(self, func):
@@ -1216,27 +1537,64 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-    def test_interval(self):
+    @pytest.mark.parametrize("asobject", [True, False])
+    def test_interval(self, asobject):
         idx = pd.IntervalIndex.from_breaks(range(5), closed="both")
+        if asobject:
+            idx = idx.astype(object)
+
         inferred = lib.infer_dtype(idx, skipna=False)
         assert inferred == "interval"
 
         inferred = lib.infer_dtype(idx._data, skipna=False)
         assert inferred == "interval"
 
-        inferred = lib.infer_dtype(Series(idx), skipna=False)
+        inferred = lib.infer_dtype(Series(idx, dtype=idx.dtype), skipna=False)
         assert inferred == "interval"
 
-    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("value", [Timestamp(0), Timedelta(0), 0, 0.0])
+    def test_interval_mismatched_closed(self, value):
+
+        first = Interval(value, value, closed="left")
+        second = Interval(value, value, closed="right")
+
+        # if closed match, we should infer "interval"
+        arr = np.array([first, first], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
+
+        # if closed dont match, we should _not_ get "interval"
+        arr2 = np.array([first, second], dtype=object)
+        assert lib.infer_dtype(arr2, skipna=False) == "mixed"
+
+    def test_interval_mismatched_subtype(self):
+        first = Interval(0, 1, closed="left")
+        second = Interval(Timestamp(0), Timestamp(1), closed="left")
+        third = Interval(Timedelta(0), Timedelta(1), closed="left")
+
+        arr = np.array([first, second])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([second, third])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        arr = np.array([first, third])
+        assert lib.infer_dtype(arr, skipna=False) == "mixed"
+
+        # float vs int subdtype are compatible
+        flt_interval = Interval(1.5, 2.5, closed="left")
+        arr = np.array([first, flt_interval], dtype=object)
+        assert lib.infer_dtype(arr, skipna=False) == "interval"
+
+    @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [["a", "b", "c"], ["a", "b", pd.NA]])
-    def test_string_dtype(self, data, skipna, klass):
+    def test_string_dtype(self, data, skipna, klass, nullable_string_dtype):
         # StringArray
-        val = klass(data, dtype="string")
+        val = klass(data, dtype=nullable_string_dtype)
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "string"
 
-    @pytest.mark.parametrize("klass", [pd.array, pd.Series])
+    @pytest.mark.parametrize("klass", [pd.array, Series])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("data", [[True, False, True], [True, False, pd.NA]])
     def test_boolean_dtype(self, data, skipna, klass):

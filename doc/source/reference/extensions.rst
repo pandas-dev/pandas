@@ -48,6 +48,7 @@ objects.
       api.extensions.ExtensionArray.equals
       api.extensions.ExtensionArray.factorize
       api.extensions.ExtensionArray.fillna
+      api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat

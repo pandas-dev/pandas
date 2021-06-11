@@ -38,6 +38,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include "version.h"
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
+#include "numpy/arrayobject.h"
 
 /* objToJSON */
 PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs);
@@ -73,7 +75,7 @@ static PyModuleDef moduledef = {
 
 
 PyMODINIT_FUNC PyInit_json(void) {
-  initObjToJSON();  // TODO: clean up, maybe via tp_free?
+  import_array()
+  initObjToJSON();  // TODO(username): clean up, maybe via tp_free?
   return PyModuleDef_Init(&moduledef);
-
 }

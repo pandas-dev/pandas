@@ -3,7 +3,11 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, concat, read_csv
+from pandas import (
+    DataFrame,
+    concat,
+    read_csv,
+)
 import pandas._testing as tm
 
 
@@ -23,13 +27,12 @@ class TestInvalidConcat:
 
     def test_concat_invalid_first_argument(self):
         df1 = tm.makeCustomDataframe(10, 2)
-        df2 = tm.makeCustomDataframe(10, 2)
         msg = (
             "first argument must be an iterable of pandas "
             'objects, you passed an object of type "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
-            concat(df1, df2)
+            concat(df1)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))

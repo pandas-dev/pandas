@@ -9,7 +9,11 @@ import pytest
 
 from pandas._libs.parsers import STR_NA_VALUES
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 

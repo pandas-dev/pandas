@@ -40,11 +40,6 @@ analysis.
 
 See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
 
-.. versionchanged:: 0.24.0
-
-   :attr:`MultiIndex.labels` has been renamed to :attr:`MultiIndex.codes`
-   and :attr:`MultiIndex.set_labels` to :attr:`MultiIndex.set_codes`.
-
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -86,8 +81,6 @@ to use the :meth:`MultiIndex.from_product` method:
 You can also construct a ``MultiIndex`` from a ``DataFrame`` directly, using
 the method :meth:`MultiIndex.from_frame`. This is a complementary method to
 :meth:`MultiIndex.to_frame`.
-
-.. versionadded:: 0.24.0
 
 .. ipython:: python
 
@@ -498,7 +491,7 @@ values across a level. For instance:
    )
    df = pd.DataFrame(np.random.randn(4, 2), index=midx)
    df
-   df2 = df.mean(level=0)
+   df2 = df.groupby(level=0).mean()
    df2
    df2.reindex(df.index, level=0)
 
@@ -658,20 +651,18 @@ Furthermore, if you try to index something that is not fully lexsorted, this can
     In [5]: dfm.loc[(0, 'y'):(1, 'z')]
     UnsortedIndexError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
 
-The :meth:`~MultiIndex.is_lexsorted` method on a ``MultiIndex`` shows if the
-index is sorted, and the ``lexsort_depth`` property returns the sort depth:
+The :meth:`~MultiIndex.is_monotonic_increasing` method on a ``MultiIndex`` shows if the
+index is sorted:
 
 .. ipython:: python
 
-   dfm.index.is_lexsorted()
-   dfm.index.lexsort_depth
+   dfm.index.is_monotonic_increasing
 
 .. ipython:: python
 
    dfm = dfm.sort_index()
    dfm
-   dfm.index.is_lexsorted()
-   dfm.index.lexsort_depth
+   dfm.index.is_monotonic_increasing
 
 And now selection works as expected.
 

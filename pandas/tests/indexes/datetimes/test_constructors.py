@@ -1,4 +1,8 @@
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 from functools import partial
 from operator import attrgetter
 
@@ -7,12 +11,25 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import OutOfBoundsDatetime, conversion
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    conversion,
+)
 
 import pandas as pd
-from pandas import DatetimeIndex, Index, Timestamp, date_range, offsets, to_datetime
+from pandas import (
+    DatetimeIndex,
+    Index,
+    Timestamp,
+    date_range,
+    offsets,
+    to_datetime,
+)
 import pandas._testing as tm
-from pandas.core.arrays import DatetimeArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    period_array,
+)
 
 
 class TestDatetimeIndex:
@@ -374,7 +391,9 @@ class TestDatetimeIndex:
         assert result.tz is None
 
         # all NaT with tz
-        result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
+        with tm.assert_produces_warning(FutureWarning):
+            # subclass-specific kwargs to pd.Index
+            result = Index([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
         exp = DatetimeIndex([pd.NaT, pd.NaT], tz="Asia/Tokyo", name="idx")
 
         tm.assert_index_equal(result, exp, exact=True)
@@ -462,16 +481,18 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             # passing tz should results in DatetimeIndex, then mismatch raises
             # TypeError
-            Index(
-                [
-                    pd.NaT,
-                    Timestamp("2011-01-01 10:00"),
-                    pd.NaT,
-                    Timestamp("2011-01-02 10:00", tz="US/Eastern"),
-                ],
-                tz="Asia/Tokyo",
-                name="idx",
-            )
+            with tm.assert_produces_warning(FutureWarning):
+                # subclass-specific kwargs to pd.Index
+                Index(
+                    [
+                        pd.NaT,
+                        Timestamp("2011-01-01 10:00"),
+                        pd.NaT,
+                        Timestamp("2011-01-02 10:00", tz="US/Eastern"),
+                    ],
+                    tz="Asia/Tokyo",
+                    name="idx",
+                )
 
     def test_construction_base_constructor(self):
         arr = [Timestamp("2011-01-01"), pd.NaT, Timestamp("2011-01-03")]
@@ -502,8 +523,8 @@ class TestDatetimeIndex:
     def test_construction_with_ndarray(self):
         # GH 5152
         dates = [datetime(2013, 10, 7), datetime(2013, 10, 8), datetime(2013, 10, 9)]
-        data = DatetimeIndex(dates, freq=pd.offsets.BDay()).values
-        result = DatetimeIndex(data, freq=pd.offsets.BDay())
+        data = DatetimeIndex(dates, freq=offsets.BDay()).values
+        result = DatetimeIndex(data, freq=offsets.BDay())
         expected = DatetimeIndex(["2013-10-07", "2013-10-08", "2013-10-09"], freq="B")
         tm.assert_index_equal(result, expected)
 
@@ -531,7 +552,7 @@ class TestDatetimeIndex:
         with pytest.raises(TypeError, match=msg):
             date_range(start="1/1/2000", periods="foo", freq="D")
 
-        msg = "DatetimeIndex\\(\\) must be called with a collection"
+        msg = r"DatetimeIndex\(\.\.\.\) must be called with a collection"
         with pytest.raises(TypeError, match=msg):
             DatetimeIndex("1/1/2000")
 

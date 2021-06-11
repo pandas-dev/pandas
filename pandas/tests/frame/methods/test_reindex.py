@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import inspect
 from itertools import permutations
 
@@ -21,9 +24,86 @@ from pandas.api.types import CategoricalDtype as CDT
 import pandas.core.common as com
 
 
+class TestReindexSetIndex:
+    # Tests that check both reindex and set_index
+
+    def test_dti_set_index_reindex_datetimeindex(self):
+        # GH#6631
+        df = DataFrame(np.random.random(6))
+        idx1 = date_range("2011/01/01", periods=6, freq="M", tz="US/Eastern")
+        idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
+
+        df = df.set_index(idx1)
+        tm.assert_index_equal(df.index, idx1)
+        df = df.reindex(idx2)
+        tm.assert_index_equal(df.index, idx2)
+
+    def test_dti_set_index_reindex_freq_with_tz(self):
+        # GH#11314 with tz
+        index = date_range(
+            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
+        )
+        df = DataFrame(np.random.randn(24, 1), columns=["a"], index=index)
+        new_index = date_range(
+            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
+        )
+
+        result = df.set_index(new_index)
+        assert result.index.freq == index.freq
+
+    def test_set_reset_index_intervalindex(self):
+
+        df = DataFrame({"A": range(10)})
+        ser = pd.cut(df.A, 5)
+        df["B"] = ser
+        df = df.set_index("B")
+
+        df = df.reset_index()
+
+    def test_setitem_reset_index_dtypes(self):
+        # GH 22060
+        df = DataFrame(columns=["a", "b", "c"]).astype(
+            {"a": "datetime64[ns]", "b": np.int64, "c": np.float64}
+        )
+        df1 = df.set_index(["a"])
+        df1["d"] = []
+        result = df1.reset_index()
+        expected = DataFrame(columns=["a", "b", "c", "d"], index=range(0)).astype(
+            {"a": "datetime64[ns]", "b": np.int64, "c": np.float64, "d": np.float64}
+        )
+        tm.assert_frame_equal(result, expected)
+
+        df2 = df.set_index(["a", "b"])
+        df2["d"] = []
+        result = df2.reset_index()
+        tm.assert_frame_equal(result, expected)
+
+
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
+
+    def test_reindex_date_fill_value(self):
+        # passing date to dt64 is deprecated
+        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        df = DataFrame(arr, columns=["A", "B"], index=range(3))
+
+        ts = df.iloc[0, 0]
+        fv = ts.date()
+
+        with tm.assert_produces_warning(FutureWarning):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+
+        expected = DataFrame(
+            {"A": df["A"].tolist() + [ts], "B": df["B"].tolist() + [ts], "C": [ts] * 4}
+        )
+        tm.assert_frame_equal(res, expected)
+
+        # same with a datetime-castable str
+        res = df.reindex(
+            index=range(4), columns=["A", "B", "C"], fill_value="2016-01-01"
+        )
+        tm.assert_frame_equal(res, expected)
 
     def test_reindex_with_multi_index(self):
         # https://github.com/pandas-dev/pandas/issues/29896
@@ -151,7 +231,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_nearest_tz(self, tz_aware_fixture):
         # GH26683
         tz = tz_aware_fixture
-        idx = pd.date_range("2019-01-01", periods=5, tz=tz)
+        idx = date_range("2019-01-01", periods=5, tz=tz)
         df = DataFrame({"x": list(range(5))}, index=idx)
 
         expected = df.head(3)
@@ -176,6 +256,21 @@ class TestDataFrameSelectReindex:
         mask = com.isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
+
+    @pytest.mark.parametrize(
+        "method, exp_values",
+        [("ffill", [0, 1, 2, 3]), ("bfill", [1.0, 2.0, 3.0, np.nan])],
+    )
+    def test_reindex_frame_tz_ffill_bfill(self, frame_or_series, method, exp_values):
+        # GH#38566
+        obj = frame_or_series(
+            [0, 1, 2, 3],
+            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
+        )
+        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
+        result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
+        expected = frame_or_series(exp_values, index=new_index)
+        tm.assert_equal(result, expected)
 
     def test_reindex_limit(self):
         # GH 28631
@@ -567,6 +662,18 @@ class TestDataFrameSelectReindex:
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
 
+    def test_reindex_with_duplicate_columns(self):
+
+        # reindex is invalid!
+        df = DataFrame(
+            [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
+        )
+        msg = "cannot reindex from a duplicate axis"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=["bar"])
+        with pytest.raises(ValueError, match=msg):
+            df.reindex(columns=["bar", "foo"])
+
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
@@ -744,7 +851,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_multi_categorical_time(self):
         # https://github.com/pandas-dev/pandas/issues/21390
-        midx = pd.MultiIndex.from_product(
+        midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
                 Categorical(date_range("2012-01-01", periods=3, freq="H")),
@@ -891,3 +998,65 @@ class TestDataFrameSelectReindex:
         result = df.reindex(idx, **kwargs)
         expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "src_idx",
+        [
+            Index([]),
+            CategoricalIndex([]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "cat_idx",
+        [
+            # No duplicates
+            Index([]),
+            CategoricalIndex([]),
+            Index(["A", "B"]),
+            CategoricalIndex(["A", "B"]),
+            # Duplicates: GH#38906
+            Index(["A", "A"]),
+            CategoricalIndex(["A", "A"]),
+        ],
+    )
+    def test_reindex_empty(self, src_idx, cat_idx):
+        df = DataFrame(columns=src_idx, index=["K"], dtype="f8")
+
+        result = df.reindex(columns=cat_idx)
+        expected = DataFrame(index=["K"], columns=cat_idx, dtype="f8")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+    def test_reindex_datetimelike_to_object(self, dtype):
+        # GH#39755 dont cast dt64/td64 to ints
+        mi = MultiIndex.from_product([list("ABCDE"), range(2)])
+
+        dti = date_range("2016-01-01", periods=10)
+        fv = np.timedelta64("NaT", "ns")
+        if dtype == "m8[ns]":
+            dti = dti - dti[0]
+            fv = np.datetime64("NaT", "ns")
+
+        ser = Series(dti, index=mi)
+        ser[::3] = pd.NaT
+
+        df = ser.unstack()
+
+        index = df.index.append(Index([1]))
+        columns = df.columns.append(Index(["foo"]))
+
+        res = df.reindex(index=index, columns=columns, fill_value=fv)
+
+        expected = DataFrame(
+            {
+                0: df[0].tolist() + [fv],
+                1: df[1].tolist() + [fv],
+                "foo": np.array(["NaT"] * 6, dtype=fv.dtype),
+            },
+            index=index,
+        )
+        assert (res.dtypes[[0, 1]] == object).all()
+        assert res.iloc[0, 0] is pd.NaT
+        assert res.iloc[-1, 0] is fv
+        assert res.iloc[-1, 1] is fv
+        tm.assert_frame_equal(res, expected)

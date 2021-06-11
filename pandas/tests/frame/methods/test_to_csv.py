@@ -12,6 +12,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    NaT,
     Series,
     Timestamp,
     date_range,
@@ -41,7 +42,7 @@ class TestDataFrameToCSV:
         params = {"index_col": 0, "parse_dates": True}
         params.update(**kwargs)
 
-        return pd.read_csv(path, **params)
+        return read_csv(path, **params)
 
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
 
@@ -123,7 +124,7 @@ class TestDataFrameToCSV:
             df1.to_csv(path)
             df2.to_csv(path, mode="a", header=False)
             xp = pd.concat([df1, df2])
-            rs = pd.read_csv(path, index_col=0)
+            rs = read_csv(path, index_col=0)
             rs.columns = [int(label) for label in rs.columns]
             xp.columns = [int(label) for label in xp.columns]
             tm.assert_frame_equal(xp, rs)
@@ -139,7 +140,7 @@ class TestDataFrameToCSV:
             )
             df.to_csv(path)
 
-            result = pd.read_csv(path, index_col="dt_index")
+            result = read_csv(path, index_col="dt_index")
             result.index = pd.to_timedelta(result.index)
             # TODO: remove renaming when GH 10875 is solved
             result.index = result.index.rename("dt_index")
@@ -153,7 +154,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_from_csv5__") as path:
 
             timezone_frame.to_csv(path)
-            result = pd.read_csv(path, index_col=0, parse_dates=["A"])
+            result = read_csv(path, index_col=0, parse_dates=["A"])
 
             converter = (
                 lambda c: to_datetime(result[c])
@@ -166,8 +167,6 @@ class TestDataFrameToCSV:
 
     def test_to_csv_cols_reordering(self):
         # GH3454
-        import pandas as pd
-
         chunksize = 5
         N = int(chunksize * 2.5)
 
@@ -177,17 +176,15 @@ class TestDataFrameToCSV:
 
         with tm.ensure_clean() as path:
             df.to_csv(path, columns=cols, chunksize=chunksize)
-            rs_c = pd.read_csv(path, index_col=0)
+            rs_c = read_csv(path, index_col=0)
 
         tm.assert_frame_equal(df[cols], rs_c, check_names=False)
 
     def test_to_csv_new_dupe_cols(self):
-        import pandas as pd
-
         def _check_df(df, cols=None):
             with tm.ensure_clean() as path:
                 df.to_csv(path, columns=cols, chunksize=chunksize)
-                rs_c = pd.read_csv(path, index_col=0)
+                rs_c = read_csv(path, index_col=0)
 
                 # we wrote them in a different order
                 # so compare them in that order
@@ -227,8 +224,6 @@ class TestDataFrameToCSV:
     @pytest.mark.slow
     def test_to_csv_dtnat(self):
         # GH3437
-        from pandas import NaT
-
         def make_dtnat_arr(n, nnat=None):
             if nnat is None:
                 nnat = int(n * 0.1)  # 10%
@@ -719,7 +714,9 @@ class TestDataFrameToCSV:
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")
         )
         df_int = DataFrame(
-            np.random.randn(100, 5), dtype="int64", columns=create_cols("int")
+            np.random.randn(100, 5).astype("int64"),
+            dtype="int64",
+            columns=create_cols("int"),
         )
         df_bool = DataFrame(True, index=df_float.index, columns=create_cols("bool"))
         df_object = DataFrame(
@@ -770,7 +767,7 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, df)
 
         df_float = DataFrame(np.random.randn(1000, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(1000, 3), dtype="int64")
+        df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
         df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
@@ -778,10 +775,7 @@ class TestDataFrameToCSV:
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
 
-        cols = []
-        for i in range(5):
-            cols.extend([0, 1, 2])
-        df.columns = cols
+        df.columns = [0, 1, 2] * 5
 
         with tm.ensure_clean() as filename:
             df.to_csv(filename)
@@ -999,7 +993,7 @@ class TestDataFrameToCSV:
         # Series.to_csv()
         csv_str = float_frame.to_csv(path_or_buf=None)
         assert isinstance(csv_str, str)
-        recons = pd.read_csv(StringIO(csv_str), index_col=0)
+        recons = read_csv(StringIO(csv_str), index_col=0)
         tm.assert_frame_equal(float_frame, recons)
 
     @pytest.mark.parametrize(
@@ -1040,7 +1034,7 @@ class TestDataFrameToCSV:
                 df.to_csv(handles.handle, encoding=encoding)
                 assert not handles.handle.closed
 
-            result = pd.read_csv(
+            result = read_csv(
                 filename,
                 compression=compression,
                 encoding=encoding,
@@ -1122,7 +1116,7 @@ class TestDataFrameToCSV:
 
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             # make sure we are not failing on transitions
-            times = pd.date_range(
+            times = date_range(
                 "2013-10-26 23:00",
                 "2013-10-27 01:00",
                 tz="Europe/London",
@@ -1144,7 +1138,7 @@ class TestDataFrameToCSV:
                 tm.assert_frame_equal(result, df)
 
         # GH11619
-        idx = pd.date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
+        idx = date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
@@ -1250,7 +1244,7 @@ class TestDataFrameToCSV:
         # presents with encoding?
         text_rows = ["a,b,c", '1,"test \r\n",3']
         text = tm.convert_rows_list_to_csv_str(text_rows)
-        df = pd.read_csv(StringIO(text))
+        df = read_csv(StringIO(text))
 
         buf = StringIO()
         df.to_csv(buf, encoding="utf-8", index=False)
@@ -1286,7 +1280,7 @@ class TestDataFrameToCSV:
         assert result == expected
 
         # Overflow with pd.NaT
-        dates = ["1990-01-01", pd.NaT, "3005-01-01"]
+        dates = ["1990-01-01", NaT, "3005-01-01"]
         index = pd.PeriodIndex(dates, freq="D")
 
         df = DataFrame([4, 5, 6], index=index)
@@ -1298,7 +1292,7 @@ class TestDataFrameToCSV:
 
     def test_multi_index_header(self):
         # see gh-5539
-        columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
+        columns = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
         df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]])
         df.columns = columns
 
@@ -1338,3 +1332,14 @@ class TestDataFrameToCSV:
 
         result = buf.getvalue()
         assert "2000-01-01" in result
+
+    def test_to_csv_na_quoting(self):
+        # GH 15891
+        # Normalize carriage return for Windows OS
+        result = (
+            DataFrame([None, None])
+            .to_csv(None, header=False, index=False, na_rep="")
+            .replace("\r\n", "\n")
+        )
+        expected = '""\n""\n'
+        assert result == expected

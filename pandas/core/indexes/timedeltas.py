@@ -1,16 +1,33 @@
 """ implement the TimedeltaIndex """
+from __future__ import annotations
 
-from pandas._libs import index as libindex, lib
-from pandas._libs.tslibs import Timedelta, to_offset
-from pandas._typing import DtypeObj
+from pandas._libs import (
+    index as libindex,
+    lib,
+)
+from pandas._libs.tslibs import (
+    Timedelta,
+    to_offset,
+)
+from pandas._typing import (
+    DtypeObj,
+    Optional,
+)
 from pandas.errors import InvalidIndexError
 
-from pandas.core.dtypes.common import TD64NS_DTYPE, is_scalar, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    TD64NS_DTYPE,
+    is_scalar,
+    is_timedelta64_dtype,
+)
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
-from pandas.core.indexes.base import Index, maybe_extract_name
+from pandas.core.indexes.base import (
+    Index,
+    maybe_extract_name,
+)
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
 
@@ -96,10 +113,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _data_cls = TimedeltaArray
     _engine_type = libindex.TimedeltaEngine
 
-    _comparables = ["name", "freq"]
-    _attributes = ["name", "freq"]
-    _is_numeric_dtype = False
-
     _data: TimedeltaArray
 
     # -------------------------------------------------------------------
@@ -118,10 +131,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -138,7 +148,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             if copy:
                 return data.copy()
             else:
-                return data._shallow_copy()
+                return data._view()
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -176,7 +186,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key, method, tolerance)
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string, cast it to timedelta according to resolution.
 
@@ -190,7 +200,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         label : object
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
             parsed = Timedelta(label)
@@ -212,7 +223,12 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
 
 def timedelta_range(
-    start=None, end=None, periods=None, freq=None, name=None, closed=None
+    start=None,
+    end=None,
+    periods: Optional[int] = None,
+    freq=None,
+    name=None,
+    closed=None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
@@ -236,7 +252,7 @@ def timedelta_range(
 
     Returns
     -------
-    rng : TimedeltaIndex
+    TimedeltaIndex
 
     Notes
     -----

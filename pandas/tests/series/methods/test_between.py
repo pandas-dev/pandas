@@ -1,6 +1,11 @@
 import numpy as np
 
-from pandas import Series, bdate_range, date_range, period_range
+from pandas import (
+    Series,
+    bdate_range,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 

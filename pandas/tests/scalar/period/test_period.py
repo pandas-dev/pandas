@@ -1,19 +1,41 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas._libs.tslibs import iNaT, period as libperiod
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs import (
+    iNaT,
+    period as libperiod,
+)
+from pandas._libs.tslibs.ccalendar import (
+    DAYS,
+    MONTHS,
+)
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
-from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG, IncompatibleFrequency
-from pandas._libs.tslibs.timezones import dateutil_gettz, maybe_get_tz
-from pandas.compat.numpy import np_datetime64_compat
+from pandas._libs.tslibs.period import (
+    INVALID_FREQ_ERR_MSG,
+    IncompatibleFrequency,
+)
+from pandas._libs.tslibs.timezones import (
+    dateutil_gettz,
+    maybe_get_tz,
+)
+from pandas.compat import np_datetime64_compat
 
 import pandas as pd
-from pandas import NaT, Period, Timedelta, Timestamp, offsets
+from pandas import (
+    NaT,
+    Period,
+    Timedelta,
+    Timestamp,
+    offsets,
+)
 import pandas._testing as tm
 
 
@@ -34,9 +56,7 @@ class TestPeriodConstruction:
         i4 = Period("2005", freq="M")
         i5 = Period("2005", freq="m")
 
-        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            i1 != i4
+        assert i1 != i4
         assert i4 == i5
 
         i1 = Period.now("Q")
@@ -626,7 +646,7 @@ class TestPeriodMethods:
                 return p.start_time + Timedelta(days=1, nanoseconds=-1)
             return Timestamp((p + p.freq).start_time.value - 1)
 
-        for i, fcode in enumerate(from_lst):
+        for fcode in from_lst:
             p = Period("1982", freq=fcode)
             result = p.to_timestamp().to_period(fcode)
             assert result == p
@@ -1071,11 +1091,9 @@ class TestPeriodComparisons:
         jan = Period("2000-01", "M")
         day = Period("2012-01-01", "D")
 
+        assert not jan == day
+        assert jan != day
         msg = r"Input has different freq=D from Period\(freq=M\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan == day
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            jan != day
         with pytest.raises(IncompatibleFrequency, match=msg):
             jan < day
         with pytest.raises(IncompatibleFrequency, match=msg):

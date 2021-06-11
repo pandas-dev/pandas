@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Float64Index,
@@ -67,7 +69,8 @@ class TestMultiIndexPartial:
         )
         df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
 
-        result = df.xs(["foo", "one"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.xs(["foo", "one"])
         expected = df.loc["foo", "one"]
         tm.assert_frame_equal(result, expected)
 
@@ -114,6 +117,9 @@ class TestMultiIndexPartial:
         with pytest.raises(KeyError, match=r"\('a', 'foo'\)"):
             df.loc[("a", "foo"), :]
 
+    # TODO(ArrayManager) rewrite test to not use .values
+    # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
+    @td.skip_array_manager_invalid_test
     def test_partial_set(self, multiindex_year_month_day_dataframe_random_data):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -178,9 +184,9 @@ class TestMultiIndexPartial:
         # assert (self.ymd.loc[2000]['A'] == 0).all()
 
         # Pretty sure the second (and maybe even the first) is already wrong.
-        with pytest.raises(Exception):
+        with pytest.raises(KeyError, match="6"):
             ymd.loc[(2000, 6)]
-        with pytest.raises(Exception):
+        with pytest.raises(KeyError, match="(2000, 6)"):
             ymd.loc[(2000, 6), 0]
 
     # ---------------------------------------------------------------------

@@ -4,9 +4,14 @@ import pytest
 from pandas.errors import UnsortedIndexError
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
-from pandas.core.indexing import non_reducing_slice
 from pandas.tests.indexing.common import _mklbl
 
 
@@ -139,14 +144,10 @@ class TestMultiIndexSlicers:
             #  This used to treat [1] as positional GH#16396
             df.loc[slice(None), [1]]
 
-        result = df.loc[(slice(None), [1]), :]
-        expected = df.iloc[[0, 3]]
-        tm.assert_frame_equal(result, expected)
-
         # not lexsorted
-        assert df.index.lexsort_depth == 2
+        assert df.index._lexsort_depth == 2
         df = df.sort_index(level=1, axis=0)
-        assert df.index.lexsort_depth == 0
+        assert df.index._lexsort_depth == 0
 
         msg = (
             "MultiIndex slicing requires the index to be "
@@ -533,9 +534,7 @@ class TestMultiIndexSlicers:
         # GH29519
         df = DataFrame(
             np.arange(27).reshape(3, 9),
-            columns=pd.MultiIndex.from_product(
-                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
-            ),
+            columns=MultiIndex.from_product([["a1", "a2", "a3"], ["b1", "b2", "b3"]]),
         )
         result = df.loc(axis=1)["a1":"a2"]
         expected = df.iloc[:, :-3]
@@ -547,9 +546,7 @@ class TestMultiIndexSlicers:
         # GH29519
         df = DataFrame(
             np.arange(27).reshape(3, 9),
-            columns=pd.MultiIndex.from_product(
-                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
-            ),
+            columns=MultiIndex.from_product([["a1", "a2", "a3"], ["b1", "b2", "b3"]]),
         )
         result = df.loc(axis=1)["a1"]
         expected = df.iloc[:, :3]
@@ -761,23 +758,6 @@ class TestMultiIndexSlicers:
 
         result = ymd[5:]
         expected = ymd.reindex(s.index[5:])
-        tm.assert_frame_equal(result, expected)
-
-    def test_non_reducing_slice_on_multiindex(self):
-        # GH 19861
-        dic = {
-            ("a", "d"): [1, 4],
-            ("a", "c"): [2, 3],
-            ("b", "c"): [3, 2],
-            ("b", "d"): [4, 1],
-        }
-        df = DataFrame(dic, index=[0, 1])
-        idx = pd.IndexSlice
-        slice_ = idx[:, idx["b", "d"]]
-        tslice_ = non_reducing_slice(slice_)
-
-        result = df.loc[tslice_]
-        expected = DataFrame({("b", "d"): [4, 1]})
         tm.assert_frame_equal(result, expected)
 
     def test_loc_slice_negative_stepsize(self):

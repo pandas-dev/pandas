@@ -4,10 +4,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import MultiIndex, Series, date_range
+from pandas import (
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-
-from .test_generic import Generic
+from pandas.tests.generic.test_generic import Generic
 
 
 class TestSeries(Generic):
@@ -49,33 +52,46 @@ class TestSeries(Generic):
         s = Series([False])
         assert not s.bool()
 
-        msg = "The truth value of a Series is ambiguous"
+    @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
+    def test_nonzero_single_element_raise_1(self, data):
         # single item nan to raise
-        for s in [Series([np.nan]), Series([pd.NaT]), Series([True]), Series([False])]:
-            with pytest.raises(ValueError, match=msg):
-                bool(s)
+        series = Series([data])
+
+        msg = "The truth value of a Series is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            bool(series)
+
+    @pytest.mark.parametrize("data", [np.nan, pd.NaT])
+    def test_nonzero_single_element_raise_2(self, data):
+        series = Series([data])
 
         msg = "bool cannot act on a non-boolean single element Series"
-        for s in [Series([np.nan]), Series([pd.NaT])]:
-            with pytest.raises(ValueError, match=msg):
-                s.bool()
+        with pytest.raises(ValueError, match=msg):
+            series.bool()
 
+    @pytest.mark.parametrize("data", [(True, True), (False, False)])
+    def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
-        msg = "The truth value of a Series is ambiguous"
-        for s in [Series([True, True]), Series([False, False])]:
-            with pytest.raises(ValueError, match=msg):
-                bool(s)
-            with pytest.raises(ValueError, match=msg):
-                s.bool()
+        series = Series([data])
 
+        msg = "The truth value of a Series is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            bool(series)
+        with pytest.raises(ValueError, match=msg):
+            series.bool()
+
+    @pytest.mark.parametrize("data", [1, 0, "a", 0.0])
+    def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
-        for s in [Series([1]), Series([0]), Series(["a"]), Series([0.0])]:
-            msg = "The truth value of a Series is ambiguous"
-            with pytest.raises(ValueError, match=msg):
-                bool(s)
-            msg = "bool cannot act on a non-boolean single element Series"
-            with pytest.raises(ValueError, match=msg):
-                s.bool()
+        series = Series([data])
+
+        msg = "The truth value of a Series is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            bool(series)
+
+        msg = "bool cannot act on a non-boolean single element Series"
+        with pytest.raises(ValueError, match=msg):
+            series.bool()
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
@@ -114,7 +130,7 @@ class TestSeries(Generic):
             for name in self._metadata:
                 if method == "concat" and name == "filename":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        getattr(o, name) for o in other.objs if getattr(o, name, None)
                     )
                     object.__setattr__(self, name, value)
                 else:

@@ -6,7 +6,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, compat
+from pandas import (
+    DataFrame,
+    compat,
+)
 import pandas._testing as tm
 
 
@@ -201,12 +204,17 @@ $1$,$2$
         assert df.set_index("a").to_csv(na_rep="_") == expected
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
-        # GH 29975
-        # Make sure full na_rep shows up when a dtype is provided
         csv = pd.Series(["a", pd.NA, "c"]).to_csv(na_rep="ZZZZZ")
         expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
         assert expected == csv
-        csv = pd.Series(["a", pd.NA, "c"], dtype="string").to_csv(na_rep="ZZZZZ")
+
+    def test_to_csv_na_rep_nullable_string(self, nullable_string_dtype):
+        # GH 29975
+        # Make sure full na_rep shows up when a dtype is provided
+        expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
+        csv = pd.Series(["a", pd.NA, "c"], dtype=nullable_string_dtype).to_csv(
+            na_rep="ZZZZZ"
+        )
         assert expected == csv
 
     def test_to_csv_date_format(self):
@@ -266,7 +274,7 @@ $1$,$2$
         df_sec["B"] = 0
         df_sec["C"] = 1
 
-        expected_rows = ["A,B,C", "2013-01-01,0,1"]
+        expected_rows = ["A,B,C", "2013-01-01,0,1.0"]
         expected_ymd_sec = tm.convert_rows_list_to_csv_str(expected_rows)
 
         df_sec_grouped = df_sec.groupby([pd.Grouper(key="A", freq="1h"), "B"])
@@ -323,7 +331,7 @@ $1$,$2$
             ),
         ],
     )
-    @pytest.mark.parametrize("klass", [pd.DataFrame, pd.Series])
+    @pytest.mark.parametrize("klass", [DataFrame, pd.Series])
     def test_to_csv_single_level_multi_index(self, ind, expected, klass):
         # see gh-19589
         result = klass(pd.Series([1], ind, name="data")).to_csv(
@@ -545,12 +553,12 @@ z
             df.to_csv(
                 path, compression={"method": compression, "archive_name": archive_name}
             )
-            zp = ZipFile(path)
-            expected_arcname = path if archive_name is None else archive_name
-            expected_arcname = os.path.basename(expected_arcname)
-            assert len(zp.filelist) == 1
-            archived_file = os.path.basename(zp.filelist[0].filename)
-            assert archived_file == expected_arcname
+            with ZipFile(path) as zp:
+                expected_arcname = path if archive_name is None else archive_name
+                expected_arcname = os.path.basename(expected_arcname)
+                assert len(zp.filelist) == 1
+                archived_file = os.path.basename(zp.filelist[0].filename)
+                assert archived_file == expected_arcname
 
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type):
@@ -640,3 +648,25 @@ z
 
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
+
+
+def test_to_csv_iterative_compression_name(compression):
+    # GH 38714
+    df = tm.makeDataFrame()
+    with tm.ensure_clean() as path:
+        df.to_csv(path, compression=compression, chunksize=1)
+        tm.assert_frame_equal(
+            pd.read_csv(path, compression=compression, index_col=0), df
+        )
+
+
+def test_to_csv_iterative_compression_buffer(compression):
+    # GH 38714
+    df = tm.makeDataFrame()
+    with io.BytesIO() as buffer:
+        df.to_csv(buffer, compression=compression, chunksize=1)
+        buffer.seek(0)
+        tm.assert_frame_equal(
+            pd.read_csv(buffer, compression=compression, index_col=0), df
+        )
+        assert not buffer.closed

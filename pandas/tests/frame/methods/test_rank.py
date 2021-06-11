@@ -1,11 +1,21 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
+from pandas._libs.algos import (
+    Infinity,
+    NegInfinity,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -236,7 +246,9 @@ class TestRank:
                     expected = DataFrame(sprank, columns=cols).astype("float64")
                     tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_rank_descending(self, method, dtype):
 
         if "i" in dtype:
@@ -329,3 +341,129 @@ class TestRank:
         )
         result = df.rank(pct=True).max()
         assert (result == 1).all()
+
+    @pytest.mark.parametrize(
+        "contents,dtype",
+        [
+            (
+                [
+                    -np.inf,
+                    -50,
+                    -1,
+                    -1e-20,
+                    -1e-25,
+                    -1e-50,
+                    0,
+                    1e-40,
+                    1e-20,
+                    1e-10,
+                    2,
+                    40,
+                    np.inf,
+                ],
+                "float64",
+            ),
+            (
+                [
+                    -np.inf,
+                    -50,
+                    -1,
+                    -1e-20,
+                    -1e-25,
+                    -1e-45,
+                    0,
+                    1e-40,
+                    1e-20,
+                    1e-10,
+                    2,
+                    40,
+                    np.inf,
+                ],
+                "float32",
+            ),
+            ([np.iinfo(np.uint8).min, 1, 2, 100, np.iinfo(np.uint8).max], "uint8"),
+            (
+                [
+                    np.iinfo(np.int64).min,
+                    -100,
+                    0,
+                    1,
+                    9999,
+                    100000,
+                    1e10,
+                    np.iinfo(np.int64).max,
+                ],
+                "int64",
+            ),
+            ([NegInfinity(), "1", "A", "BA", "Ba", "C", Infinity()], "object"),
+            (
+                [datetime(2001, 1, 1), datetime(2001, 1, 2), datetime(2001, 1, 5)],
+                "datetime64",
+            ),
+        ],
+    )
+    def test_rank_inf_and_nan(self, contents, dtype, frame_or_series):
+        dtype_na_map = {
+            "float64": np.nan,
+            "float32": np.nan,
+            "object": None,
+            "datetime64": np.datetime64("nat"),
+        }
+        # Insert nans at random positions if underlying dtype has missing
+        # value. Then adjust the expected order by adding nans accordingly
+        # This is for testing whether rank calculation is affected
+        # when values are interwined with nan values.
+        values = np.array(contents, dtype=dtype)
+        exp_order = np.array(range(len(values)), dtype="float64") + 1.0
+        if dtype in dtype_na_map:
+            na_value = dtype_na_map[dtype]
+            nan_indices = np.random.choice(range(len(values)), 5)
+            values = np.insert(values, nan_indices, na_value)
+            exp_order = np.insert(exp_order, nan_indices, np.nan)
+
+        # Shuffle the testing array and expected results in the same way
+        random_order = np.random.permutation(len(values))
+        obj = frame_or_series(values[random_order])
+        expected = frame_or_series(exp_order[random_order], dtype="float64")
+        result = obj.rank()
+        tm.assert_equal(result, expected)
+
+    def test_df_series_inf_nan_consistency(self):
+        # GH#32593
+        index = [5, 4, 3, 2, 1, 6, 7, 8, 9, 10]
+        col1 = [5, 4, 3, 5, 8, 5, 2, 1, 6, 6]
+        col2 = [5, 4, np.nan, 5, 8, 5, np.inf, np.nan, 6, -np.inf]
+        df = DataFrame(
+            data={
+                "col1": col1,
+                "col2": col2,
+            },
+            index=index,
+            dtype="f8",
+        )
+        df_result = df.rank()
+
+        series_result = df.copy()
+        series_result["col1"] = df["col1"].rank()
+        series_result["col2"] = df["col2"].rank()
+
+        tm.assert_frame_equal(df_result, series_result)
+
+    def test_rank_both_inf(self):
+        # GH#32593
+        df = DataFrame({"a": [-np.inf, 0, np.inf]})
+        expected = DataFrame({"a": [1.0, 2.0, 3.0]})
+        result = df.rank()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data,expected",
+        [
+            ({"a": [1, 2, "a"], "b": [4, 5, 6]}, DataFrame({"b": [1.0, 2.0, 3.0]})),
+            ({"a": [1, 2, "a"]}, DataFrame(index=range(3))),
+        ],
+    )
+    def test_rank_mixed_axis_zero(self, data, expected):
+        df = DataFrame(data)
+        result = df.rank()
+        tm.assert_frame_equal(result, expected)

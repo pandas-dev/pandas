@@ -10,7 +10,10 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import Series, isna
+from pandas import (
+    Series,
+    isna,
+)
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 import pandas.core.nanops as nanops
@@ -267,6 +270,7 @@ class TestnanopsDataFrame:
                 value = value.astype("f8")
         return func(value, **kwargs)
 
+    @pytest.mark.xfail(reason="GH12863: numpy result won't match for object type")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanany, np.any), (nanops.nanall, np.all)]
     )

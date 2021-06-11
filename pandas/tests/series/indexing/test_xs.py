@@ -1,6 +1,10 @@
 import numpy as np
 
-from pandas import MultiIndex, Series, date_range
+from pandas import (
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -65,3 +69,13 @@ class TestXSWithMultiIndex:
             ),
         )
         tm.assert_series_equal(result, expected)
+
+    def test_xs_key_as_list(self):
+        # GH#41760
+        mi = MultiIndex.from_tuples([("a", "x")], names=["level1", "level2"])
+        ser = Series([1], index=mi)
+        with tm.assert_produces_warning(FutureWarning):
+            ser.xs(["a", "x"], axis=0, drop_level=False)
+
+        with tm.assert_produces_warning(FutureWarning):
+            ser.xs(["a"], axis=0, drop_level=False)

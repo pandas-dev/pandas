@@ -10,9 +10,16 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 import pandas.plotting as plotting
 
@@ -341,15 +348,15 @@ class TestSeriesPlots(TestPlotBase):
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
-        pcts = [f"{s*100:.2f}" for s in series.values / float(series.sum())]
+        pcts = [f"{s*100:.2f}" for s in series.values / series.sum()]
         expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7
 
         # includes negative value
-        with pytest.raises(ValueError):
-            series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
+        series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
+        with pytest.raises(ValueError, match="pie plot doesn't allow negative values"):
             series.plot.pie()
 
         # includes nan
@@ -374,7 +381,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
@@ -385,7 +392,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
@@ -396,7 +403,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(legend=True, secondary_y=True, ax=ax)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
         self._check_legend_labels(ax.left_ax, labels=expected)
@@ -408,7 +415,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
         self._check_legend_labels(ax.left_ax, expected)
@@ -420,7 +427,7 @@ class TestSeriesPlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
         s.plot(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a", "b", "c", "x (right)"]
         self._check_legend_labels(ax.left_ax, expected)
@@ -445,8 +452,13 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_plot_fails_with_dupe_color_and_style(self):
         x = Series(np.random.randn(2))
-        with pytest.raises(ValueError):
-            _, ax = self.plt.subplots()
+        _, ax = self.plt.subplots()
+        msg = (
+            "Cannot pass 'style' string with a color symbol and 'color' keyword "
+            "argument. Please use one or the other or pass 'style' without a color "
+            "symbol"
+        )
+        with pytest.raises(ValueError, match=msg):
             x.plot(style="k--", color="k", ax=ax)
 
     @td.skip_if_no_scipy
@@ -518,8 +530,8 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_invalid_kind(self):
         s = Series([1, 2])
-        with pytest.raises(ValueError):
-            s.plot(kind="aasdf")
+        with pytest.raises(ValueError, match="invalid_kind is not a valid plot kind"):
+            s.plot(kind="invalid_kind")
 
     def test_dup_datetime_index_plot(self):
         dr1 = date_range("1/1/2009", periods=4)
@@ -583,11 +595,11 @@ class TestSeriesPlots(TestPlotBase):
         self._check_has_errorbars(ax, xerr=0, yerr=1)
 
         # check incorrect lengths and types
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             s.plot(yerr=np.arange(11))
 
         s_err = ["zzz"] * 10
-        with pytest.raises(TypeError):
+        with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
 
     def test_table(self):
@@ -744,8 +756,27 @@ class TestSeriesPlots(TestPlotBase):
 
     def test_plot_no_numeric_data(self):
         df = Series(["a", "b", "c"])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
+
+    @pytest.mark.parametrize(
+        "data, index",
+        [
+            ([1, 2, 3, 4], [3, 2, 1, 0]),
+            ([10, 50, 20, 30], [1910, 1920, 1980, 1950]),
+        ],
+    )
+    def test_plot_order(self, data, index):
+        # GH38865 Verify plot order of a Series
+        ser = Series(data=data, index=index)
+        ax = ser.plot(kind="bar")
+
+        expected = ser.tolist()
+        result = [
+            patch.get_bbox().ymax
+            for patch in sorted(ax.patches, key=lambda patch: patch.get_bbox().xmax)
+        ]
+        assert expected == result
 
     def test_style_single_ok(self):
         s = Series([1, 2])
@@ -767,7 +798,7 @@ class TestSeriesPlots(TestPlotBase):
         assert ax.get_ylabel() == ""
         assert ax.get_xlabel() == old_label
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == new_label
         assert ax.get_xlabel() == new_label

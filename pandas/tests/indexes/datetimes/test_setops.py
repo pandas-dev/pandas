@@ -17,7 +17,11 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.tseries.offsets import BMonthEnd, Minute, MonthEnd
+from pandas.tseries.offsets import (
+    BMonthEnd,
+    Minute,
+    MonthEnd,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -326,7 +330,8 @@ class TestDatetimeIndexSetOps:
             (rng3, other3, expected3),
         ]:
             result_diff = rng.difference(other, sort)
-            if sort is None:
+            if sort is None and len(other):
+                # We dont sort (yet?) when empty GH#24959
                 expected = expected.sort_values()
             tm.assert_index_equal(result_diff, expected)
 

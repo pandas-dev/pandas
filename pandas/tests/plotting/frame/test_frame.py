@@ -1,7 +1,10 @@
 """ Test cases for DataFrame.plot """
-
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 import itertools
+import re
 import string
 import warnings
 
@@ -13,9 +16,19 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, PeriodIndex, Series, bdate_range, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    PeriodIndex,
+    Series,
+    bdate_range,
+    date_range,
+)
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
+from pandas.tests.plotting.common import (
+    TestPlotBase,
+    _check_plot_works,
+)
 
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting as plotting
@@ -156,8 +169,8 @@ class TestDataFramePlots(TestPlotBase):
                 "A": [1, 2, 3, 4, 5],
                 "B": [1.0, 2.0, 3.0, 4.0, 5.0],
                 "C": [7, 5, np.nan, 3, 2],
-                "D": pd.to_datetime(dates, format="%Y"),
-                "E": pd.to_datetime(dates, format="%Y", utc=True),
+                "D": pd.to_datetime(dates, format="%Y").view("i8"),
+                "E": pd.to_datetime(dates, format="%Y", utc=True).view("i8"),
             },
             dtype=np.int64,
         )
@@ -258,7 +271,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot(**{input_param: "sm"})
 
     def test_xcompat(self):
-        import pandas as pd
 
         df = self.tdf
         ax = df.plot(x_compat=True)
@@ -267,14 +279,14 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(ax, xrot=30)
 
         tm.close()
-        pd.plotting.plot_params["xaxis.compat"] = True
+        plotting.plot_params["xaxis.compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         self._check_ticks_props(ax, xrot=30)
 
         tm.close()
-        pd.plotting.plot_params["x_compat"] = False
+        plotting.plot_params["x_compat"] = False
 
         ax = df.plot()
         lines = ax.get_lines()
@@ -283,7 +295,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
         # useful if you're plotting a bunch together
-        with pd.plotting.plot_params.use("x_compat", True):
+        with plotting.plot_params.use("x_compat", True):
             ax = df.plot()
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), PeriodIndex)
@@ -358,10 +370,10 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
-
-        with pytest.raises(ValueError):
+        msg = "Log-y scales are not supported in area plot"
+        with pytest.raises(ValueError, match=msg):
             df.plot.area(logy=True)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.plot.area(loglog=True)
 
     def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
@@ -406,7 +418,12 @@ class TestDataFramePlots(TestPlotBase):
                 self._compare_stacked_y_cood(ax1.lines[2:], ax2.lines[2:])
 
                 _check_plot_works(mixed_df.plot, stacked=False)
-                with pytest.raises(ValueError):
+                msg = (
+                    "When stacked is True, each column must be either all positive or "
+                    "all negative. Column 'w' contains both positive and negative "
+                    "values"
+                )
+                with pytest.raises(ValueError, match=msg):
                     mixed_df.plot(stacked=True)
 
                 # Use an index with strictly positive values, preventing
@@ -650,9 +667,11 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="x", y="y")
         _check_plot_works(df.plot.scatter, x=1, y=2)
 
-        with pytest.raises(TypeError):
+        msg = re.escape("scatter() missing 1 required positional argument: 'y'")
+        with pytest.raises(TypeError, match=msg):
             df.plot.scatter(x="x")
-        with pytest.raises(TypeError):
+        msg = re.escape("scatter() missing 1 required positional argument: 'x'")
+        with pytest.raises(TypeError, match=msg):
             df.plot.scatter(y="y")
 
         # GH 6951
@@ -662,7 +681,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_raise_error_on_datetime_time_data(self):
         # GH 8113, datetime.time type is not supported by matplotlib in scatter
         df = DataFrame(np.random.randn(10), columns=["a"])
-        df["dtime"] = pd.date_range(start="2014-01-01", freq="h", periods=10).time
+        df["dtime"] = date_range(start="2014-01-01", freq="h", periods=10).time
         msg = "must be a string or a number, not 'datetime.time'"
 
         with pytest.raises(TypeError, match=msg):
@@ -670,7 +689,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_scatterplot_datetime_data(self):
         # GH 30391
-        dates = pd.date_range(start=date(2019, 1, 1), periods=12, freq="W")
+        dates = date_range(start=date(2019, 1, 1), periods=12, freq="W")
         vals = np.random.normal(0, 1, len(dates))
         df = DataFrame({"dates": dates, "vals": vals})
 
@@ -689,6 +708,37 @@ class TestDataFramePlots(TestPlotBase):
         _check_plot_works(df.plot.scatter, x="a", y="b")
         _check_plot_works(df.plot.scatter, x=0, y=1)
 
+    @pytest.mark.parametrize("ordered", [True, False])
+    @pytest.mark.parametrize(
+        "categories",
+        (["setosa", "versicolor", "virginica"], ["versicolor", "virginica", "setosa"]),
+    )
+    def test_scatterplot_color_by_categorical(self, ordered, categories):
+        df = DataFrame(
+            [[5.1, 3.5], [4.9, 3.0], [7.0, 3.2], [6.4, 3.2], [5.9, 3.0]],
+            columns=["length", "width"],
+        )
+        df["species"] = pd.Categorical(
+            ["setosa", "setosa", "virginica", "virginica", "versicolor"],
+            ordered=ordered,
+            categories=categories,
+        )
+        ax = df.plot.scatter(x=0, y=1, c="species")
+        (colorbar_collection,) = ax.collections
+        colorbar = colorbar_collection.colorbar
+
+        expected_ticks = np.array([0.5, 1.5, 2.5])
+        result_ticks = colorbar.get_ticks()
+        tm.assert_numpy_array_equal(result_ticks, expected_ticks)
+
+        expected_boundaries = np.array([0.0, 1.0, 2.0, 3.0])
+        result_boundaries = colorbar._boundaries
+        tm.assert_numpy_array_equal(result_boundaries, expected_boundaries)
+
+        expected_yticklabels = categories
+        result_yticklabels = [i.get_text() for i in colorbar.ax.get_ymajorticklabels()]
+        assert all(i == j for i, j in zip(result_yticklabels, expected_yticklabels))
+
     @pytest.mark.parametrize("x, y", [("x", "y"), ("y", "x"), ("y", "y")])
     def test_plot_scatter_with_categorical_data(self, x, y):
         # after fixing GH 18755, should be able to plot categorical data
@@ -696,7 +746,9 @@ class TestDataFramePlots(TestPlotBase):
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
-    def test_plot_scatter_with_c(self):
+    def test_plot_scatter_with_c(self, request):
+        from pandas.plotting._matplotlib.compat import mpl_ge_3_4_0
+
         df = DataFrame(
             np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
@@ -708,9 +760,10 @@ class TestDataFramePlots(TestPlotBase):
             # default to Greys
             assert ax.collections[0].cmap.name == "Greys"
 
-            # n.b. there appears to be no public method
-            # to get the colorbar label
-            assert ax.collections[0].colorbar._label == "z"
+            if mpl_ge_3_4_0():
+                assert ax.collections[0].colorbar.ax.get_ylabel() == "z"
+            else:
+                assert ax.collections[0].colorbar._label == "z"
 
         cm = "cubehelix"
         ax = df.plot.scatter(x="x", y="y", c="z", colormap=cm)
@@ -850,8 +903,9 @@ class TestDataFramePlots(TestPlotBase):
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
-        with pytest.raises(ValueError):
-            df.plot.box(return_type="NOTATYPE")
+        msg = "return_type must be {None, 'axes', 'dict', 'both'}"
+        with pytest.raises(ValueError, match=msg):
+            df.plot.box(return_type="not_a_type")
 
         result = df.plot.box(return_type="dict")
         self._check_box_return_type(result, "dict")
@@ -1109,127 +1163,6 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(100, 4)).cumsum()
         _check_plot_works(df.plot, legend=True)
 
-    def test_df_legend_labels(self):
-        kinds = ["line", "bar", "barh", "kde", "area", "hist"]
-        df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
-        df2 = DataFrame(np.random.rand(3, 3), columns=["d", "e", "f"])
-        df3 = DataFrame(np.random.rand(3, 3), columns=["g", "h", "i"])
-        df4 = DataFrame(np.random.rand(3, 3), columns=["j", "k", "l"])
-
-        for kind in kinds:
-
-            ax = df.plot(kind=kind, legend=True)
-            self._check_legend_labels(ax, labels=df.columns)
-
-            ax = df2.plot(kind=kind, legend=False, ax=ax)
-            self._check_legend_labels(ax, labels=df.columns)
-
-            ax = df3.plot(kind=kind, legend=True, ax=ax)
-            self._check_legend_labels(ax, labels=df.columns.union(df3.columns))
-
-            ax = df4.plot(kind=kind, legend="reverse", ax=ax)
-            expected = list(df.columns.union(df3.columns)) + list(reversed(df4.columns))
-            self._check_legend_labels(ax, labels=expected)
-
-        # Secondary Y
-        ax = df.plot(legend=True, secondary_y="b")
-        self._check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df2.plot(legend=False, ax=ax)
-        self._check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df3.plot(kind="bar", legend=True, secondary_y="h", ax=ax)
-        self._check_legend_labels(
-            ax, labels=["a", "b (right)", "c", "g", "h (right)", "i"]
-        )
-
-        # Time Series
-        ind = date_range("1/1/2014", periods=3)
-        df = DataFrame(np.random.randn(3, 3), columns=["a", "b", "c"], index=ind)
-        df2 = DataFrame(np.random.randn(3, 3), columns=["d", "e", "f"], index=ind)
-        df3 = DataFrame(np.random.randn(3, 3), columns=["g", "h", "i"], index=ind)
-        ax = df.plot(legend=True, secondary_y="b")
-        self._check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df2.plot(legend=False, ax=ax)
-        self._check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df3.plot(legend=True, ax=ax)
-        self._check_legend_labels(ax, labels=["a", "b (right)", "c", "g", "h", "i"])
-
-        # scatter
-        ax = df.plot.scatter(x="a", y="b", label="data1")
-        self._check_legend_labels(ax, labels=["data1"])
-        ax = df2.plot.scatter(x="d", y="e", legend=False, label="data2", ax=ax)
-        self._check_legend_labels(ax, labels=["data1"])
-        ax = df3.plot.scatter(x="g", y="h", label="data3", ax=ax)
-        self._check_legend_labels(ax, labels=["data1", "data3"])
-
-        # ensure label args pass through and
-        # index name does not mutate
-        # column names don't mutate
-        df5 = df.set_index("a")
-        ax = df5.plot(y="b")
-        self._check_legend_labels(ax, labels=["b"])
-        ax = df5.plot(y="b", label="LABEL_b")
-        self._check_legend_labels(ax, labels=["LABEL_b"])
-        self._check_text_labels(ax.xaxis.get_label(), "a")
-        ax = df5.plot(y="c", label="LABEL_c", ax=ax)
-        self._check_legend_labels(ax, labels=["LABEL_b", "LABEL_c"])
-        assert df5.columns.tolist() == ["b", "c"]
-
-    def test_missing_marker_multi_plots_on_same_ax(self):
-        # GH 18222
-        df = DataFrame(data=[[1, 1, 1, 1], [2, 2, 4, 8]], columns=["x", "r", "g", "b"])
-        fig, ax = self.plt.subplots(nrows=1, ncols=3)
-        # Left plot
-        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[0])
-        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[0])
-        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[0])
-        self._check_legend_labels(ax[0], labels=["r", "g", "b"])
-        self._check_legend_marker(ax[0], expected_markers=["o", "x", "o"])
-        # Center plot
-        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[1])
-        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[1])
-        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[1])
-        self._check_legend_labels(ax[1], labels=["b", "r", "g"])
-        self._check_legend_marker(ax[1], expected_markers=["o", "o", "x"])
-        # Right plot
-        df.plot(x="x", y="g", linewidth=1, marker="x", color="g", ax=ax[2])
-        df.plot(x="x", y="b", linewidth=1, marker="o", color="b", ax=ax[2])
-        df.plot(x="x", y="r", linewidth=0, marker="o", color="r", ax=ax[2])
-        self._check_legend_labels(ax[2], labels=["g", "b", "r"])
-        self._check_legend_marker(ax[2], expected_markers=["x", "o", "o"])
-
-    def test_legend_name(self):
-        multi = DataFrame(
-            np.random.randn(4, 4),
-            columns=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])],
-        )
-        multi.columns.names = ["group", "individual"]
-
-        ax = multi.plot()
-        leg_title = ax.legend_.get_title()
-        self._check_text_labels(leg_title, "group,individual")
-
-        df = DataFrame(np.random.randn(5, 5))
-        ax = df.plot(legend=True, ax=ax)
-        leg_title = ax.legend_.get_title()
-        self._check_text_labels(leg_title, "group,individual")
-
-        df.columns.name = "new"
-        ax = df.plot(legend=False, ax=ax)
-        leg_title = ax.legend_.get_title()
-        self._check_text_labels(leg_title, "group,individual")
-
-        ax = df.plot(legend=True, ax=ax)
-        leg_title = ax.legend_.get_title()
-        self._check_text_labels(leg_title, "new")
-
-    def test_no_legend(self):
-        kinds = ["line", "bar", "barh", "kde", "area", "hist"]
-        df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
-
-        for kind in kinds:
-            ax = df.plot(kind=kind, legend=False)
-            self._check_legend_labels(ax, visible=False)
-
     def test_style_by_column(self):
         import matplotlib.pyplot as plt
 
@@ -1309,44 +1242,47 @@ class TestDataFramePlots(TestPlotBase):
             df = DataFrame(np.random.randn(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = "a"
             for kind in plotting.PlotAccessor._common_kinds:
-
                 msg = "no numeric data to plot"
                 with pytest.raises(TypeError, match=msg):
                     df.plot(kind=kind)
 
         with tm.RNGContext(42):
             # area plot doesn't support positive/negative mixed data
-            kinds = ["area"]
             df = DataFrame(np.random.rand(10, 2), dtype=object)
             df[np.random.rand(df.shape[0]) > 0.5] = "a"
-            for kind in kinds:
-                with pytest.raises(TypeError):
-                    df.plot(kind=kind)
+            with pytest.raises(TypeError, match="no numeric data to plot"):
+                df.plot(kind="area")
 
     def test_invalid_kind(self):
         df = DataFrame(np.random.randn(10, 2))
-        with pytest.raises(ValueError):
-            df.plot(kind="aasdf")
+        msg = "invalid_plot_kind is not a valid plot kind"
+        with pytest.raises(ValueError, match=msg):
+            df.plot(kind="invalid_plot_kind")
 
     @pytest.mark.parametrize(
         "x,y,lbl",
         [
             (["B", "C"], "A", "a"),
             (["A"], ["B", "C"], ["b", "c"]),
-            ("A", ["B", "C"], "badlabel"),
         ],
     )
     def test_invalid_xy_args(self, x, y, lbl):
         # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="x must be a label or position"):
             df.plot(x=x, y=y, label=lbl)
+
+    def test_bad_label(self):
+        df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
+        msg = "label should be list-like and same length as y"
+        with pytest.raises(ValueError, match=msg):
+            df.plot(x="A", y=["B", "C"], label="bad_label")
 
     @pytest.mark.parametrize("x,y", [("A", "B"), (["A"], "B")])
     def test_invalid_xy_args_dup_cols(self, x, y):
         # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list("AAB"))
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="x must be a label or position"):
             df.plot(x=x, y=y)
 
     @pytest.mark.parametrize(
@@ -1416,7 +1352,8 @@ class TestDataFramePlots(TestPlotBase):
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
-        with pytest.raises(ValueError):
+        msg = "pie requires either y column or 'subplots=True'"
+        with pytest.raises(ValueError, match=msg):
             df.plot.pie()
 
         ax = _check_plot_works(df.plot.pie, y="Y")
@@ -1520,11 +1457,11 @@ class TestDataFramePlots(TestPlotBase):
             ax = _check_plot_works(s_df.plot, y="y", x="x", yerr=yerr)
             self._check_has_errorbars(ax, xerr=0, yerr=1)
 
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             df.plot(yerr=np.random.randn(11))
 
         df_err = DataFrame({"x": ["zzz"] * 12, "y": ["zzz"] * 12})
-        with pytest.raises((ValueError, TypeError)):
+        with tm.external_error_raised(TypeError):
             df.plot(yerr=df_err)
 
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
@@ -1647,7 +1584,10 @@ class TestDataFramePlots(TestPlotBase):
         expected_0_0 = err[0, :, 0] * np.array([-1, 1])
         tm.assert_almost_equal(yerr_0_0, expected_0_0)
 
-        with pytest.raises(ValueError):
+        msg = re.escape(
+            "Asymmetrical error bars should be provided with the shape (3, 2, 5)"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.plot(yerr=err.T)
 
         tm.close()
@@ -1813,7 +1753,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @td.skip_if_no_scipy
     def test_memory_leak(self):
-        """ Check that every plot type gets properly collected. """
+        """Check that every plot type gets properly collected."""
         import gc
         import weakref
 
@@ -1837,9 +1777,10 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
         # force a garbage collection
         gc.collect()
+        msg = "weakly-referenced object no longer exists"
         for key in results:
             # check that every plot was collected
-            with pytest.raises(ReferenceError):
+            with pytest.raises(ReferenceError, match=msg):
                 # need to actually access something to get an error
                 results[key].lines
 
@@ -2035,7 +1976,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_x_multiindex_values_ticks(self):
         # Test if multiindex plot index have a fixed xtick position
         # GH: 15912
-        index = pd.MultiIndex.from_product([[2012, 2013], [1, 2]])
+        index = MultiIndex.from_product([[2012, 2013], [1, 2]])
         df = DataFrame(np.random.randn(4, 2), columns=["A", "B"], index=index)
         ax = df.plot()
         ax.set_xlim(-1, 4)
@@ -2095,36 +2036,8 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_plot_no_numeric_data(self):
         df = DataFrame(["a", "b", "c"])
-        with pytest.raises(TypeError):
+        with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
-
-    def test_missing_markers_legend(self):
-        # 14958
-        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
-        ax = df.plot(y=["A"], marker="x", linestyle="solid")
-        df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
-        df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)
-
-        self._check_legend_labels(ax, labels=["A", "B", "C"])
-        self._check_legend_marker(ax, expected_markers=["x", "o", "<"])
-
-    def test_missing_markers_legend_using_style(self):
-        # 14563
-        df = DataFrame(
-            {
-                "A": [1, 2, 3, 4, 5, 6],
-                "B": [2, 4, 1, 3, 2, 4],
-                "C": [3, 3, 2, 6, 4, 2],
-                "X": [1, 2, 3, 4, 5, 6],
-            }
-        )
-
-        fig, ax = self.plt.subplots()
-        for kind in "ABC":
-            df.plot("X", kind, label=kind, ax=ax, style=".")
-
-        self._check_legend_labels(ax, labels=["A", "B", "C"])
-        self._check_legend_marker(ax, expected_markers=[".", ".", "."])
 
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
@@ -2149,7 +2062,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.get_xlabel() == old_label
         assert ax.get_ylabel() == ""
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         ax = df.plot(kind=kind, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == str(new_label)
         assert ax.get_xlabel() == str(new_label)
@@ -2174,80 +2087,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind=kind, x=xcol, y=ycol, xlabel=xlabel, ylabel=ylabel)
         assert ax.get_xlabel() == (xcol if xlabel is None else xlabel)
         assert ax.get_ylabel() == (ycol if ylabel is None else ylabel)
-
-    @pytest.mark.parametrize("method", ["bar", "barh"])
-    def test_bar_ticklabel_consistence(self, method):
-        # Draw two consecutiv bar plot with consistent ticklabels
-        # The labels positions should not move between two drawing on the same axis
-        # GH: 26186
-        def get_main_axis(ax):
-            if method == "barh":
-                return ax.yaxis
-            elif method == "bar":
-                return ax.xaxis
-
-        # Plot the first bar plot
-        data = {"A": 0, "B": 3, "C": -4}
-        df = DataFrame.from_dict(data, orient="index", columns=["Value"])
-        ax = getattr(df.plot, method)()
-        ax.get_figure().canvas.draw()
-
-        # Retrieve the label positions for the first drawing
-        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
-        label_positions_1 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
-
-        # Modify the dataframe order and values and plot on same axis
-        df = df.sort_values("Value") * -2
-        ax = getattr(df.plot, method)(ax=ax, color="red")
-        ax.get_figure().canvas.draw()
-
-        # Retrieve the label positions for the second drawing
-        xticklabels = [t.get_text() for t in get_main_axis(ax).get_ticklabels()]
-        label_positions_2 = dict(zip(xticklabels, get_main_axis(ax).get_ticklocs()))
-
-        # Assert that the label positions did not change between the plotting
-        assert label_positions_1 == label_positions_2
-
-    def test_bar_numeric(self):
-        # Bar plot with numeric index have tick location values equal to index
-        # values
-        # GH: 11465
-        df = DataFrame(np.random.rand(10), index=np.arange(10, 20))
-        ax = df.plot.bar()
-        ticklocs = ax.xaxis.get_ticklocs()
-        expected = np.arange(10, 20, dtype=np.int64)
-        tm.assert_numpy_array_equal(ticklocs, expected)
-
-    def test_bar_multiindex(self):
-        # Test from pandas/doc/source/user_guide/visualization.rst
-        # at section Plotting With Error Bars
-        # Related to issue GH: 26186
-
-        ix3 = pd.MultiIndex.from_arrays(
-            [
-                ["a", "a", "a", "a", "b", "b", "b", "b"],
-                ["foo", "foo", "bar", "bar", "foo", "foo", "bar", "bar"],
-            ],
-            names=["letter", "word"],
-        )
-
-        df3 = DataFrame(
-            {"data1": [3, 2, 4, 3, 2, 4, 3, 2], "data2": [6, 5, 7, 5, 4, 5, 6, 5]},
-            index=ix3,
-        )
-
-        # Group by index labels and take the means and standard deviations
-        # for each group
-        gp3 = df3.groupby(level=("letter", "word"))
-        means = gp3.mean()
-        errors = gp3.std()
-
-        # No assertion we just ensure that we can plot a MultiIndex bar plot
-        # and are getting a UserWarning if redrawing
-        with tm.assert_produces_warning(None):
-            ax = means.plot.bar(yerr=errors, capsize=4)
-        with tm.assert_produces_warning(UserWarning):
-            means.plot.bar(yerr=errors, capsize=4, ax=ax)
 
 
 def _generate_4_axes_via_gridspec():

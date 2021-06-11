@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 AGG_FUNCTIONS = [
@@ -25,7 +29,8 @@ class TestMultiLevel:
         # axis=0
         ymd = multiindex_year_month_day_dataframe_random_data
 
-        month_sums = ymd.sum(level="month")
+        with tm.assert_produces_warning(FutureWarning):
+            month_sums = ymd.sum(level="month")
         result = month_sums.reindex(ymd.index, level=1)
         expected = ymd.groupby(level="month").transform(np.sum)
 
@@ -37,7 +42,8 @@ class TestMultiLevel:
         tm.assert_series_equal(result, expected, check_names=False)
 
         # axis=1
-        month_sums = ymd.T.sum(axis=1, level="month")
+        with tm.assert_produces_warning(FutureWarning):
+            month_sums = ymd.T.sum(axis=1, level="month")
         result = month_sums.reindex(columns=ymd.index, level=1)
         expected = ymd.groupby(level="month").transform(np.sum).T
         tm.assert_frame_equal(result, expected)
@@ -47,7 +53,8 @@ class TestMultiLevel:
 
         def _check_op(opname):
             op = getattr(DataFrame, opname)
-            month_sums = ymd.sum(level="month")
+            with tm.assert_produces_warning(FutureWarning):
+                month_sums = ymd.sum(level="month")
             result = op(ymd, month_sums, level="month")
 
             broadcasted = ymd.groupby(level="month").transform(np.sum)
@@ -178,7 +185,8 @@ class TestMultiLevel:
         grouped = ser.groupby(level=level, sort=sort)
         # skipna=True
         leftside = grouped.agg(lambda x: getattr(x, op)(skipna=skipna))
-        rightside = getattr(ser, op)(level=level, skipna=skipna)
+        with tm.assert_produces_warning(FutureWarning):
+            rightside = getattr(ser, op)(level=level, skipna=skipna)
         if sort:
             rightside = rightside.sort_index(level=level)
         tm.assert_series_equal(leftside, rightside)
@@ -213,7 +221,8 @@ class TestMultiLevel:
             return getattr(x, op)(skipna=skipna, axis=axis)
 
         leftside = grouped.agg(aggf)
-        rightside = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+        with tm.assert_produces_warning(FutureWarning):
+            rightside = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:
             rightside = rightside.sort_index(level=level, axis=axis)
             frame = frame.sort_index(level=level, axis=axis)
@@ -236,11 +245,13 @@ class TestMultiLevel:
             ddof = 4
             alt = lambda x: getattr(x, meth)(ddof=ddof)
 
-            result = getattr(df[0], meth)(level=0, ddof=ddof)
+            with tm.assert_produces_warning(FutureWarning):
+                result = getattr(df[0], meth)(level=0, ddof=ddof)
             expected = df[0].groupby(level=0).agg(alt)
             tm.assert_series_equal(result, expected)
 
-            result = getattr(df, meth)(level=0, ddof=ddof)
+            with tm.assert_produces_warning(FutureWarning):
+                result = getattr(df, meth)(level=0, ddof=ddof)
             expected = df.groupby(level=0).agg(alt)
             tm.assert_frame_equal(result, expected)
 
@@ -251,7 +262,8 @@ class TestMultiLevel:
         if frame_or_series is Series:
             ymd = ymd["A"]
 
-        result = ymd.sum(level=["year", "month"])
+        with tm.assert_produces_warning(FutureWarning):
+            result = ymd.sum(level=["year", "month"])
         expected = ymd.groupby(level=["year", "month"]).sum()
         tm.assert_equal(result, expected)
 
@@ -390,7 +402,7 @@ class TestMultiLevel:
 
 
 class TestSorted:
-    """ everything you wanted to test about sorting """
+    """everything you wanted to test about sorting"""
 
     def test_sort_non_lexsorted(self):
         # degenerate case where we sort but don't
@@ -401,11 +413,9 @@ class TestSorted:
         )
 
         df = DataFrame({"col": range(len(idx))}, index=idx, dtype="int64")
-        assert df.index.is_lexsorted() is False
         assert df.index.is_monotonic is False
 
         sorted = df.sort_index()
-        assert sorted.index.is_lexsorted() is True
         assert sorted.index.is_monotonic is True
 
         expected = DataFrame(

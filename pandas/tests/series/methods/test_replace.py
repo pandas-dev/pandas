@@ -95,6 +95,8 @@ class TestSeriesReplace:
         expected = ser.ffill()
         result = ser.replace(np.nan)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_datetime64(self):
         # GH 5797
         ser = pd.Series(pd.date_range("20130101", periods=5))
         expected = ser.copy()
@@ -104,6 +106,7 @@ class TestSeriesReplace:
         result = ser.replace(pd.Timestamp("20130103"), pd.Timestamp("20120101"))
         tm.assert_series_equal(result, expected)
 
+    def test_replace_nat_with_tz(self):
         # GH 11792: Test with replacing NaT in a list with tz data
         ts = pd.Timestamp("2015/01/01", tz="UTC")
         s = pd.Series([pd.NaT, pd.Timestamp("2015/01/01", tz="UTC")])
@@ -208,6 +211,15 @@ class TestSeriesReplace:
         expected = pd.Series(["yes", False, "yes"])
         tm.assert_series_equal(result, expected)
 
+    def test_replace_Int_with_na(self, any_nullable_int_dtype):
+        # GH 38267
+        result = pd.Series([0, None], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        expected = pd.Series([pd.NA, pd.NA], dtype=any_nullable_int_dtype)
+        tm.assert_series_equal(result, expected)
+        result = pd.Series([0, 1], dtype=any_nullable_int_dtype).replace(0, pd.NA)
+        result.replace(1, pd.NA, inplace=True)
+        tm.assert_series_equal(result, expected)
+
     def test_replace2(self):
         N = 100
         ser = pd.Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N), dtype=object)
@@ -242,9 +254,9 @@ class TestSeriesReplace:
         assert (ser[6:10] == -1).all()
         assert (ser[20:30] == -1).all()
 
-    def test_replace_with_dictlike_and_string_dtype(self):
+    def test_replace_with_dictlike_and_string_dtype(self, nullable_string_dtype):
         # GH 32621
-        s = pd.Series(["one", "two", np.nan], dtype="string")
+        s = pd.Series(["one", "two", np.nan], dtype=nullable_string_dtype)
         expected = pd.Series(["1", "2", np.nan])
         result = s.replace({"one": "1", "two": "2"})
         tm.assert_series_equal(expected, result)
@@ -254,7 +266,7 @@ class TestSeriesReplace:
         s = pd.Series(list("abcd"))
         tm.assert_series_equal(s, s.replace({}))
 
-        with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(DeprecationWarning):
             empty_series = pd.Series([])
         tm.assert_series_equal(s, s.replace(empty_series))
 
@@ -290,7 +302,7 @@ class TestSeriesReplace:
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
-            (pd.Categorical("A", categories=["A", "B"]), [1]),
+            (pd.Categorical(["A"], categories=["A", "B"]), [1]),
             (pd.Categorical(("A",), categories=["A", "B"]), [1]),
             (pd.Categorical(("A", "B"), categories=["A", "B"]), [1, 2]),
         ],
@@ -437,14 +449,3 @@ class TestSeriesReplace:
         result = s.replace({regex: "z"}, regex=True)
         expected = pd.Series(["z", "b", "c"])
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("pattern", ["^.$", "."])
-    def test_str_replace_regex_default_raises_warning(self, pattern):
-        # https://github.com/pandas-dev/pandas/pull/24809
-        s = pd.Series(["a", "b", "c"])
-        msg = r"The default value of regex will change from True to False"
-        if len(pattern) == 1:
-            msg += r".*single character regular expressions.*not.*literal strings"
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False) as w:
-            s.str.replace(pattern, "")
-            assert re.match(msg, str(w[0].message))

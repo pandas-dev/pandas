@@ -16,12 +16,17 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
+
 from pandas import (
     DatetimeIndex,
     Float64Index,
     Index,
     Int64Index,
+    IntervalIndex,
+    MultiIndex,
     PeriodIndex,
+    Series,
     TimedeltaIndex,
     UInt64Index,
 )
@@ -136,6 +141,112 @@ class TestContains:
         assert 1.0 not in float_index
         assert 1 not in float_index
 
+    def test_contains_requires_hashable_raises(self, index):
+        if isinstance(index, MultiIndex):
+            return  # TODO: do we want this to raise?
+
+        msg = "unhashable type: 'list'"
+        with pytest.raises(TypeError, match=msg):
+            [] in index
+
+        msg = "|".join(
+            [
+                r"unhashable type: 'dict'",
+                r"must be real number, not dict",
+                r"an integer is required",
+                r"\{\}",
+                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            {} in index._engine
+
+
+class TestGetValue:
+    @pytest.mark.parametrize(
+        "index", ["string", "int", "datetime", "timedelta"], indirect=True
+    )
+    def test_get_value(self, index):
+        # TODO: Remove function? GH#19728
+        values = np.random.randn(100)
+        value = index[67]
+
+        with pytest.raises(AttributeError, match="has no attribute '_values'"):
+            # Index.get_value requires a Series, not an ndarray
+            with tm.assert_produces_warning(FutureWarning):
+                index.get_value(values, value)
+
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.get_value(Series(values, index=values), value)
+        tm.assert_almost_equal(result, values[67])
+
+
+class TestGetIndexer:
+    def test_get_indexer_base(self, index):
+
+        if index._index_as_unique:
+            expected = np.arange(index.size, dtype=np.intp)
+            actual = index.get_indexer(index)
+            tm.assert_numpy_array_equal(expected, actual)
+        else:
+            msg = "Reindexing only valid with uniquely valued Index objects"
+            with pytest.raises(InvalidIndexError, match=msg):
+                index.get_indexer(index)
+
+        with pytest.raises(ValueError, match="Invalid fill method"):
+            index.get_indexer(index, method="invalid")
+
+    def test_get_indexer_consistency(self, index):
+        # See GH#16819
+
+        if index._index_as_unique:
+            indexer = index.get_indexer(index[0:2])
+            assert isinstance(indexer, np.ndarray)
+            assert indexer.dtype == np.intp
+        else:
+            msg = "Reindexing only valid with uniquely valued Index objects"
+            with pytest.raises(InvalidIndexError, match=msg):
+                index.get_indexer(index[0:2])
+
+        indexer, _ = index.get_indexer_non_unique(index[0:2])
+        assert isinstance(indexer, np.ndarray)
+        assert indexer.dtype == np.intp
+
+
+class TestConvertSliceIndexer:
+    def test_convert_almost_null_slice(self, index):
+        # slice with None at both ends, but not step
+
+        key = slice(None, None, "foo")
+
+        if isinstance(index, IntervalIndex):
+            msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
+            with pytest.raises(ValueError, match=msg):
+                index._convert_slice_indexer(key, "loc")
+        else:
+            msg = "'>=' not supported between instances of 'str' and 'int'"
+            with pytest.raises(TypeError, match=msg):
+                index._convert_slice_indexer(key, "loc")
+
+
+class TestPutmask:
+    def test_putmask_with_wrong_mask(self, index):
+        # GH#18368
+        if not len(index):
+            return
+
+        fill = index[0]
+
+        msg = "putmask: mask and data must be the same size"
+        with pytest.raises(ValueError, match=msg):
+            index.putmask(np.ones(len(index) + 1, np.bool_), fill)
+
+        with pytest.raises(ValueError, match=msg):
+            index.putmask(np.ones(len(index) - 1, np.bool_), fill)
+
+        with pytest.raises(ValueError, match=msg):
+            index.putmask("foo", fill)
+
 
 @pytest.mark.parametrize(
     "idx", [Index([1, 2, 3]), Index([0.1, 0.2, 0.3]), Index(["a", "b", "c"])]
@@ -148,3 +259,16 @@ def test_getitem_deprecated_float(idx):
 
     expected = idx[1]
     assert result == expected
+
+
+def test_maybe_cast_slice_bound_kind_deprecated(index):
+    if not len(index):
+        return
+
+    with tm.assert_produces_warning(FutureWarning):
+        # passed as keyword
+        index._maybe_cast_slice_bound(index[0], "left", kind="loc")
+
+    with tm.assert_produces_warning(FutureWarning):
+        # pass as positional
+        index._maybe_cast_slice_bound(index[0], "left", "loc")

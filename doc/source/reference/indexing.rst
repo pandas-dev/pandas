@@ -301,7 +301,6 @@ MultiIndex components
    MultiIndex.set_codes
    MultiIndex.to_flat_index
    MultiIndex.to_frame
-   MultiIndex.is_lexsorted
    MultiIndex.sortlevel
    MultiIndex.droplevel
    MultiIndex.swaplevel

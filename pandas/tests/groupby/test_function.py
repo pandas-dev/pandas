@@ -7,100 +7,48 @@ import pytest
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series, Timestamp, date_range, isna
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 import pandas.core.nanops as nanops
 from pandas.util import _test_decorators as td
 
 
 @pytest.fixture(
-    params=[np.int32, np.int64, np.float32, np.float64],
-    ids=["np.int32", "np.int64", "np.float32", "np.float64"],
+    params=[np.int32, np.int64, np.float32, np.float64, "Int64", "Float64"],
+    ids=["np.int32", "np.int64", "np.float32", "np.float64", "Int64", "Float64"],
 )
-def numpy_dtypes_for_minmax(request):
+def dtypes_for_minmax(request):
     """
-    Fixture of numpy dtypes with min and max values used for testing
+    Fixture of dtypes with min and max values used for testing
     cummin and cummax
     """
     dtype = request.param
+
+    np_type = dtype
+    if dtype == "Int64":
+        np_type = np.int64
+    elif dtype == "Float64":
+        np_type = np.float64
+
     min_val = (
-        np.iinfo(dtype).min if np.dtype(dtype).kind == "i" else np.finfo(dtype).min
+        np.iinfo(np_type).min
+        if np.dtype(np_type).kind == "i"
+        else np.finfo(np_type).min
     )
     max_val = (
-        np.iinfo(dtype).max if np.dtype(dtype).kind == "i" else np.finfo(dtype).max
+        np.iinfo(np_type).max
+        if np.dtype(np_type).kind == "i"
+        else np.finfo(np_type).max
     )
 
     return (dtype, min_val, max_val)
-
-
-@pytest.mark.parametrize("agg_func", ["any", "all"])
-@pytest.mark.parametrize("skipna", [True, False])
-@pytest.mark.parametrize(
-    "vals",
-    [
-        ["foo", "bar", "baz"],
-        ["foo", "", ""],
-        ["", "", ""],
-        [1, 2, 3],
-        [1, 0, 0],
-        [0, 0, 0],
-        [1.0, 2.0, 3.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [True, True, True],
-        [True, False, False],
-        [False, False, False],
-        [np.nan, np.nan, np.nan],
-    ],
-)
-def test_groupby_bool_aggs(agg_func, skipna, vals):
-    df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
-
-    # Figure out expectation using Python builtin
-    exp = getattr(builtins, agg_func)(vals)
-
-    # edge case for missing data with skipna and 'any'
-    if skipna and all(isna(vals)) and agg_func == "any":
-        exp = False
-
-    exp_df = DataFrame([exp] * 2, columns=["val"], index=Index(["a", "b"], name="key"))
-    result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
-    tm.assert_frame_equal(result, exp_df)
-
-
-def test_max_min_non_numeric():
-    # #2700
-    aa = DataFrame({"nn": [11, 11, 22, 22], "ii": [1, 2, 3, 4], "ss": 4 * ["mama"]})
-
-    result = aa.groupby("nn").max()
-    assert "ss" in result
-
-    result = aa.groupby("nn").max(numeric_only=False)
-    assert "ss" in result
-
-    result = aa.groupby("nn").min()
-    assert "ss" in result
-
-    result = aa.groupby("nn").min(numeric_only=False)
-    assert "ss" in result
-
-
-def test_min_date_with_nans():
-    # GH26321
-    dates = pd.to_datetime(
-        Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
-    ).dt.date
-    df = DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
-
-    result = df.groupby("b", as_index=False)["c"].min()["c"]
-    expected = pd.to_datetime(
-        Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
-    ).dt.date
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("b")["c"].min()
-    expected.index.name = "b"
-    tm.assert_series_equal(result, expected)
 
 
 def test_intercept_builtin_sum():
@@ -112,10 +60,6 @@ def test_intercept_builtin_sum():
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
-
-
-# @pytest.mark.parametrize("f", [max, min, sum])
-# def test_builtins_apply(f):
 
 
 @pytest.mark.parametrize("f", [max, min, sum])
@@ -210,7 +154,10 @@ class TestNumericOnly:
             ],
         )
 
-        result = getattr(gb, method)(numeric_only=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid", check_stacklevel=False
+        ):
+            result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -292,10 +239,27 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        result = getattr(gb, method)()
+        # cummin, cummax dont have numeric_only kwarg, always use False
+        warn = None
+        if method in ["cummin", "cummax"]:
+            # these dont have numeric_only kwarg, always use False
+            warn = FutureWarning
+        elif method in ["min", "max"]:
+            # these have numeric_only kwarg, but default to False
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)()
+
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = getattr(gb, method)(numeric_only=False)
+        # GH#41475 deprecated silently ignoring nuisance columns
+        warn = None
+        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)(numeric_only=False)
+
         tm.assert_index_equal(result.columns, expected_columns)
 
 
@@ -322,6 +286,7 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmax(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -331,6 +296,7 @@ class TestGroupByNonCythonPaths:
         result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmin(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -338,14 +304,6 @@ class TestGroupByNonCythonPaths:
         expected = DataFrame([[0.0], [np.nan]], columns=["B"], index=[1, 3])
         expected.index.name = "A"
         result = gb.idxmin()
-        tm.assert_frame_equal(result, expected)
-
-    def test_any(self, gb):
-        expected = DataFrame(
-            [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
-        )
-        expected.index.name = "A"
-        result = gb.any()
         tm.assert_frame_equal(result, expected)
 
     def test_mad(self, gb, gni):
@@ -362,7 +320,7 @@ class TestGroupByNonCythonPaths:
     def test_describe(self, df, gb, gni):
         # describe
         expected_index = Index([1, 3], name="A")
-        expected_col = pd.MultiIndex(
+        expected_col = MultiIndex(
             levels=[["B"], ["count", "mean", "std", "min", "25%", "50%", "75%", "max"]],
             codes=[[0] * 8, list(range(8))],
         )
@@ -436,7 +394,8 @@ def test_median_empty_bins(observed):
 
     result = df.groupby(bins, observed=observed).median()
     expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
-    tm.assert_frame_equal(result, expected)
+    # TODO: GH 41137
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 @pytest.mark.parametrize(
@@ -520,6 +479,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         ("idxmax", {"c_int": [1, 3], "c_float": [0, 2], "c_date": [0, 3]}),
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values):
     # GH 25444
     df = DataFrame(
@@ -531,10 +491,20 @@ def test_idxmin_idxmax_returns_int_types(func, values):
         }
     )
     df["c_date"] = pd.to_datetime(df["c_date"])
+    df["c_date_tz"] = df["c_date"].dt.tz_localize("US/Pacific")
+    df["c_timedelta"] = df["c_date"] - df["c_date"].iloc[0]
+    df["c_period"] = df["c_date"].dt.to_period("W")
+    df["c_Integer"] = df["c_int"].astype("Int64")
+    df["c_Floating"] = df["c_float"].astype("Float64")
 
     result = getattr(df.groupby("name"), func)()
 
     expected = DataFrame(values, index=Index(["A", "B"], name="name"))
+    expected["c_date_tz"] = expected["c_date"]
+    expected["c_timedelta"] = expected["c_date"]
+    expected["c_period"] = expected["c_date"]
+    expected["c_Integer"] = expected["c_int"]
+    expected["c_Floating"] = expected["c_float"]
 
     tm.assert_frame_equal(result, expected)
 
@@ -552,7 +522,7 @@ def test_idxmin_idxmax_axis1():
 
     tm.assert_series_equal(alt[indexer], res.droplevel("A"))
 
-    df["E"] = pd.date_range("2016-01-01", periods=10)
+    df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
 
     msg = "reduction operation 'argmax' not allowed for this dtype"
@@ -606,7 +576,7 @@ def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    result = getattr(df.groupby(labels), op)().astype(float)
+    result = getattr(df.groupby(labels), op)()
     expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 
@@ -724,9 +694,9 @@ def test_numpy_compat(func):
         getattr(g, func)(foo=1)
 
 
-def test_cummin(numpy_dtypes_for_minmax):
-    dtype = numpy_dtypes_for_minmax[0]
-    min_val = numpy_dtypes_for_minmax[1]
+def test_cummin(dtypes_for_minmax):
+    dtype = dtypes_for_minmax[0]
+    min_val = dtypes_for_minmax[1]
 
     # GH 15048
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]})
@@ -742,11 +712,13 @@ def test_cummin(numpy_dtypes_for_minmax):
 
     # Test w/ min value for dtype
     df.loc[[2, 6], "B"] = min_val
+    df.loc[[1, 5], "B"] = min_val + 1
     expected.loc[[2, 3, 6, 7], "B"] = min_val
+    expected.loc[[1, 5], "B"] = min_val + 1  # should not be rounded to min_val
     result = df.groupby("A").cummin()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_exact=True)
     expected = df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_exact=True)
 
     # Test nan in some values
     base_df.loc[[0, 2, 4, 6], "B"] = np.nan
@@ -770,19 +742,24 @@ def test_cummin(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-def test_cummin_all_nan_column():
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize("dtype", ["UInt64", "Int64", "Float64", "float", "boolean"])
+def test_cummin_max_all_nan_column(method, dtype):
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+    base_df["B"] = base_df["B"].astype(dtype)
+    grouped = base_df.groupby("A")
 
-    expected = DataFrame({"B": [np.nan] * 8})
-    result = base_df.groupby("A").cummin()
+    expected = DataFrame({"B": [np.nan] * 8}, dtype=dtype)
+    result = getattr(grouped, method)()
     tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummin()).to_frame()
+
+    result = getattr(grouped["B"], method)().to_frame()
     tm.assert_frame_equal(expected, result)
 
 
-def test_cummax(numpy_dtypes_for_minmax):
-    dtype = numpy_dtypes_for_minmax[0]
-    max_val = numpy_dtypes_for_minmax[2]
+def test_cummax(dtypes_for_minmax):
+    dtype = dtypes_for_minmax[0]
+    max_val = dtypes_for_minmax[2]
 
     # GH 15048
     base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [3, 4, 3, 2, 2, 3, 2, 1]})
@@ -826,14 +803,20 @@ def test_cummax(numpy_dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
-def test_cummax_all_nan_column():
-    base_df = DataFrame({"A": [1, 1, 1, 1, 2, 2, 2, 2], "B": [np.nan] * 8})
+@td.skip_if_32bit
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize(
+    "dtype,val", [("UInt64", np.iinfo("uint64").max), ("Int64", 2 ** 53 + 1)]
+)
+def test_nullable_int_not_cast_as_float(method, dtype, val):
+    data = [val, pd.NA]
+    df = DataFrame({"grp": [1, 1], "b": data}, dtype=dtype)
+    grouped = df.groupby("grp")
 
-    expected = DataFrame({"B": [np.nan] * 8})
-    result = base_df.groupby("A").cummax()
-    tm.assert_frame_equal(expected, result)
-    result = base_df.groupby("A").B.apply(lambda x: x.cummax()).to_frame()
-    tm.assert_frame_equal(expected, result)
+    result = grouped.transform(method)
+    expected = DataFrame({"b": data}, dtype=dtype)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -944,7 +927,7 @@ def test_frame_describe_multikey(tsframe):
     for col in tsframe:
         group = grouped[col].describe()
         # GH 17464 - Remove duplicate MultiIndex levels
-        group_col = pd.MultiIndex(
+        group_col = MultiIndex(
             levels=[[col], group.columns],
             codes=[[0] * len(group.columns), range(len(group.columns))],
         )
@@ -1019,6 +1002,7 @@ def test_describe_with_duplicate_output_column_names(as_index):
             "c": [10, 20, 30, 40, 50, 60],
         },
         columns=["a", "b", "b"],
+        copy=False,
     )
 
     expected = (
