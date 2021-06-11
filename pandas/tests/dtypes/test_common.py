@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import List
 
 import numpy as np
 import pytest
@@ -24,12 +25,12 @@ from pandas.arrays import SparseArray
 
 # EA & Actual Dtypes
 def to_ea_dtypes(dtypes):
-    """ convert list of string dtypes to EA dtype """
+    """convert list of string dtypes to EA dtype"""
     return [getattr(pd, dt + "Dtype") for dt in dtypes]
 
 
 def to_numpy_dtypes(dtypes):
-    """ convert list of string dtypes to numpy dtype """
+    """convert list of string dtypes to numpy dtype"""
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
@@ -287,7 +288,7 @@ def test_is_string_dtype_nullable(nullable_string_dtype):
     assert com.is_string_dtype(pd.array(["a", "b"], dtype=nullable_string_dtype))
 
 
-integer_dtypes: List = []
+integer_dtypes: list = []
 
 
 @pytest.mark.parametrize(
@@ -319,7 +320,7 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes: List = []
+signed_integer_dtypes: list = []
 
 
 @pytest.mark.parametrize(
@@ -355,7 +356,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes: List = []
+unsigned_integer_dtypes: list = []
 
 
 @pytest.mark.parametrize(

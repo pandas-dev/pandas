@@ -14,7 +14,7 @@ requires = [
 # build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py37', 'py38']
+target-version = ['py37', 'py38', 'py39']
 exclude = '''
 (
     asv_bench/env
