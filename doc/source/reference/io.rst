@@ -66,7 +66,6 @@ JSON
 
    read_json
    to_json
-   json_normalize
 
 .. autosummary::
    :toctree: api/
