@@ -1072,11 +1072,10 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         elif isinstance(data, ABCSeries):
             data, freq = data._values, data.dt.freq
 
-    freq = Period._maybe_convert_freq(freq)
-
-    if isinstance(data, (ABCIndex, ABCSeries)):
+    elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
+    freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
@@ -1138,7 +1137,7 @@ def _range_from_fields(
     minute=None,
     second=None,
     freq=None,
-):
+) -> tuple[np.ndarray, BaseOffset]:
     if hour is None:
         hour = 0
     if minute is None:
@@ -1176,7 +1175,7 @@ def _range_from_fields(
     return np.array(ordinals, dtype=np.int64), freq
 
 
-def _make_field_arrays(*fields):
+def _make_field_arrays(*fields) -> list[np.ndarray]:
     length = None
     for x in fields:
         if isinstance(x, (list, np.ndarray, ABCSeries)):

@@ -6,17 +6,19 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
-    DatetimeIndex,
     Index,
     Series,
-    TimedeltaIndex,
     Timestamp,
     date_range,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.indexes.accessors import Properties
 
@@ -178,9 +180,9 @@ class TestCatAccessor:
         get_ops = lambda x: x._datetimelike_ops
 
         test_data = [
-            ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
+            ("Datetime", get_ops(DatetimeArray), s_dr, c_dr),
             ("Period", get_ops(PeriodArray), s_pr, c_pr),
-            ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr),
+            ("Timedelta", get_ops(TimedeltaArray), s_tdr, c_tdr),
         ]
 
         assert isinstance(c_dr.dt, Properties)
