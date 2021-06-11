@@ -86,7 +86,10 @@ from pandas.core.computation.pytables import (
 )
 from pandas.core.construction import extract_array
 from pandas.core.indexes.api import ensure_index
-from pandas.core.internals import BlockManager
+from pandas.core.internals import (
+    ArrayManager,
+    BlockManager,
+)
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import (
@@ -3206,6 +3209,11 @@ class BlockManagerFixed(GenericFixed):
 
     def write(self, obj, **kwargs):
         super().write(obj, **kwargs)
+
+        # TODO(ArrayManager) HDFStore relies on accessing the blocks
+        if isinstance(obj._mgr, ArrayManager):
+            obj = obj._as_manager("block")
+
         data = obj._mgr
         if not data.is_consolidated():
             data = data.consolidate()
@@ -4014,6 +4022,10 @@ class Table(Fixed):
         data_columns,
     ):
         # Helper to clarify non-state-altering parts of _create_axes
+
+        # TODO(ArrayManager) HDFStore relies on accessing the blocks
+        if isinstance(frame._mgr, ArrayManager):
+            frame = frame._as_manager("block")
 
         def get_blk_items(mgr):
             return [mgr.items.take(blk.mgr_locs) for blk in mgr.blocks]
