@@ -55,7 +55,7 @@ def generate_online_numba_ewma_func(engine_kwargs: Optional[Dict[str, bool]]):
         nobs = (~np.isnan(weighted_avg)).astype(np.int64)
         result[0] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
 
-        for i in numba.prange(1, len(values)):
+        for i in range(1, len(values)):
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
