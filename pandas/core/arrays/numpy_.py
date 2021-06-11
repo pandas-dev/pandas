@@ -37,8 +37,6 @@ class PandasArray(  # type: ignore[misc]
     """
     A pandas ExtensionArray for NumPy data.
 
-    .. versionadded:: 0.24.0
-
     This is mostly for internal compatibility, and is not especially
     useful on its own.
 
@@ -191,7 +189,7 @@ class PandasArray(  # type: ignore[misc]
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value

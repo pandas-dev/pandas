@@ -319,8 +319,11 @@ class TestSeriesFillNA:
 
         # GH#6587
         # make sure that we are treating as integer when filling
-        # this also tests inference of a datetime-like with NaT's
-        ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"])
+        msg = "containing strings is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # this also tests inference of a datetime-like with NaT's
+            ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"])
+
         expected = Series(
             [
                 "2013-08-05 15:30:00.000001",

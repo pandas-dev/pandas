@@ -1,4 +1,5 @@
 """ implement the TimedeltaIndex """
+from __future__ import annotations
 
 from pandas._libs import (
     index as libindex,
@@ -39,12 +40,6 @@ from pandas.core.indexes.extension import inherit_names
 )
 @inherit_names(
     [
-        "_bool_ops",
-        "_object_ops",
-        "_field_ops",
-        "_datetimelike_ops",
-        "_datetimelike_methods",
-        "_other_ops",
         "components",
         "to_pytimedelta",
         "sum",
@@ -131,10 +126,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -166,7 +158,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        return is_timedelta64_dtype(dtype)
+        return is_timedelta64_dtype(dtype)  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
     # Indexing Methods

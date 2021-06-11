@@ -17,6 +17,7 @@ from pandas.io.formats.style import (  # isort:skip
 )
 from pandas.io.formats.style_render import (
     _get_level_lengths,
+    _get_trimming_maximums,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
 )
@@ -113,6 +114,46 @@ def test_mi_styler_sparsify_options(mi_styler):
         html2 = mi_styler.render()
 
     assert html1 != html2
+
+
+def test_trimming_maximum():
+    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
+    assert (rn, cn) == (12, 6)
+
+    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
+    assert (rn, cn) == (250, 3)
+
+
+def test_render_trimming():
+    df = DataFrame(np.arange(120).reshape(60, 2))
+    with pd.option_context("styler.render.max_elements", 6):
+        ctx = df.style._translate(True, True)
+    assert len(ctx["head"][0]) == 3  # index + 2 data cols
+    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
+    assert len(ctx["body"][0]) == 3  # index + 2 data cols
+
+    df = DataFrame(np.arange(120).reshape(12, 10))
+    with pd.option_context("styler.render.max_elements", 6):
+        ctx = df.style._translate(True, True)
+    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
+    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
+    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming row
+
+
+def test_render_trimming_mi():
+    midx = MultiIndex.from_product([[1, 2], [1, 2, 3]])
+    df = DataFrame(np.arange(36).reshape(6, 6), columns=midx, index=midx)
+    with pd.option_context("styler.render.max_elements", 4):
+        ctx = df.style._translate(True, True)
+
+    assert len(ctx["body"][0]) == 5  # 2 indexes + 2 data cols + trimming row
+    assert {"attributes": 'rowspan="2"'}.items() <= ctx["body"][0][0].items()
+    assert {"class": "data row0 col_trim"}.items() <= ctx["body"][0][4].items()
+    assert {"class": "data row_trim col_trim"}.items() <= ctx["body"][2][4].items()
+    assert len(ctx["body"]) == 3  # 2 data rows + trimming row
+
+    assert len(ctx["head"][0]) == 5  # 2 indexes + 2 column headers + trimming col
+    assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
 
 
 class TestStyler:
@@ -939,7 +980,7 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index, sparsify=True)
+        result = _get_level_lengths(index, sparsify=True, max_index=100)
         tm.assert_dict_equal(result, expected)
 
         expected = {
@@ -956,7 +997,7 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index, sparsify=False)
+        result = _get_level_lengths(index, sparsify=False, max_index=100)
         tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
@@ -970,7 +1011,7 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index, sparsify=True)
+        result = _get_level_lengths(index, sparsify=True, max_index=100)
         tm.assert_dict_equal(result, expected)
 
         expected = {
@@ -983,7 +1024,7 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index, sparsify=False)
+        result = _get_level_lengths(index, sparsify=False, max_index=100)
         tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse_index_names(self):
