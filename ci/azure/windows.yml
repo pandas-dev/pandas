@@ -30,6 +30,7 @@ jobs:
       displayName: 'Create anaconda environment'
 
     - bash: |
+        eval "$(conda shell.bash hook)"
         conda activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
@@ -37,6 +38,7 @@ jobs:
       displayName: 'Build'
 
     - bash: |
+        eval "$(conda shell.bash hook)"
         conda activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
@@ -50,6 +52,7 @@ jobs:
       displayName: 'Publish test results'
 
     - bash: |
+        eval "$(conda shell.bash hook)"
         conda activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
