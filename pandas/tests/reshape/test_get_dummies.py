@@ -471,7 +471,7 @@ class TestGetDummies:
         result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_get_dummies_basic_drop_first_NA(self, sparse):
         # Test NA handling together with drop_first
         s_NA = ["a", "b", np.nan]
