@@ -164,8 +164,12 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 
 
 int PANDAS_INLINE floatobject_cmp(PyFloatObject* a, PyFloatObject* b){
-    return Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
-           Py_IS_NAN(PyFloat_AS_DOUBLE(b));
+    return (
+             Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
+             Py_IS_NAN(PyFloat_AS_DOUBLE(b))
+           )
+           ||
+           ( PyFloat_AS_DOUBLE(a) == PyFloat_AS_DOUBLE(b) );
 }
 
 
@@ -187,6 +191,11 @@ int PANDAS_INLINE complexobject_cmp(PyComplexObject* a, PyComplexObject* b){
                 a->cval.real == b->cval.real &&
                 Py_IS_NAN(a->cval.imag) &&
                 Py_IS_NAN(b->cval.imag)
+           )
+           ||
+           (
+                a->cval.real == b->cval.real &&
+                a->cval.imag == b->cval.imag
            );
 }
 
@@ -210,15 +219,8 @@ int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
-	int result = PyObject_RichCompareBool(a, b, Py_EQ);
-	if (result < 0) {
-		PyErr_Clear();
-		return 0;
-	}
-    if (result == 0) {  // still could be built-ins with NaNs
-        if (Py_TYPE(a) != Py_TYPE(b)) {
-            return 0;
-        }
+    if (Py_TYPE(a) == Py_TYPE(b)) {
+        // special handling for some built-in types which could have NaNs:
         if (PyFloat_CheckExact(a)) {
             return floatobject_cmp((PyFloatObject*)a, (PyFloatObject*)b);
         }
@@ -228,7 +230,14 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
         if (PyTuple_CheckExact(a)) {
             return tupleobject_cmp((PyTupleObject*)a, (PyTupleObject*)b);
         }
+        // frozenset isn't yet supported
     }
+
+	int result = PyObject_RichCompareBool(a, b, Py_EQ);
+	if (result < 0) {
+		PyErr_Clear();
+		return 0;
+	}
 	return result;
 }
 
