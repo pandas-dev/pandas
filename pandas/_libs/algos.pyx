@@ -1091,6 +1091,8 @@ def rank_1d(
     return np.array(out)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
