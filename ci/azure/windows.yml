@@ -29,15 +29,15 @@ jobs:
     - script: conda env create --quiet --file $(ENV_FILE)
       displayName: 'Create anaconda environment'
 
-    - script: |
-        call activate pandas-dev
+    - bash: |
+        conda activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install -e . --no-build-isolation --no-use-pep517
       displayName: 'Build'
 
-    - script: |
-        call activate pandas-dev
+    - bash: |
+        conda activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
 
@@ -50,6 +50,6 @@ jobs:
       displayName: 'Publish test results'
 
     - bash: |
-        call activate pandas-dev
+        conda activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
