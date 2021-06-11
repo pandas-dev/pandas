@@ -63,13 +63,13 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
-    NpDtype,
     PythonFuncType,
     Renamer,
     Scalar,
     StorageOptions,
     Suffixes,
     ValueKeyFunc,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1593,7 +1593,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:

@@ -46,7 +46,6 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    NpDtype,
     Renamer,
     StorageOptions,
     T,
@@ -54,6 +53,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     final,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1987,7 +1987,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
@@ -9751,11 +9751,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "FrameOrSeries"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        return np.abs(self)  # type: ignore[arg-type]
+        return np.abs(self)
 
     @final
     def describe(
