@@ -76,7 +76,7 @@ which will first group the data by the specified keys and then perform a windowi
     to compute the rolling sums to preserve accuracy as much as possible.
 
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
 performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
@@ -159,7 +159,7 @@ By default the labels are set to the right edge of the window, but a
 
 This can also be applied to datetime-like indices.
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 .. ipython:: python
 
@@ -299,6 +299,24 @@ forward-looking rolling window, and we can use it as follows:
    indexer = FixedForwardWindowIndexer(window_size=2)
    df.rolling(indexer, min_periods=1).sum()
 
+We can also achieve this by using slicing, applying rolling aggregation, and then flipping the result as shown in example below:
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       data=[
+           [pd.Timestamp("2018-01-01 00:00:00"), 100],
+           [pd.Timestamp("2018-01-01 00:00:01"), 101],
+           [pd.Timestamp("2018-01-01 00:00:03"), 103],
+           [pd.Timestamp("2018-01-01 00:00:04"), 111],
+       ],
+       columns=["time", "value"],
+   ).set_index("time")
+   df
+
+   reversed_df = df[::-1].rolling("2s").sum()[::-1]
+   reversed_df
+
 .. _window.rolling_apply:
 
 Rolling apply
@@ -332,7 +350,7 @@ Numba will be applied in potentially two routines:
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 ``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 

@@ -35,6 +35,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    cache_readonly,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -249,8 +250,6 @@ class ExtensionArray:
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -752,8 +751,6 @@ class ExtensionArray:
         Newly introduced missing values are filled with
         ``self.dtype.na_value``.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         periods : int, default 1
@@ -763,8 +760,6 @@ class ExtensionArray:
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
             The default is ``self.dtype.na_value``.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -813,8 +808,6 @@ class ExtensionArray:
     def searchsorted(self, value, side="left", sorter=None):
         """
         Find indices where elements should be inserted to maintain order.
-
-        .. versionadded:: 0.24.0
 
         Find the indices into a sorted array `self` (a) such that, if the
         corresponding elements in `value` were inserted before the indices,
@@ -1271,7 +1264,9 @@ class ExtensionArray:
     # such as take(), reindex(), shift(), etc.  In addition, those results
     # will then be of the ExtensionArray subclass rather than an array
     # of objects
-    _can_hold_na = True
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return self.dtype._can_hold_na
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """

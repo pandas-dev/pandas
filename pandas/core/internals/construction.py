@@ -22,12 +22,9 @@ from pandas._typing import (
     DtypeObj,
     Manager,
 )
-from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
-    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -61,6 +58,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.construction import (
+    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
     range_to_ndarray,
@@ -68,9 +66,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
-    DatetimeIndex,
     Index,
-    TimedeltaIndex,
     ensure_index,
     get_objs_combined_axis,
     union_indexes,
@@ -305,22 +301,12 @@ def ndarray_to_mgr(
         shape = values.shape
         flat = values.ravel()
 
-        if not is_integer_dtype(dtype):
-            # TODO: skipping integer_dtype is needed to keep the tests passing,
-            #  not clear it is correct
-            # Note: we really only need _try_cast, but keeping to exposed funcs
-            values = sanitize_array(
-                flat, None, dtype=dtype, copy=copy, raise_cast_failure=True
-            )
-        else:
-            try:
-                values = construct_1d_ndarray_preserving_na(
-                    flat, dtype=dtype, copy=False
-                )
-            except IntCastingNaNError:
-                # following Series, we ignore the dtype and retain floating
-                # values instead of casting nans to meaningless ints
-                pass
+        # GH#40110 see similar check inside sanitize_array
+        rcf = not (is_integer_dtype(dtype) and values.dtype.kind == "f")
+
+        values = sanitize_array(
+            flat, None, dtype=dtype, copy=copy, raise_cast_failure=rcf
+        )
 
         values = values.reshape(shape)
 
@@ -566,7 +552,6 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
 
 
 def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
-    oindex = None
     homogenized = []
 
     for val in data:
@@ -581,16 +566,10 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
             val = val._values
         else:
             if isinstance(val, dict):
-                if oindex is None:
-                    oindex = index.astype("O")
+                # see test_constructor_subclass_dict
+                #  test_constructor_dict_datetime64_index
+                val = create_series_with_explicit_dtype(val, index=index)._values
 
-                if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                    # see test_constructor_dict_datetime64_index
-                    val = dict_compat(val)
-                else:
-                    # see test_constructor_subclass_dict
-                    val = dict(val)
-                val = lib.fast_multiget(val, oindex._values, default=np.nan)
             val = sanitize_array(
                 val, index, dtype=dtype, copy=False, raise_cast_failure=False
             )

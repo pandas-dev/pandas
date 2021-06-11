@@ -1095,15 +1095,15 @@ class StataReader(StataParser, abc.Iterator):
         self._setup_dtype()
 
     def __enter__(self) -> StataReader:
-        """ enter context manager """
+        """enter context manager"""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        """ exit context manager """
+        """exit context manager"""
         self.close()
 
     def close(self) -> None:
-        """ close the handle if its open """
+        """close the handle if its open"""
         self.path_or_buf.close()
 
     def _set_encoding(self) -> None:
@@ -1762,7 +1762,7 @@ the string values returned are correct."""
             columns = data.columns
             replacement_df = DataFrame(replacements)
             replaced = concat(
-                [data.drop(replacement_df.columns, axis=1), replacement_df], 1
+                [data.drop(replacement_df.columns, axis=1), replacement_df], axis=1
             )
             data = replaced[columns]
         return data
