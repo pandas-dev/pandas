@@ -1,7 +1,5 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     HDFStore,
@@ -13,7 +11,7 @@ from pandas.tests.io.pytables.common import (
     tables,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_keys(setup_path):

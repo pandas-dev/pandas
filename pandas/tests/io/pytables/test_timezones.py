@@ -24,9 +24,6 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-# TODO(ArrayManager) HDFStore relies on accessing the blocks
-pytestmark = td.skip_array_manager_not_yet_implemented
-
 
 def _compare_with_tz(a, b):
     tm.assert_frame_equal(a, b)

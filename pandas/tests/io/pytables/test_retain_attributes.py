@@ -3,7 +3,6 @@ from warnings import catch_warnings
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -18,7 +17,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_retain_index_attributes(setup_path):
