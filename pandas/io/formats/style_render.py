@@ -21,7 +21,6 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._typing import (
-    FrameOrSeriesUnion,
     TypedDict,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -70,7 +69,7 @@ class StylerRenderer:
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         uuid: str | None = None,
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
@@ -1159,7 +1158,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
+    def _translate(self, styler_data: DataFrame | Series, uuid: str, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 

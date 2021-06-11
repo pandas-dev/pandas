@@ -14,8 +14,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    DtypeObj,
-    FrameOrSeriesUnion,
+    DtypeObj
 )
 from pandas.util._decorators import Appender
 
@@ -2314,7 +2313,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def extract(
         self, pat: str, flags: int = 0, expand: bool = True
-    ) -> FrameOrSeriesUnion | Index:
+    ) -> DataFrame | Series | Index:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 

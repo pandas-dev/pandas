@@ -45,7 +45,6 @@ from pandas._typing import (
     ArrayLike,
     F,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
     T,
@@ -728,7 +727,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries]):
     plot = property(GroupByPlot)
 
     @final
-    def get_group(self, name, obj=None) -> FrameOrSeriesUnion:
+    def get_group(self, name, obj=None) -> DataFrame | Series:
         """
         Construct DataFrame from group with provided name.
 
@@ -1267,8 +1266,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _python_apply_general(
-        self, f: F, data: FrameOrSeriesUnion
-    ) -> FrameOrSeriesUnion:
+        self, f: F, data: DataFrame | Series
+    ) -> DataFrame | Series:
         """
         Apply function f in python space
 
@@ -1786,7 +1785,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def size(self) -> FrameOrSeriesUnion:
+    def size(self) -> DataFrame | Series:
         """
         Compute group sizes.
 

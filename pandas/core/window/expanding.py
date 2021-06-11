@@ -8,8 +8,7 @@ from typing import (
 
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
-    FrameOrSeriesUnion,
+    FrameOrSeries
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -591,7 +590,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -656,7 +655,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,

@@ -13,8 +13,6 @@ import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
-
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -55,7 +53,7 @@ def format_date_labels(ax: Axes, rot):
 
 
 def table(
-    ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
+    ax, data: DataFrame | Series, rowLabels=None, colLabels=None, **kwargs
 ) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()

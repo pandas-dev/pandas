@@ -12,7 +12,6 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
 )
 from pandas.compat.numpy import function as nv
@@ -512,7 +511,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
@@ -579,7 +578,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):

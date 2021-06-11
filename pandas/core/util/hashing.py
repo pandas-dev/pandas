@@ -16,8 +16,7 @@ import numpy as np
 
 from pandas._libs.hashing import hash_object_array
 from pandas._typing import (
-    ArrayLike,
-    FrameOrSeriesUnion,
+    ArrayLike
 )
 
 from pandas.core.dtypes.common import (
@@ -77,7 +76,7 @@ def combine_hash_arrays(arrays: Iterator[np.ndarray], num_items: int) -> np.ndar
 
 
 def hash_pandas_object(
-    obj: Index | FrameOrSeriesUnion,
+    obj: Index | DataFrame | Series,
     index: bool = True,
     encoding: str = "utf8",
     hash_key: str | None = _default_hash_key,

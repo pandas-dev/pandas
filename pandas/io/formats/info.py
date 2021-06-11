@@ -18,7 +18,6 @@ from pandas._config import get_option
 
 from pandas._typing import (
     Dtype,
-    FrameOrSeriesUnion,
 )
 
 from pandas.core.indexes.api import Index
@@ -110,7 +109,7 @@ class BaseInfo(ABC):
         values.
     """
 
-    data: FrameOrSeriesUnion
+    data: DataFrame | Series
     memory_usage: bool | str
 
     @property
@@ -413,7 +412,7 @@ class TableBuilderAbstract(ABC):
         """Product in a form of list of lines (strings)."""
 
     @property
-    def data(self) -> FrameOrSeriesUnion:
+    def data(self) -> DataFrame | Series:
         return self.info.data
 
     @property
