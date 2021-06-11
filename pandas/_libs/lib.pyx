@@ -716,7 +716,7 @@ cpdef ndarray[object] ensure_string_array(
         if hasattr(arr, "dtype") and arr.dtype.kind in ["m", "M"]:
             # dtype check to exclude DataFrame
             # GH#41409 TODO: not a great place for this
-            out = arr.astype(str)
+            out = arr.astype(str).astype(object)
             out[arr.isna()] = na_value
             return out
 
