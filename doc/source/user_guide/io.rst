@@ -4009,21 +4009,13 @@ Passing options to the compression protocol in order to speed up compression:
 msgpack
 -------
 
-pandas support for ``msgpack`` has been removed in version 1.0.0.  It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+pandas support for ``msgpack`` has been removed in version 1.0.0. It is
+recommended to use :ref:`pickle <io.pickle` instead.
 
-Example pyarrow usage:
+Alternatively, you can also the Arrow IPC serialization format for on-the-wire
+transmission of pandas objects. For documentation on pyarrow, see
+`here <https://arrow.apache.org/docs/python/ipc.html>`__.
 
-.. code-block:: python
-
-    import pandas as pd
-    import pyarrow as pa
-
-    df = pd.DataFrame({"A": [1, 2, 3]})
-
-    context = pa.default_serialization_context()
-    df_bytestring = context.serialize(df).to_buffer().to_pybytes()
-
-For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
