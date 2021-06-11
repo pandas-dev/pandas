@@ -16,7 +16,7 @@ dependencies:
   - pip:
     - cython==0.29.21 # GH#34014
     - "git+git://github.com/dateutil/dateutil.git"
+    - "git+git://github.com/numpy/numpy.git"
     - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
     - "--pre"
-    - "numpy"
     - "scipy"
