@@ -251,12 +251,40 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
 }
 
 
+Py_hash_t PANDAS_INLINE _Pandas_HashDouble(double val){
+    //Since Python3.10, nan is no longer has hash 0
+    if (Py_IS_NAN(val)) {
+        return 0;
+    }
+#if PY_VERSION_HEX < 0x030A0000
+    return _Py_HashDouble(val);
+#else
+    return _Py_HashDouble(NULL, val);
+#endif
+}
+
+
+Py_hash_t PANDAS_INLINE hash_float(PyFloatObject* key){
+    return _Pandas_HashDouble(PyFloat_AS_DOUBLE(key));
+}
+
+
 khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key){
+    Py_hash_t hash;
     // For PyObject_Hash holds:
     //    hash(0.0) == 0 == hash(-0.0)
-    //    hash(X) == 0 if X is a NaN-value
-    // so it is OK to use it directly for doubles
-    Py_hash_t hash = PyObject_Hash(key);
+    //    yet for different nan-object different hash-values
+    //    are possible
+    if (PyFloat_CheckExact(key)) {
+        // we cannot use kh_float64_hash_func
+        // becase float(k) == k holds for any int-object k
+        // and kh_float64_hash_func doesn't respect it
+        hash = hash_float((PyFloatObject*)key);
+    }
+    else {
+        hash = PyObject_Hash(key);
+    }
+
 	if (hash == -1) {
 		PyErr_Clear();
 		return 0;
