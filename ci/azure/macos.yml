@@ -27,19 +27,19 @@ jobs:
       displayName: Create Anaconda environment
 
     - bash: |
-        source activate pandas-dev
+        conda activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install -e . --no-build-isolation --no-use-pep517
       displayName: 'Build pandas'
 
     - bash: |
-        source activate pandas-dev
+        conda activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
 
     - bash: |
-        source activate pandas-dev
+        conda activate pandas-dev
         python -c "import pandas; pandas.show_versions();"
       displayName: 'Build versions'
 
@@ -52,6 +52,6 @@ jobs:
       displayName: 'Publish test results'
 
     - bash: |
-        source activate pandas-dev
+        conda activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
