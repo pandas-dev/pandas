@@ -2,7 +2,11 @@ from textwrap import dedent
 
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    option_context,
+)
 
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -236,3 +240,28 @@ def test_from_custom_template(tmpdir):
 def test_caption_as_sequence(styler):
     styler.set_caption(("full cap", "short cap"))
     assert "<caption>full cap</caption>" in styler.render()
+
+
+def test_sparse_options():
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=ridx, columns=cidx)
+    styler = df.style
+
+    base_html = styler.to_html()
+
+    # test option context and method arguments simultaneously
+    # output generation is tested in test_style.test_mi_sparse
+    for sparse_index in [True, False]:
+        with option_context("styler.sparse.index", sparse_index):
+            html1 = styler.to_html()
+            assert (html1 == base_html) is sparse_index
+        html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=True)
+        assert html1 == html2
+
+    for sparse_columns in [True, False]:
+        with option_context("styler.sparse.columns", sparse_columns):
+            html1 = styler.to_html()
+            assert (html1 == base_html) is sparse_columns
+        html2 = styler.to_html(sparse_index=True, sparse_columns=sparse_columns)
+        assert html1 == html2
