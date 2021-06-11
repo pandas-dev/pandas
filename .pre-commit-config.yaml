@@ -136,3 +136,9 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: always-use-future-annotations
+        name: ensure that "from __future__ import annotations" is always used
+        types: [python]
+        language: pygrep
+        args: [--negate]
+        entry: 'from __future__ import annotations'
