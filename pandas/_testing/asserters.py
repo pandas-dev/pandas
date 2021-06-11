@@ -314,8 +314,8 @@ def assert_index_equal(
             return
 
         assert_class_equal(left, right, exact=exact, obj=obj)
-        assert_attr_equal("dtype", left, right, obj=obj)
         assert_attr_equal("inferred_type", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
         if (
