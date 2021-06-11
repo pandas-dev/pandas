@@ -23,7 +23,7 @@ jobs:
     - bash: conda update --quiet --yes conda
       displayName: Update conda
 
-    - bash: conda create --quiet --file $(ENV_FILE)
+    - bash: conda env create --quiet --file $(ENV_FILE)
       displayName: Create Anaconda environment
 
     - bash: |
