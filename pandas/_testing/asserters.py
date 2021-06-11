@@ -314,18 +314,16 @@ def assert_index_equal(
             return
 
         assert_class_equal(left, right, exact=exact, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=obj)
+        assert_attr_equal("inferred_type", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
-        if check_categorical:
-            assert_attr_equal("dtype", left, right, obj=obj)
-            if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
-                assert_index_equal(left.categories, right.categories, exact=exact)
-
-        # allow string-like to have different inferred_types
-        if left.inferred_type in ("string"):
-            assert right.inferred_type in ("string")
-        else:
-            assert_attr_equal("inferred_type", left, right, obj=obj)
+        if (
+            check_categorical
+            and is_categorical_dtype(left.dtype)
+            and is_categorical_dtype(right.dtype)
+        ):
+            assert_index_equal(left.categories, right.categories, exact=exact)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -446,17 +444,18 @@ def assert_class_equal(left, right, exact: bool | str = True, obj="Input"):
 
         return type(x).__name__
 
+    if type(left) == type(right):
+        return
+
     if exact == "equiv":
-        if type(left) != type(right):
-            # allow equivalence of Int64Index/RangeIndex
-            types = {type(left).__name__, type(right).__name__}
-            if len(types - {"Int64Index", "RangeIndex"}):
-                msg = f"{obj} classes are not equivalent"
-                raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
-    elif exact:
-        if type(left) != type(right):
-            msg = f"{obj} classes are different"
+        # allow equivalence of Int64Index/RangeIndex
+        types = {type(left).__name__, type(right).__name__}
+        if len(types - {"Int64Index", "RangeIndex"}):
+            msg = f"{obj} classes are not equivalent"
             raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
+    elif exact:
+        msg = f"{obj} classes are different"
+        raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
 def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
