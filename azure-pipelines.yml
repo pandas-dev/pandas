@@ -11,8 +11,7 @@ variables:
   PYTEST_WORKERS: auto
 
 jobs:
-# Mac and Linux use the same template
-- template: ci/azure/posix.yml
+- template: ci/azure/macos.yml
   parameters:
     name: macOS
     vmImage: macOS-10.14

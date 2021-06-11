@@ -8,44 +8,39 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      ${{ if eq(parameters.name, 'macOS') }}:
-        py37_macos:
-          ENV_FILE: ci/deps/azure-macos-37.yaml
-          CONDA_PY: "37"
-          PATTERN: "not slow and not network"
+      py37_macos:
+        ENV_FILE: ci/deps/azure-macos-37.yaml
+        CONDA_PY: "37"
+        PATTERN: "not slow and not network"
 
   steps:
-    - script: echo '##vso[task.prependpath]$(HOME)/miniconda3/bin'
+    - bash: echo '##vso[task.prependpath]$CONDA/bin'
       displayName: 'Set conda path'
 
     - bash: sudo chown -R $USER $CONDA
       displayName: Take ownership of conda installation
-      condition: eq('${{ parameters.name }}', 'macOS')
 
     - bash: conda update --quiet --yes conda
       displayName: Update conda
 
-    - bash: conda env create --quiet --file $(ENV_FILE)
+    - bash: conda create --quiet --file $(ENV_FILE)
       displayName: Create Anaconda environment
 
     - bash: |
-        eval "$(conda shell.bash hook)"
-        conda activate pandas-dev
+        source activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install --no-build-isolation -e .
-      displayName: 'Build'
+      displayName: 'Build pandas'
 
     - bash: |
-        eval "$(conda shell.bash hook)"
-        conda activate pandas-dev
+        source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
 
     - bash: |
-        eval "$(conda shell.bash hook)"
-        conda activate pandas-dev
-        pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+        source activate pandas-dev
+        python -c "import pandas; pandas.show_versions();"
       displayName: 'Build versions'
 
     - task: PublishTestResults@2
@@ -57,7 +52,6 @@ jobs:
       displayName: 'Publish test results'
 
     - bash: |
-        eval "$(conda shell.bash hook)"
-        conda activate pandas-dev
+        source activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
