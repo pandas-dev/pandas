@@ -142,3 +142,4 @@ repos:
         language: pygrep
         args: [--negate]
         entry: 'from __future__ import annotations'
+        exclude: __init__.py|api.py|setup.py|tests
