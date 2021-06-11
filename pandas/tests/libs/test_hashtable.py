@@ -8,6 +8,7 @@ from pandas._libs import hashtable as ht
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.algorithms import isin
 
 
 @contextmanager
@@ -487,3 +488,12 @@ class TestHelpFunctionsWithNans:
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
         assert mode(values, True) == 42
         assert np.isnan(mode(values, False))
+
+
+def test_ismember_tuple_with_nans():
+    # GH-41836
+    values = [("a", float("nan")), ("b", 1)]
+    comps = [("a", float("nan"))]
+    result = isin(values, comps)
+    expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
