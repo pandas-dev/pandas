@@ -11,58 +11,50 @@ def roll_sum(
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
-) -> np.ndarray: ... # np.ndarray[float]
-
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_mean(
     values: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
-) -> np.ndarray: ... # np.ndarray[float]
-
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_var(
     values: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
     ddof: int = ...,
-) -> np.ndarray: ... # np.ndarray[float]
-
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_skew(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
-) -> np.ndarray: ... # np.ndarray[float]
-
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_kurt(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
-) -> np.ndarray: ... # np.ndarray[float]
-
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_median_c(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
 ) -> np.ndarray: ...  # np.ndarray[float]
-
 def roll_max(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
 ) -> np.ndarray: ...  # np.ndarray[float]
-
 def roll_min(
     values: np.ndarray,  # np.ndarray[np.float64]
     start: np.ndarray,  # np.ndarray[np.int64]
     end: np.ndarray,  # np.ndarray[np.int64]
     minp: int,  # int64_t
 ) -> np.ndarray: ...  # np.ndarray[float]
-
 def roll_quantile(
     values: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # np.ndarray[np.int64]
@@ -71,7 +63,6 @@ def roll_quantile(
     quantile: float,  # float64_t
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
 ) -> np.ndarray: ...  # np.ndarray[float]
-
 def roll_apply(
     obj: object,
     start: np.ndarray,  # np.ndarray[np.int64]
@@ -82,26 +73,22 @@ def roll_apply(
     args: tuple[Any, ...],
     kwargs: dict[str, Any],
 ) -> np.ndarray: ...  # np.ndarray[float]  # FIXME: could also be type(obj) if n==0
-
 def roll_weighted_sum(
     values: np.ndarray,  # const float64_t[:]
     weights: np.ndarray,  # const float64_t[:]
     minp: int,
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
-
 def roll_weighted_mean(
     values: np.ndarray,  # const float64_t[:]
     weights: np.ndarray,  # const float64_t[:]
     minp: int,
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
-
 def roll_weighted_var(
     values: np.ndarray,  # const float64_t[:]
     weights: np.ndarray,  # const float64_t[:]
     minp: int,  # int64_t
     ddof: int,  # unsigned int
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
-
 def ewma(
     vals: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # const int64_t[:]
@@ -112,7 +99,6 @@ def ewma(
     ignore_na: bool,
     deltas: np.ndarray,  # const float64_t[:]
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
-
 def ewmcov(
     input_x: np.ndarray,  # const float64_t[:]
     start: np.ndarray,  # const int64_t[:]
