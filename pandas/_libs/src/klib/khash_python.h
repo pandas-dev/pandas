@@ -163,37 +163,37 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 
-int PANDAS_INLINE floatobject_cmp(PyObject* a, PyObject* b){
+int PANDAS_INLINE floatobject_cmp(PyFloatObject* a, PyFloatObject* b){
     return Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
            Py_IS_NAN(PyFloat_AS_DOUBLE(b));
 }
 
 
-int PANDAS_INLINE complexobject_cmp(PyObject* a, PyObject* b){
+int PANDAS_INLINE complexobject_cmp(PyComplexObject* a, PyComplexObject* b){
     return (
-                Py_IS_NAN(PyComplex_RealAsDouble(a)) &&
-                Py_IS_NAN(PyComplex_RealAsDouble(b)) &&
-                Py_IS_NAN(PyComplex_ImagAsDouble(a)) &&
-                Py_IS_NAN(PyComplex_ImagAsDouble(b))
+                Py_IS_NAN(a->cval.real) &&
+                Py_IS_NAN(b->cval.real) &&
+                Py_IS_NAN(a->cval.imag) &&
+                Py_IS_NAN(b->cval.imag)
            )
            ||
            (
-                Py_IS_NAN(PyComplex_RealAsDouble(a)) &&
-                Py_IS_NAN(PyComplex_RealAsDouble(b)) &&
-                PyComplex_ImagAsDouble(a) == PyComplex_ImagAsDouble(b)
+                Py_IS_NAN(a->cval.real) &&
+                Py_IS_NAN(b->cval.real) &&
+                a->cval.imag == b->cval.imag
            )
            ||
            (
-                PyComplex_RealAsDouble(a) == PyComplex_RealAsDouble(b) &&
-                Py_IS_NAN(PyComplex_ImagAsDouble(a)) &&
-                Py_IS_NAN(PyComplex_ImagAsDouble(b))
+                a->cval.real == b->cval.real &&
+                Py_IS_NAN(a->cval.imag) &&
+                Py_IS_NAN(b->cval.imag)
            );
 }
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b);
 
 
-int PANDAS_INLINE tupleobject_cmp(PyObject* a, PyObject* b){
+int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
     Py_ssize_t i;
 
     if (Py_SIZE(a) != Py_SIZE(b)) {
@@ -220,13 +220,13 @@ int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
             return 0;
         }
         if (PyFloat_CheckExact(a)) {
-            return floatobject_cmp(a, b);
+            return floatobject_cmp((PyFloatObject*)a, (PyFloatObject*)b);
         }
         if (PyComplex_CheckExact(a)) {
-            return complexobject_cmp(a, b);
+            return complexobject_cmp((PyComplexObject*)a, (PyComplexObject*)b);
         }
         if (PyTuple_CheckExact(a)) {
-            return tupleobject_cmp(a, b);
+            return tupleobject_cmp((PyTupleObject*)a, (PyTupleObject*)b);
         }
     }
 	return result;
