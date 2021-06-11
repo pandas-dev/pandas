@@ -21,25 +21,23 @@ jobs:
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-        Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
 
-    - bash: conda update --quiet --yes conda
+    - script: conda update --quiet --yes conda
       displayName: Update conda
 
-    - bash: |
-        conda env create --quiet --file $(ENV_FILE)
+    - script: conda env create --quiet --file $(ENV_FILE)
       displayName: 'Create anaconda environment'
 
-    - bash: |
-        source activate pandas-dev
+    - script: |
+        call activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install -e . --no-build-isolation --no-use-pep517
       displayName: 'Build'
 
-    - bash: |
-        source activate pandas-dev
+    - script: |
+        call activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
 
@@ -52,6 +50,6 @@ jobs:
       displayName: 'Publish test results'
 
     - bash: |
-        source activate pandas-dev
+        call activate pandas-dev
         python ci/print_skipped.py
       displayName: 'Print skipped tests'
