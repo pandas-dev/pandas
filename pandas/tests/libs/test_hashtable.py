@@ -339,6 +339,29 @@ class TestHashTableWithNans:
         assert np.all(np.isnan(unique)) and len(unique) == 1
 
 
+def test_unique_for_nan_objects_floats():
+    table = ht.PyObjectHashTable()
+    keys = np.array([float("nan") for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_complex():
+    table = ht.PyObjectHashTable()
+    keys = np.array([complex(float("nan"), 1.0) for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_tuple():
+    table = ht.PyObjectHashTable()
+    keys = np.array(
+        [1] + [(1.0, (float("nan"), 1.0)) for i in range(50)], dtype=np.object_
+    )
+    unique = table.unique(keys)
+    assert len(unique) == 2
+
+
 def get_ht_function(fun_name, type_suffix):
     return getattr(ht, fun_name)
 
