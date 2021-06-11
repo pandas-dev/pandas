@@ -1199,3 +1199,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v1.2.4..v1.3.0|HEAD
