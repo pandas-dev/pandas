@@ -478,7 +478,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, float_frame)
         assert result is not float_frame
 
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940")
     def test_reindex_nan(self):
         df = DataFrame(
             [[1, 2], [3, 5], [7, 11], [9, 23]],

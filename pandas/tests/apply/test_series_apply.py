@@ -814,7 +814,7 @@ def test_map_datetimetz():
             list("abc"),
             {np.nan: "not NaN"},
             [np.nan] * 3 + ["not NaN"],
-            marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10"),
+            marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
         ),
         (list("abc"), {"a": "a letter"}, ["a letter"] + [np.nan] * 3),
         (list(range(3)), {0: 42}, [42] + [np.nan] * 3),

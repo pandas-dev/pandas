@@ -134,7 +134,7 @@ def test_construct_from_string(string, expected):
             SparseDtype(float, float("nan")),
             SparseDtype(float, np.nan),
             True,
-            marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10"),
+            marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
         ),
         (SparseDtype(float, 0), SparseDtype(float, np.nan), False),
         (SparseDtype(int, 0.0), SparseDtype(float, 0.0), False),
