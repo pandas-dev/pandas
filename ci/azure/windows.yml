@@ -21,13 +21,13 @@ jobs:
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
-      displayName: 'Add conda to PATH'
+      displayName: Add conda to PATH
 
     - script: conda update --quiet --yes conda
       displayName: Update conda
 
     - script: conda env create --quiet --file $(ENV_FILE)
-      displayName: 'Create anaconda environment'
+      displayName: Create anaconda environment
 
     - bash: |
         eval "$(conda shell.bash hook)"
@@ -35,13 +35,19 @@ jobs:
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install -e . --no-build-isolation --no-use-pep517
-      displayName: 'Build'
+      displayName: Build pandas
 
     - bash: |
         eval "$(conda shell.bash hook)"
         conda activate pandas-dev
         ci/run_tests.sh
-      displayName: 'Test'
+      displayName: Test
+
+    - bash: |
+        eval "$(conda shell.bash hook)"
+        conda activate pandas-dev
+        python -c "import pandas; pandas.show_versions();"
+      displayName: Build versions
 
     - task: PublishTestResults@2
       condition: succeededOrFailed()
@@ -49,10 +55,10 @@ jobs:
         failTaskOnFailedTests: true
         testResultsFiles: 'test-data.xml'
         testRunTitle: ${{ format('{0}-$(CONDA_PY)', parameters.name) }}
-      displayName: 'Publish test results'
+      displayName: Publish test results
 
     - bash: |
         eval "$(conda shell.bash hook)"
         conda activate pandas-dev
         python ci/print_skipped.py
-      displayName: 'Print skipped tests'
+      displayName: Print skipped tests

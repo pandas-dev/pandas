@@ -21,7 +21,7 @@ jobs:
     name: Windows
     vmImage: windows-2019
 
-- job: py37_32bit
+- job: Linux_py37_32bit
   pool:
     vmImage: ubuntu-18.04
 
@@ -34,14 +34,15 @@ jobs:
         . ~/virtualenvs/pandas-dev/bin/activate && \
         python -m pip install --no-deps -U pip wheel setuptools && \
         pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
-        python setup.py build_ext -q -j2 && \
-        python -m pip install --no-build-isolation -e . && \
-        pytest -m 'not slow and not network and not clipboard' pandas --junitxml=test-data.xml"
-      displayName: 'Run 32-bit manylinux2014 Docker Build / Tests'
+        python setup.py build_ext -q -j 4 && \
+        python -m pip install -e . --no-build-isolation --no-use-pep517 && \
+        pytest -m 'not slow and not network and not clipboard' pandas"
+      displayName: Run 32-bit manylinux2014 Docker Build / Tests
 
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:
-        testResultsFiles: '**/test-*.xml'
         failTaskOnFailedTests: true
-        testRunTitle: 'Publish test results for Python 3.7-32 bit full Linux'
+        testResultsFiles: 'test-data.xml'
+        testRunTitle: 'Linux Python 3.7 32-bit'
+      displayName: Publish test results
