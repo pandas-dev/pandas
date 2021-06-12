@@ -11,6 +11,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Callable,
     Hashable,
     Mapping,
@@ -252,7 +253,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: Dtype | None = None,
         copy: bool_t = False,
     ) -> Manager:
-        """ passed a manager and a axes dict """
+        """passed a manager and a axes dict"""
         for a, axe in axes.items():
             if axe is not None:
                 axe = ensure_index(axe)
@@ -433,7 +434,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @classmethod
     def _validate_dtype(cls, dtype) -> DtypeObj | None:
-        """ validate the passed dtype """
+        """validate the passed dtype"""
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
@@ -3295,7 +3296,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(storage_options=_shared_docs["storage_options"])
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer | None = None,
+        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
         sep: str = ",",
         na_rep: str = "",
         float_format: str | None = None,
@@ -4000,7 +4001,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @property
     def _is_view(self) -> bool_t:
-        """Return boolean indicating if self is view of another array """
+        """Return boolean indicating if self is view of another array"""
         return self._mgr.is_view
 
     @final
@@ -4856,7 +4857,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy: bool_t = False,
         allow_dups: bool_t = False,
     ) -> FrameOrSeries:
-        """allow_dups indicates an internal call here """
+        """allow_dups indicates an internal call here"""
         # reindex doing multiple operations on different axes if indicated
         new_data = self._mgr
         for axis in sorted(reindexers.keys()):
@@ -5575,7 +5576,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _check_inplace_setting(self, value) -> bool_t:
-        """ check whether we allow in-place setting with this type of value """
+        """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
 
             # allow an actual np.nan thru
@@ -7284,11 +7285,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        lower : float or array_like, default None
+        lower : float or array-like, default None
             Minimum threshold value. All values below this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
-        upper : float or array_like, default None
+        upper : float or array-like, default None
             Maximum threshold value. All values above this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
@@ -7888,8 +7889,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Pass a custom function via ``apply``
 
-        >>> def custom_resampler(array_like):
-        ...     return np.sum(array_like) + 5
+        >>> def custom_resampler(arraylike):
+        ...     return np.sum(arraylike) + 5
         ...
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
@@ -10892,7 +10893,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
         alpha: float | None = None,
-        min_periods: int = 0,
+        min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
         axis: Axis = 0,

@@ -77,7 +77,7 @@ def frame_apply(
     args=None,
     kwargs=None,
 ) -> FrameApply:
-    """ construct and return a row or column based frame apply object """
+    """construct and return a row or column based frame apply object"""
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
@@ -639,7 +639,7 @@ class FrameApply(NDFrameApply):
         return self.obj.dtypes
 
     def apply(self) -> FrameOrSeriesUnion:
-        """ compute the results """
+        """compute the results"""
         # dispatch to agg
         if is_list_like(self.f):
             return self.apply_multiple()
@@ -733,7 +733,7 @@ class FrameApply(NDFrameApply):
             return self.obj.copy()
 
     def apply_raw(self):
-        """ apply to the values as a numpy array """
+        """apply to the values as a numpy array"""
 
         def wrap_function(func):
             """
@@ -867,7 +867,7 @@ class FrameRowApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the rows """
+        """return the results for the rows"""
 
         if self.result_type == "reduce":
             # e.g. test_apply_dict GH#8735
@@ -950,7 +950,7 @@ class FrameColumnApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the columns """
+        """return the results for the columns"""
         result: FrameOrSeriesUnion
 
         # we have requested to expand
@@ -969,7 +969,7 @@ class FrameColumnApply(FrameApply):
         return result
 
     def infer_to_same_shape(self, results: ResType, res_index: Index) -> DataFrame:
-        """ infer the results to the same shape as the input object """
+        """infer the results to the same shape as the input object"""
         result = self.obj._constructor(data=results)
         result = result.T
 

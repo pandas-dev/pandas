@@ -1191,7 +1191,7 @@ def _floatify_na_values(na_values):
 
 
 def _stringify_na_values(na_values):
-    """ return a stringified and numeric for these values """
+    """return a stringified and numeric for these values"""
     result: list[int | str | float] = []
     for x in na_values:
         result.append(str(x))
