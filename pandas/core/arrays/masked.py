@@ -60,7 +60,7 @@ from pandas.core.indexers import check_array_indexer
 if TYPE_CHECKING:
     from pandas import Series
     from pandas.core.arrays import BooleanArray
-
+from pandas.compat.numpy import function as nv
 
 BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
@@ -111,6 +111,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
+    # Fill values used for any/all
+    _truthy_value = Scalar  # bool(_truthy_value) = True
+    _falsey_value = Scalar  # bool(_falsey_value) = False
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         # values is supposed to already be validated in the subclass
@@ -489,6 +492,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(counts, index=index)
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+        if name in {"any", "all"}:
+            return getattr(self, name)(skipna=skipna, **kwargs)
+
         data = self._data
         mask = self._mask
 
@@ -508,3 +514,138 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return libmissing.NA
 
         return result
+
+    def any(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether any element is True.
+
+        Returns False unless there is at least one element that is True.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be False, as for an empty array.
+            If `skipna` is False, the result will still be True if there is
+            at least one element that is True, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.any : Numpy version of this method.
+        BooleanArray.all : Return whether all elements are True.
+
+        Examples
+        --------
+        The result indicates whether any element is True (and by default
+        skips NAs):
+
+        >>> pd.array([True, False, True]).any()
+        True
+        >>> pd.array([True, False, pd.NA]).any()
+        True
+        >>> pd.array([False, False, pd.NA]).any()
+        False
+        >>> pd.array([], dtype="boolean").any()
+        False
+        >>> pd.array([pd.NA], dtype="boolean").any()
+        False
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, False, pd.NA]).any(skipna=False)
+        True
+        >>> pd.array([False, False, pd.NA]).any(skipna=False)
+        <NA>
+        """
+        kwargs.pop("axis", None)
+        nv.validate_any((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, self._falsey_value)
+        result = values.any()
+        if skipna:
+            return result
+        else:
+            if result or len(self) == 0 or not self._mask.any():
+                return result
+            else:
+                return self.dtype.na_value
+
+    def all(self, *, skipna: bool = True, **kwargs):
+        """
+        Return whether all elements are True.
+
+        Returns True unless there is at least one element that is False.
+        By default, NAs are skipped. If ``skipna=False`` is specified and
+        missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
+        is used as for logical operations.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Exclude NA values. If the entire array is NA and `skipna` is
+            True, then the result will be True, as for an empty array.
+            If `skipna` is False, the result will still be False if there is
+            at least one element that is False, otherwise NA will be returned
+            if there are NA's present.
+        **kwargs : any, default None
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        bool or :attr:`pandas.NA`
+
+        See Also
+        --------
+        numpy.all : Numpy version of this method.
+        BooleanArray.any : Return whether any element is True.
+
+        Examples
+        --------
+        The result indicates whether any element is True (and by default
+        skips NAs):
+
+        >>> pd.array([True, True, pd.NA]).all()
+        True
+        >>> pd.array([True, False, pd.NA]).all()
+        False
+        >>> pd.array([], dtype="boolean").all()
+        True
+        >>> pd.array([pd.NA], dtype="boolean").all()
+        True
+
+        With ``skipna=False``, the result can be NA if this is logically
+        required (whether ``pd.NA`` is True or False influences the result):
+
+        >>> pd.array([True, True, pd.NA]).all(skipna=False)
+        <NA>
+        >>> pd.array([True, False, pd.NA]).all(skipna=False)
+        False
+        """
+        kwargs.pop("axis", None)
+        nv.validate_all((), kwargs)
+
+        values = self._data.copy()
+        np.putmask(values, self._mask, self._truthy_value)
+        result = values.all()
+
+        if skipna:
+            return result
+        else:
+            if not result or len(self) == 0 or not self._mask.any():
+                return result
+            else:
+                return self.dtype.na_value

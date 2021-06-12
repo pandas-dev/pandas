@@ -964,6 +964,7 @@ class TestSeriesReductions:
         expected = bool_agg_func == "any" and None not in data
         assert result == expected
 
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "UInt64", "Float64"])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize(
@@ -979,10 +980,10 @@ class TestSeriesReductions:
             ([True, pd.NA, False], [[True, False], [True, False]]),
         ],
     )
-    def test_any_all_boolean_kleene_logic(
-        self, bool_agg_func, skipna, data, expected_data
+    def test_any_all_nullable_kleene_logic(
+        self, bool_agg_func, skipna, data, dtype, expected_data
     ):
-        ser = Series(data, dtype="boolean")
+        ser = Series(data, dtype="boolean").astype(dtype)
         expected = expected_data[skipna][bool_agg_func == "all"]
 
         result = getattr(ser, bool_agg_func)(skipna=skipna)
