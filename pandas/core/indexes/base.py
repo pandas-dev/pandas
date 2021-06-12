@@ -3423,11 +3423,18 @@ class Index(IndexOpsMixin, PandasObject):
 
             return ensure_platform_int(indexer)
 
+        if len(target) == 0:
+            return np.array([], dtype=np.intp)
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(
                 ptarget, method=method, limit=limit, tolerance=tolerance
             )
+
+        if is_dtype_equal(self.dtype, target.dtype) and self.equals(target):
+            # Only call equals if we have same dtype to avoid inference/casting
+            return np.arange(len(target), dtype=np.intp)
 
         return self._get_indexer(target, method, limit, tolerance)
 
