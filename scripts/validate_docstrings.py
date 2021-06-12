@@ -197,6 +197,9 @@ class PandasDocstring(Docstring):
             error_count, error_code, message = error_message.split(maxsplit=2)
             yield error_code, message, int(error_count)
 
+    def non_hyphenated_array_like(self):
+        return "array_like" in self.raw_doc
+
 
 def pandas_validate(func_name: str):
     """
@@ -257,7 +260,7 @@ def pandas_validate(func_name: str):
                     pandas_error("EX04", imported_library=wrong_import)
                 )
 
-    if "array_like" in doc.raw_doc:
+    if doc.non_hyphenated_array_like():
         result["errors"].append(pandas_error("GL05"))
 
     return result
