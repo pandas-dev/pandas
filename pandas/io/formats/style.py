@@ -915,7 +915,7 @@ class Styler(StylerRenderer):
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
                 self.ctx[(i, j)].extend(css_list)
 
-    def _update_ctx_index(self, attrs: DataFrame) -> None:
+    def _update_ctx_header(self, attrs: DataFrame, axis: str) -> None:
         """
         Update the state of the ``Styler`` for index cells.
 
@@ -928,13 +928,18 @@ class Styler(StylerRenderer):
             integer index.
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
+        axis : str
+            Identifies whether the ctx object being updated is the index or columns
         """
         for j in attrs.columns:
             for i, c in attrs[[j]].itertuples():
                 if not c:
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
-                self.ctx_index[(i, j)].extend(css_list)
+                if axis == "index":
+                    self.ctx_index[(i, j)].extend(css_list)
+                else:
+                    self.ctx_columns[(j, i)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
         styler = Styler(
@@ -1112,24 +1117,41 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def _apply_index(
+    def _apply_header(
         self,
         func: Callable[..., Styler],
+        axis: int | str = 0,
         levels: list[int] | int | None = None,
+        method: str = "apply",
         **kwargs,
     ) -> Styler:
-        if isinstance(self.index, pd.MultiIndex) and levels is not None:
-            levels = [levels] if isinstance(levels, int) else levels
-            data = DataFrame(self.index.to_list()).loc[:, levels]
+        if axis in [0, "index"]:
+            obj, axis = self.index, "index"
+        elif axis in [1, "columns"]:
+            obj, axis = self.columns, "columns"
         else:
-            data = DataFrame(self.index.to_list())
-        result = data.apply(func, axis=0, **kwargs)
-        self._update_ctx_index(result)
+            raise ValueError(
+                f"`axis` must be one of 0, 1, 'index', 'columns', got {axis}"
+            )
+
+        if isinstance(obj, pd.MultiIndex) and levels is not None:
+            levels = [levels] if isinstance(levels, int) else levels
+            data = DataFrame(obj.to_list()).loc[:, levels]
+        else:
+            data = DataFrame(obj.to_list())
+
+        if method == "apply":
+            result = data.apply(func, axis=0, **kwargs)
+        elif method == "applymap":
+            result = data.applymap(func, **kwargs)
+
+        self._update_ctx_header(result, axis)
         return self
 
-    def apply_index(
+    def apply_header(
         self,
         func: Callable[..., Styler],
+        axis: int | str = 0,
         levels: list[int] | int | None = None,
         **kwargs,
     ) -> Styler:
@@ -1154,7 +1176,11 @@ class Styler(StylerRenderer):
         self : Styler
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_apply_index"), (func, levels), kwargs)
+            (
+                lambda instance: getattr(instance, "_apply_header"),
+                (func, axis, levels, "apply"),
+                kwargs,
+            )
         )
         return self
 
@@ -1224,24 +1250,10 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def _applymap_index(
+    def applymap_header(
         self,
         func: Callable[..., Styler],
-        levels: list[int] | int | None = None,
-        **kwargs,
-    ) -> Styler:
-        if isinstance(self.index, pd.MultiIndex) and levels is not None:
-            levels = [levels] if isinstance(levels, int) else levels
-            data = DataFrame(self.index.to_list()).loc[:, levels]
-        else:
-            data = DataFrame(self.index.to_list())
-        result = data.applymap(func, **kwargs)
-        self._update_ctx_index(result)
-        return self
-
-    def applymap_index(
-        self,
-        func: Callable[..., Styler],
+        axis: int | str = 0,
         levels: list[int] | int | None = None,
         **kwargs,
     ) -> Styler:
@@ -1267,8 +1279,8 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_applymap_index"),
-                (func, levels),
+                lambda instance: getattr(instance, "_apply_header"),
+                (func, axis, levels, "applymap"),
                 kwargs,
             )
         )

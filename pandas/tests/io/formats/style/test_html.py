@@ -97,7 +97,7 @@ def test_w3_html_format(styler):
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th class="col_heading level0 col0" >A</th>
+              <th id="T_level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>
@@ -127,10 +127,7 @@ def test_rowspan_w3():
     # GH 38533
     df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert (
-        '<th id="T___level0_row0" class="row_heading '
-        'level0 row0" rowspan="2">l0</th>' in styler.render()
-    )
+    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.render()
 
 
 def test_styles(styler):
@@ -154,7 +151,7 @@ def test_styles(styler):
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th class="col_heading level0 col0" >A</th>
+              <th id="T_abc_level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>

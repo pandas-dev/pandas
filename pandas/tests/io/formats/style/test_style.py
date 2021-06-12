@@ -393,161 +393,58 @@ class TestStyler:
         # https://github.com/pandas-dev/pandas/pull/12090#issuecomment-180695902
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.style._translate(True, True)
-
-        expected = [
-            [
-                {
-                    "class": "blank level0",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "is_visible": True,
-                    "display_value": self.blank_value,
-                },
-                {
-                    "class": "col_heading level0 col0",
-                    "display_value": "A",
-                    "type": "th",
-                    "value": "A",
-                    "is_visible": True,
-                    "attributes": "",
-                },
-                {
-                    "class": "col_heading level0 col1",
-                    "display_value": "B",
-                    "type": "th",
-                    "value": "B",
-                    "is_visible": True,
-                    "attributes": "",
-                },
-                {
-                    "class": "col_heading level0 col2",
-                    "display_value": "C",
-                    "type": "th",
-                    "value": "C",
-                    "is_visible": True,
-                    "attributes": "",
-                },
-            ]
-        ]
-
-        assert result["head"] == expected
+        assert len(result["head"]) == 1
+        expected = {
+            "class": "blank level0",
+            "type": "th",
+            "value": self.blank_value,
+            "is_visible": True,
+            "display_value": self.blank_value,
+        }
+        assert expected.items() <= result["head"][0][0].items()
 
     def test_index_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
-        # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.set_index("A").style._translate(True, True)
-
-        expected = [
-            [
-                {
-                    "class": "blank level0",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "display_value": self.blank_value,
-                    "is_visible": True,
-                },
-                {
-                    "class": "col_heading level0 col0",
-                    "type": "th",
-                    "value": "B",
-                    "display_value": "B",
-                    "is_visible": True,
-                    "attributes": "",
-                },
-                {
-                    "class": "col_heading level0 col1",
-                    "type": "th",
-                    "value": "C",
-                    "display_value": "C",
-                    "is_visible": True,
-                    "attributes": "",
-                },
-            ],
-            [
-                {
-                    "class": "index_name level0",
-                    "type": "th",
-                    "value": "A",
-                    "is_visible": True,
-                    "display_value": "A",
-                },
-                {
-                    "class": "blank col0",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "is_visible": True,
-                    "display_value": self.blank_value,
-                },
-                {
-                    "class": "blank col1",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "is_visible": True,
-                    "display_value": self.blank_value,
-                },
-            ],
-        ]
-
-        assert result["head"] == expected
+        expected = {
+            "class": "index_name level0",
+            "type": "th",
+            "value": "A",
+            "is_visible": True,
+            "display_value": "A",
+        }
+        assert expected.items() <= result["head"][1][0].items()
 
     def test_multiindex_name(self):
         # https://github.com/pandas-dev/pandas/issues/11655
-        # TODO: this test can be minimised to address the test more directly
         df = DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
         result = df.set_index(["A", "B"]).style._translate(True, True)
 
         expected = [
-            [
-                {
-                    "class": "blank",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "display_value": self.blank_value,
-                    "is_visible": True,
-                },
-                {
-                    "class": "blank level0",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "display_value": self.blank_value,
-                    "is_visible": True,
-                },
-                {
-                    "class": "col_heading level0 col0",
-                    "type": "th",
-                    "value": "C",
-                    "display_value": "C",
-                    "is_visible": True,
-                    "attributes": "",
-                },
-            ],
-            [
-                {
-                    "class": "index_name level0",
-                    "type": "th",
-                    "value": "A",
-                    "is_visible": True,
-                    "display_value": "A",
-                },
-                {
-                    "class": "index_name level1",
-                    "type": "th",
-                    "value": "B",
-                    "is_visible": True,
-                    "display_value": "B",
-                },
-                {
-                    "class": "blank col0",
-                    "type": "th",
-                    "value": self.blank_value,
-                    "is_visible": True,
-                    "display_value": self.blank_value,
-                },
-            ],
+            {
+                "class": "index_name level0",
+                "type": "th",
+                "value": "A",
+                "is_visible": True,
+                "display_value": "A",
+            },
+            {
+                "class": "index_name level1",
+                "type": "th",
+                "value": "B",
+                "is_visible": True,
+                "display_value": "B",
+            },
+            {
+                "class": "blank col0",
+                "type": "th",
+                "value": self.blank_value,
+                "is_visible": True,
+                "display_value": self.blank_value,
+            },
         ]
-
-        assert result["head"] == expected
+        assert result["head"][1] == expected
 
     def test_numeric_columns(self):
         # https://github.com/pandas-dev/pandas/issues/12125
@@ -1064,7 +961,6 @@ class TestStyler:
         assert head == expected
 
     def test_mi_sparse_column_names(self):
-        # TODO this test is verbose - could be minimised
         df = DataFrame(
             np.arange(16).reshape(4, 4),
             index=MultiIndex.from_arrays(
@@ -1075,7 +971,7 @@ class TestStyler:
                 [["C1", "C1", "C2", "C2"], [1, 0, 1, 0]], names=["col_0", "col_1"]
             ),
         )
-        result = df.style._translate(True, True)
+        result = Styler(df, cell_ids=False)._translate(True, True)
         head = result["head"][1]
         expected = [
             {
@@ -1265,7 +1161,7 @@ class TestStyler:
         styler = Styler(df, uuid="_", cell_ids=False)
         styler.render()
         s = styler.render()  # render twice to ensure ctx is not updated
-        assert s.find('<td  class="data row0 col0" >') != -1
+        assert s.find('<td class="data row0 col0" >') != -1
 
     @pytest.mark.parametrize(
         "classes",
@@ -1283,10 +1179,10 @@ class TestStyler:
         # GH 36159
         df = DataFrame(data=[[0, 1], [2, 3]], columns=["A", "B"], index=["a", "b"])
         s = Styler(df, uuid_len=0, cell_ids=False).set_td_classes(classes).render()
-        assert '<td  class="data row0 col0" >0</td>' in s
-        assert '<td  class="data row0 col1 test-class" >1</td>' in s
-        assert '<td  class="data row1 col0" >2</td>' in s
-        assert '<td  class="data row1 col1" >3</td>' in s
+        assert '<td class="data row0 col0" >0</td>' in s
+        assert '<td class="data row0 col1 test-class" >1</td>' in s
+        assert '<td class="data row1 col0" >2</td>' in s
+        assert '<td class="data row1 col1" >3</td>' in s
         # GH 39317
         s = Styler(df, uuid_len=0, cell_ids=True).set_td_classes(classes).render()
         assert '<td id="T__row0_col0" class="data row0 col0" >0</td>' in s
