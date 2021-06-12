@@ -1,8 +1,6 @@
+from __future__ import annotations
+
 import re
-from typing import (
-    Type,
-    Union,
-)
 
 import numpy as np
 import pytest
@@ -80,7 +78,7 @@ def timedelta_index():
 
 
 class SharedTests:
-    index_cls: Type[Union[DatetimeIndex, PeriodIndex, TimedeltaIndex]]
+    index_cls: type[DatetimeIndex | PeriodIndex | TimedeltaIndex]
 
     @pytest.fixture
     def arr1d(self):
@@ -298,7 +296,7 @@ class SharedTests:
             assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
-    def test_searchsorted_castable_strings(self, arr1d, box, request):
+    def test_searchsorted_castable_strings(self, arr1d, box, request, string_storage):
         if isinstance(arr1d, DatetimeArray):
             tz = arr1d.tz
             ts1, ts2 = arr1d[1:3]
@@ -341,14 +339,17 @@ class SharedTests:
         ):
             arr.searchsorted("foo")
 
-        with pytest.raises(
-            TypeError,
-            match=re.escape(
-                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                "or array of those. Got 'StringArray' instead."
-            ),
-        ):
-            arr.searchsorted([str(arr[1]), "baz"])
+        arr_type = "StringArray" if string_storage == "python" else "ArrowStringArray"
+
+        with pd.option_context("string_storage", string_storage):
+            with pytest.raises(
+                TypeError,
+                match=re.escape(
+                    f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+                    f"or array of those. Got '{arr_type}' instead."
+                ),
+            ):
+                arr.searchsorted([str(arr[1]), "baz"])
 
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different
