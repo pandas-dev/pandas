@@ -2,7 +2,8 @@ name: Posix
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
     branches:
       - master
@@ -42,9 +43,8 @@ jobs:
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
     concurrency:
-      group: ${{ matrix.settings[0] }}
+      group: ${{ github.ref }}-${{ matrix.settings[0] }}
       cancel-in-progress: true
-
 
     steps:
     - name: Checkout
