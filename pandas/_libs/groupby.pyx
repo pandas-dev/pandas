@@ -1339,7 +1339,6 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         True if `values` contains datetime-like entries.
     skipna : bool
         If True, ignore nans in `values`.
-
     compute_max : bool
         True if cumulative maximum should be computed, False
         if cumulative minimum should be computed
@@ -1359,14 +1358,14 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     else:
         accum[:] = -np.inf if compute_max else np.inf
 
-    if mask is not None:
+    if mask is None:
         cummin_max(out, values, labels, accum, skipna, is_datetimelike, compute_max)
     else:
         masked_cummin_max(out, values, mask, labels, accum, skipna, compute_max)
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 cdef cummin_max(groupby_t[:, ::1] out,
                 ndarray[groupby_t, ndim=2] values,
                 const intp_t[:] labels,
@@ -1420,8 +1419,8 @@ cdef cummin_max(groupby_t[:, ::1] out,
                         out[i, j] = val
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
 cdef masked_cummin_max(groupby_t[:, ::1] out,
                        ndarray[groupby_t, ndim=2] values,
                        uint8_t[:, ::1] mask,
