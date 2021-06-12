@@ -23,6 +23,7 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
+from pandas._libs.arrays cimport NDArrayBacked
 from pandas._libs.util cimport is_integer_object
 
 
@@ -372,7 +373,9 @@ cdef slice indexer_as_slice(intp_t[:] vals):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_blkno_indexers(int64_t[:] blknos, bint group=True):
+def get_blkno_indexers(
+    int64_t[:] blknos, bint group=True
+) -> list[tuple[int, slice | np.ndarray]]:
     """
     Enumerate contiguous runs of integers in ndarray.
 
@@ -515,7 +518,30 @@ cdef class NumpyBlock(SharedBlock):
         self.values = values
 
     # @final  # not useful in cython, but we _would_ annotate with @final
-    def getitem_block_index(self, slicer: slice) -> NumpyBlock:
+    cpdef NumpyBlock getitem_block_index(self, slice slicer):
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        new_values = self.values[..., slicer]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
+
+cdef class NDArrayBackedBlock(SharedBlock):
+    """
+    Block backed by NDArrayBackedExtensionArray
+    """
+    cdef public:
+        NDArrayBacked values
+
+    def __cinit__(self, NDArrayBacked values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
+
+    # @final  # not useful in cython, but we _would_ annotate with @final
+    cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -533,3 +559,107 @@ cdef class Block(SharedBlock):
         # set values here the (implicit) call to SharedBlock.__cinit__ will
         #  set placement and ndim
         self.values = values
+
+
+@cython.freelist(64)
+cdef class BlockManager:
+    cdef:
+        public tuple blocks
+        public list axes
+        public bint _known_consolidated, _is_consolidated
+        public ndarray _blknos, _blklocs
+
+    def __cinit__(self, blocks, axes, verify_integrity=True):
+        if isinstance(blocks, list):
+            # Backward compat for e.g. pyarrow
+            blocks = tuple(blocks)
+
+        self.blocks = blocks
+        self.axes = axes.copy()  # copy to make sure we are not remotely-mutable
+
+        # Populate known_consolidate, blknos, and blklocs lazily
+        self._known_consolidated = False
+        self._is_consolidated = False
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blknos = None  # type: ignore[assignment]
+        # error: Incompatible types in assignment (expression has type "None",
+        # variable has type "ndarray")
+        self._blklocs = None  # type: ignore[assignment]
+
+    # -------------------------------------------------------------------
+    # Pickle
+
+    cpdef __reduce__(self):
+        if len(self.axes) == 1:
+            # SingleBlockManager, __init__ expects Block, axis
+            args = (self.blocks[0], self.axes[0])
+        else:
+            args = (self.blocks, self.axes)
+        return type(self), args
+
+    cpdef __setstate__(self, state):
+        from pandas.core.construction import extract_array
+        from pandas.core.internals.blocks import (
+            ensure_block_shape,
+            new_block,
+        )
+        from pandas.core.internals.managers import ensure_index
+
+        if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
+            state = state[3]["0.14.1"]
+            axes = [ensure_index(ax) for ax in state["axes"]]
+            ndim = len(axes)
+
+            for blk in state["blocks"]:
+                vals = blk["values"]
+                # older versions may hold e.g. DatetimeIndex instead of DTA
+                vals = extract_array(vals, extract_numpy=True)
+                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+
+            nbs = [
+                new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
+                for blk in state["blocks"]
+            ]
+            blocks = tuple(nbs)
+            self.blocks = blocks
+            self.axes = axes
+
+        else:
+            raise NotImplementedError("pre-0.14.1 pickles are no longer supported")
+
+        self._post_setstate()
+
+    def _post_setstate(self) -> None:
+        self._is_consolidated = False
+        self._known_consolidated = False
+        self._rebuild_blknos_and_blklocs()
+
+    # -------------------------------------------------------------------
+    # Indexing
+
+    cdef BlockManager _get_index_slice(self, slobj):
+        cdef:
+            SharedBlock blk, nb
+
+        nbs = []
+        for blk in self.blocks:
+            nb = blk.getitem_block_index(slobj)
+            nbs.append(nb)
+
+        new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
+        return type(self)(tuple(nbs), new_axes, verify_integrity=False)
+
+    def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
+
+        if axis == 0:
+            new_blocks = self._slice_take_blocks_ax0(slobj)
+        elif axis == 1:
+            return self._get_index_slice(slobj)
+        else:
+            raise IndexError("Requested axis not found in manager")
+
+        new_axes = list(self.axes)
+        new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
+
+        return type(self)(tuple(new_blocks), new_axes, verify_integrity=False)

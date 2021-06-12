@@ -1184,10 +1184,8 @@ a single value and returning a single value. For example:
 
    df4
 
-
    def f(x):
        return len(str(x))
-
 
    df4["one"].map(f)
    df4.applymap(f)
@@ -1491,8 +1489,6 @@ for altering the ``Series.name`` attribute.
    s.rename("scalar-name")
 
 .. _basics.rename_axis:
-
-.. versionadded:: 0.24.0
 
 The methods :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis`
 allow specific names of a ``MultiIndex`` to be changed (as opposed to the

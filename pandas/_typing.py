@@ -36,7 +36,11 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from typing import final
+    from typing import (
+        Literal,
+        TypedDict,
+        final,
+    )
 
     from pandas._libs import (
         Period,
@@ -52,6 +56,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.generic import (
         DataFrameGroupBy,
+        GroupBy,
         SeriesGroupBy,
     )
     from pandas.core.indexes.base import Index
@@ -70,6 +75,8 @@ if TYPE_CHECKING:
 else:
     # typing.final does not exist until py38
     final = lambda x: x
+    # typing.TypedDict does not exist until py38
+    TypedDict = dict
 
 
 # array-like
@@ -152,6 +159,7 @@ AggFuncType = Union[
 AggObjType = Union[
     "Series",
     "DataFrame",
+    "GroupBy",
     "SeriesGroupBy",
     "DataFrameGroupBy",
     "BaseWindow",
@@ -162,8 +170,8 @@ PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
-FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
+FileOrBuffer = Union[str, Buffer[AnyStr]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -183,6 +191,12 @@ FloatFormatType = Union[str, Callable, "EngFormatter"]
 ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
+
+# Arguments for fillna()
+if TYPE_CHECKING:
+    FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+else:
+    FillnaOptions = str
 
 # internals
 Manager = Union[

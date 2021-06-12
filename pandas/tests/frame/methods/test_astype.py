@@ -428,11 +428,27 @@ class TestAstype:
         other = f"m8[{unit}]"
 
         df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
-        msg = fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]"
+        msg = "|".join(
+            [
+                # BlockManager path
+                fr"Cannot cast DatetimeArray to dtype timedelta64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a datetimelike from "
+                fr"\[datetime64\[ns\]\] to \[timedelta64\[{unit}\]\]",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             df.astype(other)
 
-        msg = fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]"
+        msg = "|".join(
+            [
+                # BlockManager path
+                fr"Cannot cast TimedeltaArray to dtype datetime64\[{unit}\]",
+                # ArrayManager path
+                "cannot astype a timedelta from "
+                fr"\[timedelta64\[ns\]\] to \[datetime64\[{unit}\]\]",
+            ]
+        )
         df = DataFrame(np.array([[1, 2, 3]], dtype=other))
         with pytest.raises(TypeError, match=msg):
             df.astype(dtype)
@@ -568,10 +584,10 @@ class TestAstype:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            (["x", "y", "z"], "string"),
+            (["x", "y", "z"], "string[python]"),
             pytest.param(
                 ["x", "y", "z"],
-                "arrow_string",
+                "string[pyarrow]",
                 marks=td.skip_if_no("pyarrow", min_version="1.0.0"),
             ),
             (["x", "y", "z"], "category"),
@@ -582,8 +598,6 @@ class TestAstype:
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
     def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
         df = DataFrame(Series(data, dtype=dtype))
         if errors == "ignore":
             expected = df

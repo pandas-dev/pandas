@@ -311,7 +311,7 @@ class TestArithmetic:
             index - "foo"
 
         with pytest.raises(TypeError, match=msg):
-            index - np.array([2, "foo"])
+            index - np.array([2, "foo"], dtype=object)
 
     def test_rsub_object(self):
         # GH#19369

@@ -11,7 +11,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import index as libindex
-from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
     Dtype,
@@ -223,6 +222,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         name = maybe_extract_name(name, data, cls)
 
+        if data is None:
+            # GH#38944
+            warnings.warn(
+                "Constructing a CategoricalIndex without passing data is "
+                "deprecated and will raise in a future version. "
+                "Use CategoricalIndex([], ...) instead",
+                FutureWarning,
+                stacklevel=2,
+            )
+            data = []
+
         if is_scalar(data):
             raise cls._scalar_data_error(data)
 
@@ -233,22 +243,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return cls._simple_new(data, name=name)
 
     # --------------------------------------------------------------------
-
-    @doc(Index._shallow_copy)
-    def _shallow_copy(
-        self,
-        values: Categorical,
-        name: Hashable = no_default,
-    ) -> CategoricalIndex:
-        name = self._name if name is no_default else name
-
-        if values is not None:
-            # In tests we only get here with Categorical objects that
-            #  have matching .ordered, and values.categories a subset of
-            #  our own.  However we do _not_ have a dtype match in general.
-            values = Categorical(values, dtype=self.dtype)
-
-        return super()._shallow_copy(values=values, name=name)
 
     def _is_dtype_compat(self, other) -> Categorical:
         """
@@ -275,6 +269,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
+
+        elif other._is_multi:
+            # preempt raising NotImplementedError in isna call
+            raise TypeError("MultiIndex is not dtype-compatible with CategoricalIndex")
         else:
             values = other
 
@@ -341,13 +339,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             # error: "CategoricalIndex" has no attribute "ordered"
             ("ordered", self.ordered),  # type: ignore[attr-defined]
         ]
-        if self.name is not None:
-            attrs.append(("name", ibase.default_pprint(self.name)))
-        attrs.append(("dtype", f"'{self.dtype.name}'"))
-        max_seq_items = get_option("display.max_seq_items") or len(self)
-        if len(self) > max_seq_items:
-            attrs.append(("length", len(self)))
-        return attrs
+        extra = super()._format_attrs()
+        return attrs + extra
 
     def _format_with_header(self, header: list[str], na_rep: str = "NaN") -> list[str]:
         from pandas.io.formats.printing import pprint_thing
@@ -385,15 +378,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             return self.astype(object).fillna(value, downcast=downcast)
 
         return type(self)._simple_new(cat, name=self.name)
-
-    @doc(Index.unique)
-    def unique(self, level=None):
-        if level is not None:
-            self._validate_index_level(level)
-        result = self._values.unique()
-        # Use _simple_new instead of _shallow_copy to ensure we keep dtype
-        #  of result, not self.
-        return type(self)._simple_new(result, name=self.name)
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
@@ -508,6 +492,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         limit: int | None = None,
         tolerance=None,
     ) -> np.ndarray:
+        # returned ndarray is np.intp
 
         if self.equals(target):
             return np.arange(len(self), dtype="intp")
@@ -515,11 +500,15 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         return self._get_indexer_non_unique(target._values)[0]
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target):
+    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         target = ibase.ensure_index(target)
         return self._get_indexer_non_unique(target._values)
 
-    def _get_indexer_non_unique(self, values: ArrayLike):
+    def _get_indexer_non_unique(
+        self, values: ArrayLike
+    ) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
         """
         get_indexer_non_unique but after unrapping the target Index object.
         """
@@ -538,19 +527,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             codes = self.categories.get_indexer(values)
 
         indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer), missing
-
-    @doc(Index._convert_list_indexer)
-    def _convert_list_indexer(self, keyarr):
-        # Return our indexer or raise if all of the values are not included in
-        # the categories
-
-        if self.categories._defer_to_indexing:
-            # See tests.indexing.interval.test_interval:test_loc_getitem_frame
-            indexer = self.categories._convert_list_indexer(keyarr)
-            return Index(self.codes).get_indexer_for(indexer)
-
-        return self.get_indexer_for(keyarr)
+        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     # --------------------------------------------------------------------
 
@@ -651,7 +628,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
-        """ method delegation to the ._values """
+        """method delegation to the ._values"""
         method = getattr(self._values, name)
         if "inplace" in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")

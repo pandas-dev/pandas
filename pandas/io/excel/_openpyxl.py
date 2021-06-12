@@ -37,6 +37,7 @@ class OpenpyxlWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
+        if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ):
         # Use the openpyxl module as the Excel writer.
@@ -46,6 +47,7 @@ class OpenpyxlWriter(ExcelWriter):
             path,
             mode=mode,
             storage_options=storage_options,
+            if_sheet_exists=if_sheet_exists,
             engine_kwargs=engine_kwargs,
         )
 
@@ -56,6 +58,8 @@ class OpenpyxlWriter(ExcelWriter):
 
             self.book = load_workbook(self.handles.handle)
             self.handles.handle.seek(0)
+            self.sheets = {name: self.book[name] for name in self.book.sheetnames}
+
         else:
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
@@ -414,8 +418,26 @@ class OpenpyxlWriter(ExcelWriter):
 
         _style_cache: dict[str, dict[str, Serialisable]] = {}
 
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
+        if sheet_name in self.sheets and self.if_sheet_exists != "new":
+            if "r+" in self.mode:
+                if self.if_sheet_exists == "replace":
+                    old_wks = self.sheets[sheet_name]
+                    target_index = self.book.index(old_wks)
+                    del self.book[sheet_name]
+                    wks = self.book.create_sheet(sheet_name, target_index)
+                    self.sheets[sheet_name] = wks
+                elif self.if_sheet_exists == "error":
+                    raise ValueError(
+                        f"Sheet '{sheet_name}' already exists and "
+                        f"if_sheet_exists is set to 'error'."
+                    )
+                else:
+                    raise ValueError(
+                        f"'{self.if_sheet_exists}' is not valid for if_sheet_exists. "
+                        "Valid options are 'error', 'new' and 'replace'."
+                    )
+            else:
+                wks = self.sheets[sheet_name]
         else:
             wks = self.book.create_sheet()
             wks.title = sheet_name
@@ -506,12 +528,6 @@ class OpenpyxlReader(BaseExcelReader):
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
 
-    def close(self):
-        # https://stackoverflow.com/questions/31416842/
-        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
-        self.book.close()
-        super().close()
-
     @property
     def sheet_names(self) -> list[str]:
         return self.book.sheetnames
@@ -549,15 +565,18 @@ class OpenpyxlReader(BaseExcelReader):
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
-            if not all(cell == "" for cell in converted_row):
+            while converted_row and converted_row[-1] == "":
+                # trim trailing empty elements
+                converted_row.pop()
+            if converted_row:
                 last_row_with_data = row_number
             data.append(converted_row)
 
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]
 
-        if self.book.read_only and len(data) > 0:
-            # With dimension reset, openpyxl no longer pads rows
+        if len(data) > 0:
+            # extend rows to max width
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
                 empty_cell: list[Scalar] = [""]

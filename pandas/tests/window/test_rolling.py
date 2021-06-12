@@ -6,6 +6,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
@@ -586,7 +587,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
         ),
     ],
 )
-def test_rolling_window_as_string(center, expected_data, using_array_manager):
+def test_rolling_window_as_string(center, expected_data):
     # see gh-22590
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
@@ -602,9 +603,7 @@ def test_rolling_window_as_string(center, expected_data, using_array_manager):
     ].agg("max")
 
     index = days.rename("DateCol")
-    if not using_array_manager:
-        # INFO(ArrayManager) preserves the frequence of the index
-        index = index._with_freq(None)
+    index = index._with_freq(None)
     expected = Series(expected_data, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 
@@ -744,7 +743,7 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     ],
 )
 def test_iter_rolling_on_dataframe(expected, window):
-    # GH 11704
+    # GH 11704, 40373
     df = DataFrame(
         {
             "A": [1, 2, 3, 4, 5],
@@ -753,7 +752,9 @@ def test_iter_rolling_on_dataframe(expected, window):
         }
     )
 
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expected = [
+        DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
+    ]
     for (expected, actual) in zip(expected, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
@@ -1072,6 +1073,7 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(is_platform_arm(), reason="GH 41740")
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [
@@ -1357,3 +1359,65 @@ def test_rolling_std_small_values():
     result = s.rolling(2).std()
     expected = Series([np.nan, 7.071068e-9, 7.071068e-9])
     tm.assert_series_equal(result, expected, atol=1.0e-15, rtol=1.0e-15)
+
+
+@pytest.mark.parametrize(
+    "start, exp_values",
+    [
+        (1, [0.03, 0.0155, 0.0155, 0.011, 0.01025]),
+        (2, [0.001, 0.001, 0.0015, 0.00366666]),
+    ],
+)
+def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
+    # GH#41053
+    df = DataFrame(
+        [
+            0.03,
+            0.03,
+            0.001,
+            np.NaN,
+            0.002,
+            0.008,
+            np.NaN,
+            np.NaN,
+            np.NaN,
+            np.NaN,
+            np.NaN,
+            np.NaN,
+            0.005,
+            0.2,
+        ]
+    )
+
+    values = exp_values + [
+        0.00366666,
+        0.005,
+        0.005,
+        0.008,
+        np.NaN,
+        np.NaN,
+        0.005,
+        0.102500,
+    ]
+    expected = DataFrame(
+        values,
+        index=list(range(start, len(values) + start)),
+    )
+    result = df.iloc[start:].rolling(5, min_periods=0).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_sum_all_nan_window_floating_artifacts():
+    # GH#41053
+    df = DataFrame([0.002, 0.008, 0.005, np.NaN, np.NaN, np.NaN])
+    result = df.rolling(3, min_periods=0).sum()
+    expected = DataFrame([0.002, 0.010, 0.015, 0.013, 0.005, 0.0])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_zero_window():
+    # GH 22719
+    s = Series(range(1))
+    result = s.rolling(0).min()
+    expected = Series([np.nan])
+    tm.assert_series_equal(result, expected)

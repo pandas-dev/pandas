@@ -7,82 +7,7 @@ from __future__ import annotations
 
 import collections
 
-from pandas._typing import final
-
-from pandas.core.dtypes.common import (
-    is_list_like,
-    is_scalar,
-)
-
-from pandas.core.base import PandasObject
-
 OutputKey = collections.namedtuple("OutputKey", ["label", "position"])
-
-
-class ShallowMixin(PandasObject):
-    _attributes: list[str] = []
-
-    @final
-    def _shallow_copy(self, obj, **kwargs):
-        """
-        return a new object with the replacement attributes
-        """
-        if isinstance(obj, self._constructor):
-            obj = obj.obj
-        for attr in self._attributes:
-            if attr not in kwargs:
-                kwargs[attr] = getattr(self, attr)
-        return self._constructor(obj, **kwargs)
-
-
-class GotItemMixin(PandasObject):
-    """
-    Provide the groupby facilities to the mixed object.
-    """
-
-    _attributes: list[str]
-
-    @final
-    def _gotitem(self, key, ndim, subset=None):
-        """
-        Sub-classes to define. Return a sliced object.
-
-        Parameters
-        ----------
-        key : string / list of selections
-        ndim : {1, 2}
-            requested ndim of result
-        subset : object, default None
-            subset to act on
-        """
-        # create a new object to prevent aliasing
-        if subset is None:
-            # error: "GotItemMixin" has no attribute "obj"
-            subset = self.obj  # type: ignore[attr-defined]
-
-        # we need to make a shallow copy of ourselves
-        # with the same groupby
-        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
-
-        # Try to select from a DataFrame, falling back to a Series
-        try:
-            # error: "GotItemMixin" has no attribute "_groupby"
-            groupby = self._groupby[key]  # type: ignore[attr-defined]
-        except IndexError:
-            # error: "GotItemMixin" has no attribute "_groupby"
-            groupby = self._groupby  # type: ignore[attr-defined]
-
-        # error: Too many arguments for "GotItemMixin"
-        # error: Unexpected keyword argument "groupby" for "GotItemMixin"
-        # error: Unexpected keyword argument "parent" for "GotItemMixin"
-        self = type(self)(
-            subset, groupby=groupby, parent=self, **kwargs  # type: ignore[call-arg]
-        )
-        self._reset_cache()
-        if subset.ndim == 2 and (is_scalar(key) and key in subset or is_list_like(key)):
-            self._selection = key
-        return self
-
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
@@ -121,8 +46,6 @@ dataframe_apply_allowlist: frozenset[str] = common_apply_allowlist | frozenset(
 # cythonized transformations or canned "agg+broadcast", which do not
 # require postprocessing of the result by transform.
 cythonized_kernels = frozenset(["cumprod", "cumsum", "shift", "cummin", "cummax"])
-
-cython_cast_blocklist = frozenset(["rank", "count", "size", "idxmin", "idxmax"])
 
 # List of aggregation/reduction functions.
 # These map each group to a single numeric value

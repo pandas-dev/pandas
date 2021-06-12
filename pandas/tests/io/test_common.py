@@ -2,6 +2,7 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
+import errno
 from functools import partial
 from io import (
     BytesIO,
@@ -261,6 +262,9 @@ bar2,12,13,14,15
     @pytest.mark.filterwarnings(
         "ignore:CategoricalBlock is deprecated:DeprecationWarning"
     )
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -282,9 +286,7 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            pytest.param(
-                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
-            ),
+            ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -310,6 +312,9 @@ bar2,12,13,14,15
 
             assert result == expected
 
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) IO HDF5
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
@@ -435,10 +440,7 @@ def test_is_fsspec_url():
 
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
-@pytest.mark.parametrize(
-    "format",
-    ["csv", pytest.param("json", marks=td.skip_array_manager_not_yet_implemented)],
-)
+@pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
     # GH39247
     expected = tm.makeDataFrame()
@@ -524,3 +526,10 @@ def test_bad_encdoing_errors():
     with tm.ensure_clean() as path:
         with pytest.raises(ValueError, match="Invalid value for `encoding_errors`"):
             icom.get_handle(path, "w", errors="bad")
+
+
+def test_errno_attribute():
+    # GH 13872
+    with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
+        pd.read_csv("doesnt_exist")
+        assert err.errno == errno.ENOENT

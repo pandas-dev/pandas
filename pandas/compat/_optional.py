@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import distutils.version
 import importlib
 import sys
 import types
 import warnings
+
+from pandas.util.version import Version
 
 # Update install.rst when updating versions!
 
@@ -16,16 +17,16 @@ VERSIONS = {
     "gcsfs": "0.6.0",
     "lxml.etree": "4.3.0",
     "matplotlib": "2.2.3",
-    "numexpr": "2.6.8",
+    "numexpr": "2.7.0",
     "odfpy": "1.3.0",
     "openpyxl": "3.0.0",
     "pandas_gbq": "0.12.0",
-    "pyarrow": "0.15.0",
-    "pytest": "5.0.1",
+    "pyarrow": "0.17.0",
+    "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
     "scipy": "1.2.0",
-    "sqlalchemy": "1.2.8",
+    "sqlalchemy": "1.3.0",
     "tables": "3.5.1",
     "tabulate": "0.8.7",
     "xarray": "0.12.3",
@@ -128,7 +129,7 @@ def import_optional_dependency(
     minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     if minimum_version:
         version = get_version(module_to_get)
-        if distutils.version.LooseVersion(version) < minimum_version:
+        if Version(version) < Version(minimum_version):
             msg = (
                 f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
                 f"(version '{version}' currently installed)."

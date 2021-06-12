@@ -21,6 +21,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.internals import BlockManager
 
 if TYPE_CHECKING:
     from pandas import (
@@ -222,7 +223,8 @@ def load_newobj(self):
     elif issubclass(cls, TimedeltaArray) and not args:
         arr = np.array([], dtype="m8[ns]")
         obj = cls.__new__(cls, arr, arr.dtype)
-
+    elif cls is BlockManager and not args:
+        obj = cls.__new__(cls, (), [], False)
     else:
         obj = cls.__new__(cls, *args)
 

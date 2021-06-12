@@ -2,8 +2,7 @@
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
-
-from typing import Union
+from __future__ import annotations
 
 import numpy as np
 
@@ -17,8 +16,8 @@ from pandas._libs.tslibs import (
 
 
 def generate_regular_range(
-    start: Union[Timestamp, Timedelta],
-    end: Union[Timestamp, Timedelta],
+    start: Timestamp | Timedelta,
+    end: Timestamp | Timedelta,
     periods: int,
     freq: BaseOffset,
 ):
@@ -41,20 +40,20 @@ def generate_regular_range(
     -------
     ndarray[np.int64] Representing nanoseconds.
     """
-    start = start.value if start is not None else None
-    end = end.value if end is not None else None
+    istart = start.value if start is not None else None
+    iend = end.value if end is not None else None
     stride = freq.nanos
 
     if periods is None:
-        b = start
+        b = istart
         # cannot just use e = Timestamp(end) + 1 because arange breaks when
         # stride is too large, see GH10887
-        e = b + (end - b) // stride * stride + stride // 2 + 1
-    elif start is not None:
-        b = start
+        e = b + (iend - b) // stride * stride + stride // 2 + 1
+    elif istart is not None:
+        b = istart
         e = _generate_range_overflow_safe(b, periods, stride, side="start")
-    elif end is not None:
-        e = end + stride
+    elif iend is not None:
+        e = iend + stride
         b = _generate_range_overflow_safe(e, periods, stride, side="end")
     else:
         raise ValueError(

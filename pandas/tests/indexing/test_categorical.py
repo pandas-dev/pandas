@@ -296,12 +296,7 @@ class TestCategoricalIndex:
     def test_loc_getitem_listlike_unused_category(self):
         # GH#37901 a label that is in index.categories but not in index
         # listlike containing an element in the categories but not in the values
-        msg = (
-            "The following labels were missing: CategoricalIndex(['e'], "
-            "categories=['c', 'a', 'b', 'e'], ordered=False, name='B', "
-            "dtype='category')"
-        )
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['e'] not in index")):
             self.df2.loc[["a", "b", "e"]]
 
     def test_loc_getitem_label_unused_category(self):
@@ -311,10 +306,7 @@ class TestCategoricalIndex:
 
     def test_loc_getitem_non_category(self):
         # not all labels in the categories
-        msg = (
-            "The following labels were missing: Index(['d'], dtype='object', name='B')"
-        )
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['d'] not in index")):
             self.df2.loc[["a", "d"]]
 
     def test_loc_setitem_expansion_label_unused_category(self):
@@ -346,8 +338,7 @@ class TestCategoricalIndex:
         exp = DataFrame({"A": [1, 1, 2], "B": [4, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "The following labels were missing: Index(['x'], dtype='object')"
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['x'] not in index")):
             df.loc[["a", "x"]]
 
     def test_loc_listlike_dtypes_duplicated_categories_and_codes(self):
@@ -370,8 +361,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "The following labels were missing: Index(['x'], dtype='object')"
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['x'] not in index")):
             df.loc[["a", "x"]]
 
     def test_loc_listlike_dtypes_unused_category(self):
@@ -394,11 +384,10 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "The following labels were missing: Index(['x'], dtype='object')"
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['x'] not in index")):
             df.loc[["a", "x"]]
 
-    def test_loc_getitem_listlike_unused_category_raises_keyerro(self):
+    def test_loc_getitem_listlike_unused_category_raises_keyerror(self):
         # key that is an *unused* category raises
         index = CategoricalIndex(["a", "b", "a", "c"], categories=list("abcde"))
         df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=index)
@@ -407,13 +396,7 @@ class TestCategoricalIndex:
             # For comparison, check the scalar behavior
             df.loc["e"]
 
-        msg = (
-            "Passing list-likes to .loc or [] with any missing labels is no "
-            "longer supported. The following labels were missing: "
-            "CategoricalIndex(['e'], categories=['a', 'b', 'c', 'd', 'e'], "
-            "ordered=False, dtype='category'). See https"
-        )
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['e'] not in index")):
             df.loc[["a", "e"]]
 
     def test_ix_categorical_index(self):

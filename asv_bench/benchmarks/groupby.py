@@ -393,7 +393,7 @@ class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
     params = [
-        ["int", "float", "object", "datetime"],
+        ["int", "float", "object", "datetime", "uint"],
         [
             "all",
             "any",
@@ -442,6 +442,8 @@ class GroupByMethods:
         values = rng.take(np.random.randint(0, ngroups, size=size))
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
+        elif dtype == "uint":
+            key = np.random.randint(0, size, size=size, dtype=dtype)
         elif dtype == "float":
             key = np.concatenate(
                 [np.random.random(ngroups) * 0.1, np.random.random(ngroups) * 10.0]
@@ -503,6 +505,34 @@ class GroupByCythonAgg:
 
     def time_frame_agg(self, dtype, method):
         self.df.groupby("key").agg(method)
+
+
+class Cumulative:
+    param_names = ["dtype", "method"]
+    params = [
+        ["float64", "int64", "Float64", "Int64"],
+        ["cummin", "cummax", "cumsum"],
+    ]
+
+    def setup(self, dtype, method):
+        N = 500_000
+        vals = np.random.randint(-10, 10, (N, 5))
+        null_vals = vals.astype(float, copy=True)
+        null_vals[::2, :] = np.nan
+        null_vals[::3, :] = np.nan
+        df = DataFrame(vals, columns=list("abcde"), dtype=dtype)
+        null_df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+        keys = np.random.randint(0, 100, size=N)
+        df["key"] = keys
+        null_df["key"] = keys
+        self.df = df
+        self.null_df = null_df
+
+    def time_frame_transform(self, dtype, method):
+        self.df.groupby("key").transform(method)
+
+    def time_frame_transform_many_nulls(self, dtype, method):
+        self.null_df.groupby("key").transform(method)
 
 
 class RankWithTies:

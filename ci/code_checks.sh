@@ -15,7 +15,7 @@
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
-#   $ ./ci/code_checks.sh typing	# run static type analysis
+#   $ ./ci/code_checks.sh typing        # run static type analysis
 
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
     { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|typing]"; exit 9999; }
@@ -77,6 +77,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
+    MSG='Check for unnecessary random seeds in asv benchmarks' ; echo $MSG
+    invgrep -R --exclude pandas_vb_common.py -E 'np.random.seed' asv_bench/benchmarks/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
 fi
 
 ### CODE ###
@@ -106,84 +110,45 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    # Individual files
-
-    MSG='Doctests accessor.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/accessor.py
+    MSG='Doctests for individual files' ; echo $MSG
+    pytest -q --doctest-modules \
+      pandas/core/accessor.py \
+      pandas/core/aggregation.py \
+      pandas/core/algorithms.py \
+      pandas/core/base.py \
+      pandas/core/construction.py \
+      pandas/core/frame.py \
+      pandas/core/generic.py \
+      pandas/core/indexers.py \
+      pandas/core/nanops.py \
+      pandas/core/series.py \
+      pandas/io/sql.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Doctests aggregation.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/aggregation.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests base.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/base.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests construction.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/construction.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests frame.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/frame.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests generic.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/generic.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests series.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/series.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests strings.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/strings/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests sql.py' ; echo $MSG
-    pytest -q --doctest-modules pandas/io/sql.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # Directories
-
-    MSG='Doctests arrays'; echo $MSG
-    pytest -q --doctest-modules pandas/core/arrays/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests computation' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/computation/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests dtypes'; echo $MSG
-    pytest -q --doctest-modules pandas/core/dtypes/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests groupby' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/groupby/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests indexes' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/indexes/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests ops' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/ops/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests reshape' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/reshape/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests tools' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/tools/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests window' ; echo $MSG
-    pytest -q --doctest-modules pandas/core/window/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests tseries' ; echo $MSG
-    pytest -q --doctest-modules pandas/tseries/
+    MSG='Doctests for directories' ; echo $MSG
+    pytest -q --doctest-modules \
+      pandas/_libs/ \
+      pandas/api/ \
+      pandas/arrays/ \
+      pandas/compat/ \
+      pandas/core/array_algos/ \
+      pandas/core/arrays/ \
+      pandas/core/computation/ \
+      pandas/core/dtypes/ \
+      pandas/core/groupby/ \
+      pandas/core/indexes/ \
+      pandas/core/ops/ \
+      pandas/core/reshape/ \
+      pandas/core/strings/ \
+      pandas/core/tools/ \
+      pandas/core/window/ \
+      pandas/errors/ \
+      pandas/io/clipboard/ \
+      pandas/io/json/ \
+      pandas/io/excel/ \
+      pandas/io/parsers/ \
+      pandas/io/sas/ \
+      pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

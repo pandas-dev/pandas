@@ -73,7 +73,9 @@ cdef inline float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x) nogi
     cdef:
         float64_t result
 
-    if nobs >= minp:
+    if nobs == 0 == minp:
+        result = 0
+    elif nobs >= minp:
         result = sum_x
     else:
         result = NaN
@@ -114,7 +116,7 @@ cdef inline void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
 
 
 def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
-             ndarray[int64_t] end, int64_t minp):
+             ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t sum_x = 0, compensation_add = 0, compensation_remove = 0
@@ -126,7 +128,7 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
 
     with nogil:
 
@@ -170,7 +172,7 @@ cdef inline float64_t calc_mean(int64_t minp, Py_ssize_t nobs,
     cdef:
         float64_t result
 
-    if nobs >= minp:
+    if nobs >= minp and nobs > 0:
         result = sum_x / <float64_t>nobs
         if neg_ct == 0 and result < 0:
             # all positive
@@ -219,7 +221,7 @@ cdef inline void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
 
 
 def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp):
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         float64_t val, compensation_add = 0, compensation_remove = 0, sum_x = 0
         int64_t s, e
@@ -230,7 +232,7 @@ def roll_mean(const float64_t[:] values, ndarray[int64_t] start,
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
 
     with nogil:
 
@@ -336,7 +338,7 @@ cdef inline void remove_var(float64_t val, float64_t *nobs, float64_t *mean_x,
 
 
 def roll_var(const float64_t[:] values, ndarray[int64_t] start,
-             ndarray[int64_t] end, int64_t minp, int ddof=1):
+             ndarray[int64_t] end, int64_t minp, int ddof=1) -> np.ndarray:
     """
     Numerically stable implementation using Welford's method.
     """
@@ -353,7 +355,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
 
     with nogil:
 
@@ -488,7 +490,7 @@ cdef inline void remove_skew(float64_t val, int64_t *nobs,
 
 
 def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp):
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t val, prev, min_val, mean_val, sum_val = 0
@@ -505,7 +507,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
     min_val = np.nanmin(values)
     values_copy = np.copy(values)
 
@@ -670,7 +672,7 @@ cdef inline void remove_kurt(float64_t val, int64_t *nobs,
 
 
 def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp):
+              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t val, prev, mean_val, min_val, sum_val = 0
@@ -687,7 +689,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
     values_copy = np.copy(values)
     min_val = np.nanmin(values)
 
@@ -751,7 +753,7 @@ def roll_kurt(ndarray[float64_t] values, ndarray[int64_t] start,
 
 
 def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
-                  ndarray[int64_t] end, int64_t minp):
+                  ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         bint err = False, is_monotonic_increasing_bounds
@@ -767,7 +769,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
 
     if (end - start).max() == 0:
         output[:] = NaN
@@ -887,7 +889,7 @@ cdef inline numeric calc_mm(int64_t minp, Py_ssize_t nobs,
 
 
 def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
-             ndarray[int64_t] end, int64_t minp):
+             ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     """
     Moving max of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -902,12 +904,16 @@ def roll_max(ndarray[float64_t] values, ndarray[int64_t] start,
     closed : 'right', 'left', 'both', 'neither'
             make the interval closed on the right, left,
             both or neither endpoints
+
+    Returns
+    -------
+    np.ndarray[float]
     """
     return _roll_min_max(values, start, end, minp, is_max=1)
 
 
 def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
-             ndarray[int64_t] end, int64_t minp):
+             ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     """
     Moving min of 1d array of any numeric type along axis=0 ignoring NaNs.
 
@@ -919,6 +925,10 @@ def roll_min(ndarray[float64_t] values, ndarray[int64_t] start,
           is below this, output a NaN
     index : ndarray, optional
        index for window computation
+
+    Returns
+    -------
+    np.ndarray[float]
     """
     return _roll_min_max(values, start, end, minp, is_max=0)
 
@@ -936,7 +946,7 @@ cdef _roll_min_max(ndarray[numeric] values,
         deque W[int64_t]  # track the whole window for nobs compute
         ndarray[float64_t, ndim=1] output
 
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
     Q = deque[int64_t]()
     W = deque[int64_t]()
 
@@ -1009,7 +1019,7 @@ interpolation_types = {
 
 def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                   ndarray[int64_t] end, int64_t minp,
-                  float64_t quantile, str interpolation):
+                  float64_t quantile, str interpolation) -> np.ndarray:
     """
     O(N log(window)) implementation using skip list
     """
@@ -1036,7 +1046,7 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     )
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
 
     win = (end - start).max()
     if win == 0:
@@ -1130,7 +1140,7 @@ def roll_apply(object obj,
                ndarray[int64_t] start, ndarray[int64_t] end,
                int64_t minp,
                object function, bint raw,
-               tuple args, dict kwargs):
+               tuple args, dict kwargs) -> np.ndarray:
     cdef:
         ndarray[float64_t] output, counts
         ndarray[float64_t, cast=True] arr
@@ -1147,7 +1157,7 @@ def roll_apply(object obj,
 
     counts = roll_sum(np.isfinite(arr).astype(float), start, end, minp)
 
-    output = np.empty(N, dtype=float)
+    output = np.empty(N, dtype=np.float64)
 
     for i in range(N):
 
@@ -1169,11 +1179,15 @@ def roll_apply(object obj,
 # Rolling sum and mean for weighted window
 
 
-def roll_weighted_sum(const float64_t[:] values, const float64_t[:] weights, int minp):
+def roll_weighted_sum(
+    const float64_t[:] values, const float64_t[:] weights, int minp
+) -> np.ndaray:
     return _roll_weighted_sum_mean(values, weights, minp, avg=0)
 
 
-def roll_weighted_mean(const float64_t[:] values, const float64_t[:] weights, int minp):
+def roll_weighted_mean(
+    const float64_t[:] values, const float64_t[:] weights, int minp
+) -> np.ndaray:
     return _roll_weighted_sum_mean(values, weights, minp, avg=1)
 
 
@@ -1432,7 +1446,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
     n = len(values)
     win_n = len(weights)
-    output = np.empty(n, dtype=float)
+    output = np.empty(n, dtype=np.float64)
 
     with nogil:
 
@@ -1472,7 +1486,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
 
 def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
          int minp, float64_t com, bint adjust, bint ignore_na,
-         const float64_t[:] deltas):
+         const float64_t[:] deltas) -> np.ndarray:
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
@@ -1489,13 +1503,13 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
 
     Returns
     -------
-    ndarray
+    np.ndarray[float64_t]
     """
 
     cdef:
         Py_ssize_t i, j, s, e, nobs, win_size, N = len(vals), M = len(start)
         const float64_t[:] sub_deltas, sub_vals
-        ndarray[float64_t] sub_output, output = np.empty(N, dtype=float)
+        ndarray[float64_t] sub_output, output = np.empty(N, dtype=np.float64)
         float64_t alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
         bint is_observation
 
@@ -1514,7 +1528,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
         # conjunction with vals[i+1]
         sub_deltas = deltas[s:e - 1]
         win_size = len(sub_vals)
-        sub_output = np.empty(win_size, dtype=float)
+        sub_output = np.empty(win_size, dtype=np.float64)
 
         weighted_avg = sub_vals[0]
         is_observation = weighted_avg == weighted_avg
@@ -1557,7 +1571,7 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
 
 def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] end,
            int minp, const float64_t[:] input_y, float64_t com, bint adjust,
-           bint ignore_na, bint bias):
+           bint ignore_na, bint bias) -> np.ndarray:
     """
     Compute exponentially-weighted moving variance using center-of-mass.
 
@@ -1575,7 +1589,7 @@ def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] 
 
     Returns
     -------
-    ndarray
+    np.ndarray[float64_t]
     """
 
     cdef:
@@ -1585,7 +1599,7 @@ def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] 
         float64_t sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
         float64_t numerator, denominator
         const float64_t[:] sub_x_vals, sub_y_vals
-        ndarray[float64_t] sub_out, output = np.empty(N, dtype=float)
+        ndarray[float64_t] sub_out, output = np.empty(N, dtype=np.float64)
         bint is_observation
 
     if M != N:
@@ -1604,7 +1618,7 @@ def ewmcov(const float64_t[:] input_x, const int64_t[:] start, const int64_t[:] 
         sub_x_vals = input_x[s:e]
         sub_y_vals = input_y[s:e]
         win_size = len(sub_x_vals)
-        sub_out = np.empty(win_size, dtype=float)
+        sub_out = np.empty(win_size, dtype=np.float64)
 
         mean_x = sub_x_vals[0]
         mean_y = sub_y_vals[0]

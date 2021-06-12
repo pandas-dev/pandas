@@ -117,7 +117,7 @@ class TestFromRecords:
         result = DataFrame.from_records(tuples, exclude=exclude)
         result.columns = [columns[i] for i in sorted(columns_to_test)]
         tm.assert_series_equal(result["C"], df["C"])
-        tm.assert_series_equal(result["E1"], df["E1"].astype("float64"))
+        tm.assert_series_equal(result["E1"], df["E1"])
 
     def test_from_records_sequencelike_empty(self):
         # empty case
