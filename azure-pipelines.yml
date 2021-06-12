@@ -1,7 +1,12 @@
 # Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
 trigger:
-- master
-- 1.2.x
+  branches:
+    include:
+    - master
+    - 1.2.x
+  paths:
+    exclude:
+    - 'doc/*'
 
 pr:
 - master
