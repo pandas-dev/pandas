@@ -353,7 +353,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
-    _can_hold_na = True
 
     _dtype: CategoricalDtype
 
@@ -653,11 +652,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
-
-            .. versionadded:: 0.24.0
-
-               When `dtype` is provided, neither `categories` nor `ordered`
-               should be provided.
 
         Returns
         -------
@@ -1642,7 +1636,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return np.array(self)
 
     def check_for_ordered(self, op):
-        """ assert that we are ordered """
+        """assert that we are ordered"""
         if not self.ordered:
             raise TypeError(
                 f"Categorical is not ordered for operation {op}\n"
@@ -2036,7 +2030,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         from pandas import Index
 
-        to_add = Index(rvalue).difference(self.categories)
+        # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
+        to_add = Index(rvalue, tupleize_cols=False).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
@@ -2170,8 +2165,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         dropna : bool, default True
             Don't consider counts of NaN/NaT.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------

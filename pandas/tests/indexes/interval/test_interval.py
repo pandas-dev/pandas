@@ -247,6 +247,16 @@ class TestIntervalIndex:
         idx = IntervalIndex.from_tuples([(-1, 1), (-2, 2)], closed=closed)
         assert idx.is_unique is True
 
+        # unique NaN
+        idx = IntervalIndex.from_tuples([(np.NaN, np.NaN)], closed=closed)
+        assert idx.is_unique is True
+
+        # non-unique NaN
+        idx = IntervalIndex.from_tuples(
+            [(np.NaN, np.NaN), (np.NaN, np.NaN)], closed=closed
+        )
+        assert idx.is_unique is False
+
     def test_monotonic(self, closed):
         # increasing non-overlapping
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
@@ -317,6 +327,16 @@ class TestIntervalIndex:
         assert idx._is_strictly_monotonic_increasing is True
         assert idx.is_monotonic_decreasing is True
         assert idx._is_strictly_monotonic_decreasing is True
+
+    def test_is_monotonic_with_nans(self):
+        # GH#41831
+        index = IntervalIndex([np.nan, np.nan])
+
+        assert not index.is_monotonic
+        assert not index._is_strictly_monotonic_increasing
+        assert not index.is_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
+        assert not index.is_monotonic_decreasing
 
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan), closed=closed)

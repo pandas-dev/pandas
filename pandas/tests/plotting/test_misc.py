@@ -272,7 +272,7 @@ class TestDataFramePlots(TestPlotBase):
     # not sure if this is indicative of a problem
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
-        """ For #15908 """
+        """For #15908"""
         from pandas.plotting import parallel_coordinates
 
         df = DataFrame(

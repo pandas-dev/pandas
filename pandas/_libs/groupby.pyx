@@ -247,24 +247,24 @@ def group_cumsum(numeric[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
+                # For floats, use Kahan summation to reduce floating-point
+                # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
                 if numeric == float32_t or numeric == float64_t:
                     if val == val:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
                         accum[lab, j] = t
-                        out[i, j] = accum[lab, j]
+                        out[i, j] = t
                     else:
                         out[i, j] = NaN
                         if not skipna:
                             accum[lab, j] = NaN
                             break
                 else:
-                    y = val - compensation[lab, j]
-                    t = accum[lab, j] + y
-                    compensation[lab, j] = t - accum[lab, j] - y
+                    t = val + accum[lab, j]
                     accum[lab, j] = t
-                    out[i, j] = accum[lab, j]
+                    out[i, j] = t
 
 
 @cython.boundscheck(False)
@@ -1360,9 +1360,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         accum[:] = -np.inf if compute_max else np.inf
 
     if mask is not None:
-        masked_cummin_max(out, values, mask, labels, accum, skipna, compute_max)
-    else:
         cummin_max(out, values, labels, accum, skipna, is_datetimelike, compute_max)
+    else:
+        masked_cummin_max(out, values, mask, labels, accum, skipna, compute_max)
 
 
 @cython.boundscheck(False)
@@ -1394,6 +1394,8 @@ cdef cummin_max(groupby_t[:, ::1] out,
 
     N, K = (<object>values).shape
     seen_na = np.zeros((<object>accum).shape[0], dtype=np.uint8)
+
+    N, K = (<object>values).shape
     with nogil:
         for i in range(N):
             lab = labels[i]

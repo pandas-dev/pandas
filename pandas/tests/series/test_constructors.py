@@ -987,13 +987,9 @@ class TestSeriesConstructors:
 
         # indexing
         result = s.iloc[0]
-        assert result == Timestamp(
-            "2013-01-01 00:00:00-0500", tz="US/Eastern", freq="D"
-        )
+        assert result == Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern")
         result = s[0]
-        assert result == Timestamp(
-            "2013-01-01 00:00:00-0500", tz="US/Eastern", freq="D"
-        )
+        assert result == Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern")
 
         result = s[Series([True, True, False], index=s.index)]
         tm.assert_series_equal(result, s[0:2])
