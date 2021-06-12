@@ -264,8 +264,23 @@ Py_hash_t PANDAS_INLINE _Pandas_HashDouble(double val){
 }
 
 
-Py_hash_t PANDAS_INLINE hash_float(PyFloatObject* key){
+Py_hash_t PANDAS_INLINE floatobject_hash(PyFloatObject* key){
     return _Pandas_HashDouble(PyFloat_AS_DOUBLE(key));
+}
+
+
+// replaces _Py_HashDouble with _Pandas_HashDouble
+Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject* key){
+    Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(key->cval.real);
+    Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(key->cval.imag);
+    if (realhash == (Py_uhash_t)-1 || imaghash == (Py_uhash_t)-1) {
+        return -1;
+    }
+    Py_uhash_t combined = realhash + _PyHASH_IMAG * imaghash;
+    if (combined == (Py_uhash_t)-1) {
+        return -2;
+    }
+    return (Py_hash_t)combined;
 }
 
 
@@ -279,7 +294,13 @@ khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key){
         // we cannot use kh_float64_hash_func
         // becase float(k) == k holds for any int-object k
         // and kh_float64_hash_func doesn't respect it
-        hash = hash_float((PyFloatObject*)key);
+        hash = floatobject_hash((PyFloatObject*)key);
+    }
+    else if (PyComplex_CheckExact(key)) {
+        // we cannot use kh_complex128_hash_func
+        // becase complex(k,0) == k holds for any int-object k
+        // and kh_complex128_hash_func doesn't respect it
+        hash = complexobject_hash((PyComplexObject*)key);
     }
     else {
         hash = PyObject_Hash(key);
