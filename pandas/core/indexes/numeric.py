@@ -106,20 +106,22 @@ class NumericIndex(Index):
         else:
             return False
 
-    @cache_readonly
+    _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
+        np.dtype(np.int8): libindex.Int8Engine,
+        np.dtype(np.int16): libindex.Int16Engine,
+        np.dtype(np.int32): libindex.Int32Engine,
+        np.dtype(np.int64): libindex.Int64Engine,
+        np.dtype(np.uint8): libindex.UInt8Engine,
+        np.dtype(np.uint16): libindex.UInt16Engine,
+        np.dtype(np.uint32): libindex.UInt32Engine,
+        np.dtype(np.uint64): libindex.UInt64Engine,
+        np.dtype(np.float32): libindex.Float32Engine,
+        np.dtype(np.float64): libindex.Float64Engine,
+    }
+
+    @property
     def _engine_type(self):
-        return {
-            np.int8: libindex.Int8Engine,
-            np.int16: libindex.Int16Engine,
-            np.int32: libindex.Int32Engine,
-            np.int64: libindex.Int64Engine,
-            np.uint8: libindex.UInt8Engine,
-            np.uint16: libindex.UInt16Engine,
-            np.uint32: libindex.UInt32Engine,
-            np.uint64: libindex.UInt64Engine,
-            np.float32: libindex.Float32Engine,
-            np.float64: libindex.Float64Engine,
-        }[self.dtype.type]
+        return self._engine_types[self.dtype]
 
     @cache_readonly
     def inferred_type(self) -> str:
