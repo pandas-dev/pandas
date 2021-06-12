@@ -191,7 +191,7 @@ def _has_infs(result) -> bool:
 def _get_fill_value(
     dtype: DtypeObj, fill_value: Scalar | None = None, fill_value_typ=None
 ):
-    """ return the correct fill value for the dtype of the values """
+    """return the correct fill value for the dtype of the values"""
     if fill_value is not None:
         return fill_value
     if _na_ok_dtype(dtype):
@@ -350,7 +350,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
 
 
 def _wrap_results(result, dtype: np.dtype, fill_value=None):
-    """ wrap our results if needed """
+    """wrap our results if needed"""
     if result is NaT:
         pass
 
@@ -486,6 +486,12 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
+
+    # For object type, any won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.any(axis)  # type: ignore[return-value]
@@ -526,6 +532,12 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+
+    # For object type, all won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.all(axis)  # type: ignore[return-value]
@@ -576,17 +588,9 @@ def nansum(
         dtype_sum = np.float64  # type: ignore[assignment]
 
     the_sum = values.sum(axis, dtype=dtype_sum)
-    # error: Incompatible types in assignment (expression has type "float", variable has
-    # type "Union[number, ndarray]")
-    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
-    # ndarray]"; expected "ndarray"
-    the_sum = _maybe_null_out(  # type: ignore[assignment]
-        the_sum, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
-    )
+    the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
-    # error: Incompatible return value type (got "Union[number, ndarray]", expected
-    # "float")
-    return the_sum  # type: ignore[return-value]
+    return the_sum
 
 
 def _mask_datetimelike_result(
@@ -1331,12 +1335,10 @@ def nanprod(
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
-    # ndarray]"; expected "ndarray"
     # error: Incompatible return value type (got "Union[ndarray, float]", expected
     # "float")
     return _maybe_null_out(  # type: ignore[return-value]
-        result, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
+        result, axis, mask, values.shape, min_count=min_count
     )
 
 
@@ -1412,13 +1414,7 @@ def _get_counts(
         # expected "Union[int, float, ndarray]")
         return dtype.type(count)  # type: ignore[return-value]
     try:
-        # error: Incompatible return value type (got "Union[ndarray, generic]", expected
-        # "Union[int, float, ndarray]")
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
-        # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
-        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-        # List[Any], _DtypeDict, Tuple[Any, Any]]"
-        return count.astype(dtype)  # type: ignore[return-value,arg-type]
+        return count.astype(dtype)
     except AttributeError:
         # error: Argument "dtype" to "array" has incompatible type
         # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
@@ -1440,8 +1436,15 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
-    if mask is not None and axis is not None and isinstance(result, np.ndarray):
-        null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
+    if axis is not None and isinstance(result, np.ndarray):
+        if mask is not None:
+            null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
+        else:
+            # we have no nulls, kept mask=None in _maybe_get_mask
+            below_count = shape[axis] - min_count < 0
+            new_shape = shape[:axis] + shape[axis + 1 :]
+            null_mask = np.broadcast_to(below_count, new_shape)
+
         if np.any(null_mask):
             if is_numeric_dtype(result):
                 if np.iscomplexobj(result):

@@ -183,7 +183,7 @@ class BaseBlockManager(DataManager):
         return self._blklocs
 
     def make_empty(self: T, axes=None) -> T:
-        """ return an empty BlockManager with the items axis of len 0 """
+        """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
             axes = [Index([])] + self.axes[1:]
 
@@ -211,20 +211,9 @@ class BaseBlockManager(DataManager):
             axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(
-        self, axis: int, new_labels: Index, verify_integrity: bool = True
-    ) -> None:
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
-        if verify_integrity:
-            old_len = len(self.axes[axis])
-            new_len = len(new_labels)
-
-            if new_len != old_len:
-                raise ValueError(
-                    f"Length mismatch: Expected axis has {old_len} elements, new "
-                    f"values have {new_len} elements"
-                )
-
+        self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
 
     @property
@@ -345,9 +334,6 @@ class BaseBlockManager(DataManager):
         if ignore_failures:
             return self._combine(result_blocks)
 
-        if len(result_blocks) == 0:
-            return self.make_empty(self.axes)
-
         return type(self).from_blocks(result_blocks, self.axes)
 
     def where(self: T, other, cond, align: bool, errors: str) -> T:
@@ -436,7 +422,7 @@ class BaseBlockManager(DataManager):
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
-        """ do a list replace """
+        """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         bm = self.apply(
@@ -480,7 +466,7 @@ class BaseBlockManager(DataManager):
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if we are a single block and are a view """
+        """return a boolean if we are a single block and are a view"""
         if len(self.blocks) == 1:
             return self.blocks[0].is_view
 
@@ -530,8 +516,15 @@ class BaseBlockManager(DataManager):
     def _combine(
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
     ) -> T:
-        """ return a new manager with the blocks """
+        """return a new manager with the blocks"""
         if len(blocks) == 0:
+            if self.ndim == 2:
+                # retain our own Index dtype
+                if index is not None:
+                    axes = [self.items[:0], index]
+                else:
+                    axes = [self.items[:0]] + self.axes[1:]
+                return self.make_empty(axes)
             return self.make_empty()
 
         # FIXME: optimization potential
@@ -766,7 +759,8 @@ class BaseBlockManager(DataManager):
                 blk = self.blocks[blkno]
 
                 # Otherwise, slicing along items axis is necessary.
-                if not blk._can_consolidate:
+                if not blk._can_consolidate and not blk._validate_ndim:
+                    # i.e. we dont go through here for DatetimeTZBlock
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
@@ -1233,7 +1227,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             index = Index(range(result_blocks[0].values.shape[-1]))
 
         if ignore_failures:
-            return self._combine(result_blocks, index=index)
+            return self._combine(result_blocks, copy=False, index=index)
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
@@ -1270,7 +1264,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 new_mgr = self._combine(res_blocks, copy=False, index=index)
             else:
                 indexer = []
-                new_mgr = type(self).from_blocks([], [Index([]), index])
+                new_mgr = type(self).from_blocks([], [self.items[:0], index])
         else:
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
@@ -1508,7 +1502,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
-    """ manage a single block with """
+    """manage a single block with"""
 
     ndim = 1
     _is_consolidated = True
@@ -1602,12 +1596,12 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
     @property
     def _blknos(self):
-        """ compat with BlockManager """
+        """compat with BlockManager"""
         return None
 
     @property
     def _blklocs(self):
-        """ compat with BlockManager """
+        """compat with BlockManager"""
         return None
 
     def getitem_mgr(self, indexer) -> SingleBlockManager:
@@ -1765,7 +1759,7 @@ def construction_error(
     axes: list[Index],
     e: ValueError | None = None,
 ):
-    """ raise a helpful message about our construction """
+    """raise a helpful message about our construction"""
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
@@ -1891,7 +1885,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
 
 
 def _multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
-    """ return an array of blocks that potentially have different dtypes """
+    """return an array of blocks that potentially have different dtypes"""
 
     if not consolidate:
         return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)

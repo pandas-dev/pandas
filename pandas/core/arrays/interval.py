@@ -32,7 +32,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -802,7 +801,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        value_left, value_right = self._validate_fill_value(value)
+        value_left, value_right = self._validate_scalar(value)
 
         left = self.left.fillna(value=value_left)
         right = self.right.fillna(value=value_right)
@@ -829,7 +828,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         from pandas import Index
         from pandas.core.arrays.string_ import StringDtype
-        from pandas.core.arrays.string_arrow import ArrowStringDtype
 
         if dtype is not None:
             dtype = pandas_dtype(dtype)
@@ -852,7 +850,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._shallow_copy(new_left, new_right)
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self), dtype=dtype)
-        elif isinstance(dtype, (StringDtype, ArrowStringDtype)):
+        elif isinstance(dtype, StringDtype):
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
         # TODO: This try/except will be repeated.
@@ -1002,7 +1000,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         fill_left = fill_right = fill_value
         if allow_fill:
-            fill_left, fill_right = self._validate_fill_value(fill_value)
+            fill_left, fill_right = self._validate_scalar(fill_value)
 
         left_take = take(
             self._left, indices, allow_fill=allow_fill, fill_value=fill_left
@@ -1039,6 +1037,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
+            # TODO: check subdtype match like _validate_setitem_value?
         elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = value
@@ -1047,9 +1046,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 "can only insert Interval objects and NA into an IntervalArray"
             )
         return left, right
-
-    def _validate_fill_value(self, value):
-        return self._validate_scalar(value)
 
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
@@ -1213,8 +1209,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         other : %(klass)s
@@ -1293,8 +1287,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an %(klass)s identical to the current one, but closed on the
         specified side.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1651,4 +1643,6 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    return maybe_convert_platform(values)
+    if not hasattr(values, "dtype"):
+        return np.asarray(values)
+    return values

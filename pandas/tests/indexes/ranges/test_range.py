@@ -11,7 +11,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.test_numeric import Numeric
+from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -20,8 +20,18 @@ F64 = Float64Index
 OI = Index
 
 
-class TestRangeIndex(Numeric):
+class TestRangeIndex(NumericBase):
     _index_cls = RangeIndex
+
+    @pytest.fixture
+    def dtype(self):
+        return np.int64
+
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64", "object"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
 
     @pytest.fixture
     def simple_index(self) -> Index:
@@ -36,6 +46,11 @@ class TestRangeIndex(Numeric):
     )
     def index(self, request):
         return request.param
+
+    def test_constructor_unwraps_index(self, dtype):
+        result = self._index_cls(1, 3)
+        expected = np.array([1, 2], dtype=dtype)
+        tm.assert_numpy_array_equal(result._data, expected)
 
     def test_can_hold_identifiers(self, simple_index):
         idx = simple_index
@@ -352,24 +367,6 @@ class TestRangeIndex(Numeric):
         big_num = 500000000000000000000000
 
         result = RangeIndex(5, big_num * 2, 1)._min_fitting_element(big_num)
-        assert big_num == result
-
-    def test_max_fitting_element(self):
-        result = RangeIndex(0, 20, 2)._max_fitting_element(17)
-        assert 16 == result
-
-        result = RangeIndex(1, 6)._max_fitting_element(4)
-        assert 4 == result
-
-        result = RangeIndex(18, -2, -2)._max_fitting_element(17)
-        assert 16 == result
-
-        result = RangeIndex(5, 0, -1)._max_fitting_element(4)
-        assert 4 == result
-
-        big_num = 500000000000000000000000
-
-        result = RangeIndex(5, big_num * 2, 1)._max_fitting_element(big_num)
         assert big_num == result
 
     def test_pickle_compat_construction(self):

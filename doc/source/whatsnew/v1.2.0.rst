@@ -381,6 +381,7 @@ this pathological behavior (:issue:`37827`):
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     df.mean()
 
@@ -394,6 +395,7 @@ instead of casting to a NumPy array which may have different semantics (:issue:`
 :issue:`28949`, :issue:`21020`).
 
 .. ipython:: python
+   :okwarning:
 
     ser = pd.Series([0, 1], dtype="category", name="A")
     df = ser.to_frame()
@@ -411,6 +413,7 @@ instead of casting to a NumPy array which may have different semantics (:issue:`
 *New behavior*:
 
 .. ipython:: python
+   :okwarning:
 
     df.any()
 

@@ -1079,7 +1079,7 @@ class TestToDatetime:
 
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
-        s = Series(
+        ser = Series(
             [
                 "nan",
                 Timestamp("1990-01-01"),
@@ -1089,7 +1089,7 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            to_datetime(s)
+            to_datetime(ser)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
@@ -1899,7 +1899,10 @@ class TestToDatetimeInferFormat:
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_infer_datetime_format_series_with_nans(self, cache):
         s = Series(
-            np.array(["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan])
+            np.array(
+                ["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan],
+                dtype=object,
+            )
         )
         tm.assert_series_equal(
             to_datetime(s, infer_datetime_format=False, cache=cache),
@@ -1916,7 +1919,8 @@ class TestToDatetimeInferFormat:
                     "01/01/2011 00:00:00",
                     "01/02/2011 00:00:00",
                     "01/03/2011 00:00:00",
-                ]
+                ],
+                dtype=object,
             )
         )
 

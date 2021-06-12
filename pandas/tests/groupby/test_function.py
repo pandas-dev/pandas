@@ -4,7 +4,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import iNaT
 from pandas.errors import UnsupportedFunctionCall
 
 import pandas as pd
@@ -50,72 +49,6 @@ def dtypes_for_minmax(request):
     )
 
     return (dtype, min_val, max_val)
-
-
-def test_max_min_non_numeric():
-    # #2700
-    aa = DataFrame({"nn": [11, 11, 22, 22], "ii": [1, 2, 3, 4], "ss": 4 * ["mama"]})
-
-    result = aa.groupby("nn").max()
-    assert "ss" in result
-
-    result = aa.groupby("nn").max(numeric_only=False)
-    assert "ss" in result
-
-    result = aa.groupby("nn").min()
-    assert "ss" in result
-
-    result = aa.groupby("nn").min(numeric_only=False)
-    assert "ss" in result
-
-
-def test_max_min_object_multiple_columns(using_array_manager):
-    # GH#41111 case where the aggregation is valid for some columns but not
-    # others; we split object blocks column-wise, consistent with
-    # DataFrame._reduce
-
-    df = DataFrame(
-        {
-            "A": [1, 1, 2, 2, 3],
-            "B": [1, "foo", 2, "bar", False],
-            "C": ["a", "b", "c", "d", "e"],
-        }
-    )
-    df._consolidate_inplace()  # should already be consolidate, but double-check
-    if not using_array_manager:
-        assert len(df._mgr.blocks) == 2
-
-    gb = df.groupby("A")
-
-    result = gb.max(numeric_only=False)
-    # "max" is valid for column "C" but not for "B"
-    ei = Index([1, 2, 3], name="A")
-    expected = DataFrame({"C": ["b", "d", "e"]}, index=ei)
-    tm.assert_frame_equal(result, expected)
-
-    result = gb.min(numeric_only=False)
-    # "min" is valid for column "C" but not for "B"
-    ei = Index([1, 2, 3], name="A")
-    expected = DataFrame({"C": ["a", "c", "e"]}, index=ei)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_min_date_with_nans():
-    # GH26321
-    dates = pd.to_datetime(
-        Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
-    ).dt.date
-    df = DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
-
-    result = df.groupby("b", as_index=False)["c"].min()["c"]
-    expected = pd.to_datetime(
-        Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
-    ).dt.date
-    tm.assert_series_equal(result, expected)
-
-    result = df.groupby("b")["c"].min()
-    expected.index.name = "b"
-    tm.assert_series_equal(result, expected)
 
 
 def test_intercept_builtin_sum():
@@ -221,7 +154,10 @@ class TestNumericOnly:
             ],
         )
 
-        result = getattr(gb, method)(numeric_only=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid", check_stacklevel=False
+        ):
+            result = getattr(gb, method)(numeric_only=False)
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
         expected_columns = expected.columns
@@ -303,10 +239,27 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        result = getattr(gb, method)()
+        # cummin, cummax dont have numeric_only kwarg, always use False
+        warn = None
+        if method in ["cummin", "cummax"]:
+            # these dont have numeric_only kwarg, always use False
+            warn = FutureWarning
+        elif method in ["min", "max"]:
+            # these have numeric_only kwarg, but default to False
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)()
+
         tm.assert_index_equal(result.columns, expected_columns_numeric)
 
-        result = getattr(gb, method)(numeric_only=False)
+        # GH#41475 deprecated silently ignoring nuisance columns
+        warn = None
+        if len(expected_columns) < len(gb._obj_with_exclusions.columns):
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+            result = getattr(gb, method)(numeric_only=False)
+
         tm.assert_index_equal(result.columns, expected_columns)
 
 
@@ -333,6 +286,7 @@ class TestGroupByNonCythonPaths:
         return gni
 
     # TODO: non-unique columns, as_index=False
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmax(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -342,6 +296,7 @@ class TestGroupByNonCythonPaths:
         result = gb.idxmax()
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
     def test_idxmin(self, gb):
         # object dtype so idxmax goes through _aggregate_item_by_item
         # GH#5610
@@ -524,6 +479,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
         ("idxmax", {"c_int": [1, 3], "c_float": [0, 2], "c_date": [0, 3]}),
     ],
 )
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_idxmin_idxmax_returns_int_types(func, values):
     # GH 25444
     df = DataFrame(
@@ -637,38 +593,6 @@ def test_max_nan_bug():
     e = gb["File"].max().to_frame()
     tm.assert_frame_equal(r, e)
     assert not r["File"].isna().any()
-
-
-def test_max_inat():
-    # GH#40767 dont interpret iNaT as NaN
-    ser = Series([1, iNaT])
-    gb = ser.groupby([1, 1])
-
-    result = gb.max(min_count=2)
-    expected = Series({1: 1}, dtype=np.int64)
-    tm.assert_series_equal(result, expected, check_exact=True)
-
-    result = gb.min(min_count=2)
-    expected = Series({1: iNaT}, dtype=np.int64)
-    tm.assert_series_equal(result, expected, check_exact=True)
-
-    # not enough entries -> gets masked to NaN
-    result = gb.min(min_count=3)
-    expected = Series({1: np.nan})
-    tm.assert_series_equal(result, expected, check_exact=True)
-
-
-def test_max_inat_not_all_na():
-    # GH#40767 dont interpret iNaT as NaN
-
-    # make sure we dont round iNaT+1 to iNaT
-    ser = Series([1, iNaT, 2, iNaT + 1])
-    gb = ser.groupby([1, 2, 3, 3])
-    result = gb.min(min_count=2)
-
-    # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
-    expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
-    tm.assert_series_equal(result, expected, check_exact=True)
 
 
 def test_nlargest():

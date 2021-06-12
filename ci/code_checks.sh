@@ -15,7 +15,7 @@
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
-#   $ ./ci/code_checks.sh typing	# run static type analysis
+#   $ ./ci/code_checks.sh typing        # run static type analysis
 
 [[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
     { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|typing]"; exit 9999; }
@@ -75,6 +75,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for unnecessary random seeds in asv benchmarks' ; echo $MSG
+    invgrep -R --exclude pandas_vb_common.py -E 'np.random.seed' asv_bench/benchmarks/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
@@ -140,6 +144,8 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/core/window/ \
       pandas/errors/ \
       pandas/io/clipboard/ \
+      pandas/io/json/ \
+      pandas/io/excel/ \
       pandas/io/parsers/ \
       pandas/io/sas/ \
       pandas/tseries/

@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
 )
 import warnings
 
@@ -101,6 +102,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
 
@@ -108,7 +110,8 @@ class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
-    exclusions: set[str] = set()
+    exclusions: frozenset[Hashable] = frozenset()
+    _on: Index
 
     def __init__(
         self,
@@ -121,6 +124,8 @@ class BaseWindow(SelectionMixin):
         on: str | Index | None = None,
         closed: str | None = None,
         method: str = "single",
+        *,
+        selection=None,
     ):
         self.obj = obj
         self.on = on
@@ -148,6 +153,8 @@ class BaseWindow(SelectionMixin):
                 f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index or None"
             )
+
+        self._selection = selection
         self.validate()
 
     @property
@@ -163,7 +170,7 @@ class BaseWindow(SelectionMixin):
         return self._win_type
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> bool:
         warnings.warn(
             "is_datetimelike is deprecated and will be removed in a future version.",
             FutureWarning,
@@ -240,16 +247,22 @@ class BaseWindow(SelectionMixin):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
-        # TODO: Remove once win_type deprecation is enforced
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
         with warnings.catch_warnings():
+            # TODO: Remove once win_type deprecation is enforced
             warnings.filterwarnings("ignore", "win_type", FutureWarning)
-            self = type(self)(
-                subset, **{attr: getattr(self, attr) for attr in self._attributes}
-            )
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
-        return self
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        selection = None
+        if subset.ndim == 2 and (
+            (is_scalar(key) and key in subset) or is_list_like(key)
+        ):
+            selection = key
+
+        new_win = type(self)(subset, selection=selection, **kwargs)
+        return new_win
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -278,6 +291,7 @@ class BaseWindow(SelectionMixin):
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
+        obj = obj.set_axis(self._on)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -317,7 +331,7 @@ class BaseWindow(SelectionMixin):
         # expected "ndarray")
         return values  # type: ignore[return-value]
 
-    def _insert_on_column(self, result: DataFrame, obj: DataFrame):
+    def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
         # the results in the same location
         from pandas import Series
@@ -458,6 +472,8 @@ class BaseWindow(SelectionMixin):
             other = target
             # only default unset
             pairwise = True if pairwise is None else pairwise
+        elif not isinstance(other, (ABCDataFrame, ABCSeries)):
+            raise ValueError("other must be a DataFrame or Series")
 
         return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
@@ -538,18 +554,22 @@ class BaseWindowGroupby(BaseWindow):
     Provide the groupby windowing facilities.
     """
 
+    _grouper: BaseGrouper
+    _as_index: bool
     _attributes = ["_grouper"]
 
     def __init__(
         self,
         obj: FrameOrSeries,
         *args,
-        _grouper=None,
-        _as_index=True,
+        _grouper: BaseGrouper,
+        _as_index: bool = True,
         **kwargs,
     ):
-        if _grouper is None:
-            raise ValueError("Must pass a Grouper object.")
+        from pandas.core.groupby.ops import BaseGrouper
+
+        if not isinstance(_grouper, BaseGrouper):
+            raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
         self._as_index = _as_index
         # GH 32262: It's convention to keep the grouping column in
@@ -659,7 +679,9 @@ class BaseWindowGroupby(BaseWindow):
             # When we evaluate the pairwise=True result, repeat the groupby
             # labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
-            groupby_levels = self._grouper.levels
+            # error: Incompatible types in assignment (expression has type
+            # "List[Index]", variable has type "List[Union[ndarray, Index]]")
+            groupby_levels = self._grouper.levels  # type: ignore[assignment]
 
             group_indices = self._grouper.indices.values()
             if group_indices:

@@ -11,7 +11,6 @@ from datetime import (
     datetime,
     time,
 )
-from distutils.version import LooseVersion
 from functools import partial
 import re
 from typing import (
@@ -45,6 +44,7 @@ from pandas.core.api import (
 )
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
+from pandas.util.version import Version
 
 
 class SQLAlchemyRequired(ImportError):
@@ -86,7 +86,7 @@ def _gt14() -> bool:
     """
     import sqlalchemy
 
-    return LooseVersion(sqlalchemy.__version__) >= LooseVersion("1.4.0")
+    return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
 def _convert_params(sql, params):
@@ -692,9 +692,6 @@ def to_sql(
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
-
-        .. versionadded:: 0.24.0
-
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -1354,7 +1351,7 @@ class SQLAlchemyEngine(BaseEngine):
 
 
 def get_engine(engine: str) -> BaseEngine:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.sql.engine")
 
@@ -1739,9 +1736,6 @@ class SQLDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-
-            .. versionadded:: 0.24.0
-
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -2202,8 +2196,6 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-
-            .. versionadded:: 0.24.0
         """
         if dtype:
             if not is_dict_like(dtype):

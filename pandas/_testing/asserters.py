@@ -48,6 +48,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -308,19 +309,23 @@ def assert_index_equal(
     """
     __tracebackhide__ = True
 
-    def _check_types(left, right, obj="Index"):
-        if exact:
-            assert_class_equal(left, right, exact=exact, obj=obj)
+    def _check_types(left, right, obj="Index") -> None:
+        if not exact:
+            return
 
-            # Skip exact dtype checking when `check_categorical` is False
-            if check_categorical:
-                assert_attr_equal("dtype", left, right, obj=obj)
+        assert_class_equal(left, right, exact=exact, obj=obj)
 
-            # allow string-like to have different inferred_types
-            if left.inferred_type in ("string"):
-                assert right.inferred_type in ("string")
-            else:
-                assert_attr_equal("inferred_type", left, right, obj=obj)
+        # Skip exact dtype checking when `check_categorical` is False
+        if check_categorical:
+            assert_attr_equal("dtype", left, right, obj=obj)
+            if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
+                assert_index_equal(left.categories, right.categories, exact=exact)
+
+        # allow string-like to have different inferred_types
+        if left.inferred_type in ("string"):
+            assert right.inferred_type in ("string")
+        else:
+            assert_attr_equal("inferred_type", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -634,12 +639,20 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif is_categorical_dtype(left) or isinstance(left, PandasDtype):
+    elif (
+        is_categorical_dtype(left)
+        or isinstance(left, PandasDtype)
+        or isinstance(left, StringDtype)
+    ):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif is_categorical_dtype(right) or isinstance(right, PandasDtype):
+    elif (
+        is_categorical_dtype(right)
+        or isinstance(right, PandasDtype)
+        or isinstance(right, StringDtype)
+    ):
         right = repr(right)
 
     msg += f"""

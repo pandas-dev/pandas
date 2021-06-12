@@ -65,10 +65,10 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3]]
 
     @pytest.mark.slow
@@ -107,12 +107,27 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"None of \[\[10\]\] are"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"\[10\] not in index"):
             df.loc[[10, 4]]
+
+    def test_getitem_interval_with_nans(self, frame_or_series, indexer_sl):
+        # GH#41831
+
+        index = IntervalIndex([np.nan, np.nan])
+        key = index[:-1]
+
+        obj = frame_or_series(range(2), index=index)
+        if frame_or_series is DataFrame and indexer_sl is tm.setitem:
+            obj = obj.T
+
+        result = indexer_sl(obj)[key]
+        expected = obj
+
+        tm.assert_equal(result, expected)
 
 
 class TestIntervalIndexInsideMultiIndex:
