@@ -112,21 +112,29 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value: Scalar
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: np.ndarray | None = None, copy: bool = False
+    ):
         # values is supposed to already be validated in the subclass
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'pd.array' function instead"
-            )
+        if mask:
+            if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+                raise TypeError(
+                    "mask should be boolean numpy array. Use "
+                    "the 'pd.array' function instead"
+                )
+            if mask.ndim != 1:
+                raise ValueError("mask must be a 1D array")
+
+            if not mask.any():
+                mask = None
+
         if values.ndim != 1:
             raise ValueError("values must be a 1D array")
-        if mask.ndim != 1:
-            raise ValueError("mask must be a 1D array")
 
         if copy:
             values = values.copy()
-            mask = mask.copy()
+            if mask:
+                mask = mask.copy()
 
         self._data = values
         self._mask = mask
@@ -137,13 +145,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
         if is_integer(item):
-            if self._mask[item]:
+            if self._hasna and self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
 
         item = check_array_indexer(self, item)
-
-        return type(self)(self._data[item], self._mask[item])
+        if self._hasna:
+            return type(self)(self._data[item], self._mask[item])
+        else:
+            return type(self)(self._data[item])
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -159,9 +169,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     f"Length of 'value' does not match. Got ({len(value)}) "
                     f" expected {len(self)}"
                 )
-            value = value[mask]
+            if mask is not None:
+                value = value[mask]
 
-        if mask.any():
+        if self._hasna:
             if method is not None:
                 func = missing.get_fill_func(method)
                 new_values, new_mask = func(
@@ -181,6 +192,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _coerce_to_array(self, values) -> tuple[np.ndarray, np.ndarray]:
         raise AbstractMethodError(self)
 
+    # TODO
     def __setitem__(self, key, value) -> None:
         _is_scalar = is_scalar(value)
         if _is_scalar:
@@ -197,7 +209,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def __iter__(self):
         for i in range(len(self)):
-            if self._mask[i]:
+            if self._hasna and self._mask[i]:
                 yield self.dtype.na_value
             else:
                 yield self._data[i]
@@ -206,7 +218,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return len(self._data)
 
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        return type(self)(~self._data, self._mask.copy())
+        if self._hasna:
+            return type(self)(~self._data, self._mask.copy())
+        else:
+            return type(self)(~self._data)
 
     # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
     # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
@@ -315,7 +330,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.copy()
+            mask = self._mask if data is self._data else self._copy_mask()
             cls = dtype.construct_array_type()
             return cls(data, mask, copy=False)
 
@@ -349,27 +364,38 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # source code using it..
 
         # error: Incompatible return value type (got "bool_", expected "bool")
-        return self._mask.any()  # type: ignore[return-value]
+        return self._mask is not None  # type: ignore[return-value]
 
     def isna(self) -> np.ndarray:
-        return self._mask.copy()
+        if self._hasna:
+            return self._mask.copy()
+        else:
+            return np.zeros_like(self._data, dtype=bool)
 
     @property
     def _na_value(self):
         return self.dtype.na_value
 
+    def _mask_as_ndarray(self):
+        return self._mask if self._hasna else np.zeros_like(self._data, dtype=np.bool_)
+
+    def _copy_mask(self):
+        return self._mask.copy() if self._hasna else None
+
     @property
     def nbytes(self) -> int:
-        return self._data.nbytes + self._mask.nbytes
+        mask_size = self._mask.nbytes if self._hasna else None.__sizeof__()
+        return self._data.nbytes + mask_size
 
     @classmethod
     def _concat_same_type(
         cls: type[BaseMaskedArrayT], to_concat: Sequence[BaseMaskedArrayT]
     ) -> BaseMaskedArrayT:
         data = np.concatenate([x._data for x in to_concat])
-        mask = np.concatenate([x._mask for x in to_concat])
+        mask = np.concatenate([x._mask_as_ndarray() for x in to_concat])
         return cls(data, mask)
 
+    # TODO
     def take(
         self: BaseMaskedArrayT,
         indexer,
@@ -409,15 +435,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        # error: No overload variant of "zeros_like" matches argument types
-        # "BaseMaskedArray", "Type[bool]"
-        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
-        return BooleanArray(result, mask, copy=False)
+
+        return BooleanArray(result, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         data, mask = self._data, self._mask
         data = data.copy()
-        mask = mask.copy()
+        mask = self._copy_mask()
         return type(self)(data, mask, copy=False)
 
     @doc(ExtensionArray.factorize)
@@ -431,9 +455,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
         # error: Incompatible types in assignment (expression has type
         # "BaseMaskedArray", variable has type "ndarray")
-        uniques = type(self)(  # type: ignore[assignment]
-            uniques, np.zeros(len(uniques), dtype=bool)
-        )
+        uniques = type(self)(uniques)  # type: ignore[assignment]
+
         # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
         # expected "Tuple[ndarray, ExtensionArray]")
         return codes, uniques  # type: ignore[return-value]
@@ -462,7 +485,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         from pandas.arrays import IntegerArray
 
         # compute counts on the data with no nans
-        data = self._data[~self._mask]
+        data = self._data[~self._mask] if self._hasna else self._data
         value_counts = Index(data).value_counts()
 
         # TODO(extension)
@@ -476,18 +499,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             counts = np.empty(len(value_counts) + 1, dtype="int64")
             counts[:-1] = value_counts
-            counts[-1] = self._mask.sum()
+            counts[-1] = self._mask.sum() if self._hasna else 0
 
             index = Index(
                 np.concatenate([index, np.array([self.dtype.na_value], dtype=object)]),
                 dtype=object,
             )
 
-        mask = np.zeros(len(counts), dtype="bool")
-        counts = IntegerArray(counts, mask)
+        counts = IntegerArray(counts)
 
         return Series(counts, index=index)
 
+    # TODO
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         data = self._data
         mask = self._mask

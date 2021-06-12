@@ -135,6 +135,7 @@ def safe_cast(values, dtype, copy: bool):
         ) from err
 
 
+# TODO
 def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -179,7 +180,8 @@ def coerce_to_array(
 
         if copy:
             values = values.copy()
-            mask = mask.copy()
+            if mask is not None:
+                mask = mask.copy()
         return values, mask
 
     values = np.array(values, copy=copy)
@@ -308,7 +310,9 @@ class IntegerArray(NumericArray):
     def dtype(self) -> _IntegerDtype:
         return INT_STR_TO_DTYPE[str(self._data.dtype)]
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: np.ndarray | None = None, copy: bool = False
+    ):
         if not (isinstance(values, np.ndarray) and values.dtype.kind in ["i", "u"]):
             raise TypeError(
                 "values should be integer numpy array. Use "
@@ -316,6 +320,7 @@ class IntegerArray(NumericArray):
             )
         super().__init__(values, mask, copy=copy)
 
+    # TODO
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
@@ -390,7 +395,7 @@ class IntegerArray(NumericArray):
         ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
-        if self._mask.any():
+        if self._hasna:
             data[self._mask] = data.min() - 1
         return data
 
@@ -433,9 +438,10 @@ class IntegerArray(NumericArray):
 
         # nans propagate
         if mask is None:
-            mask = self._mask.copy()
+            mask = self._copy_mask()
         else:
-            mask = self._mask | mask
+            if self._hasna:
+                mask = self._mask | mask
 
         return BooleanArray(result, mask)
 

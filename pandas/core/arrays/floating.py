@@ -82,6 +82,7 @@ class FloatingDtype(NumericDtype):
         return None
 
 
+# TODO
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -254,6 +255,7 @@ class FloatingArray(NumericArray):
             )
         super().__init__(values, mask, copy=copy)
 
+    # TODO
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False

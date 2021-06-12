@@ -141,13 +141,12 @@ class BooleanDtype(BaseMaskedDtype):
             results.append(bool_arr)
 
         if not results:
-            return BooleanArray(
-                np.array([], dtype=np.bool_), np.array([], dtype=np.bool_)
-            )
+            return BooleanArray(np.array([], dtype=np.bool_))
         else:
             return BooleanArray._concat_same_type(results)
 
 
+# TODO
 def coerce_to_array(
     values, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -294,7 +293,9 @@ class BooleanArray(BaseMaskedArray):
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: np.ndarray | None = None, copy: bool = False
+    ):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
                 "values should be boolean numpy array. Use "
@@ -344,6 +345,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
+    # TODO
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
@@ -455,7 +457,8 @@ class BooleanArray(BaseMaskedArray):
         ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
-        data[self._mask] = -1
+        if self._hasna:
+            data[self._mask] = -1
         return data
 
     def any(self, *, skipna: bool = True, **kwargs):
@@ -516,12 +519,13 @@ class BooleanArray(BaseMaskedArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, False)
+        if self._hasna:
+            np.putmask(values, self._mask, False)
         result = values.any()
         if skipna:
             return result
         else:
-            if result or len(self) == 0 or not self._mask.any():
+            if result or len(self) == 0 or not self._hasna:
                 return result
             else:
                 return self.dtype.na_value
@@ -582,13 +586,14 @@ class BooleanArray(BaseMaskedArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        np.putmask(values, self._mask, True)
+        if self._hasna:
+            np.putmask(values, self._mask, True)
         result = values.all()
 
         if skipna:
             return result
         else:
-            if not result or len(self) == 0 or not self._mask.any():
+            if not result or len(self) == 0 or not self._hasna:
                 return result
             else:
                 return self.dtype.na_value

@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound="NumericArray")
 
 
+# TODO
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -85,6 +86,7 @@ class NumericArray(BaseMaskedArray):
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         raise AbstractMethodError(self)
 
+    # TODO
     def _arith_method(self, other, op):
         op_name = op.__name__
         omask = None
@@ -154,6 +156,7 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
+    # TODO
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For NumericArray inputs, we apply the ufunc to ._data
         # and mask the result.
@@ -207,13 +210,13 @@ class NumericArray(BaseMaskedArray):
             return reconstruct(result)
 
     def __neg__(self):
-        return type(self)(-self._data, self._mask.copy())
+        return type(self)(-self._data, self._copy_mask())
 
     def __pos__(self):
         return self
 
     def __abs__(self):
-        return type(self)(abs(self._data), self._mask.copy())
+        return type(self)(abs(self._data), self._copy_mask())
 
     def round(self: T, decimals: int = 0, *args, **kwargs) -> T:
         """
@@ -241,4 +244,4 @@ class NumericArray(BaseMaskedArray):
         """
         nv.validate_round(args, kwargs)
         values = np.round(self._data, decimals=decimals, **kwargs)
-        return type(self)(values, self._mask.copy())
+        return type(self)(values, self._copy_mask())
