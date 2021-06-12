@@ -2030,7 +2030,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         from pandas import Index
 
-        to_add = Index(rvalue).difference(self.categories)
+        # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
+        to_add = Index(rvalue, tupleize_cols=False).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan

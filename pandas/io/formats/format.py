@@ -19,6 +19,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -1054,7 +1055,7 @@ class DataFrameRenderer:
 
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer[str] | None = None,
+        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
