@@ -105,7 +105,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`io.sql.SQLDatabase.execute` which streams results when chunking is enabled (:issue:`40847`)
 -
 
 .. ---------------------------------------------------------------------------
