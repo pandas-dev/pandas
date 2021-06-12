@@ -314,16 +314,18 @@ def assert_index_equal(
             return
 
         assert_class_equal(left, right, exact=exact, obj=obj)
-        assert_attr_equal("inferred_type", left, right, obj=obj)
-        assert_attr_equal("dtype", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
-        if (
-            check_categorical
-            and is_categorical_dtype(left.dtype)
-            and is_categorical_dtype(right.dtype)
-        ):
-            assert_index_equal(left.categories, right.categories, exact=exact)
+        if check_categorical:
+            assert_attr_equal("dtype", left, right, obj=obj)
+            if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
+                assert_index_equal(left.categories, right.categories, exact=exact)
+
+        # allow string-like to have different inferred_types
+        if left.inferred_type in ("string"):
+            assert right.inferred_type in ("string")
+        else:
+            assert_attr_equal("inferred_type", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
