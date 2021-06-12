@@ -3877,7 +3877,7 @@ def maybe_droplevels(index: Index, key) -> Index:
 
 def _coerce_indexer_frozen(array_like, categories, copy: bool = False) -> np.ndarray:
     """
-    Coerce the array_like indexer to the smallest integer dtype that can encode all
+    Coerce the array-like indexer to the smallest integer dtype that can encode all
     of the given categories.
 
     Parameters

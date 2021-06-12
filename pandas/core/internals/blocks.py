@@ -1276,7 +1276,7 @@ class Block(PandasObject):
         -------
         blocks : list of Block
             New blocks of unstacked values.
-        mask : array_like of bool
+        mask : array-like of bool
             The mask of columns of `blocks` we should keep.
         """
         new_values, mask = unstacker.get_new_values(

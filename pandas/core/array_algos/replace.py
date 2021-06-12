@@ -45,21 +45,21 @@ def compare_or_regex_search(
     a: ArrayLike, b: Scalar | Pattern, regex: bool, mask: np.ndarray
 ) -> ArrayLike | bool:
     """
-    Compare two array_like inputs of the same shape or two scalar values
+    Compare two array-like inputs of the same shape or two scalar values
 
     Calls operator.eq or re.search, depending on regex argument. If regex is
     True, perform an element-wise regex matching.
 
     Parameters
     ----------
-    a : array_like
+    a : array-like
     b : scalar or regex pattern
     regex : bool
     mask : np.ndarray[bool]
 
     Returns
     -------
-    mask : array_like of bool
+    mask : array-like of bool
     """
     if isna(b):
         return ~mask

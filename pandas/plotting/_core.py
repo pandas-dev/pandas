@@ -430,7 +430,7 @@ _bar_or_line_doc = """
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
-        color : str, array_like, or dict, optional
+        color : str, array-like, or dict, optional
             The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -1571,7 +1571,7 @@ class PlotAccessor(PandasObject):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : str, scalar or array_like, optional
+        s : str, scalar or array-like, optional
             The size of each point. Possible values are:
 
             - A string with the name of the column to be used for marker's size.
@@ -1584,7 +1584,7 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        c : str, int or array_like, optional
+        c : str, int or array-like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,

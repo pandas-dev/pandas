@@ -826,13 +826,13 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array_like
+        value : array-like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
+        sorter : 1-D array-like, optional
             Optional array of integer indices that sort array a into ascending
             order. They are typically the result of argsort.
 
