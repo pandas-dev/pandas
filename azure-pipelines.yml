@@ -35,10 +35,10 @@ jobs:
 
   steps:
     - script: |
-        docker pull quay.io/pypa/manylinux2014_i686
-        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
+        docker pull quay.io/pypa/manylinux2014_aarch64
+        docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_aarch64 \
         /bin/bash -xc "cd pandas && \
-        /opt/python/cp38-cp38m/bin/python -m venv ~/virtualenvs/pandas-dev && \
+        /opt/python/cp38-cp38/bin/python -m venv ~/virtualenvs/pandas-dev && \
         . ~/virtualenvs/pandas-dev/bin/activate && \
         python -m pip install --no-deps -U pip wheel setuptools && \
         pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
