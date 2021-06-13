@@ -57,3 +57,4 @@ include pandas/_version.py
 include pandas/io/formats/templates/*.tpl
 
 graft pandas/_libs/src
+graft pandas/_libs/tslibs/src
