@@ -156,6 +156,33 @@ def test_render_trimming_mi():
     assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
 
 
+def test_apply_map_header_index():
+    df = DataFrame({"A": [0, 0], "B": [1, 1]}, index=["C", "D"])
+    func = lambda s: ["attr: val" if ("A" in v or "D" in v) else "" for v in s]
+    func_map = lambda v: "attr: val" if ("A" in v or "D" in v) else ""
+
+    # test over index
+    result = df.style.apply_header(func, axis="index")
+    assert len(result._todo) == 1
+    assert len(result.ctx_index) == 0
+    result._compute()
+    result_map = df.style.applymap_header(func_map, axis="index")
+    expected = {
+        (1, 0): [("attr", "val")],
+    }
+    assert result.ctx_index == expected
+    assert result_map.ctx_index == expected
+
+    # test over columns
+    result = df.style.apply_header(func, axis="columns")._compute()
+    result_map = df.style.applymap_header(func_map, axis="columns")._compute()
+    expected = {
+        (0, 0): [("attr", "val")],
+    }
+    assert result.ctx_columns == expected
+    assert result_map.ctx_columns == expected
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)
