@@ -13,36 +13,34 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    missing as libmissing,
-)
+from pandas._libs import lib
 from pandas._typing import (
     Dtype,
     NpDtype,
     PositionalIndexer,
     Scalar,
-    type_t,
 )
 from pandas.compat import (
+    pa_version_under1p0,
     pa_version_under2p0,
     pa_version_under3p0,
     pa_version_under4p0,
 )
-from pandas.compat.pyarrow import pa_version_under1p0
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_dtype_equal,
     is_integer,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
+    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import missing
@@ -50,32 +48,32 @@ from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
-from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.numeric import NumericDtype
+from pandas.core.arrays.string_ import (
+    BaseStringArray,
+    StringDtype,
+)
 from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-try:
+# PyArrow backed StringArrays are available starting at 1.0.0, but this
+# file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
+# and its compute functions existed. GH38801
+if not pa_version_under1p0:
     import pyarrow as pa
-except ImportError:
-    pa = None
-else:
-    # PyArrow backed StringArrays are available starting at 1.0.0, but this
-    # file is imported from even if pyarrow is < 1.0.0, before pyarrow.compute
-    # and its compute functions existed. GH38801
-    if not pa_version_under1p0:
-        import pyarrow.compute as pc
+    import pyarrow.compute as pc
 
-        ARROW_CMP_FUNCS = {
-            "eq": pc.equal,
-            "ne": pc.not_equal,
-            "lt": pc.less,
-            "gt": pc.greater,
-            "le": pc.less_equal,
-            "ge": pc.greater_equal,
-        }
+    ARROW_CMP_FUNCS = {
+        "eq": pc.equal,
+        "ne": pc.not_equal,
+        "lt": pc.less,
+        "gt": pc.greater,
+        "le": pc.less_equal,
+        "ge": pc.greater_equal,
+    }
 
 
 if TYPE_CHECKING:
@@ -84,88 +82,10 @@ if TYPE_CHECKING:
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
-@register_extension_dtype
-class ArrowStringDtype(StringDtype):
-    """
-    Extension dtype for string data in a ``pyarrow.ChunkedArray``.
-
-    .. versionadded:: 1.2.0
-
-    .. warning::
-
-       ArrowStringDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
-
-    Attributes
-    ----------
-    None
-
-    Methods
-    -------
-    None
-
-    Examples
-    --------
-    >>> from pandas.core.arrays.string_arrow import ArrowStringDtype
-    >>> ArrowStringDtype()
-    ArrowStringDtype
-    """
-
-    name = "arrow_string"
-
-    #: StringDtype.na_value uses pandas.NA
-    na_value = libmissing.NA
-
-    @property
-    def type(self) -> type[str]:
-        return str
-
-    @classmethod
-    def construct_array_type(cls) -> type_t[ArrowStringArray]:  # type: ignore[override]
-        """
-        Return the array type associated with this dtype.
-
-        Returns
-        -------
-        type
-        """
-        return ArrowStringArray
-
-    def __hash__(self) -> int:
-        return hash("ArrowStringDtype")
-
-    def __repr__(self) -> str:
-        return "ArrowStringDtype"
-
-    def __from_arrow__(  # type: ignore[override]
-        self, array: pa.Array | pa.ChunkedArray
-    ) -> ArrowStringArray:
-        """
-        Construct StringArray from pyarrow Array/ChunkedArray.
-        """
-        return ArrowStringArray(array)
-
-    def __eq__(self, other) -> bool:
-        """Check whether 'other' is equal to self.
-
-        By default, 'other' is considered equal if
-        * it's a string matching 'self.name'.
-        * it's an instance of this type.
-
-        Parameters
-        ----------
-        other : Any
-
-        Returns
-        -------
-        bool
-        """
-        if isinstance(other, ArrowStringDtype):
-            return True
-        elif isinstance(other, str) and other == "arrow_string":
-            return True
-        else:
-            return False
+def _chk_pyarrow_available() -> None:
+    if pa_version_under1p0:
+        msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
+        raise ImportError(msg)
 
 
 # TODO: Inherit directly from BaseStringArrayMethods. Currently we inherit from
@@ -173,7 +93,7 @@ class ArrowStringDtype(StringDtype):
 # fallback for the ones that pyarrow doesn't yet support
 
 
-class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
+class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -211,16 +131,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
     Examples
     --------
-    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="arrow_string")
+    >>> pd.array(['This is', 'some text', None, 'data.'], dtype="string[pyarrow]")
     <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
-    Length: 4, dtype: arrow_string
+    Length: 4, dtype: string
     """
 
-    _dtype = ArrowStringDtype()
-
     def __init__(self, values):
-        self._chk_pyarrow_available()
+        self._dtype = StringDtype(storage="pyarrow")
         if isinstance(values, pa.Array):
             self._data = pa.chunked_array([values])
         elif isinstance(values, pa.ChunkedArray):
@@ -234,18 +152,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
             )
 
     @classmethod
-    def _chk_pyarrow_available(cls) -> None:
-        # TODO: maybe update import_optional_dependency to allow a minimum
-        # version to be specified rather than use the global minimum
-        if pa is None or pa_version_under1p0:
-            msg = "pyarrow>=1.0.0 is required for PyArrow backed StringArray."
-            raise ImportError(msg)
-
-    @classmethod
     def _from_sequence(cls, scalars, dtype: Dtype | None = None, copy: bool = False):
         from pandas.core.arrays.masked import BaseMaskedArray
 
-        cls._chk_pyarrow_available()
+        _chk_pyarrow_available()
+
+        if dtype and not (isinstance(dtype, str) and dtype == "string"):
+            dtype = pandas_dtype(dtype)
+            assert isinstance(dtype, StringDtype) and dtype.storage == "pyarrow"
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and
@@ -266,9 +180,9 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
 
     @property
-    def dtype(self) -> ArrowStringDtype:
+    def dtype(self) -> StringDtype:
         """
-        An instance of 'ArrowStringDtype'.
+        An instance of 'string[pyarrow]'.
         """
         return self._dtype
 
@@ -294,10 +208,14 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
         """
         # TODO: copy argument is ignored
 
-        if na_value is lib.no_default:
-            na_value = self._dtype.na_value
-        result = self._data.__array__(dtype=dtype)
-        result[isna(result)] = na_value
+        result = np.array(self._data, dtype=dtype)
+        if self._data.null_count > 0:
+            if na_value is lib.no_default:
+                if dtype and np.issubdtype(dtype, np.floating):
+                    return result
+                na_value = self._dtype.na_value
+            mask = self.isna()
+            result[mask] = na_value
         return result
 
     def __len__(self) -> int:
@@ -753,10 +671,29 @@ class ArrowStringArray(OpsMixin, ExtensionArray, ObjectStringArrayMixin):
 
         return Series(counts, index=index).astype("Int64")
 
+    def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
+
+        if is_dtype_equal(dtype, self.dtype):
+            if copy:
+                return self.copy()
+            return self
+
+        elif isinstance(dtype, NumericDtype):
+            data = self._data.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
+            return dtype.__from_arrow__(data)
+
+        elif isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            return cls._from_sequence(self, dtype=dtype, copy=copy)
+
+        return super().astype(dtype, copy)
+
     # ------------------------------------------------------------------------
     # String methods interface
 
-    _str_na_value = ArrowStringDtype.na_value
+    # error: Cannot determine type of 'na_value'
+    _str_na_value = StringDtype.na_value  # type: ignore[has-type]
 
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True

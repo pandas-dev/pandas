@@ -13,6 +13,8 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
+from __future__ import annotations
+
 import argparse
 import doctest
 import glob
@@ -22,10 +24,6 @@ import os
 import subprocess
 import sys
 import tempfile
-from typing import (
-    List,
-    Optional,
-)
 
 try:
     from io import StringIO
@@ -56,6 +54,7 @@ PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
+    "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX02": "Examples do not pass tests:\n{doctest_log}",
@@ -198,6 +197,9 @@ class PandasDocstring(Docstring):
             error_count, error_code, message = error_message.split(maxsplit=2)
             yield error_code, message, int(error_count)
 
+    def non_hyphenated_array_like(self):
+        return "array_like" in self.raw_doc
+
 
 def pandas_validate(func_name: str):
     """
@@ -258,6 +260,9 @@ def pandas_validate(func_name: str):
                     pandas_error("EX04", imported_library=wrong_import)
                 )
 
+    if doc.non_hyphenated_array_like():
+        result["errors"].append(pandas_error("GL05"))
+
     return result
 
 
@@ -315,7 +320,7 @@ def validate_all(prefix, ignore_deprecated=False):
 
 def print_validate_all_results(
     prefix: str,
-    errors: Optional[List[str]],
+    errors: list[str] | None,
     output_format: str,
     ignore_deprecated: bool,
 ):

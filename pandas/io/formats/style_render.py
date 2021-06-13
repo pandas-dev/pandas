@@ -75,7 +75,7 @@ class StylerRenderer:
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
         table_attributes: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         cell_ids: bool = True,
     ):
 
@@ -176,6 +176,8 @@ class StylerRenderer:
         ROW_HEADING_CLASS = "row_heading"
         COL_HEADING_CLASS = "col_heading"
         INDEX_NAME_CLASS = "index_name"
+        TRIMMED_COL_CLASS = "col_trim"
+        TRIMMED_ROW_CLASS = "row_trim"
 
         DATA_CLASS = "data"
         BLANK_CLASS = "blank"
@@ -188,15 +190,34 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
+        max_elements = get_option("styler.render.max_elements")
+        max_rows, max_cols = _get_trimming_maximums(
+            len(self.data.index), len(self.data.columns), max_elements
+        )
+
         head = self._translate_header(
-            BLANK_CLASS, BLANK_VALUE, INDEX_NAME_CLASS, COL_HEADING_CLASS, sparse_cols
+            BLANK_CLASS,
+            BLANK_VALUE,
+            INDEX_NAME_CLASS,
+            COL_HEADING_CLASS,
+            sparse_cols,
+            max_cols,
+            TRIMMED_COL_CLASS,
         )
         d.update({"head": head})
 
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        body = self._translate_body(DATA_CLASS, ROW_HEADING_CLASS, sparse_index)
+        body = self._translate_body(
+            DATA_CLASS,
+            ROW_HEADING_CLASS,
+            sparse_index,
+            max_rows,
+            max_cols,
+            TRIMMED_ROW_CLASS,
+            TRIMMED_COL_CLASS,
+        )
         d.update({"body": body})
 
         cellstyle: list[dict[str, CSSList | list[str]]] = [
@@ -227,6 +248,8 @@ class StylerRenderer:
         index_name_class: str,
         col_heading_class: str,
         sparsify_cols: bool,
+        max_cols: int,
+        trimmed_col_class: str,
     ):
         """
         Build each <tr> within table <head> as a list
@@ -252,6 +275,10 @@ class StylerRenderer:
             CSS class added to elements within the column_names section of structure.
         sparsify_cols : bool
             Whether column_headers section will add colspan attributes (>1) to elements.
+        max_cols : int
+            Maximum number of columns to render. If exceeded will contain `...` filler.
+        trimmed_col_class : str
+            CSS class added to elements within a column including `...` trimmed vals.
 
         Returns
         -------
@@ -260,10 +287,10 @@ class StylerRenderer:
         """
         # for sparsifying a MultiIndex
         col_lengths = _get_level_lengths(
-            self.columns, sparsify_cols, self.hidden_columns
+            self.columns, sparsify_cols, max_cols, self.hidden_columns
         )
 
-        clabels = self.data.columns.tolist()
+        clabels = self.data.columns.tolist()[:max_cols]  # slice to allow trimming
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
         clabels = list(zip(*clabels))
@@ -300,6 +327,18 @@ class StylerRenderer:
                     )
                     for c, value in enumerate(clabels[r])
                 ]
+
+                if len(self.data.columns) > max_cols:
+                    # add an extra column with `...` value to indicate trimming
+                    column_headers.append(
+                        _element(
+                            "th",
+                            f"{col_heading_class} level{r} {trimmed_col_class}",
+                            "...",
+                            True,
+                            attributes="",
+                        )
+                    )
                 head.append(index_blanks + column_name + column_headers)
 
         # 2) index names
@@ -318,6 +357,11 @@ class StylerRenderer:
                 for c, name in enumerate(self.data.index.names)
             ]
 
+            if len(self.data.columns) <= max_cols:
+                blank_len = len(clabels[0])
+            else:
+                blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
+
             column_blanks = [
                 _element(
                     "th",
@@ -325,14 +369,21 @@ class StylerRenderer:
                     blank_value,
                     c not in self.hidden_columns,
                 )
-                for c in range(len(clabels[0]))
+                for c in range(blank_len)
             ]
             head.append(index_names + column_blanks)
 
         return head
 
     def _translate_body(
-        self, data_class: str, row_heading_class: str, sparsify_index: bool
+        self,
+        data_class: str,
+        row_heading_class: str,
+        sparsify_index: bool,
+        max_rows: int,
+        max_cols: int,
+        trimmed_row_class: str,
+        trimmed_col_class: str,
     ):
         """
         Build each <tr> within table <body> as a list
@@ -360,14 +411,52 @@ class StylerRenderer:
             The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index, sparsify_index)
+        idx_lengths = _get_level_lengths(self.index, sparsify_index, max_rows)
 
-        rlabels = self.data.index.tolist()
+        rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
         if self.data.index.nlevels == 1:
             rlabels = [[x] for x in rlabels]
 
         body = []
         for r, row_tup in enumerate(self.data.itertuples()):
+            if r >= max_rows:  # used only to add a '...' trimmed row:
+                index_headers = [
+                    _element(
+                        "th",
+                        f"{row_heading_class} level{c} {trimmed_row_class}",
+                        "...",
+                        not self.hidden_index,
+                        attributes="",
+                    )
+                    for c in range(self.data.index.nlevels)
+                ]
+
+                data = [
+                    _element(
+                        "td",
+                        f"{data_class} col{c} {trimmed_row_class}",
+                        "...",
+                        (c not in self.hidden_columns),
+                        attributes="",
+                    )
+                    for c in range(max_cols)
+                ]
+
+                if len(self.data.columns) > max_cols:
+                    # columns are also trimmed so we add the final element
+                    data.append(
+                        _element(
+                            "td",
+                            f"{data_class} {trimmed_row_class} {trimmed_col_class}",
+                            "...",
+                            True,
+                            attributes="",
+                        )
+                    )
+
+                body.append(index_headers + data)
+                break
+
             index_headers = [
                 _element(
                     "th",
@@ -386,6 +475,18 @@ class StylerRenderer:
 
             data = []
             for c, value in enumerate(row_tup[1:]):
+                if c >= max_cols:
+                    data.append(
+                        _element(
+                            "td",
+                            f"{data_class} row{r} {trimmed_col_class}",
+                            "...",
+                            True,
+                            attributes="",
+                        )
+                    )
+                    break
+
                 # add custom classes from cell context
                 cls = ""
                 if (r, c) in self.cell_context:
@@ -655,8 +756,40 @@ def _element(
     }
 
 
+def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
+    """
+    Recursively reduce the number of rows and columns to satisfy max elements.
+
+    Parameters
+    ----------
+    rn, cn : int
+        The number of input rows / columns
+    max_elements : int
+        The number of allowable elements
+
+    Returns
+    -------
+    rn, cn : tuple
+        New rn and cn values that satisfy the max_elements constraint
+    """
+
+    def scale_down(rn, cn):
+        if cn >= rn:
+            return rn, int(cn * scaling_factor)
+        else:
+            return int(rn * scaling_factor), cn
+
+    while rn * cn > max_elements:
+        rn, cn = scale_down(rn, cn)
+
+    return rn, cn
+
+
 def _get_level_lengths(
-    index: Index, sparsify: bool, hidden_elements: Sequence[int] | None = None
+    index: Index,
+    sparsify: bool,
+    max_index: int,
+    hidden_elements: Sequence[int] | None = None,
 ):
     """
     Given an index, find the level length for each element.
@@ -667,6 +800,8 @@ def _get_level_lengths(
         Index or columns to determine lengths of each element
     sparsify : bool
         Whether to hide or show each distinct element in a MultiIndex
+    max_index : int
+        The maximum number of elements to analyse along the index due to trimming
     hidden_elements : sequence of int
         Index positions of elements hidden from display in the index affecting
         length
@@ -693,6 +828,9 @@ def _get_level_lengths(
 
     for i, lvl in enumerate(levels):
         for j, row in enumerate(lvl):
+            if j >= max_index:
+                # stop the loop due to display trimming
+                break
             if not sparsify:
                 lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):

@@ -160,6 +160,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     _recognized_scalars: tuple[type, ...]
     _ndarray: np.ndarray
 
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return True
+
     def __init__(self, data, dtype: Dtype | None = None, freq=None, copy=False):
         raise AbstractMethodError(self)
 
@@ -574,27 +578,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return other
 
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to an i8 representation,
-        raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : np.int64, np.datetime64, or np.timedelta64
-
-        Raises
-        ------
-        TypeError
-        """
-        return self._validate_scalar(fill_value)
-
     def _validate_shift_value(self, fill_value):
-        # TODO(2.0): once this deprecation is enforced, use _validate_fill_value
+        # TODO(2.0): once this deprecation is enforced, use _validate_scalar
         if is_valid_na_for_dtype(fill_value, self.dtype):
             fill_value = NaT
         elif isinstance(fill_value, self._recognized_scalars):
@@ -1225,7 +1210,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Caller is responsible for broadcasting if necessary
         assert self.shape == other.shape, (self.shape, other.shape)
 
-        res_values = op(self.astype("O"), np.asarray(other))
+        with warnings.catch_warnings():
+            # filter out warnings about Timestamp.freq
+            warnings.filterwarnings("ignore", category=FutureWarning)
+            res_values = op(self.astype("O"), np.asarray(other))
+
         result = pd_array(res_values.ravel())
         # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no attribute
         # "reshape"
@@ -1624,8 +1613,6 @@ _round_doc = """
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous
           times.
 
-        .. versionadded:: 0.24.0
-
     nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
         A nonexistent time does not exist in a particular timezone
         where clocks moved forward due to DST.
@@ -1638,8 +1625,6 @@ _round_doc = """
         - timedelta objects will shift nonexistent times by the timedelta
         - 'raise' will raise an NonExistentTimeError if there are
           nonexistent times.
-
-        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -1712,11 +1697,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     """
     Common ops for TimedeltaIndex/DatetimeIndex, but not PeriodIndex.
     """
-
-    def copy(self: TimelikeOpsT) -> TimelikeOpsT:
-        result = super().copy()
-        result._freq = self._freq
-        return result
 
     def _round(self, freq, mode, ambiguous, nonexistent):
         # round the local times
