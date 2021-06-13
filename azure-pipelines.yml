@@ -4,6 +4,7 @@ trigger:
     include:
     - master
     - 1.2.x
+    - 1.3.x
   paths:
     exclude:
     - 'doc/*'
@@ -11,6 +12,7 @@ trigger:
 pr:
 - master
 - 1.2.x
+- 1.3.x
 
 variables:
   PYTEST_WORKERS: auto
