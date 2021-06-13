@@ -12,17 +12,12 @@ from pandas._config import get_option
 
 from pandas._libs import index as libindex
 from pandas._typing import (
-    ArrayLike,
     Dtype,
     DtypeObj,
 )
-from pandas.util._decorators import (
-    Appender,
-    doc,
-)
+from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     is_categorical_dtype,
     is_scalar,
 )
@@ -41,7 +36,6 @@ from pandas.core.construction import extract_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    _index_shared_docs,
     maybe_extract_name,
 )
 from pandas.core.indexes.extension import (
@@ -492,7 +486,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 return -1
             raise
 
-    def _maybe_cast_listlike_indexer(self, values: ArrayLike) -> CategoricalIndex:
+    def _maybe_cast_listlike_indexer(self, values) -> CategoricalIndex:
+        if isinstance(values, CategoricalIndex):
+            values = values._data
         if isinstance(values, Categorical):
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
@@ -504,16 +500,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             codes = codes.astype(self.codes.dtype, copy=False)
             cat = self._data._from_backing_data(codes)
         return type(self)._simple_new(cat)
-
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
-        target = ibase.ensure_index(target)
-        ci = self._maybe_cast_listlike_indexer(target._values)
-        codes = ci._get_engine_target()
-
-        indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     # --------------------------------------------------------------------
 
