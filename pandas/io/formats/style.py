@@ -917,7 +917,7 @@ class Styler(StylerRenderer):
 
     def _update_ctx_header(self, attrs: DataFrame, axis: str) -> None:
         """
-        Update the state of the ``Styler`` for index cells.
+        Update the state of the ``Styler`` for header cells.
 
         Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
 
