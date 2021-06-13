@@ -226,7 +226,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     Parameters
     ----------
-    data : array-like
+    data : array-like or scalar
         A dense array of values to store in the SparseArray. This may contain
         `fill_value`.
     sparse_index : SparseIndex, optional
