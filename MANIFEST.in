@@ -44,7 +44,7 @@ global-exclude *.c
 global-exclude *.cpp
 global-exclude *.h
 
-global-exclude *.py[codx]
+global-exclude *.py[cod]
 global-exclude *.px[di]
 
 # GH 39321
