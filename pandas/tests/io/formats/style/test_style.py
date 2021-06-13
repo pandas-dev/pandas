@@ -190,6 +190,11 @@ def test_apply_map_header_mi(mi_styler, method, axis):
     assert getattr(result, f"ctx_{axis}") == expected
 
 
+def test_apply_map_header_raises(mi_styler):
+    with pytest.raises(ValueError, match="`axis` must be one of 0, 1, 'index', 'col"):
+        mi_styler.applymap_header(lambda v: "attr: val;", axis="bad-axis")._compute()
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)
