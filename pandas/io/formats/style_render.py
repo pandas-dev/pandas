@@ -230,25 +230,17 @@ class StylerRenderer:
         )
         d.update({"body": body})
 
-        cellstyle: list[dict[str, CSSList | list[str]]] = [
-            {"props": list(props), "selectors": selectors}
-            for props, selectors in self.cellstyle_map.items()
-        ]
-        cellstyle_index: list[dict[str, CSSList | list[str]]] = [
-            {"props": list(props), "selectors": selectors}
-            for props, selectors in self.cellstyle_map_index.items()
-        ]
-        cellstyle_columns: list[dict[str, CSSList | list[str]]] = [
-            {"props": list(props), "selectors": selectors}
-            for props, selectors in self.cellstyle_map_columns.items()
-        ]
-        d.update(
-            {
-                "cellstyle": cellstyle,
-                "cellstyle_index": cellstyle_index,
-                "cellstyle_columns": cellstyle_columns,
-            }
-        )
+        ctx_maps = {
+            "cellstyle": "cellstyle_map",
+            "cellstyle_index": "cellstyle_map_index",
+            "cellstyle_columns": "cellstyle_map_columns",
+        }  # add the cell_ids styles map to the render dictionary in right format
+        for k, attr in ctx_maps.items():
+            map = [
+                {"props": list(props), "selectors": selectors}
+                for props, selectors in getattr(self, attr).items()
+            ]
+            d.update({k: map})
 
         table_attr = self.table_attributes
         use_mathjax = get_option("display.html.use_mathjax")
