@@ -345,7 +345,6 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    # TODO
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
@@ -369,7 +368,7 @@ class BooleanArray(BaseMaskedArray):
         inputs2 = []
         for x in inputs:
             if isinstance(x, BooleanArray):
-                mask |= x._mask
+                mask |= x._mask_as_ndarray()
                 inputs2.append(x._data)
             else:
                 inputs2.append(x)
@@ -624,12 +623,21 @@ class BooleanArray(BaseMaskedArray):
         if not other_is_scalar and len(self) != len(other):
             raise ValueError("Lengths must match to compare")
 
+        if mask is None:
+            mask = np.zeros_like(other, dtype=np.bool_)
+
         if op.__name__ in {"or_", "ror_"}:
-            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_or(
+                self._data, other, self._mask_as_ndarray(), mask
+            )
         elif op.__name__ in {"and_", "rand_"}:
-            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_and(
+                self._data, other, self._mask_as_ndarray(), mask
+            )
         elif op.__name__ in {"xor", "rxor"}:
-            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_xor(
+                self._data, other, self._mask_as_ndarray(), mask
+            )
 
         # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
         # expected "ndarray"
@@ -671,9 +679,9 @@ class BooleanArray(BaseMaskedArray):
 
             # nans propagate
             if mask is None:
-                mask = self._mask.copy()
+                mask = self._copy_mask()
             else:
-                mask = self._mask | mask
+                mask = self._mask_as_ndarray() | mask
 
         return BooleanArray(result, mask, copy=False)
 
@@ -693,11 +701,11 @@ class BooleanArray(BaseMaskedArray):
 
         # nans propagate
         if mask is None:
-            mask = self._mask
+            mask = self._mask_as_ndarray()
             if other is libmissing.NA:
                 mask |= True
         else:
-            mask = self._mask | mask
+            mask = self._mask_as_ndarray() | mask
 
         if other is libmissing.NA:
             # if other is NA, the result will be all NA and we can't run the

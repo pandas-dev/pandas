@@ -116,7 +116,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, values: np.ndarray, mask: np.ndarray | None = None, copy: bool = False
     ):
         # values is supposed to already be validated in the subclass
-        if mask:
+        if mask is not None:
             if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
                 raise TypeError(
                     "mask should be boolean numpy array. Use "
@@ -133,7 +133,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if copy:
             values = values.copy()
-            if mask:
+            if mask is not None:
                 mask = mask.copy()
 
         self._data = values
@@ -370,7 +370,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self._hasna:
             return self._mask.copy()
         else:
-            return np.zeros_like(self._data, dtype=bool)
+            return np.zeros_like(self._data, dtype=np.bool_)
 
     @property
     def _na_value(self):
@@ -395,7 +395,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.concatenate([x._mask_as_ndarray() for x in to_concat])
         return cls(data, mask)
 
-    # TODO
     def take(
         self: BaseMaskedArrayT,
         indexer,
@@ -410,7 +409,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             self._data, indexer, fill_value=data_fill_value, allow_fill=allow_fill
         )
 
-        mask = take(self._mask, indexer, fill_value=True, allow_fill=allow_fill)
+        mask = take(
+            self._mask_as_ndarray(), indexer, fill_value=True, allow_fill=allow_fill
+        )
 
         # if we are filling
         # we only fill where the indexer is null
@@ -510,10 +511,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return Series(counts, index=index)
 
-    # TODO
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         data = self._data
-        mask = self._mask
+        mask = self._mask_as_ndarray()
 
         if name in {"sum", "prod", "min", "max", "mean"}:
             op = getattr(masked_reductions, name)
