@@ -233,3 +233,35 @@ def test_from_custom_template(tmpdir):
 def test_caption_as_sequence(styler):
     styler.set_caption(("full cap", "short cap"))
     assert "<caption>full cap</caption>" in styler.render()
+
+
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize("columns", [True, False])
+def test_applymap_header_cell_ids(styler, index, columns):
+    func = lambda v: "attr: val;"
+    styler.uuid, styler.cell_ids = "", False
+    if index:
+        styler.applymap_header(func, axis="index")
+    if columns:
+        styler.applymap_header(func, axis="columns")
+
+    result = styler.to_html()
+
+    # test no data cell ids
+    assert '<td class="data row0 col0" >2.610000</td>' in result
+    assert '<td class="data row1 col0" >2.690000</td>' in result
+
+    # test index header ids where needed and css styles
+    assert (
+        '<th id="T_level0_row0" class="row_heading level0 row0" >a</th>' in result
+    ) is index
+    assert (
+        '<th id="T_level0_row1" class="row_heading level0 row1" >b</th>' in result
+    ) is index
+    assert ("#T_level0_row0, #T_level0_row1 {\n  attr: val;\n}" in result) is index
+
+    # test column header ids where needed and css styles
+    assert (
+        '<th id="T_level0_col0" class="col_heading level0 col0" >A</th>' in result
+    ) is columns
+    assert ("#T_level0_col0 {\n  attr: val;\n}" in result) is columns
