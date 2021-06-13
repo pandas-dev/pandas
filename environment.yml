@@ -3,9 +3,9 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.17.3
+  - numpy>=1.18.3
   - python=3.8
-  - python-dateutil>=2.7.3
+  - python-dateutil>=2.8.1
   - pytz
 
   # benchmarks
@@ -55,10 +55,10 @@ dependencies:
   # testing
   - boto3
   - botocore>=1.11
-  - hypothesis>=3.82
+  - hypothesis>=5.5.3
   - moto  # mock S3
   - flask
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.21
   - pytest-asyncio
@@ -80,15 +80,15 @@ dependencies:
   - ipykernel
   - ipython>=7.11.1
   - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
-  - numexpr>=2.7.0
-  - scipy>=1.2
-  - numba>=0.46.0
+  - matplotlib>=3.1.3  # pandas.plotting, Series.plot, DataFrame.plot
+  - numexpr>=2.7.1
+  - scipy>=1.4.1
+  - numba>=0.48.0
 
   # optional for io
   # ---------------
   # pd.read_html
-  - beautifulsoup4>=4.6.0
+  - beautifulsoup4>=4.8.2
   - html5lib
   - lxml
 
@@ -99,12 +99,11 @@ dependencies:
   - xlwt
   - odfpy
 
-  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
   - pyarrow>=0.17.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
-  - pyqt>=5.9.2  # pandas.read_clipboard
-  - pytables>=3.5.1  # pandas.read_hdf, DataFrame.to_hdf
+  - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
   - fsspec>=0.7.4  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path

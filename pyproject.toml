@@ -5,7 +5,6 @@ requires = [
     "setuptools>=38.6.0",
     "wheel",
     "Cython>=0.29.21,<3",  # Note: sync with setup.py
-    "numpy==1.17.3; python_version=='3.7'",
     "numpy==1.18.3; python_version=='3.8'",
     "numpy; python_version>='3.9'",
 ]
@@ -14,7 +13,7 @@ requires = [
 # build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py37', 'py38', 'py39']
+target-version = ['py38', 'py39']
 exclude = '''
 (
     asv_bench/env
