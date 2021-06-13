@@ -1152,14 +1152,16 @@ class Styler(StylerRenderer):
 
     @doc(
         this="apply",
-        alt="applymap",
         wise="level-wise",
+        alt="applymap",
+        altwise="elementwise",
         func="take a Series and return a string array of the same length",
+        axis='{0, 1, "index", "columns"}',
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
         output_note="an identically sized array of CSS styles as strings",
         var="s",
         ret='np.where(s == "B", "background-color: yellow;", "")',
-        ret2='np.where(["x" in v for v in s], "background-color: yellow;", "")',
+        ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
     )
     def apply_header(
         self,
@@ -1169,7 +1171,7 @@ class Styler(StylerRenderer):
         **kwargs,
     ) -> Styler:
         """
-        Apply a CSS-styling function to the index, {wise}.
+        Apply a CSS-styling function to the index or column headers, {wise}.
 
         Updates the HTML representation with the result.
 
@@ -1179,7 +1181,7 @@ class Styler(StylerRenderer):
         ----------
         func : function
             ``func`` should {func}.
-        axis : {0, 1, "index", "columns"}
+        axis : {axis}
             The headers over which to apply the function.
         levels : int, list of ints, optional
             If index is MultiIndex the level(s) over which to apply the function.
@@ -1192,7 +1194,7 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.{alt}_header: Apply a CSS-styling function to headers {wise}.
+        Styler.{alt}_header: Apply a CSS-styling function to headers {altwise}.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
@@ -1221,7 +1223,7 @@ class Styler(StylerRenderer):
         ...     return {ret2}
         >>> df.style.{this}_header(highlight_x, axis="columns", levels=[0, 2])
 
-        .. figure:: ../../_static/style/appmaphead1.png
+        .. figure:: ../../_static/style/appmaphead2.png
         """
         self._todo.append(
             (
@@ -1235,9 +1237,11 @@ class Styler(StylerRenderer):
     @doc(
         apply_header,
         this="applymap",
-        alt="apply",
         wise="elementwise",
+        alt="apply",
+        altwise="level-wise",
         func="take a scalar and return a string",
+        axis='{0, 1, "index", "columns"}',
         input_note="an index value, if an Index, or a level value of a MultiIndex",
         output_note="CSS styles as a string",
         var="v",
