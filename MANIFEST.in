@@ -44,9 +44,8 @@ global-exclude *.c
 global-exclude *.cpp
 global-exclude *.h
 
-global-exclude *.py[codx]
-global-exclude *.px[di]
-global-exclude *.pxi.in
+global-exclude *.py[ocd]
+global-exclude *.pxi
 
 # GH 39321
 # csv_dir_path fixture checks the existence of the directory
@@ -56,3 +55,6 @@ prune pandas/tests/io/parser/data
 include versioneer.py
 include pandas/_version.py
 include pandas/io/formats/templates/*.tpl
+
+graft pandas/_libs/src
+graft pandas/_libs/tslibs/src
