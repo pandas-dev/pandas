@@ -156,33 +156,26 @@ def test_render_trimming_mi():
     assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
 
 
-def test_apply_map_header():
+@pytest.mark.parametrize("method", ["applymap", "apply"])
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_apply_map_header(method, axis):
     df = DataFrame({"A": [0, 0], "B": [1, 1]}, index=["C", "D"])
-    func = lambda s: ["attr: val" if ("A" in v or "D" in v) else "" for v in s]
-    func_map = lambda v: "attr: val" if ("A" in v or "D" in v) else ""
+    func = {
+        "apply": lambda s: ["attr: val" if ("A" in v or "C" in v) else "" for v in s],
+        "applymap": lambda v: "attr: val" if ("A" in v or "C" in v) else "",
+    }
 
     # test execution added to todo
-    result = df.style.apply_header(func, axis="index")
+    result = getattr(df.style, f"{method}_header")(func[method], axis=axis)
     assert len(result._todo) == 1
-    assert len(result.ctx_index) == 0
+    assert len(getattr(result, f"ctx_{axis}")) == 0
 
-    # test over index
+    # test ctx object on compute
     result._compute()
-    result_map = df.style.applymap_header(func_map, axis="index")._compute()
-    expected = {
-        (1, 0): [("attr", "val")],
-    }
-    assert result.ctx_index == expected
-    assert result_map.ctx_index == expected
-
-    # test over columns
-    result = df.style.apply_header(func, axis="columns")._compute()
-    result_map = df.style.applymap_header(func_map, axis="columns")._compute()
     expected = {
         (0, 0): [("attr", "val")],
     }
-    assert result.ctx_columns == expected
-    assert result_map.ctx_columns == expected
+    assert getattr(result, f"ctx_{axis}") == expected
 
 
 @pytest.mark.parametrize("method", ["apply", "applymap"])
@@ -192,7 +185,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
         "apply": lambda s: ["attr: val;" if "b" in v else "" for v in s],
         "applymap": lambda v: "attr: val" if "b" in v else "",
     }
-    result = getattr(mi_styler, method + "_header")(func[method], axis=axis)._compute()
+    result = getattr(mi_styler, f"{method}_header")(func[method], axis=axis)._compute()
     expected = {(1, 1): [("attr", "val")]}
     assert getattr(result, f"ctx_{axis}") == expected
 
