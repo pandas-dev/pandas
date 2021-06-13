@@ -9,13 +9,13 @@ jobs:
   strategy:
     matrix:
       py37_np17:
-        ENV_FILE: ci/deps/azure-windows-37.yaml
-        CONDA_PY: "37"
+        ENV_FILE: ci/deps/azure-windows-38.yaml
+        CONDA_PY: "38"
         PATTERN: "not slow and not network"
 
       py38_np18:
-        ENV_FILE: ci/deps/azure-windows-38.yaml
-        CONDA_PY: "38"
+        ENV_FILE: ci/deps/azure-windows-39.yaml
+        CONDA_PY: "39"
         PATTERN: "not slow and not network and not high_memory"
 
   steps:

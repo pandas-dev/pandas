@@ -10,8 +10,8 @@ jobs:
     matrix:
       ${{ if eq(parameters.name, 'macOS') }}:
         py37_macos:
-          ENV_FILE: ci/deps/azure-macos-37.yaml
-          CONDA_PY: "37"
+          ENV_FILE: ci/deps/azure-macos-38.yaml
+          CONDA_PY: "38"
           PATTERN: "not slow and not network"
 
   steps:
