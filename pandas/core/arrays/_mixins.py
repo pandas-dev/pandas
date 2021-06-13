@@ -193,9 +193,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     @overload
     def __getitem__(
-        self: NDArrayBackedExtensionArray,
+        self: NDArrayBackedExtensionArrayT,
         key: slice | np.ndarray | list[int] | PositionalIndexerTuple,
-    ) -> NDArrayBackedExtensionArray:
+    ) -> NDArrayBackedExtensionArrayT:
         ...
 
     def __getitem__(
