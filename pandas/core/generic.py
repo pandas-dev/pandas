@@ -252,7 +252,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: Dtype | None = None,
         copy: bool_t = False,
     ) -> Manager:
-        """ passed a manager and a axes dict """
+        """passed a manager and a axes dict"""
         for a, axe in axes.items():
             if axe is not None:
                 axe = ensure_index(axe)
@@ -433,7 +433,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @classmethod
     def _validate_dtype(cls, dtype) -> DtypeObj | None:
-        """ validate the passed dtype """
+        """validate the passed dtype"""
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
@@ -804,8 +804,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def droplevel(self: FrameOrSeries, level, axis=0) -> FrameOrSeries:
         """
         Return {klass} with requested index / column level(s) removed.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1180,9 +1178,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Use either ``mapper`` and ``axis`` to
             specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
-
-            .. versionchanged:: 0.24.0
-
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to rename.
         copy : bool, default True
@@ -2229,8 +2224,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         For compatibility with :meth:`~DataFrame.to_csv`,
         to_excel serializes lists and dicts to strings before writing.
 
-        Once a workbook has been saved it is not possible write further data
-        without rewriting the whole workbook.
+        Once a workbook has been saved it is not possible to write further
+        data without rewriting the whole workbook.
 
         Examples
         --------
@@ -2366,18 +2361,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             suitable format for JSON. Should receive a single argument which is
             the object to convert and return a serialisable object.
         lines : bool, default False
-            If 'orient' is 'records' write out line delimited json format. Will
-            throw ValueError if incorrect 'orient' since others are not list
-            like.
+            If 'orient' is 'records' write out line-delimited json format. Will
+            throw ValueError if incorrect 'orient' since others are not
+            list-like.
 
         compression : {{'infer', 'gzip', 'bz2', 'zip', 'xz', None}}
 
             A string representing the compression to use in the output file,
             only used when the first argument is a filename. By default, the
             compression is inferred from the filename.
-
-            .. versionchanged:: 0.24.0
-               'infer' option added and set to default
         index : bool, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
@@ -2669,7 +2661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         read_hdf : Read from HDF file.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
-        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_sql : Write to a SQL table.
         DataFrame.to_feather : Write out feather-format for DataFrames.
         DataFrame.to_csv : Write out to a csv file.
 
@@ -2788,8 +2780,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
 
-            .. versionadded:: 0.24.0
-
         Raises
         ------
         ValueError
@@ -2806,8 +2796,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ``Timestamp with timezone`` type with SQLAlchemy if supported by the
         database. Otherwise, the datetimes will be stored as timezone unaware
         timestamps local to the original timezone.
-
-        .. versionadded:: 0.24.0
 
         References
         ----------
@@ -3332,9 +3320,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         r"""
         Write object to a comma-separated values (csv) file.
 
-        .. versionchanged:: 0.24.0
-            The order of arguments for Series was changed.
-
         Parameters
         ----------
         path_or_buf : str or file handle, default None
@@ -3342,10 +3327,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             a string.  If a non-binary file object is passed, it should be opened
             with `newline=''`, disabling universal newlines. If a binary
             file object is passed, `mode` might need to contain a `'b'`.
-
-            .. versionchanged:: 0.24.0
-
-               Was previously named "path" for Series.
 
             .. versionchanged:: 1.2.0
 
@@ -3362,11 +3343,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given it is
             assumed to be aliases for the column names.
-
-            .. versionchanged:: 0.24.0
-
-               Previously defaulted to False for Series.
-
         index : bool, default True
             Write row names (index).
         index_label : str or sequence, or False, default None
@@ -3424,8 +3400,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\\n' for linux, '\\r\\n' for Windows, i.e.).
-
-            .. versionchanged:: 0.24.0
         chunksize : int or None
             Rows to write at a time.
         date_format : str, default None
@@ -4026,7 +4000,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @property
     def _is_view(self) -> bool_t:
-        """Return boolean indicating if self is view of another array """
+        """Return boolean indicating if self is view of another array"""
         return self._mgr.is_view
 
     @final
@@ -4882,7 +4856,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy: bool_t = False,
         allow_dups: bool_t = False,
     ) -> FrameOrSeries:
-        """allow_dups indicates an internal call here """
+        """allow_dups indicates an internal call here"""
         # reindex doing multiple operations on different axes if indicated
         new_data = self._mgr
         for axis in sorted(reindexers.keys()):
@@ -5601,7 +5575,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _check_inplace_setting(self, value) -> bool_t:
-        """ check whether we allow in-place setting with this type of value """
+        """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
 
             # allow an actual np.nan thru
@@ -7244,10 +7218,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         with np.errstate(all="ignore"):
             if upper is not None:
-                subset = (self <= upper).to_numpy()
+                subset = self <= upper
                 result = result.where(subset, upper, axis=None, inplace=False)
             if lower is not None:
-                subset = (self >= lower).to_numpy()
+                subset = self >= lower
                 result = result.where(subset, lower, axis=None, inplace=False)
 
         if np.any(mask):
@@ -7588,8 +7562,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         time : datetime.time or str
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
-            .. versionadded:: 0.24.0
-
         Returns
         -------
         Series or DataFrame
@@ -7662,8 +7634,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether the end time needs to be included in the result.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine range time on index or columns value.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -9593,8 +9563,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
