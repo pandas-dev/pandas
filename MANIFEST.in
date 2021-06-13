@@ -46,7 +46,6 @@ global-exclude *.h
 
 global-exclude *.py[codx]
 global-exclude *.px[di]
-global-exclude *.pxi.in
 
 # GH 39321
 # csv_dir_path fixture checks the existence of the directory
