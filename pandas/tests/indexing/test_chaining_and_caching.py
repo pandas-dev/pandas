@@ -499,3 +499,10 @@ class TestChaining:
 
             df["bb"].iloc[0] = 0.15
             assert df["bb"].iloc[0] == 0.15
+
+    def test_getitem_loc_assignment_slice_state(self):
+        # GH 13569
+        df = DataFrame({"a": [10, 20, 30]})
+        df["a"].loc[4] = 40
+        tm.assert_frame_equal(df, DataFrame({"a": [10, 20, 30]}))
+        tm.assert_series_equal(df["a"], Series([10, 20, 30], name="a"))

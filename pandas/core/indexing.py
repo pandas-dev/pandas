@@ -11,8 +11,6 @@ import warnings
 
 import numpy as np
 
-from pandas._config.config import option_context
-
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.errors import (
@@ -32,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -53,8 +52,11 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
+    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -888,25 +890,21 @@ class _LocationIndexer(NDFrameIndexerBase):
         # handle the multi-axis by taking sections and reducing
         # this is iterative
         obj = self.obj
-        axis = 0
-        for key in tup:
+        # GH#41369 Loop in reverse order ensures indexing along columns before rows
+        # which selects only necessary blocks which avoids dtype conversion if possible
+        axis = len(tup) - 1
+        for key in tup[::-1]:
 
             if com.is_null_slice(key):
-                axis += 1
+                axis -= 1
                 continue
 
-            current_ndim = obj.ndim
             obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
-            axis += 1
+            axis -= 1
 
             # if we have a scalar, we are done
             if is_scalar(obj) or not hasattr(obj, "ndim"):
                 break
-
-            # has the dim of the obj changed?
-            # GH 7199
-            if obj.ndim < current_ndim:
-                axis -= 1
 
         return obj
 
@@ -1089,7 +1087,7 @@ class _LocIndexer(_LocationIndexer):
         self._validate_key(key, axis)
 
         # A collection of keys
-        keyarr, indexer = self._get_listlike_indexer(key, axis, raise_missing=False)
+        keyarr, indexer = self._get_listlike_indexer(key, axis)
         return self.obj._reindex_with_indexers(
             {axis: [keyarr, indexer]}, copy=True, allow_dups=True
         )
@@ -1172,9 +1170,7 @@ class _LocIndexer(_LocationIndexer):
             return obj.copy(deep=False)
 
         labels = obj._get_axis(axis)
-        indexer = labels.slice_indexer(
-            slice_obj.start, slice_obj.stop, slice_obj.step, kind="loc"
-        )
+        indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop, slice_obj.step)
 
         if isinstance(indexer, slice):
             return self.obj._slice(indexer, axis=axis)
@@ -1255,8 +1251,7 @@ class _LocIndexer(_LocationIndexer):
                 (inds,) = key.nonzero()
                 return inds
             else:
-                # When setting, missing keys are not allowed, even with .loc:
-                return self._get_listlike_indexer(key, axis, raise_missing=True)[1]
+                return self._get_listlike_indexer(key, axis)[1]
         else:
             try:
                 return labels.get_loc(key)
@@ -1266,7 +1261,7 @@ class _LocIndexer(_LocationIndexer):
                     return {"key": key}
                 raise
 
-    def _get_listlike_indexer(self, key, axis: int, raise_missing: bool = False):
+    def _get_listlike_indexer(self, key, axis: int):
         """
         Transform a list-like of keys into a new index and an indexer.
 
@@ -1276,16 +1271,11 @@ class _LocIndexer(_LocationIndexer):
             Targeted labels.
         axis:  int
             Dimension on which the indexing is being made.
-        raise_missing: bool, default False
-            Whether to raise a KeyError if some labels were not found.
-            Will be removed in the future, and then this method will always behave as
-            if ``raise_missing=True``.
 
         Raises
         ------
         KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
+            If at least one key was requested but none was found.
 
         Returns
         -------
@@ -1296,13 +1286,21 @@ class _LocIndexer(_LocationIndexer):
         """
         ax = self.obj._get_axis(axis)
 
-        # Have the index compute an indexer or return None
-        # if it cannot handle:
-        indexer, keyarr = ax._convert_listlike_indexer(key)
-        # We only act on all found values:
-        if indexer is not None and (indexer != -1).all():
-            # _validate_read_indexer is a no-op if no -1s, so skip
-            return ax[indexer], indexer
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
+
+        if isinstance(ax, MultiIndex):
+            # get_indexer expects a MultiIndex or sequence of tuples, but
+            #  we may be doing partial-indexing, so need an extra check
+
+            # Have the index compute an indexer or return None
+            # if it cannot handle:
+            indexer = ax._convert_listlike_indexer(keyarr)
+            # We only act on all found values:
+            if indexer is not None and (indexer != -1).all():
+                # _validate_read_indexer is a no-op if no -1s, so skip
+                return ax[indexer], indexer
 
         if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)
@@ -1310,12 +1308,24 @@ class _LocIndexer(_LocationIndexer):
         else:
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
-        self._validate_read_indexer(keyarr, indexer, axis, raise_missing=raise_missing)
+        self._validate_read_indexer(keyarr, indexer, axis)
+
+        if needs_i8_conversion(ax.dtype) or isinstance(
+            ax, (IntervalIndex, CategoricalIndex)
+        ):
+            # For CategoricalIndex take instead of reindex to preserve dtype.
+            #  For IntervalIndex this is to map integers to the Intervals they match to.
+            keyarr = ax.take(indexer)
+            if keyarr.dtype.kind in ["m", "M"]:
+                # DTI/TDI.take can infer a freq in some cases when we dont want one
+                if isinstance(key, list) or (
+                    isinstance(key, type(ax)) and key.freq is None
+                ):
+                    keyarr = keyarr._with_freq(None)
+
         return keyarr, indexer
 
-    def _validate_read_indexer(
-        self, key, indexer, axis: int, raise_missing: bool = False
-    ):
+    def _validate_read_indexer(self, key, indexer, axis: int):
         """
         Check that indexer can be used to return a result.
 
@@ -1331,16 +1341,11 @@ class _LocIndexer(_LocationIndexer):
             (with -1 indicating not found).
         axis : int
             Dimension on which the indexing is being made.
-        raise_missing: bool
-            Whether to raise a KeyError if some labels are not found. Will be
-            removed in the future, and then this method will always behave as
-            if raise_missing=True.
 
         Raises
         ------
         KeyError
-            If at least one key was requested but none was found, and
-            raise_missing=True.
+            If at least one key was requested but none was found.
         """
         if len(key) == 0:
             return
@@ -1350,27 +1355,23 @@ class _LocIndexer(_LocationIndexer):
         missing = (missing_mask).sum()
 
         if missing:
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
             ax = self.obj._get_axis(axis)
 
-            # We (temporarily) allow for some missing keys with .loc, except in
-            # some cases (e.g. setting) in which "raise_missing" will be False
-            if raise_missing:
-                not_found = list(set(key) - set(ax))
-                raise KeyError(f"{not_found} not in index")
+            # TODO: remove special-case; this is just to keep exception
+            #  message tests from raising while debugging
+            use_interval_msg = isinstance(ax, IntervalIndex) or (
+                isinstance(ax, CategoricalIndex)
+                and isinstance(ax.categories, IntervalIndex)
+            )
 
-            not_found = key[missing_mask]
+            if missing == len(indexer):
+                axis_name = self.obj._get_axis_name(axis)
+                if use_interval_msg:
+                    key = list(key)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
 
-            with option_context("display.max_seq_items", 10, "display.width", 80):
-                raise KeyError(
-                    "Passing list-likes to .loc or [] with any missing labels "
-                    "is no longer supported. "
-                    f"The following labels were missing: {not_found}. "
-                    "See https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike"  # noqa:E501
-                )
+            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
+            raise KeyError(f"{not_found} not in index")
 
 
 @doc(IndexingMixin.iloc)
@@ -1968,7 +1969,9 @@ class _iLocIndexer(_LocationIndexer):
             # e.g. 0.0 -> 0
             # GH#12246
             if index.is_unique:
-                new_indexer = index.get_indexer([new_index[-1]])
+                # pass new_index[-1:] instead if [new_index[-1]]
+                #  so that we retain dtype
+                new_indexer = index.get_indexer(new_index[-1:])
                 if (new_indexer != -1).any():
                     # We get only here with loc, so can hard code
                     return self._setitem_with_indexer(new_indexer, value, "loc")
@@ -2317,7 +2320,7 @@ def convert_to_index_sliceable(obj: DataFrame, key):
         # slice here via partial string indexing
         if idx._supports_partial_string_indexing:
             try:
-                res = idx._get_string_slice(key)
+                res = idx._get_string_slice(str(key))
                 warnings.warn(
                     "Indexing a DataFrame with a datetimelike index using a single "
                     "string to slice the rows, like `frame[string]`, is deprecated "

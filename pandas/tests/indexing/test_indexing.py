@@ -33,7 +33,7 @@ from pandas.tests.indexing.test_floats import gen_obj
 
 
 class TestFancy:
-    """ pure get/set item & fancy indexing """
+    """pure get/set item & fancy indexing"""
 
     def test_setitem_ndarray_1d(self):
         # GH5508
@@ -94,6 +94,8 @@ class TestFancy:
             msgs.append("Index data must be 1-dimensional")
         if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
             msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, (pd.TimedeltaIndex, pd.DatetimeIndex, pd.PeriodIndex)):
+            msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
         msg = "|".join(msgs)
@@ -127,6 +129,7 @@ class TestFancy:
                     r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
                     "Cannot set values with ndim > 1",
                     "Index data must be 1-dimensional",
+                    "Data must be 1-dimensional",
                     "Array conditional must be same shape as self",
                 ]
             )
@@ -247,12 +250,12 @@ class TestFancy:
         tm.assert_frame_equal(result, expected)
 
         rows = ["C", "B", "E"]
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
         # see GH5553, make sure we use the right indexer
         rows = ["F", "G", "H", "C", "B", "E"]
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[rows]
 
     def test_dups_fancy_indexing_only_missing_label(self):
@@ -274,14 +277,14 @@ class TestFancy:
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": vals})
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[[0, 8, 0]]
 
     def test_dups_fancy_indexing_non_unique(self):
 
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[["A", "A", "E"]]
 
     def test_dups_fancy_indexing2(self):
@@ -289,7 +292,7 @@ class TestFancy:
         # dups on index and missing values
         df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df.loc[:, ["A", "B", "C"]]
 
     def test_dups_fancy_indexing3(self):
@@ -338,7 +341,7 @@ class TestFancy:
         # GH 10610
         df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
 
-        with pytest.raises(KeyError, match=re.escape("'[-8, 26] not in index'")):
+        with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
             df[[22, 26, -8]]
         assert df[21].shape[0] == df.shape[0]
 
@@ -977,3 +980,10 @@ def test_extension_array_cross_section_converts():
 
     result = df.iloc[0]
     tm.assert_series_equal(result, expected)
+
+
+def test_getitem_object_index_float_string():
+    # GH 17286
+    s = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
+    assert s["a"] == 1
+    assert s[1.0] == 1

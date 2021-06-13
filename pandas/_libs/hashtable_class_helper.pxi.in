@@ -127,6 +127,8 @@ dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
 
 
 {{if dtype != 'int64'}}
+# Int64VectorData is defined in the .pxd file because it is needed (indirectly)
+#  by IntervalTree
 
 ctypedef struct {{name}}VectorData:
     {{c_type}} *data
@@ -167,6 +169,14 @@ cdef inline bint needs_resize(vector_data *data) nogil:
 # Vector
 # ----------------------------------------------------------------------
 
+cdef class Vector:
+    # cdef readonly:
+    #    bint external_view_exists
+
+    def __cinit__(self):
+        self.external_view_exists = False
+
+
 {{py:
 
 # name, dtype, c_type
@@ -187,11 +197,12 @@ dtypes = [('Complex128', 'complex128', 'khcomplex128_t'),
 
 {{for name, dtype, c_type in dtypes}}
 
-cdef class {{name}}Vector:
+cdef class {{name}}Vector(Vector):
 
+    # For int64 we have to put this declaration in the .pxd file;
+    # Int64Vector is the only one we need exposed for other cython files.
     {{if dtype != 'int64'}}
     cdef:
-        bint external_view_exists
         {{name}}VectorData *data
         ndarray ao
     {{endif}}
@@ -201,7 +212,6 @@ cdef class {{name}}Vector:
             sizeof({{name}}VectorData))
         if not self.data:
             raise MemoryError()
-        self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.ao = np.empty(self.data.m, dtype=np.{{dtype}})
@@ -246,17 +256,15 @@ cdef class {{name}}Vector:
 
 {{endfor}}
 
-cdef class StringVector:
+cdef class StringVector(Vector):
 
     cdef:
         StringVectorData *data
-        bint external_view_exists
 
     def __cinit__(self):
         self.data = <StringVectorData *>PyMem_Malloc(sizeof(StringVectorData))
         if not self.data:
             raise MemoryError()
-        self.external_view_exists = False
         self.data.n = 0
         self.data.m = _INIT_VEC_CAP
         self.data.data = <char **>malloc(self.data.m * sizeof(char *))
@@ -314,16 +322,14 @@ cdef class StringVector:
             self.append(x[i])
 
 
-cdef class ObjectVector:
+cdef class ObjectVector(Vector):
 
     cdef:
         PyObject **data
         Py_ssize_t n, m
         ndarray ao
-        bint external_view_exists
 
     def __cinit__(self):
-        self.external_view_exists = False
         self.n = 0
         self.m = _INIT_VEC_CAP
         self.ao = np.empty(_INIT_VEC_CAP, dtype=object)
@@ -680,6 +686,7 @@ cdef class {{name}}HashTable(HashTable):
     def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
+        # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
                                  ignore_na=True, return_inverse=True)
@@ -1012,7 +1019,7 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64] (if return_inverse)
+        labels : ndarray[intp_t] (if return_inverse)
             The labels from values to uniques
         """
         uniques = ObjectVector()
@@ -1045,7 +1052,7 @@ cdef class StringHashTable(HashTable):
         -------
         uniques : ndarray[object]
             Unique values of input, not sorted
-        labels : ndarray[int64]
+        labels : ndarray[intp]
             The labels from values to uniques
         """
         uniques_vector = ObjectVector()
@@ -1056,6 +1063,7 @@ cdef class StringHashTable(HashTable):
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
+        # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
                                  ignore_na=True, return_inverse=True)
@@ -1310,6 +1318,7 @@ cdef class PyObjectHashTable(HashTable):
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
+        # -> np.ndarray[np.intp]
         _, labels = self._unique(values, uniques, count_prior=count_prior,
                                  na_sentinel=na_sentinel, na_value=na_value,
                                  ignore_na=True, return_inverse=True)

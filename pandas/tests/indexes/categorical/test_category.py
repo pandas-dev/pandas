@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
+from pandas._libs.arrays import NDArrayBacked
 
 import pandas as pd
 from pandas import (
@@ -36,6 +37,11 @@ class TestCategoricalIndex(Base):
         idx = self.create_index(categories=list("abcd"))
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
+
+    def test_pickle_compat_construction(self):
+        # Once the deprecation is enforced, we can use the parent class's test
+        with tm.assert_produces_warning(FutureWarning, match="without passing data"):
+            self._index_cls()
 
     def test_insert(self, simple_index):
 
@@ -306,7 +312,8 @@ class TestCategoricalIndex2:
             # having 2**32 - 2**31 categories would be very memory-intensive,
             # so we cheat a bit with the dtype
             ci = CategoricalIndex(range(32768))  # == 2**16 - 2**(16 - 1)
-            ci.values._ndarray = ci.values._ndarray.astype("int64")
+            arr = ci.values._ndarray.astype("int64")
+            NDArrayBacked.__init__(ci._data, arr, ci.dtype)
         assert np.issubdtype(ci.codes.dtype, dtype)
         assert isinstance(ci._engine, engine_type)
 

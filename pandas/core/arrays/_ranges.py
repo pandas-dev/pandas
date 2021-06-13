@@ -2,8 +2,7 @@
 Helper functions to generate range-like data for DatetimeArray
 (and possibly TimedeltaArray/PeriodArray)
 """
-
-from typing import Union
+from __future__ import annotations
 
 import numpy as np
 
@@ -17,8 +16,8 @@ from pandas._libs.tslibs import (
 
 
 def generate_regular_range(
-    start: Union[Timestamp, Timedelta],
-    end: Union[Timestamp, Timedelta],
+    start: Timestamp | Timedelta,
+    end: Timestamp | Timedelta,
     periods: int,
     freq: BaseOffset,
 ):

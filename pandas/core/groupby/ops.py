@@ -44,11 +44,12 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
     ensure_platform_int,
+    is_1d_only_ea_obj,
     is_bool_dtype,
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
-    is_extension_array_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -56,7 +57,6 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.generic import ABCCategoricalIndex
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
@@ -89,6 +89,7 @@ from pandas.core.groupby import (
     grouper,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
@@ -276,11 +277,11 @@ class WrappedCythonOp:
 
     @overload
     def _get_result_dtype(self, dtype: np.dtype) -> np.dtype:
-        ...
+        ...  # pragma: no cover
 
     @overload
     def _get_result_dtype(self, dtype: ExtensionDtype) -> ExtensionDtype:
-        ...
+        ...  # pragma: no cover
 
     def _get_result_dtype(self, dtype: DtypeObj) -> DtypeObj:
         """
@@ -304,10 +305,13 @@ class WrappedCythonOp:
                 return np.dtype(np.int64)
             elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Int64Dtype()
-        elif how in ["mean", "median", "var"] and isinstance(
-            dtype, (BooleanDtype, _IntegerDtype)
-        ):
-            return Float64Dtype()
+        elif how in ["mean", "median", "var"]:
+            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+                return Float64Dtype()
+            elif is_float_dtype(dtype):
+                return dtype
+            elif is_numeric_dtype(dtype):
+                return np.dtype(np.float64)
         return dtype
 
     def uses_mask(self) -> bool:
@@ -327,6 +331,14 @@ class WrappedCythonOp:
         re-wrap if appropriate.
         """
         # TODO: general case implementation overridable by EAs.
+        if isinstance(values, BaseMaskedArray) and self.uses_mask():
+            return self._masked_ea_wrap_cython_operation(
+                values,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                **kwargs,
+            )
         orig_values = values
 
         if isinstance(orig_values, (DatetimeArray, PeriodArray)):
@@ -368,8 +380,7 @@ class WrappedCythonOp:
                 return res_values
 
             # otherwise res_values has the same dtype as original values
-            result = type(orig_values)(res_values)
-            return result
+            return type(orig_values)(res_values)
 
         elif isinstance(values.dtype, (BooleanDtype, _IntegerDtype)):
             # IntegerArray or BooleanArray
@@ -600,9 +611,11 @@ class WrappedCythonOp:
         if values.ndim > 2:
             raise NotImplementedError("number of dimensions is currently limited to 2")
         elif values.ndim == 2:
+            assert axis == 1, axis
+        elif not is_1d_only_ea_obj(values):
             # Note: it is *not* the case that axis is always 0 for 1-dim values,
             #  as we can have 1D ExtensionArrays that we need to treat as 2D
-            assert axis == 1, axis
+            assert axis == 0
 
         dtype = values.dtype
         is_numeric = is_numeric_dtype(dtype)
@@ -613,22 +626,13 @@ class WrappedCythonOp:
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
-            if isinstance(values, BaseMaskedArray) and self.uses_mask():
-                return self._masked_ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
-            else:
-                return self._ea_wrap_cython_operation(
-                    values,
-                    min_count=min_count,
-                    ngroups=ngroups,
-                    comp_ids=comp_ids,
-                    **kwargs,
-                )
+            return self._ea_wrap_cython_operation(
+                values,
+                min_count=min_count,
+                ngroups=ngroups,
+                comp_ids=comp_ids,
+                **kwargs,
+            )
 
         return self._cython_op_ndim_compat(
             values,
@@ -662,6 +666,8 @@ class BaseGrouper:
 
     """
 
+    axis: Index
+
     def __init__(
         self,
         axis: Index,
@@ -674,10 +680,9 @@ class BaseGrouper:
     ):
         assert isinstance(axis, Index), axis
 
-        self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
-        self.sort = sort
+        self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
@@ -733,7 +738,7 @@ class BaseGrouper:
         We have a specific method of grouping, so cannot
         convert to a Index for our grouper.
         """
-        return self.groupings[0].grouper
+        return self.groupings[0].grouping_vector
 
     @final
     def _get_group_keys(self):
@@ -819,10 +824,8 @@ class BaseGrouper:
 
     @cache_readonly
     def indices(self):
-        """ dict {group name -> group indices} """
-        if len(self.groupings) == 1 and isinstance(
-            self.result_index, ABCCategoricalIndex
-        ):
+        """dict {group name -> group indices}"""
+        if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
         codes_list = [ping.codes for ping in self.groupings]
@@ -855,11 +858,11 @@ class BaseGrouper:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        """ dict {group name -> group labels} """
+        """dict {group name -> group labels}"""
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouper for ping in self.groupings))
+            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
             index = Index(to_groupby)
             return self.axis.groupby(index)
 
@@ -890,10 +893,9 @@ class BaseGrouper:
 
     @final
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
-        all_codes = self.codes
-        if len(all_codes) > 1:
-            group_index = get_group_index(all_codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, sort=self.sort)
+        if len(self.groupings) > 1:
+            group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
+            return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
@@ -910,8 +912,21 @@ class BaseGrouper:
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
     @cache_readonly
+    def result_arraylike(self) -> ArrayLike:
+        """
+        Analogous to result_index, but returning an ndarray/ExtensionArray
+        allowing us to retain ExtensionDtypes not supported by Index.
+        """
+        # TODO: once Index supports arbitrary EAs, this can be removed in favor
+        #  of result_index
+        if len(self.groupings) == 1:
+            return self.groupings[0].group_arraylike
+
+        return self.result_index._values
+
+    @cache_readonly
     def result_index(self) -> Index:
-        if not self.compressed and len(self.groupings) == 1:
+        if len(self.groupings) == 1:
             return self.groupings[0].result_index.rename(self.names[0])
 
         codes = self.reconstructed_codes
@@ -921,8 +936,10 @@ class BaseGrouper:
         )
 
     @final
-    def get_group_levels(self) -> list[Index]:
-        if not self.compressed and len(self.groupings) == 1:
+    def get_group_levels(self) -> list[ArrayLike]:
+        # Note: only called from _insert_inaxis_grouper_inplace, which
+        #  is only called for BaseGrouper, never for BinGrouper
+        if len(self.groupings) == 1:
             return [self.groupings[0].result_index]
 
         name_list = []
@@ -966,35 +983,62 @@ class BaseGrouper:
         )
 
     @final
-    def agg_series(self, obj: Series, func: F) -> tuple[ArrayLike, np.ndarray]:
-        # Caller is responsible for checking ngroups != 0
-        assert self.ngroups != 0
+    def agg_series(
+        self, obj: Series, func: F, preserve_dtype: bool = False
+    ) -> ArrayLike:
+        """
+        Parameters
+        ----------
+        obj : Series
+        func : function taking a Series and returning a scalar-like
+        preserve_dtype : bool
+            Whether the aggregation is known to be dtype-preserving.
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        # test_groupby_empty_with_category gets here with self.ngroups == 0
+        #  and len(obj) > 0
 
         if len(obj) == 0:
             # SeriesGrouper would raise if we were to call _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
-        elif is_extension_array_dtype(obj.dtype):
+        elif not isinstance(obj._values, np.ndarray):
             # _aggregate_series_fast would raise TypeError when
             #  calling libreduction.Slider
             # In the datetime64tz case it would incorrectly cast to tz-naive
             # TODO: can we get a performant workaround for EAs backed by ndarray?
-            return self._aggregate_series_pure_python(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
+
+            # we can preserve a little bit more aggressively with EA dtype
+            #  because maybe_cast_pointwise_result will do a try/except
+            #  with _from_sequence.  NB we are assuming here that _from_sequence
+            #  is sufficiently strict that it casts appropriately.
+            preserve_dtype = True
 
         elif obj.index._has_complex_internals:
             # Preempt TypeError in _aggregate_series_fast
-            return self._aggregate_series_pure_python(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
-        return self._aggregate_series_fast(obj, func)
+        else:
+            result = self._aggregate_series_fast(obj, func)
 
-    def _aggregate_series_fast(
-        self, obj: Series, func: F
-    ) -> tuple[ArrayLike, np.ndarray]:
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
+        if preserve_dtype:
+            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        else:
+            out = npvalues
+        return out
+
+    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
+        # -> np.ndarray[object]
+
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - len(obj) > 0
-        #  - ngroups != 0
         func = com.is_builtin_func(func)
 
         ids, _, ngroups = self.group_info
@@ -1004,11 +1048,12 @@ class BaseGrouper:
         obj = obj.take(indexer)
         ids = ids.take(indexer)
         sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
-        result, counts = sgrouper.get_result()
-        return result, counts
+        result, _ = sgrouper.get_result()
+        return result
 
     @final
-    def _aggregate_series_pure_python(self, obj: Series, func: F):
+    def _aggregate_series_pure_python(self, obj: Series, func: F) -> np.ndarray:
+        # -> np.ndarray[object]
         ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -1027,16 +1072,13 @@ class BaseGrouper:
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res)
+                libreduction.check_result_array(res, group.dtype)
                 initialized = True
 
             counts[i] = group.shape[0]
             result[i] = res
 
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-
-        return out, counts
+        return result
 
 
 class BinGrouper(BaseGrouper):
@@ -1047,7 +1089,6 @@ class BinGrouper(BaseGrouper):
     ----------
     bins : the split index of binlabels to group the item of axis
     binlabels : the label list
-    filter_empty : bool, default False
     mutated : bool, default False
     indexer : np.ndarray[np.intp]
 
@@ -1069,17 +1110,19 @@ class BinGrouper(BaseGrouper):
 
     """
 
+    bins: np.ndarray  # np.ndarray[np.int64]
+    binlabels: Index
+    mutated: bool
+
     def __init__(
         self,
         bins,
         binlabels,
-        filter_empty: bool = False,
         mutated: bool = False,
         indexer=None,
     ):
         self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
-        self._filter_empty_groups = filter_empty
         self.mutated = mutated
         self.indexer = indexer
 
@@ -1089,7 +1132,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def groups(self):
-        """ dict {group name -> group labels} """
+        """dict {group name -> group labels}"""
         # this is mainly for compat
         # GH 3881
         result = {
@@ -1101,6 +1144,7 @@ class BinGrouper(BaseGrouper):
 
     @property
     def nkeys(self) -> int:
+        # still matches len(self.groupings), but we can hard-code
         return 1
 
     def _get_grouper(self):
@@ -1189,21 +1233,21 @@ class BinGrouper(BaseGrouper):
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
-        return [
-            grouper.Grouping(lvl, lvl, in_axis=False, level=None, name=name)
-            for lvl, name in zip(self.levels, self.names)
-        ]
+        lev = self.binlabels
+        ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
+        return [ping]
 
-    def _aggregate_series_fast(
-        self, obj: Series, func: F
-    ) -> tuple[ArrayLike, np.ndarray]:
+    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
+        # -> np.ndarray[object]
+
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
         #  - ngroups != 0
         #  - len(self.bins) > 0
         sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
-        return sbg.get_result()
+        result, _ = sbg.get_result()
+        return result
 
 
 def _is_indexed_like(obj, axes, axis: int) -> bool:

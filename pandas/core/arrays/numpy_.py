@@ -36,8 +36,6 @@ class PandasArray(
     """
     A pandas ExtensionArray for NumPy data.
 
-    .. versionadded:: 0.24.0
-
     This is mostly for internal compatibility, and is not especially
     useful on its own.
 
@@ -64,6 +62,7 @@ class PandasArray(
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
+    _dtype: PandasDtype
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -83,8 +82,8 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarray = values
-        self._dtype = PandasDtype(values.dtype)
+        dtype = PandasDtype(values.dtype)
+        super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(
@@ -189,7 +188,7 @@ class PandasArray(
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
