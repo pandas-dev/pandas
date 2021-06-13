@@ -492,38 +492,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 return -1
             raise
 
-    def _get_indexer(
-        self,
-        target: Index,
-        method: str | None = None,
-        limit: int | None = None,
-        tolerance=None,
-    ) -> np.ndarray:
-        # returned ndarray is np.intp
-
-        if self.equals(target):
-            return np.arange(len(self), dtype="intp")
-
-        return self._get_indexer_non_unique(target._values)[0]
-
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
-        target = ibase.ensure_index(target)
-        return self._get_indexer_non_unique(target._values)
-
-    def _get_indexer_non_unique(
-        self, values: ArrayLike
-    ) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
-        """
-        get_indexer_non_unique but after unrapping the target Index object.
-        """
-        # Note: we use engine.get_indexer_non_unique for get_indexer in addition
-        #  to get_indexer_non_unique because, even if `target` is unique, any
-        #  non-category entries in it will be encoded as -1  so `codes` may
-        #  not be unique.
-
+    def _maybe_cast_listlike_indexer(self, values: ArrayLike) -> CategoricalIndex:
         if isinstance(values, Categorical):
             # Indexing on codes is more efficient if categories are the same,
             #  so we can apply some optimizations based on the degree of
@@ -532,6 +501,16 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             codes = cat._codes
         else:
             codes = self.categories.get_indexer(values)
+            codes = codes.astype(self.codes.dtype, copy=False)
+            cat = self._data._from_backing_data(codes)
+        return type(self)._simple_new(cat)
+
+    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
+    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
+        # both returned ndarrays are np.intp
+        target = ibase.ensure_index(target)
+        ci = self._maybe_cast_listlike_indexer(target._values)
+        codes = ci._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
