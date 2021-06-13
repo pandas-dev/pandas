@@ -1081,6 +1081,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
+        Styler.applymap_header: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_header: Apply a CSS-styling function to headers level-wise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -1148,6 +1150,17 @@ class Styler(StylerRenderer):
         self._update_ctx_header(result, axis)
         return self
 
+    @doc(
+        this="apply",
+        alt="applymap",
+        wise="level-wise",
+        func="take a Series and return a string array of the same length",
+        input_note="the index as a Series, if an Index, or a level of a MultiIndex",
+        output_note="an identically sized array of CSS styles as strings",
+        var="s",
+        ret='np.where(s == "B", "background-color: yellow;", "")',
+        ret2='np.where(["x" in v for v in s], "background-color: yellow;", "")',
+    )
     def apply_header(
         self,
         func: Callable[..., Styler],
@@ -1156,7 +1169,7 @@ class Styler(StylerRenderer):
         **kwargs,
     ) -> Styler:
         """
-        Apply a CSS-styling function to the index.
+        Apply a CSS-styling function to the index, {wise}.
 
         Updates the HTML representation with the result.
 
@@ -1165,7 +1178,9 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         func : function
-            ``func`` should take a Series, being the index or level of a MultiIndex.
+            ``func`` should {func}.
+        axis : {0, 1, "index", "columns"}
+            The headers over which to apply the function.
         levels : int, list of ints, optional
             If index is MultiIndex the level(s) over which to apply the function.
         **kwargs : dict
@@ -1174,11 +1189,72 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.{alt}_header: Apply a CSS-styling function to headers {wise}.
+        Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
+        Styler.applymap: Apply a CSS-styling function elementwise.
+
+        Notes
+        -----
+        Each input to ``func`` will be {input_note}. The output of ``func`` should be
+        {output_note}, in the format 'attribute: value; attribute2: value2; ...'
+        or, if nothing is to be applied to that element, an empty string or ``None``.
+
+        Examples
+        --------
+        Basic usage to conditionally highlight values in the index.
+
+        >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
+        >>> def color_b(s):
+        ...     return {ret}
+        >>> df.style.{this}_header(color_b)
+
+        .. figure:: ../../_static/style/appmaphead1.png
+
+        Selectively applying to specific levels of MultiIndex columns.
+
+        >>> midx = pd.MultiIndex.from_product([['ix', 'jy'], [0, 1], ['x3', 'z4']])
+        >>> df = pd.DataFrame([np.arange(8)], columns=midx)
+        >>> def highlight_x({var}):
+        ...     return {ret2}
+        >>> df.style.{this}_header(highlight_x, axis="columns", levels=[0, 2])
+
+        .. figure:: ../../_static/style/appmaphead1.png
         """
         self._todo.append(
             (
                 lambda instance: getattr(instance, "_apply_header"),
                 (func, axis, levels, "apply"),
+                kwargs,
+            )
+        )
+        return self
+
+    @doc(
+        apply_header,
+        this="applymap",
+        alt="apply",
+        wise="elementwise",
+        func="take a scalar and return a string",
+        input_note="an index value, if an Index, or a level value of a MultiIndex",
+        output_note="CSS styles as a string",
+        var="v",
+        ret='"background-color: yellow;" if v == "B" else None',
+        ret2='"background-color: yellow;" if "x" in v else None',
+    )
+    def applymap_header(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        levels: list[int] | int | None = None,
+        **kwargs,
+    ) -> Styler:
+        self._todo.append(
+            (
+                lambda instance: getattr(instance, "_apply_header"),
+                (func, axis, levels, "applymap"),
                 kwargs,
             )
         )
@@ -1206,7 +1282,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         func : function
-            ``func`` should take a scalar and return a scalar.
+            ``func`` should take a scalar and return a string.
         subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
@@ -1220,6 +1296,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
+        Styler.applymap_header: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_header: Apply a CSS-styling function to headers level-wise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
@@ -1247,42 +1325,6 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
-        )
-        return self
-
-    def applymap_header(
-        self,
-        func: Callable[..., Styler],
-        axis: int | str = 0,
-        levels: list[int] | int | None = None,
-        **kwargs,
-    ) -> Styler:
-        """
-        Apply a CSS-styling function to the index, element-wise.
-
-        Updates the HTML representation with the result.
-
-        .. versionadded:: 1.4.0
-
-        Parameters
-        ----------
-        func : function
-            ``func`` should take a Series
-        levels : int, list of ints, optional
-            If index is MultiIndex the level(s) over which to apply the function.
-        **kwargs : dict
-            Pass along to ``func``.
-
-        Returns
-        -------
-        self : Styler
-        """
-        self._todo.append(
-            (
-                lambda instance: getattr(instance, "_apply_header"),
-                (func, axis, levels, "applymap"),
-                kwargs,
-            )
         )
         return self
 

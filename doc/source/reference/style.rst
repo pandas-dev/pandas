@@ -34,6 +34,8 @@ Style application
 
    Styler.apply
    Styler.applymap
+   Styler.apply_header
+   Styler.applymap_header
    Styler.where
    Styler.format
    Styler.set_td_classes
