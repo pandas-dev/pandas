@@ -238,6 +238,7 @@ def test_caption_as_sequence(styler):
 @pytest.mark.parametrize("index", [True, False])
 @pytest.mark.parametrize("columns", [True, False])
 def test_applymap_header_cell_ids(styler, index, columns):
+    # GH 41893
     func = lambda v: "attr: val;"
     styler.uuid, styler.cell_ids = "", False
     if index:

@@ -159,6 +159,7 @@ def test_render_trimming_mi():
 @pytest.mark.parametrize("method", ["applymap", "apply"])
 @pytest.mark.parametrize("axis", ["index", "columns"])
 def test_apply_map_header(method, axis):
+    # GH 41893
     df = DataFrame({"A": [0, 0], "B": [1, 1]}, index=["C", "D"])
     func = {
         "apply": lambda s: ["attr: val" if ("A" in v or "C" in v) else "" for v in s],
@@ -181,6 +182,7 @@ def test_apply_map_header(method, axis):
 @pytest.mark.parametrize("method", ["apply", "applymap"])
 @pytest.mark.parametrize("axis", ["index", "columns"])
 def test_apply_map_header_mi(mi_styler, method, axis):
+    # GH 41893
     func = {
         "apply": lambda s: ["attr: val;" if "b" in v else "" for v in s],
         "applymap": lambda v: "attr: val" if "b" in v else "",
@@ -191,6 +193,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
 
 
 def test_apply_map_header_raises(mi_styler):
+    # GH 41893
     with pytest.raises(ValueError, match="`axis` must be one of 0, 1, 'index', 'col"):
         mi_styler.applymap_header(lambda v: "attr: val;", axis="bad-axis")._compute()
 
