@@ -173,7 +173,7 @@ class XlsxWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
-        formatters: Optional[Dict[Any, str]] = None,
+        formatters: dict[Any, str] | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
@@ -232,7 +232,7 @@ class XlsxWriter(ExcelWriter):
             wks.freeze_panes(*(freeze_panes))
 
         # Mapping the column numbers to the formats
-        self.formatters: Optional[Dict[Any, str]]
+        self.formatters: dict[Any, str] | None
         if self.col_mapping and self.formatters:
             self.formatters = {
                 colno: self.formatters[colname]

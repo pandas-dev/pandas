@@ -758,8 +758,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     You can use formatters for date/datetime columns when the engine is xlsxwriter:
 
-    >>> with ExcelWriter('path_to_file.xlsx',
-    ...                   formatters={'col1:'YYYY-MM-DD','col2':'MMM'}) as writer:
+    >>> with ExcelWriter("path_to_file.xlsx",
+    ...                   formatters={"col1":"YYYY-MM-DD","col2":"MMM"}) as writer:
     ...     df.to_excel(writer)
 
     You can also append to an existing Excel file:
@@ -865,6 +865,25 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
             if engine != "xlsxwriter" and formatters is not None:
                 raise NotImplementedError
+
+            if engine == "xlsxwriter":
+                if date_format is not None:
+                    warnings.warn(
+                        "Use of date_format is deprecated with the xlsxwriter "
+                        "engine and will be removed in a future version. "
+                        "Use formatters instead.",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+
+                if datetime_format is not None:
+                    warnings.warn(
+                        "Use of datetime_format is deprecated with the xlsxwriter "
+                        "engine and will be removed in a future version. "
+                        "Use formatters instead.",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
             cls = get_writer(engine)
 

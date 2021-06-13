@@ -531,7 +531,7 @@ class ExcelFormatter:
             )
         return val
 
-    def _get_col_mapping(self) -> Optional[Dict[int, Any]]:
+    def _get_col_mapping(self) -> dict[int, Any] | None:
         """
         Get the mapping between the column number and column name
         """

@@ -25,7 +25,7 @@ class XlwtWriter(ExcelWriter):
         engine=None,
         date_format=None,
         datetime_format=None,
-        formatters: Optional[Dict[Any, str]] = None,
+        formatters: dict[Any, str] | None = None,
         encoding=None,
         mode: str = "w",
         storage_options: StorageOptions = None,

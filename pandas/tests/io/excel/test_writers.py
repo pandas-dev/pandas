@@ -1350,6 +1350,25 @@ class TestExcelWriter:
             with pytest.raises(NotImplementedError, match=""):
                 ExcelWriter(path, formatters={"col1": "MMM"})
 
+    def test_formatters_xlsx_warn(self, engine, ext):
+        # GH 30275
+        if engine == "xlsxwriter":
+            with tm.assert_produces_warning(FutureWarning) as m:
+                with tm.ensure_clean(ext) as path:
+                    with ExcelWriter(path, datetime_format="DD.MM.YYYY HH-MM-SS") as e:
+                        pass
+            assert "datetime_format is deprecated with the xlsxwriter engine" in str(
+                m[0].message
+            )
+
+            with tm.assert_produces_warning(FutureWarning) as m:
+                with tm.ensure_clean(ext) as path:
+                    with ExcelWriter(path, date_format="DD.MM.YYYY") as e:
+                        pass
+            assert "date_format is deprecated with the xlsxwriter engine" in str(
+                m[0].message
+            )
+
 
 class TestExcelWriterEngineTests:
     @pytest.mark.parametrize(

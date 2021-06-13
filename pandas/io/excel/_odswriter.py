@@ -25,7 +25,7 @@ class ODSWriter(ExcelWriter):
         engine: str | None = None,
         date_format=None,
         datetime_format=None,
-        formatters: Optional[Dict[Any, str]] = None,
+        formatters: dict[Any, str] | None = None,
         mode: str = "w",
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
