@@ -19,7 +19,11 @@ from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
 class TestPeriodIndex(DatetimeLike):
-    _holder = PeriodIndex
+    _index_cls = PeriodIndex
+
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return period_range("20130101", periods=5, freq="D")
 
     @pytest.fixture(
         params=[
@@ -31,11 +35,9 @@ class TestPeriodIndex(DatetimeLike):
     def index(self, request):
         return request.param
 
-    def create_index(self) -> PeriodIndex:
-        return period_range("20130101", periods=5, freq="D")
-
+    @pytest.mark.xfail(reason="Goes through a generate_range path")
     def test_pickle_compat_construction(self):
-        pass
+        super().test_pickle_compat_construction()
 
     @pytest.mark.parametrize("freq", ["D", "M", "A"])
     def test_pickle_round_trip(self, freq):
@@ -253,14 +255,6 @@ class TestPeriodIndex(DatetimeLike):
         assert not index.is_(index - 2)
         assert not index.is_(index - 0)
 
-    def test_periods_number_check(self):
-        msg = (
-            "Of the three parameters: start, end, and periods, exactly two "
-            "must be specified"
-        )
-        with pytest.raises(ValueError, match=msg):
-            period_range("2011-1-1", "2012-1-1", "B")
-
     def test_index_duplicate_periods(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
@@ -348,13 +342,6 @@ class TestPeriodIndex(DatetimeLike):
 
         assert isinstance(s.index.values[0][0], Period)
 
-    def test_convert_array_of_periods(self):
-        rng = period_range("1/1/2000", periods=20, freq="D")
-        periods = list(rng)
-
-        result = Index(periods)
-        assert isinstance(result, PeriodIndex)
-
     def test_pickle_freq(self):
         # GH2891
         prng = period_range("1/1/2011", "1/1/2012", freq="M")
@@ -372,7 +359,7 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._holder([], freq="A")
+        empty_idx = self._index_cls([], freq="A")
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 

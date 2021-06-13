@@ -219,7 +219,7 @@ def parse_datetime_string(
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
-):
+) -> datetime:
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -281,7 +281,9 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
     Returns
     -------
-    datetime, datetime/dateutil.parser._result, str
+    datetime
+    str
+        Describing resolution of parsed string.
     """
     if is_offset_object(freq):
         freq = freq.rule_code
@@ -595,7 +597,7 @@ cdef dateutil_parse(
 
 def try_parse_dates(
     object[:] values, parser=None, bint dayfirst=False, default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -639,7 +641,7 @@ def try_parse_date_and_time(
     time_parser=None,
     bint dayfirst=False,
     default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -675,7 +677,9 @@ def try_parse_date_and_time(
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(object[:] years, object[:] months, object[:] days):
+def try_parse_year_month_day(
+    object[:] years, object[:] months, object[:] days
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -697,7 +701,7 @@ def try_parse_datetime_components(object[:] years,
                                   object[:] days,
                                   object[:] hours,
                                   object[:] minutes,
-                                  object[:] seconds):
+                                  object[:] seconds) -> np.ndarray:
 
     cdef:
         Py_ssize_t i, n
@@ -988,7 +992,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndarray:
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 

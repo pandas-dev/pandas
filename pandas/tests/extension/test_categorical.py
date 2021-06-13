@@ -117,7 +117,14 @@ class TestInterface(base.BaseInterfaceTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    pass
+    def test_empty(self, dtype):
+        cls = dtype.construct_array_type()
+        result = cls._empty((4,), dtype=dtype)
+
+        assert isinstance(result, cls)
+        # the dtype we passed is not initialized, so will not match the
+        #  dtype on our result.
+        assert result.dtype == CategoricalDtype([])
 
 
 class TestReshaping(base.BaseReshapingTests):

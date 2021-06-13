@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -12,8 +10,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import Timestamp
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestSeriesQuantile:

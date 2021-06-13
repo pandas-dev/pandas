@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import (
     array_equivalent,
+    is_valid_na_for_dtype,
     isna,
     isnull,
     na_value_for_dtype,
@@ -205,16 +206,16 @@ class TestIsNA:
 
     def test_isna_old_datetimelike(self):
         # isna_old should work for dt64tz, td64, and period, not just tznaive
-        dti = pd.date_range("2016-01-01", periods=3)
+        dti = date_range("2016-01-01", periods=3)
         dta = dti._data
-        dta[-1] = pd.NaT
+        dta[-1] = NaT
         expected = np.array([False, False, True], dtype=bool)
 
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
             with cf.option_context("mode.use_inf_as_na", True):
-                result = pd.isna(obj)
+                result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -320,38 +321,38 @@ class TestIsNA:
     def test_decimal(self):
         # scalars GH#23530
         a = Decimal(1.0)
-        assert pd.isna(a) is False
-        assert pd.notna(a) is True
+        assert isna(a) is False
+        assert notna(a) is True
 
         b = Decimal("NaN")
-        assert pd.isna(b) is True
-        assert pd.notna(b) is False
+        assert isna(b) is True
+        assert notna(b) is False
 
         # array
         arr = np.array([a, b])
         expected = np.array([False, True])
-        result = pd.isna(arr)
+        result = isna(arr)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.notna(arr)
+        result = notna(arr)
         tm.assert_numpy_array_equal(result, ~expected)
 
         # series
         ser = Series(arr)
         expected = Series(expected)
-        result = pd.isna(ser)
+        result = isna(ser)
         tm.assert_series_equal(result, expected)
 
-        result = pd.notna(ser)
+        result = notna(ser)
         tm.assert_series_equal(result, ~expected)
 
         # index
         idx = pd.Index(arr)
         expected = np.array([False, True])
-        result = pd.isna(idx)
+        result = isna(idx)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.notna(idx)
+        result = notna(idx)
         tm.assert_numpy_array_equal(result, ~expected)
 
 
@@ -443,8 +444,10 @@ def test_array_equivalent(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
+    msg = "elementwise comparison failed"
     cm = (
-        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        # stacklevel is chosen to make sense when called from .equals
+        tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
         if isinstance(val, str)
         else nullcontext()
     )
@@ -553,7 +556,7 @@ def test_array_equivalent_nested():
 )
 def test_na_value_for_dtype(dtype, na_value):
     result = na_value_for_dtype(dtype)
-    # identify check doesnt work for datetime64/timedelta64("NaT") bc they
+    # identify check doesn't work for datetime64/timedelta64("NaT") bc they
     #  are not singletons
     assert result is na_value or (
         isna(result) and isna(na_value) and type(result) is type(na_value)
@@ -578,7 +581,7 @@ class TestNAObj:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
-        arr = np.array([1, None, "foo", -5.1, pd.NaT, np.nan])
+        arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
         expected = np.array([False, True, False, False, True, True])
 
         self._check_behavior(arr, expected)
@@ -727,3 +730,12 @@ class TestLibMissing:
 
         assert libmissing.is_matching_na(None, np.nan, nan_matches_none=True)
         assert libmissing.is_matching_na(np.nan, None, nan_matches_none=True)
+
+
+class TestIsValidNAForDtype:
+    def test_is_valid_na_for_dtype_interval(self):
+        dtype = IntervalDtype("int64", "left")
+        assert not is_valid_na_for_dtype(NaT, dtype)
+
+        dtype = IntervalDtype("datetime64[ns]", "both")
+        assert not is_valid_na_for_dtype(NaT, dtype)

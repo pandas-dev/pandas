@@ -153,7 +153,7 @@ def test_binary_mode_file_buffers(
     fpath = datapath(*file_path)
     expected = parser.read_csv(fpath, encoding=encoding)
 
-    with open(fpath, mode="r", encoding=encoding) as fa:
+    with open(fpath, encoding=encoding) as fa:
         result = parser.read_csv(fa)
         assert not fa.closed
     tm.assert_frame_equal(expected, result)
@@ -220,3 +220,20 @@ def test_parse_encoded_special_characters(encoding):
 
     expected = DataFrame(data=[["：foo", 0], ["bar", 1], ["baz", 2]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
+def test_encoding_memory_map(all_parsers, encoding):
+    # GH40986
+    parser = all_parsers
+    expected = DataFrame(
+        {
+            "name": ["Raphael", "Donatello", "Miguel Angel", "Leonardo"],
+            "mask": ["red", "purple", "orange", "blue"],
+            "weapon": ["sai", "bo staff", "nunchunk", "katana"],
+        }
+    )
+    with tm.ensure_clean() as file:
+        expected.to_csv(file, index=False, encoding=encoding)
+        df = parser.read_csv(file, encoding=encoding, memory_map=True)
+    tm.assert_frame_equal(df, expected)

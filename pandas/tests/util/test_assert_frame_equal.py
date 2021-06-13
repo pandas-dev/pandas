@@ -321,3 +321,11 @@ def test_frame_equal_mixed_dtypes(frame_or_series, any_nullable_numeric_dtype, i
     msg = r'(Series|DataFrame.iloc\[:, 0\] \(column name="0"\) classes) are different'
     with pytest.raises(AssertionError, match=msg):
         tm.assert_equal(obj1, obj2, check_exact=True, check_dtype=False)
+
+
+def test_assert_series_equal_check_like_different_indexes():
+    # GH#39739
+    df1 = DataFrame(index=pd.Index([], dtype="object"))
+    df2 = DataFrame(index=pd.RangeIndex(start=0, stop=0, step=1))
+    with pytest.raises(AssertionError, match="DataFrame.index are different"):
+        tm.assert_frame_equal(df1, df2, check_like=True)

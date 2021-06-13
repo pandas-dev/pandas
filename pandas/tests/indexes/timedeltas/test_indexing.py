@@ -7,13 +7,15 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     Index,
+    NaT,
     Timedelta,
     TimedeltaIndex,
+    Timestamp,
     notna,
     timedelta_range,
+    to_timedelta,
 )
 import pandas._testing as tm
 
@@ -64,10 +66,10 @@ class TestGetItem:
     @pytest.mark.parametrize(
         "key",
         [
-            pd.Timestamp("1970-01-01"),
-            pd.Timestamp("1970-01-02"),
+            Timestamp("1970-01-01"),
+            Timestamp("1970-01-02"),
             datetime(1970, 1, 1),
-            pd.Timestamp("1970-01-03").to_datetime64(),
+            Timestamp("1970-01-03").to_datetime64(),
             # non-matching NA values
             np.datetime64("NaT"),
         ],
@@ -81,7 +83,7 @@ class TestGetItem:
 
 class TestGetLoc:
     def test_get_loc(self):
-        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
+        idx = to_timedelta(["0 days", "1 days", "2 days"])
 
         for method in [None, "pad", "backfill", "nearest"]:
             assert idx.get_loc(idx[1], method) == 1
@@ -117,7 +119,7 @@ class TestGetLoc:
     def test_get_loc_nat(self):
         tidx = TimedeltaIndex(["1 days 01:00:00", "NaT", "2 days 01:00:00"])
 
-        assert tidx.get_loc(pd.NaT) == 1
+        assert tidx.get_loc(NaT) == 1
         assert tidx.get_loc(None) == 1
         assert tidx.get_loc(float("nan")) == 1
         assert tidx.get_loc(np.nan) == 1
@@ -125,12 +127,12 @@ class TestGetLoc:
 
 class TestGetIndexer:
     def test_get_indexer(self):
-        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
+        idx = to_timedelta(["0 days", "1 days", "2 days"])
         tm.assert_numpy_array_equal(
             idx.get_indexer(idx), np.array([0, 1, 2], dtype=np.intp)
         )
 
-        target = pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
+        target = to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
         tm.assert_numpy_array_equal(
             idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
         )
@@ -158,25 +160,25 @@ class TestWhere:
         tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
 
         tail = tdi[2:].tolist()
-        i2 = Index([pd.NaT, pd.NaT] + tail)
+        i2 = Index([NaT, NaT] + tail)
         mask = notna(i2)
 
-        expected = Index([pd.NaT.value, pd.NaT.value] + tail, dtype=object, name="idx")
+        expected = Index([NaT.value, NaT.value] + tail, dtype=object, name="idx")
         assert isinstance(expected[0], int)
         result = tdi.where(mask, i2.asi8)
         tm.assert_index_equal(result, expected)
 
-        ts = i2 + pd.Timestamp.now()
+        ts = i2 + Timestamp.now()
         expected = Index([ts[0], ts[1]] + tail, dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
-        per = (i2 + pd.Timestamp.now()).to_period("D")
+        per = (i2 + Timestamp.now()).to_period("D")
         expected = Index([per[0], per[1]] + tail, dtype=object, name="idx")
         result = tdi.where(mask, per)
         tm.assert_index_equal(result, expected)
 
-        ts = pd.Timestamp.now()
+        ts = Timestamp.now()
         expected = Index([ts, ts] + tail, dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)

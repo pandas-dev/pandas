@@ -12,6 +12,7 @@ import pytest
 from pandas.compat import (
     IS64,
     PY38,
+    PY310,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -27,8 +28,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = td.skip_array_manager_not_yet_implemented
-
+pytestmark = pytest.mark.skipif(PY310, reason="timeout with coverage")
 
 _seriesd = tm.getSeriesData()
 
@@ -63,7 +63,7 @@ class TestPandasContainer:
     @pytest.fixture
     def datetime_series(self):
         # Same as usual datetime_series, but with index freq set to None,
-        #  since that doesnt round-trip, see GH#33711
+        #  since that doesn't round-trip, see GH#33711
         ser = tm.makeTimeSeries()
         ser.name = "ts"
         ser.index = ser.index._with_freq(None)
@@ -72,7 +72,7 @@ class TestPandasContainer:
     @pytest.fixture
     def datetime_frame(self):
         # Same as usual datetime_frame, but with index freq set to None,
-        #  since that doesnt round-trip, see GH#33711
+        #  since that doesn't round-trip, see GH#33711
         df = DataFrame(tm.getTimeSeriesData())
         df.index = df.index._with_freq(None)
         return df
@@ -318,7 +318,13 @@ class TestPandasContainer:
                 '{"columns":["A","B"],'
                 '"index":["2","3"],'
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
-                r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                "|".join(
+                    [
+                        r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
+                        "Passed arrays should have the same length as the rows Index: "
+                        "3 vs 2 rows",
+                    ]
+                ),
                 "split",
             ),
             # too many columns
@@ -459,7 +465,7 @@ class TestPandasContainer:
 
     def test_v12_compat(self, datapath):
         dti = pd.date_range("2000-01-03", "2000-01-07")
-        # freq doesnt roundtrip
+        # freq doesn't roundtrip
         dti = DatetimeIndex(np.asarray(dti), freq=None)
         df = DataFrame(
             [
@@ -489,7 +495,7 @@ class TestPandasContainer:
 
     def test_blocks_compat_GH9037(self):
         index = pd.date_range("20000101", periods=10, freq="H")
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 
         df_mixed = DataFrame(
@@ -637,8 +643,10 @@ class TestPandasContainer:
         tm.assert_series_equal(
             s, read_json(s.to_json(orient="split"), orient="split", typ="series")
         )
-        unser = read_json(s.to_json(orient="records"), orient="records", typ="series")
-        tm.assert_numpy_array_equal(s.values, unser.values)
+        unserialized = read_json(
+            s.to_json(orient="records"), orient="records", typ="series"
+        )
+        tm.assert_numpy_array_equal(s.values, unserialized.values)
 
     def test_series_default_orient(self, string_series):
         assert string_series.to_json() == string_series.to_json(orient="index")
@@ -1728,11 +1736,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             timeout -= 0.1
             assert timeout > 0, "Timed out waiting for file to appear on moto"
 
-    def test_json_pandas_na(self):
-        # GH 31615
-        result = DataFrame([[pd.NA]]).to_json()
-        assert result == '{"0":{"0":null}}'
-
     def test_json_pandas_nulls(self, nulls_fixture, request):
         # GH 31615
         if isinstance(nulls_fixture, Decimal):
@@ -1747,3 +1750,23 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json("[true, true, false]", typ="series")
         expected = Series([True, True, False])
         tm.assert_series_equal(result, expected)
+
+    def test_to_json_multiindex_escape(self):
+        # GH 15273
+        df = DataFrame(
+            True,
+            index=pd.date_range("2017-01-20", "2017-01-23"),
+            columns=["foo", "bar"],
+        ).stack()
+        result = df.to_json()
+        expected = (
+            "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-20 00:00:00'), 'bar')\":true,"
+            "\"(Timestamp('2017-01-21 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-21 00:00:00'), 'bar')\":true,"
+            "\"(Timestamp('2017-01-22 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-22 00:00:00'), 'bar')\":true,"
+            "\"(Timestamp('2017-01-23 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-23 00:00:00'), 'bar')\":true}"
+        )
+        assert result == expected

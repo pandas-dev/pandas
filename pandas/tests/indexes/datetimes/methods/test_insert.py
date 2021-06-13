@@ -47,7 +47,7 @@ class TestInsert:
         result = dti.insert(0, item)
         assert result.freq == dti.freq
 
-        # But not when we insert an item that doesnt conform to freq
+        # But not when we insert an item that doesn't conform to freq
         dti = DatetimeIndex([], tz=tz, freq="W-THU")
         result = dti.insert(0, item)
         assert result.freq is None

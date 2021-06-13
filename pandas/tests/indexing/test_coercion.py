@@ -1,9 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import itertools
-from typing import (
-    Dict,
-    List,
-)
 
 import numpy as np
 import pytest
@@ -79,7 +77,7 @@ class TestSetitemCoercion(CoercionBase):
     def _assert_setitem_series_conversion(
         self, original_series, loc_value, expected_series, expected_dtype
     ):
-        """ test series value's coercion triggered by assignment """
+        """test series value's coercion triggered by assignment"""
         temp = original_series.copy()
         temp[1] = loc_value
         tm.assert_series_equal(temp, expected_series)
@@ -134,7 +132,10 @@ class TestSetitemCoercion(CoercionBase):
             )
             request.node.add_marker(mark)
 
-        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        warn = None if exp_dtype is np.int8 else FutureWarning
+        msg = "Values are too large to be losslessly cast to int8"
+        with tm.assert_produces_warning(warn, match=msg):
+            exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -258,10 +259,19 @@ class TestSetitemCoercion(CoercionBase):
         )
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
+    def test_setitem_series_no_coercion_from_values_list(self):
+        # GH35865 - int casted to str when internally calling np.array(ser.values)
+        ser = pd.Series(["a", 1])
+        ser[:] = list(ser.values)
+
+        expected = pd.Series(["a", 1])
+
+        tm.assert_series_equal(ser, expected)
+
     def _assert_setitem_index_conversion(
         self, original_series, loc_key, expected_index, expected_dtype
     ):
-        """ test index's coercion triggered by assign key """
+        """test index's coercion triggered by assign key"""
         temp = original_series.copy()
         temp[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
@@ -355,7 +365,7 @@ class TestInsertIndexCoercion(CoercionBase):
     method = "insert"
 
     def _assert_insert_conversion(self, original, value, expected, expected_dtype):
-        """ test coercion triggered by insert """
+        """test coercion triggered by insert"""
         target = original.copy()
         res = target.insert(1, value)
         tm.assert_index_equal(res, expected)
@@ -443,7 +453,7 @@ class TestInsertIndexCoercion(CoercionBase):
             assert expected.dtype == object
             tm.assert_index_equal(result, expected)
 
-            # mismatched tz --> cast to object (could reasonably cast to commom tz)
+            # mismatched tz --> cast to object (could reasonably cast to common tz)
             ts = pd.Timestamp("2012-01-01", tz="Asia/Tokyo")
             result = obj.insert(1, ts)
             expected = obj.astype(object).insert(1, ts)
@@ -543,7 +553,7 @@ class TestWhereCoercion(CoercionBase):
     def _assert_where_conversion(
         self, original, cond, values, expected, expected_dtype
     ):
-        """ test coercion triggered by where """
+        """test coercion triggered by where"""
         target = original.copy()
         res = target.where(cond, values)
         tm.assert_equal(res, expected)
@@ -641,7 +651,7 @@ class TestWhereCoercion(CoercionBase):
             values = klass([True, False, True, True])
         else:
             values = klass(x * fill_val for x in [5, 6, 7, 8])
-        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]])
+        exp = klass([1 + 1j, values[1], 3 + 3j, values[3]], dtype=exp_dtype)
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -857,7 +867,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         raise NotImplementedError
 
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
-        """ test coercion triggered by fillna """
+        """test coercion triggered by fillna"""
         target = original.copy()
         res = target.fillna(value)
         tm.assert_equal(res, expected)
@@ -1012,7 +1022,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep: Dict[str, List] = {}
+    rep: dict[str, list] = {}
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]

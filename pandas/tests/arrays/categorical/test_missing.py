@@ -100,6 +100,13 @@ class TestCategoricalMissing:
 
         tm.assert_categorical_equal(result, expected)
 
+        # Case where the Point is not among our categories; we want ValueError,
+        #  not NotImplementedError GH#41914
+        cat = Categorical(np.array([Point(1, 0), Point(0, 1), None], dtype=object))
+        msg = "Cannot setitem on a Categorical with a new category"
+        with pytest.raises(ValueError, match=msg):
+            cat.fillna(Point(0, 0))
+
     def test_fillna_array(self):
         # accept Categorical or ndarray value if it holds appropriate values
         cat = Categorical(["A", "B", "C", None, None])
@@ -107,13 +114,13 @@ class TestCategoricalMissing:
         other = cat.fillna("C")
         result = cat.fillna(other)
         tm.assert_categorical_equal(result, other)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
         other = np.array(["A", "B", "C", "B", "A"])
         result = cat.fillna(other)
         expected = Categorical(["A", "B", "C", "B", "A"], dtype=cat.dtype)
         tm.assert_categorical_equal(result, expected)
-        assert isna(cat[-1])  # didnt modify original inplace
+        assert isna(cat[-1])  # didn't modify original inplace
 
     @pytest.mark.parametrize(
         "values, expected",
@@ -154,14 +161,14 @@ class TestCategoricalMissing:
         cat = Categorical(values)
 
         with pd.option_context("mode.use_inf_as_na", True):
-            result = pd.isna(cat)
+            result = isna(cat)
             tm.assert_numpy_array_equal(result, expected)
 
-            result = pd.isna(Series(cat))
+            result = isna(Series(cat))
             expected = Series(expected)
             tm.assert_series_equal(result, expected)
 
-            result = pd.isna(DataFrame(cat))
+            result = isna(DataFrame(cat))
             expected = DataFrame(expected)
             tm.assert_frame_equal(result, expected)
 

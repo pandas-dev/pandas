@@ -80,6 +80,13 @@ class TestIndexConstructorInference:
         tm.assert_index_equal(rs, xp)
         assert isinstance(rs, PeriodIndex)
 
+    def test_from_list_of_periods(self):
+        rng = period_range("1/1/2000", periods=20, freq="D")
+        periods = list(rng)
+
+        result = Index(periods)
+        assert isinstance(result, PeriodIndex)
+
     @pytest.mark.parametrize("pos", [0, 1])
     @pytest.mark.parametrize(
         "klass,dtype,ctor",
@@ -128,6 +135,16 @@ class TestIndexConstructorInference:
             data = data[::-1]
 
         expected = Index(data, dtype=object)
+        tm.assert_index_equal(Index(data), expected)
+        tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
+
+    @pytest.mark.parametrize("swap_objs", [True, False])
+    def test_constructor_datetime_and_datetime64(self, swap_objs):
+        data = [Timestamp(2021, 6, 8, 9, 42), np.datetime64("now")]
+        if swap_objs:
+            data = data[::-1]
+        expected = DatetimeIndex(data)
+
         tm.assert_index_equal(Index(data), expected)
         tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
 

@@ -24,7 +24,7 @@ class Generic:
         return self._typ._AXIS_LEN
 
     def _axes(self):
-        """ return the axes for my object typ """
+        """return the axes for my object typ"""
         return self._typ._AXIS_ORDERS
 
     def _construct(self, shape, value=None, dtype=None, **kwargs):
@@ -100,6 +100,9 @@ class Generic:
         # non-inclusion
         result = o._get_bool_data()
         expected = self._construct(n, value="empty", **kwargs)
+        if isinstance(o, DataFrame):
+            # preserve columns dtype
+            expected.columns = o.columns[:0]
         self._compare(result, expected)
 
         # get the bool data
@@ -471,14 +474,16 @@ class TestNDFrame:
         # GH33637
         box = frame_or_series
         obj = box(dtype=object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "_AXIS_NAMES has been deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj._AXIS_NAMES
 
     def test_axis_numbers_deprecated(self, frame_or_series):
         # GH33637
         box = frame_or_series
         obj = box(dtype=object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "_AXIS_NUMBERS has been deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj._AXIS_NUMBERS
 
     def test_flags_identity(self, frame_or_series):

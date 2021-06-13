@@ -11,7 +11,7 @@ from pandas.core.arrays import (
     period_array,
 )
 
-pyarrow_skip = pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.15.1.dev")
+pyarrow_skip = td.skip_if_no("pyarrow", min_version="0.17.0")
 
 
 @pyarrow_skip
@@ -98,6 +98,26 @@ def test_arrow_table_roundtrip():
     result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pyarrow_skip
+def test_arrow_load_from_zero_chunks():
+    # GH-41040
+    import pyarrow as pa
+
+    from pandas.core.arrays._arrow_utils import ArrowPeriodType
+
+    arr = PeriodArray([], freq="D")
+    df = pd.DataFrame({"a": arr})
+
+    table = pa.table(df)
+    assert isinstance(table.field("a").type, ArrowPeriodType)
+    table = pa.table(
+        [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
+    )
+    result = table.to_pandas()
+    assert isinstance(result["a"].dtype, PeriodDtype)
+    tm.assert_frame_equal(result, df)
 
 
 @pyarrow_skip

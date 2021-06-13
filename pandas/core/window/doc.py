@@ -95,7 +95,7 @@ window_apply_parameters = dedent(
 
 numba_notes = (
     "See :ref:`window.numba_engine` for extended documentation "
-    "and performance considerations for the Numba engine.\n"
+    "and performance considerations for the Numba engine.\n\n"
 )
 
 window_agg_numba_parameters = dedent(

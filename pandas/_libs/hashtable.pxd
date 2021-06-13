@@ -128,12 +128,14 @@ cdef struct Int64VectorData:
     int64_t *data
     Py_ssize_t n, m
 
-cdef class Int64Vector:
-    cdef Int64VectorData *data
-    cdef ndarray ao
+cdef class Vector:
     cdef bint external_view_exists
 
+cdef class Int64Vector(Vector):
+    cdef Int64VectorData *data
+    cdef ndarray ao
+
     cdef resize(self)
-    cpdef to_array(self)
+    cpdef ndarray to_array(self)
     cdef inline void append(self, int64_t x)
     cdef extend(self, int64_t[:] x)

@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
@@ -24,7 +23,6 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
-    tables,
 )
 
 from pandas.io.pytables import Term
@@ -663,13 +661,13 @@ def test_frame_select_complex(setup_path):
 
 def test_frame_select_complex2(setup_path):
 
-    with ensure_clean_path(["parms.hdf", "hist.hdf"]) as paths:
+    with ensure_clean_path(["params.hdf", "hist.hdf"]) as paths:
 
         pp, hh = paths
 
         # use non-trivial selection criteria
-        parms = DataFrame({"A": [1, 1, 2, 2, 3]})
-        parms.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+        params = DataFrame({"A": [1, 1, 2, 2, 3]})
+        params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
 
         selection = read_hdf(pp, "df", where="A=[2,3]")
         hist = DataFrame(
@@ -860,10 +858,6 @@ def test_select_as_multiple(setup_path):
             )
 
 
-@pytest.mark.skipif(
-    LooseVersion(tables.__version__) < LooseVersion("3.1.0"),
-    reason=("tables version does not support fix for nan selection bug: GH 4858"),
-)
 def test_nan_selection_bug_4858(setup_path):
 
     with ensure_clean_store(setup_path) as store:

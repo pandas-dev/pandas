@@ -20,7 +20,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.base import SpecificationError
+from pandas.tests.apply.common import series_transform_kernels
 
 
 def test_series_map_box_timedelta():
@@ -115,6 +115,20 @@ def test_series_map_box_timestamps():
     ser.apply(func)
 
 
+def test_series_map_stringdtype(any_string_dtype):
+    # map test on StringDType, GH#40823
+    ser1 = Series(
+        data=["cat", "dog", "rabbit"],
+        index=["id1", "id2", "id3"],
+        dtype=any_string_dtype,
+    )
+    ser2 = Series(data=["id3", "id2", "id1", "id7000"], dtype=any_string_dtype)
+    result = ser2.map(ser1)
+    expected = Series(data=["rabbit", "dog", "cat", pd.NA], dtype=any_string_dtype)
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_apply_box():
     # ufunc will not be boxed. Same test cases as the test_map_box
     vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
@@ -180,18 +194,6 @@ def test_apply_datetimetz():
     result = s.map(f)
     exp = Series(["Asia/Tokyo"] * 25, name="XX")
     tm.assert_series_equal(result, exp)
-
-
-def test_apply_dict_depr():
-
-    tsdf = DataFrame(
-        np.random.randn(10, 3),
-        columns=["A", "B", "C"],
-        index=pd.date_range("1/1/2000", periods=10),
-    )
-    msg = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        tsdf.A.agg({"foo": ["sum", "mean"]})
 
 
 def test_apply_categorical():
@@ -269,17 +271,69 @@ def test_transform(string_series):
         tm.assert_series_equal(result.reindex_like(expected), expected)
 
 
-def test_transform_and_agg_error(string_series):
-    # we are trying to transform with an aggregator
-    msg = "cannot combine transform and aggregation"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.agg(["sqrt", "max"])
+@pytest.mark.parametrize("op", series_transform_kernels)
+def test_transform_partial_failure(op, request):
+    # GH 35964
+    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
+        request.node.add_marker(
+            pytest.mark.xfail(
+                raises=AssertionError, reason=f"{op} is successful on any dtype"
+            )
+        )
+    if op in ("rank", "fillna"):
+        pytest.skip(f"{op} doesn't raise TypeError on object")
 
-    msg = "cannot perform both aggregation and transformation"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.agg({"foo": np.sqrt, "bar": "sum"})
+    # Using object makes most transform kernels fail
+    ser = Series(3 * [object])
+
+    expected = ser.transform(["shift"])
+    result = ser.transform([op, "shift"])
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": "shift"})
+    result = ser.transform({"A": op, "B": "shift"})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": ["shift"]})
+    result = ser.transform({"A": [op], "B": ["shift"]})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"A": ["shift"], "B": [op]})
+    result = ser.transform({"A": [op, "shift"], "B": [op]})
+    tm.assert_equal(result, expected)
+
+
+def test_transform_partial_failure_valueerror():
+    # GH 40211
+    match = ".*did not transform successfully and did not raise a TypeError"
+
+    def noop(x):
+        return x
+
+    def raising_op(_):
+        raise ValueError
+
+    ser = Series(3 * [object])
+
+    expected = ser.transform([noop])
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform([noop, raising_op])
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": noop})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": raising_op, "B": noop})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"B": [noop]})
+    with tm.assert_produces_warning(FutureWarning, match=match):
+        result = ser.transform({"A": [raising_op], "B": [noop]})
+    tm.assert_equal(result, expected)
+
+    expected = ser.transform({"A": [noop], "B": [noop]})
+    with tm.assert_produces_warning(FutureWarning, match=match, check_stacklevel=False):
+        result = ser.transform({"A": [noop, raising_op], "B": [noop]})
+    tm.assert_equal(result, expected)
 
 
 def test_demo():
@@ -293,20 +347,6 @@ def test_demo():
     result = s.agg({"foo": "min"})
     expected = Series([0], index=["foo"], name="series")
     tm.assert_series_equal(result, expected)
-
-    # nested renaming
-    msg = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        s.agg({"foo": ["min", "max"]})
-
-
-def test_multiple_aggregators_with_dict_api():
-
-    s = Series(range(6), dtype="int64", name="series")
-    # nested renaming
-    msg = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=msg):
-        s.agg({"foo": ["min", "max"], "bar": ["sum", "mean"]})
 
 
 def test_agg_apply_evaluate_lambdas_the_same(string_series):
@@ -417,8 +457,8 @@ def test_non_callable_aggregates(how):
                 ("sum", "abc"),
                 ("max", "c"),
                 ("min", "a"),
-                ("all", "c"),  # see GH12863
-                ("any", "a"),
+                ("all", True),
+                ("any", True),
             ],
         ),
     ),
@@ -462,30 +502,6 @@ def test_agg_cython_table_transform(series, func, expected):
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
     result = series.agg(func)
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series("a b c".split()),
-            [
-                ("mean", TypeError),  # mean raises TypeError
-                ("prod", TypeError),
-                ("std", TypeError),
-                ("var", TypeError),
-                ("median", TypeError),
-                ("cumprod", TypeError),
-            ],
-        )
-    ),
-)
-def test_agg_cython_table_raises(series, func, expected):
-    # GH21224
-    msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
-    with pytest.raises(expected, match=msg):
-        # e.g. Series('a b'.split()).cumprod() will raise
-        series.agg(func)
 
 
 def test_series_apply_no_suffix_index():
@@ -757,9 +773,6 @@ def test_map_categorical():
     tm.assert_series_equal(result, exp)
     assert result.dtype == object
 
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
 
 def test_map_datetimetz():
     values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
@@ -780,9 +793,6 @@ def test_map_datetimetz():
     result = s.map(lambda x: x.hour)
     exp = Series(list(range(24)) + [0], name="XX", dtype=np.int64)
     tm.assert_series_equal(result, exp)
-
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
 
     # not vectorized
     def f(x):
@@ -852,14 +862,6 @@ def test_map_float_to_string_precision():
     assert result == expected
 
 
-def test_map_with_invalid_na_action_raises():
-    # https://github.com/pandas-dev/pandas/issues/32815
-    s = Series([1, 2, 3])
-    msg = "na_action must either be 'ignore' or None"
-    with pytest.raises(ValueError, match=msg):
-        s.map(lambda x: x, na_action="____")
-
-
 def test_apply_to_timedelta():
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
@@ -871,7 +873,9 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)  # noqa
-    b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
+    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+        ser = Series(list_of_strings)
+    b = ser.apply(pd.to_timedelta)  # noqa
     # Can't compare until apply on a Series gives the correct dtype
     # assert_series_equal(a, b)
 

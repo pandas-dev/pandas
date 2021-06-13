@@ -1,18 +1,13 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+from __future__ import annotations
+
 from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Type,
-)
+from typing import Any
 import warnings
 
 import numpy as np
@@ -20,16 +15,20 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._typing import (
+    ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
     StorageOptions,
-    Union,
 )
 from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    deprecate_nonkeyword_arguments,
+)
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     is_file_like,
@@ -296,25 +295,56 @@ encoding : str, optional
     Encoding to use for UTF when reading/writing (ex. 'utf-8'). `List of Python
     standard encodings
     <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ .
+
     .. versionchanged:: 1.2
 
        When ``encoding`` is ``None``, ``errors="replace"`` is passed to
        ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
        This behavior was previously only the case for ``engine="python"``.
+
+    .. versionchanged:: 1.3.0
+
+       ``encoding_errors`` is a new argument. ``encoding`` has no longer an
+       influence on how encoding errors are handled.
+
+encoding_errors : str, optional, default "strict"
+    How encoding errors are treated. `List of possible values
+    <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
+
+    .. versionadded:: 1.3.0
+
 dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
     following parameters: `delimiter`, `doublequote`, `escapechar`,
     `skipinitialspace`, `quotechar`, and `quoting`. If it is necessary to
     override values, a ParserWarning will be issued. See csv.Dialect
     documentation for more details.
-error_bad_lines : bool, default True
+error_bad_lines : bool, default ``None``
     Lines with too many fields (e.g. a csv line with too many commas) will by
     default cause an exception to be raised, and no DataFrame will be returned.
     If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
-warn_bad_lines : bool, default True
+
+    .. deprecated:: 1.3.0
+       The ``on_bad_lines`` parameter should be used instead to specify behavior upon
+       encountering a bad line instead.
+warn_bad_lines : bool, default ``None``
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
+
+    .. deprecated:: 1.3.0
+       The ``on_bad_lines`` parameter should be used instead to specify behavior upon
+       encountering a bad line instead.
+on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
+    Specifies what to do upon encountering a bad line (a line with too many fields).
+    Allowed values are :
+
+        - 'error', raise an Exception when a bad line is encountered.
+        - 'warn', raise a warning when a bad line is encountered and skip that line.
+        - 'skip', skip bad lines without raising or warning when they are encountered.
+
+    .. versionadded:: 1.3.0
+
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
     used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
@@ -367,8 +397,8 @@ _c_parser_defaults = {
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
-    "error_bad_lines": True,
-    "warn_bad_lines": True,
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
     "float_precision": None,
 }
 
@@ -377,8 +407,8 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
-_deprecated_defaults: Dict[str, Any] = {}
-_deprecated_args: Set[str] = set()
+_deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
+_deprecated_args: set[str] = {"error_bad_lines", "warn_bad_lines"}
 
 
 def validate_integer(name, val, min_val=0):
@@ -390,7 +420,7 @@ def validate_integer(name, val, min_val=0):
 
     Parameters
     ----------
-    name : string
+    name : str
         Parameter name (used for error reporting)
     val : int or float
         The value to check
@@ -458,6 +488,9 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
         return parser.read(nrows)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
+)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
@@ -472,14 +505,14 @@ def read_csv(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -515,10 +548,14 @@ def read_csv(
     escapechar=None,
     comment=None,
     encoding=None,
+    encoding_errors: str | None = "strict",
     dialect=None,
     # Error Handling
-    error_bad_lines=True,
-    warn_bad_lines=True,
+    error_bad_lines=None,
+    warn_bad_lines=None,
+    # TODO (2.0): set on_bad_lines to "error".
+    # See _refine_defaults_read comment for why we do this.
+    on_bad_lines=None,
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
@@ -526,18 +563,32 @@ def read_csv(
     float_precision=None,
     storage_options: StorageOptions = None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": ","}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        error_bad_lines,
+        warn_bad_lines,
+        on_bad_lines,
+        names,
+        prefix,
+        defaults={"delimiter": ","},
     )
     kwds.update(kwds_defaults)
 
     return _read(filepath_or_buffer, kwds)
 
 
+@deprecate_nonkeyword_arguments(
+    version=None, allowed_args=["filepath_or_buffer"], stacklevel=3
+)
 @Appender(
     _doc_read_csv_and_table.format(
         func_name="read_table",
@@ -552,14 +603,14 @@ def read_table(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -597,20 +648,35 @@ def read_table(
     encoding=None,
     dialect=None,
     # Error Handling
-    error_bad_lines=True,
-    warn_bad_lines=True,
+    error_bad_lines=None,
+    warn_bad_lines=None,
+    # TODO (2.0): set on_bad_lines to "error".
+    # See _refine_defaults_read comment for why we do this.
+    on_bad_lines=None,
+    encoding_errors: str | None = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
 ):
-    kwds = locals()
+    # locals() should never be modified
+    kwds = locals().copy()
     del kwds["filepath_or_buffer"]
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
-        dialect, delimiter, delim_whitespace, engine, sep, defaults={"delimiter": "\t"}
+        dialect,
+        delimiter,
+        delim_whitespace,
+        engine,
+        sep,
+        error_bad_lines,
+        warn_bad_lines,
+        on_bad_lines,
+        names,
+        prefix,
+        defaults={"delimiter": "\t"},
     )
     kwds.update(kwds_defaults)
 
@@ -659,8 +725,6 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-
-        .. versionadded:: 0.24.0
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -753,7 +817,7 @@ class TextFileReader(abc.Iterator):
         kwds = self.orig_options
 
         options = {}
-        default: Optional[object]
+        default: object | None
 
         for argname, default in parser_defaults.items():
             value = kwds.get(argname, default)
@@ -909,7 +973,7 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     "removed in a future version.\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=2)
+                warnings.warn(msg, FutureWarning, stacklevel=7)
             else:
                 result[arg] = parser_default
 
@@ -963,7 +1027,7 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        mapping: Dict[str, Type[ParserBase]] = {
+        mapping: dict[str, type[ParserBase]] = {
             "c": CParserWrapper,
             "python": PythonParser,
             "python-fwf": FixedWidthFieldParser,
@@ -1077,7 +1141,7 @@ def TextParser(*args, **kwds):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-    na_fvalues: Union[Set, Dict]
+    na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
@@ -1127,8 +1191,8 @@ def _floatify_na_values(na_values):
 
 
 def _stringify_na_values(na_values):
-    """ return a stringified and numeric for these values """
-    result: List[Union[int, str, float]] = []
+    """return a stringified and numeric for these values"""
+    result: list[int | str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -1152,12 +1216,17 @@ def _stringify_na_values(na_values):
 
 
 def _refine_defaults_read(
-    dialect: Union[str, csv.Dialect],
-    delimiter: Union[str, object],
+    dialect: str | csv.Dialect,
+    delimiter: str | object,
     delim_whitespace: bool,
     engine: str,
-    sep: Union[str, object],
-    defaults: Dict[str, Any],
+    sep: str | object,
+    error_bad_lines: bool | None,
+    warn_bad_lines: bool | None,
+    on_bad_lines: str | None,
+    names: ArrayLike | None | object,
+    prefix: str | None | object,
+    defaults: dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
 
@@ -1182,6 +1251,18 @@ def _refine_defaults_read(
     sep : str or object
         A delimiter provided by the user (str) or a sentinel value, i.e.
         pandas._libs.lib.no_default.
+    error_bad_lines : str or None
+        Whether to error on a bad line or not.
+    warn_bad_lines : str or None
+        Whether to warn on a bad line or not.
+    on_bad_lines : str or None
+        An option for handling bad lines or a sentinel value(None).
+    names : array-like, optional
+        List of column names to use. If the file contains a header row,
+        then you should explicitly pass ``header=0`` to override the column names.
+        Duplicates in this list are not allowed.
+    prefix : str, optional
+        Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
     defaults: dict
         Default values of input parameters.
 
@@ -1192,12 +1273,15 @@ def _refine_defaults_read(
 
     Raises
     ------
-    ValueError : If a delimiter was specified with ``sep`` (or ``delimiter``) and
+    ValueError :
+        If a delimiter was specified with ``sep`` (or ``delimiter``) and
         ``delim_whitespace=True``.
+        If on_bad_lines is specified(not ``None``) and ``error_bad_lines``/
+        ``warn_bad_lines`` is True.
     """
     # fix types for sep, delimiter to Union(str, Any)
     delim_default = defaults["delimiter"]
-    kwds: Dict[str, Any] = {}
+    kwds: dict[str, Any] = {}
     # gh-23761
     #
     # When a dialect is passed, it overrides any of the overlapping
@@ -1214,6 +1298,15 @@ def _refine_defaults_read(
         kwds["sep_override"] = delimiter is None and (
             sep is lib.no_default or sep == delim_default
         )
+
+    if delimiter and (sep is not lib.no_default):
+        raise ValueError("Specified a sep and a delimiter; you can only specify one.")
+
+    if names is not lib.no_default and prefix is not lib.no_default:
+        raise ValueError("Specified named and prefix; you can only specify one.")
+
+    kwds["names"] = None if names is lib.no_default else names
+    kwds["prefix"] = None if prefix is lib.no_default else prefix
 
     # Alias sep -> delimiter.
     if delimiter is None:
@@ -1237,10 +1330,52 @@ def _refine_defaults_read(
         kwds["engine"] = "c"
         kwds["engine_specified"] = False
 
+    # Ensure that on_bad_lines and error_bad_lines/warn_bad_lines
+    # aren't specified at the same time. If so, raise. Otherwise,
+    # alias on_bad_lines to "error" if error/warn_bad_lines not set
+    # and on_bad_lines is not set. on_bad_lines is defaulted to None
+    # so we can tell if it is set (this is why this hack exists).
+    if on_bad_lines is not None:
+        if error_bad_lines is not None or warn_bad_lines is not None:
+            raise ValueError(
+                "Both on_bad_lines and error_bad_lines/warn_bad_lines are set. "
+                "Please only set on_bad_lines."
+            )
+        if on_bad_lines == "error":
+            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+        elif on_bad_lines == "warn":
+            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        elif on_bad_lines == "skip":
+            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+        else:
+            raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+    else:
+        if error_bad_lines is not None:
+            # Must check is_bool, because other stuff(e.g. non-empty lists) eval to true
+            validate_bool_kwarg(error_bad_lines, "error_bad_lines")
+            if error_bad_lines:
+                kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+            else:
+                if warn_bad_lines is not None:
+                    # This is the case where error_bad_lines is False
+                    # We can only warn/skip if error_bad_lines is False
+                    # None doesn't work because backwards-compatibility reasons
+                    validate_bool_kwarg(warn_bad_lines, "warn_bad_lines")
+                    if warn_bad_lines:
+                        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+                    else:
+                        kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
+                else:
+                    # Backwards compat, when only error_bad_lines = false, we warn
+                    kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.WARN
+        else:
+            # Everything None -> Error
+            kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.ERROR
+
     return kwds
 
 
-def _extract_dialect(kwds: Dict[str, Any]) -> Optional[csv.Dialect]:
+def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
     """
     Extract concrete csv dialect instance.
 
@@ -1286,8 +1421,8 @@ def _validate_dialect(dialect: csv.Dialect) -> None:
 
 def _merge_with_dialect_properties(
     dialect: csv.Dialect,
-    defaults: Dict[str, Any],
-) -> Dict[str, Any]:
+    defaults: dict[str, Any],
+) -> dict[str, Any]:
     """
     Merge default kwargs in TextFileReader with dialect parameters.
 
@@ -1336,7 +1471,7 @@ def _merge_with_dialect_properties(
     return kwds
 
 
-def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
+def _validate_skipfooter(kwds: dict[str, Any]) -> None:
     """
     Check whether skipfooter is compatible with other kwargs in TextFileReader.
 

@@ -54,7 +54,6 @@ class DocBuilder:
 
         if single_doc:
             single_doc = self._process_single_doc(single_doc)
-            include_api = False
             os.environ["SPHINX_PATTERN"] = single_doc
         elif not include_api:
             os.environ["SPHINX_PATTERN"] = "-api"

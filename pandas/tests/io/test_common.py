@@ -2,6 +2,8 @@
 Tests for the pandas.io.common functionalities
 """
 import codecs
+import errno
+from functools import partial
 from io import (
     BytesIO,
     StringIO,
@@ -9,6 +11,7 @@ from io import (
 import mmap
 import os
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -119,10 +122,11 @@ bar2,12,13,14,15
     @pytest.mark.parametrize("path_type", [str, CustomFSPath, Path])
     def test_get_handle_with_path(self, path_type):
         # ignore LocalPath: it creates strange paths: /absolute/~/sometest
-        filename = path_type("~/sometest")
-        with icom.get_handle(filename, "w") as handles:
-            assert os.path.isabs(handles.handle.name)
-            assert os.path.expanduser(filename) == handles.handle.name
+        with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
+            filename = path_type("~/" + Path(tmp).name + "/sometest")
+            with icom.get_handle(filename, "w") as handles:
+                assert Path(handles.handle.name).is_absolute()
+                assert os.path.expanduser(filename) == handles.handle.name
 
     def test_get_handle_with_buffer(self):
         input_buffer = StringIO()
@@ -255,6 +259,12 @@ bar2,12,13,14,15
             ),
         ],
     )
+    @pytest.mark.filterwarnings(
+        "ignore:CategoricalBlock is deprecated:DeprecationWarning"
+    )
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -276,9 +286,7 @@ bar2,12,13,14,15
             ("to_excel", {"engine": "xlwt"}, "xlwt"),
             ("to_feather", {}, "pyarrow"),
             ("to_html", {}, "os"),
-            pytest.param(
-                "to_json", {}, "os", marks=td.skip_array_manager_not_yet_implemented
-            ),
+            ("to_json", {}, "os"),
             ("to_latex", {}, "os"),
             ("to_pickle", {}, "os"),
             ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
@@ -304,6 +312,10 @@ bar2,12,13,14,15
 
             assert result == expected
 
+    @pytest.mark.filterwarnings(  # pytables np.object usage
+        "ignore:`np.object` is a deprecated alias:DeprecationWarning"
+    )
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) IO HDF5
     def test_write_fspath_hdf5(self):
         # Same test as write_fspath_all, except HDF5 files aren't
         # necessarily byte-for-byte identical for a given dataframe, so we'll
@@ -427,14 +439,6 @@ def test_is_fsspec_url():
     assert not icom.is_fsspec_url("relative/local/path")
 
 
-def test_default_errors():
-    # GH 38989
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
-        tm.assert_frame_equal(pd.read_csv(file, skiprows=[0]), pd.DataFrame({"a": [1]}))
-
-
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 @pytest.mark.parametrize("format", ["csv", "json"])
 def test_codecs_encoding(encoding, format):
@@ -479,3 +483,53 @@ def test_explicit_encoding(io_class, mode, msg):
     with io_class() as buffer:
         with pytest.raises(TypeError, match=msg):
             expected.to_csv(buffer, mode=f"w{mode}")
+
+
+@pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
+@pytest.mark.parametrize("format", ["csv", "json"])
+def test_encoding_errors(encoding_errors, format):
+    # GH39450
+    msg = "'utf-8' codec can't decode byte"
+    bad_encoding = b"\xe4"
+
+    if format == "csv":
+        return
+        content = bad_encoding + b"\n" + bad_encoding
+        reader = pd.read_csv
+    else:
+        content = (
+            b'{"'
+            + bad_encoding * 2
+            + b'": {"'
+            + bad_encoding
+            + b'":"'
+            + bad_encoding
+            + b'"}}'
+        )
+        reader = partial(pd.read_json, orient="index")
+    with tm.ensure_clean() as path:
+        file = Path(path)
+        file.write_bytes(content)
+
+        if encoding_errors != "replace":
+            with pytest.raises(UnicodeDecodeError, match=msg):
+                reader(path, encoding_errors=encoding_errors)
+        else:
+            df = reader(path, encoding_errors=encoding_errors)
+            decoded = bad_encoding.decode(errors=encoding_errors)
+            expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
+            tm.assert_frame_equal(df, expected)
+
+
+def test_bad_encdoing_errors():
+    # GH 39777
+    with tm.ensure_clean() as path:
+        with pytest.raises(ValueError, match="Invalid value for `encoding_errors`"):
+            icom.get_handle(path, "w", errors="bad")
+
+
+def test_errno_attribute():
+    # GH 13872
+    with pytest.raises(FileNotFoundError, match="\\[Errno 2\\]") as err:
+        pd.read_csv("doesnt_exist")
+        assert err.errno == errno.ENOENT

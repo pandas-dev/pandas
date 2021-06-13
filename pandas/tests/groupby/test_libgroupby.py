@@ -4,11 +4,10 @@ from pandas._libs import groupby as libgroupby
 from pandas._libs.groupby import (
     group_cumprod_float64,
     group_cumsum,
-    group_var_float32,
-    group_var_float64,
+    group_var,
 )
 
-from pandas.core.dtypes.common import ensure_int64
+from pandas.core.dtypes.common import ensure_platform_int
 
 from pandas import isna
 import pandas._testing as tm
@@ -21,7 +20,7 @@ class GroupVarTestMixin:
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
         values = 10 * prng.rand(15, 1).astype(self.dtype)
-        labels = np.tile(np.arange(5), (3,)).astype("int64")
+        labels = np.tile(np.arange(5), (3,)).astype("intp")
 
         expected_out = (
             np.squeeze(values).reshape((5, 3), order="F").std(axis=1, ddof=1) ** 2
@@ -38,7 +37,7 @@ class GroupVarTestMixin:
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
         counts = np.zeros(1, dtype="int64")
         values = 10 * prng.rand(5, 1).astype(self.dtype)
-        labels = np.zeros(5, dtype="int64")
+        labels = np.zeros(5, dtype="intp")
 
         expected_out = np.array([[values.std(ddof=1) ** 2]])
         expected_counts = counts + 5
@@ -54,7 +53,7 @@ class GroupVarTestMixin:
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
         values = 10 * prng.rand(10, 2).astype(self.dtype)
-        labels = np.tile(np.arange(5), (2,)).astype("int64")
+        labels = np.tile(np.arange(5), (2,)).astype("intp")
 
         expected_out = np.std(values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
         expected_counts = counts + 2
@@ -70,7 +69,7 @@ class GroupVarTestMixin:
         counts = np.zeros(5, dtype="int64")
         values = 10 * prng.rand(10, 2).astype(self.dtype)
         values[:, 1] = np.nan
-        labels = np.tile(np.arange(5), (2,)).astype("int64")
+        labels = np.tile(np.arange(5), (2,)).astype("intp")
 
         expected_out = np.vstack(
             [
@@ -90,7 +89,7 @@ class GroupVarTestMixin:
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
         values = 0.832845131556193 * np.ones((3, 1), dtype=self.dtype)
-        labels = np.zeros(3, dtype="int64")
+        labels = np.zeros(3, dtype="intp")
 
         self.algo(out, counts, values, labels)
 
@@ -102,7 +101,7 @@ class GroupVarTestMixin:
 class TestGroupVarFloat64(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(group_var_float64)
+    algo = staticmethod(group_var)
     dtype = np.float64
     rtol = 1e-5
 
@@ -113,7 +112,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
         counts = np.array([0], dtype="int64")
         values = (prng.rand(10 ** 6) + 10 ** 12).astype(self.dtype)
         values.shape = (10 ** 6, 1)
-        labels = np.zeros(10 ** 6, dtype="int64")
+        labels = np.zeros(10 ** 6, dtype="intp")
 
         self.algo(out, counts, values, labels)
 
@@ -124,7 +123,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 class TestGroupVarFloat32(GroupVarTestMixin):
     __test__ = True
 
-    algo = staticmethod(group_var_float32)
+    algo = staticmethod(group_var)
     dtype = np.float32
     rtol = 1e-2
 
@@ -136,9 +135,9 @@ def test_group_ohlc():
         bins = np.array([6, 12, 20])
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = ensure_int64(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
+        labels = ensure_platform_int(np.repeat(np.arange(3), np.diff(np.r_[0, bins])))
 
-        func = getattr(libgroupby, f"group_ohlc_{dtype}")
+        func = libgroupby.group_ohlc
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
@@ -176,13 +175,13 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     is_datetimelike = False
 
     data = np.array([[1], [2], [3], [4]], dtype=dtype)
-    ans = np.zeros_like(data)
+    answer = np.zeros_like(data)
 
-    labels = np.array([0, 0, 0, 0], dtype=np.int64)
+    labels = np.array([0, 0, 0, 0], dtype=np.intp)
     ngroups = 1
-    pd_op(ans, data, labels, ngroups, is_datetimelike)
+    pd_op(answer, data, labels, ngroups, is_datetimelike)
 
-    tm.assert_numpy_array_equal(np_op(data), ans[:, 0], check_dtype=False)
+    tm.assert_numpy_array_equal(np_op(data), answer[:, 0], check_dtype=False)
 
 
 def test_cython_group_transform_cumsum(any_real_dtype):
@@ -204,7 +203,7 @@ def test_cython_group_transform_algos():
     is_datetimelike = False
 
     # with nans
-    labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
+    labels = np.array([0, 0, 0, 0, 0], dtype=np.intp)
     ngroups = 1
 
     data = np.array([[1], [2], [3], [np.nan], [4]], dtype="float64")

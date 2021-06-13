@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 from io import (
     BytesIO,
     StringIO,
 )
 import os
-import sys
-from typing import Union
 
 import numpy as np
 import pytest
 
+from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -364,8 +365,8 @@ def test_na_empty_elem_option(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py 3.8"),
 )
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
@@ -383,8 +384,8 @@ def test_attrs_cols_nan_output(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
@@ -411,12 +412,12 @@ doc:degrees="180" doc:sides="3.0"/>
 
 def test_attrs_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(attr_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(attr_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_attrs_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for attr_cols")):
-        geom_df.to_xml(attr_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(attr_cols='"shape", "degree", "sides"', parser=parser)
 
 
 # ELEM_COLS
@@ -453,12 +454,12 @@ def test_elems_cols_nan_output(datapath, parser):
 
 def test_elems_unknown_column(parser):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(elem_cols=["shape", "degreees", "sides"], parser=parser)
+        geom_df.to_xml(elem_cols=["shape", "degree", "sides"], parser=parser)
 
 
 def test_elems_wrong_type(parser):
     with pytest.raises(TypeError, match=("is not a valid type for elem_cols")):
-        geom_df.to_xml(elem_cols='"shape", "degreees", "sides"', parser=parser)
+        geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=parser)
 
 
 def test_elems_and_attrs_cols(datapath, parser):
@@ -541,8 +542,8 @@ def test_hierarchical_columns(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
@@ -614,8 +615,8 @@ def test_multi_index(datapath, parser):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 8),
-    reason=("etree alpha ordered attributes <= py3.7"),
+    not PY38,
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
@@ -867,8 +868,7 @@ def test_xml_declaration_pretty_print():
     assert output == expected
 
 
-@td.skip_if_no("lxml")
-def test_no_pretty_print_with_decl():
+def test_no_pretty_print_with_decl(parser):
     expected = (
         "<?xml version='1.0' encoding='utf-8'?>\n"
         "<data><row><index>0</index><shape>square</shape>"
@@ -879,7 +879,7 @@ def test_no_pretty_print_with_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(pretty_print=False, parser="lxml")
+    output = geom_df.to_xml(pretty_print=False, parser=parser)
     output = equalize_decl(output)
 
     # etree adds space for closed tags
@@ -889,8 +889,7 @@ def test_no_pretty_print_with_decl():
     assert output == expected
 
 
-@td.skip_if_no("lxml")
-def test_no_pretty_print_no_decl():
+def test_no_pretty_print_no_decl(parser):
     expected = (
         "<data><row><index>0</index><shape>square</shape>"
         "<degrees>360</degrees><sides>4.0</sides></row><row>"
@@ -900,7 +899,11 @@ def test_no_pretty_print_no_decl():
         "</row></data>"
     )
 
-    output = geom_df.to_xml(xml_declaration=False, pretty_print=False)
+    output = geom_df.to_xml(xml_declaration=False, pretty_print=False, parser=parser)
+
+    # etree adds space for closed tags
+    if output is not None:
+        output = output.replace(" />", "/>")
 
     assert output == expected
 
@@ -961,7 +964,7 @@ def test_stylesheet_file_like(datapath, mode):
 def test_stylesheet_io(datapath, mode):
     xsl_path = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    xsl_obj: Union[BytesIO, StringIO]
+    xsl_obj: BytesIO | StringIO
 
     with open(xsl_path, mode) as f:
         if mode == "rb":

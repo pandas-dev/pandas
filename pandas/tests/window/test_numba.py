@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     Series,
     option_context,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
@@ -122,26 +123,64 @@ class TestEngine:
 
 
 @td.skip_if_no("numba", "0.46.0")
-class TestGroupbyEWMMean:
-    def test_invalid_engine(self):
+class TestEWMMean:
+    @pytest.mark.parametrize(
+        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
+    )
+    def test_invalid_engine(self, grouper):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="engine must be either"):
-            df.groupby("A").ewm(com=1.0).mean(engine="foo")
+            grouper(df).ewm(com=1.0).mean(engine="foo")
 
-    def test_invalid_engine_kwargs(self):
+    @pytest.mark.parametrize(
+        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
+    )
+    def test_invalid_engine_kwargs(self, grouper):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="cython engine does not"):
-            df.groupby("A").ewm(com=1.0).mean(
+            grouper(df).ewm(com=1.0).mean(
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
-    def test_cython_vs_numba(self, nogil, parallel, nopython, ignore_na, adjust):
+    @pytest.mark.parametrize(
+        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
+    )
+    def test_cython_vs_numba(
+        self, grouper, nogil, parallel, nopython, ignore_na, adjust
+    ):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
-        gb_ewm = df.groupby("A").ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
+        ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = gb_ewm.mean(engine="cython")
+        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = ewm.mean(engine="cython")
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
+    )
+    def test_cython_vs_numba_times(self, grouper, nogil, parallel, nopython, ignore_na):
+        # GH 40951
+        halflife = "23 days"
+        times = to_datetime(
+            [
+                "2020-01-01",
+                "2020-01-01",
+                "2020-01-02",
+                "2020-01-10",
+                "2020-02-23",
+                "2020-01-03",
+            ]
+        )
+        df = DataFrame({"A": ["a", "b", "a", "b", "b", "a"], "B": [0, 0, 1, 1, 2, 2]})
+        ewm = grouper(df).ewm(
+            halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
+        )
+
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
