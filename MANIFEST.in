@@ -55,4 +55,5 @@ prune pandas/tests/io/parser/data
 include versioneer.py
 include pandas/_version.py
 include pandas/io/formats/templates/*.tpl
-include pandas/_libs/src/*
+
+graft pandas/_libs/src
