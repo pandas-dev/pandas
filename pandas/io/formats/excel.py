@@ -472,6 +472,7 @@ class ExcelFormatter:
         self.na_rep = na_rep
         if not isinstance(df, DataFrame):
             self.styler = df
+            self.styler._compute()
             df = df.data
             if style_converter is None:
                 style_converter = CSSToExcelConverter()
@@ -606,10 +607,13 @@ class ExcelFormatter:
                 else:
                     colnames = self.header
 
+            styles = None if self.styler is None else self.styler.ctx_columns
+            xlstyle = self.header_style
             for colindex, colname in enumerate(colnames):
-                yield ExcelCell(
-                    self.rowcounter, colindex + coloffset, colname, self.header_style
-                )
+                if styles:
+                    css = ";".join(a + ":" + str(v) for (a, v) in styles[0, colindex])
+                    xlstyle = self.style_converter(css)
+                yield ExcelCell(self.rowcounter, colindex + coloffset, colname, xlstyle)
 
     def _format_header(self) -> Iterable[ExcelCell]:
         if isinstance(self.columns, MultiIndex):
@@ -667,8 +671,13 @@ class ExcelFormatter:
             if isinstance(self.df.index, PeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
+            styles = None if self.styler is None else self.styler.ctx_index
+            xlstyle = self.header_style
             for idx, idxval in enumerate(index_values):
-                yield ExcelCell(self.rowcounter + idx, 0, idxval, self.header_style)
+                if styles:
+                    css = ";".join(a + ":" + str(v) for (a, v) in styles[idx, 0])
+                    xlstyle = self.style_converter(css)
+                yield ExcelCell(self.rowcounter + idx, 0, idxval, xlstyle)
 
             coloffset = 1
         else:
@@ -756,19 +765,13 @@ class ExcelFormatter:
         return is_list_like(self.header)
 
     def _generate_body(self, coloffset: int) -> Iterable[ExcelCell]:
-        if self.styler is None:
-            styles = None
-        else:
-            styles = self.styler._compute().ctx
-            if not styles:
-                styles = None
+        styles = None if self.styler is None else self.styler.ctx
         xlstyle = None
-
         # Write the body of the frame data series by series.
         for colidx in range(len(self.columns)):
             series = self.df.iloc[:, colidx]
             for i, val in enumerate(series):
-                if styles is not None:
+                if styles:
                     css = ";".join(a + ":" + str(v) for (a, v) in styles[i, colidx])
                     xlstyle = self.style_converter(css)
                 yield ExcelCell(self.rowcounter + i, colidx + coloffset, val, xlstyle)
