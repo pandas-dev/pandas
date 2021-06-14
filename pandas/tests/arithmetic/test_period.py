@@ -444,7 +444,7 @@ class TestPeriodSeriesComparisons:
 
 
 class TestPeriodIndexSeriesComparisonConsistency:
-    """ Test PeriodIndex and Period Series Ops consistency """
+    """Test PeriodIndex and Period Series Ops consistency"""
 
     # TODO: needs parametrization+de-duplication
 
@@ -1306,7 +1306,7 @@ class TestPeriodSeriesArithmetic:
 
 
 class TestPeriodIndexSeriesMethods:
-    """ Test PeriodIndex and Period Series Ops consistency """
+    """Test PeriodIndex and Period Series Ops consistency"""
 
     def _check(self, values, func, expected):
         idx = PeriodIndex(values)
