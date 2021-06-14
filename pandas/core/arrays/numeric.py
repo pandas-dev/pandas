@@ -37,7 +37,6 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound="NumericArray")
 
 
-# TODO
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -86,7 +85,6 @@ class NumericArray(BaseMaskedArray):
     def _maybe_mask_result(self, result, mask, other, op_name: str):
         raise AbstractMethodError(self)
 
-    # TODO
     def _arith_method(self, other, op):
         op_name = op.__name__
         omask = None
@@ -114,15 +112,25 @@ class NumericArray(BaseMaskedArray):
                 raise TypeError("can only perform ops with numeric values")
 
         if omask is None:
-            mask = self._mask.copy()
+            if self._mask is not None:
+                mask = self._mask.copy()
+            else:
+                mask = np.zeros(len(other), dtype=np.bool_)
             if other is libmissing.NA:
                 mask |= True
         else:
-            mask = self._mask | omask
+            # zeros | omask = omask
+            if self._mask is None:
+                mask = omask
+            else:
+                mask = self._mask | omask
 
         if op_name == "pow":
             # 1 ** x is 1.
-            mask = np.where((self._data == 1) & ~self._mask, False, mask)
+            if self._mask is not None:
+                mask = np.where((self._data == 1) & ~self._mask, False, mask)
+            else:
+                mask = np.where(self._data == 1, False, mask)
             # x ** 0 is 1.
             if omask is not None:
                 mask = np.where((other == 0) & ~omask, False, mask)
@@ -136,7 +144,10 @@ class NumericArray(BaseMaskedArray):
             elif other is not libmissing.NA:
                 mask = np.where(other == 1, False, mask)
             # x ** 0 is 1.
-            mask = np.where((self._data == 0) & ~self._mask, False, mask)
+            if self._mask is not None:
+                mask = np.where((self._data == 0) & ~self._mask, False, mask)
+            else:
+                mask = np.where(self._data == 0, False, mask)
 
         if other is libmissing.NA:
             result = np.ones_like(self._data)
@@ -156,7 +167,6 @@ class NumericArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    # TODO
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For NumericArray inputs, we apply the ufunc to ._data
         # and mask the result.
@@ -180,7 +190,8 @@ class NumericArray(BaseMaskedArray):
         inputs2: list[Any] = []
         for x in inputs:
             if isinstance(x, NumericArray):
-                mask |= x._mask
+                if x._mask is not None:
+                    mask |= x._mask
                 inputs2.append(x._data)
             else:
                 inputs2.append(x)

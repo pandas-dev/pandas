@@ -146,10 +146,9 @@ class BooleanDtype(BaseMaskedDtype):
             return BooleanArray._concat_same_type(results)
 
 
-# TODO
 def coerce_to_array(
     values, mask=None, copy: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -170,7 +169,8 @@ def coerce_to_array(
         values, mask = values._data, values._mask
         if copy:
             values = values.copy()
-            mask = mask.copy()
+            if mask is not None:
+                mask = mask.copy()
         return values, mask
 
     mask_values = None
@@ -211,8 +211,8 @@ def coerce_to_array(
             raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
-        mask = np.zeros(len(values), dtype=bool)
-    elif mask is None:
+        mask = None
+    elif mask is None and mask_values is None:
         mask = mask_values
     else:
         if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
@@ -228,7 +228,7 @@ def coerce_to_array(
 
     if values.ndim != 1:
         raise ValueError("values must be a 1D list-like")
-    if mask.ndim != 1:
+    if mask is not None and mask.ndim != 1:
         raise ValueError("mask must be a 1D list-like")
 
     return values, mask
@@ -368,7 +368,8 @@ class BooleanArray(BaseMaskedArray):
         inputs2 = []
         for x in inputs:
             if isinstance(x, BooleanArray):
-                mask |= x._mask_as_ndarray()
+                if x._mask is not None:
+                    mask |= x._mask
                 inputs2.append(x._data)
             else:
                 inputs2.append(x)
@@ -390,7 +391,7 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray | None]:
         return coerce_to_array(value)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
@@ -627,21 +628,13 @@ class BooleanArray(BaseMaskedArray):
             mask = np.zeros_like(other, dtype=np.bool_)
 
         if op.__name__ in {"or_", "ror_"}:
-            result, mask = ops.kleene_or(
-                self._data, other, self._mask_as_ndarray(), mask
-            )
+            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
         elif op.__name__ in {"and_", "rand_"}:
-            result, mask = ops.kleene_and(
-                self._data, other, self._mask_as_ndarray(), mask
-            )
+            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
         elif op.__name__ in {"xor", "rxor"}:
-            result, mask = ops.kleene_xor(
-                self._data, other, self._mask_as_ndarray(), mask
-            )
+            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
-        # expected "ndarray"
-        return BooleanArray(result, mask)  # type: ignore[arg-type]
+        return BooleanArray(result, mask)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import (
@@ -681,7 +674,8 @@ class BooleanArray(BaseMaskedArray):
             if mask is None:
                 mask = self._copy_mask()
             else:
-                mask = self._mask_as_ndarray() | mask
+                if self._hasna:
+                    mask = self._mask | mask
 
         return BooleanArray(result, mask, copy=False)
 
@@ -701,11 +695,13 @@ class BooleanArray(BaseMaskedArray):
 
         # nans propagate
         if mask is None:
-            mask = self._mask_as_ndarray()
             if other is libmissing.NA:
-                mask |= True
+                mask = np.ones_like(self._data, dtype=np.bool_)
+            else:
+                mask = self._mask
         else:
-            mask = self._mask_as_ndarray() | mask
+            if self._hasna:
+                mask = self._mask | mask
 
         if other is libmissing.NA:
             # if other is NA, the result will be all NA and we can't run the
@@ -746,7 +742,7 @@ class BooleanArray(BaseMaskedArray):
         Parameters
         ----------
         result : array-like
-        mask : array-like bool
+        mask : array-like bool or None
         other : scalar or array-like
         op_name : str
         """
@@ -768,5 +764,6 @@ class BooleanArray(BaseMaskedArray):
 
             return IntegerArray(result, mask, copy=False)
         else:
-            result[mask] = np.nan
+            if mask is not None:
+                result[mask] = np.nan
             return result

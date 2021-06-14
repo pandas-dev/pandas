@@ -194,6 +194,21 @@ class Any:
         self.s.any()
 
 
+class Isna:
+    params = ["float", "Float64", "Int64"]
+
+    def setup(self, dtype):
+        self.ser = Series(np.ones(10000), dtype=dtype)
+        self.ser_nulls = self.ser.copy()
+        self.ser_nulls[::2] = np.nan
+
+    def time_isna_no_nans(self, dtype):
+        self.ser.isna()
+
+    def time_isna_nans(self, dtype):
+        self.ser_nulls.isna()
+
+
 class NanOps:
 
     params = [

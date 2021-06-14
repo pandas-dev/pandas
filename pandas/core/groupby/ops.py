@@ -443,10 +443,13 @@ class WrappedCythonOp:
         and cython algorithms which accept a mask.
         """
         orig_values = values
+        arr = values._data
 
         # Copy to ensure input and result masks don't end up shared
-        mask = values._mask.copy()
-        arr = values._data
+        if values._mask is not None:
+            mask = values._mask.copy()
+        else:
+            mask = np.zeros_like(arr, dtype=np.bool_)
 
         res_values = self._cython_op_ndim_compat(
             arr,

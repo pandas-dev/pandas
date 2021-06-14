@@ -82,7 +82,6 @@ class FloatingDtype(NumericDtype):
         return None
 
 
-# TODO
 def coerce_to_array(
     values, dtype=None, mask=None, copy: bool = False
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -125,7 +124,8 @@ def coerce_to_array(
 
         if copy:
             values = values.copy()
-            mask = mask.copy()
+            if mask is not None:
+                mask = mask.copy()
         return values, mask
 
     values = np.array(values, copy=copy)
@@ -247,7 +247,9 @@ class FloatingArray(NumericArray):
     def dtype(self) -> FloatingDtype:
         return FLOAT_STR_TO_DTYPE[str(self._data.dtype)]
 
-    def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
+    def __init__(
+        self, values: np.ndarray, mask: np.ndarray | None = None, copy: bool = False
+    ):
         if not (isinstance(values, np.ndarray) and values.dtype.kind == "f"):
             raise TypeError(
                 "values should be floating numpy array. Use "
@@ -255,7 +257,6 @@ class FloatingArray(NumericArray):
             )
         super().__init__(values, mask, copy=copy)
 
-    # TODO
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype=None, copy: bool = False
@@ -270,7 +271,7 @@ class FloatingArray(NumericArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray | None]:
         return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
@@ -362,9 +363,10 @@ class FloatingArray(NumericArray):
 
         # nans propagate
         if mask is None:
-            mask = self._mask.copy()
+            mask = self._copy_mask()
         else:
-            mask = self._mask | mask
+            if self._hasna:
+                mask = self._mask | mask
 
         return BooleanArray(result, mask)
 

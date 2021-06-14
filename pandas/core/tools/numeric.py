@@ -169,7 +169,8 @@ def to_numeric(arg, errors="raise", downcast=None):
     mask: np.ndarray | None = None
     if isinstance(values, NumericArray):
         mask = values._mask
-        values = values._data[~mask]
+        if mask is not None:
+            values = values._data[~mask]
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):

@@ -135,10 +135,9 @@ def safe_cast(values, dtype, copy: bool):
         ) from err
 
 
-# TODO
 def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Coerce the input values array to numpy arrays with a mask
 
@@ -320,7 +319,6 @@ class IntegerArray(NumericArray):
             )
         super().__init__(values, mask, copy=copy)
 
-    # TODO
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
@@ -335,7 +333,7 @@ class IntegerArray(NumericArray):
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray | None]:
         return coerce_to_array(value, dtype=self.dtype)
 
     def astype(self, dtype, copy: bool = True) -> ArrayLike:
