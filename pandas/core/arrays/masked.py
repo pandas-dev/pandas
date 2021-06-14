@@ -206,19 +206,26 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
         self._data[key] = value
 
-        # Setting at least one masked position
+        updated_mask = False
         if mask is not None:
             if self._mask is None:
                 self._mask = np.zeros_like(self._data, dtype=np.bool_)
             self._mask[key] = mask
-        # We only need to worry about setting the mask to False if we already have
-        # a mask
+            updated_mask = True
+
+        # Mask is all False
         else:
+            # So only need to update the mask if it exists (since otherwise already all
+            # False)
             if self._mask is not None:
-                # We could try to maintain an invariant of self._mask.any() only being
-                # true if the mask is not None with an additional check here, but
-                # that would be a performance hit
-                self._mask[key] = mask
+                self._mask[key] = False
+                updated_mask = True
+
+        # Maintain the invariant of self._mask.any() only being
+        # true if the mask is not None
+        if updated_mask:
+            if not self._mask.any():
+                self._mask = None
 
     def __iter__(self):
         for i in range(len(self)):
@@ -311,6 +318,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # error: Incompatible types in assignment (expression has type
             # "Type[object]", variable has type "Union[str, dtype[Any], None]")
             dtype = object  # type: ignore[assignment]
+
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -372,9 +380,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @property
     def _hasna(self) -> bool:
-        # We are not guaranteed `self._mask is not None` implies presence of missing
-        # values because those can be added in __setitem__
-        return self._mask is not None and self._mask.any()
+        return self._mask is not None
 
     def isna(self) -> np.ndarray:
         if self._mask is not None:

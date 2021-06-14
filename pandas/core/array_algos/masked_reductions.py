@@ -40,11 +40,7 @@ def _sumprod(
         ``min_count`` non-NA values are present the result will be NA.
     """
     if not skipna:
-        # We can't guarantee that `mask is not None` implies mask.any() because a
-        # setitem operation can break that invariant
-        if (mask is not None and mask.any()) or check_below_min_count(
-            values.shape, None, min_count
-        ):
+        if mask is not None or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
             return func(values)
@@ -100,7 +96,7 @@ def _minmax(
         Whether to skip NA.
     """
     if not skipna:
-        if (mask is not None and mask.any()) or not values.size:
+        if mask is not None or not values.size:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
         else:
