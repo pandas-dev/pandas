@@ -46,7 +46,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        coverage run -m pytest -m 'not slow and not network and not clipboard' pandas
+        coverage run -m pytest -m 'not slow and not network and not clipboard' pandas --ignore=pandas/tests/scalar/timestamp
       continue-on-error: true
 
     - name: Publish test results

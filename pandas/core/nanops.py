@@ -205,7 +205,7 @@ def _get_fill_value(
     else:
         if fill_value_typ == "+inf":
             # need the max int here
-            return np.iinfo(np.int64).max
+            return Timedelta.max.value  # GH#???
         else:
             return iNaT
 
@@ -376,7 +376,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.nan
 
             # raise if we have a timedelta64[ns] which is too large
-            if np.fabs(result) > np.iinfo(np.int64).max:
+            if np.fabs(result) > Timedelta.max.value:
                 raise ValueError("overflow in timedelta operation")
 
             result = Timedelta(result, unit="ns")
@@ -1758,7 +1758,7 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         if accum_func == np.minimum.accumulate:
             # Note: the accum_func comparison fails as an "is" comparison
             y = values.view("i8")
-            y[mask] = np.iinfo(np.int64).max
+            y[mask] = Timedelta.max.value
             changed = True
         else:
             y = values

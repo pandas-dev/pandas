@@ -13,6 +13,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import (
+    Timestamp,
     algos,
     hashtable,
     lib,
@@ -40,7 +41,7 @@ if TYPE_CHECKING:
     from pandas import MultiIndex
     from pandas.core.indexes.base import Index
 
-_INT64_MAX = np.iinfo(np.int64).max
+_INT64_MAX = Timestamp.max.value  # GH#?
 
 
 def get_indexer_indexer(
