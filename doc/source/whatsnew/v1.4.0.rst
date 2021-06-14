@@ -29,7 +29,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :meth:`.Styler.apply_header` and :meth:`.Styler.applymap_header` added to allow conditional styling of index and column header values (:issue:`41893`)
 -
 
 .. ---------------------------------------------------------------------------
