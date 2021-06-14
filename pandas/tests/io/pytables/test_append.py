@@ -774,7 +774,7 @@ because its data contents are not [string] but [mixed] object dtype"""
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)
 
-        # incompatible type
+        # incompatible type (GH 41897)
         _maybe_remove(store, "df")
         df["foo"] = Timestamp("20130101")
         store.append("df", df)
