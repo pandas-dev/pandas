@@ -187,7 +187,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`GroupBy.shift` that would return different columns if ``fill_value`` was not None (:issue:`41556`)
 -
 
 Reshaping
