@@ -166,11 +166,14 @@ def to_numeric(arg, errors="raise", downcast=None):
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
+    is_numeric_array = isinstance(values, NumericArray)
     mask: np.ndarray | None = None
-    if isinstance(values, NumericArray):
+    if is_numeric_array:
         mask = values._mask
         if mask is not None:
             values = values._data[~mask]
+        else:
+            values = values._data
 
     values_dtype = getattr(values, "dtype", None)
     if is_numeric_dtype(values_dtype):
@@ -219,17 +222,20 @@ def to_numeric(arg, errors="raise", downcast=None):
                         break
 
     # GH33013: for IntegerArray & FloatingArray need to reconstruct masked array
-    if mask is not None:
-        data = np.zeros(mask.shape, dtype=values.dtype)
-        data[~mask] = values
-
+    if is_numeric_array:
         from pandas.core.arrays import (
             FloatingArray,
             IntegerArray,
         )
 
-        klass = IntegerArray if is_integer_dtype(data.dtype) else FloatingArray
-        values = klass(data, mask.copy())
+        klass = IntegerArray if is_integer_dtype(values.dtype) else FloatingArray
+
+        if mask is None:
+            values = klass(values)
+        else:
+            data = np.zeros(mask.shape, dtype=values.dtype)
+            data[~mask] = values
+            values = klass(data, mask.copy())
 
     if is_series:
         return arg._constructor(values, index=arg.index, name=arg.name)

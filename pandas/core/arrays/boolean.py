@@ -212,7 +212,7 @@ def coerce_to_array(
 
     if mask is None and mask_values is None:
         mask = None
-    elif mask is None and mask_values is None:
+    elif mask is None and mask_values is not None:
         mask = mask_values
     else:
         if isinstance(mask, np.ndarray) and mask.dtype == np.bool_:
@@ -457,7 +457,7 @@ class BooleanArray(BaseMaskedArray):
         ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
-        if self._hasna:
+        if self._mask is not None:
             data[self._mask] = -1
         return data
 
@@ -519,7 +519,7 @@ class BooleanArray(BaseMaskedArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        if self._hasna:
+        if self._mask is not None:
             np.putmask(values, self._mask, False)
         result = values.any()
         if skipna:
@@ -586,7 +586,7 @@ class BooleanArray(BaseMaskedArray):
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        if self._hasna:
+        if self._mask is not None:
             np.putmask(values, self._mask, True)
         result = values.all()
 
@@ -624,8 +624,9 @@ class BooleanArray(BaseMaskedArray):
         if not other_is_scalar and len(self) != len(other):
             raise ValueError("Lengths must match to compare")
 
-        if mask is None:
-            mask = np.zeros_like(other, dtype=np.bool_)
+        if self._mask is None and mask is None:
+            result = op(self._data, other)
+            return BooleanArray(result)
 
         if op.__name__ in {"or_", "ror_"}:
             result, mask = ops.kleene_or(self._data, other, self._mask, mask)
@@ -674,7 +675,7 @@ class BooleanArray(BaseMaskedArray):
             if mask is None:
                 mask = self._copy_mask()
             else:
-                if self._hasna:
+                if self._mask is not None:
                     mask = self._mask | mask
 
         return BooleanArray(result, mask, copy=False)
@@ -700,7 +701,7 @@ class BooleanArray(BaseMaskedArray):
             else:
                 mask = self._mask
         else:
-            if self._hasna:
+            if self._mask is not None:
                 mask = self._mask | mask
 
         if other is libmissing.NA:

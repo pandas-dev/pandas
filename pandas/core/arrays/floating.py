@@ -365,7 +365,7 @@ class FloatingArray(NumericArray):
         if mask is None:
             mask = self._copy_mask()
         else:
-            if self._hasna:
+            if self._mask is not None:
                 mask = self._mask | mask
 
         return BooleanArray(result, mask)

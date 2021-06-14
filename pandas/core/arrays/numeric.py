@@ -115,12 +115,12 @@ class NumericArray(BaseMaskedArray):
             if self._mask is not None:
                 mask = self._mask.copy()
             else:
-                mask = np.zeros(len(other), dtype=np.bool_)
+                mask = np.zeros_like(self._data, dtype=np.bool_)
             if other is libmissing.NA:
                 mask |= True
         else:
-            # zeros | omask = omask
             if self._mask is None:
+                # zeros | omask = omask
                 mask = omask
             else:
                 mask = self._mask | omask

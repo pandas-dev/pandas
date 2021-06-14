@@ -372,7 +372,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @property
     def _hasna(self) -> bool:
-        return self._mask is not None
+        # We are not guaranteed `self._mask is not None` implies presence of missing
+        # values because those can be added in __setitem__
+        return self._mask is not None and self._mask.any()
 
     def isna(self) -> np.ndarray:
         if self._mask is not None:
@@ -454,8 +456,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return BooleanArray(result, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
-        data, mask = self._data, self._mask
-        data = data.copy()
+        data = self._data.copy()
         mask = self._copy_mask()
         return type(self)(data, mask, copy=False)
 
@@ -468,13 +469,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # the hashtables don't handle all different types of bits
         uniques = uniques.astype(self.dtype.numpy_dtype, copy=False)
-        # error: Incompatible types in assignment (expression has type
-        # "BaseMaskedArray", variable has type "ndarray")
-        uniques = type(self)(uniques)  # type: ignore[assignment]
+        uniques_masked_arr = type(self)(uniques)
 
-        # error: Incompatible return value type (got "Tuple[ndarray, ndarray]",
-        # expected "Tuple[ndarray, ExtensionArray]")
-        return codes, uniques  # type: ignore[return-value]
+        return codes, uniques_masked_arr
 
     def value_counts(self, dropna: bool = True) -> Series:
         """

@@ -393,7 +393,7 @@ class IntegerArray(NumericArray):
         ExtensionArray.argsort : Return the indices that would sort this array.
         """
         data = self._data.copy()
-        if self._hasna:
+        if self._mask is not None:
             data[self._mask] = data.min() - 1
         return data
 
@@ -438,7 +438,7 @@ class IntegerArray(NumericArray):
         if mask is None:
             mask = self._copy_mask()
         else:
-            if self._hasna:
+            if self._mask is not None:
                 mask = self._mask | mask
 
         return BooleanArray(result, mask)
