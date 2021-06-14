@@ -286,6 +286,8 @@ def hash_array(
         return _hash_categorical(vals, encoding, hash_key)
     elif not isinstance(vals, np.ndarray):
         # i.e. ExtensionArray
+        if not hasattr(vals, '_values_for_factorize'):
+            raise TypeError("must pass ndarray or ExtensionArray")
         vals, _ = vals._values_for_factorize()
 
     return _hash_ndarray(vals, encoding, hash_key, categorize)
