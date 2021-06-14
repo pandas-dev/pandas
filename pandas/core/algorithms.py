@@ -20,7 +20,6 @@ from warnings import (
 import numpy as np
 
 from pandas._libs import (
-    Timestamp,
     algos,
     hashtable as htable,
     iNaT,
@@ -1093,7 +1092,7 @@ def checked_add_with_arr(
     # it is negative, we then check whether its sum with the element in
     # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
     # error as well.
-    i8max = Timestamp.max.value  # GH#?
+    i8max = lib.i8max
     i8min = iNaT
 
     mask1 = b2 > 0
