@@ -27,9 +27,6 @@ class BooleanArray:
     def time_from_float_array(self):
         pd.array(self.values_float, dtype="boolean")
 
-    def peakmem_construction_without_missing_values(self):
-        pd.array(np.full(1000, True), dtype="boolean")
-
 
 class IntegerArray:
     def setup(self):
@@ -43,5 +40,13 @@ class IntegerArray:
     def time_from_integer_array(self):
         pd.array(self.values_integer, dtype="Int64")
 
-    def peakmem_construction_without_missing_values(self):
-        pd.array(np.full(1000, 42), dtype="Int8")
+
+class NullableArrayMemory:
+    params = [["boolean", "Int8", "Float32"]]
+
+    def mem_array(self, dtype):
+        if dtype == "boolean":
+            value = True
+        else:
+            value = 1
+        return pd.array(np.full(value, 1000), dtype=dtype)
