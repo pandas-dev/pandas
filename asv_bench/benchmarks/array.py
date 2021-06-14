@@ -43,10 +43,11 @@ class IntegerArray:
 
 class NullableArrayMemory:
     params = [["boolean", "Int8", "Float32"]]
+    param_names = ["dtype"]
 
-    def mem_array(self, dtype):
+    def track_array_size(self, dtype):
         if dtype == "boolean":
             value = True
         else:
             value = 1
-        return pd.array(np.full(value, 1000), dtype=dtype)
+        return pd.array(np.full(1000, value), dtype=dtype).nbytes
