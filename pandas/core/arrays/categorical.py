@@ -6,6 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
+    Any,
     Hashable,
     Sequence,
     TypeVar,
@@ -2005,7 +2006,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
 
     @overload
-    def __getitem__(self, key: int | np.integer) -> object:
+    def __getitem__(self, key: int | np.integer) -> Any:
         ...
 
     @overload
@@ -2015,9 +2016,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> CategoricalT:
         ...
 
-    def __getitem__(
-        self: CategoricalT, key: PositionalIndexer2D
-    ) -> CategoricalT | object:
+    def __getitem__(self: CategoricalT, key: PositionalIndexer2D) -> CategoricalT | Any:
         """
         Return an item.
         """

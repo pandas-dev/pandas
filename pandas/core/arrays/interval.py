@@ -9,6 +9,7 @@ import textwrap
 from typing import (
     Sequence,
     TypeVar,
+    Union,
     cast,
     overload,
 )
@@ -87,6 +88,7 @@ from pandas.core.ops import (
 )
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
+IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -631,7 +633,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: int | np.integer) -> Interval:
+    def __getitem__(self, key: int | np.integer) -> IntervalOrNA:
         ...
 
     @overload
@@ -642,7 +644,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def __getitem__(
         self: IntervalArrayT, key: PositionalIndexer
-    ) -> IntervalArrayT | Interval:
+    ) -> IntervalArrayT | IntervalOrNA:
         key = check_array_indexer(self, key)
         left = self._left[key]
         right = self._right[key]
