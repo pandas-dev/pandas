@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 
 from pandas.plotting._core import _get_plot_backend

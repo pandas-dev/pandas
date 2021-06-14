@@ -1,6 +1,8 @@
 """
 Functions to generate methods and pin them to the appropriate classes.
 """
+from __future__ import annotations
+
 import operator
 
 from pandas.core.dtypes.generic import (

@@ -3,6 +3,8 @@ This module houses a utility class for mocking deprecated modules.
 It is for internal use only and should not be used beyond this purpose.
 """
 
+from __future__ import annotations
+
 import importlib
 from typing import Iterable
 import warnings

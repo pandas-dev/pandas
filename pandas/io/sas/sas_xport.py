@@ -7,6 +7,8 @@ The file format is defined here:
 
 https://support.sas.com/techsup/technote/ts140.pdf
 """
+from __future__ import annotations
+
 from collections import abc
 from datetime import datetime
 import struct

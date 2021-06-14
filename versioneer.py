@@ -272,6 +272,8 @@ https://img.shields.io/travis/com/python-versioneer/python-versioneer.svg
 
 """
 
+from __future__ import annotations
+
 import configparser
 import errno
 import json

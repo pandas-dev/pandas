@@ -1,4 +1,6 @@
 """ io on the clipboard """
+from __future__ import annotations
+
 from io import StringIO
 import warnings
 

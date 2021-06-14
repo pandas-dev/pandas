@@ -11,6 +11,8 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+from __future__ import annotations
+
 import argparse
 import csv
 import importlib

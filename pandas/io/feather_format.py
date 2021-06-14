@@ -1,5 +1,7 @@
 """ feather-format compat """
 
+from __future__ import annotations
+
 from typing import AnyStr
 
 from pandas._typing import (

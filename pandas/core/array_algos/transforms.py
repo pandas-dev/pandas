@@ -2,6 +2,8 @@
 transforms.py is for shape-preserving functions.
 """
 
+from __future__ import annotations
+
 import numpy as np
 
 

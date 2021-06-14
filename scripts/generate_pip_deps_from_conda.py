@@ -12,6 +12,8 @@ Usage:
     generated with this script:
     $ python scripts/generate_pip_deps_from_conda.py --compare
 """
+from __future__ import annotations
+
 import argparse
 import os
 import re

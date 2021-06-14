@@ -1,5 +1,7 @@
 """Sparse accessor"""
 
+from __future__ import annotations
+
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency

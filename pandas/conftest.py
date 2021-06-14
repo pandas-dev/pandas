@@ -18,6 +18,8 @@ Instead of splitting it was decided to define sections here:
 - Misc
 """
 
+from __future__ import annotations
+
 from collections import abc
 from datetime import (
     date,

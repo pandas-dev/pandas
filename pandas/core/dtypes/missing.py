@@ -1,6 +1,8 @@
 """
 missing types & inference
 """
+from __future__ import annotations
+
 from decimal import Decimal
 from functools import partial
 

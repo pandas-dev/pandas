@@ -2,6 +2,8 @@
 Internal module for console introspection
 """
 
+from __future__ import annotations
+
 from shutil import get_terminal_size
 
 
