@@ -24,14 +24,17 @@ def test_boolean_array_constructor():
     with pytest.raises(TypeError, match="values should be boolean numpy array"):
         BooleanArray(values.astype(int), mask)
 
-    with pytest.raises(TypeError, match="mask should be boolean numpy array"):
-        BooleanArray(values, None)
-
     with pytest.raises(ValueError, match="values must be a 1D array"):
         BooleanArray(values.reshape(1, -1), mask)
 
     with pytest.raises(ValueError, match="mask must be a 1D array"):
         BooleanArray(values, mask.reshape(1, -1))
+
+
+def test_boolean_array_constructor_no_mask():
+    result = BooleanArray(np.array([True, False, True, False], dtype="bool"))
+    expected = pd.array([True, False, True, False], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_boolean_array_constructor_copy():

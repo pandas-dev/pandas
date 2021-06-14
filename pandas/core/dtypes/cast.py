@@ -2173,7 +2173,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                return not element._mask.any()
+                return not element._hasna
             return True
 
         # We have not inferred an integer from the dtype
@@ -2189,7 +2189,7 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
-                return not element._mask.any()
+                return not element._hasna
             return True
 
         return lib.is_integer(element) or lib.is_float(element)

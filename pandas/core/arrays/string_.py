@@ -340,7 +340,8 @@ class StringArray(BaseStringArray, PandasArray):
             na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            result[na_values] = StringDtype.na_value
+            if na_values is not None:
+                result[na_values] = StringDtype.na_value
 
         else:
             # convert non-na-likes to str, and nan-likes to StringDtype.na_value

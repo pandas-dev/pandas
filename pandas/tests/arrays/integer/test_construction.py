@@ -86,9 +86,12 @@ def test_integer_array_constructor():
 
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values.astype(float), mask)
-    msg = r"__init__\(\) missing 1 required positional argument: 'mask'"
-    with pytest.raises(TypeError, match=msg):
-        IntegerArray(values)
+
+
+def test_boolean_array_constructor_no_mask():
+    result = IntegerArray(np.array([1, 2, 0, 0], dtype="int64"))
+    expected = pd.array([1, 2, 0, 0], dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_integer_array_constructor_copy():

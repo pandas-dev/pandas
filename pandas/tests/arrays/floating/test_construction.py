@@ -35,9 +35,11 @@ def test_floating_array_constructor():
     with pytest.raises(TypeError, match=msg):
         FloatingArray(values.astype(int), mask)
 
-    msg = r"__init__\(\) missing 1 required positional argument: 'mask'"
-    with pytest.raises(TypeError, match=msg):
-        FloatingArray(values)
+
+def test_floating_array_constructor_no_mask():
+    result = FloatingArray(np.array([1, 2, 3, 4], dtype="float64"))
+    expected = pd.array([1, 2, 3, 4], dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_floating_array_constructor_copy():
