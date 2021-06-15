@@ -1013,8 +1013,8 @@ class Styler(StylerRenderer):
             f"labels, or returning an incorrectly shaped, list-like object which "
             f"cannot be mapped to labels, possibly due to applying the function along "
             f"the wrong axis.\n"
-            "Result {{0}} has shape: {{1}}\n"
-            "Expected {{0}} shape:   {{2}}"
+            f"Result {{0}} has shape: {{1}}\n"
+            f"Expected {{0}} shape:   {{2}}"
         )
         if not all(result.index.isin(data.index)):
             raise ValueError(msg.format("index", result.index.shape, data.index.shape))
