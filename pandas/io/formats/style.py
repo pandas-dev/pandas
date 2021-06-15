@@ -909,7 +909,7 @@ class Styler(StylerRenderer):
 
         for cn in attrs.columns:
             for rn, c in attrs[[cn]].itertuples():
-                if not c:
+                if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
@@ -980,9 +980,10 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis is not None:
-            result = data.apply(func, axis=axis, result_type="expand", **kwargs)
-            result.columns = data.columns
+        if axis in [0, "index"]:
+            result = data.apply(func, axis=0, **kwargs)
+        elif axis in [1, "columns"]:
+            result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
         else:
             result = func(data, **kwargs)
             if not isinstance(result, DataFrame):
@@ -1006,11 +1007,27 @@ class Styler(StylerRenderer):
                     f"index and columns as the input"
                 )
 
-        if result.shape != data.shape:
+        if isinstance(result, Series):
             raise ValueError(
-                f"Function {repr(func)} returned the wrong shape.\n"
-                f"Result has shape: {result.shape}\n"
-                f"Expected shape:   {data.shape}"
+                f"Function {repr(func)} returned a Series when a DataFrame is required"
+            )
+        msg = (
+            "Function {0} created invalid {1} labels.\nUsually, this is the result "
+            "of the function returning a Series which contains invalid labels, or "
+            "returning incorrect array shapes which cannot be mapped to labels, "
+            "possibly due to applying the function along the wrong axis.\n"
+            "Result {1} has shape: {2}\n"
+            "Expected {1} shape:   {3}"
+        )
+        if not (all(result.index.isin(self.index))):
+            raise ValueError(
+                msg.format(repr(func), "index", result.index.shape, data.index.shape)
+            )
+        if not (all(result.columns.isin(self.columns))):
+            raise ValueError(
+                msg.format(
+                    repr(func), "columns", result.columns.shape, data.columns.shape
+                )
             )
         self._update_ctx(result)
         return self

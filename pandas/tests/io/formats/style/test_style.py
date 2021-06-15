@@ -925,23 +925,27 @@ class TestStyler:
         style2.render()
 
     def test_bad_apply_shape(self):
-        df = DataFrame([[1, 2], [3, 4]])
-        msg = "returned the wrong shape"
-        with pytest.raises(ValueError, match=msg):
-            df.style._apply(lambda x: "x", subset=pd.IndexSlice[[0, 1], :])
+        df = DataFrame([[1, 2], [3, 4]], index=["A", "B"], columns=["X", "Y"])
 
+        msg = "returned a Series when a DataFrame is required"
         with pytest.raises(ValueError, match=msg):
-            df.style._apply(lambda x: [""], subset=pd.IndexSlice[[0, 1], :])
+            df.style._apply(lambda x: "x")
 
-        with pytest.raises(ValueError, match=msg):
+        msg = "created invalid {} labels"
+        with pytest.raises(ValueError, match=msg.format("index")):
+            df.style._apply(lambda x: [""])
+
+        with pytest.raises(ValueError, match=msg.format("index")):
             df.style._apply(lambda x: ["", "", "", ""])
 
-        with pytest.raises(ValueError, match=msg):
-            df.style._apply(lambda x: ["", "", ""], subset=1)
+        with pytest.raises(ValueError, match=msg.format("index")):
+            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["A", "C"]), axis=0)
 
-        msg = "Length mismatch: Expected axis has 3 elements"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg.format("columns")):
             df.style._apply(lambda x: ["", "", ""], axis=1)
+
+        with pytest.raises(ValueError, match=msg.format("columns")):
+            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["X", "Z"]), axis=1)
 
         msg = "returned ndarray with wrong shape"
         with pytest.raises(ValueError, match=msg):
