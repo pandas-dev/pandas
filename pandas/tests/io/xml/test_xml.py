@@ -257,7 +257,7 @@ def test_parser_consistency_file(datapath):
 @td.skip_if_no("lxml")
 @pytest.mark.skipif(
     not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_parser_consistency_url(datapath):
     url = (
