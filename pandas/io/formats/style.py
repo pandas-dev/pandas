@@ -1206,12 +1206,14 @@ class Styler(StylerRenderer):
         recommend using instead.
 
         The example:
+
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
         >>> def cond(v, limit=4):
         ...     return v > 1 and v != limit
         >>> df.style.where(cond, value='color:green;', other='color:red;')
 
         should be refactored to:
+
         >>> def style_func(v, value, other, limit=4):
         ...     cond = v > 1 and v != limit
         ...     return value if cond else other
