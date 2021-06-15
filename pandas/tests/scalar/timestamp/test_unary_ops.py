@@ -6,11 +6,13 @@ import pytest
 import pytz
 from pytz import utc
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
     conversion,
+    iNaT,
     to_offset,
 )
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
@@ -279,8 +281,7 @@ class TestTimestampUnaryOps:
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
     def test_round_sanity(self, method, n):
-        iinfo = np.iinfo(np.int64)
-        val = np.random.randint(iinfo.min + 1, iinfo.max, dtype=np.int64)
+        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
         ts = Timestamp(val)
 
         def checker(res, ts, nanos):

@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.hashing import hash_object_array
 from pandas._typing import (
     ArrayLike,
@@ -244,7 +245,7 @@ def _hash_categorical(cat: Categorical, encoding: str, hash_key: str) -> np.ndar
         result = np.zeros(len(mask), dtype="uint64")
 
     if mask.any():
-        result[mask] = np.iinfo(np.uint64).max
+        result[mask] = lib.u8max
 
     return result
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from pandas._libs.lib import i8max
 from pandas._libs.tslibs import (
     BaseOffset,
     OutOfBoundsDatetime,
@@ -103,7 +104,7 @@ def _generate_range_overflow_safe(
     # GH#14187 raise instead of incorrectly wrapping around
     assert side in ["start", "end"]
 
-    i64max = np.uint64(np.iinfo(np.int64).max)
+    i64max = np.uint64(i8max)
     msg = f"Cannot generate range with {side}={endpoint} and periods={periods}"
 
     with np.errstate(over="raise"):
@@ -180,7 +181,7 @@ def _generate_range_overflow_safe_signed(
             # error: Incompatible types in assignment (expression has type
             # "unsignedinteger[_64Bit]", variable has type "signedinteger[_64Bit]")
             result = np.uint64(endpoint) + np.uint64(addend)  # type: ignore[assignment]
-            i64max = np.uint64(np.iinfo(np.int64).max)
+            i64max = np.uint64(i8max)
             assert result > i64max
             if result <= i64max + np.uint64(stride):
                 # error: Incompatible return value type (got "unsignedinteger", expected
