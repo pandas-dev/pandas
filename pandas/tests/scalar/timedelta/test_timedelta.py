@@ -4,6 +4,7 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
     iNaT,
@@ -391,8 +392,7 @@ class TestTimedeltas:
         "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
     )
     def test_round_sanity(self, method, n, request):
-        iinfo = np.iinfo(np.int64)
-        val = np.random.randint(iinfo.min + 1, iinfo.max, dtype=np.int64)
+        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
         td = Timedelta(val)
 
         assert method(td, "ns") == td
@@ -552,8 +552,8 @@ class TestTimedeltas:
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
-        assert min_td.value == np.iinfo(np.int64).min + 1
-        assert max_td.value == np.iinfo(np.int64).max
+        assert min_td.value == iNaT + 1
+        assert max_td.value == lib.i8max
 
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT
