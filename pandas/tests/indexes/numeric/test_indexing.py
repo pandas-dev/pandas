@@ -376,6 +376,19 @@ class TestWhere:
         result = index.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_where_uin64(self):
+        idx = UInt64Index([0, 6, 2])
+        mask = np.array([False, True, False])
+        other = np.array([1], dtype=np.int64)
+
+        expected = UInt64Index([1, 6, 1])
+
+        result = idx.where(mask, other)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.putmask(~mask, other)
+        tm.assert_index_equal(result, expected)
+
 
 class TestTake:
     @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
