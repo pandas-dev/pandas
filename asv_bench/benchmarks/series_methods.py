@@ -195,7 +195,7 @@ class Any:
 
 
 class Isna:
-    params = ["float", "Float64", "Int64"]
+    params = ["float", "Float64", "Int64", "boolean"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
