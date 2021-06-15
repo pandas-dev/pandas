@@ -1003,15 +1003,16 @@ class Styler(StylerRenderer):
         if isinstance(result, Series):
             raise ValueError(
                 f"Function {repr(func)} resulted in the apply method collapsing to a "
-                f"Series.\nUsually this is the result of a function returning a single"
-                f"value, instead of list-like."
+                f"Series.\nUsually, this is the result of the function returning a "
+                f"single value, instead of list-like."
             )
         msg = (
             f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
             f"the result of the function returning a "
             f"{'Series' if axis is not None else 'DataFrame'} which contains invalid "
-            f"labels, or returning incorrect array shapes which cannot be mapped to "
-            f"labels, possibly due to applying the function along the wrong axis.\n"
+            f"labels, or returning an incorrectly shaped, list-like object which "
+            f"cannot be mapped to labels, possibly due to applying the function along "
+            f"the wrong axis.\n"
             "Result {{0}} has shape: {{1}}\n"
             "Expected {{0}} shape:   {{2}}"
         )
