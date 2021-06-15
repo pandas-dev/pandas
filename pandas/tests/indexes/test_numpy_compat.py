@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import np_version_under1p18
+
 from pandas import (
     DatetimeIndex,
     Float64Index,
@@ -80,16 +82,21 @@ def test_numpy_ufuncs_other(index, func, request):
             isinstance(index, DatetimeIndex)
             and index.tz is not None
             and func in [np.isfinite, np.isnan, np.isinf]
+            and (
+                not np_version_under1p18
+                or (np_version_under1p18 and func is np.isfinite)
+            )
         ):
             mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
             request.node.add_marker(mark)
 
-        if func in [np.isfinite, np.isinf, np.isnan]:
+        if not np_version_under1p18 and func in [np.isfinite, np.isinf, np.isnan]:
             # numpy 1.18(dev) changed isinf and isnan to not raise on dt64/tfd64
             result = func(index)
             assert isinstance(result, np.ndarray)
 
         elif func is np.isfinite:
+            # ok under numpy >= 1.17
             # Results in bool array
             result = func(index)
             assert isinstance(result, np.ndarray)

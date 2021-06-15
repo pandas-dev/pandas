@@ -11,6 +11,7 @@ import pytest
 
 from pandas.compat import (
     IS64,
+    PY38,
     PY310,
     is_platform_windows,
 )
@@ -1714,7 +1715,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
 
     @pytest.mark.xfail(
-        is_platform_windows(),
+        is_platform_windows() and PY38,
         reason="localhost connection rejected",
         strict=False,
     )

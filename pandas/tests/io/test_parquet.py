@@ -13,7 +13,10 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    PY38,
+    is_platform_windows,
+)
 from pandas.compat.pyarrow import (
     pa_version_under1p0,
     pa_version_under2p0,
@@ -648,7 +651,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.xfail(
-        is_platform_windows(),
+        is_platform_windows() and PY38,
         reason="localhost connection rejected",
         strict=False,
     )
