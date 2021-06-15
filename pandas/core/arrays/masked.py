@@ -224,6 +224,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # Maintain the invariant of self._mask.any() only being
         # true if the mask is not None
         if updated_mask:
+            assert self._mask is not None
             if not self._mask.any():
                 self._mask = None
 
