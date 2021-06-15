@@ -2,7 +2,8 @@ name: Database
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
     branches:
       - master
@@ -28,6 +29,10 @@ jobs:
       matrix:
         ENV_FILE: [ci/deps/actions-37-db-min.yaml, ci/deps/actions-37-db.yaml]
       fail-fast: false
+
+    concurrency:
+      group: ${{ github.ref }}-${{ matrix.ENV_FILE }}
+      cancel-in-progress: true
 
     services:
       mysql:
