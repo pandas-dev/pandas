@@ -70,7 +70,7 @@ python-snappy
 pyqt5>=5.9.2
 tables>=3.5.1
 s3fs>=0.4.0
-fsspec>=0.7.4
+fsspec>=0.7.4, <2021.6.0
 gcsfs>=0.6.0
 sqlalchemy
 xarray
