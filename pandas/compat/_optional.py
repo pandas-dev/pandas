@@ -20,7 +20,7 @@ VERSIONS = {
     "numexpr": "2.7.1",
     "odfpy": "1.4.1",
     "openpyxl": "3.0.2",
-    "pandas_gbq": "0.12.0",
+    "pandas_gbq": "0.14.0",
     "pyarrow": "0.17.0",
     "pytest": "6.0",
     "pyxlsb": "1.0.6",

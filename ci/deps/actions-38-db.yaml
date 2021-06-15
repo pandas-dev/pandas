@@ -29,7 +29,6 @@ dependencies:
   - odfpy
   - openpyxl
   - pandas-gbq
-  - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
   - pyarrow>=0.17.0
   - pymysql
