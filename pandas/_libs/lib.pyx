@@ -1711,7 +1711,7 @@ cdef class Validator:
             if not self.is_valid(values[i]):
                 return False
 
-        return self.finalize_validate()
+        return True
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1724,7 +1724,7 @@ cdef class Validator:
             if not self.is_valid_skipna(values[i]):
                 return False
 
-        return self.finalize_validate_skipna()
+        return True
 
     cdef bint is_valid(self, object value) except -1:
         return self.is_value_typed(value)
@@ -1741,18 +1741,6 @@ cdef class Validator:
 
     cdef bint is_array_typed(self) except -1:
         return False
-
-    cdef inline bint finalize_validate(self):
-        return True
-
-    cdef bint finalize_validate_skipna(self):
-        """
-        If we _only_ saw non-dtype-specific NA values, even if they are valid
-        for this dtype, we do not infer this dtype.
-        """
-        # TODO(phillipc): Remove the existing validate methods and replace them
-        # with the skipna versions upon full deprecation of skipna=False
-        return True
 
 
 @cython.internal
@@ -1905,14 +1893,14 @@ cdef bint is_bytes_array(ndarray values, bint skipna=False):
 @cython.internal
 cdef class TemporalValidator(Validator):
     cdef:
-        Py_ssize_t generic_null_count
+        bint all_generic_na
 
     def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
         self.skipna = skipna
-        self.generic_null_count = 0
+        self.all_generic_na = True
 
     cdef inline bint is_valid(self, object value) except -1:
         return self.is_value_typed(value) or self.is_valid_null(value)
@@ -1925,15 +1913,16 @@ cdef class TemporalValidator(Validator):
         cdef:
             bint is_typed_null = self.is_valid_null(value)
             bint is_generic_null = value is None or util.is_nan(value)
-        self.generic_null_count += is_typed_null and is_generic_null
+        if not is_generic_null:
+            self.all_generic_na = False
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
-    cdef inline bint finalize_validate_skipna(self):
+    cdef bint _validate_skipna(self, ndarray values) except -1:
         """
         If we _only_ saw non-dtype-specific NA values, even if they are valid
         for this dtype, we do not infer this dtype.
         """
-        return self.generic_null_count != self.n
+        return Validator._validate_skipna(self, values) and not self.all_generic_na
 
 
 @cython.internal
