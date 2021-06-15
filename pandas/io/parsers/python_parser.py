@@ -424,6 +424,7 @@ class PythonParser(ParserBase):
                                 cur_count = counts[col]
                             if (
                                 self.dtype is not None
+                                and isinstance(self.dtype, dict)
                                 and self.dtype.get(old_col) is not None
                                 and self.dtype.get(col) is None
                             ):

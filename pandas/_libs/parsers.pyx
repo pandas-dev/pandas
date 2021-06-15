@@ -689,6 +689,7 @@ cdef class TextReader:
                                 count = counts.get(name, 0)
                             if (
                                 self.dtype is not None
+                                and isinstance(self.dtype, dict)
                                 and self.dtype.get(old_name) is not None
                                 and self.dtype.get(name) is None
                             ):
