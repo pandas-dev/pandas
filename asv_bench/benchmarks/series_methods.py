@@ -196,6 +196,7 @@ class Any:
 
 class Isna:
     params = ["float", "Float64", "Int64"]
+    param_names = ["dtype"]
 
     def setup(self, dtype):
         self.ser = Series(np.ones(10000), dtype=dtype)
@@ -232,9 +233,6 @@ class NanOps:
     param_names = ["func", "N", "dtype"]
 
     def setup(self, func, N, dtype):
-        if func == "argmax" and dtype in {"Int64", "boolean"}:
-            # Skip argmax for nullable int since this doesn't work yet (GH-24382)
-            raise NotImplementedError
         self.s = Series([1] * N, dtype=dtype)
         self.func = getattr(self.s, func)
 

@@ -5,12 +5,12 @@ import pandas as pd
 
 class BooleanArray:
     def setup(self):
-        self.values_bool = np.array([True, False, True, False])
-        self.values_float = np.array([1.0, 0.0, 1.0, 0.0])
-        self.values_integer = np.array([1, 0, 1, 0])
-        self.values_integer_like = [1, 0, 1, 0]
-        self.data = np.array([True, False, True, False])
-        self.mask = np.array([False, False, True, False])
+        self.values_bool = np.array([True, False, True, False] * 1000)
+        self.values_float = np.array([1.0, 0.0, 1.0, 0.0] * 1000)
+        self.values_integer = np.array([1, 0, 1, 0] * 1000)
+        self.values_integer_like = [1, 0, 1, 0] * 1000
+        self.data = np.array([True, False, True, False] * 1000)
+        self.mask = np.array([False, False, True, False] * 1000)
 
     def time_constructor(self):
         pd.arrays.BooleanArray(self.data, self.mask)
@@ -30,9 +30,9 @@ class BooleanArray:
 
 class IntegerArray:
     def setup(self):
-        self.values_integer = np.array([1, 0, 1, 0])
-        self.data = np.array([1, 2, 3, 4], dtype="int64")
-        self.mask = np.array([False, False, True, False])
+        self.values_integer = np.array([1, 0, 1, 0] * 1000)
+        self.data = np.array([1, 2, 3, 4] * 1000, dtype="int64")
+        self.mask = np.array([False, False, True, False] * 1000)
 
     def time_constructor(self):
         pd.arrays.IntegerArray(self.data, self.mask)
