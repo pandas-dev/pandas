@@ -105,7 +105,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement and memory savings for operations with nullable data types when no missing values are present (:issue:`30435`)
 -
 
 .. ---------------------------------------------------------------------------
