@@ -177,6 +177,9 @@ class TestDST:
         assert first == second
 
 
+@pytest.mark.xfail(
+    strict=False, reason="'Africa/Kinshasa' test case fails under pytz=2017.3"
+)
 @pytest.mark.parametrize(
     "original_dt, target_dt, offset, tz",
     [
