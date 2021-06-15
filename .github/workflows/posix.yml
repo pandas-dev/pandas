@@ -7,6 +7,9 @@ on:
     branches:
       - master
       - 1.2.x
+      - 1.3.x
+    paths-ignore:
+      - "doc/**"
 
 env:
   PYTEST_WORKERS: "auto"
