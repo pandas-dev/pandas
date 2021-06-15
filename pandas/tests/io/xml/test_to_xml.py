@@ -385,7 +385,7 @@ def test_attrs_cols_nan_output(datapath, parser):
 
 @pytest.mark.skipif(
     not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
@@ -543,7 +543,7 @@ def test_hierarchical_columns(datapath, parser):
 
 @pytest.mark.skipif(
     not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
@@ -616,7 +616,7 @@ def test_multi_index(datapath, parser):
 
 @pytest.mark.skipif(
     not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
+    reason=("etree alpha ordered attributes < py3.8"),
 )
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
