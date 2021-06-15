@@ -724,13 +724,10 @@ class Base:
         assert len(gc.get_referrers(index)) == nrefs_pre
 
     def test_getitem_2d_deprecated(self, simple_index):
-        # GH#30588
+        # GH#30588, GH#31479
         idx = simple_index
         msg = "Support for multi-dimensional indexing"
-        check = not isinstance(idx, (RangeIndex, CategoricalIndex))
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=check
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)
