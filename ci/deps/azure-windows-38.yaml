@@ -31,6 +31,6 @@ dependencies:
   - pytz
   - s3fs>=0.4.0
   - scipy
-  - xlrd<2.0
+  - xlrd
   - xlsxwriter
   - xlwt

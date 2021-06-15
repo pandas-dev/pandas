@@ -43,7 +43,7 @@ dependencies:
   - sqlalchemy
   - statsmodels
   - xarray
-  - xlrd<2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - pip

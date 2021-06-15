@@ -5,7 +5,7 @@ requires = [
     "setuptools>=38.6.0",
     "wheel",
     "Cython>=0.29.21,<3",  # Note: sync with setup.py
-    "numpy==1.18.3; python_version=='3.8'",
+    "numpy==1.18.5; python_version=='3.8'",
     "numpy; python_version>='3.9'",
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
