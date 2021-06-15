@@ -716,6 +716,14 @@ cpdef ndarray[object] ensure_string_array(
         Py_ssize_t i = 0, n = len(arr)
 
     if hasattr(arr, "to_numpy"):
+
+        if hasattr(arr, "dtype") and arr.dtype.kind in ["m", "M"]:
+            # dtype check to exclude DataFrame
+            # GH#41409 TODO: not a great place for this
+            out = arr.astype(str).astype(object)
+            out[arr.isna()] = na_value
+            return out
+
         arr = arr.to_numpy()
     elif not isinstance(arr, np.ndarray):
         arr = np.array(arr, dtype="object")
