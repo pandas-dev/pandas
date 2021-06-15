@@ -7,8 +7,6 @@ from typing import (
     Sequence,
 )
 
-import pkg_resources
-
 from pandas._config import get_option
 
 from pandas._typing import IndexLabel
@@ -1745,6 +1743,8 @@ def _load_backend(backend: str) -> types.ModuleType:
     types.ModuleType
         The imported backend.
     """
+    import pkg_resources
+
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
