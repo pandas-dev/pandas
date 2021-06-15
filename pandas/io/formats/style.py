@@ -1039,12 +1039,14 @@ class Styler(StylerRenderer):
         func : function
             ``func`` should take a Series if ``axis`` in [0,1] and return a list-like
             object of same length, or a Series, not necessarily of same length, with
-            valid index labels.
+            valid index labels considering ``subset``.
             ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
-            an ndarray with the same shape or a DataFrame with identical columns and
-            index.
+            an ndarray with the same shape or a DataFrame, not necessarily of the same
+            shape, with valid index and columns labels considering ``subset``.
 
             .. versionchanged:: 1.3.0
+
+            .. versionchanged:: 1.4.0
 
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
