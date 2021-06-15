@@ -2672,18 +2672,9 @@ class MultiIndex(Index):
                 # TODO: explicitly raise here?  we only have one test that
                 #  gets here, and it is checking that we raise with method="nearest"
 
-        if method == "pad" or method == "backfill":
-            # TODO: get_indexer_with_fill docstring says values must be _sorted_
-            #  but that doesn't appear to be enforced
-            indexer = self._engine.get_indexer_with_fill(
-                target=target._values, values=self._values, method=method, limit=limit
-            )
-        else:
-            indexer = self._engine.get_indexer(target._values)
-
         # Note: we only get here (in extant tests at least) with
         #  target.nlevels == self.nlevels
-        return ensure_platform_int(indexer)
+        return super()._get_indexer(target, method, limit, tolerance)
 
     def get_slice_bound(
         self, label: Hashable | Sequence[Hashable], side: str, kind: str | None = None
