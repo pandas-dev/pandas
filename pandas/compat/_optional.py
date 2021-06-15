@@ -16,7 +16,7 @@ VERSIONS = {
     "fastparquet": "0.4.0",
     "gcsfs": "0.6.0",
     "lxml.etree": "4.5.0",
-    "matplotlib": "3.2.2",
+    "matplotlib": "3.3.2",
     "numexpr": "2.7.1",
     "odfpy": "1.4.1",
     "openpyxl": "3.0.2",

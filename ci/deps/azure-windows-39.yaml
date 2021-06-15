@@ -26,14 +26,14 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - pyarrow
+  # - pyarrow
   - pytables
   - python-dateutil
   - pytz
   - s3fs>=0.4.2
   - scipy
   - sqlalchemy
-  - xlrd>=2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - pyreadstat
