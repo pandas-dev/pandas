@@ -5615,8 +5615,9 @@ class DataFrame(NDFrame, OpsMixin):
             Only remove the given levels from the index. Removes all levels by
             default.
         drop : bool, default False
-            Do not try to insert index into dataframe columns. This resets
-            the index to the default integer index.
+            Do not try to insert index into dataframe columns. Unless the
+            index is a MultiIndex with additional levels, this resets the
+            index to the default integer index.
         inplace : bool, default False
             Modify the DataFrame in place (do not create a new object).
         col_level : int or str, default 0
