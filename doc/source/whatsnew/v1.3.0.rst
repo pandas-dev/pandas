@@ -637,7 +637,7 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | pytest (dev)    | 6.0             |          |    X    |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 0.800           |          |    X    |
+| mypy (dev)      | 0.812           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | setuptools      | 38.6.0          |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -714,64 +714,6 @@ Build
 
 Deprecations
 ~~~~~~~~~~~~
-- Deprecated allowing scalars to be passed to the :class:`Categorical` constructor (:issue:`38433`)
-- Deprecated constructing :class:`CategoricalIndex` without passing list-like data (:issue:`38944`)
-- Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`, :issue:`21311`, :issue:`22315`, :issue:`26974`)
-- Deprecated the :meth:`astype` method of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to convert to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
-- Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth`, use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
-- Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
-- Deprecated comparison of :class:`Timestamp` objects with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
-- Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
-- Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
-- Deprecated :class:`DataFrame` indexer for :meth:`Series.__setitem__` and :meth:`DataFrame.__setitem__` (:issue:`39004`)
-- Deprecated :meth:`ExponentialMovingWindow.vol` (:issue:`39220`)
-- Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
-- Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
-- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
-- Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
-- Deprecated arguments ``error_bad_lines`` and ``warn_bad_lines`` in :meth:`read_csv` and :meth:`read_table` in favor of argument ``on_bad_lines`` (:issue:`15122`)
-- Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
-- Deprecated using :func:`merge`, :meth:`DataFrame.merge`, and :meth:`DataFrame.join` on a different number of levels (:issue:`34862`)
-- Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
-- Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
-- Deprecated the ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.set_categories` and will be removed in a future version (:issue:`37643`)
-- Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
-- Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
-- Deprecated the ``convert_float`` optional argument in :func:`read_excel` and :meth:`ExcelFile.parse` (:issue:`41127`)
-- Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
-- Deprecated using ``usecols`` with out of bounds indices for :func:`read_csv` with ``engine="c"`` (:issue:`25623`)
-- Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
-- Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
-- Deprecated the :attr:`Timestamp.freq` attribute.  For the properties that use it (``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end``), when you have a ``freq``, use e.g. ``freq.is_month_start(ts)`` (:issue:`15146`)
-- Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`, :issue:`33401`)
-- Deprecated behavior of :class:`Series` construction with large-integer values and small-integer dtype silently overflowing; use ``Series(data).astype(dtype)`` instead (:issue:`41734`)
-- Deprecated behavior of :class:`DataFrame` construction with floating data and integer dtype casting even when lossy; in a future version this will remain floating, matching :class:`Series` behavior (:issue:`41770`)
-- Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
-- In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
-- Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
-- Deprecated passing arguments as positional for all of the following, with exceptions noted (:issue:`41485`):
-  - :func:`concat` (other than ``objs``)
-  - :func:`read_csv` (other than ``filepath_or_buffer``)
-  - :func:`read_table` (other than ``filepath_or_buffer``)
-  - :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``upper`` and ``lower``)
-  - :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates`
-  - :meth:`DataFrame.drop` (other than ``labels``) and :meth:`Series.drop`
-  - :meth:`DataFrame.dropna` and :meth:`Series.dropna`
-  - :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill`
-  - :meth:`DataFrame.fillna` and :meth:`Series.fillna` (apart from ``value``)
-  - :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (other than ``method``)
-  - :meth:`DataFrame.mask` and :meth:`Series.mask` (other than ``cond`` and ``other``)
-  - :meth:`DataFrame.reset_index` (other than ``level``) and :meth:`Series.reset_index`
-  - :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``labels``)
-  - :meth:`DataFrame.set_index` (other than ``keys``)
-  - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index`
-  - :meth:`DataFrame.sort_values` (other than ``by``) and :meth:`Series.sort_values`
-  - :meth:`DataFrame.where` and :meth:`Series.where` (other than ``cond`` and ``other``)
-  - :meth:`Index.set_names` and :meth:`MultiIndex.set_names` (except for ``names``)
-  - :meth:`MultiIndex.codes` (except for ``codes``)
-  - :meth:`MultiIndex.set_levels` (except for ``levels``)
-  - :meth:`Resampler.interpolate` (other than ``method``)
-
 
 .. _whatsnew_130.deprecations.nuisance_columns:
 
@@ -851,6 +793,70 @@ For example:
         A
     1   2
     2  12
+
+.. _whatsnew_130.deprecations.other:
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
+- Deprecated allowing scalars to be passed to the :class:`Categorical` constructor (:issue:`38433`)
+- Deprecated constructing :class:`CategoricalIndex` without passing list-like data (:issue:`38944`)
+- Deprecated allowing subclass-specific keyword arguments in the :class:`Index` constructor, use the specific subclass directly instead (:issue:`14093`, :issue:`21311`, :issue:`22315`, :issue:`26974`)
+- Deprecated the :meth:`astype` method of datetimelike (``timedelta64[ns]``, ``datetime64[ns]``, ``Datetime64TZDtype``, ``PeriodDtype``) to convert to integer dtypes, use ``values.view(...)`` instead (:issue:`38544`)
+- Deprecated :meth:`MultiIndex.is_lexsorted` and :meth:`MultiIndex.lexsort_depth`, use :meth:`MultiIndex.is_monotonic_increasing` instead (:issue:`32259`)
+- Deprecated keyword ``try_cast`` in :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask`; cast results manually if desired (:issue:`38836`)
+- Deprecated comparison of :class:`Timestamp` objects with ``datetime.date`` objects.  Instead of e.g. ``ts <= mydate`` use ``ts <= pd.Timestamp(mydate)`` or ``ts.date() <= mydate`` (:issue:`36131`)
+- Deprecated :attr:`Rolling.win_type` returning ``"freq"`` (:issue:`38963`)
+- Deprecated :attr:`Rolling.is_datetimelike` (:issue:`38963`)
+- Deprecated :class:`DataFrame` indexer for :meth:`Series.__setitem__` and :meth:`DataFrame.__setitem__` (:issue:`39004`)
+- Deprecated :meth:`ExponentialMovingWindow.vol` (:issue:`39220`)
+- Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
+- Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
+- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
+- Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
+- Deprecated arguments ``error_bad_lines`` and ``warn_bad_lines`` in :meth:`read_csv` and :meth:`read_table` in favor of argument ``on_bad_lines`` (:issue:`15122`)
+- Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
+- Deprecated using :func:`merge`, :meth:`DataFrame.merge`, and :meth:`DataFrame.join` on a different number of levels (:issue:`34862`)
+- Deprecated the use of ``**kwargs`` in :class:`.ExcelWriter`; use the keyword argument ``engine_kwargs`` instead (:issue:`40430`)
+- Deprecated the ``level`` keyword for :class:`DataFrame` and :class:`Series` aggregations; use groupby instead (:issue:`39983`)
+- Deprecated the ``inplace`` parameter of :meth:`Categorical.remove_categories`, :meth:`Categorical.add_categories`, :meth:`Categorical.reorder_categories`, :meth:`Categorical.rename_categories`, :meth:`Categorical.set_categories` and will be removed in a future version (:issue:`37643`)
+- Deprecated :func:`merge` producing duplicated columns through the ``suffixes`` keyword  and already existing columns (:issue:`22818`)
+- Deprecated setting :attr:`Categorical._codes`, create a new :class:`Categorical` with the desired codes instead (:issue:`40606`)
+- Deprecated the ``convert_float`` optional argument in :func:`read_excel` and :meth:`ExcelFile.parse` (:issue:`41127`)
+- Deprecated behavior of :meth:`DatetimeIndex.union` with mixed timezones; in a future version both will be cast to UTC instead of object dtype (:issue:`39328`)
+- Deprecated using ``usecols`` with out of bounds indices for :func:`read_csv` with ``engine="c"`` (:issue:`25623`)
+- Deprecated special treatment of lists with first element a Categorical in the :class:`DataFrame` constructor; pass as ``pd.DataFrame({col: categorical, ...})`` instead (:issue:`38845`)
+- Deprecated behavior of :class:`DataFrame` constructor when a ``dtype`` is passed and the data cannot be cast to that dtype. In a future version, this will raise instead of being silently ignored (:issue:`24435`)
+- Deprecated the :attr:`Timestamp.freq` attribute.  For the properties that use it (``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end``), when you have a ``freq``, use e.g. ``freq.is_month_start(ts)`` (:issue:`15146`)
+- Deprecated construction of :class:`Series` or :class:`DataFrame` with ``DatetimeTZDtype`` data and ``datetime64[ns]`` dtype.  Use ``Series(data).dt.tz_localize(None)`` instead (:issue:`41555`, :issue:`33401`)
+- Deprecated behavior of :class:`Series` construction with large-integer values and small-integer dtype silently overflowing; use ``Series(data).astype(dtype)`` instead (:issue:`41734`)
+- Deprecated behavior of :class:`DataFrame` construction with floating data and integer dtype casting even when lossy; in a future version this will remain floating, matching :class:`Series` behavior (:issue:`41770`)
+- Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
+- In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
+- Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
+- Deprecated passing arguments as positional for all of the following, with exceptions noted (:issue:`41485`):
+
+  - :func:`concat` (other than ``objs``)
+  - :func:`read_csv` (other than ``filepath_or_buffer``)
+  - :func:`read_table` (other than ``filepath_or_buffer``)
+  - :meth:`DataFrame.clip` and :meth:`Series.clip` (other than ``upper`` and ``lower``)
+  - :meth:`DataFrame.drop_duplicates` (except for ``subset``), :meth:`Series.drop_duplicates`, :meth:`Index.drop_duplicates` and :meth:`MultiIndex.drop_duplicates`
+  - :meth:`DataFrame.drop` (other than ``labels``) and :meth:`Series.drop`
+  - :meth:`DataFrame.dropna` and :meth:`Series.dropna`
+  - :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, and :meth:`Series.bfill`
+  - :meth:`DataFrame.fillna` and :meth:`Series.fillna` (apart from ``value``)
+  - :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` (other than ``method``)
+  - :meth:`DataFrame.mask` and :meth:`Series.mask` (other than ``cond`` and ``other``)
+  - :meth:`DataFrame.reset_index` (other than ``level``) and :meth:`Series.reset_index`
+  - :meth:`DataFrame.set_axis` and :meth:`Series.set_axis` (other than ``labels``)
+  - :meth:`DataFrame.set_index` (other than ``keys``)
+  - :meth:`DataFrame.sort_index` and :meth:`Series.sort_index`
+  - :meth:`DataFrame.sort_values` (other than ``by``) and :meth:`Series.sort_values`
+  - :meth:`DataFrame.where` and :meth:`Series.where` (other than ``cond`` and ``other``)
+  - :meth:`Index.set_names` and :meth:`MultiIndex.set_names` (except for ``names``)
+  - :meth:`MultiIndex.codes` (except for ``codes``)
+  - :meth:`MultiIndex.set_levels` (except for ``levels``)
+  - :meth:`Resampler.interpolate` (other than ``method``)
+
 
 .. ---------------------------------------------------------------------------
 
