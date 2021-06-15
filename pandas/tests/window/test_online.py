@@ -22,6 +22,7 @@ class TestEWM:
         ):
             online_ewm.mean(update=df.head(1))
 
+    @pytest.mark.slow
     @pytest.mark.parametrize(
         "obj", [DataFrame({"a": range(5), "b": range(5)}), Series(range(5), name="foo")]
     )
