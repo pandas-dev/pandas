@@ -999,35 +999,25 @@ class Styler(StylerRenderer):
                         f"Expected shape: {data.shape}"
                     )
                 result = DataFrame(result, index=data.index, columns=data.columns)
-            elif not (
-                result.index.equals(data.index) and result.columns.equals(data.columns)
-            ):
-                raise ValueError(
-                    f"Result of {repr(func)} must have identical "
-                    f"index and columns as the input"
-                )
 
         if isinstance(result, Series):
             raise ValueError(
                 f"Function {repr(func)} returned a Series when a DataFrame is required"
             )
         msg = (
-            "Function {0} created invalid {1} labels.\nUsually, this is the result "
-            "of the function returning a Series which contains invalid labels, or "
-            "returning incorrect array shapes which cannot be mapped to labels, "
-            "possibly due to applying the function along the wrong axis.\n"
-            "Result {1} has shape: {2}\n"
-            "Expected {1} shape:   {3}"
+            f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
+            f"the result of the function returning a "
+            f"{'Series' if axis is not None else 'DataFrame'} which contains invalid "
+            f"labels, or returning incorrect array shapes which cannot be mapped to "
+            f"labels, possibly due to applying the function along the wrong axis.\n"
+            "Result {{0}} has shape: {{1}}\n"
+            "Expected {{0}} shape:   {{2}}"
         )
-        if not (all(result.index.isin(self.index))):
+        if not all(result.index.isin(data.index)):
+            raise ValueError(msg.format("index", result.index.shape, data.index.shape))
+        if not all(result.columns.isin(data.columns)):
             raise ValueError(
-                msg.format(repr(func), "index", result.index.shape, data.index.shape)
-            )
-        if not (all(result.columns.isin(self.columns))):
-            raise ValueError(
-                msg.format(
-                    repr(func), "columns", result.columns.shape, data.columns.shape
-                )
+                msg.format("columns", result.columns.shape, data.columns.shape)
             )
         self._update_ctx(result)
         return self
@@ -1047,8 +1037,9 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         func : function
-            ``func`` should take a Series if ``axis`` in [0,1] and return an object
-            of same length, also with identical index if the object is a Series.
+            ``func`` should take a Series if ``axis`` in [0,1] and return a list-like
+            object of same length, or a Series, not necessarily of same length, with
+            valid index labels.
             ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
             an ndarray with the same shape or a DataFrame with identical columns and
             index.
