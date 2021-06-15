@@ -231,3 +231,8 @@ def test_from_custom_template(tmpdir):
     assert result.template_html is not Styler.template_html
     styler = result(DataFrame({"A": [1, 2]}))
     assert styler.render()
+
+
+def test_caption_as_sequence(styler):
+    styler.set_caption(("full cap", "short cap"))
+    assert "<caption>full cap</caption>" in styler.render()

@@ -393,7 +393,7 @@ class GroupByMethods:
 
     param_names = ["dtype", "method", "application"]
     params = [
-        ["int", "float", "object", "datetime"],
+        ["int", "float", "object", "datetime", "uint"],
         [
             "all",
             "any",
@@ -442,6 +442,8 @@ class GroupByMethods:
         values = rng.take(np.random.randint(0, ngroups, size=size))
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
+        elif dtype == "uint":
+            key = np.random.randint(0, size, size=size, dtype=dtype)
         elif dtype == "float":
             key = np.concatenate(
                 [np.random.random(ngroups) * 0.1, np.random.random(ngroups) * 10.0]
@@ -505,11 +507,11 @@ class GroupByCythonAgg:
         self.df.groupby("key").agg(method)
 
 
-class CumminMax:
+class Cumulative:
     param_names = ["dtype", "method"]
     params = [
         ["float64", "int64", "Float64", "Int64"],
-        ["cummin", "cummax"],
+        ["cummin", "cummax", "cumsum"],
     ]
 
     def setup(self, dtype, method):

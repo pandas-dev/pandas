@@ -638,7 +638,7 @@ def test_as_index_select_column():
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
     df = DataFrame(columns=["A", "B", "C"])
-    left = df.groupby(by="A", as_index=False)["B"].sum()
+    left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
     assert type(left) is DataFrame
     assert left.to_dict() == {"A": {}, "B": {}}
 
@@ -1861,6 +1861,49 @@ def test_empty_groupby(columns, keys, values, method, op, request):
                         get_result()
 
                     return
+    else:
+        # ie. DataFrameGroupBy
+        if op in ["prod", "sum"]:
+            # ops that require more than just ordered-ness
+            if method != "apply":
+                # FIXME: apply goes through different code path
+                if df.dtypes[0].kind == "M":
+                    # GH#41291
+                    # datetime64 -> prod and sum are invalid
+                    result = get_result()
+
+                    # with numeric_only=True, these are dropped, and we get
+                    # an empty DataFrame back
+                    expected = df.set_index(keys)[[]]
+                    tm.assert_equal(result, expected)
+                    return
+
+                elif isinstance(values, Categorical):
+                    # GH#41291
+                    # Categorical doesn't implement sum or prod
+                    result = get_result()
+
+                    # with numeric_only=True, these are dropped, and we get
+                    # an empty DataFrame back
+                    expected = df.set_index(keys)[[]]
+                    if len(keys) != 1 and op == "prod":
+                        # TODO: why just prod and not sum?
+                        # Categorical is special without 'observed=True'
+                        lev = Categorical([0], dtype=values.dtype)
+                        mi = MultiIndex.from_product([lev, lev], names=["A", "B"])
+                        expected = DataFrame([], columns=[], index=mi)
+
+                    tm.assert_equal(result, expected)
+                    return
+
+                elif df.dtypes[0] == object:
+                    # FIXME: the test is actually wrong here, xref #41341
+                    result = get_result()
+                    # In this case we have list-of-list, will raise TypeError,
+                    # and subsequently be dropped as nuisance columns
+                    expected = df.set_index(keys)[[]]
+                    tm.assert_equal(result, expected)
+                    return
 
     result = get_result()
     expected = df.set_index(keys)[columns]
@@ -2313,11 +2356,16 @@ def test_groupby_all_nan_groups_drop():
 
 def test_groupby_empty_multi_column():
     # GH 15106
-    result = DataFrame(data=[], columns=["A", "B", "C"]).groupby(["A", "B"]).sum()
+    df = DataFrame(data=[], columns=["A", "B", "C"])
+    gb = df.groupby(["A", "B"])
+    result = gb.sum(numeric_only=False)
     expected = DataFrame(
         [], columns=["C"], index=MultiIndex([[], []], [[], []], names=["A", "B"])
     )
     tm.assert_frame_equal(result, expected)
+
+    result = gb.sum(numeric_only=True)
+    tm.assert_frame_equal(result, expected[[]])
 
 
 def test_groupby_filtered_df_std():

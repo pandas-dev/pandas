@@ -92,6 +92,18 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
+def is_platform_arm() -> bool:
+    """
+    Checking if he running platform use ARM architecture.
+
+    Returns
+    -------
+    bool
+        True if the running platform uses ARM architecture.
+    """
+    return platform.machine() in ("arm64", "aarch64")
+
+
 def import_lzma():
     """
     Importing the `lzma` module.
