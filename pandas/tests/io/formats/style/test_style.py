@@ -961,7 +961,7 @@ class TestStyler:
     def test_bad_apply_shape(self):
         df = DataFrame([[1, 2], [3, 4]], index=["A", "B"], columns=["X", "Y"])
 
-        msg = "returned a Series when a DataFrame is required"
+        msg = "resulted in the apply method collapsing to a Series."
         with pytest.raises(ValueError, match=msg):
             df.style._apply(lambda x: "x")
 

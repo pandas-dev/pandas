@@ -1002,7 +1002,9 @@ class Styler(StylerRenderer):
 
         if isinstance(result, Series):
             raise ValueError(
-                f"Function {repr(func)} returned a Series when a DataFrame is required"
+                f"Function {repr(func)} resulted in the apply method collapsing to a "
+                f"Series.\nUsually this is the result of a function returning a single"
+                f"value, instead of list-like."
             )
         msg = (
             f"Function {repr(func)} created invalid {{0}} labels.\nUsually, this is "
