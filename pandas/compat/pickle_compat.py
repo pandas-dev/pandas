@@ -149,7 +149,7 @@ _class_locations_map = {
         "_LoadSparseSeries",
     ),
     ("pandas.sparse.frame", "SparseDataFrame"): (
-        "pandas.core.sparse.frame",
+        "pandas.compat.pickle_compat",
         "_LoadSparseFrame",
     ),
     ("pandas.indexes.base", "_new_Index"): ("pandas.core.indexes.base", "_new_Index"),
