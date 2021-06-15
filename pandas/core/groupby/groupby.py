@@ -1245,6 +1245,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     "func must be a callable if args or kwargs are supplied"
                 )
         else:
+            if isinstance(func, str):
+                if hasattr(self, func):
+                    res = getattr(self, func)
+                    if inspect.isfunction(res) or inspect.ismethod(res):
+                        return res()
+                    return res
+
+                else:
+                    raise TypeError(f"apply func should be callable, not '{func}'")
+
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
