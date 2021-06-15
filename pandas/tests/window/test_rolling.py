@@ -6,7 +6,10 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_arm
+from pandas.compat import (
+    is_platform_arm,
+    is_platform_mac,
+)
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
@@ -1073,7 +1076,7 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_platform_arm(), reason="GH 41740")
+@pytest.mark.xfail(is_platform_arm() and not is_platform_mac(), reason="GH 38921")
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [
