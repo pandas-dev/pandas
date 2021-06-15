@@ -16,7 +16,7 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - fsspec>=0.8.0
-  - gcsfs>=0.6.0
+  # - gcsfs
   - html5lib
   - jinja2
   - lxml
