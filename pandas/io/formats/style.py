@@ -2464,7 +2464,9 @@ class Styler(StylerRenderer):
         )
 
     @classmethod
-    def from_custom_template(cls, searchpath, name):
+    def from_custom_template(
+        cls, searchpath, html_table: str | None = None, html_style: str | None = None
+    ):
         """
         Factory function for creating a subclass of ``Styler``.
 
@@ -2474,8 +2476,10 @@ class Styler(StylerRenderer):
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
-        name : str
-            Name of your custom template to use for rendering.
+        html_table : str
+            Name of your custom template to replace the html_table template.
+        html_style : str
+            Name of your custom template to replace the html_style template.
 
         Returns
         -------
@@ -2489,7 +2493,10 @@ class Styler(StylerRenderer):
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
-            template_html = env.get_template(name)
+            if html_table:
+                template_html_table = env.get_template(html_table)
+            if html_style:
+                template_html_style = env.get_template(html_style)
 
         return MyStyler
 
