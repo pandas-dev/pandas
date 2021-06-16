@@ -19,6 +19,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Callable,
     Hashable,
     Iterable,
@@ -1054,7 +1055,7 @@ class DataFrameRenderer:
 
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer[str] | None = None,
+        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -1541,7 +1542,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
-        """ we by definition have DO NOT have a TZ """
+        """we by definition have DO NOT have a TZ"""
         values = self.values
 
         if not isinstance(values, DatetimeIndex):
@@ -1729,7 +1730,7 @@ def get_format_datetime64(
 def get_format_datetime64_from_values(
     values: np.ndarray | DatetimeArray | DatetimeIndex, date_format: str | None
 ) -> str | None:
-    """ given values and a date_format, return a string format """
+    """given values and a date_format, return a string format"""
     if isinstance(values, np.ndarray) and values.ndim > 1:
         # We don't actually care about the order of values, and DatetimeIndex
         #  only accepts 1D values
@@ -1743,7 +1744,7 @@ def get_format_datetime64_from_values(
 
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
-        """ we by definition have a TZ """
+        """we by definition have a TZ"""
         values = self.values.astype(object)
         ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(

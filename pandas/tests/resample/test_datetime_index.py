@@ -61,7 +61,7 @@ def test_custom_grouper(index):
     g.ohlc()  # doesn't use _cython_agg_general
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     b = Grouper(freq=Minute(5), closed="right", label="right")
     g = s.groupby(b)
@@ -69,7 +69,7 @@ def test_custom_grouper(index):
     g.ohlc()  # doesn't use _cython_agg_general
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     assert g.ngroups == 2593
     assert notna(g.mean()).all()
@@ -417,7 +417,7 @@ def test_resample_frame_basic():
     # check all cython functions work
     funcs = ["add", "mean", "prod", "min", "max", "var"]
     for f in funcs:
-        g._cython_agg_general(f)
+        g._cython_agg_general(f, alt=None, numeric_only=True)
 
     result = df.resample("A").mean()
     tm.assert_series_equal(result["A"], df["A"].resample("A").mean())
@@ -692,7 +692,7 @@ def test_asfreq_non_unique():
     rng2 = rng.repeat(2).values
     ts = Series(np.random.randn(len(rng2)), index=rng2)
 
-    msg = "cannot reindex from a duplicate axis"
+    msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
         ts.asfreq("B")
 
@@ -1739,8 +1739,8 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last):
     last = Period(last)
     last = last.to_timestamp(last.freq)
 
-    exp_first = Timestamp(exp_first, freq=freq)
-    exp_last = Timestamp(exp_last, freq=freq)
+    exp_first = Timestamp(exp_first)
+    exp_last = Timestamp(exp_last)
 
     freq = pd.tseries.frequencies.to_offset(freq)
     result = _get_timestamp_range_edges(first, last, freq)

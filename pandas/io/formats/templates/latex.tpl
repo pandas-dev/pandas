@@ -9,8 +9,11 @@
 {% if position_float is not none%}
 \{{position_float}}
 {% endif %}
-{% if caption %}
+{% if caption and caption is string %}
 \caption{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
+
+{% elif caption and caption is sequence %}
+\caption[{{caption[1]}}]{% raw %}{{% endraw %}{{caption[0]}}{% raw %}}{% endraw %}
 
 {% endif %}
 {% for style in table_styles %}
@@ -36,7 +39,7 @@
 {% endif %}
 {% for row in body %}
 {% for c in row %}{% if not loop.first %} & {% endif %}
-  {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align)}}{% else %}{{parse_cell(c.cellstyle, c.display_value)}}{% endif %}
+  {%- if c.type == 'th' %}{{parse_header(c, multirow_align, multicol_align)}}{% else %}{{parse_cell(c.cellstyle, c.display_value, convert_css)}}{% endif %}
 {%- endfor %} \\
 {% endfor %}
 {% set bottomrule = parse_table(table_styles, 'bottomrule') %}

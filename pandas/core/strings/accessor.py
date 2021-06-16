@@ -14,7 +14,7 @@ import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    ArrayLike,
+    DtypeObj,
     FrameOrSeriesUnion,
 )
 from pandas.util._decorators import Appender
@@ -160,7 +160,6 @@ class StringMethods(NoNewAttributesMixin):
     # TODO: Dispatch all the methods
     # Currently the following are not dispatched to the array
     # * cat
-    # * extract
     # * extractall
 
     def __init__(self, data):
@@ -213,8 +212,12 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        values = getattr(data, "values", data)  # Series / Index
-        values = getattr(values, "categories", values)  # categorical / normal
+        # TODO: avoid kludge for tests.extension.test_numpy
+        from pandas.core.internals.managers import _extract_array
+
+        data = _extract_array(data)
+
+        values = getattr(data, "categories", data)  # categorical / normal
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
@@ -243,9 +246,10 @@ class StringMethods(NoNewAttributesMixin):
         self,
         result,
         name=None,
-        expand=None,
+        expand: bool | None = None,
         fill_value=np.nan,
         returns_string=True,
+        returns_bool: bool = False,
     ):
         from pandas import (
             Index,
@@ -323,11 +327,17 @@ class StringMethods(NoNewAttributesMixin):
         else:
             index = self._orig.index
             # This is a mess.
-            dtype: str | None
-            if self._is_string and returns_string:
-                dtype = self._orig.dtype
+            dtype: DtypeObj | str | None
+            vdtype = getattr(result, "dtype", None)
+            if self._is_string:
+                if is_bool_dtype(vdtype):
+                    dtype = result.dtype
+                elif returns_string:
+                    dtype = self._orig.dtype
+                else:
+                    dtype = vdtype
             else:
-                dtype = None
+                dtype = vdtype
 
             if expand:
                 cons = self._orig._constructor_expanddim
@@ -335,7 +345,7 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index)
+                result = cons(result, name=name, index=index, dtype=dtype)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -373,7 +383,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndex):
-            return [Series(others._values, index=idx)]
+            return [Series(others._values, index=idx, dtype=others.dtype)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -551,7 +561,7 @@ class StringMethods(NoNewAttributesMixin):
             sep = ""
 
         if isinstance(self._orig, ABCIndex):
-            data = Series(self._orig, index=self._orig)
+            data = Series(self._orig, index=self._orig, dtype=self._orig.dtype)
         else:  # Series
             data = self._orig
 
@@ -2385,10 +2395,7 @@ class StringMethods(NoNewAttributesMixin):
         2    NaN
         dtype: object
         """
-        from pandas import (
-            DataFrame,
-            array as pd_array,
-        )
+        from pandas import DataFrame
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -2399,8 +2406,6 @@ class StringMethods(NoNewAttributesMixin):
 
         if not expand and regex.groups > 1 and isinstance(self._data, ABCIndex):
             raise ValueError("only one regex group is supported with Index")
-
-        # TODO: dispatch
 
         obj = self._data
         result_dtype = _result_dtype(obj)
@@ -2415,8 +2420,8 @@ class StringMethods(NoNewAttributesMixin):
                 result = DataFrame(columns=columns, dtype=result_dtype)
 
             else:
-                result_list = _str_extract(
-                    obj.array, pat, flags=flags, expand=returns_df
+                result_list = self._data.array._str_extract(
+                    pat, flags=flags, expand=returns_df
                 )
 
                 result_index: Index | None
@@ -2431,9 +2436,7 @@ class StringMethods(NoNewAttributesMixin):
 
         else:
             name = _get_single_group_name(regex)
-            result_arr = _str_extract(obj.array, pat, flags=flags, expand=returns_df)
-            # not dispatching, so we have to reconstruct here.
-            result = pd_array(result_arr, dtype=result_dtype)
+            result = self._data.array._str_extract(pat, flags=flags, expand=returns_df)
         return self._wrap_result(result, name=name)
 
     @forbid_nonstring_types(["bytes"])
@@ -3002,7 +3005,7 @@ class StringMethods(NoNewAttributesMixin):
         "isdigit", docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
     )
     isspace = _map_and_wrap(
-        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isalnum"]
+        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isspace"]
     )
     islower = _map_and_wrap(
         "islower", docstring=_shared_docs["ismethods"] % _doc_args["islower"]
@@ -3091,7 +3094,7 @@ def _result_dtype(arr):
     from pandas.core.arrays.string_ import StringDtype
 
     if isinstance(arr.dtype, StringDtype):
-        return arr.dtype.name
+        return arr.dtype
     else:
         return object
 
@@ -3119,33 +3122,6 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
     """
     names = {v: k for k, v in regex.groupindex.items()}
     return [names.get(1 + i, i) for i in range(regex.groups)]
-
-
-def _str_extract(arr: ArrayLike, pat: str, flags=0, expand: bool = True):
-    """
-    Find groups in each string in the array using passed regular expression.
-
-    Returns
-    -------
-    np.ndarray or list of lists is expand is True
-    """
-    regex = re.compile(pat, flags=flags)
-
-    empty_row = [np.nan] * regex.groups
-
-    def f(x):
-        if not isinstance(x, str):
-            return empty_row
-        m = regex.search(x)
-        if m:
-            return [np.nan if item is None else item for item in m.groups()]
-        else:
-            return empty_row
-
-    if expand:
-        return [f(val) for val in np.asarray(arr)]
-
-    return np.array([f(val)[0] for val in np.asarray(arr)], dtype=object)
 
 
 def str_extractall(arr, pat, flags=0):

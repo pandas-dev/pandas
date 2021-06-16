@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Any,
-    Hashable,
-)
+from typing import Hashable
 import warnings
 
 import numpy as np
@@ -30,14 +27,12 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_float,
     is_integer,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -157,9 +152,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     _typ = "periodindex"
     _attributes = ["name"]
-
-    # define my properties & methods for delegation
-    _is_numeric_dtype = False
 
     _data: PeriodArray
     freq: BaseOffset
@@ -322,24 +314,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return dtype.freq == self.freq
 
     # ------------------------------------------------------------------------
-    # Indexing
-
-    @doc(Index.__contains__)
-    def __contains__(self, key: Any) -> bool:
-        if isinstance(key, Period):
-            if key.freq != self.freq:
-                return False
-            else:
-                return key.ordinal in self._engine
-        else:
-            hash(key)
-            try:
-                self.get_loc(key)
-                return True
-            except KeyError:
-                return False
-
-    # ------------------------------------------------------------------------
     # Index Methods
 
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
@@ -435,9 +409,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         orig_key = key
 
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
-
+        self._check_indexing_error(key)
         if isinstance(key, str):
 
             try:
@@ -474,6 +446,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         elif is_integer(key):
             # Period constructor will cast to string, which we dont want
+            raise KeyError(key)
+        elif isinstance(key, Period) and key.freq != self.freq:
             raise KeyError(key)
 
         try:

@@ -18,16 +18,14 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import (
-    FilePathOrBuffer,
-    Union,
-)
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
 
 from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -42,7 +40,7 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: Union[FilePathOrBuffer, list], **kwds):
+    def __init__(self, f: FilePathOrBuffer | list, **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
@@ -73,9 +71,6 @@ class PythonParser(ParserBase):
         self.lineterminator = kwds["lineterminator"]
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
-
-        self.warn_bad_lines = kwds["warn_bad_lines"]
-        self.error_bad_lines = kwds["error_bad_lines"]
 
         self.names_passed = kwds["names"] or None
 
@@ -298,6 +293,8 @@ class PythonParser(ParserBase):
             offset = len(self.index_col)  # type: ignore[has-type]
 
         len_alldata = len(alldata)
+        self._check_data_length(names, alldata)
+
         return {
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
@@ -413,6 +410,7 @@ class PythonParser(ParserBase):
                                 cur_count = counts[col]
                             if (
                                 self.dtype is not None
+                                and is_dict_like(self.dtype)
                                 and self.dtype.get(old_col) is not None
                                 and self.dtype.get(col) is None
                             ):
@@ -690,10 +688,11 @@ class PythonParser(ParserBase):
 
     def _alert_malformed(self, msg, row_num):
         """
-        Alert a user about a malformed row.
+        Alert a user about a malformed row, depending on value of
+        `self.on_bad_lines` enum.
 
-        If `self.error_bad_lines` is True, the alert will be `ParserError`.
-        If `self.warn_bad_lines` is True, the alert will be printed out.
+        If `self.on_bad_lines` is ERROR, the alert will be `ParserError`.
+        If `self.on_bad_lines` is WARN, the alert will be printed out.
 
         Parameters
         ----------
@@ -702,9 +701,9 @@ class PythonParser(ParserBase):
                   Because this row number is displayed, we 1-index,
                   even though we 0-index internally.
         """
-        if self.error_bad_lines:
+        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        elif self.warn_bad_lines:
+        elif self.on_bad_lines == self.BadLineHandleMethod.WARN:
             base = f"Skipping line {row_num}: "
             sys.stderr.write(base + msg + "\n")
 
@@ -725,7 +724,10 @@ class PythonParser(ParserBase):
             assert self.data is not None
             return next(self.data)
         except csv.Error as e:
-            if self.warn_bad_lines or self.error_bad_lines:
+            if (
+                self.on_bad_lines == self.BadLineHandleMethod.ERROR
+                or self.on_bad_lines == self.BadLineHandleMethod.WARN
+            ):
                 msg = str(e)
 
                 if "NULL byte" in msg or "line contains NUL" in msg:
@@ -930,11 +932,14 @@ class PythonParser(ParserBase):
                 actual_len = len(l)
 
                 if actual_len > col_len:
-                    if self.error_bad_lines or self.warn_bad_lines:
+                    if (
+                        self.on_bad_lines == self.BadLineHandleMethod.ERROR
+                        or self.on_bad_lines == self.BadLineHandleMethod.WARN
+                    ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
 
-                        if self.error_bad_lines:
+                        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
                     content.append(l)

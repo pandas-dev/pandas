@@ -4,6 +4,7 @@ from datetime import (
 )
 from functools import partial
 import os
+from pathlib import Path
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -434,9 +435,17 @@ class TestReaders:
         float_expected = expected.copy()
         float_expected["IntCol"] = float_expected["IntCol"].astype(float)
         float_expected.loc[float_expected.index[1], "Str2Col"] = 3.0
-        actual = pd.read_excel(
-            basename + read_ext, sheet_name="Sheet1", convert_float=False
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="convert_float is deprecated",
+            raise_on_extra_warnings=False,
+        ):
+            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
+            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
+            # See GH#41176
+            actual = pd.read_excel(
+                basename + read_ext, sheet_name="Sheet1", convert_float=False
+            )
         tm.assert_frame_equal(actual, float_expected)
 
         # check setting Index (assuming xls and xlsx are the same here)
@@ -456,12 +465,20 @@ class TestReaders:
 
         no_convert_float = float_expected.copy()
         no_convert_float["StrCol"] = no_convert_float["StrCol"].apply(str)
-        actual = pd.read_excel(
-            basename + read_ext,
-            sheet_name="Sheet1",
-            convert_float=False,
-            converters={"StrCol": str},
-        )
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="convert_float is deprecated",
+            raise_on_extra_warnings=False,
+        ):
+            # raise_on_extra_warnings because xlrd raises a PendingDeprecationWarning
+            # on database job Linux_py37_IO (ci/deps/actions-37-db.yaml)
+            # See GH#41176
+            actual = pd.read_excel(
+                basename + read_ext,
+                sheet_name="Sheet1",
+                convert_float=False,
+                converters={"StrCol": str},
+            )
         tm.assert_frame_equal(actual, no_convert_float)
 
     # GH8212 - support for converters and missing values
@@ -1483,3 +1500,21 @@ class TestExcelFileRead:
         with pytest.raises(ValueError, match="Value must be one of *"):
             with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
                 pass
+
+    def test_corrupt_files_closed(self, request, engine, read_ext):
+        # GH41778
+        errors = (BadZipFile,)
+        if engine is None:
+            pytest.skip()
+        elif engine == "xlrd":
+            import xlrd
+
+            errors = (BadZipFile, xlrd.biffh.XLRDError)
+
+        with tm.ensure_clean(f"corrupt{read_ext}") as file:
+            Path(file).write_text("corrupt")
+            with tm.assert_produces_warning(False):
+                try:
+                    pd.ExcelFile(file, engine=engine)
+                except errors:
+                    pass

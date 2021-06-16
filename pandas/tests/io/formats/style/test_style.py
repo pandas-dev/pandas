@@ -1,6 +1,5 @@
 import copy
 import re
-import textwrap
 
 import numpy as np
 import pytest
@@ -18,6 +17,7 @@ from pandas.io.formats.style import (  # isort:skip
 )
 from pandas.io.formats.style_render import (
     _get_level_lengths,
+    _get_trimming_maximums,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
 )
@@ -116,6 +116,46 @@ def test_mi_styler_sparsify_options(mi_styler):
     assert html1 != html2
 
 
+def test_trimming_maximum():
+    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
+    assert (rn, cn) == (12, 6)
+
+    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
+    assert (rn, cn) == (250, 3)
+
+
+def test_render_trimming():
+    df = DataFrame(np.arange(120).reshape(60, 2))
+    with pd.option_context("styler.render.max_elements", 6):
+        ctx = df.style._translate(True, True)
+    assert len(ctx["head"][0]) == 3  # index + 2 data cols
+    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
+    assert len(ctx["body"][0]) == 3  # index + 2 data cols
+
+    df = DataFrame(np.arange(120).reshape(12, 10))
+    with pd.option_context("styler.render.max_elements", 6):
+        ctx = df.style._translate(True, True)
+    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
+    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
+    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming row
+
+
+def test_render_trimming_mi():
+    midx = MultiIndex.from_product([[1, 2], [1, 2, 3]])
+    df = DataFrame(np.arange(36).reshape(6, 6), columns=midx, index=midx)
+    with pd.option_context("styler.render.max_elements", 4):
+        ctx = df.style._translate(True, True)
+
+    assert len(ctx["body"][0]) == 5  # 2 indexes + 2 data cols + trimming row
+    assert {"attributes": 'rowspan="2"'}.items() <= ctx["body"][0][0].items()
+    assert {"class": "data row0 col_trim"}.items() <= ctx["body"][0][4].items()
+    assert {"class": "data row_trim col_trim"}.items() <= ctx["body"][2][4].items()
+    assert len(ctx["body"]) == 3  # 2 data rows + trimming row
+
+    assert len(ctx["head"][0]) == 5  # 2 indexes + 2 column headers + trimming col
+    assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)
@@ -181,7 +221,7 @@ class TestStyler:
                 [{"selector": "th", "props": [("foo", "bar")]}]
             )
             self.styler.set_table_attributes('class="foo" data-bar')
-            self.styler.hidden_index = not self.styler.hidden_index
+            self.styler.hide_index_ = not self.styler.hide_index_
             self.styler.hide_columns("A")
             classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
@@ -252,7 +292,7 @@ class TestStyler:
             "table_styles",
             "table_attributes",
             "cell_ids",
-            "hidden_index",
+            "hide_index_",
             "hidden_columns",
             "cell_context",
         ]
@@ -277,7 +317,7 @@ class TestStyler:
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
-        assert s.hidden_index is True
+        assert s.hide_index_ is True
         assert len(s.hidden_columns) > 0
 
         s = s._compute()
@@ -291,7 +331,7 @@ class TestStyler:
         assert len(s._todo) == 0
         assert not s.tooltips
         assert len(s.cell_context) == 0
-        assert s.hidden_index is False
+        assert s.hide_index_ is False
         assert len(s.hidden_columns) == 0
 
     def test_render(self):
@@ -940,7 +980,7 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index, sparsify=True)
+        result = _get_level_lengths(index, sparsify=True, max_index=100)
         tm.assert_dict_equal(result, expected)
 
         expected = {
@@ -957,7 +997,7 @@ class TestStyler:
             (1, 4): 1,
             (1, 5): 1,
         }
-        result = _get_level_lengths(index, sparsify=False)
+        result = _get_level_lengths(index, sparsify=False, max_index=100)
         tm.assert_dict_equal(result, expected)
 
     def test_get_level_lengths_un_sorted(self):
@@ -971,7 +1011,7 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index, sparsify=True)
+        result = _get_level_lengths(index, sparsify=True, max_index=100)
         tm.assert_dict_equal(result, expected)
 
         expected = {
@@ -984,7 +1024,7 @@ class TestStyler:
             (1, 2): 1,
             (1, 3): 1,
         }
-        result = _get_level_lengths(index, sparsify=False)
+        result = _get_level_lengths(index, sparsify=False, max_index=100)
         tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse_index_names(self):
@@ -1087,6 +1127,14 @@ class TestStyler:
         ]
         assert head == expected
 
+    def test_hide_column_headers(self):
+        ctx = self.styler.hide_columns()._translate(True, True)
+        assert len(ctx["head"]) == 0  # no header entries with an unnamed index
+
+        self.df.index.name = "some_name"
+        ctx = self.df.style.hide_columns()._translate(True, True)
+        assert len(ctx["head"]) == 1  # only a single row for index names: no col heads
+
     def test_hide_single_index(self):
         # GH 14194
         # single unnamed index
@@ -1155,7 +1203,7 @@ class TestStyler:
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert not ctx["body"][1][2]["is_visible"]  # col B, row 1
 
-    def test_hide_columns_mult_levels(self):
+    def test_hide_columns_index_mult_levels(self):
         # GH 14194
         # setup dataframe with multiple column levels and indices
         i1 = MultiIndex.from_arrays(
@@ -1187,7 +1235,8 @@ class TestStyler:
 
         # hide first column only
         ctx = df.style.hide_columns([("b", 0)])._translate(True, True)
-        assert ctx["head"][0][2]["is_visible"]  # b
+        assert not ctx["head"][0][2]["is_visible"]  # b
+        assert ctx["head"][0][3]["is_visible"]  # b
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
         assert ctx["body"][1][3]["is_visible"]
@@ -1202,6 +1251,18 @@ class TestStyler:
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
         assert ctx["body"][1][2]["display_value"] == 3
+
+        # hide top row level, which hides both rows
+        ctx = df.style.hide_index("a")._translate(True, True)
+        for i in [0, 1, 2, 3]:
+            assert not ctx["body"][0][i]["is_visible"]
+            assert not ctx["body"][1][i]["is_visible"]
+
+        # hide first row only
+        ctx = df.style.hide_index(("a", 0))._translate(True, True)
+        for i in [0, 1, 2, 3]:
+            assert not ctx["body"][0][i]["is_visible"]
+            assert ctx["body"][1][i]["is_visible"]
 
     def test_pipe(self):
         def set_caption_from_template(styler, a, b):
@@ -1293,21 +1354,6 @@ class TestStyler:
         )
         assert "#T__ .row0 {\n  color: blue;\n}" in s.render()
 
-    def test_colspan_w3(self):
-        # GH 36223
-        df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
-        s = Styler(df, uuid="_", cell_ids=False)
-        assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in s.render()
-
-    def test_rowspan_w3(self):
-        # GH 38533
-        df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
-        s = Styler(df, uuid="_", cell_ids=False)
-        assert (
-            '<th id="T___level0_row0" class="row_heading '
-            'level0 row0" rowspan="2">l0</th>' in s.render()
-        )
-
     @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
         # GH 36345
@@ -1327,49 +1373,6 @@ class TestStyler:
         msg = "``uuid_len`` must be an integer in range \\[0, 32\\]."
         with pytest.raises(TypeError, match=msg):
             Styler(df, uuid_len=len_, cell_ids=False).render()
-
-    def test_w3_html_format(self):
-        s = (
-            Styler(
-                DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]),
-                uuid_len=0,
-            )
-            .set_table_styles([{"selector": "th", "props": "att2:v2;"}])
-            .applymap(lambda x: "att1:v1;")
-            .set_table_attributes('class="my-cls1" style="attr3:v3;"')
-            .set_td_classes(DataFrame(["my-cls2"], index=["a"], columns=["A"]))
-            .format("{:.1f}")
-            .set_caption("A comprehensive test")
-        )
-        expected = """<style type="text/css">
-#T__ th {
-  att2: v2;
-}
-#T__row0_col0, #T__row1_col0 {
-  att1: v1;
-}
-</style>
-<table id="T__" class="my-cls1" style="attr3:v3;">
-  <caption>A comprehensive test</caption>
-  <thead>
-    <tr>
-      <th class="blank level0" >&nbsp;</th>
-      <th class="col_heading level0 col0" >A</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
-      <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
-    </tr>
-    <tr>
-      <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
-      <td id="T__row1_col0" class="data row1 col0" >2.7</td>
-    </tr>
-  </tbody>
-</table>
-"""
-        assert expected == s.render()
 
     @pytest.mark.parametrize(
         "slc",
@@ -1457,48 +1460,3 @@ class TestStyler:
         expected = df.loc[slice_]
         result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
-
-
-def test_block_names():
-    # catch accidental removal of a block
-    expected = {
-        "before_style",
-        "style",
-        "table_styles",
-        "before_cellstyle",
-        "cellstyle",
-        "before_table",
-        "table",
-        "caption",
-        "thead",
-        "tbody",
-        "after_table",
-        "before_head_rows",
-        "head_tr",
-        "after_head_rows",
-        "before_rows",
-        "tr",
-        "after_rows",
-    }
-    result = set(Styler.template_html.blocks)
-    assert result == expected
-
-
-def test_from_custom_template(tmpdir):
-    p = tmpdir.mkdir("templates").join("myhtml.tpl")
-    p.write(
-        textwrap.dedent(
-            """\
-        {% extends "html.tpl" %}
-        {% block table %}
-        <h1>{{ table_title|default("My Table") }}</h1>
-        {{ super() }}
-        {% endblock table %}"""
-        )
-    )
-    result = Styler.from_custom_template(str(tmpdir.join("templates")), "myhtml.tpl")
-    assert issubclass(result, Styler)
-    assert result.env is not Styler.env
-    assert result.template_html is not Styler.template_html
-    styler = result(DataFrame({"A": [1, 2]}))
-    assert styler.render()
