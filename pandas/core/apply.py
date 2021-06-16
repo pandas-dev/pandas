@@ -532,7 +532,8 @@ class Apply(metaclass=abc.ABCMeta):
         when values consists of a mix of list and non-lists.
         """
         if how not in ("apply", "agg", "transform"):
-            raise ValueError('Value for how argument must be one of : apply, agg, transform')
+            raise ValueError('Value for how argument must be one of : '
+                             'apply, agg, transform')
 
         # Can't use func.values(); wouldn't work for a Series
         if (

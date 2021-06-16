@@ -2165,7 +2165,8 @@ def objects_to_datetime64ns(
     ValueError : if data cannot be converted to datetimes
     """
     if errors not in ["raise", "ignore", "coerce"]:
-        raise ValueError('Value for errors argument must be one of: raise, coerce, ignore')
+        raise ValueError('Value for errors argument must be one of: '
+                         'raise, coerce, ignore')
 
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)

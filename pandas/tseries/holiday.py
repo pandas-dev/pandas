@@ -312,7 +312,11 @@ class Holiday:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
 
-    def _reference_dates(self, start_date: TimestampConvertibleTypes, end_date: TimestampConvertibleTypes):
+    def _reference_dates(
+            self,
+            start_date: TimestampConvertibleTypes,
+            end_date: TimestampConvertibleTypes
+    ):
         """
         Get reference dates for the holiday.
 
