@@ -1030,9 +1030,9 @@ def rank_1d(
         if rank_t is object:
             nan_fill_val = Infinity()
         elif rank_t is int64_t:
-            nan_fill_val = np.iinfo(np.int64).max
+            nan_fill_val = util.INT64_MAX
         elif rank_t is uint64_t:
-            nan_fill_val = np.iinfo(np.uint64).max
+            nan_fill_val = util.UINT64_MAX
         else:
             nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
@@ -1393,7 +1393,7 @@ def rank_2d(
 
             # int64 and datetimelike
             else:
-                nan_value = np.iinfo(np.int64).max
+                nan_value = util.INT64_MAX
 
         else:
             if rank_t is object:
