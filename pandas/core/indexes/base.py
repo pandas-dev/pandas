@@ -3651,7 +3651,8 @@ class Index(IndexOpsMixin, PandasObject):
         key : label of the slice bound
         kind : {'loc', 'getitem'}
         """
-        assert kind in ["loc", "getitem"], kind
+        if kind not in ["loc", "getitem"]:
+            raise ValueError('Value for kind argument must be one of: loc, getitem')
 
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
@@ -5678,7 +5679,8 @@ class Index(IndexOpsMixin, PandasObject):
         If we are positional indexer, validate that we have appropriate
         typed bounds must be an integer.
         """
-        assert kind in ["getitem", "iloc"]
+        if kind not in ["getitem", "iloc"]:
+            raise ValueError('Value for kind argument must be one of: getitem, iloc')
 
         if key is not None and not is_integer(key):
             raise self._invalid_indexer(form, key)
@@ -5703,7 +5705,8 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None, no_default]
+        if kind not in ["loc", "getitem", None, no_default]:
+            raise ValueError('Value for kind argument must be one of: loc, getitem or None')
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # We are a plain index here (sub-class override this method if they
@@ -5747,7 +5750,8 @@ class Index(IndexOpsMixin, PandasObject):
         int
             Index of label.
         """
-        assert kind in ["loc", "getitem", None]
+        if kind not in ["loc", "getitem", None]:
+            raise ValueError('Value for kind argument must be one of: loc, getitem or None')
 
         if side not in ("left", "right"):
             raise ValueError(

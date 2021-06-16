@@ -1196,7 +1196,8 @@ class Block(PandasObject):
         assert cond.ndim == self.ndim
         assert not isinstance(other, (ABCIndex, ABCSeries, ABCDataFrame))
 
-        assert errors in ["raise", "ignore"]
+        if errors not in ["raise", "ignore"]:
+            raise ValueError('Value for errors argument must be one of: raise, ignore')
         transpose = self.ndim == 2
 
         values = self.values

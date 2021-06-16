@@ -527,7 +527,8 @@ class Apply(metaclass=abc.ABCMeta):
         that a nested renamer is not passed. Also normalizes to all lists
         when values consists of a mix of list and non-lists.
         """
-        assert how in ("apply", "agg", "transform")
+        if how not in ("apply", "agg", "transform"):
+            raise ValueError('Value for how argument must be one of : apply, agg, transform')
 
         # Can't use func.values(); wouldn't work for a Series
         if (

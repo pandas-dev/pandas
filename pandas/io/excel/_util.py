@@ -59,7 +59,8 @@ def get_default_engine(ext, mode="reader"):
         "xls": "xlwt",
         "ods": "odf",
     }
-    assert mode in ["reader", "writer"]
+    if mode not in ["reader", "writer"]:
+        raise ValueError('File mode must be either "reader" or "writer".')
     if mode == "writer":
         # Prefer xlsxwriter over openpyxl if installed
         xlsxwriter = import_optional_dependency("xlsxwriter", errors="warn")

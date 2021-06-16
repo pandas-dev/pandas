@@ -178,7 +178,8 @@ def find_valid_index(values, *, how: str) -> int | None:
     -------
     int or None
     """
-    assert how in ["first", "last"]
+    if how not in ["first", "last"]:
+        raise ValueError(f'Value for how argument must be one of : first, last')
 
     if len(values) == 0:  # early stop
         return None

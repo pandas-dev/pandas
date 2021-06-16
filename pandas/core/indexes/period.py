@@ -480,7 +480,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Value of `side` parameter should be validated in caller.
 
         """
-        assert kind in ["loc", "getitem", None, lib.no_default]
+        if kind not in ["loc", "getitem", None, lib.no_default]:
+            raise ValueError('Value for kind argument must be one of: loc, getitem or None')
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, datetime):

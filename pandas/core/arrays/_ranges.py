@@ -102,7 +102,8 @@ def _generate_range_overflow_safe(
     OutOfBoundsDatetime
     """
     # GH#14187 raise instead of incorrectly wrapping around
-    assert side in ["start", "end"]
+    if side not in ["start", "end"]:
+        raise ValueError('Value for side argument must be one of: start, end')
 
     i64max = np.uint64(i8max)
     msg = f"Cannot generate range with {side}={endpoint} and periods={periods}"
@@ -148,8 +149,9 @@ def _generate_range_overflow_safe_signed(
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
     """
-    assert side in ["start", "end"]
-    if side == "end":
+    if side not in ['start', 'end']:
+        raise ValueError('Value for side argument must be one of: start, end')
+    if side == 'end':
         stride *= -1
 
     with np.errstate(over="raise"):
