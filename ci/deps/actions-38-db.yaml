@@ -25,7 +25,7 @@ dependencies:
   - flask
   - nomkl
   - numexpr
-  - numpy=1.17.*
+  - numpy=1.18
   - odfpy
   - openpyxl
   - pandas-gbq
