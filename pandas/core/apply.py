@@ -842,7 +842,7 @@ class FrameApply(NDFrameApply):
             # Special-cased because DataFrame.size returns a single scalar
             obj = self.obj
             value = obj.shape[self.axis]
-            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+            return obj._constructor_sliced(value, index=self.agg_axis)
         return super().apply_str()
 
 
