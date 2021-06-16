@@ -431,8 +431,8 @@ class TestGetDummies:
         tm.assert_frame_equal(result, expected)
 
     # This is flaky on Python 3.10
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
-    def test_get_dummies_basic_drop_first(self, request, sparse):
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
+    def test_get_dummies_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
         s_list = list("abc")
@@ -471,18 +471,14 @@ class TestGetDummies:
         result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
-    def test_get_dummies_basic_drop_first_NA(self, request, sparse):
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
+    def test_get_dummies_basic_drop_first_NA(self, sparse):
         # Test NA handling together with drop_first
         s_NA = ["a", "b", np.nan]
         res = get_dummies(s_NA, drop_first=True, sparse=sparse)
         exp = DataFrame({"b": [0, 1, 0]}, dtype=np.uint8)
         if sparse:
             exp = exp.apply(SparseArray, fill_value=0)
-        else:
-            request.applymarker(
-                pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
-            )
 
         tm.assert_frame_equal(res, exp)
 

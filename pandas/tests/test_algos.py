@@ -787,7 +787,7 @@ class TestUnique:
         tm.assert_numpy_array_equal(result, expected)
 
     # Flaky on Python 3.10 -> Don't make strict
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_first_nan_kept(self):
         # GH 22295
         # create different nans from bit-patterns:
@@ -994,7 +994,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
 
     # Flaky on Python 3.10 -> Don't make strict
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_different_nans(self):
         # GH 22160
         # all nans are handled as equivalent
@@ -1038,7 +1038,7 @@ class TestIsin:
         tm.assert_numpy_array_equal(expected, result)
 
     # Flaky on Python 3.10 -> Don't make strict
-    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10", strict=False)
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_different_nan_objects(self):
         # GH 22119
         comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=object)

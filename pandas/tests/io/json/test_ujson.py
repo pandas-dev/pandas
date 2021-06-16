@@ -255,10 +255,12 @@ class TestUltraJSONTests:
             20,
             -1,
             pytest.param(
-                "9", marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+                "9",
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
             ),
             pytest.param(
-                None, marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10")
+                None,
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
             ),
         ],
     )
