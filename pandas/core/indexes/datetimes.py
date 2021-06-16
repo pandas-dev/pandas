@@ -34,7 +34,6 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -658,8 +657,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         loc : int
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         orig_key = key
         if is_valid_na_for_dtype(key, self.dtype):

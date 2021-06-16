@@ -613,9 +613,7 @@ class IntervalIndex(ExtensionIndex):
         0
         """
         self._check_indexing_method(method)
-
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         if isinstance(key, Interval):
             if self.closed != key.closed:

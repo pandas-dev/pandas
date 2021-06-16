@@ -26,6 +26,7 @@ from pandas import (
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
+    RangeIndex,
     Series,
     TimedeltaIndex,
     UInt64Index,
@@ -179,6 +180,27 @@ class TestGetValue:
         with tm.assert_produces_warning(FutureWarning):
             result = index.get_value(Series(values, index=values), value)
         tm.assert_almost_equal(result, values[67])
+
+
+class TestGetLoc:
+    def test_get_loc_non_hashable(self, index):
+        # MultiIndex and Index raise TypeError, others InvalidIndexError
+
+        with pytest.raises((TypeError, InvalidIndexError), match="slice"):
+            index.get_loc(slice(0, 1))
+
+    def test_get_loc_generator(self, index):
+
+        exc = KeyError
+        if isinstance(
+            index,
+            (DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex, IntervalIndex),
+        ):
+            # TODO: make these more consistent?
+            exc = InvalidIndexError
+        with pytest.raises(exc, match="generator object"):
+            # MultiIndex specifically checks for generator; others for scalar
+            index.get_loc(x for x in range(5))
 
 
 class TestGetIndexer:
