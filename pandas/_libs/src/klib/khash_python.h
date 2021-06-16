@@ -163,6 +163,7 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 
+// NaN-floats should be in the same equivalency class, see GH 22119
 int PANDAS_INLINE floatobject_cmp(PyFloatObject* a, PyFloatObject* b){
     return (
              Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
@@ -173,6 +174,9 @@ int PANDAS_INLINE floatobject_cmp(PyFloatObject* a, PyFloatObject* b){
 }
 
 
+// NaNs should be in the same equivalency class, see GH 41836
+// PyObject_RichCompareBool for complexobjects has a different behavior
+// needs to be replaced
 int PANDAS_INLINE complexobject_cmp(PyComplexObject* a, PyComplexObject* b){
     return (
                 Py_IS_NAN(a->cval.real) &&
@@ -202,6 +206,9 @@ int PANDAS_INLINE complexobject_cmp(PyComplexObject* a, PyComplexObject* b){
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b);
 
 
+// replacing PyObject_RichCompareBool (NaN!=NaN) with pyobject_cmp (NaN==NaN),
+// which treats NaNs as equivalent
+// see GH 41836
 int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
     Py_ssize_t i;
 
@@ -220,7 +227,9 @@ int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
     if (Py_TYPE(a) == Py_TYPE(b)) {
-        // special handling for some built-in types which could have NaNs:
+        // special handling for some built-in types which could have NaNs
+        // as we would like to have them equivalent, but the usual
+        // PyObject_RichCompareBool would return False
         if (PyFloat_CheckExact(a)) {
             return floatobject_cmp((PyFloatObject*)a, (PyFloatObject*)b);
         }
