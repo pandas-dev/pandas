@@ -3005,7 +3005,7 @@ class StringMethods(NoNewAttributesMixin):
         "isdigit", docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
     )
     isspace = _map_and_wrap(
-        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isalnum"]
+        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isspace"]
     )
     islower = _map_and_wrap(
         "islower", docstring=_shared_docs["ismethods"] % _doc_args["islower"]
