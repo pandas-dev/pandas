@@ -50,7 +50,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        coverage run -m pytest -m 'not slow and not network and not clipboard' -n auto pandas
+        ci/run_tests.sh
 
     - name: Publish test results
       uses: actions/upload-artifact@master
