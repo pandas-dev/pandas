@@ -701,7 +701,7 @@ Having a duplicated index will raise for a ``.reindex()``:
 .. code-block:: ipython
 
    In [17]: s.reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -717,7 +717,7 @@ However, this would *still* raise if your resulting index is duplicated.
    In [41]: labels = ['a', 'd']
 
    In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 
 .. _indexing.basics.partial_setting:
