@@ -1225,6 +1225,7 @@ def _validate_parse_dates_arg(parse_dates):
 def is_index_col(col) -> bool:
     return col is not None and col is not False
 
+
 # gh-41996
 # Moved from c_parser_wrapper
 def ensure_dtype_objs(dtype):
