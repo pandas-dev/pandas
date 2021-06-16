@@ -426,6 +426,7 @@ class Styler(StylerRenderer):
         multicol_align: str = "r",
         siunitx: bool = False,
         encoding: str | None = None,
+        convert_css: bool = False,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -482,6 +483,10 @@ class Styler(StylerRenderer):
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         encoding : str, default "utf-8"
             Character encoding setting.
+        convert_css : bool, default False
+            Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
+            conversion table is dropped. A style can be forced by adding option
+            `--latex`. See notes.
 
         Returns
         -------
@@ -661,6 +666,45 @@ class Styler(StylerRenderer):
          & ix2 & \$3 & 4.400 & CATS \\
         L1 & ix3 & \$2 & 6.600 & COWS \\
         \end{tabular}
+
+        **CSS Conversion**
+
+        This method can convert a Styler constructured with HTML-CSS to LaTeX using
+        the following limited conversions.
+
+        ================== ==================== ============= ==========================
+        CSS Attribute      CSS value            LaTeX Command LaTeX Options
+        ================== ==================== ============= ==========================
+        font-weight        | bold               | bfseries
+                           | bolder             | bfseries
+        font-style         | italic             | itshape
+                           | oblique            | slshape
+        background-color   | red                cellcolor     | {red}--lwrap
+                           | #fe01ea                          | [HTML]{FE01EA}--lwrap
+                           | #f0e                             | [HTML]{FF00EE}--lwrap
+                           | rgb(128,255,0)                   | [rgb]{0.5,1,0}--lwrap
+                           | rgba(128,0,0,0.5)                | [rgb]{0.5,0,0}--lwrap
+                           | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}--lwrap
+        color              | red                color         | {red}
+                           | #fe01ea                          | [HTML]{FE01EA}
+                           | #f0e                             | [HTML]{FF00EE}
+                           | rgb(128,255,0)                   | [rgb]{0.5,1,0}
+                           | rgba(128,0,0,0.5)                | [rgb]{0.5,0,0}
+                           | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}
+        ================== ==================== ============= ==========================
+
+        It is also possible to add user-defined LaTeX only styles to a HTML-CSS Styler
+        using the ``--latex`` flag, and to add LaTeX parsing options that the
+        converter will detect within a CSS-comment.
+
+        >>> df = pd.DataFrame([[1]])
+        >>> df.style.set_properties(
+        ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
+        ... ).to_latex(css_convert=True)
+        \begin{tabular}{lr}
+        {} & {0} \\
+        0 & {\bfseries}{\Huge{1}} \\
+        \end{tabular}
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -740,6 +784,7 @@ class Styler(StylerRenderer):
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            convert_css=convert_css,
         )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
