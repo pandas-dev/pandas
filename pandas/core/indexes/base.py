@@ -3497,6 +3497,13 @@ class Index(IndexOpsMixin, PandasObject):
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> np.ndarray:
 
+        if self._is_multi:
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
+            return self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
+            )
+
         target_values = target._get_engine_target()
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
@@ -3708,7 +3715,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # trying to reindex on an axis with duplicates
         if not self._index_as_unique and len(indexer):
-            raise ValueError("cannot reindex from a duplicate axis")
+            raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
@@ -5303,6 +5310,13 @@ class Index(IndexOpsMixin, PandasObject):
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
 
+        elif self.dtype.kind == "u" and other.dtype.kind == "i":
+            # GH#41873
+            if other.min() >= 0:
+                # lookup min as it may be cached
+                # TODO: may need itemsize check if we have non-64-bit Indexes
+                return self, other.astype(self.dtype)
+
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
             other, self = other._maybe_promote(self)
@@ -6025,8 +6039,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        any : bool or array_like (if axis is specified)
-            A single element array_like may be converted to bool.
+        any : bool or array-like (if axis is specified)
+            A single element array-like may be converted to bool.
 
         See Also
         --------
@@ -6069,8 +6083,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        all : bool or array_like (if axis is specified)
-            A single element array_like may be converted to bool.
+        all : bool or array-like (if axis is specified)
+            A single element array-like may be converted to bool.
 
         See Also
         --------

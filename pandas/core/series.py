@@ -1072,7 +1072,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except TypeError as err:
+        except (InvalidIndexError, TypeError) as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
@@ -1094,8 +1094,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value) -> None:
-        # fails with AttributeError for IntervalIndex
-        loc = self.index._engine.get_loc(key)
+        loc = self.index.get_loc(key)
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
         # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
@@ -1112,6 +1111,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if is_scalar(key):
                 key = [key]
+            elif is_iterator(key):
+                # Without this, the call to infer_dtype will consume the generator
+                key = list(key)
 
             if isinstance(key, Index):
                 key_type = key.inferred_type
