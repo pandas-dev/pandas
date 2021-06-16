@@ -3558,7 +3558,6 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         Assumes that both `self.index._index_as_unique` and
         `self.columns._index_as_unique`; Caller is responsible for checking.
-
         """
         if takeable:
             series = self._ixs(col, axis=1)

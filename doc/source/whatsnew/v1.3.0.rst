@@ -136,7 +136,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41143`)
  - One has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options <options.available>`, which are also usable via :func:`option_context` (:issue:`41142`)
  - Added the option ``styler.render.max_elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
- - Added the method :meth:`.Styler.to_latex` (:issue:`21673`)
+ - Added the method :meth:`.Styler.to_latex` (:issue:`21673`), which also allows some limited CSS conversion (:issue:`40731`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
 
 .. _whatsnew_130.enhancements.dataframe_honors_copy_with_dict:
@@ -948,6 +948,8 @@ Numeric
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
 - Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning Boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if the Series contains NA values and has nullable int or float as a data type (:issue:`40851`)
+- Bug in :meth:`UInt64Index.where` and :meth:`UInt64Index.putmask` with an ``np.int64`` dtype ``other`` incorrectly raising ``TypeError`` (:issue:`41974`)
+
 
 Conversion
 ^^^^^^^^^^
@@ -1014,6 +1016,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contained duplicates (:issue:`40096`)
 - Bug in :meth:`DataFrame.loc.__getitem__` with :class:`MultiIndex` casting to float when at least one index column has float dtype and we retrieve a scalar (:issue:`41369`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-Boolean index elements (:issue:`20432`)
+- Bug in indexing with ``np.nan`` on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` incorrectly raising ``KeyError`` when ``np.nan`` keys are present (:issue:`41933`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
 - Bug in :meth:`DataFrame.at` with a :class:`CategoricalIndex` returning incorrect results when passed integer keys (:issue:`41846`)
 - Bug in :meth:`DataFrame.loc` returning a :class:`MultiIndex` in the wrong order if an indexer has duplicates (:issue:`40978`)
@@ -1156,6 +1159,7 @@ Reshaping
 - Bug in :func:`to_datetime` raising an error when the input sequence contained unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving the index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising a ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
+- Bug in :meth:`DataFrame.melt` raising ``InvalidIndexError`` when :class:`DataFrame` has duplicate columns used as ``value_vars`` (:issue:`41951`)
 
 Sparse
 ^^^^^^

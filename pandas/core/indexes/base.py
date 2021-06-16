@@ -3497,6 +3497,13 @@ class Index(IndexOpsMixin, PandasObject):
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> np.ndarray:
 
+        if self._is_multi:
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
+            return self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
+            )
+
         target_values = target._get_engine_target()
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
