@@ -10,6 +10,10 @@ on:
     paths-ignore:
       - "doc/**"
 
+env:
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+
 jobs:
   build:
     runs-on: ubuntu-latest
