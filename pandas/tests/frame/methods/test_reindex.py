@@ -658,7 +658,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
         # reindex fails
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
 
@@ -668,7 +668,7 @@ class TestDataFrameSelectReindex:
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
         )
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
@@ -942,7 +942,7 @@ class TestDataFrameSelectReindex:
             index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
         )
         # passed duplicate indexers are not allowed
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df2.reindex(["a", "b"])
 
