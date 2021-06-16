@@ -1016,6 +1016,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contained duplicates (:issue:`40096`)
 - Bug in :meth:`DataFrame.loc.__getitem__` with :class:`MultiIndex` casting to float when at least one index column has float dtype and we retrieve a scalar (:issue:`41369`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-Boolean index elements (:issue:`20432`)
+- Bug in indexing with ``np.nan`` on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` incorrectly raising ``KeyError`` when ``np.nan`` keys are present (:issue:`41933`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
 - Bug in :meth:`DataFrame.at` with a :class:`CategoricalIndex` returning incorrect results when passed integer keys (:issue:`41846`)
 - Bug in :meth:`DataFrame.loc` returning a :class:`MultiIndex` in the wrong order if an indexer has duplicates (:issue:`40978`)
