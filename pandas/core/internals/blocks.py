@@ -170,21 +170,21 @@ class Block(PandasObject):
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if I am possibly a view """
+        """return a boolean if I am possibly a view"""
         values = self.values
         values = cast(np.ndarray, values)
         return values.base is not None
 
     @final
-    @property
+    @cache_readonly
     def _can_hold_na(self) -> bool:
         """
         Can we store NA values in this Block?
         """
-        values = self.values
-        if isinstance(values, np.ndarray):
-            return values.dtype.kind not in ["b", "i", "u"]
-        return values._can_hold_na
+        dtype = self.dtype
+        if isinstance(dtype, np.dtype):
+            return dtype.kind not in ["b", "i", "u"]
+        return dtype._can_hold_na
 
     @final
     @cache_readonly
@@ -263,7 +263,7 @@ class Block(PandasObject):
     def make_block_same_class(
         self, values, placement: BlockPlacement | None = None
     ) -> Block:
-        """ Wrap given values in a block of same type as self. """
+        """Wrap given values in a block of same type as self."""
         if placement is None:
             placement = self._mgr_locs
 
@@ -292,7 +292,7 @@ class Block(PandasObject):
         return len(self.values)
 
     def _slice(self, slicer):
-        """ return a slice of my values """
+        """return a slice of my values"""
 
         return self.values[slicer]
 
@@ -531,7 +531,7 @@ class Block(PandasObject):
 
     @final
     def downcast(self, dtypes=None) -> list[Block]:
-        """ try to downcast each item to the dict of dtypes if present """
+        """try to downcast each item to the dict of dtypes if present"""
         # turn it off completely
         if dtypes is False:
             return [self]
@@ -618,7 +618,7 @@ class Block(PandasObject):
 
     @final
     def _can_hold_element(self, element: Any) -> bool:
-        """ require the same dtype as ourselves """
+        """require the same dtype as ourselves"""
         element = extract_array(element, extract_numpy=True)
         return can_hold_element(self.values, element)
 
@@ -639,14 +639,14 @@ class Block(PandasObject):
 
     @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
-        """ convert to our native types format """
+        """convert to our native types format"""
         result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
         return self.make_block(result)
 
     # block actions #
     @final
     def copy(self, deep: bool = True):
-        """ copy constructor """
+        """copy constructor"""
         values = self.values
         if deep:
             values = values.copy()
@@ -781,14 +781,6 @@ class Block(PandasObject):
             # We likely got here by tiling value inside NDFrame.replace,
             #  so un-tile here
             return self.replace(src_list, dest_list[0], inplace, regex)
-
-        # https://github.com/pandas-dev/pandas/issues/40371
-        # the following pairs check code caused a regression so we catch that case here
-        # until the issue is fixed properly in can_hold_element
-
-        # error: "Iterable[Any]" has no attribute "tolist"
-        if hasattr(src_list, "tolist"):
-            src_list = src_list.tolist()  # type: ignore[attr-defined]
 
         # Exclude anything that we know we won't contain
         pairs = [
@@ -1185,12 +1177,12 @@ class Block(PandasObject):
             return self.make_block_same_class(new_values, new_mgr_locs)
 
     def diff(self, n: int, axis: int = 1) -> list[Block]:
-        """ return block for the diff of the values """
+        """return block for the diff of the values"""
         new_values = algos.diff(self.values, n, axis=axis, stacklevel=7)
         return [self.make_block(values=new_values)]
 
     def shift(self, periods: int, axis: int = 0, fill_value: Any = None) -> list[Block]:
-        """ shift the block by periods, possibly upcast """
+        """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
@@ -1303,7 +1295,7 @@ class Block(PandasObject):
         -------
         blocks : list of Block
             New blocks of unstacked values.
-        mask : array_like of bool
+        mask : array-like of bool
             The mask of columns of `blocks` we should keep.
         """
         new_values, mask = unstacker.get_new_values(
@@ -1702,7 +1694,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if I am possibly a view """
+        """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
@@ -1798,7 +1790,7 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
-    """ implement a datetime64 block with a tz attribute """
+    """implement a datetime64 block with a tz attribute"""
 
     values: DatetimeArray
 
@@ -2019,7 +2011,7 @@ def extract_pandas_array(
 
 
 def extend_blocks(result, blocks=None) -> list[Block]:
-    """ return a new extended blocks, given the result """
+    """return a new extended blocks, given the result"""
     if blocks is None:
         blocks = []
     if isinstance(result, list):
@@ -2059,7 +2051,7 @@ def to_native_types(
     decimal=".",
     **kwargs,
 ) -> np.ndarray:
-    """ convert to our native types format """
+    """convert to our native types format"""
     values = ensure_wrapped_if_datetimelike(values)
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)):

@@ -417,7 +417,8 @@ class TestJoin:
         other_df = DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
         other_df.set_index("a", inplace=True)
         # GH 9455, 12219
-        with tm.assert_produces_warning(FutureWarning):
+        msg = "merging between different levels is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = merge(new_df, other_df, left_index=True, right_index=True)
         assert ("b", "mean") in result
         assert "b" in result

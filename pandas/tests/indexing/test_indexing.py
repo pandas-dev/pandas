@@ -33,7 +33,7 @@ from pandas.tests.indexing.test_floats import gen_obj
 
 
 class TestFancy:
-    """ pure get/set item & fancy indexing """
+    """pure get/set item & fancy indexing"""
 
     def test_setitem_ndarray_1d(self):
         # GH5508
@@ -94,6 +94,8 @@ class TestFancy:
             msgs.append("Index data must be 1-dimensional")
         if isinstance(index, pd.IntervalIndex) and indexer_sli is tm.iloc:
             msgs.append("Index data must be 1-dimensional")
+        if isinstance(index, (pd.TimedeltaIndex, pd.DatetimeIndex, pd.PeriodIndex)):
+            msgs.append("Data must be 1-dimensional")
         if len(index) == 0 or isinstance(index, pd.MultiIndex):
             msgs.append("positional indexers are out-of-bounds")
         msg = "|".join(msgs)
@@ -111,15 +113,6 @@ class TestFancy:
         if indexer_sli is tm.iloc:
             err = ValueError
             msg = f"Cannot set values with ndim > {obj.ndim}"
-        elif (
-            isinstance(index, pd.IntervalIndex)
-            and indexer_sli is tm.setitem
-            and obj.ndim == 1
-        ):
-            err = AttributeError
-            msg = (
-                "'pandas._libs.interval.IntervalTree' object has no attribute 'get_loc'"
-            )
         else:
             err = ValueError
             msg = "|".join(
@@ -127,6 +120,7 @@ class TestFancy:
                     r"Buffer has wrong number of dimensions \(expected 1, got 3\)",
                     "Cannot set values with ndim > 1",
                     "Index data must be 1-dimensional",
+                    "Data must be 1-dimensional",
                     "Array conditional must be same shape as self",
                 ]
             )

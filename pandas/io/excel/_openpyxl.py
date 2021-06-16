@@ -528,12 +528,6 @@ class OpenpyxlReader(BaseExcelReader):
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
 
-    def close(self):
-        # https://stackoverflow.com/questions/31416842/
-        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
-        self.book.close()
-        super().close()
-
     @property
     def sheet_names(self) -> list[str]:
         return self.book.sheetnames

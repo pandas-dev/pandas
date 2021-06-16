@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -19,7 +17,6 @@ from pandas.tests.io.pytables.common import (
 
 pytestmark = [
     pytest.mark.single,
-    td.skip_array_manager_not_yet_implemented,
     # pytables https://github.com/PyTables/PyTables/issues/822
     pytest.mark.filterwarnings(
         "ignore:a closed node found in the registry:UserWarning"
