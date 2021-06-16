@@ -948,6 +948,8 @@ Numeric
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
 - Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning Boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if the Series contains NA values and has nullable int or float as a data type (:issue:`40851`)
+- Bug in :meth:`UInt64Index.where` and :meth:`UInt64Index.putmask` with an ``np.int64`` dtype ``other`` incorrectly raising ``TypeError`` (:issue:`41974`)
+
 
 Conversion
 ^^^^^^^^^^
@@ -1015,6 +1017,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__getitem__` with :class:`MultiIndex` casting to float when at least one index column has float dtype and we retrieve a scalar (:issue:`41369`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-Boolean index elements (:issue:`20432`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
+- Bug in :meth:`DataFrame.at` with a :class:`CategoricalIndex` returning incorrect results when passed integer keys (:issue:`41846`)
 - Bug in :meth:`DataFrame.loc` returning a :class:`MultiIndex` in the wrong order if an indexer has duplicates (:issue:`40978`)
 - Bug in :meth:`DataFrame.__setitem__` raising a ``TypeError`` when using a ``str`` subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
 - Bug in :meth:`PeriodIndex.get_loc` failing to raise a ``KeyError`` when given a :class:`Period` with a mismatched ``freq`` (:issue:`41670`)
@@ -1156,6 +1159,7 @@ Reshaping
 - Bug in :meth:`Series.explode` preserving the index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising a ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
 - Bug in :meth:`Series.unstack` and :meth:`DataFrame.unstack` with object-dtype values containing timezone-aware datetime objects incorrectly raising ``TypeError`` (:issue:`41875`)
+- Bug in :meth:`DataFrame.melt` raising ``InvalidIndexError`` when :class:`DataFrame` has duplicate columns used as ``value_vars`` (:issue:`41951`)
 
 Sparse
 ^^^^^^
