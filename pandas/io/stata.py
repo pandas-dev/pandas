@@ -668,17 +668,20 @@ class StataValueLabel:
         )
         self.value_labels.sort(key=lambda x: x[0])
 
-        self.text_len = 0
-        self.txt: list[bytes] = []
-        self.n = 0
-        self.off = np.array([])
-        self.val = np.array([])
-        self.len = 0
-
         self._prepare_value_labels()
 
     def _prepare_value_labels(self):
         """ Encode value labels. """
+
+        self.text_len = 0
+        self.txt: list[bytes] = []
+        self.n = 0
+        # Offsets (length of categories), converted to int32
+        self.off = np.array([])
+        # Values, converted to int32
+        self.val = np.array([])
+        self.len = 0
+
         # Compute lengths and setup lists of offsets and labels
         offsets: list[int] = []
         values: list[int | float] = []
@@ -792,14 +795,6 @@ class StataNonCatValueLabel(StataValueLabel):
         self.value_labels: list[tuple[int | float, str]] = sorted(
             value_labels.items(), key=lambda x: x[0]
         )
-
-        self.text_len = 0
-        self.txt: list[bytes] = []
-        self.n = 0
-        self.off = np.array([])
-        self.val = np.array([])
-        self.len = 0
-
         self._prepare_value_labels()
 
 
@@ -2296,6 +2291,7 @@ class StataWriter(StataParser):
         self._variable_labels = variable_labels
         self._non_cat_value_labels = value_labels
         self._value_labels: list[StataValueLabel] = []
+        self._has_value_labels = np.array([], dtype=bool)
         self._compression = compression
         self._output_file: Buffer | None = None
         self._converted_names: dict[Hashable, str] = {}
@@ -2323,15 +2319,16 @@ class StataWriter(StataParser):
         """
         self.handles.handle.write(value)  # type: ignore[arg-type]
 
-    def _prepare_non_cat_value_labels(self, data: DataFrame) -> None:
+    def _prepare_non_cat_value_labels(
+        self, data: DataFrame
+    ) -> list[StataNonCatValueLabel]:
         """
         Check for value labels provided for non-categorical columns. Value
         labels
         """
-        self._has_value_labels = np.repeat(False, data.shape[1])
-        labelled_columns = []
+        non_cat_value_labels: list[StataNonCatValueLabel] = []
         if self._non_cat_value_labels is None:
-            return
+            return non_cat_value_labels
 
         for labname, labels in self._non_cat_value_labels.items():
             if labname in self._converted_names:
@@ -2352,11 +2349,8 @@ class StataWriter(StataParser):
                     "can only be applied to numeric columns."
                 )
             svl = StataNonCatValueLabel(colname, labels)
-            self._value_labels.append(svl)
-            labelled_columns.append(colname)
-
-        has_non_cat_val_labels = data.columns.isin(labelled_columns)
-        self._has_value_labels |= has_non_cat_val_labels
+            non_cat_value_labels.append(svl)
+        return non_cat_value_labels
 
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
         """
@@ -2548,8 +2542,16 @@ class StataWriter(StataParser):
         # Replace NaNs with Stata missing values
         data = self._replace_nans(data)
 
+        # Set all columns to initially unlabelled
+        self._has_value_labels = np.repeat(False, data.shape[1])
+
         # Create value labels for non-categorical data
-        self._prepare_non_cat_value_labels(data)
+        non_cat_value_labels = self._prepare_non_cat_value_labels(data)
+
+        non_cat_columns = [svl.labname for svl in non_cat_value_labels]
+        has_non_cat_val_labels = data.columns.isin(non_cat_columns)
+        self._has_value_labels |= has_non_cat_val_labels
+        self._value_labels.extend(non_cat_value_labels)
 
         # Convert categoricals to int data, and strip labels
         data = self._prepare_categoricals(data)
