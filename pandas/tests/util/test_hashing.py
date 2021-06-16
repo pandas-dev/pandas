@@ -255,6 +255,16 @@ def test_hash_keys():
     assert (a != b).all()
 
 
+def test_df_hash_keys():
+    # DataFrame version of the test_hash_keys
+    obj = DataFrame({"x": np.arange(3), "y": list("abc")})
+
+    a = hash_pandas_object(obj, hash_key="9876543210123456")
+    b = hash_pandas_object(obj, hash_key="9876543210123465")
+
+    assert (a != b).all()
+
+
 def test_invalid_key():
     # This only matters for object dtypes.
     msg = "key should be a 16-byte string encoded"
