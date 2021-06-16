@@ -300,6 +300,8 @@ class CParserWrapper(ParserBase):
 
             # columns as list
             alldata = [x[1] for x in data_tups]
+            if self.usecols is None:
+                self._check_data_length(names, alldata)
 
             data = {k: v for k, (i, v) in zip(names, data_tups)}
 
