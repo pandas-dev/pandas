@@ -13,7 +13,6 @@ from pandas._typing import (
     DtypeObj,
     Optional,
 )
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -170,8 +169,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         loc : int, slice, or ndarray[int]
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         try:
             key = self._data._validate_scalar(key, unbox=False)
