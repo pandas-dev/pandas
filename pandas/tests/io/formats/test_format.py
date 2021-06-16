@@ -3198,6 +3198,34 @@ class TestDatetimeIndexUnicode:
         assert "'2014-01-01 00:00:00']" in text
 
 
+class TestMultiIndexFormat:
+    def test_sparsify(self):
+        idx = pd.MultiIndex.from_tuples(
+            [("A", "1"), ("A", "2"), ("B", "1"), ("B", "2")]
+        )
+        assert idx.format(sparsify=False) == ["A  1", "A  2", "B  1", "B  2"]
+        assert idx.format(sparsify=True) == ["A  1", "   2", "B  1", "   2"]
+        assert idx.format(sparsify=1) == ["A  1", "   2", "B  1", "   2"]
+        expected = ["A  1", "*  2", "B  1", "*  2"]
+        assert idx.format(sparsify="*") == expected
+        assert idx.format(sparsify=True, sentinel="*") == expected
+        expected = ["A    1", "...  2", "B    1", "...  2"]
+        assert idx.format(sparsify="...") == expected
+        assert idx.format(sparsify=True, sentinel="...") == expected
+
+        expected = [["A", "A", "B", "B"], ["1", "2", "1", "2"]]
+        assert idx.format(adjoin=False, sparsify=False) == expected
+        expected = [("A", "", "B", ""), ("1", "2", "1", "2")]
+        assert idx.format(adjoin=False, sparsify=True) == expected
+        expected = [("A", "...", "B", "..."), ("1", "2", "1", "2")]
+        assert idx.format(adjoin=False, sparsify="...") == expected
+        assert idx.format(adjoin=False, sparsify=True, sentinel="...") == expected
+        sentinel = object()
+        expected = [("A", sentinel, "B", sentinel), ("1", "2", "1", "2")]
+        assert idx.format(adjoin=False, sparsify=sentinel) == expected
+        assert idx.format(adjoin=False, sparsify=True, sentinel=sentinel) == expected
+
+
 class TestStringRepTimestamp:
     def test_no_tz(self):
         dt_date = datetime(2013, 1, 2)

@@ -1318,8 +1318,9 @@ class MultiIndex(Index):
         na_rep: str | None = None,
         names: bool = False,
         space: int = 2,
-        sparsify=None,
+        sparsify: bool | None = None,
         adjoin: bool = True,
+        sentinel="",
     ) -> list:
         if name is not None:
             names = name
@@ -1368,10 +1369,15 @@ class MultiIndex(Index):
             sparsify = get_option("display.multi_sparse")
 
         if sparsify:
-            sentinel = ""
-            # GH3547 use value of sparsify as sentinel if it's "Falsey"
-            assert isinstance(sparsify, bool) or sparsify is lib.no_default
-            if sparsify in [False, lib.no_default]:
+            # GH3547 use value of sparsify as sentinel, unless it's an obvious
+            # "Truthy" value
+            if sparsify not in [True, 1]:
+                warnings.warn(
+                    "passing non-bool value of sparsify to MultiIndex.format is "
+                    "deprecated, use sentinel argument instead.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = sparsify_labels(

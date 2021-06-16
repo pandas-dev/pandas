@@ -19,7 +19,6 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import lib
 from pandas._typing import (
     FrameOrSeriesUnion,
     TypedDict,
@@ -811,8 +810,9 @@ def _get_level_lengths(
     Dict :
         Result is a dictionary of (level, initial_position): span
     """
+    sentinel = object()
     if isinstance(index, MultiIndex):
-        levels = index.format(sparsify=lib.no_default, adjoin=False)
+        levels = index.format(sparsify=sparsify, sentinel=sentinel, adjoin=False)
     else:
         levels = index.format()
 
@@ -833,10 +833,10 @@ def _get_level_lengths(
                 break
             if not sparsify:
                 lengths[(i, j)] = 1
-            elif (row is not lib.no_default) and (j not in hidden_elements):
+            elif (row is not sentinel) and (j not in hidden_elements):
                 last_label = j
                 lengths[(i, last_label)] = 1
-            elif row is not lib.no_default:
+            elif row is not sentinel:
                 # even if its hidden, keep track of it in case
                 # length >1 and later elements are visible
                 last_label = j

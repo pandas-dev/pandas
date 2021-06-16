@@ -13,8 +13,6 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas._libs import lib
-
 from pandas import (
     MultiIndex,
     option_context,
@@ -253,14 +251,10 @@ class HTMLFormatter:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
             template = 'colspan="{span:d}" halign="left"'
-
-            sentinel: lib.NoDefault | bool
-            if self.fmt.sparsify:
-                # GH3547
-                sentinel = lib.no_default
-            else:
-                sentinel = False
-            levels = self.columns.format(sparsify=sentinel, adjoin=False, names=False)
+            # GH3547
+            sentinel = object()
+            levels = self.columns.format(sparsify=self.fmt.sparsify, sentinel=sentinel,
+                                         adjoin=False, names=False)
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
@@ -464,9 +458,9 @@ class HTMLFormatter:
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = lib.no_default
-            levels = frame.index.format(sparsify=sentinel, adjoin=False, names=False)
-
+            sentinel = object()
+            levels = frame.index.format(sparsify=True, sentinel=sentinel, adjoin=False,
+                                        names=False)
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             if is_truncated_vertically:
