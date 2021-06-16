@@ -903,11 +903,6 @@ Categorical
 - Bug in constructing a :class:`DataFrame` from an ``ndarray`` and a :class:`CategoricalDtype` (:issue:`38857`)
 - Bug in setting categorical values into an object-dtype column in a :class:`DataFrame` (:issue:`39136`)
 - Bug in :meth:`DataFrame.reindex` was raising an ``IndexError`` when the new index contained duplicates and the old index was a :class:`CategoricalIndex` (:issue:`38906`)
-- Bug in setting dtype-incompatible values into a :class:`Categorical` (or ``Series`` or ``DataFrame`` backed by ``Categorical``) raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
-- Bug in :meth:`Categorical.searchsorted` when passing a dtype-incompatible value raising ``KeyError`` instead of ``TypeError`` (:issue:`41919`)
-- Bug in :meth:`Series.where` with ``CategoricalDtype`` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
-- Bug in :meth:`Categorical.fillna` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
-- Bug in :meth:`Categorical.fillna` with a tuple-like category raising ``NotImplementedError`` instead of ``TypeError`` when filling with a non-category tuple (:issue:`41914`)
 
 Datetimelike
 ^^^^^^^^^^^^
