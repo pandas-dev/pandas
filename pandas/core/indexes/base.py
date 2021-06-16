@@ -3497,6 +3497,13 @@ class Index(IndexOpsMixin, PandasObject):
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> np.ndarray:
 
+        if self._is_multi:
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
+            return self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
+            )
+
         target_values = target._get_engine_target()
 
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
@@ -5302,6 +5309,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.inferred_type == "boolean":
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
+
+        elif self.dtype.kind == "u" and other.dtype.kind == "i":
+            # GH#41873
+            if other.min() >= 0:
+                # lookup min as it may be cached
+                # TODO: may need itemsize check if we have non-64-bit Indexes
+                return self, other.astype(self.dtype)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
