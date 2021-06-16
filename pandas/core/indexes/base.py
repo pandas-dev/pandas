@@ -3403,8 +3403,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  matched to Interval scalars
             return self._get_indexer_non_comparable(target, method=method, unique=True)
 
-        if is_categorical_dtype(target.dtype) and not is_categorical_dtype(self.dtype):
-            # TODO: we can remove the self.dtype condition following GH#41933
+        if is_categorical_dtype(target.dtype):
             # potential fastpath
             # get an indexer for unique categories then propagate to codes via take_nd
             categories_indexer = self.get_indexer(target.categories)
