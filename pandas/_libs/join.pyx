@@ -132,8 +132,7 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
         _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:  # if not asked to sort, revert to original order
-        # cast to avoid build warning GH#26757
-        if <Py_ssize_t>len(left) == len(left_indexer):
+        if len(left) == len(left_indexer):
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
