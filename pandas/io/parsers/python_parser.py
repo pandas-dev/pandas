@@ -25,6 +25,7 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -292,6 +293,8 @@ class PythonParser(ParserBase):
             offset = len(self.index_col)  # type: ignore[has-type]
 
         len_alldata = len(alldata)
+        self._check_data_length(names, alldata)
+
         return {
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
@@ -424,6 +427,7 @@ class PythonParser(ParserBase):
                                 cur_count = counts[col]
                             if (
                                 self.dtype is not None
+                                and is_dict_like(self.dtype)
                                 and self.dtype.get(old_col) is not None
                                 and self.dtype.get(col) is None
                             ):

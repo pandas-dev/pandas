@@ -916,8 +916,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                with suppress(KeyError, IndexError, AttributeError):
-                    # AttributeError for IntervalTree get_value
+                with suppress(KeyError, IndexError):
                     return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
@@ -1004,7 +1003,7 @@ class _LocIndexer(_LocationIndexer):
                 # should not be considered scalar
                 return False
 
-            if not ax.is_unique:
+            if not ax._index_as_unique:
                 return False
 
         return True
