@@ -8,6 +8,7 @@ from pandas._libs import hashtable as ht
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.algorithms import isin
 
 
 @contextmanager
@@ -176,6 +177,67 @@ class TestHashTable:
             clean_table = table_type()
             clean_table.map_locations(keys)
             assert n_buckets_start == clean_table.get_state()["n_buckets"]
+
+
+class TestPyObjectHashTableWithNans:
+    def test_nan_float(self):
+        nan1 = float("nan")
+        nan2 = float("nan")
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex_both(self):
+        nan1 = complex(float("nan"), float("nan"))
+        nan2 = complex(float("nan"), float("nan"))
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_complex_real(self):
+        nan1 = complex(float("nan"), 1)
+        nan2 = complex(float("nan"), 1)
+        other = complex(float("nan"), 2)
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+    def test_nan_complex_imag(self):
+        nan1 = complex(1, float("nan"))
+        nan2 = complex(1, float("nan"))
+        other = complex(2, float("nan"))
+        assert nan1 is not nan2
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
+
+    def test_nan_in_tuple(self):
+        nan1 = (float("nan"),)
+        nan2 = (float("nan"),)
+        assert nan1[0] is not nan2[0]
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+
+    def test_nan_in_nested_tuple(self):
+        nan1 = (1, (2, (float("nan"),)))
+        nan2 = (1, (2, (float("nan"),)))
+        other = (1, 2)
+        table = ht.PyObjectHashTable()
+        table.set_item(nan1, 42)
+        assert table.get_item(nan2) == 42
+        with pytest.raises(KeyError, match=None) as error:
+            table.get_item(other)
+        assert str(error.value) == str(other)
 
 
 def test_get_labels_groupby_for_Int64(writable):
@@ -426,3 +488,12 @@ class TestHelpFunctionsWithNans:
         values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
         assert mode(values, True) == 42
         assert np.isnan(mode(values, False))
+
+
+def test_ismember_tuple_with_nans():
+    # GH-41836
+    values = [("a", float("nan")), ("b", 1)]
+    comps = [("a", float("nan"))]
+    result = isin(values, comps)
+    expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)

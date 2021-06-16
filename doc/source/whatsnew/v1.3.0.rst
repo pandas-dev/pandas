@@ -1033,6 +1033,7 @@ Missing
 - Bug in :meth:`DataFrame.fillna` not accepting a dictionary for the ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
 - Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
+- Bug in :meth:`Series.isin` and :meth:`MultiIndex.isin` didn't treat all nans as equivalent if they were in tuples (:issue:`41836`)
 
 MultiIndex
 ^^^^^^^^^^
