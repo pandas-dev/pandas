@@ -125,8 +125,6 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
    grouped = df.groupby("A")
    grouped = df.groupby(["A", "B"])
 
-.. versionadded:: 0.24
-
 If we also have a MultiIndex on columns ``A`` and ``B``, we can group by all
 but the specified columns
 

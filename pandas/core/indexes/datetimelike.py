@@ -45,6 +45,7 @@ from pandas.core.dtypes.concat import concat_compat
 
 from pandas.core.arrays import (
     DatetimeArray,
+    ExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -60,7 +61,6 @@ from pandas.core.indexes.extension import (
     inherit_names,
     make_wrapped_arith_op,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -475,9 +475,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-
-            .. versionchanged:: 0.24.0
-
         freq : pandas.DateOffset, pandas.Timedelta or string, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
@@ -599,7 +596,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         try:
             res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            res = com.asarray_tuplesafe(keyarr)
+            if not isinstance(keyarr, ExtensionArray):
+                # e.g. we don't want to cast DTA to ndarray[object]
+                res = com.asarray_tuplesafe(keyarr)
+                # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
+            else:
+                res = keyarr
         return Index(res, dtype=res.dtype)
 
 
@@ -782,11 +784,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            i8self = Int64Index._simple_new(self.asi8)
-            i8other = Int64Index._simple_new(other.asi8)
-            i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
-            return result
+            return super()._union(other, sort=sort)._with_freq("infer")
 
     # --------------------------------------------------------------------
     # Join Methods

@@ -34,7 +34,6 @@ Style application
 
    Styler.apply
    Styler.applymap
-   Styler.where
    Styler.format
    Styler.set_td_classes
    Styler.set_table_styles
@@ -55,6 +54,7 @@ Builtin styles
    Styler.highlight_max
    Styler.highlight_min
    Styler.highlight_between
+   Styler.highlight_quantile
    Styler.background_gradient
    Styler.text_gradient
    Styler.bar

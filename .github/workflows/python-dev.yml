@@ -7,12 +7,18 @@ on:
   pull_request:
     branches:
       - master
+    paths-ignore:
+      - "doc/**"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     name: actions-310-dev
     timeout-minutes: 60
+
+    concurrency:
+      group: ${{ github.ref }}-dev
+      cancel-in-progress: true
 
     steps:
     - uses: actions/checkout@v2
