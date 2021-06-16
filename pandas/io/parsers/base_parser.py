@@ -214,7 +214,7 @@ class ParserBase:
         # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
         # Normally, this arg would get pre-processed earlier on
         self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
-        
+
         # gh-41996
         # Moved from c_parser_wrapper and adapted
         kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
