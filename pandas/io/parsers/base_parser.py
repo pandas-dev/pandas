@@ -203,6 +203,33 @@ class ParserBase:
 
         self.handles: IOHandles | None = None
 
+        # gh-41996
+        # Moved from c_parser_wrapper and adapted
+        kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
+
+        # Moved from python_parser (begin)
+        # The function is renamed from `_clean_mapping`
+        def _translate_indices_into_colnames(mapping):
+            """converts dictkeys as col numbers to col names"""
+            if (mapping is None) or not(isinstance(mapping, dict)):
+                return mapping
+            clean = {}
+            for col, v in mapping.items():
+                if isinstance(col, int) and col not in self.orig_names:
+                    col = self.orig_names[col]
+                clean[col] = v
+            # gh-41574
+            # Designed to support defaultdict
+            if isinstance(mapping, defaultdict):
+                clean = defaultdict(mapping.default_factory, clean)
+            return clean
+
+        if "converters" in kwds:
+            kwds["converters"] = _translate_indices_into_colnames(kwds["converters"])
+        if "dtype" in kwds:
+            kwds["dtype"] = _translate_indices_into_colnames(kwds["dtype"])
+        # Moved from python_parser (end)
+
     def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
         """
         Let the readers open IOHanldes after they are done with their potential raises.
@@ -1197,3 +1224,23 @@ def _validate_parse_dates_arg(parse_dates):
 
 def is_index_col(col) -> bool:
     return col is not None and col is not False
+
+# gh-41996
+# Moved from c_parser_wrapper
+def ensure_dtype_objs(dtype):
+    """
+    Ensure we have either None, a dtype object, or a dictionary mapping to
+    dtype objects.
+    """
+    if isinstance(dtype, dict):
+        # gh-41574
+        # Designed to support defaultdict
+        prepared_dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
+        if isinstance(dtype, defaultdict):
+            type_for_default_factory = pandas_dtype(dtype.default_factory())
+            prepared_default_factory = lambda: type_for_default_factory
+            prepared_dtype = defaultdict(prepared_default_factory, prepared_dtype)
+        return prepared_dtype
+    elif dtype is not None:
+        dtype = pandas_dtype(dtype)
+    return dtype

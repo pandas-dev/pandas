@@ -310,27 +310,6 @@ class PythonParser(ParserBase):
         return self.read(rows=size)
 
     def _convert_data(self, data):
-        # apply converters
-        def _clean_mapping(mapping):
-            """converts col numbers to names"""
-            clean = {}
-            for col, v in mapping.items():
-                if isinstance(col, int) and col not in self.orig_names:
-                    col = self.orig_names[col]
-                clean[col] = v
-            # gh-41574
-            # Designed to support defaultdict
-            if isinstance(mapping, defaultdict):
-                clean = defaultdict(mapping.default_factory, clean)
-            return clean
-
-        clean_conv = _clean_mapping(self.converters)
-        if not isinstance(self.dtype, dict):
-            # handles single dtype applied to all columns
-            clean_dtypes = self.dtype
-        else:
-            clean_dtypes = _clean_mapping(self.dtype)
-
         # Apply NA values.
         clean_na_values = {}
         clean_na_fvalues = {}
@@ -354,8 +333,8 @@ class PythonParser(ParserBase):
             clean_na_values,
             clean_na_fvalues,
             self.verbose,
-            clean_conv,
-            clean_dtypes,
+            self.converters,
+            self.dtypes,
         )
 
     def _infer_columns(self):

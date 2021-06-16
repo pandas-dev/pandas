@@ -54,7 +54,6 @@ class CParserWrapper(ParserBase):
         for key in ("storage_options", "encoding", "memory_map", "compression"):
             kwds.pop(key, None)
 
-        kwds["dtype"] = ensure_dtype_objs(kwds.get("dtype", None))
         try:
             self._reader = parsers.TextReader(self.handles.handle, **kwds)
         except Exception:
@@ -385,22 +384,3 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         )
         warnings.warn(warning_message, DtypeWarning, stacklevel=8)
     return result
-
-
-def ensure_dtype_objs(dtype):
-    """
-    Ensure we have either None, a dtype object, or a dictionary mapping to
-    dtype objects.
-    """
-    if isinstance(dtype, dict):
-        # gh-41574
-        # Designed to support defaultdict
-        prepared_dtype = {k: pandas_dtype(dtype[k]) for k in dtype}
-        if isinstance(dtype, defaultdict):
-            type_for_default_factory = pandas_dtype(dtype.default_factory())
-            prepared_default_factory = lambda: type_for_default_factory
-            prepared_dtype = defaultdict(prepared_default_factory, prepared_dtype)
-        return prepared_dtype
-    elif dtype is not None:
-        dtype = pandas_dtype(dtype)
-    return dtype
