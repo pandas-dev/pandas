@@ -484,6 +484,34 @@ def test_parse_latex_css_conversion(css, expected):
     assert result == expected
 
 
+@pytest.mark.parametrize("environment", ["tabular", "longtable"])
+def test_parse_latex_css_convert_minimal(styler, environment):
+    # parameters ensure longtable template is also tested
+    styler.highlight_max(props="font-weight:bold;")
+    result = styler.to_latex(convert_css=True, environment=environment)
+    assert (
+        dedent(
+            f"""\
+        0 & 0 & \\bfseries -0.61 & ab \\\\
+        1 & \\bfseries 1 & -1.22 & \\bfseries cd \\\\
+        \\end{{{environment}}}
+    """
+        )
+        in result
+    )
+    result = styler.to_latex(convert_css=False, environment=environment)
+    assert (
+        dedent(
+            f"""\
+        0 & 0 & \\font-weightbold -0.61 & ab \\\\
+        1 & \\font-weightbold 1 & -1.22 & \\font-weightbold cd \\\\
+        \\end{{{environment}}}
+    """
+        )
+        in result
+    )
+
+
 def test_parse_latex_css_conversion_option():
     css = [("command", "option--latex--wrap")]
     expected = [("command", "option--wrap")]
@@ -516,7 +544,8 @@ def test_longtable_comprehensive(styler):
         \\endlastfoot
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
-        \\end{longtable}"""
+        \\end{longtable}
+    """
     )
 
 
@@ -534,7 +563,8 @@ def test_longtable_minimal(styler):
         \\endlastfoot
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
-        \\end{longtable}"""
+        \\end{longtable}
+    """
     )
 
 
