@@ -5167,6 +5167,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
         # both returned ndarrays are np.intp
         target = ensure_index(target)
+        target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
             # IntervalIndex get special treatment bc numeric scalars can be
