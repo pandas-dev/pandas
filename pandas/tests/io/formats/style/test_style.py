@@ -221,7 +221,7 @@ class TestStyler:
                 [{"selector": "th", "props": [("foo", "bar")]}]
             )
             self.styler.set_table_attributes('class="foo" data-bar')
-            self.styler.hidden_index = not self.styler.hidden_index
+            self.styler.hide_index_ = not self.styler.hide_index_
             self.styler.hide_columns("A")
             classes = DataFrame(
                 [["favorite-val red", ""], [None, "blue my-val"]],
@@ -292,7 +292,7 @@ class TestStyler:
             "table_styles",
             "table_attributes",
             "cell_ids",
-            "hidden_index",
+            "hide_index_",
             "hidden_columns",
             "cell_context",
         ]
@@ -317,7 +317,7 @@ class TestStyler:
         assert len(s._todo) > 0
         assert s.tooltips
         assert len(s.cell_context) > 0
-        assert s.hidden_index is True
+        assert s.hide_index_ is True
         assert len(s.hidden_columns) > 0
 
         s = s._compute()
@@ -331,7 +331,7 @@ class TestStyler:
         assert len(s._todo) == 0
         assert not s.tooltips
         assert len(s.cell_context) == 0
-        assert s.hidden_index is False
+        assert s.hide_index_ is False
         assert len(s.hidden_columns) == 0
 
     def test_render(self):
@@ -1127,6 +1127,14 @@ class TestStyler:
         ]
         assert head == expected
 
+    def test_hide_column_headers(self):
+        ctx = self.styler.hide_columns()._translate(True, True)
+        assert len(ctx["head"]) == 0  # no header entries with an unnamed index
+
+        self.df.index.name = "some_name"
+        ctx = self.df.style.hide_columns()._translate(True, True)
+        assert len(ctx["head"]) == 1  # only a single row for index names: no col heads
+
     def test_hide_single_index(self):
         # GH 14194
         # single unnamed index
@@ -1195,7 +1203,7 @@ class TestStyler:
         assert not ctx["body"][0][1]["is_visible"]  # col A, row 1
         assert not ctx["body"][1][2]["is_visible"]  # col B, row 1
 
-    def test_hide_columns_mult_levels(self):
+    def test_hide_columns_index_mult_levels(self):
         # GH 14194
         # setup dataframe with multiple column levels and indices
         i1 = MultiIndex.from_arrays(
@@ -1227,7 +1235,8 @@ class TestStyler:
 
         # hide first column only
         ctx = df.style.hide_columns([("b", 0)])._translate(True, True)
-        assert ctx["head"][0][2]["is_visible"]  # b
+        assert not ctx["head"][0][2]["is_visible"]  # b
+        assert ctx["head"][0][3]["is_visible"]  # b
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
         assert ctx["body"][1][3]["is_visible"]
@@ -1242,6 +1251,18 @@ class TestStyler:
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
         assert ctx["body"][1][2]["display_value"] == 3
+
+        # hide top row level, which hides both rows
+        ctx = df.style.hide_index("a")._translate(True, True)
+        for i in [0, 1, 2, 3]:
+            assert not ctx["body"][0][i]["is_visible"]
+            assert not ctx["body"][1][i]["is_visible"]
+
+        # hide first row only
+        ctx = df.style.hide_index(("a", 0))._translate(True, True)
+        for i in [0, 1, 2, 3]:
+            assert not ctx["body"][0][i]["is_visible"]
+            assert ctx["body"][1][i]["is_visible"]
 
     def test_pipe(self):
         def set_caption_from_template(styler, a, b):
