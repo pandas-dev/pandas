@@ -13,7 +13,7 @@ Pickling
    :toctree: api/
 
    read_pickle
-   to_pickle
+   DataFrame.to_pickle
 
 Flat file
 ~~~~~~~~~
