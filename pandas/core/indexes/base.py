@@ -3715,7 +3715,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # trying to reindex on an axis with duplicates
         if not self._index_as_unique and len(indexer):
-            raise ValueError("cannot reindex from a duplicate axis")
+            raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
@@ -5167,6 +5167,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
         # both returned ndarrays are np.intp
         target = ensure_index(target)
+        target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
             # IntervalIndex get special treatment bc numeric scalars can be

@@ -98,7 +98,9 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hidden_index: bool = False
+        self.hide_index_: bool = False  # bools for hiding col/row headers
+        self.hide_columns_: bool = False
+        self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
@@ -298,55 +300,56 @@ class StylerRenderer:
 
         head = []
         # 1) column headers
-        for r in range(self.data.columns.nlevels):
-            index_blanks = [
-                _element("th", blank_class, blank_value, not self.hidden_index)
-            ] * (self.data.index.nlevels - 1)
+        if not self.hide_columns_:
+            for r in range(self.data.columns.nlevels):
+                index_blanks = [
+                    _element("th", blank_class, blank_value, not self.hide_index_)
+                ] * (self.data.index.nlevels - 1)
 
-            name = self.data.columns.names[r]
-            column_name = [
-                _element(
-                    "th",
-                    f"{blank_class if name is None else index_name_class} level{r}",
-                    name if name is not None else blank_value,
-                    not self.hidden_index,
-                )
-            ]
-
-            if clabels:
-                column_headers = [
+                name = self.data.columns.names[r]
+                column_name = [
                     _element(
                         "th",
-                        f"{col_heading_class} level{r} col{c}",
-                        value,
-                        _is_visible(c, r, col_lengths),
-                        attributes=(
-                            f'colspan="{col_lengths.get((r, c), 0)}"'
-                            if col_lengths.get((r, c), 0) > 1
-                            else ""
-                        ),
+                        f"{blank_class if name is None else index_name_class} level{r}",
+                        name if name is not None else blank_value,
+                        not self.hide_index_,
                     )
-                    for c, value in enumerate(clabels[r])
                 ]
 
-                if len(self.data.columns) > max_cols:
-                    # add an extra column with `...` value to indicate trimming
-                    column_headers.append(
+                if clabels:
+                    column_headers = [
                         _element(
                             "th",
-                            f"{col_heading_class} level{r} {trimmed_col_class}",
-                            "...",
-                            True,
-                            attributes="",
+                            f"{col_heading_class} level{r} col{c}",
+                            value,
+                            _is_visible(c, r, col_lengths),
+                            attributes=(
+                                f'colspan="{col_lengths.get((r, c), 0)}"'
+                                if col_lengths.get((r, c), 0) > 1
+                                else ""
+                            ),
                         )
-                    )
-                head.append(index_blanks + column_name + column_headers)
+                        for c, value in enumerate(clabels[r])
+                    ]
+
+                    if len(self.data.columns) > max_cols:
+                        # add an extra column with `...` value to indicate trimming
+                        column_headers.append(
+                            _element(
+                                "th",
+                                f"{col_heading_class} level{r} {trimmed_col_class}",
+                                "...",
+                                True,
+                                attributes="",
+                            )
+                        )
+                    head.append(index_blanks + column_name + column_headers)
 
         # 2) index names
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
-            and not self.hidden_index
+            and not self.hide_index_
         ):
             index_names = [
                 _element(
@@ -412,7 +415,9 @@ class StylerRenderer:
             The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index, sparsify_index, max_rows)
+        idx_lengths = _get_level_lengths(
+            self.index, sparsify_index, max_rows, self.hidden_rows
+        )
 
         rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
         if self.data.index.nlevels == 1:
@@ -426,7 +431,7 @@ class StylerRenderer:
                         "th",
                         f"{row_heading_class} level{c} {trimmed_row_class}",
                         "...",
-                        not self.hidden_index,
+                        not self.hide_index_,
                         attributes="",
                     )
                     for c in range(self.data.index.nlevels)
@@ -463,7 +468,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hidden_index),
+                    (_is_visible(r, c, idx_lengths) and not self.hide_index_),
                     id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -497,7 +502,7 @@ class StylerRenderer:
                     "td",
                     f"{data_class} row{r} col{c}{cls}",
                     value,
-                    (c not in self.hidden_columns),
+                    (c not in self.hidden_columns and r not in self.hidden_rows),
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )
@@ -528,7 +533,7 @@ class StylerRenderer:
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
-            if self.hidden_index:
+            if self.hide_index_:
                 row_body_headers = []
             else:
                 row_body_headers = [
@@ -843,7 +848,13 @@ def _get_level_lengths(
                 last_label = j
                 lengths[(i, last_label)] = 0
             elif j not in hidden_elements:
-                lengths[(i, last_label)] += 1
+                if lengths[(i, last_label)] == 0:
+                    # if the previous iteration was first-of-kind but hidden then offset
+                    last_label = j
+                    lengths[(i, last_label)] = 1
+                else:
+                    # else add to previous iteration
+                    lengths[(i, last_label)] += 1
 
     non_zero_lengths = {
         element: length for element, length in lengths.items() if length >= 1
