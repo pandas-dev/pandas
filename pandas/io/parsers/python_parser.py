@@ -293,6 +293,8 @@ class PythonParser(ParserBase):
             offset = len(self.index_col)  # type: ignore[has-type]
 
         len_alldata = len(alldata)
+        self._check_data_length(names, alldata)
+
         return {
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
