@@ -269,6 +269,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
                 raise TypeError(
                     "categories must match existing categories when appending"
                 )
+
+        elif other._is_multi:
+            # preempt raising NotImplementedError in isna call
+            raise TypeError("MultiIndex is not dtype-compatible with CategoricalIndex")
         else:
             values = other
 
@@ -479,7 +483,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     # Indexing Methods
 
     def _maybe_cast_indexer(self, key) -> int:
-        return self._data._unbox_scalar(key)
+        # GH#41933: we have to do this instead of self._data._validate_scalar
+        #  because this will correctly get partial-indexing on Interval categories
+        try:
+            return self._data._unbox_scalar(key)
+        except KeyError:
+            if is_valid_na_for_dtype(key, self.categories.dtype):
+                return -1
+            raise
 
     def _get_indexer(
         self,
@@ -624,7 +635,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             return type(self)._simple_new(cat, name=name)
 
     def _delegate_method(self, name: str, *args, **kwargs):
-        """ method delegation to the ._values """
+        """method delegation to the ._values"""
         method = getattr(self._values, name)
         if "inplace" in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")

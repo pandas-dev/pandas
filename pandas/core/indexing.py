@@ -916,8 +916,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                with suppress(KeyError, IndexError, AttributeError):
-                    # AttributeError for IntervalTree get_value
+                with suppress(KeyError, IndexError):
                     return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
@@ -1004,7 +1003,7 @@ class _LocIndexer(_LocationIndexer):
                 # should not be considered scalar
                 return False
 
-            if not ax.is_unique:
+            if not ax._index_as_unique:
                 return False
 
         return True
@@ -1286,13 +1285,21 @@ class _LocIndexer(_LocationIndexer):
         """
         ax = self.obj._get_axis(axis)
 
-        # Have the index compute an indexer or return None
-        # if it cannot handle:
-        indexer, keyarr = ax._convert_listlike_indexer(key)
-        # We only act on all found values:
-        if indexer is not None and (indexer != -1).all():
-            # _validate_read_indexer is a no-op if no -1s, so skip
-            return ax[indexer], indexer
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
+
+        if isinstance(ax, MultiIndex):
+            # get_indexer expects a MultiIndex or sequence of tuples, but
+            #  we may be doing partial-indexing, so need an extra check
+
+            # Have the index compute an indexer or return None
+            # if it cannot handle:
+            indexer = ax._convert_listlike_indexer(keyarr)
+            # We only act on all found values:
+            if indexer is not None and (indexer != -1).all():
+                # _validate_read_indexer is a no-op if no -1s, so skip
+                return ax[indexer], indexer
 
         if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)

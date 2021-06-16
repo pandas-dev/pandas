@@ -27,13 +27,11 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_integer,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -410,9 +408,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         orig_key = key
 
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
-
+        self._check_indexing_error(key)
         if isinstance(key, str):
 
             try:
