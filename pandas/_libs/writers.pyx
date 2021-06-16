@@ -21,8 +21,9 @@ def write_csv_rows(
     list data,
     ndarray data_index,
     Py_ssize_t nlevels,
-    ndarray cols,
-    object writer
+    Py_ssize_t ncols,
+    object writer,
+    Py_ssize_t chunksize = 100
 ) -> None:
     """
     Write the given data to the writer object, pre-allocating where possible
@@ -33,46 +34,47 @@ def write_csv_rows(
     data : list
     data_index : ndarray
     nlevels : int
-    cols : ndarray
+    ncols : int
     writer : _csv.writer
     """
     # In crude testing, N>100 yields little marginal improvement
     cdef:
-        Py_ssize_t i, j = 0, k = len(data_index), N = 100, ncols = len(cols)
+        Py_ssize_t i, j = 0, k = len(data_index)
         list rows
+        list row
 
     # pre-allocate rows
-    rows = [[None] * (nlevels + ncols) for _ in range(N)]
+    rows = [[None] * (nlevels + ncols) for _ in range(chunksize)]
 
     if nlevels == 1:
         for j in range(k):
-            row = rows[j % N]
+            row = rows[j % chunksize]
             row[0] = data_index[j]
             for i in range(ncols):
                 row[1 + i] = data[i][j]
 
-            if j >= N - 1 and j % N == N - 1:
+            if j >= chunksize - 1 and j % chunksize == chunksize - 1:
                 writer.writerows(rows)
     elif nlevels > 1:
         for j in range(k):
-            row = rows[j % N]
+            row = rows[j % chunksize]
             row[:nlevels] = list(data_index[j])
             for i in range(ncols):
                 row[nlevels + i] = data[i][j]
 
-            if j >= N - 1 and j % N == N - 1:
+            if j >= chunksize - 1 and j % chunksize == chunksize - 1:
                 writer.writerows(rows)
     else:
         for j in range(k):
-            row = rows[j % N]
+            row = rows[j % chunksize]
             for i in range(ncols):
                 row[i] = data[i][j]
 
-            if j >= N - 1 and j % N == N - 1:
+            if j >= chunksize - 1 and j % chunksize == chunksize - 1:
                 writer.writerows(rows)
 
-    if j >= 0 and (j < N - 1 or (j % N) != N - 1):
-        writer.writerows(rows[:((j + 1) % N)])
+    if j >= 0 and (j < chunksize - 1 or (j % chunksize) != chunksize - 1):
+        writer.writerows(rows[:((j + 1) % chunksize)])
 
 
 @cython.boundscheck(False)

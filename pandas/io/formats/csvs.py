@@ -290,28 +290,35 @@ class CSVFormatter:
             yield self.encoded_labels + [""] * len(columns)
 
     def _save_body(self) -> None:
-        nrows = len(self.data_index)
-        chunks = (nrows // self.chunksize) + 1
-        for i in range(chunks):
-            start_i = i * self.chunksize
-            end_i = min(start_i + self.chunksize, nrows)
-            if start_i >= end_i:
-                break
-            self._save_chunk(start_i, end_i)
+        if len(self.obj) > 0:
+            res = self.obj._mgr.to_native_types(**self._number_format)
+            data = [res.iget_values(i) for i in range(len(res.items))]
+            ix = self.data_index._format_native_types(**self._number_format)
+            libwriters.write_csv_rows(
+                data, ix, self.nlevels, len(self.cols), self.writer, self.chunksize
+            )
+        # nrows = len(self.data_index)
+        # chunks = (nrows // self.chunksize) + 1
+        # for i in range(chunks):
+        #     start_i = i * self.chunksize
+        #     end_i = min(start_i + self.chunksize, nrows)
+        #     if start_i >= end_i:
+        #         break
+        #     self._save_chunk(start_i, end_i)
 
-    def _save_chunk(self, start_i: int, end_i: int) -> None:
-        # create the data for a chunk
-        slicer = slice(start_i, end_i)
-        df = self.obj.iloc[slicer]
-
-        res = df._mgr.to_native_types(**self._number_format)
-        data = [res.iget_values(i) for i in range(len(res.items))]
-
-        ix = self.data_index[slicer]._format_native_types(**self._number_format)
-        libwriters.write_csv_rows(
-            data,
-            ix,
-            self.nlevels,
-            self.cols,
-            self.writer,
-        )
+    # def _save_chunk(self, start_i: int, end_i: int) -> None:
+    #     # create the data for a chunk
+    #     slicer = slice(start_i, end_i)
+    #     df = self.obj.iloc[slicer]
+    #
+    #     res = df._mgr.to_native_types(**self._number_format)
+    #     data = [res.iget_values(i) for i in range(len(res.items))]
+    #
+    #     ix = self.data_index[slicer]._format_native_types(**self._number_format)
+    #     libwriters.write_csv_rows(
+    #         data,
+    #         ix,
+    #         self.nlevels,
+    #         len(self.cols),
+    #         self.writer,
+    #     )
