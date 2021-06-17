@@ -938,7 +938,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if is_integer(key) and self.index._should_fallback_to_positional():
+        if is_integer(key) and self.index._should_fallback_to_positional:
             return self._values[key]
 
         elif key_is_scalar:
@@ -1000,7 +1000,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if not self.index._should_fallback_to_positional():
+            if not self.index._should_fallback_to_positional:
                 return self.loc[key]
             else:
                 return self.iloc[key]
@@ -1124,7 +1124,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Note: key_type == "boolean" should not occur because that
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
-                if not self.index._should_fallback_to_positional():
+                if not self.index._should_fallback_to_positional:
                     self._set_labels(key, value)
                 else:
                     self._set_values(key, value)

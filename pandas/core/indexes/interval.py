@@ -740,6 +740,7 @@ class IntervalIndex(ExtensionIndex):
 
         return super()._convert_slice_indexer(key, kind)
 
+    @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
         # integer lookups in Series.__getitem__ are unambiguously
         #  positional in this case
