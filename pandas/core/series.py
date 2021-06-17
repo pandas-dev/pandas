@@ -129,7 +129,6 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
-from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -3658,29 +3657,39 @@ Keep all original rows and also all original values
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
         """
-        values = self._values
+        values = self.to_numpy()
+        res = np.argsort(values, kind=kind)
+        res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
         mask = isna(values)
+        res_ser[self.index[mask]] = -1  # set na tp -1
+        return res_ser.__finalize__(self, method="argsort")
 
-        if mask.any():
-            mask_ret = Series(-1, index=self.index[mask], dtype="int64", name=self.name)
-            notmask_result = np.argsort(values[~mask], kind=kind)
-            notmask_ret = Series(
-                notmask_result,
-                index=self.index[~mask][notmask_result],
-                dtype="int64",
-                name=self.name,
-            )
-
-            # result = Series(-1, index=self.index, name=self.name, dtype="int64")
-            # notmask = ~mask
-            # result[notmask] = np.argsort(values[notmask], kind=kind)
-            ret = concat([notmask_ret, mask_ret])
-            return ret.__finalize__(self, method="argsort")
-        else:
-            result = np.argsort(values, kind=kind)
-            return self._constructor(
-                result, index=self.index[result], dtype="int64"
-            ).__finalize__(self, method="argsort")
+        # if mask.any():
+        #     result = np.argsort(values, kind=kind)
+        #     result_series = Series(result, index=self.index[result], dtype="int64",
+        #     name=self.name)
+        #
+        #
+        #     mask_ret = Series(-1, index=self.index[mask], dtype="int64",
+        #     name=self.name)
+        #     notmask_result = np.argsort(values[~mask], kind=kind)
+        #     notmask_ret = Series(
+        #         notmask_result,
+        #         index=self.index[~mask][notmask_result],
+        #         dtype="int64",
+        #         name=self.name,
+        #     )
+        #
+        #     # result = Series(-1, index=self.index, name=self.name, dtype="int64")
+        #     # notmask = ~mask
+        #     # result[notmask] = np.argsort(values[notmask], kind=kind)
+        #     ret = concat([notmask_ret, mask_ret])
+        #     return ret.__finalize__(self, method="argsort")
+        # else:
+        #     result = np.argsort(values, kind=kind)
+        #     return self._constructor(
+        #         result, index=self.index[result], dtype="int64"
+        #     ).__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
