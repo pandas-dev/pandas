@@ -160,7 +160,10 @@ class CSVFormatter:
 
     def _initialize_chunksize(self, chunksize: int | None) -> int:
         if chunksize is None:
-            return 100000 // len(self.cols) or 1
+            if len(self.cols) > 0:
+                return max(100000 // len(self.cols), 1)
+            else:
+                return 1
         return int(chunksize)
 
     @property
