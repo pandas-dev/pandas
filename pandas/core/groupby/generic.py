@@ -1020,13 +1020,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     if isinstance(sobj, Series):
                         # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = [sobj.name]
+                        result.columns = self._obj_with_exclusions.columns.copy()
                     else:
+                        # Retain our column names
+                        result.columns._set_names(
+                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
+                        )
                         # select everything except for the last level, which is the one
                         # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.rename(
-                            [sobj.columns.name] * result.columns.nlevels
-                        ).droplevel(-1)
+                        result.columns = result.columns.droplevel(-1)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1665,7 +1667,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = self.obj.columns
         else:
             columns = Index(key.label for key in output)
-            columns.name = self.obj.columns.name
+            columns._set_names(self.obj._get_axis(1 - self.axis).names)
             result.columns = columns
 
         result.index = self.obj.index
@@ -1800,7 +1802,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         results = self._apply_to_column_groupbys(
             lambda sgb: sgb.nunique(dropna), obj=obj
         )
-        results.columns.names = obj.columns.names  # TODO: do at higher level?
 
         if not self.as_index:
             results.index = Index(range(len(results)))
