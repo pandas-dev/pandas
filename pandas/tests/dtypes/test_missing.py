@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import (
     array_equivalent,
+    is_valid_na_for_dtype,
     isna,
     isnull,
     na_value_for_dtype,
@@ -729,3 +730,12 @@ class TestLibMissing:
 
         assert libmissing.is_matching_na(None, np.nan, nan_matches_none=True)
         assert libmissing.is_matching_na(np.nan, None, nan_matches_none=True)
+
+
+class TestIsValidNAForDtype:
+    def test_is_valid_na_for_dtype_interval(self):
+        dtype = IntervalDtype("int64", "left")
+        assert not is_valid_na_for_dtype(NaT, dtype)
+
+        dtype = IntervalDtype("datetime64[ns]", "both")
+        assert not is_valid_na_for_dtype(NaT, dtype)

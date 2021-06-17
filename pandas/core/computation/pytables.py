@@ -113,7 +113,7 @@ class BinOp(ops.BinOp):
 
     def prune(self, klass):
         def pr(left, right):
-            """ create and return a new specialized BinOp from myself """
+            """create and return a new specialized BinOp from myself"""
             if left is None:
                 return right
             elif right is None:
@@ -154,7 +154,7 @@ class BinOp(ops.BinOp):
         return res
 
     def conform(self, rhs):
-        """ inplace conform rhs """
+        """inplace conform rhs"""
         if not is_list_like(rhs):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):
@@ -163,7 +163,7 @@ class BinOp(ops.BinOp):
 
     @property
     def is_valid(self) -> bool:
-        """ return True if this is a valid field """
+        """return True if this is a valid field"""
         return self.lhs in self.queryables
 
     @property
@@ -176,21 +176,21 @@ class BinOp(ops.BinOp):
 
     @property
     def kind(self):
-        """ the kind of my field """
+        """the kind of my field"""
         return getattr(self.queryables.get(self.lhs), "kind", None)
 
     @property
     def meta(self):
-        """ the meta of my field """
+        """the meta of my field"""
         return getattr(self.queryables.get(self.lhs), "meta", None)
 
     @property
     def metadata(self):
-        """ the metadata of my field """
+        """the metadata of my field"""
         return getattr(self.queryables.get(self.lhs), "metadata", None)
 
     def generate(self, v) -> str:
-        """ create and return the op string for this TermValue """
+        """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
         return f"({self.lhs} {self.op} {val})"
 
@@ -273,7 +273,7 @@ class FilterBinOp(BinOp):
         return pprint_thing(f"[Filter : [{self.filter[0]}] -> [{self.filter[1]}]")
 
     def invert(self):
-        """ invert the filter """
+        """invert the filter"""
         if self.filter is not None:
             self.filter = (
                 self.filter[0],
@@ -283,7 +283,7 @@ class FilterBinOp(BinOp):
         return self
 
     def format(self):
-        """ return the actual filter format """
+        """return the actual filter format"""
         return [self.filter]
 
     def evaluate(self):
@@ -338,7 +338,7 @@ class ConditionBinOp(BinOp):
         return pprint_thing(f"[Condition : [{self.condition}]]")
 
     def invert(self):
-        """ invert the condition """
+        """invert the condition"""
         # if self.condition is not None:
         #    self.condition = "~(%s)" % self.condition
         # return self
@@ -347,7 +347,7 @@ class ConditionBinOp(BinOp):
         )
 
     def format(self):
-        """ return the actual ne format """
+        """return the actual ne format"""
         return self.condition
 
     def evaluate(self):
@@ -604,7 +604,7 @@ class PyTablesExpr(expr.Expr):
         return pprint_thing(self.expr)
 
     def evaluate(self):
-        """ create and return the numexpr condition and filter """
+        """create and return the numexpr condition and filter"""
         try:
             self.condition = self.terms.prune(ConditionBinOp)
         except AttributeError as err:
@@ -624,7 +624,7 @@ class PyTablesExpr(expr.Expr):
 
 
 class TermValue:
-    """ hold a term value the we use to construct a condition/filter """
+    """hold a term value the we use to construct a condition/filter"""
 
     def __init__(self, value, converted, kind: str):
         assert isinstance(kind, str), kind
@@ -633,7 +633,7 @@ class TermValue:
         self.kind = kind
 
     def tostring(self, encoding) -> str:
-        """ quote the string if not encoded else encode and return """
+        """quote the string if not encoded else encode and return"""
         if self.kind == "string":
             if encoding is not None:
                 return str(self.converted)
@@ -646,7 +646,7 @@ class TermValue:
 
 
 def maybe_expression(s) -> bool:
-    """ loose checking if s is a pytables-acceptable expression """
+    """loose checking if s is a pytables-acceptable expression"""
     if not isinstance(s, str):
         return False
     ops = PyTablesExprVisitor.binary_ops + PyTablesExprVisitor.unary_ops + ("=",)

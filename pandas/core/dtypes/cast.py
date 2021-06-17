@@ -14,7 +14,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     Sized,
     cast,
     overload,
@@ -112,7 +111,7 @@ _int64_max = np.iinfo(np.int64).max
 def maybe_convert_platform(
     values: list | tuple | range | np.ndarray | ExtensionArray,
 ) -> ArrayLike:
-    """ try to do platform conversion, allow ndarray or list here """
+    """try to do platform conversion, allow ndarray or list here"""
     arr: ArrayLike
 
     if isinstance(values, (list, tuple, range)):
@@ -123,9 +122,8 @@ def maybe_convert_platform(
         arr = values
 
     if arr.dtype == object:
-        # error: Argument 1 to "maybe_convert_objects" has incompatible type
-        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-        arr = lib.maybe_convert_objects(arr)  # type: ignore[arg-type]
+        arr = cast(np.ndarray, arr)
+        arr = lib.maybe_convert_objects(arr)
 
     return arr
 
@@ -421,18 +419,14 @@ def maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import StringArray
-    from pandas.core.arrays.string_arrow import ArrowStringArray
+    from pandas.core.arrays.string_ import BaseStringArray
 
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
 
     # Everything can be converted to StringArrays, but we may not want to convert
-    if (
-        issubclass(cls, (StringArray, ArrowStringArray))
-        and lib.infer_dtype(obj) != "string"
-    ):
+    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
         return obj
 
     try:
@@ -781,22 +775,6 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
     return dtype, val
 
 
-def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
-    """
-    Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
-
-    Parameters
-    ----------
-    d: dict-like object
-
-    Returns
-    -------
-    dict
-
-    """
-    return {maybe_box_datetimelike(key): value for key, value in d.items()}
-
-
 def infer_dtype_from_array(
     arr, pandas_dtype: bool = False
 ) -> tuple[DtypeObj, ArrayLike]:
@@ -935,7 +913,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
 
 
 def coerce_indexer_dtype(indexer, categories):
-    """ coerce the indexer input array to the smallest dtype possible """
+    """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
         return ensure_int8(indexer)
@@ -1249,13 +1227,12 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
             return values.copy()
         return values
 
-    if isinstance(values, ABCExtensionArray):
+    if not isinstance(values, np.ndarray):
+        # i.e. ExtensionArray
         values = values.astype(dtype, copy=copy)
 
     else:
-        # error: Argument 1 to "astype_nansafe" has incompatible type "ExtensionArray";
-        # expected "ndarray"
-        values = astype_nansafe(values, dtype, copy=copy)  # type: ignore[arg-type]
+        values = astype_nansafe(values, dtype, copy=copy)
 
     # in pandas we don't store numpy str dtypes, so convert to object
     if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
@@ -1482,7 +1459,7 @@ def convert_dtypes(
 
 def maybe_infer_to_datetimelike(
     value: np.ndarray,
-) -> np.ndarray | DatetimeArray | TimedeltaArray:
+) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray | IntervalArray:
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -1497,7 +1474,7 @@ def maybe_infer_to_datetimelike(
 
     Returns
     -------
-    np.ndarray, DatetimeArray, or TimedeltaArray
+    np.ndarray, DatetimeArray, TimedeltaArray, PeriodArray, or IntervalArray
 
     """
     if not isinstance(value, np.ndarray) or value.dtype != object:
@@ -1545,7 +1522,14 @@ def maybe_infer_to_datetimelike(
         else:
             return td_values.reshape(shape)
 
-    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
+    inferred_type, seen_str = lib.infer_datetimelike_array(ensure_object(v))
+    if inferred_type in ["period", "interval"]:
+        # Incompatible return value type (got "Union[ExtensionArray, ndarray]",
+        # expected "Union[ndarray, DatetimeArray, TimedeltaArray, PeriodArray,
+        # IntervalArray]")
+        return lib.maybe_convert_objects(  # type: ignore[return-value]
+            v, convert_period=True, convert_interval=True
+        )
 
     if inferred_type == "datetime":
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
@@ -1574,6 +1558,14 @@ def maybe_infer_to_datetimelike(
                 # "ExtensionArray", variable has type "Union[ndarray, List[Any]]")
                 value = try_datetime(v)  # type: ignore[assignment]
 
+    if value.dtype.kind in ["m", "M"] and seen_str:
+        warnings.warn(
+            f"Inferring {value.dtype} from data containing strings is deprecated "
+            "and will be removed in a future version. To retain the old behavior "
+            "explicitly pass Series(data, dtype={value.dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     return value
 
 
@@ -1974,75 +1966,12 @@ def construct_1d_object_array_from_listlike(values: Sized) -> np.ndarray:
     return result
 
 
-def construct_1d_ndarray_preserving_na(
-    values: Sequence, dtype: DtypeObj | None = None, copy: bool = False
-) -> np.ndarray:
-    """
-    Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
-
-    Parameters
-    ----------
-    values : Sequence
-    dtype : numpy.dtype, optional
-    copy : bool, default False
-        Note that copies may still be made with ``copy=False`` if casting
-        is required.
-
-    Returns
-    -------
-    arr : ndarray[dtype]
-
-    Examples
-    --------
-    >>> np.array([1.0, 2.0, None], dtype='str')
-    array(['1.0', '2.0', 'None'], dtype='<U4')
-
-    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype=np.dtype('str'))
-    array(['1.0', '2.0', None], dtype=object)
-    """
-
-    if dtype is not None and dtype.kind == "U":
-        subarr = lib.ensure_string_array(values, convert_na_value=False, copy=copy)
-    else:
-        if dtype is not None:
-            _disallow_mismatched_datetimelike(values, dtype)
-
-        if (
-            dtype == object
-            and isinstance(values, np.ndarray)
-            and values.dtype.kind in ["m", "M"]
-        ):
-            # TODO(numpy#12550): special-case can be removed
-            subarr = construct_1d_object_array_from_listlike(list(values))
-        elif (
-            dtype is not None
-            and dtype.kind in ["i", "u"]
-            and isinstance(values, np.ndarray)
-            and values.dtype.kind == "f"
-        ):
-            # Argument 2 to "astype_float_to_int_nansafe" has incompatible
-            # type "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-            return astype_float_to_int_nansafe(
-                values, dtype, copy=copy  # type: ignore[arg-type]
-            )
-        else:
-            # error: Argument "dtype" to "array" has incompatible type
-            # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[dtype[Any],
-            # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any,
-            # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-            subarr = np.array(values, dtype=dtype, copy=copy)  # type: ignore[arg-type]
-
-    return subarr
-
-
 def maybe_cast_to_integer_array(
     arr: list | np.ndarray, dtype: np.dtype, copy: bool = False
-):
+) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
-
-    .. versionadded:: 0.24.0
 
     Parameters
     ----------
@@ -2105,8 +2034,39 @@ def maybe_cast_to_integer_array(
     if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
         raise OverflowError("Trying to coerce negative values to unsigned integers")
 
-    if is_float_dtype(arr.dtype) or is_object_dtype(arr.dtype):
+    if is_float_dtype(arr.dtype):
+        if not np.isfinite(arr).all():
+            raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer"
+            )
         raise ValueError("Trying to coerce float values to integers")
+    if is_object_dtype(arr.dtype):
+        raise ValueError("Trying to coerce float values to integers")
+
+    if casted.dtype < arr.dtype:
+        # GH#41734 e.g. [1, 200, 923442] and dtype="int8" -> overflows
+        warnings.warn(
+            f"Values are too large to be losslessly cast to {dtype}. "
+            "In a future version this will raise OverflowError. To retain the "
+            f"old behavior, use pd.Series(values).astype({dtype})",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return casted
+
+    if arr.dtype.kind in ["m", "M"]:
+        # test_constructor_maskedarray_nonfloat
+        warnings.warn(
+            f"Constructing Series or DataFrame from {arr.dtype} values and "
+            f"dtype={dtype} is deprecated and will raise in a future version. "
+            "Use values.view(dtype) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return casted
+
+    # No known cases that get here, but raising explicitly to cover our bases.
+    raise ValueError(f"values cannot be losslessly cast to {dtype}")
 
 
 def convert_scalar_for_putitemlike(scalar: Scalar, dtype: np.dtype) -> Scalar:
@@ -2204,6 +2164,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     if dtype.kind in ["i", "u"]:
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
+                if is_float(element) and element.is_integer():
+                    return True
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:

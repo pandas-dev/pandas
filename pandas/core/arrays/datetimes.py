@@ -83,6 +83,7 @@ from pandas.tseries.offsets import (
 if TYPE_CHECKING:
     from typing import Literal
 
+    from pandas import DataFrame
     from pandas.core.arrays import (
         PeriodArray,
         TimedeltaArray,
@@ -150,8 +151,6 @@ def _field_accessor(name, field, docstring=None):
 class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
-
-    .. versionadded:: 0.24.0
 
     .. warning::
 
@@ -510,7 +509,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Descriptive Properties
 
     def _box_func(self, x) -> Timestamp | NaTType:
-        return Timestamp(x, freq=self.freq, tz=self.tz)
+        ts = Timestamp(x, tz=self.tz)
+        # Non-overlapping identity check (left operand type: "Timestamp",
+        # right operand type: "NaTType")
+        if ts is not NaT:  # type: ignore[comparison-overlap]
+            # GH#41586
+            # do this instead of passing to the constructor to avoid FutureWarning
+            ts._set_freq(self.freq)
+        return ts
 
     @property
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
@@ -603,13 +609,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             length = len(self)
             chunksize = 10000
             chunks = (length // chunksize) + 1
-            for i in range(chunks):
-                start_i = i * chunksize
-                end_i = min((i + 1) * chunksize, length)
-                converted = ints_to_pydatetime(
-                    data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
-                )
-                yield from converted
+
+            with warnings.catch_warnings():
+                # filter out warnings about Timestamp.freq
+                warnings.filterwarnings("ignore", category=FutureWarning)
+
+                for i in range(chunks):
+                    start_i = i * chunksize
+                    end_i = min((i + 1) * chunksize, length)
+                    converted = ints_to_pydatetime(
+                        data[start_i:end_i], tz=self.tz, freq=self.freq, box="timestamp"
+                    )
+                    yield from converted
 
     def astype(self, dtype, copy: bool = True):
         # We handle
@@ -897,8 +908,6 @@ default 'raise'
             - timedelta objects will shift nonexistent times by the timedelta
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -1248,7 +1257,7 @@ default 'raise'
         return result
 
     @property
-    def time(self):
+    def time(self) -> np.ndarray:
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1260,7 +1269,7 @@ default 'raise'
         return ints_to_pydatetime(timestamps, box="time")
 
     @property
-    def timetz(self):
+    def timetz(self) -> np.ndarray:
         """
         Returns numpy array of datetime.time also containing timezone
         information. The time part of the Timestamps.
@@ -1268,7 +1277,7 @@ default 'raise'
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
-    def date(self):
+    def date(self) -> np.ndarray:
         """
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
@@ -1280,7 +1289,7 @@ default 'raise'
 
         return ints_to_pydatetime(timestamps, box="date")
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         """
         Returns a DataFrame with the year, week, and day calculated according to
         the ISO 8601 standard.
@@ -1863,7 +1872,7 @@ default 'raise'
         """,
     )
 
-    def to_julian_date(self):
+    def to_julian_date(self) -> np.ndarray:
         """
         Convert Datetime Array to float64 ndarray of Julian Dates.
         0 Julian date is noon January 1, 4713 BC.
@@ -2104,7 +2113,6 @@ def sequence_to_dt64ns(
         result = data.view(DT64NS_DTYPE)
 
     if copy:
-        # TODO: should this be deepcopy?
         result = result.copy()
 
     assert isinstance(result, np.ndarray), type(result)

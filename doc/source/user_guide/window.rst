@@ -37,14 +37,14 @@ pandas supports 4 types of windowing operations:
 #. Expanding window: Accumulating window over the values.
 #. Exponentially Weighted window: Accumulating and exponentially weighted window over the values.
 
-=============================   =================  ===========================   ===========================  ========================  ===================================
-Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby  Supports table method
-=============================   =================  ===========================   ===========================  ========================  ===================================
-Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes (as of version 1.3)
-Weighted window                 ``rolling``        ``Window``                    No                           No                        No
-Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes (as of version 1.3)
-Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No
-=============================   =================  ===========================   ===========================  ========================  ===================================
+=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
+Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
+=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
+Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
+Weighted window                 ``rolling``        ``Window``                    No                           No                        No                                   No
+Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
+Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
+=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
 
 As noted above, some operations support specifying a window based on a time offset:
 
@@ -76,7 +76,7 @@ which will first group the data by the specified keys and then perform a windowi
     to compute the rolling sums to preserve accuracy as much as possible.
 
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
 performs the windowing operation over an entire :class:`DataFrame` instead of a single column or row at a time.
@@ -98,6 +98,26 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
    df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa:E501
 
+.. versionadded:: 1.3
+
+Some windowing operations also support an ``online`` method after constructing a windowing object
+which returns a new object that supports passing in new :class:`DataFrame` or :class:`Series` objects
+to continue the windowing calculation with the new values (i.e. online calculations).
+
+The methods on this new windowing objects must call the aggregation method first to "prime" the initial
+state of the online calculation. Then, new :class:`DataFrame` or :class:`Series` objects can be passed in
+the ``update`` argument to continue the windowing calculation.
+
+.. ipython:: python
+
+   df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
+   df.ewm(0.5).mean()
+
+.. ipython:: python
+
+   online_ewm = df.head(2).ewm(0.5).online()
+   online_ewm.mean()
+   online_ewm.mean(update=df.tail(1))
 
 All windowing operations support a ``min_periods`` argument that dictates the minimum amount of
 non-``np.nan`` values a window must have; otherwise, the resulting value is ``np.nan``.
@@ -159,7 +179,7 @@ By default the labels are set to the right edge of the window, but a
 
 This can also be applied to datetime-like indices.
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 .. ipython:: python
 
@@ -299,6 +319,24 @@ forward-looking rolling window, and we can use it as follows:
    indexer = FixedForwardWindowIndexer(window_size=2)
    df.rolling(indexer, min_periods=1).sum()
 
+We can also achieve this by using slicing, applying rolling aggregation, and then flipping the result as shown in example below:
+
+.. ipython:: python
+
+   df = pd.DataFrame(
+       data=[
+           [pd.Timestamp("2018-01-01 00:00:00"), 100],
+           [pd.Timestamp("2018-01-01 00:00:01"), 101],
+           [pd.Timestamp("2018-01-01 00:00:03"), 103],
+           [pd.Timestamp("2018-01-01 00:00:04"), 111],
+       ],
+       columns=["time", "value"],
+   ).set_index("time")
+   df
+
+   reversed_df = df[::-1].rolling("2s").sum()[::-1]
+   reversed_df
+
 .. _window.rolling_apply:
 
 Rolling apply
@@ -332,7 +370,7 @@ Numba will be applied in potentially two routines:
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
-.. versionadded:: 1.3
+.. versionadded:: 1.3.0
 
 ``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 

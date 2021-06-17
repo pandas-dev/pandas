@@ -37,7 +37,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import ABCSeries
 
-import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -107,20 +106,22 @@ class NumericIndex(Index):
         else:
             return False
 
-    @cache_readonly
+    _engine_types: dict[np.dtype, type[libindex.IndexEngine]] = {
+        np.dtype(np.int8): libindex.Int8Engine,
+        np.dtype(np.int16): libindex.Int16Engine,
+        np.dtype(np.int32): libindex.Int32Engine,
+        np.dtype(np.int64): libindex.Int64Engine,
+        np.dtype(np.uint8): libindex.UInt8Engine,
+        np.dtype(np.uint16): libindex.UInt16Engine,
+        np.dtype(np.uint32): libindex.UInt32Engine,
+        np.dtype(np.uint64): libindex.UInt64Engine,
+        np.dtype(np.float32): libindex.Float32Engine,
+        np.dtype(np.float64): libindex.Float64Engine,
+    }
+
+    @property
     def _engine_type(self):
-        return {
-            np.int8: libindex.Int8Engine,
-            np.int16: libindex.Int16Engine,
-            np.int32: libindex.Int32Engine,
-            np.int64: libindex.Int64Engine,
-            np.uint8: libindex.UInt8Engine,
-            np.uint16: libindex.UInt16Engine,
-            np.uint32: libindex.UInt32Engine,
-            np.uint64: libindex.UInt64Engine,
-            np.float32: libindex.Float32Engine,
-            np.float64: libindex.Float64Engine,
-        }[self.dtype.type]
+        return self._engine_types[self.dtype]
 
     @cache_readonly
     def inferred_type(self) -> str:
@@ -250,21 +251,6 @@ class NumericIndex(Index):
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
-    @doc(Index._convert_arr_indexer)
-    def _convert_arr_indexer(self, keyarr) -> np.ndarray:
-        if not is_unsigned_integer_dtype(self.dtype):
-            return super()._convert_arr_indexer(keyarr)
-
-        # Cast the indexer to uint64 if possible so that the values returned
-        # from indexing are also uint64.
-        dtype = None
-        if is_integer_dtype(keyarr) or (
-            lib.infer_dtype(keyarr, skipna=False) == "integer"
-        ):
-            dtype = np.dtype(np.uint64)
-
-        return com.asarray_tuplesafe(keyarr, dtype=dtype)
-
     # ----------------------------------------------------------------
 
     @doc(Index._shallow_copy)
@@ -383,6 +369,16 @@ class UInt64Index(IntegerIndex):
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.dtype(np.uint64)
     _dtype_validation_metadata = (is_unsigned_integer_dtype, "unsigned integer")
+
+    def _validate_fill_value(self, value):
+        # e.g. np.array([1]) we want np.array([1], dtype=np.uint64)
+        #  see test_where_uin64
+        super()._validate_fill_value(value)
+        if hasattr(value, "dtype") and is_signed_integer_dtype(value.dtype):
+            if (value >= 0).all():
+                return value.astype(self.dtype)
+            raise TypeError
+        return value
 
 
 class Float64Index(NumericIndex):

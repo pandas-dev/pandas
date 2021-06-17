@@ -342,7 +342,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                 result, **reconstruct_axes, **reconstruct_kwargs, copy=False
             )
         # TODO: When we support multiple values in __finalize__, this
-        # should pass alignable to `__fianlize__` instead of self.
+        # should pass alignable to `__finalize__` instead of self.
         # Then `np.add(a, b)` would consider attrs from both a and b
         # when a and b are NDFrames.
         if len(alignable) == 1:
