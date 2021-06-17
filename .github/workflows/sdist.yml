@@ -8,6 +8,9 @@ on:
     branches:
       - master
       - 1.2.x
+      - 1.3.x
+    paths-ignore:
+      - "doc/**"
 
 jobs:
   build:
@@ -28,16 +31,16 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install numpy cython python-dateutil pytz hypothesis pytest pytest-xdist
+        pip install numpy python-dateutil pytz
         pip list
 
     - name: Build Pandas sdist
       run: |
-        python setup.py build_ext -q -j2
         python setup.py sdist --formats=gztar
 
     - name: Install Pandas From sdist
       run: |
+        pip install cython hypothesis pytest pytest-xdist
         pip install dist/*.gz
 
     - name: Build Version
