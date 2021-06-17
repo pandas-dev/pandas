@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas.core.internals import ObjectBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -43,10 +45,19 @@ class BaseCastingTests(BaseExtensionTests):
         expected = pd.Series([str(x) for x in data[:5]], dtype=str)
         self.assert_series_equal(result, expected)
 
-    def test_astype_string(self, data):
+    @pytest.mark.parametrize(
+        "nullable_string_dtype",
+        [
+            "string[python]",
+            pytest.param(
+                "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+            ),
+        ],
+    )
+    def test_astype_string(self, data, nullable_string_dtype):
         # GH-33465
-        result = pd.Series(data[:5]).astype("string")
-        expected = pd.Series([str(x) for x in data[:5]], dtype="string")
+        result = pd.Series(data[:5]).astype(nullable_string_dtype)
+        expected = pd.Series([str(x) for x in data[:5]], dtype=nullable_string_dtype)
         self.assert_series_equal(result, expected)
 
     def test_to_numpy(self, data):

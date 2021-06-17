@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    cast,
     overload,
 )
 
@@ -15,12 +16,16 @@ from pandas._libs import (
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_1d_only_ea_obj,
+)
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
 
@@ -74,7 +79,7 @@ def take_nd(
         Axis to take from
     fill_value : any, default np.nan
         Fill value to replace -1 values with
-    allow_fill : boolean, default True
+    allow_fill : bool, default True
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
@@ -90,6 +95,13 @@ def take_nd(
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
         # includes for EA to catch DatetimeArray, TimedeltaArray
+        if not is_1d_only_ea_obj(arr):
+            # i.e. DatetimeArray, TimedeltaArray
+            arr = cast("NDArrayBackedExtensionArray", arr)
+            return arr.take(
+                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
+            )
+
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)
@@ -110,11 +122,8 @@ def _take_nd_ndarray(
     else:
         indexer = ensure_platform_int(indexer)
 
-    if not allow_fill:
-        return arr.take(indexer, axis=axis)
-
-    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, fill_value
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, fill_value, allow_fill
     )
 
     flip_order = False
@@ -181,8 +190,8 @@ def take_1d(
     if not allow_fill:
         return arr.take(indexer)
 
-    dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
-        arr, indexer, fill_value
+    indexer, dtype, fill_value, mask_info = _take_preprocess_indexer_and_fill_value(
+        arr, indexer, fill_value, True
     )
 
     # at this point, it's guaranteed that dtype can hold both the arr values
@@ -509,21 +518,27 @@ def _take_preprocess_indexer_and_fill_value(
     arr: np.ndarray,
     indexer: np.ndarray,
     fill_value,
+    allow_fill: bool,
 ):
     mask_info = None
 
-    # check for promotion based on types only (do this first because
-    # it's faster than computing a mask)
-    dtype, fill_value = maybe_promote(arr.dtype, fill_value)
-    if dtype != arr.dtype:
-        # check if promotion is actually required based on indexer
-        mask = indexer == -1
-        needs_masking = mask.any()
-        mask_info = mask, needs_masking
-        if not needs_masking:
-            # if not, then depromote, set fill_value to dummy
-            # (it won't be used but we don't want the cython code
-            # to crash when trying to cast it to dtype)
-            dtype, fill_value = arr.dtype, arr.dtype.type()
+    if not allow_fill:
+        dtype, fill_value = arr.dtype, arr.dtype.type()
+        mask_info = None, False
+    else:
+        # check for promotion based on types only (do this first because
+        # it's faster than computing a mask)
+        dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+        if dtype != arr.dtype:
+            # check if promotion is actually required based on indexer
+            mask = indexer == -1
+            needs_masking = mask.any()
+            mask_info = mask, needs_masking
+            if not needs_masking:
+                # if not, then depromote, set fill_value to dummy
+                # (it won't be used but we don't want the cython code
+                # to crash when trying to cast it to dtype)
+                dtype, fill_value = arr.dtype, arr.dtype.type()
 
-    return dtype, fill_value, mask_info
+    indexer = ensure_platform_int(indexer)
+    return indexer, dtype, fill_value, mask_info

@@ -546,7 +546,13 @@ class TestDataFrameColor(TestPlotBase):
 
         df = DataFrame(np.random.randn(5, 5))
         bp = df.plot.box(return_type="dict")
-        _check_colors(bp, default_colors[0], default_colors[0], default_colors[2])
+        _check_colors(
+            bp,
+            default_colors[0],
+            default_colors[0],
+            default_colors[2],
+            default_colors[0],
+        )
         tm.close()
 
         dict_colors = {
@@ -569,7 +575,7 @@ class TestDataFrameColor(TestPlotBase):
         # partial colors
         dict_colors = {"whiskers": "c", "medians": "m"}
         bp = df.plot.box(color=dict_colors, return_type="dict")
-        _check_colors(bp, default_colors[0], "c", "m")
+        _check_colors(bp, default_colors[0], "c", "m", default_colors[0])
         tm.close()
 
         from matplotlib import cm
@@ -577,12 +583,12 @@ class TestDataFrameColor(TestPlotBase):
         # Test str -> colormap functionality
         bp = df.plot.box(colormap="jet", return_type="dict")
         jet_colors = [cm.jet(n) for n in np.linspace(0, 1, 3)]
-        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2])
+        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0])
         tm.close()
 
         # Test colormap functionality
         bp = df.plot.box(colormap=cm.jet, return_type="dict")
-        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2])
+        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0])
         tm.close()
 
         # string color is applied to all artists except fliers

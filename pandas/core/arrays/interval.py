@@ -7,9 +7,7 @@ from operator import (
 )
 import textwrap
 from typing import (
-    Optional,
     Sequence,
-    Type,
     TypeVar,
     cast,
 )
@@ -34,7 +32,6 @@ from pandas._typing import (
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
@@ -89,7 +86,7 @@ from pandas.core.ops import (
 
 IntervalArrayT = TypeVar("IntervalArrayT", bound="IntervalArray")
 
-_interval_shared_docs = {}
+_interval_shared_docs: dict[str, str] = {}
 
 _shared_docs_kwargs = {
     "klass": "IntervalArray",
@@ -198,10 +195,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Constructors
 
     def __new__(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         data,
         closed=None,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
     ):
@@ -240,12 +237,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         left,
         right,
         closed=None,
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         verify_integrity: bool = True,
     ) -> IntervalArrayT:
         result = IntervalMixin.__new__(cls)
@@ -327,17 +324,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _from_sequence(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         scalars,
         *,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
         copy: bool = False,
     ) -> IntervalArrayT:
         return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(
-        cls: Type[IntervalArrayT], values: np.ndarray, original: IntervalArrayT
+        cls: type[IntervalArrayT], values: np.ndarray, original: IntervalArrayT
     ) -> IntervalArrayT:
         if len(values) == 0:
             # An empty array returns object-dtype here. We can't create
@@ -394,11 +391,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_breaks(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         breaks,
         closed="right",
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         breaks = _maybe_convert_platform_interval(breaks)
 
@@ -469,12 +466,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_arrays(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         left,
         right,
         closed="right",
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         left = _maybe_convert_platform_interval(left)
         right = _maybe_convert_platform_interval(right)
@@ -533,11 +530,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         }
     )
     def from_tuples(
-        cls: Type[IntervalArrayT],
+        cls: type[IntervalArrayT],
         data,
         closed="right",
         copy: bool = False,
-        dtype: Optional[Dtype] = None,
+        dtype: Dtype | None = None,
     ) -> IntervalArrayT:
         if len(data):
             left, right = [], []
@@ -804,7 +801,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
 
-        value_left, value_right = self._validate_fill_value(value)
+        value_left, value_right = self._validate_scalar(value)
 
         left = self.left.fillna(value=value_left)
         right = self.right.fillna(value=value_right)
@@ -875,7 +872,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(
-        cls: Type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
+        cls: type[IntervalArrayT], to_concat: Sequence[IntervalArrayT]
     ) -> IntervalArrayT:
         """
         Concatenate multiple IntervalArray
@@ -1003,7 +1000,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         fill_left = fill_right = fill_value
         if allow_fill:
-            fill_left, fill_right = self._validate_fill_value(fill_value)
+            fill_left, fill_right = self._validate_scalar(fill_value)
 
         left_take = take(
             self._left, indices, allow_fill=allow_fill, fill_value=fill_left
@@ -1040,6 +1037,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
+            # TODO: check subdtype match like _validate_setitem_value?
         elif is_valid_na_for_dtype(value, self.left.dtype):
             # GH#18295
             left = right = value
@@ -1048,9 +1046,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 "can only insert Interval objects and NA into an IntervalArray"
             )
         return left, right
-
-    def _validate_fill_value(self, value):
-        return self._validate_scalar(value)
 
     def _validate_setitem_value(self, value):
         needs_float_conversion = False
@@ -1214,8 +1209,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         other : %(klass)s
@@ -1294,8 +1287,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an %(klass)s identical to the current one, but closed on the
         specified side.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1378,7 +1369,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
@@ -1519,7 +1510,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     @Appender(_extension_array_shared_docs["repeat"] % _shared_docs_kwargs)
-    def repeat(self: IntervalArrayT, repeats: int, axis=None) -> IntervalArrayT:
+    def repeat(
+        self: IntervalArrayT,
+        repeats: int | Sequence[int],
+        axis: int | None = None,
+    ) -> IntervalArrayT:
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
         right_repeat = self.right.repeat(repeats)
@@ -1648,4 +1643,6 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     else:
         values = extract_array(values, extract_numpy=True)
 
-    return maybe_convert_platform(values)
+    if not hasattr(values, "dtype"):
+        return np.asarray(values)
+    return values

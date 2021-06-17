@@ -342,7 +342,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
                 result, **reconstruct_axes, **reconstruct_kwargs, copy=False
             )
         # TODO: When we support multiple values in __finalize__, this
-        # should pass alignable to `__fianlize__` instead of self.
+        # should pass alignable to `__finalize__` instead of self.
         # Then `np.add(a, b)` would consider attrs from both a and b
         # when a and b are NDFrames.
         if len(alignable) == 1:
@@ -357,15 +357,17 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         # * len(inputs) > 1 is doable when we know that we have
         #   aligned blocks / dtypes.
         inputs = tuple(np.asarray(x) for x in inputs)
-        result = getattr(ufunc, method)(*inputs)
+        result = getattr(ufunc, method)(*inputs, **kwargs)
     elif self.ndim == 1:
         # ufunc(series, ...)
         inputs = tuple(extract_array(x, extract_numpy=True) for x in inputs)
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
-        if method == "__call__":
+        if method == "__call__" and not kwargs:
             # for np.<ufunc>(..) calls
+            # kwargs cannot necessarily be handled block-by-block, so only
+            # take this path if there are no kwargs
             mgr = inputs[0]._mgr
             result = mgr.apply(getattr(ufunc, method))
         else:

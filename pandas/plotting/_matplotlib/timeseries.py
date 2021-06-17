@@ -5,7 +5,6 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
-    Optional,
     cast,
 )
 
@@ -186,7 +185,7 @@ def _get_ax_freq(ax: Axes):
     return ax_freq
 
 
-def _get_period_alias(freq) -> Optional[str]:
+def _get_period_alias(freq) -> str | None:
     freqstr = to_offset(freq).rule_code
 
     freq = get_period_alias(freqstr)
@@ -239,7 +238,7 @@ def use_dynamic_x(ax: Axes, data: FrameOrSeriesUnion) -> bool:
     return True
 
 
-def _get_index_freq(index: Index) -> Optional[BaseOffset]:
+def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)

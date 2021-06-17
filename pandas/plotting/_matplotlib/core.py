@@ -3,9 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Hashable,
-    List,
-    Optional,
-    Tuple,
 )
 import warnings
 
@@ -94,7 +91,7 @@ class MPLPlot:
 
     _layout_type = "vertical"
     _default_rot = 0
-    orientation: Optional[str] = None
+    orientation: str | None = None
 
     axes: np.ndarray  # of Axes objects
 
@@ -118,8 +115,8 @@ class MPLPlot:
         ylim=None,
         xticks=None,
         yticks=None,
-        xlabel: Optional[Hashable] = None,
-        ylabel: Optional[Hashable] = None,
+        xlabel: Hashable | None = None,
+        ylabel: Hashable | None = None,
         sort_columns=False,
         fontsize=None,
         secondary_y=False,
@@ -180,8 +177,8 @@ class MPLPlot:
 
         self.grid = grid
         self.legend = legend
-        self.legend_handles: List[Artist] = []
-        self.legend_labels: List[Hashable] = []
+        self.legend_handles: list[Artist] = []
+        self.legend_labels: list[Hashable] = []
 
         self.logx = kwds.pop("logx", False)
         self.logy = kwds.pop("logy", False)
@@ -569,7 +566,7 @@ class MPLPlot:
                     label.set_fontsize(fontsize)
 
     @property
-    def legend_title(self) -> Optional[str]:
+    def legend_title(self) -> str | None:
         if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
@@ -599,7 +596,7 @@ class MPLPlot:
         self.legend_labels.append(label)
 
     def _make_legend(self):
-        ax, leg, handle = self._get_ax_legend_handle(self.axes[0])
+        ax, leg = self._get_ax_legend(self.axes[0])
 
         handles = []
         labels = []
@@ -609,7 +606,7 @@ class MPLPlot:
             if leg is not None:
                 title = leg.get_title().get_text()
                 # Replace leg.LegendHandles because it misses marker info
-                handles.extend(handle)
+                handles = leg.legendHandles
                 labels = [x.get_text() for x in leg.get_texts()]
 
             if self.legend:
@@ -640,14 +637,12 @@ class MPLPlot:
                 if ax.get_visible():
                     ax.legend(loc="best")
 
-    def _get_ax_legend_handle(self, ax: Axes):
+    def _get_ax_legend(self, ax: Axes):
         """
-        Take in axes and return ax, legend and handle under different scenarios
+        Take in axes and return ax and legend under different scenarios
         """
         leg = ax.get_legend()
 
-        # Get handle from axes
-        handle, _ = ax.get_legend_handles_labels()
         other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
         other_leg = None
         if other_ax is not None:
@@ -655,7 +650,7 @@ class MPLPlot:
         if leg is None and other_leg is not None:
             leg = other_leg
             ax = other_ax
-        return ax, leg, handle
+        return ax, leg
 
     @cache_readonly
     def plt(self):
@@ -715,7 +710,7 @@ class MPLPlot:
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
-    def _get_index_name(self) -> Optional[str]:
+    def _get_index_name(self) -> str | None:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com.any_not_none(*name):
@@ -922,7 +917,7 @@ class MPLPlot:
             ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
         ]
 
-    def _get_axes_layout(self) -> Tuple[int, int]:
+    def _get_axes_layout(self) -> tuple[int, int]:
         axes = self._get_subplots()
         x_set = set()
         y_set = set()

@@ -23,7 +23,8 @@ Styler properties
    :toctree: api/
 
    Styler.env
-   Styler.template
+   Styler.template_html
+   Styler.template_latex
    Styler.loader
 
 Style application
@@ -33,7 +34,6 @@ Style application
 
    Styler.apply
    Styler.applymap
-   Styler.where
    Styler.format
    Styler.set_td_classes
    Styler.set_table_styles
@@ -53,7 +53,10 @@ Builtin styles
    Styler.highlight_null
    Styler.highlight_max
    Styler.highlight_min
+   Styler.highlight_between
+   Styler.highlight_quantile
    Styler.background_gradient
+   Styler.text_gradient
    Styler.bar
 
 Style export and import
@@ -64,4 +67,6 @@ Style export and import
    Styler.render
    Styler.export
    Styler.use
+   Styler.to_html
    Styler.to_excel
+   Styler.to_latex

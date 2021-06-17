@@ -2,13 +2,9 @@
 :mod:`pandas.io.xml` is a module for reading XML.
 """
 
+from __future__ import annotations
+
 import io
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Union,
-)
 
 from pandas._typing import (
     Buffer,
@@ -124,7 +120,7 @@ class _XMLFrameParser:
         self.compression = compression
         self.storage_options = storage_options
 
-    def parse_data(self) -> List[Dict[str, Optional[str]]]:
+    def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
 
@@ -134,7 +130,7 @@ class _XMLFrameParser:
 
         raise AbstractMethodError(self)
 
-    def _parse_nodes(self) -> List[Dict[str, Optional[str]]]:
+    def _parse_nodes(self) -> list[dict[str, str | None]]:
         """
         Parse xml nodes.
 
@@ -206,7 +202,7 @@ class _EtreeFrameParser(_XMLFrameParser):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def parse_data(self) -> List[Dict[str, Optional[str]]]:
+    def parse_data(self) -> list[dict[str, str | None]]:
         from xml.etree.ElementTree import XML
 
         if self.stylesheet is not None:
@@ -221,9 +217,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
         return self._parse_nodes()
 
-    def _parse_nodes(self) -> List[Dict[str, Optional[str]]]:
+    def _parse_nodes(self) -> list[dict[str, str | None]]:
         elems = self.xml_doc.findall(self.xpath, namespaces=self.namespaces)
-        dicts: List[Dict[str, Optional[str]]]
+        dicts: list[dict[str, str | None]]
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
@@ -382,7 +378,7 @@ class _LxmlFrameParser(_XMLFrameParser):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def parse_data(self) -> List[Dict[str, Optional[str]]]:
+    def parse_data(self) -> list[dict[str, str | None]]:
         """
         Parse xml data.
 
@@ -403,9 +399,9 @@ class _LxmlFrameParser(_XMLFrameParser):
 
         return self._parse_nodes()
 
-    def _parse_nodes(self) -> List[Dict[str, Optional[str]]]:
+    def _parse_nodes(self) -> list[dict[str, str | None]]:
         elems = self.xml_doc.xpath(self.xpath, namespaces=self.namespaces)
-        dicts: List[Dict[str, Optional[str]]]
+        dicts: list[dict[str, str | None]]
 
         if self.elems_only and self.attrs_only:
             raise ValueError("Either element or attributes can be parsed not both.")
@@ -583,7 +579,7 @@ def get_data_from_filepath(
     encoding,
     compression,
     storage_options,
-) -> Union[str, bytes, Buffer]:
+) -> str | bytes | Buffer:
     """
     Extract raw XML data.
 
@@ -622,7 +618,7 @@ def get_data_from_filepath(
     return filepath_or_buffer
 
 
-def preprocess_data(data) -> Union[io.StringIO, io.BytesIO]:
+def preprocess_data(data) -> io.StringIO | io.BytesIO:
     """
     Convert extracted raw data.
 
@@ -694,7 +690,7 @@ def _parse(
 
     lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
-    p: Union[_EtreeFrameParser, _LxmlFrameParser]
+    p: _EtreeFrameParser | _LxmlFrameParser
 
     if parser == "lxml":
         if lxml is not None:
@@ -737,14 +733,14 @@ def _parse(
 @doc(storage_options=_shared_docs["storage_options"])
 def read_xml(
     path_or_buffer: FilePathOrBuffer,
-    xpath: Optional[str] = "./*",
-    namespaces: Optional[Union[dict, List[dict]]] = None,
-    elems_only: Optional[bool] = False,
-    attrs_only: Optional[bool] = False,
-    names: Optional[List[str]] = None,
-    encoding: Optional[str] = "utf-8",
-    parser: Optional[str] = "lxml",
-    stylesheet: Optional[FilePathOrBuffer] = None,
+    xpath: str | None = "./*",
+    namespaces: dict | list[dict] | None = None,
+    elems_only: bool | None = False,
+    attrs_only: bool | None = False,
+    names: list[str] | None = None,
+    encoding: str | None = "utf-8",
+    parser: str | None = "lxml",
+    stylesheet: FilePathOrBuffer | None = None,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions = None,
 ) -> DataFrame:

@@ -5,9 +5,7 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
     TypeVar,
-    Union,
 )
 
 import numpy as np
@@ -41,7 +39,7 @@ T = TypeVar("T", bound="NumericArray")
 
 class NumericDtype(BaseMaskedDtype):
     def __from_arrow__(
-        self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
     ) -> BaseMaskedArray:
         """
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
@@ -68,7 +66,11 @@ class NumericDtype(BaseMaskedDtype):
             num_arr = array_class(data.copy(), ~mask, copy=False)
             results.append(num_arr)
 
-        if len(results) == 1:
+        if not results:
+            return array_class(
+                np.array([], dtype=self.numpy_dtype), np.array([], dtype=np.bool_)
+            )
+        elif len(results) == 1:
             # avoid additional copy in _concat_same_type
             return results[0]
         else:
@@ -172,7 +174,7 @@ class NumericArray(BaseMaskedArray):
             return result
 
         mask = np.zeros(len(self), dtype=bool)
-        inputs2: List[Any] = []
+        inputs2: list[Any] = []
         for x in inputs:
             if isinstance(x, NumericArray):
                 mask |= x._mask

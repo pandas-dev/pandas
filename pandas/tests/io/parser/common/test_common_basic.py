@@ -7,6 +7,7 @@ from inspect import signature
 from io import StringIO
 import os
 from pathlib import Path
+import sys
 
 import numpy as np
 import pytest
@@ -14,6 +15,7 @@ import pytest
 from pandas.errors import (
     EmptyDataError,
     ParserError,
+    ParserWarning,
 )
 
 from pandas import (
@@ -631,6 +633,20 @@ def test_read_table_equivalency_to_read_csv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("read_func", ["read_csv", "read_table"])
+def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
+    # GH#41069
+    parser = all_parsers
+    data = "a b\n0 1"
+
+    sys.setprofile(lambda *a, **k: None)
+    result = getattr(parser, read_func)(StringIO(data))
+    sys.setprofile(None)
+
+    expected = DataFrame({"a b": ["0 1"]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_first_row_bom(all_parsers):
     # see gh-26545
     parser = all_parsers
@@ -670,7 +686,8 @@ def test_no_header_two_extra_columns(all_parsers):
     ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
-    df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
+    with tm.assert_produces_warning(ParserWarning):
+        df = parser.read_csv(stream, header=None, names=column_names, index_col=False)
     tm.assert_frame_equal(df, ref)
 
 
@@ -709,6 +726,27 @@ def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
 
 
+def test_read_csv_delimiter_and_sep_no_default(all_parsers):
+    # GH#39823
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = "Specified a sep and a delimiter; you can only specify one."
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(f, sep=" ", delimiter=".")
+
+
+def test_read_csv_posargs_deprecation(all_parsers):
+    # GH 41485
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = (
+        "In a future version of pandas all arguments of read_csv "
+        "except for the argument 'filepath_or_buffer' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        parser.read_csv(f, " ")
+
+
 @pytest.mark.parametrize("delimiter", [",", "\t"])
 def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
     # GH: 35958
@@ -723,6 +761,18 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
+
+
+@pytest.mark.parametrize("func", ["read_csv", "read_table"])
+@pytest.mark.parametrize("prefix", [None, "x"])
+@pytest.mark.parametrize("names", [None, ["a"]])
+def test_names_and_prefix_not_lib_no_default(all_parsers, names, prefix, func):
+    # GH#39123
+    f = StringIO("a,b\n1,2")
+    parser = all_parsers
+    msg = "Specified named and prefix; you can only specify one."
+    with pytest.raises(ValueError, match=msg):
+        getattr(parser, func)(f, names=names, prefix=prefix)
 
 
 def test_dict_keys_as_names(all_parsers):
@@ -755,6 +805,19 @@ def test_encoding_surrogatepass(all_parsers):
             parser.read_csv(path)
 
 
+@pytest.mark.parametrize("on_bad_lines", ["error", "warn"])
+def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
+    # GH 15122
+    parser = all_parsers
+    kwds = {f"{on_bad_lines}_bad_lines": False}
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        parser.read_csv(csv1, **kwds)
+
+
 def test_malformed_second_line(all_parsers):
     # see GH14782
     parser = all_parsers
@@ -762,3 +825,15 @@ def test_malformed_second_line(all_parsers):
     result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
     expected = DataFrame({"a": ["b"]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_table_posargs_deprecation(all_parsers):
+    # https://github.com/pandas-dev/pandas/issues/41485
+    data = StringIO("a\tb\n1\t2")
+    parser = all_parsers
+    msg = (
+        "In a future version of pandas all arguments of read_table "
+        "except for the argument 'filepath_or_buffer' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        parser.read_table(data, " ")

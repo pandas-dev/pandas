@@ -5,9 +5,6 @@ import itertools
 import operator
 from typing import (
     Any,
-    Optional,
-    Tuple,
-    Union,
     cast,
 )
 import warnings
@@ -123,7 +120,7 @@ class bottleneck_switch:
         def f(
             values: np.ndarray,
             *,
-            axis: Optional[int] = None,
+            axis: int | None = None,
             skipna: bool = True,
             **kwds,
         ):
@@ -192,9 +189,9 @@ def _has_infs(result) -> bool:
 
 
 def _get_fill_value(
-    dtype: DtypeObj, fill_value: Optional[Scalar] = None, fill_value_typ=None
+    dtype: DtypeObj, fill_value: Scalar | None = None, fill_value_typ=None
 ):
-    """ return the correct fill value for the dtype of the values """
+    """return the correct fill value for the dtype of the values"""
     if fill_value is not None:
         return fill_value
     if _na_ok_dtype(dtype):
@@ -208,14 +205,14 @@ def _get_fill_value(
     else:
         if fill_value_typ == "+inf":
             # need the max int here
-            return np.iinfo(np.int64).max
+            return lib.i8max
         else:
             return iNaT
 
 
 def _maybe_get_mask(
-    values: np.ndarray, skipna: bool, mask: Optional[np.ndarray]
-) -> Optional[np.ndarray]:
+    values: np.ndarray, skipna: bool, mask: np.ndarray | None
+) -> np.ndarray | None:
     """
     Compute a mask if and only if necessary.
 
@@ -261,9 +258,9 @@ def _get_values(
     values: np.ndarray,
     skipna: bool,
     fill_value: Any = None,
-    fill_value_typ: Optional[str] = None,
-    mask: Optional[np.ndarray] = None,
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.dtype, np.dtype, Any]:
+    fill_value_typ: str | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray | None, np.dtype, np.dtype, Any]:
     """
     Utility to get the values view, mask, dtype, dtype_max, and fill_value.
 
@@ -353,7 +350,7 @@ def _na_ok_dtype(dtype: DtypeObj) -> bool:
 
 
 def _wrap_results(result, dtype: np.dtype, fill_value=None):
-    """ wrap our results if needed """
+    """wrap our results if needed"""
     if result is NaT:
         pass
 
@@ -379,7 +376,7 @@ def _wrap_results(result, dtype: np.dtype, fill_value=None):
                 result = np.nan
 
             # raise if we have a timedelta64[ns] which is too large
-            if np.fabs(result) > np.iinfo(np.int64).max:
+            if np.fabs(result) > lib.i8max:
                 raise ValueError("overflow in timedelta operation")
 
             result = Timedelta(result, unit="ns")
@@ -399,9 +396,9 @@ def _datetimelike_compat(func: F) -> F:
     def new_func(
         values: np.ndarray,
         *,
-        axis: Optional[int] = None,
+        axis: int | None = None,
         skipna: bool = True,
-        mask: Optional[np.ndarray] = None,
+        mask: np.ndarray | None = None,
         **kwargs,
     ):
         orig_values = values
@@ -423,9 +420,7 @@ def _datetimelike_compat(func: F) -> F:
     return cast(F, new_func)
 
 
-def _na_for_min_count(
-    values: np.ndarray, axis: Optional[int]
-) -> Union[Scalar, np.ndarray]:
+def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarray:
     """
     Return the missing value for `values`.
 
@@ -459,9 +454,9 @@ def _na_for_min_count(
 def nanany(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> bool:
     """
     Check if any elements along an axis evaluate to True.
@@ -491,6 +486,12 @@ def nanany(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=False, mask=mask)
+
+    # For object type, any won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.any(axis)  # type: ignore[return-value]
@@ -499,9 +500,9 @@ def nanany(
 def nanall(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> bool:
     """
     Check if all elements along an axis evaluate to True.
@@ -509,7 +510,7 @@ def nanall(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -531,6 +532,12 @@ def nanall(
     False
     """
     values, _, _, _, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+
+    # For object type, all won't necessarily return
+    # boolean values (numpy/numpy#4352)
+    if is_object_dtype(values):
+        values = values.astype(bool)
+
     # error: Incompatible return value type (got "Union[bool_, ndarray]", expected
     # "bool")
     return values.all(axis)  # type: ignore[return-value]
@@ -541,10 +548,10 @@ def nanall(
 def nansum(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
     min_count: int = 0,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> float:
     """
     Sum the elements along an axis ignoring NaNs
@@ -552,7 +559,7 @@ def nansum(
     Parameters
     ----------
     values : ndarray[dtype]
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
@@ -581,25 +588,17 @@ def nansum(
         dtype_sum = np.float64  # type: ignore[assignment]
 
     the_sum = values.sum(axis, dtype=dtype_sum)
-    # error: Incompatible types in assignment (expression has type "float", variable has
-    # type "Union[number, ndarray]")
-    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
-    # ndarray]"; expected "ndarray"
-    the_sum = _maybe_null_out(  # type: ignore[assignment]
-        the_sum, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
-    )
+    the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
 
-    # error: Incompatible return value type (got "Union[number, ndarray]", expected
-    # "float")
-    return the_sum  # type: ignore[return-value]
+    return the_sum
 
 
 def _mask_datetimelike_result(
-    result: Union[np.ndarray, np.datetime64, np.timedelta64],
-    axis: Optional[int],
+    result: np.ndarray | np.datetime64 | np.timedelta64,
+    axis: int | None,
     mask: np.ndarray,
     orig_values: np.ndarray,
-) -> Union[np.ndarray, np.datetime64, np.timedelta64, NaTType]:
+) -> np.ndarray | np.datetime64 | np.timedelta64 | NaTType:
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
@@ -617,9 +616,9 @@ def _mask_datetimelike_result(
 def nanmean(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> float:
     """
     Compute the mean of the element along an axis ignoring NaNs
@@ -627,7 +626,7 @@ def nanmean(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -683,7 +682,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -756,7 +755,7 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
 
 
 def get_empty_reduction_result(
-    shape: Tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
+    shape: tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
 ) -> np.ndarray:
     """
     The result from a reduction on an empty ndarray.
@@ -781,11 +780,11 @@ def get_empty_reduction_result(
 
 def _get_counts_nanvar(
     values_shape: Shape,
-    mask: Optional[np.ndarray],
-    axis: Optional[int],
+    mask: np.ndarray | None,
+    axis: int | None,
     ddof: int,
     dtype: Dtype = float,
-) -> Tuple[Union[int, np.ndarray], Union[int, np.ndarray]]:
+) -> tuple[int | np.ndarray, int | np.ndarray]:
     """
     Get the count of non-null values along an axis, accounting
     for degrees of freedom.
@@ -840,7 +839,7 @@ def nanstd(values, *, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -880,7 +879,7 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -944,10 +943,10 @@ def nanvar(values, *, axis=None, skipna=True, ddof=1, mask=None):
 def nansem(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
     ddof: int = 1,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> float:
     """
     Compute the standard error in the mean along given axis while ignoring NaNs
@@ -955,7 +954,7 @@ def nansem(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     ddof : int, default 1
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
@@ -996,9 +995,9 @@ def _nanminmax(meth, fill_value_typ):
     def reduction(
         values: np.ndarray,
         *,
-        axis: Optional[int] = None,
+        axis: int | None = None,
         skipna: bool = True,
-        mask: Optional[np.ndarray] = None,
+        mask: np.ndarray | None = None,
     ) -> Dtype:
 
         values, mask, dtype, dtype_max, fill_value = _get_values(
@@ -1028,15 +1027,15 @@ nanmax = _nanminmax("max", fill_value_typ="-inf")
 def nanargmax(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
-) -> Union[int, np.ndarray]:
+    mask: np.ndarray | None = None,
+) -> int | np.ndarray:
     """
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1061,7 +1060,7 @@ def nanargmax(
            [ 6.,  7., nan],
            [ 9., 10., nan]])
     >>> nanops.nanargmax(arr, axis=1)
-    array([2, 2, 1, 1], dtype=int64)
+    array([2, 2, 1, 1])
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="-inf", mask=mask)
     # error: Need type annotation for 'result'
@@ -1074,15 +1073,15 @@ def nanargmax(
 def nanargmin(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
-) -> Union[int, np.ndarray]:
+    mask: np.ndarray | None = None,
+) -> int | np.ndarray:
     """
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1107,7 +1106,7 @@ def nanargmin(
            [nan,  7.,  8.],
            [nan, 10., 11.]])
     >>> nanops.nanargmin(arr, axis=1)
-    array([0, 0, 1, 1], dtype=int64)
+    array([0, 0, 1, 1])
     """
     values, mask, _, _, _ = _get_values(values, True, fill_value_typ="+inf", mask=mask)
     # error: Need type annotation for 'result'
@@ -1120,9 +1119,9 @@ def nanargmin(
 def nanskew(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> float:
     """
     Compute the sample skewness.
@@ -1134,7 +1133,7 @@ def nanskew(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1207,9 +1206,9 @@ def nanskew(
 def nankurt(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> float:
     """
     Compute the sample excess kurtosis
@@ -1221,7 +1220,7 @@ def nankurt(
     Parameters
     ----------
     values : ndarray
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
@@ -1303,16 +1302,16 @@ def nankurt(
 def nanprod(
     values: np.ndarray,
     *,
-    axis: Optional[int] = None,
+    axis: int | None = None,
     skipna: bool = True,
     min_count: int = 0,
-    mask: Optional[np.ndarray] = None,
+    mask: np.ndarray | None = None,
 ) -> float:
     """
     Parameters
     ----------
     values : ndarray[dtype]
-    axis: int, optional
+    axis : int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
@@ -1336,18 +1335,16 @@ def nanprod(
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    # error: Argument 1 to "_maybe_null_out" has incompatible type "Union[number,
-    # ndarray]"; expected "ndarray"
     # error: Incompatible return value type (got "Union[ndarray, float]", expected
     # "float")
     return _maybe_null_out(  # type: ignore[return-value]
-        result, axis, mask, values.shape, min_count=min_count  # type: ignore[arg-type]
+        result, axis, mask, values.shape, min_count=min_count
     )
 
 
 def _maybe_arg_null_out(
-    result: np.ndarray, axis: Optional[int], mask: Optional[np.ndarray], skipna: bool
-) -> Union[np.ndarray, int]:
+    result: np.ndarray, axis: int | None, mask: np.ndarray | None, skipna: bool
+) -> np.ndarray | int:
     # helper function for nanargmin/nanargmax
     if mask is None:
         return result
@@ -1374,11 +1371,11 @@ def _maybe_arg_null_out(
 
 
 def _get_counts(
-    values_shape: Tuple[int, ...],
-    mask: Optional[np.ndarray],
-    axis: Optional[int],
+    values_shape: tuple[int, ...],
+    mask: np.ndarray | None,
+    axis: int | None,
     dtype: Dtype = float,
-) -> Union[int, float, np.ndarray]:
+) -> int | float | np.ndarray:
     """
     Get the count of non-null values along an axis
 
@@ -1417,13 +1414,7 @@ def _get_counts(
         # expected "Union[int, float, ndarray]")
         return dtype.type(count)  # type: ignore[return-value]
     try:
-        # error: Incompatible return value type (got "Union[ndarray, generic]", expected
-        # "Union[int, float, ndarray]")
-        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
-        # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
-        # _SupportsDtype, str, Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
-        # List[Any], _DtypeDict, Tuple[Any, Any]]"
-        return count.astype(dtype)  # type: ignore[return-value,arg-type]
+        return count.astype(dtype)
     except AttributeError:
         # error: Argument "dtype" to "array" has incompatible type
         # "Union[ExtensionDtype, dtype]"; expected "Union[dtype, None, type,
@@ -1434,9 +1425,9 @@ def _get_counts(
 
 def _maybe_null_out(
     result: np.ndarray | float | NaTType,
-    axis: Optional[int],
-    mask: Optional[np.ndarray],
-    shape: Tuple[int, ...],
+    axis: int | None,
+    mask: np.ndarray | None,
+    shape: tuple[int, ...],
     min_count: int = 1,
 ) -> np.ndarray | float | NaTType:
     """
@@ -1445,8 +1436,15 @@ def _maybe_null_out(
     Dtype
         The product of all elements on a given axis. ( NaNs are treated as 1)
     """
-    if mask is not None and axis is not None and isinstance(result, np.ndarray):
-        null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
+    if axis is not None and isinstance(result, np.ndarray):
+        if mask is not None:
+            null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
+        else:
+            # we have no nulls, kept mask=None in _maybe_get_mask
+            below_count = shape[axis] - min_count < 0
+            new_shape = shape[:axis] + shape[axis + 1 :]
+            null_mask = np.broadcast_to(below_count, new_shape)
+
         if np.any(null_mask):
             if is_numeric_dtype(result):
                 if np.iscomplexobj(result):
@@ -1465,7 +1463,7 @@ def _maybe_null_out(
 
 
 def check_below_min_count(
-    shape: Tuple[int, ...], mask: Optional[np.ndarray], min_count: int
+    shape: tuple[int, ...], mask: np.ndarray | None, min_count: int
 ) -> bool:
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
@@ -1506,7 +1504,7 @@ def _zero_out_fperr(arg):
 
 @disallow("M8", "m8")
 def nancorr(
-    a: np.ndarray, b: np.ndarray, *, method="pearson", min_periods: Optional[int] = None
+    a: np.ndarray, b: np.ndarray, *, method="pearson", min_periods: int | None = None
 ):
     """
     a, b: ndarrays
@@ -1564,8 +1562,8 @@ def nancov(
     a: np.ndarray,
     b: np.ndarray,
     *,
-    min_periods: Optional[int] = None,
-    ddof: Optional[int] = 1,
+    min_periods: int | None = None,
+    ddof: int | None = 1,
 ):
     if len(a) != len(b):
         raise AssertionError("Operands to nancov must have same size")
@@ -1603,7 +1601,7 @@ def _ensure_numeric(x):
     elif not (is_float(x) or is_integer(x) or is_complex(x)):
         try:
             x = float(x)
-        except ValueError:
+        except (TypeError, ValueError):
             # e.g. "1+1j" or "foo"
             try:
                 x = complex(x)
@@ -1645,7 +1643,7 @@ nanne = make_nancomp(operator.ne)
 
 def _nanpercentile_1d(
     values: np.ndarray, mask: np.ndarray, q: np.ndarray, na_value: Scalar, interpolation
-) -> Union[Scalar, np.ndarray]:
+) -> Scalar | np.ndarray:
     """
     Wrapper for np.percentile that skips missing values, specialized to
     1-dimensional case.
@@ -1760,7 +1758,7 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
         if accum_func == np.minimum.accumulate:
             # Note: the accum_func comparison fails as an "is" comparison
             y = values.view("i8")
-            y[mask] = np.iinfo(np.int64).max
+            y[mask] = lib.i8max
             changed = True
         else:
             y = values

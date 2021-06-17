@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 import bz2
 from functools import wraps
 import gzip
 from typing import (
     Any,
     Callable,
-    Optional,
-    Tuple,
 )
 import zipfile
 
@@ -272,9 +272,7 @@ def can_connect(url, error_classes=None):
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, path: Optional[FilePathOrBuffer] = None
-) -> FrameOrSeries:
+def round_trip_pickle(obj: Any, path: FilePathOrBuffer | None = None) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
@@ -298,7 +296,7 @@ def round_trip_pickle(
         return pd.read_pickle(temp_path)
 
 
-def round_trip_pathlib(writer, reader, path: Optional[str] = None):
+def round_trip_pathlib(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -327,7 +325,7 @@ def round_trip_pathlib(writer, reader, path: Optional[str] = None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path: Optional[str] = None):
+def round_trip_localpath(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a py.path LocalPath and read it back.
 
@@ -375,7 +373,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-    args: Tuple[Any, ...] = (data,)
+    args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
     compress_method: Callable

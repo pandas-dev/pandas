@@ -3,7 +3,11 @@ import itertools
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_interval_dtype,
+    is_period_dtype,
+)
 
 import pandas as pd
 from pandas.api.extensions import ExtensionArray
@@ -111,7 +115,6 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.concat([df1, df2], axis=1, copy=False)
         self.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) concat reindex
     def test_concat_with_reindex(self, data):
         # GH-33027
         a = pd.DataFrame({"a": data[:5]})
@@ -324,6 +327,17 @@ class BaseReshapingTests(BaseExtensionTests):
             expected = ser.astype(object).unstack(
                 level=level, fill_value=data.dtype.na_value
             )
+            if obj == "series":
+                # TODO: special cases belong in dtype-specific tests
+                if is_datetime64tz_dtype(data.dtype):
+                    assert expected.dtypes.apply(is_datetime64tz_dtype).all()
+                    expected = expected.astype(object)
+                if is_period_dtype(data.dtype):
+                    assert expected.dtypes.apply(is_period_dtype).all()
+                    expected = expected.astype(object)
+                if is_interval_dtype(data.dtype):
+                    assert expected.dtypes.apply(is_interval_dtype).all()
+                    expected = expected.astype(object)
             result = result.astype(object)
 
             self.assert_frame_equal(result, expected)

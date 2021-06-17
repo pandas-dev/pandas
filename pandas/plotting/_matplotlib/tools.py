@@ -5,10 +5,7 @@ from math import ceil
 from typing import (
     TYPE_CHECKING,
     Iterable,
-    List,
     Sequence,
-    Tuple,
-    Union,
 )
 import warnings
 
@@ -81,7 +78,7 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -392,6 +389,11 @@ def handle_shared_axes(
             row_num = lambda x: x.rowNum
             col_num = lambda x: x.colNum
 
+        if compat.mpl_ge_3_4_0():
+            is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        else:
+            is_first_col = lambda x: x.is_first_col()
+
         if nrows > 1:
             try:
                 # first find out the ax layout,
@@ -423,13 +425,13 @@ def handle_shared_axes(
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
-                if ax.is_first_col():
+                if is_first_col(ax):
                     continue
                 if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Union[Axes, Sequence[Axes]]) -> np.ndarray:
+def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -438,7 +440,7 @@ def flatten_axes(axes: Union[Axes, Sequence[Axes]]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Union[Axes, Sequence[Axes]],
+    axes: Axes | Sequence[Axes],
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
@@ -458,7 +460,7 @@ def set_ticks_props(
     return axes
 
 
-def get_all_lines(ax: Axes) -> List[Line2D]:
+def get_all_lines(ax: Axes) -> list[Line2D]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -470,7 +472,7 @@ def get_all_lines(ax: Axes) -> List[Line2D]:
     return lines
 
 
-def get_xlim(lines: Iterable[Line2D]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
     left, right = np.inf, -np.inf
     for line in lines:
         x = line.get_xdata(orig=False)

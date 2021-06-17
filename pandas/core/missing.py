@@ -10,10 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Set,
-    Union,
     cast,
 )
 
@@ -36,7 +32,11 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    na_value_for_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -145,7 +145,7 @@ SP_METHODS = [
 ]
 
 
-def clean_interp_method(method: str, **kwargs) -> str:
+def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     order = kwargs.get("order")
 
     if method in ("spline", "polynomial") and order is None:
@@ -155,10 +155,16 @@ def clean_interp_method(method: str, **kwargs) -> str:
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
+    if method in ("krogh", "piecewise_polynomial", "pchip"):
+        if not index.is_monotonic:
+            raise ValueError(
+                f"{method} interpolation requires that the index be monotonic."
+            )
+
     return method
 
 
-def find_valid_index(values, *, how: str) -> Optional[int]:
+def find_valid_index(values, *, how: str) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -195,16 +201,112 @@ def find_valid_index(values, *, how: str) -> Optional[int]:
     return idxpos
 
 
+def interpolate_array_2d(
+    data: np.ndarray,
+    method: str = "pad",
+    axis: int = 0,
+    index: Index | None = None,
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    coerce: bool = False,
+    downcast: str | None = None,
+    **kwargs,
+):
+    """
+    Wrapper to dispatch to either interpolate_2d or interpolate_2d_with_fill.
+    """
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        m = None
+
+    if m is not None:
+        if fill_value is not None:
+            # similar to validate_fillna_kwargs
+            raise ValueError("Cannot pass both fill_value and method")
+
+        interp_values = interpolate_2d(
+            data,
+            method=m,
+            axis=axis,
+            limit=limit,
+            limit_area=limit_area,
+        )
+    else:
+        assert index is not None  # for mypy
+
+        interp_values = interpolate_2d_with_fill(
+            data=data,
+            index=index,
+            axis=axis,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+    return interp_values
+
+
+def interpolate_2d_with_fill(
+    data: np.ndarray,  # floating dtype
+    index: Index,
+    axis: int,
+    method: str = "linear",
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    **kwargs,
+) -> np.ndarray:
+    """
+    Column-wise application of interpolate_1d.
+
+    Notes
+    -----
+    The signature does differs from interpolate_1d because it only
+    includes what is needed for Block.interpolate.
+    """
+    # validate the interp method
+    clean_interp_method(method, index, **kwargs)
+
+    if is_valid_na_for_dtype(fill_value, data.dtype):
+        fill_value = na_value_for_dtype(data.dtype, compat=False)
+
+    def func(yvalues: np.ndarray) -> np.ndarray:
+        # process 1-d slices in the axis direction, returning it
+
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to interpolate_1d
+        return interpolate_1d(
+            xvalues=index,
+            yvalues=yvalues,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            bounds_error=False,
+            **kwargs,
+        )
+
+    # interp each column independently
+    return np.apply_along_axis(func, axis, data)
+
+
 def interpolate_1d(
     xvalues: Index,
     yvalues: np.ndarray,
-    method: Optional[str] = "linear",
-    limit: Optional[int] = None,
+    method: str | None = "linear",
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
     bounds_error: bool = False,
-    order: Optional[int] = None,
+    order: int | None = None,
     **kwargs,
 ):
     """
@@ -278,7 +380,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: Union[List, Set]
+    preserve_nans: list | set
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -422,11 +524,11 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         sorted 1D array of x-coordinates
-    yi : array_like or list of array-likes
+    yi : array-like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    order: None or int or array_like of ints. Default: None.
+    order: None or int or array-like of ints. Default: None.
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
     der : int or list
@@ -444,7 +546,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of length R or length M or M by R.
     """
     from scipy import interpolate
@@ -466,13 +568,13 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         A sorted list of x-coordinates, of length N.
-    yi : array_like
+    yi : array-like
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
-    x : scalar or array_like
+    x : scalar or array-like
         Of length M.
     der : int, optional
         How many derivatives to extract; None for all potentially
@@ -488,7 +590,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of length R or length M or M by R,
 
     """
@@ -507,14 +609,14 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
     Parameters
     ----------
-    xi : array_like, shape (n,)
+    xi : array-like, shape (n,)
         1-d array containing values of the independent variable.
         Values must be real, finite and in strictly increasing order.
-    yi : array_like
+    yi : array-like
         Array containing values of the dependent variable. It can have
         arbitrary number of dimensions, but the length along ``axis``
         (see below) must match the length of ``x``. Values must be finite.
-    x : scalar or array_like, shape (m,)
+    x : scalar or array-like, shape (m,)
     axis : int, optional
         Axis along which `y` is assumed to be varying. Meaning that for
         ``x[i]`` the corresponding values are ``np.take(y, i, axis=axis)``.
@@ -542,7 +644,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
         tuple `(order, deriv_values)` allowing to specify arbitrary
         derivatives at curve ends:
         * `order`: the derivative order, 1 or 2.
-        * `deriv_value`: array_like containing derivative values, shape must
+        * `deriv_value`: array-like containing derivative values, shape must
           be the same as `y`, excluding ``axis`` dimension. For example, if
           `y` is 1D, then `deriv_value` must be a scalar. If `y` is 3D with
           the shape (n0, n1, n2) and axis=2, then `deriv_value` must be 2D
@@ -559,7 +661,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of shape (m,)
 
     References
@@ -579,7 +681,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+    values: ArrayLike, method: str, limit: int | None, limit_area: str | None
 ) -> ArrayLike:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
@@ -631,14 +733,14 @@ def interpolate_2d(
     values,
     method: str = "pad",
     axis: Axis = 0,
-    limit: Optional[int] = None,
-    limit_area: Optional[str] = None,
+    limit: int | None = None,
+    limit_area: str | None = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
 
-       Parameters
+    Parameters
     ----------
     values: array-like
         Input array.
@@ -692,7 +794,7 @@ def interpolate_2d(
     return result
 
 
-def _fillna_prep(values, mask: Optional[np.ndarray] = None) -> np.ndarray:
+def _fillna_prep(values, mask: np.ndarray | None = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -782,14 +884,14 @@ def clean_reindex_fill_method(method):
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid, fw_limit, bw_limit):
+def _interp_limit(invalid: np.ndarray, fw_limit, bw_limit):
     """
     Get indexers of values that won't be filled
     because they exceed the limits.
 
     Parameters
     ----------
-    invalid : boolean ndarray
+    invalid : np.ndarray[bool]
     fw_limit : int or None
         forward limit to index
     bw_limit : int or None

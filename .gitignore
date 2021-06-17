@@ -104,6 +104,7 @@ asv_bench/env/
 asv_bench/html/
 asv_bench/results/
 asv_bench/pandas/
+test-data.xml
 
 # Documentation generated files #
 #################################

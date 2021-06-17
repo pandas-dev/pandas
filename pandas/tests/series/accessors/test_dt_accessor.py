@@ -32,7 +32,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    PeriodArray,
+    TimedeltaArray,
+)
 import pandas.core.common as com
 
 
@@ -59,7 +62,7 @@ class TestSeriesDatetimeValues:
             "month_name",
             "isocalendar",
         ]
-        ok_for_td = TimedeltaIndex._datetimelike_ops
+        ok_for_td = TimedeltaArray._datetimelike_ops
         ok_for_td_methods = [
             "components",
             "to_pytimedelta",
@@ -443,6 +446,7 @@ class TestSeriesDatetimeValues:
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
             assert s.dt.day_name(locale=time_locale)[day] == name
+            assert s.dt.day_name(locale=None)[day] == eng_name
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
 
@@ -678,6 +682,7 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
         expected_frame = DataFrame(

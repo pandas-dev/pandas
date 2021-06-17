@@ -12,10 +12,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    List,
-    Optional,
     Sequence,
-    Union,
     cast,
 )
 import warnings
@@ -51,10 +48,10 @@ if TYPE_CHECKING:
 def describe_ndframe(
     *,
     obj: FrameOrSeries,
-    include: Optional[Union[str, Sequence[str]]],
-    exclude: Optional[Union[str, Sequence[str]]],
+    include: str | Sequence[str] | None,
+    exclude: str | Sequence[str] | None,
     datetime_is_numeric: bool,
-    percentiles: Optional[Sequence[float]],
+    percentiles: Sequence[float] | None,
 ) -> FrameOrSeries:
     """Describe series or dataframe.
 
@@ -157,8 +154,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         self,
         obj: DataFrame,
         *,
-        include: Optional[Union[str, Sequence[str]]],
-        exclude: Optional[Union[str, Sequence[str]]],
+        include: str | Sequence[str] | None,
+        exclude: str | Sequence[str] | None,
         datetime_is_numeric: bool,
     ):
         self.include = include
@@ -172,7 +169,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
     def describe(self, percentiles: Sequence[float]) -> DataFrame:
         data = self._select_data()
 
-        ldesc: List[Series] = []
+        ldesc: list[Series] = []
         for _, series in data.items():
             describe_func = select_describe_func(series, self.datetime_is_numeric)
             ldesc.append(describe_func(series, percentiles))
@@ -211,9 +208,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
         return data
 
 
-def reorder_columns(ldesc: Sequence[Series]) -> List[Hashable]:
+def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
-    names: List[Hashable] = []
+    names: list[Hashable] = []
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
@@ -391,7 +388,7 @@ def select_describe_func(
         return describe_categorical_1d
 
 
-def refine_percentiles(percentiles: Optional[Sequence[float]]) -> Sequence[float]:
+def refine_percentiles(percentiles: Sequence[float] | None) -> Sequence[float]:
     """Ensure that percentiles are unique and sorted.
 
     Parameters

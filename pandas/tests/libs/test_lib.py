@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import (
-    Timestamp,
     lib,
     writers as libwriters,
 )
@@ -42,11 +41,6 @@ class TestMisc:
         expected = np.array(["p", "a", "n", "d", "s"])
         out = lib.fast_unique_multiple_list_gen(gen, sort=False)
         tm.assert_numpy_array_equal(np.array(out), expected)
-
-    def test_fast_unique_multiple_unsortable_runtimewarning(self):
-        arr = [np.array(["foo", Timestamp("2000")])]
-        with tm.assert_produces_warning(RuntimeWarning):
-            lib.fast_unique_multiple(arr, sort=None)
 
 
 class TestIndexing:
@@ -206,3 +200,9 @@ class TestIndexing:
 def test_cache_readonly_preserve_docstrings():
     # GH18197
     assert Index.hasnans.__doc__ is not None
+
+
+def test_no_default_pickle():
+    # GH#40397
+    obj = tm.round_trip_pickle(lib.no_default)
+    assert obj is lib.no_default

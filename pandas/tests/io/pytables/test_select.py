@@ -1,11 +1,9 @@
-from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -25,12 +23,11 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_path,
     ensure_clean_store,
-    tables,
 )
 
 from pandas.io.pytables import Term
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_select_columns_in_where(setup_path):
@@ -861,10 +858,6 @@ def test_select_as_multiple(setup_path):
             )
 
 
-@pytest.mark.skipif(
-    LooseVersion(tables.__version__) < LooseVersion("3.1.0"),
-    reason=("tables version does not support fix for nan selection bug: GH 4858"),
-)
 def test_nan_selection_bug_4858(setup_path):
 
     with ensure_clean_store(setup_path) as store:

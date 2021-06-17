@@ -24,7 +24,6 @@ import struct
 from typing import (
     IO,
     Any,
-    Union,
     cast,
 )
 
@@ -102,18 +101,18 @@ class _SubheaderPointer:
 
 class _Column:
     col_id: int
-    name: Union[str, bytes]
-    label: Union[str, bytes]
-    format: Union[str, bytes]  # TODO: i think allowing bytes is from py2 days
+    name: str | bytes
+    label: str | bytes
+    format: str | bytes  # TODO: i think allowing bytes is from py2 days
     ctype: bytes
     length: int
 
     def __init__(
         self,
         col_id: int,
-        name: Union[str, bytes],
-        label: Union[str, bytes],
-        format: Union[str, bytes],
+        name: str | bytes,
+        label: str | bytes,
+        format: str | bytes,
         ctype: bytes,
         length: int,
     ):
@@ -137,10 +136,10 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         contents.
     index : column identifier, defaults to None
         Column to use as index.
-    convert_dates : boolean, defaults to True
+    convert_dates : bool, defaults to True
         Attempt to convert dates to Pandas datetime values.  Note that
         some rarely used SAS date formats may be unsupported.
-    blank_missing : boolean, defaults to True
+    blank_missing : bool, defaults to True
         Convert empty strings to missing values (SAS uses blanks to
         indicate missing character variables).
     chunksize : int, defaults to None
