@@ -22,7 +22,7 @@ from pandas.io.parsers import (
     TextFileReader,
     read_csv,
 )
-from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
+from pandas.io.parsers.base_parser import ensure_dtype_objs
 
 
 class TestTextReader:
