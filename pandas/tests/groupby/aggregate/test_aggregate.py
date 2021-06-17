@@ -300,13 +300,13 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     # ohlc expands dimensions, so different test to the above is required.
     df = DataFrame(
         np.random.randn(1000, 3),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
-        columns=["A", "B", "C"],
+        index=pd.date_range("1/1/2012", freq="S", periods=1000, name="dti"),
+        columns=Index(["A", "B", "C"], name="alpha"),
     )
     result = df.resample("3T").agg(
         {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6, name="dti")
     expected_columns = MultiIndex.from_tuples(
         [
             ("A", "ohlc", "open"),
@@ -315,7 +315,8 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
             ("A", "ohlc", "close"),
             ("A", "quantile", "A"),
             ("A", "quantile", "A"),
-        ]
+        ],
+        names=["alpha", None, None],
     )
     non_ohlc_expected_values = np.array(
         [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
@@ -901,7 +902,12 @@ def test_grouby_agg_loses_results_with_as_index_false_relabel_multiindex():
 def test_multiindex_custom_func(func):
     # GH 31777
     data = [[1, 4, 2], [5, 7, 1]]
-    df = DataFrame(data, columns=MultiIndex.from_arrays([[1, 1, 2], [3, 4, 3]]))
+    df = DataFrame(
+        data,
+        columns=MultiIndex.from_arrays(
+            [[1, 1, 2], [3, 4, 3]], names=["Sisko", "Janeway"]
+        ),
+    )
     result = df.groupby(np.array([0, 1])).agg(func)
     expected_dict = {
         (1, 3): {0: 1.0, 1: 5.0},
@@ -909,6 +915,7 @@ def test_multiindex_custom_func(func):
         (2, 3): {0: 2.0, 1: 1.0},
     }
     expected = DataFrame(expected_dict)
+    expected.columns = df.columns
     tm.assert_frame_equal(result, expected)
 
 
