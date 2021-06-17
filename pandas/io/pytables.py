@@ -5000,7 +5000,7 @@ def _maybe_convert_for_string_atom(
     # check for column in the values conflicts
     if existing_col is not None:
         eci = existing_col.validate_col(itemsize)
-        if eci > itemsize:
+        if eci is not None and eci > itemsize:
             itemsize = eci
 
     data_converted = data_converted.astype(f"|S{itemsize}", copy=False)
