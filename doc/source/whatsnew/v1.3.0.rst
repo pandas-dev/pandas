@@ -1033,6 +1033,7 @@ Missing
 - Bug in :meth:`DataFrame.fillna` not accepting a dictionary for the ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
 - Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
+- Bug in :meth:`Series.isin` and :meth:`MultiIndex.isin` didn't treat all nans as equivalent if they were in tuples (:issue:`41836`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1079,6 +1080,7 @@ I/O
 - Bug in the conversion from PyArrow to pandas (e.g. for reading Parquet) with nullable dtypes and a PyArrow array whose data buffer size is not a multiple of the dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` would raise an error when pandas could not determine the file type even though the user specified the ``engine`` argument (:issue:`41225`)
 - Bug in :func:`read_clipboard` copying from an excel file shifts values into the wrong column if there are null values in first column (:issue:`41108`)
+- Bug in :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` raising a ``TypeError`` when trying to append a string column to an incompatible column (:issue:`41897`)
 
 Period
 ^^^^^^
@@ -1160,6 +1162,7 @@ Reshaping
 - Bug in :func:`to_datetime` raising an error when the input sequence contained unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving the index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising a ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
+- Bug in :meth:`Series.unstack` and :meth:`DataFrame.unstack` with object-dtype values containing timezone-aware datetime objects incorrectly raising ``TypeError`` (:issue:`41875`)
 - Bug in :meth:`DataFrame.melt` raising ``InvalidIndexError`` when :class:`DataFrame` has duplicate columns used as ``value_vars`` (:issue:`41951`)
 
 Sparse
