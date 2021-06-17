@@ -257,8 +257,10 @@ def test_sticky_basic(styler, index, columns):
         styler.set_sticky(axis=1)
 
     res = styler.set_uuid("").to_html()
-    assert ("#T_ tbody th {\n  position: sticky;\n  left: 0px;\n}" in res) is index
-    assert ("#T_ thead th {\n  position: sticky;\n  top: 0px;\n}" in res) is columns
+    cs1 = "tbody th {\n  position: sticky;\n  left: 0px;\n  background-color: white;\n}"
+    assert (cs1 in res) is index
+    cs2 = "thead th {\n  position: sticky;\n  top: 0px;\n  background-color: white;\n}"
+    assert (cs2 in res) is columns
 
 
 @pytest.mark.parametrize("index", [False, True])
