@@ -1951,7 +1951,7 @@ class TestToDatetimeInferFormat:
         ],
     )
     def test_infer_datetime_format_zero_tz(self, ts, zero_tz, is_utc):
-        # GH 4104
+        # GH 41047
         s = Series([ts + zero_tz])
         result = to_datetime(s, infer_datetime_format=True)
         tz = pytz.utc if is_utc else None
