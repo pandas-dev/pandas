@@ -61,6 +61,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import take_nd
 from pandas.core.arrays.interval import (
@@ -343,6 +344,8 @@ class IntervalIndex(ExtensionIndex):
         """
         hash(key)
         if not isinstance(key, Interval):
+            if is_valid_na_for_dtype(key, self.dtype):
+                return self.hasnans
             return False
 
         try:
@@ -610,14 +613,14 @@ class IntervalIndex(ExtensionIndex):
         0
         """
         self._check_indexing_method(method)
-
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         if isinstance(key, Interval):
             if self.closed != key.closed:
                 raise KeyError(key)
             mask = (self.left == key.left) & (self.right == key.right)
+        elif is_valid_na_for_dtype(key, self.dtype):
+            mask = self.isna()
         else:
             # assume scalar
             op_left = le if self.closed_left else lt
@@ -633,7 +636,12 @@ class IntervalIndex(ExtensionIndex):
             raise KeyError(key)
         elif matches == 1:
             return mask.argmax()
-        return lib.maybe_booleans_to_slice(mask.view("u1"))
+
+        res = lib.maybe_booleans_to_slice(mask.view("u1"))
+        if isinstance(res, slice) and res.stop is None:
+            # TODO: DO this in maybe_booleans_to_slice?
+            res = slice(res.start, len(self), res.step)
+        return res
 
     def _get_indexer(
         self,
@@ -721,9 +729,9 @@ class IntervalIndex(ExtensionIndex):
         indexer = np.concatenate(indexer)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    @property
+    @cache_readonly
     def _index_as_unique(self) -> bool:
-        return not self.is_overlapping
+        return not self.is_overlapping and self._engine._na_count < 2
 
     _requires_unique_msg = (
         "cannot handle overlapping indices; use IntervalIndex.get_indexer_non_unique"
@@ -791,56 +799,6 @@ class IntervalIndex(ExtensionIndex):
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
         return self._data._format_data() + "," + self._format_space()
-
-    # --------------------------------------------------------------------
-    # Set Operations
-
-    def _intersection(self, other, sort):
-        """
-        intersection specialized to the case with matching dtypes.
-        """
-        # For IntervalIndex we also know other.closed == self.closed
-        if self.left.is_unique and self.right.is_unique:
-            return super()._intersection(other, sort=sort)
-        elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
-            # Swap other/self if other is unique and self does not have
-            # multiple NaNs
-            return super()._intersection(other, sort=sort)
-        else:
-            # duplicates
-            taken = self._intersection_non_unique(other)
-
-        if sort is None:
-            taken = taken.sort_values()
-
-        return taken
-
-    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
-        """
-        Used when the IntervalIndex does have some common endpoints,
-        on either sides.
-        Return the intersection with another IntervalIndex.
-
-        Parameters
-        ----------
-        other : IntervalIndex
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        mask = np.zeros(len(self), dtype=bool)
-
-        if self.hasnans and other.hasnans:
-            first_nan_loc = np.arange(len(self))[self.isna()][0]
-            mask[first_nan_loc] = True
-
-        other_tups = set(zip(other.left, other.right))
-        for i, tup in enumerate(zip(self.left, self.right)):
-            if tup in other_tups:
-                mask[i] = True
-
-        return self[mask]
 
     # --------------------------------------------------------------------
 

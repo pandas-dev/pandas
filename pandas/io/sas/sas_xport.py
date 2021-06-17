@@ -138,7 +138,7 @@ A DataFrame.
 
 
 def _parse_date(datestr: str) -> datetime:
-    """ Given a date in xport format, return Python date. """
+    """Given a date in xport format, return Python date."""
     try:
         # e.g. "16FEB11:10:07:55"
         return datetime.strptime(datestr, "%d%b%y:%H:%M:%S")
