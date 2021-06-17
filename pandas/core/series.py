@@ -129,6 +129,7 @@ from pandas.core.internals import (
     SingleArrayManager,
     SingleBlockManager,
 )
+from pandas.core.reshape.concat import concat
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -3661,15 +3662,24 @@ Keep all original rows and also all original values
         mask = isna(values)
 
         if mask.any():
-            result = Series(-1, index=self.index, name=self.name, dtype="int64")
-            notmask = ~mask
-            result[notmask] = np.argsort(values[notmask], kind=kind)
-            return self._constructor(result, index=self.index).__finalize__(
-                self, method="argsort"
+            mask_ret = Series(-1, index=self.index[mask], dtype="int64", name=self.name)
+            notmask_result = np.argsort(values[~mask], kind=kind)
+            notmask_ret = Series(
+                notmask_result,
+                index=self.index[~mask][notmask_result],
+                dtype="int64",
+                name=self.name,
             )
+
+            # result = Series(-1, index=self.index, name=self.name, dtype="int64")
+            # notmask = ~mask
+            # result[notmask] = np.argsort(values[notmask], kind=kind)
+            ret = concat([notmask_ret, mask_ret])
+            return ret.__finalize__(self, method="argsort")
         else:
+            result = np.argsort(values, kind=kind)
             return self._constructor(
-                np.argsort(values, kind=kind), index=self.index, dtype="int64"
+                result, index=self.index[result], dtype="int64"
             ).__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
