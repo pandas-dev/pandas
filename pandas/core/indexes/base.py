@@ -3091,7 +3091,7 @@ class Index(IndexOpsMixin, PandasObject):
             return this.intersection(other, sort=sort)
 
         result = self._intersection(other, sort=sort)
-        return self._wrap_setop_result(other, result)
+        return self._wrap_intersection_result(other, result)
 
     def _intersection(self, other: Index, sort=False):
         """
@@ -3112,6 +3112,10 @@ class Index(IndexOpsMixin, PandasObject):
         res_values = self._intersection_via_get_indexer(other, sort=sort)
         res_values = _maybe_try_sort(res_values, sort)
         return res_values
+
+    def _wrap_intersection_result(self, other, result):
+        # We will override for MultiIndex to handle empty results
+        return self._wrap_setop_result(other, result)
 
     def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
         """

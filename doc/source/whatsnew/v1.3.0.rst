@@ -1042,6 +1042,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.intersection` duplicating ``NaN`` in the result (:issue:`38623`)
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when the :class:`MultiIndex` contained ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning an empty result when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
+- Bug in :meth:`MultiIndex.difference` incorrectly raising ``TypeError`` when indexes contain non-sortable entries (:issue:`41915`)
 - Bug in :meth:`MultiIndex.reindex` raising a ``ValueError`` when used on an empty :class:`MultiIndex` and indexing only a specific level (:issue:`41170`)
 - Bug in :meth:`MultiIndex.reindex` raising ``TypeError`` when reindexing against a flat :class:`Index` (:issue:`41707`)
 
