@@ -3407,6 +3407,22 @@ class Index(IndexOpsMixin, PandasObject):
             #  matched to Interval scalars
             return self._get_indexer_non_comparable(target, method=method, unique=True)
 
+        if is_categorical_dtype(target.dtype):
+            # potential fastpath
+            # get an indexer for unique categories then propagate to codes via take_nd
+            categories_indexer = self.get_indexer(target.categories)
+            indexer = algos.take_nd(categories_indexer, target.codes, fill_value=-1)
+
+            if (not self._is_multi and self.hasnans) and target.hasnans:
+                # Exclude MultiIndex because hasnans raises NotImplementedError
+                # we should only get here if we are unique, so loc is an integer
+                # GH#41934
+                loc = self.get_loc(np.nan)
+                mask = target.isna()
+                indexer[mask] = loc
+
+            return ensure_platform_int(indexer)
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(
