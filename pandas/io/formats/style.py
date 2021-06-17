@@ -862,7 +862,7 @@ class Styler(StylerRenderer):
 
     def set_sticky(
         self,
-        axis: Axis = "index",
+        axis: Axis = 0,
         pixel_size: int | None = None,
         levels: list[int] | None = None,
     ) -> Styler:
