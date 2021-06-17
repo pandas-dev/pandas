@@ -3410,7 +3410,9 @@ class Index(IndexOpsMixin, PandasObject):
         if is_categorical_dtype(target.dtype):
             # potential fastpath
             # get an indexer for unique categories then propagate to codes via take_nd
-            categories_indexer = self.get_indexer(target.categories)
+            # Note: calling get_indexer instead of _get_indexer causes
+            #  RecursionError GH#42088
+            categories_indexer = self._get_indexer(target.categories)
             indexer = algos.take_nd(categories_indexer, target.codes, fill_value=-1)
 
             if (not self._is_multi and self.hasnans) and target.hasnans:
