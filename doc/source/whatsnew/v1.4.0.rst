@@ -219,7 +219,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
 -
 
 I/O
