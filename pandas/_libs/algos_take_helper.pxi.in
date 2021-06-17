@@ -9,31 +9,6 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # ----------------------------------------------------------------------
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def take_1d_intp_intp(
-    const intp_t[:] values,
-    const intp_t[:] indexer,
-    intp_t[::1] out,
-    intp_t fill_value=-1,
-):
-    cdef:
-        Py_ssize_t i, n, idx
-        intp_t fv
-
-    n = indexer.shape[0]
-
-    fv = fill_value
-
-    with nogil:
-        for i in range(n):
-            idx = indexer[i]
-            if idx == -1:
-                out[i] = fv
-            else:
-                out[i] = values[idx]
-
-
 {{py:
 
 # c_type_in, c_type_out

@@ -20,26 +20,21 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.algos import (
-    groupsort_indexer,
-    take_1d_int64_int64,
-    take_1d_intp_intp,
-)
+from pandas._libs.algos import groupsort_indexer
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join(const intp_t[:] left, const intp_t[:] right,
                Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[intp_t] left_sorter, right_sorter
-        ndarray[intp_t] left_count, right_count
-        ndarray[intp_t] left_indexer, right_indexer
+        intp_t[::1] left_sorter, right_sorter
+        intp_t[::1] left_count, right_count
+        intp_t[::1] left_indexer, right_indexer
         intp_t lc, rc
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
-
-    # NA group in location 0
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -53,14 +48,13 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
             if rc > 0 and lc > 0:
                 count += lc * rc
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
     left_indexer = np.empty(count, dtype=np.intp)
     right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
+        # exclude the NA group
+        left_pos = left_count[0]
+        right_pos = right_count[0]
         for i in range(1, max_groups + 1):
             lc = left_count[i]
             rc = right_count[i]
@@ -75,23 +69,26 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
             left_pos += lc
             right_pos += rc
 
-    return (_get_result_indexer(left_sorter, left_indexer),
-            _get_result_indexer(right_sorter, right_indexer))
+        # Will overwrite left/right indexer with the result
+        _get_result_indexer(left_sorter, left_indexer)
+        _get_result_indexer(right_sorter, right_indexer)
+
+    return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
 def left_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[intp_t] left_count, right_count
-        ndarray[intp_t] rev, left_sorter, right_sorter
-        ndarray[intp_t] left_indexer, right_indexer
+        ndarray[intp_t] rev
+        intp_t[::1] left_count, right_count
+        intp_t[::1] left_sorter, right_sorter
+        intp_t[::1] left_indexer, right_indexer
         intp_t lc, rc
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
-
-    # NA group in location 0
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -104,14 +101,13 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
             else:
                 count += left_count[i]
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
     left_indexer = np.empty(count, dtype=np.intp)
     right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
+        # exclude the NA group
+        left_pos = left_count[0]
+        right_pos = right_count[0]
         for i in range(1, max_groups + 1):
             lc = left_count[i]
             rc = right_count[i]
@@ -131,39 +127,37 @@ def left_outer_join(const intp_t[:] left, const intp_t[:] right,
             left_pos += lc
             right_pos += rc
 
-    left_indexer = _get_result_indexer(left_sorter, left_indexer)
-    right_indexer = _get_result_indexer(right_sorter, right_indexer)
+        # Will overwrite left/right indexer with the result
+        _get_result_indexer(left_sorter, left_indexer)
+        _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:  # if not asked to sort, revert to original order
-        # cast to avoid build warning GH#26757
-        if <Py_ssize_t>len(left) == len(left_indexer):
+        if len(left) == len(left_indexer):
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
             rev = np.empty(len(left), dtype=np.intp)
-            rev.put(left_sorter, np.arange(len(left)))
+            rev.put(np.asarray(left_sorter), np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
-        right_indexer = right_indexer.take(rev)
-        left_indexer = left_indexer.take(rev)
+        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+    else:
+        return np.asarray(left_indexer), np.asarray(right_indexer)
 
-    return left_indexer, right_indexer
 
-
+@cython.wraparound(False)
 @cython.boundscheck(False)
 def full_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[intp_t] left_sorter, right_sorter
-        ndarray[intp_t] left_count, right_count
-        ndarray[intp_t] left_indexer, right_indexer
+        intp_t[::1] left_sorter, right_sorter
+        intp_t[::1] left_count, right_count
+        intp_t[::1] left_indexer, right_indexer
         intp_t lc, rc
         intp_t left_pos = 0, right_pos = 0
         Py_ssize_t offset, position = 0
-
-    # NA group in location 0
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -179,14 +173,13 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
             else:
                 count += lc + rc
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
     left_indexer = np.empty(count, dtype=np.intp)
     right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
+        # exclude the NA group
+        left_pos = left_count[0]
+        right_pos = right_count[0]
         for i in range(1, max_groups + 1):
             lc = left_count[i]
             rc = right_count[i]
@@ -211,24 +204,33 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
             left_pos += lc
             right_pos += rc
 
-    return (_get_result_indexer(left_sorter, left_indexer),
-            _get_result_indexer(right_sorter, right_indexer))
+        # Will overwrite left/right indexer with the result
+        _get_result_indexer(left_sorter, left_indexer)
+        _get_result_indexer(right_sorter, right_indexer)
+
+    return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
-cdef ndarray[intp_t] _get_result_indexer(
-    ndarray[intp_t] sorter, ndarray[intp_t] indexer
-):
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) nogil:
+    """NOTE: overwrites indexer with the result to avoid allocating another array"""
+    cdef:
+        Py_ssize_t i, n, idx
+
     if len(sorter) > 0:
         # cython-only equivalent to
         #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
-        res = np.empty(len(indexer), dtype=np.intp)
-        take_1d_intp_intp(sorter, indexer, res, -1)
+        n = indexer.shape[0]
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                indexer[i] = -1
+            else:
+                indexer[i] = sorter[idx]
     else:
         # length-0 case
-        res = np.empty(len(indexer), dtype=np.intp)
-        res[:] = -1
-
-    return res
+        indexer[:] = -1
 
 
 def ffill_indexer(const intp_t[:] indexer) -> np.ndarray:
