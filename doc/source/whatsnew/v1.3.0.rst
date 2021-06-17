@@ -941,8 +941,6 @@ Numeric
 - Bug in :meth:`DataFrame.mode` and :meth:`Series.mode` not keeping consistent integer :class:`Index` for empty input (:issue:`33321`)
 - Bug in :meth:`DataFrame.rank` when the DataFrame contained ``np.inf`` (:issue:`32593`)
 - Bug in :meth:`DataFrame.rank` with ``axis=0`` and columns holding incomparable types raising an ``IndexError`` (:issue:`38932`)
-- Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
-- Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
 - Bug in :meth:`Series.rank`, :meth:`DataFrame.rank`, and :meth:`.GroupBy.rank` treating the most negative ``int64`` value as missing (:issue:`32859`)
 - Bug in :meth:`DataFrame.select_dtypes` different behavior between Windows and Linux with ``include="int"`` (:issue:`36596`)
 - Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.agg` when passed the argument ``func="size"`` would operate on the entire ``DataFrame`` instead of rows or columns (:issue:`39934`)

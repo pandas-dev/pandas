@@ -1261,6 +1261,7 @@ cdef void rank_sorted_1d(
             # when either of those change. Used to calculate tiebreakers
             dups += 1
             sum_ranks += i - grp_start + 1
+
             next_val_diff = at_end or (masked_vals[sort_indexer[i]]
                                        != masked_vals[sort_indexer[i+1]])
 
@@ -1458,9 +1459,9 @@ def rank_2d(
             )
 
     if axis == 1:
-        return np.array(out.T)
+        return np.asarray(out.T)
     else:
-        return np.array(out)
+        return np.asarray(out)
 
 
 ctypedef fused diff_t:
