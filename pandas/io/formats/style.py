@@ -862,80 +862,62 @@ class Styler(StylerRenderer):
 
     def set_sticky(
         self,
-        index: Union[bool, List[int]] = True,
-        columns: Union[bool, List[int]] = True,
-        index_width: int = 70,
-        column_height: int = 25,
+        axis: Axis = "index",
+        pixel_size: int | None = None,
+        levels: list[int] | None = None,
     ) -> Styler:
         """
-        Add CSS to make the index or column headers constantly visible in
-        the HTML frame.
+        Add CSS to permanently display the index or column headers in a scrolling frame.
 
         Parameters
         ----------
-        index : bool or list of ints
-            If ``True`` makes the entire index sticky, if a list, the integer values
-            should correspond to MultiIndex levels that should be made sticky.
-        columns : bool or list of ints
-            If ``True`` makes the entire column headers sticky, if a list, the integer
-            values should correspond to column MultiIndex levels that should be made
-            sticky.
-        index_width : int
-            If index is a MultiIndex the explicit width of the sticky levels must be
-            given for frame alignment, in pixels.
-        column_height : int
-            If columns is a MultiIndex the explicit height of the sticky levels must be
-            given for frame alignment, in pixels.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Whether to make the index or column headers sticky.
+        pixel_size : int, optional
+            Required to configure the width of index cells or the height of column
+            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+        levels : list of int
+            If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
+            stick all levels.
 
         Returns
         -------
         self : Styler
         """
-        if index is True and not isinstance(self.data.index, pd.MultiIndex):
+        if axis in [0, "index"]:
+            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            pixel_size = 75 if not pixel_size else pixel_size
+        elif axis in [1, "columns"]:
+            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            pixel_size = 25 if not pixel_size else pixel_size
+        else:
+            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+
+        if not isinstance(obj, pd.MultiIndex):
             return self.set_table_styles(
-                [{"selector": "tbody th", "props": "position: sticky; left: 0px;"}],
+                [{"selector": f"{tag} th", "props": f"position: sticky; {pos}: 0px;"}],
                 overwrite=False,
             )
-        elif columns is True and not isinstance(self.data.columns, pd.MultiIndex):
-            return self.set_table_styles(
-                [{"selector": "thead th", "props": "position: sticky; top: 0px;"}],
+        else:
+            range_idx = list(range(obj.nlevels))
+
+        levels = sorted(levels) if levels else range_idx
+        for i, level in enumerate(levels):
+            self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th.level{level}",
+                        "props": f"position: sticky; "
+                        f"{pos}: {i * pixel_size}px; "
+                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
+                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"background-color: white;",
+                    }
+                ],
                 overwrite=False,
             )
 
-        if index is True and isinstance(self.data.index, pd.MultiIndex):
-            index = list(range(self.data.index.nlevels))
-        if columns is True and isinstance(self.data.columns, pd.MultiIndex):
-            columns = list(range(self.data.columns.nlevels))
-
-        if isinstance(index, list) and len(index) > 0:
-            for i, level in enumerate(sorted(index)):
-                self.set_table_styles(
-                    [
-                        {
-                            "selector": f"tbody th.level{level}",
-                            "props": f"position: sticky; "
-                            f"left: {i * index_width}px; "
-                            f"min-width: {index_width}px; "
-                            f"max-width: {index_width}px; "
-                            f"background-color: white;",
-                        }
-                    ],
-                    overwrite=False,
-                )
-        if isinstance(columns, list) and len(columns) > 0:
-            for i, level in enumerate(sorted(columns)):
-                self.set_table_styles(
-                    [
-                        {
-                            "selector": f"thead th.level{level}",
-                            "props": f"position: sticky; "
-                            f"top: {i * column_height}px; "
-                            f"height: {column_height}px; "
-                            f"background-color: white;",
-                        }
-                    ],
-                    overwrite=False,
-                )
         return self
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
