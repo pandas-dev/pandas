@@ -1161,6 +1161,7 @@ Reshaping
 - Bug in :func:`to_datetime` raising an error when the input sequence contained unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving the index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising a ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
+- Bug in :meth:`Series.unstack` and :meth:`DataFrame.unstack` with object-dtype values containing timezone-aware datetime objects incorrectly raising ``TypeError`` (:issue:`41875`)
 - Bug in :meth:`DataFrame.melt` raising ``InvalidIndexError`` when :class:`DataFrame` has duplicate columns used as ``value_vars`` (:issue:`41951`)
 
 Sparse
