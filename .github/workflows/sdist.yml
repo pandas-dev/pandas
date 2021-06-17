@@ -15,8 +15,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: sdist test
     timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash -l {0}
+
     strategy:
       fail-fast: false
       matrix:
@@ -49,7 +52,6 @@ jobs:
 
     - name: Install Pandas From sdist
       run: |
-        conda activate pandas-sdist
         conda install cython numpy
         conda list
         python -m pip install dist/*.gz
