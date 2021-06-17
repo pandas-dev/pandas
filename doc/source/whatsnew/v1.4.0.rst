@@ -29,7 +29,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Added :meth:`.Styler.set_sticky` to make index and column headers permanently visible in HTML frames (:issue:`29072`)
 -
 
 .. ---------------------------------------------------------------------------
