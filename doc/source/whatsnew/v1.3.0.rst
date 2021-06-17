@@ -1080,6 +1080,7 @@ I/O
 - Bug in the conversion from PyArrow to pandas (e.g. for reading Parquet) with nullable dtypes and a PyArrow array whose data buffer size is not a multiple of the dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` would raise an error when pandas could not determine the file type even though the user specified the ``engine`` argument (:issue:`41225`)
 - Bug in :func:`read_clipboard` copying from an excel file shifts values into the wrong column if there are null values in first column (:issue:`41108`)
+- Bug in :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` raising a ``TypeError`` when trying to append a string column to an incompatible column (:issue:`41897`)
 
 Period
 ^^^^^^
