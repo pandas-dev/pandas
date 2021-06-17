@@ -196,12 +196,16 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
-            parsed = Timedelta(label)
-            lbound = parsed.round(parsed.resolution_string)
-            if side == "left":
-                return lbound
-            else:
-                return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+            try:
+                parsed = Timedelta(label)
+            except ValueError as err:
+                # e.g. 'unit abbreviation w/o a number'
+                raise self._invalid_indexer("slice", label) from err
+
+            # The next two lines are analogous to DTI/PI._parsed_str_to_bounds
+            lower = parsed.round(parsed.resolution_string)
+            upper = lower + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+            return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
             raise self._invalid_indexer("slice", label)
 
