@@ -938,7 +938,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if is_integer(key) and self.index._should_fallback_to_positional():
+        if is_integer(key) and self.index._should_fallback_to_positional:
             return self._values[key]
 
         elif key_is_scalar:
@@ -1000,7 +1000,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if not self.index._should_fallback_to_positional():
+            if not self.index._should_fallback_to_positional:
                 return self.loc[key]
             else:
                 return self.iloc[key]
@@ -1072,7 +1072,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except TypeError as err:
+        except (InvalidIndexError, TypeError) as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
                 raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
@@ -1094,8 +1094,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value) -> None:
-        # fails with AttributeError for IntervalIndex
-        loc = self.index._engine.get_loc(key)
+        loc = self.index.get_loc(key)
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
         # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
@@ -1112,6 +1111,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if is_scalar(key):
                 key = [key]
+            elif is_iterator(key):
+                # Without this, the call to infer_dtype will consume the generator
+                key = list(key)
 
             if isinstance(key, Index):
                 key_type = key.inferred_type
@@ -1122,7 +1124,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # Note: key_type == "boolean" should not occur because that
             #  should be caught by the is_bool_indexer check in __setitem__
             if key_type == "integer":
-                if not self.index._should_fallback_to_positional():
+                if not self.index._should_fallback_to_positional:
                     self._set_labels(key, value)
                 else:
                     self._set_values(key, value)
