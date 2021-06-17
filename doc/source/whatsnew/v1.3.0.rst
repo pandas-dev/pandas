@@ -1025,6 +1025,7 @@ Indexing
 - Bug in :meth:`PeriodIndex.get_loc` failing to raise a ``KeyError`` when given a :class:`Period` with a mismatched ``freq`` (:issue:`41670`)
 - Bug ``.loc.__getitem__`` with a :class:`UInt64Index` and negative-integer keys raising ``OverflowError`` instead of ``KeyError`` in some cases, wrapping around to positive integers in others (:issue:`41777`)
 - Bug in :meth:`Index.get_indexer` failing to raise ``ValueError`` in some cases with invalid ``method``, ``limit``, or ``tolerance`` arguments (:issue:`41918`)
+- Bug when slicing a :class:`Series` or :class:`DataFrame` with a :class:`TimedeltaIndex` when passing an invalid string raising ``ValueError`` instead of a ``TypeError`` (:issue:`41821`)
 
 Missing
 ^^^^^^^
