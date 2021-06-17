@@ -31,8 +31,8 @@ def test_html_template_extends_options():
     # to understand the dependency
     with open("pandas/io/formats/templates/html.tpl") as file:
         result = file.read()
-    assert '{% include "html_style.tpl" %}' in result
-    assert '{% include "html_table.tpl" %}' in result
+    assert "{% include html_style_tpl %}" in result
+    assert "{% include html_table_tpl %}" in result
 
 
 def test_exclude_styles(styler):
