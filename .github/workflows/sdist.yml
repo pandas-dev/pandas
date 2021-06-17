@@ -49,6 +49,7 @@ jobs:
 
     - name: Install Pandas From sdist
       run: |
+        conda activate pandas-sdist
         conda install cython numpy
         conda list
         python -m pip install dist/*.gz
