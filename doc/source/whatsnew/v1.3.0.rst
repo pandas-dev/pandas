@@ -1143,6 +1143,8 @@ Groupby/resample/rolling
 - Bug in :class:`DataFrameGroupBy` aggregations incorrectly failing to drop columns with invalid dtypes for that aggregation when there are no valid columns (:issue:`41291`)
 - Bug in :meth:`DataFrame.rolling.__iter__` where ``on`` was not assigned to the index of the resulting objects (:issue:`40373`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`41647`)
+- Bug in :class:`DataFrameGroupBy` methods ``agg``, ``transform``, ``sum``, ``bfill``, ``ffill``, ``pad``, ``pct_change``, ``shift``, ``ohlc`` dropping ``.columns.names`` (:issue:`41497`)
+
 
 Reshaping
 ^^^^^^^^^

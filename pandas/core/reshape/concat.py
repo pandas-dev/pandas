@@ -362,8 +362,13 @@ class _Concatenator:
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            name = getattr(keys, "name", None)
-            keys = Index(clean_keys, name=name)
+
+            if isinstance(keys, MultiIndex):
+                # TODO: retain levels?
+                keys = type(keys).from_tuples(clean_keys, names=keys.names)
+            else:
+                name = getattr(keys, "name", None)
+                keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
