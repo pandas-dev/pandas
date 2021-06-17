@@ -331,7 +331,7 @@ class PythonParser(ParserBase):
             clean_na_fvalues,
             self.verbose,
             self.converters,
-            self.dtypes,
+            self.dtype,
         )
 
     def _infer_columns(self):
