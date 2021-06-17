@@ -35,6 +35,8 @@ Style application
    Styler.apply
    Styler.applymap
    Styler.format
+   Styler.hide_index
+   Styler.hide_columns
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
