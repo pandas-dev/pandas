@@ -2503,9 +2503,7 @@ class MultiIndex(Index):
             target = ibase.ensure_has_len(target)
             if len(target) == 0 and not isinstance(target, Index):
                 idx = self.levels[level]
-                attrs = idx._get_attributes_dict()
-                attrs.pop("freq", None)  # don't preserve freq
-                target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype), **attrs)
+                target = idx[:0]
             else:
                 target = ensure_index(target)
             target, indexer, _ = self._join_level(

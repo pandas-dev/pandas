@@ -84,6 +84,13 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
     assert idx.reindex([], level=0)[0].levels[0].dtype.type == np.int64
     assert idx.reindex([], level=1)[0].levels[1].dtype.type == np.object_
 
+    # case with EA levels
+    cat = pd.Categorical(["foo", "bar"])
+    dti = pd.date_range("2016-01-01", periods=2, tz="US/Pacific")
+    mi = MultiIndex.from_product([cat, dti])
+    assert mi.reindex([], level=0)[0].levels[0].dtype == cat.dtype
+    assert mi.reindex([], level=1)[0].levels[1].dtype == dti.dtype
+
 
 def test_reindex_base(idx):
     idx = idx
