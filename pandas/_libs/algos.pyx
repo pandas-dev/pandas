@@ -995,7 +995,7 @@ def rank_1d(
         float64_t[::1] out
         ndarray[rank_t, ndim=1] masked_vals
         rank_t[:] masked_vals_memview
-        int64_t[::1] grp_sizes=None
+        int64_t[::1] grp_sizes
         uint8_t[:] mask=None
         bint keep_na, nans_rank_highest, check_labels, check_mask
         rank_t nan_fill_val
@@ -1012,14 +1012,11 @@ def rank_1d(
         # TODO Cython 3.0: cast won't be necessary (#2992)
         assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
+    grp_sizes = np.ones(N, dtype=np.int64)
 
     # If we don't care about labels, can short-circuit later label
     # comparisons
     check_labels = labels is not None
-
-    # If this doesn't hold, we don't care about group sizes, so don't even allocate
-    if pct and (tiebreak == TIEBREAK_DENSE or check_labels):
-        grp_sizes = np.ones(N, dtype=np.int64)
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -1052,7 +1049,6 @@ def rank_1d(
 
     # Depending on whether we care about labels and masks, we need
     # different sorting criteria
-
     if check_mask and check_labels:
         # lexsort using labels, then mask, then actual values
         # each label corresponds to a different group value,
@@ -1078,7 +1074,6 @@ def rank_1d(
     else:
         kind = "stable" if ties_method == "first" else None
         sort_indexer = masked_vals.argsort(kind=kind).astype(np.intp, copy=False)
-        # print(np.array(sort_indexer))
 
     # putmask doesn't accept a memoryview, so we assign as a separate step
     masked_vals_memview = masked_vals
@@ -1091,9 +1086,9 @@ def rank_1d(
             out,
             masked_vals_memview,
             sort_indexer,
+            grp_sizes,
             N,
             mask=mask,
-            grp_sizes=grp_sizes,
             tiebreak=tiebreak,
             keep_na=keep_na,
             pct=pct,
@@ -1110,9 +1105,9 @@ cdef void rank_sorted_1d(
     # Can make const with cython3 (https://github.com/cython/cython/issues/3222)
     rank_t[:] masked_vals,
     const intp_t[:] sort_indexer,
+    int64_t[::1] grp_sizes,
     Py_ssize_t N,
     const uint8_t[:] mask=None,
-    int64_t[::1] grp_sizes=None,
     TiebreakEnumType tiebreak=TIEBREAK_AVERAGE,
     bint keep_na=True,
     bint pct=False,
@@ -1132,15 +1127,15 @@ cdef void rank_sorted_1d(
         The values input to rank_1d, with missing values replaced by fill values
     sort_indexer : intp_t[:]
         Array of indices which sorts masked_vals
+    grp_sizes : int64_t[::1]
+        Array to store group counts, only used if pct=True. Should only be None
+        if labels is None.
     N : Py_ssize_t
         The number of elements to rank. Note: it is not always true that
         N == len(out) or N == len(masked_vals) (see `nancorr_spearman` usage for why)
     mask : uint8_t[:], default None
         Array where entries are True if the value is missing, False otherwise. None
         implies the mask is all False
-    grp_sizes : int64_t[::1], default None
-        Array to store group counts, only used if pct=True. Should only be None
-        if labels is None.
     tiebreak : TiebreakEnumType, default TIEBREAK_AVERAGE
         See rank_1d.__doc__ for the different modes
     keep_na : bool, default True
@@ -1154,13 +1149,10 @@ cdef void rank_sorted_1d(
         Py_ssize_t i, j, dups=0, sum_ranks=0,
         Py_ssize_t grp_start=0, grp_vals_seen=1, grp_na_count=0
         bint at_end, next_val_diff, group_changed, check_mask, check_labels
-        bint grp_size_needed
         int64_t grp_size
 
     check_mask = mask is not None
     check_labels = labels is not None
-    # Group size only needs to be tracked if we have groups or are doing dense ranking
-    grp_size_needed = pct and (check_labels or tiebreak == TIEBREAK_DENSE)
 
     # Loop over the length of the value array
     # each incremental i value can be looked up in the lexsort_indexer
@@ -1261,9 +1253,8 @@ cdef void rank_sorted_1d(
                         else:
                             grp_size = grp_vals_seen - (grp_na_count > 0)
 
-                        if grp_size_needed:
-                            for j in range(grp_start, i + 1):
-                                grp_sizes[sort_indexer[j]] = grp_size
+                        for j in range(grp_start, i + 1):
+                            grp_sizes[sort_indexer[j]] = grp_size
 
                         dups = sum_ranks = 0
                         grp_na_count = 0
@@ -1362,9 +1353,8 @@ cdef void rank_sorted_1d(
                     else:
                         grp_size = grp_vals_seen - (grp_na_count > 0)
 
-                    if grp_size_needed:
-                        for j in range(grp_start, i + 1):
-                            grp_sizes[sort_indexer[j]] = grp_size
+                    for j in range(grp_start, i + 1):
+                        grp_sizes[sort_indexer[j]] = grp_size
 
                     dups = sum_ranks = 0
                     grp_na_count = 0
@@ -1372,15 +1362,9 @@ cdef void rank_sorted_1d(
                     grp_vals_seen = 1
 
     if pct:
-        # If we're grouping, use the computed group sizes, otherwise we can just
-        # use the data length
-
         for i in range(N):
-            if grp_size_needed:
-                if grp_sizes[i] != 0:
-                    out[i] = out[i] / grp_sizes[i]
-            else:
-                out[i] = out[i] / N
+            if grp_sizes[i] != 0:
+                out[i] = out[i] / grp_sizes[i]
 
 
 def rank_2d(
@@ -1401,9 +1385,9 @@ def rank_2d(
         ndarray[rank_t, ndim=2] values
         rank_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
+        int64_t[::1] grp_sizes
         uint8_t[:, :] mask=None
         uint8_t[:] mask_arg=None
-        int64_t[::1] grp_sizes=None
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
         rank_t nan_fill_val
@@ -1443,10 +1427,7 @@ def rank_2d(
 
     n, k = (<object>values).shape
     out = np.empty((n, k), dtype='f8', order='F')
-
-    # If this doesn't hold, we don't care about group sizes, so don't even allocate
-    if pct and tiebreak == TIEBREAK_DENSE:
-        grp_sizes = np.ones(n, dtype=np.int64)
+    grp_sizes = np.ones(n, dtype=np.int64)
 
     # lexsort is slower, so only use if we need to worry about the mask
     if check_mask:
@@ -1473,9 +1454,9 @@ def rank_2d(
                 out[:, col],
                 masked_vals[:, col],
                 sort_indexer[:, col],
+                grp_sizes,
                 n,
                 mask=mask_arg,
-                grp_sizes=grp_sizes,
                 tiebreak=tiebreak,
                 keep_na=keep_na,
                 pct=pct,
