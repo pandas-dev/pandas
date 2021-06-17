@@ -339,6 +339,29 @@ class TestHashTableWithNans:
         assert np.all(np.isnan(unique)) and len(unique) == 1
 
 
+def test_unique_for_nan_objects_floats():
+    table = ht.PyObjectHashTable()
+    keys = np.array([float("nan") for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_complex():
+    table = ht.PyObjectHashTable()
+    keys = np.array([complex(float("nan"), 1.0) for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_tuple():
+    table = ht.PyObjectHashTable()
+    keys = np.array(
+        [1] + [(1.0, (float("nan"), 1.0)) for i in range(50)], dtype=np.object_
+    )
+    unique = table.unique(keys)
+    assert len(unique) == 2
+
+
 def get_ht_function(fun_name, type_suffix):
     return getattr(ht, fun_name)
 
@@ -496,4 +519,12 @@ def test_ismember_tuple_with_nans():
     comps = [("a", float("nan"))]
     result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_float_complex_int_are_equal_as_objects():
+    values = ["a", 5, 5.0, 5.0 + 0j]
+    comps = list(range(129))
+    result = isin(values, comps)
+    expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
