@@ -596,7 +596,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "single positional indexer is out-of-bounds"
+        msg = "index 5 is out of bounds for axis 0 with size 4"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 

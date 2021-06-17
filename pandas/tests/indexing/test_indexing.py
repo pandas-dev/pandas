@@ -518,7 +518,7 @@ class TestFancy:
         with pytest.raises(KeyError, match="'2011'"):
             df["2011"]
 
-        with pytest.raises(KeyError, match="'2011'"):
+        with pytest.raises(KeyError, match="^0$"):
             df.loc["2011", 0]
 
     def test_astype_assignment(self):
