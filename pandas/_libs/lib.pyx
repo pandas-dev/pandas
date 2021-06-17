@@ -518,6 +518,8 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
     return rev_indexer
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 # Can add const once https://github.com/cython/cython/issues/1772 resolved
 def has_infs(floating[:] arr) -> bool:
     cdef:
