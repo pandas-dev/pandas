@@ -118,6 +118,10 @@ cdef:
 
     float64_t NaN = <float64_t>np.NaN
 
+# python-visible
+i8max = <int64_t>INT64_MAX
+u8max = <uint64_t>UINT64_MAX
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -712,6 +716,14 @@ cpdef ndarray[object] ensure_string_array(
         Py_ssize_t i = 0, n = len(arr)
 
     if hasattr(arr, "to_numpy"):
+
+        if hasattr(arr, "dtype") and arr.dtype.kind in ["m", "M"]:
+            # dtype check to exclude DataFrame
+            # GH#41409 TODO: not a great place for this
+            out = arr.astype(str).astype(object)
+            out[arr.isna()] = na_value
+            return out
+
         arr = arr.to_numpy()
     elif not isinstance(arr, np.ndarray):
         arr = np.array(arr, dtype="object")
@@ -1699,7 +1711,7 @@ cdef class Validator:
             if not self.is_valid(values[i]):
                 return False
 
-        return self.finalize_validate()
+        return True
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -1712,7 +1724,7 @@ cdef class Validator:
             if not self.is_valid_skipna(values[i]):
                 return False
 
-        return self.finalize_validate_skipna()
+        return True
 
     cdef bint is_valid(self, object value) except -1:
         return self.is_value_typed(value)
@@ -1729,18 +1741,6 @@ cdef class Validator:
 
     cdef bint is_array_typed(self) except -1:
         return False
-
-    cdef inline bint finalize_validate(self):
-        return True
-
-    cdef bint finalize_validate_skipna(self):
-        """
-        If we _only_ saw non-dtype-specific NA values, even if they are valid
-        for this dtype, we do not infer this dtype.
-        """
-        # TODO(phillipc): Remove the existing validate methods and replace them
-        # with the skipna versions upon full deprecation of skipna=False
-        return True
 
 
 @cython.internal
@@ -1893,14 +1893,14 @@ cdef bint is_bytes_array(ndarray values, bint skipna=False):
 @cython.internal
 cdef class TemporalValidator(Validator):
     cdef:
-        Py_ssize_t generic_null_count
+        bint all_generic_na
 
     def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
                   bint skipna=False):
         self.n = n
         self.dtype = dtype
         self.skipna = skipna
-        self.generic_null_count = 0
+        self.all_generic_na = True
 
     cdef inline bint is_valid(self, object value) except -1:
         return self.is_value_typed(value) or self.is_valid_null(value)
@@ -1913,15 +1913,16 @@ cdef class TemporalValidator(Validator):
         cdef:
             bint is_typed_null = self.is_valid_null(value)
             bint is_generic_null = value is None or util.is_nan(value)
-        self.generic_null_count += is_typed_null and is_generic_null
+        if not is_generic_null:
+            self.all_generic_na = False
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
-    cdef inline bint finalize_validate_skipna(self):
+    cdef bint _validate_skipna(self, ndarray values) except -1:
         """
         If we _only_ saw non-dtype-specific NA values, even if they are valid
         for this dtype, we do not infer this dtype.
         """
-        return self.generic_null_count != self.n
+        return Validator._validate_skipna(self, values) and not self.all_generic_na
 
 
 @cython.internal
@@ -1954,6 +1955,21 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
+@cython.internal
+cdef class AnyDatetimeValidator(DatetimeValidator):
+    cdef inline bint is_value_typed(self, object value) except -1:
+        return util.is_datetime64_object(value) or (
+            PyDateTime_Check(value) and value.tzinfo is None
+        )
+
+
+cdef bint is_datetime_or_datetime64_array(ndarray values):
+    cdef:
+        AnyDatetimeValidator validator = AnyDatetimeValidator(len(values),
+                                                              skipna=True)
+    return validator.validate(values)
+
+
 # Note: only python-exposed for tests
 def is_datetime_with_singletz_array(values: ndarray) -> bool:
     """
@@ -1966,10 +1982,11 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
 
     if n == 0:
         return False
+
     # Get a reference timezone to compare with the rest of the tzs in the array
     for i in range(n):
         base_val = values[i]
-        if base_val is not NaT:
+        if base_val is not NaT and base_val is not None and not util.is_nan(base_val):
             base_tz = getattr(base_val, 'tzinfo', None)
             break
 
@@ -1977,11 +1994,13 @@ def is_datetime_with_singletz_array(values: ndarray) -> bool:
         # Compare val's timezone with the reference timezone
         # NaT can coexist with tz-aware datetimes, so skip if encountered
         val = values[j]
-        if val is not NaT:
+        if val is not NaT and val is not None and not util.is_nan(val):
             tz = getattr(val, 'tzinfo', None)
             if not tz_compare(base_tz, tz):
                 return False
 
+    # Note: we should only be called if a tzaware datetime has been seen,
+    #  so base_tz should always be set at this point.
     return True
 
 
@@ -2464,6 +2483,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 except OutOfBoundsTimedelta:
                     seen.object_ = True
                     break
+                break
             else:
                 seen.object_ = True
                 break
@@ -2544,6 +2564,32 @@ def maybe_convert_objects(ndarray[object] objects,
 
             # unbox to DatetimeArray
             return dti._data
+        seen.object_ = True
+
+    elif seen.datetime_:
+        if is_datetime_or_datetime64_array(objects):
+            from pandas import DatetimeIndex
+
+            try:
+                dti = DatetimeIndex(objects)
+            except OutOfBoundsDatetime:
+                pass
+            else:
+                # unbox to ndarray[datetime64[ns]]
+                return dti._data._ndarray
+        seen.object_ = True
+
+    elif seen.timedelta_:
+        if is_timedelta_or_timedelta64_array(objects):
+            from pandas import TimedeltaIndex
+
+            try:
+                tdi = TimedeltaIndex(objects)
+            except OutOfBoundsTimedelta:
+                pass
+            else:
+                # unbox to ndarray[timedelta64[ns]]
+                return tdi._data._ndarray
         seen.object_ = True
 
     if seen.period_:

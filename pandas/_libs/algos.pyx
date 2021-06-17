@@ -941,9 +941,9 @@ cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
         if rank_t is object:
             return Infinity()
         elif rank_t is int64_t:
-            return np.iinfo(np.int64).max
+            return util.INT64_MAX
         elif rank_t is uint64_t:
-            return np.iinfo(np.uint64).max
+            return util.UINT64_MAX
         else:
             return np.inf
     else:
@@ -1057,7 +1057,7 @@ def rank_1d(
     if nans_rank_highest:
         order = (masked_vals, mask, labels)
     else:
-        order = (masked_vals, ~(np.array(mask, copy=False)), labels)
+        order = (masked_vals, ~(np.asarray(mask)), labels)
 
     np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
@@ -1088,7 +1088,7 @@ def rank_1d(
             N,
         )
 
-    return np.array(out)
+    return np.asarray(out)
 
 
 @cython.wraparound(False)
@@ -1421,7 +1421,7 @@ def rank_2d(
     if nans_rank_highest:
         order = (values, mask)
     else:
-        order = (values, ~np.array(mask, copy=False))
+        order = (values, ~np.asarray(mask))
 
     n, k = (<object>values).shape
     out = np.empty((n, k), dtype='f8', order='F')
