@@ -20,8 +20,9 @@ class TestSeriesArgsort:
         ts = ser.copy()
         ts[::2] = np.NaN
 
-        result = func(ts)[1::2]
-        expected = func(np.array(ts.dropna()))
+        result = func(ts)
+        expected = func(ts.to_numpy())
+        expected[int(len(expected) / 2) :] = -1
 
         tm.assert_numpy_array_equal(result.values, expected, check_dtype=False)
 
@@ -53,8 +54,12 @@ class TestSeriesArgsort:
         mexpected = np.argsort(s.values, kind="mergesort")
         qexpected = np.argsort(s.values, kind="quicksort")
 
-        tm.assert_series_equal(mindexer.astype(np.intp), Series(mexpected))
-        tm.assert_series_equal(qindexer.astype(np.intp), Series(qexpected))
+        tm.assert_series_equal(
+            mindexer.astype(np.intp), Series(mexpected, index=s.index[mexpected])
+        )
+        tm.assert_series_equal(
+            qindexer.astype(np.intp), Series(qexpected, index=s.index[qexpected])
+        )
         msg = (
             r"ndarray Expected type <class 'numpy\.ndarray'>, "
             r"found <class 'pandas\.core\.series\.Series'> instead"

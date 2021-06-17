@@ -3634,8 +3634,8 @@ Keep all original rows and also all original values
         """
         Return the integer indices that would sort the Series values.
 
-        Override ndarray.argsort. Argsorts the value, omitting NA/null values,
-        and places the result in the same locations as the non-NA values.
+        Override ndarray.argsort. NA/null sort indices are replaced by -1. The index
+        is sorted so that index labels correspond to the integer indices
 
         Parameters
         ----------
@@ -3656,40 +3656,48 @@ Keep all original rows and also all original values
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
+
+        Examples
+        --------
+
+        Argsorting a basic Series.
+
+        >>> series = Series([30, 10, 20], index=["high", "low", "mid"], name="xy")
+        >>> series.argsort()
+        low     1
+        mid     2
+        high    0
+        Name: xy, dtype: int64
+
+        Argsorting a Series with null values.
+
+        >>> series = Series([30, 10, np.nan, 20], name="xy",
+        ...                    index=["high", "low", "null", "mid"])
+        >>> series.argsort()
+        low     1
+        mid     3
+        high    0
+        null   -1
+        Name: xy, dtype: int64
         """
         values = self.to_numpy()
-        res = np.argsort(values, kind=kind)
-        res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
         mask = isna(values)
+        object_and_nulls = self.dtype == "object" and any(mask)
+        if object_and_nulls:
+            # if an object/string array has nans convert to last ascii character '~'
+            values = np.where(isna(values), "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", values)
+        res = np.argsort(values, kind=kind)
+        if object_and_nulls:
+            if values[res[-1]] != "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~":
+                # then another string has lower sort index than the substitute
+                # so return the original, unedited numpy TypeError
+                raise TypeError(
+                    "'<' not supported between instances of 'float' and 'str'"
+                )
+
+        res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
         res_ser[self.index[mask]] = -1  # set na tp -1
         return res_ser.__finalize__(self, method="argsort")
-
-        # if mask.any():
-        #     result = np.argsort(values, kind=kind)
-        #     result_series = Series(result, index=self.index[result], dtype="int64",
-        #     name=self.name)
-        #
-        #
-        #     mask_ret = Series(-1, index=self.index[mask], dtype="int64",
-        #     name=self.name)
-        #     notmask_result = np.argsort(values[~mask], kind=kind)
-        #     notmask_ret = Series(
-        #         notmask_result,
-        #         index=self.index[~mask][notmask_result],
-        #         dtype="int64",
-        #         name=self.name,
-        #     )
-        #
-        #     # result = Series(-1, index=self.index, name=self.name, dtype="int64")
-        #     # notmask = ~mask
-        #     # result[notmask] = np.argsort(values[notmask], kind=kind)
-        #     ret = concat([notmask_ret, mask_ret])
-        #     return ret.__finalize__(self, method="argsort")
-        # else:
-        #     result = np.argsort(values, kind=kind)
-        #     return self._constructor(
-        #         result, index=self.index[result], dtype="int64"
-        #     ).__finalize__(self, method="argsort")
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
