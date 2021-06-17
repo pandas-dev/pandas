@@ -158,6 +158,7 @@ from pandas.core.generic import (
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     DatetimeIndex,
     Index,
     PeriodIndex,
@@ -3553,6 +3554,11 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         scalar
+
+        Notes
+        -----
+        Assumes that index and columns both have ax._index_as_unique;
+        caller is responsible for checking.
         """
         if takeable:
             series = self._ixs(col, axis=1)
@@ -3561,20 +3567,21 @@ class DataFrame(NDFrame, OpsMixin):
         series = self._get_item_cache(col)
         engine = self.index._engine
 
+        if isinstance(self.index, CategoricalIndex):
+            # Trying to use the engine fastpath may give incorrect results
+            #  if our categories are integers that dont match our codes
+            col = self.columns.get_loc(col)
+            index = self.index.get_loc(index)
+            return self._get_value(index, col, takeable=True)
+
         try:
             loc = engine.get_loc(index)
             return series._values[loc]
-        except KeyError:
-            # GH 20629
-            if self.index.nlevels > 1:
-                # partial indexing forbidden
-                raise
-
-        # we cannot handle direct indexing
-        # use positional
-        col = self.columns.get_loc(col)
-        index = self.index.get_loc(index)
-        return self._get_value(index, col, takeable=True)
+        except AttributeError:
+            # IntervalTree has no get_loc
+            col = self.columns.get_loc(col)
+            index = self.index.get_loc(index)
+            return self._get_value(index, col, takeable=True)
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)

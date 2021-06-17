@@ -136,7 +136,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41143`)
  - One has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options <options.available>`, which are also usable via :func:`option_context` (:issue:`41142`)
  - Added the option ``styler.render.max_elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
- - Added the method :meth:`.Styler.to_latex` (:issue:`21673`)
+ - Added the method :meth:`.Styler.to_latex` (:issue:`21673`), which also allows some limited CSS conversion (:issue:`40731`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
 
 .. _whatsnew_130.enhancements.dataframe_honors_copy_with_dict:
@@ -246,6 +246,7 @@ Other enhancements
 - Improved error message when ``usecols`` and ``names`` do not match for :func:`read_csv` and ``engine="c"`` (:issue:`29042`)
 - Improved consistency of error messages when passing an invalid ``win_type`` argument in :ref:`Window methods <api.window>` (:issue:`15969`)
 - :func:`read_sql_query` now accepts a ``dtype`` argument to cast the columnar data from the SQL database based on user input (:issue:`10285`)
+- :func:`read_csv` now raising ``ParserWarning`` if length of header or given names does not match length of data when ``usecols`` is not specified (:issue:`21768`)
 - Improved integer type mapping from pandas to SQLAlchemy when using :meth:`DataFrame.to_sql` (:issue:`35076`)
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 - Added support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
@@ -812,6 +813,7 @@ Other Deprecations
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
 - Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
+- Deprecated :meth:`.Styler.where` in favour of using an alternative formulation with :meth:`Styler.applymap` (:issue:`40821`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated arguments ``error_bad_lines`` and ``warn_bad_lines`` in :meth:`read_csv` and :meth:`read_table` in favor of argument ``on_bad_lines`` (:issue:`15122`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
@@ -947,6 +949,8 @@ Numeric
 - Bug in :meth:`Series.count` would result in an ``int32`` result on 32-bit platforms when argument ``level=None`` (:issue:`40908`)
 - Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning Boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if the Series contains NA values and has nullable int or float as a data type (:issue:`40851`)
+- Bug in :meth:`UInt64Index.where` and :meth:`UInt64Index.putmask` with an ``np.int64`` dtype ``other`` incorrectly raising ``TypeError`` (:issue:`41974`)
+
 
 Conversion
 ^^^^^^^^^^
@@ -1013,7 +1017,9 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__setitem__` when setting-with-expansion incorrectly raising when the index in the expanding axis contained duplicates (:issue:`40096`)
 - Bug in :meth:`DataFrame.loc.__getitem__` with :class:`MultiIndex` casting to float when at least one index column has float dtype and we retrieve a scalar (:issue:`41369`)
 - Bug in :meth:`DataFrame.loc` incorrectly matching non-Boolean index elements (:issue:`20432`)
+- Bug in indexing with ``np.nan`` on a :class:`Series` or :class:`DataFrame` with a :class:`CategoricalIndex` incorrectly raising ``KeyError`` when ``np.nan`` keys are present (:issue:`41933`)
 - Bug in :meth:`Series.__delitem__` with ``ExtensionDtype`` incorrectly casting to ``ndarray`` (:issue:`40386`)
+- Bug in :meth:`DataFrame.at` with a :class:`CategoricalIndex` returning incorrect results when passed integer keys (:issue:`41846`)
 - Bug in :meth:`DataFrame.loc` returning a :class:`MultiIndex` in the wrong order if an indexer has duplicates (:issue:`40978`)
 - Bug in :meth:`DataFrame.__setitem__` raising a ``TypeError`` when using a ``str`` subclass as the column name with a :class:`DatetimeIndex` (:issue:`37366`)
 - Bug in :meth:`PeriodIndex.get_loc` failing to raise a ``KeyError`` when given a :class:`Period` with a mismatched ``freq`` (:issue:`41670`)
@@ -1027,6 +1033,7 @@ Missing
 - Bug in :meth:`DataFrame.fillna` not accepting a dictionary for the ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
 - Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
+- Bug in :meth:`Series.isin` and :meth:`MultiIndex.isin` didn't treat all nans as equivalent if they were in tuples (:issue:`41836`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1154,6 +1161,7 @@ Reshaping
 - Bug in :func:`to_datetime` raising an error when the input sequence contained unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving the index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising a ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
+- Bug in :meth:`DataFrame.melt` raising ``InvalidIndexError`` when :class:`DataFrame` has duplicate columns used as ``value_vars`` (:issue:`41951`)
 
 Sparse
 ^^^^^^
