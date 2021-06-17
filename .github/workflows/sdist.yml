@@ -52,13 +52,11 @@ jobs:
 
     - name: Install Pandas From sdist
       run: |
-        conda install cython numpy
         conda list
         python -m pip install dist/*.gz
 
     - name: Build Version
       run: |
         cd ..
-        conda install python-dateutil pytz
         conda list
         python -c "import pandas; pandas.show_versions();"
