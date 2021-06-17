@@ -226,3 +226,29 @@ def test_parse_time_string_check_instance_type_raise_exception():
     result = parse_time_string("2019")
     expected = (datetime(2019, 1, 1), "year")
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "fmt,expected",
+    [
+        ("%Y %m %d %H:%M:%S", True),
+        ("%Y/%m/%d %H:%M:%S", True),
+        (r"%Y\%m\%d %H:%M:%S", True),
+        ("%Y-%m-%d %H:%M:%S", True),
+        ("%Y.%m.%d %H:%M:%S", True),
+        ("%Y%m%d %H:%M:%S", True),
+        ("%Y-%m-%dT%H:%M:%S", True),
+        ("%Y-%m-%dT%H:%M:%SZ", True),
+        ("%Y-%m-%dT%H:%M:%S.%f", True),
+        ("%Y-%m-%dT%H:%M:%S.%fZ", True),
+        ("%Y%m%d", False),
+        ("%Y%m", False),
+        ("%Y", False),
+        ("%Y-%m-%d", True),
+        ("%Y-%m", True),
+    ],
+)
+def test_is_iso_format(fmt, expected):
+    # see gh-41047
+    result = parsing.format_is_iso(fmt)
+    assert result == expected

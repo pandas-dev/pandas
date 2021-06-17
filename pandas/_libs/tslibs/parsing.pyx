@@ -825,6 +825,10 @@ def format_is_iso(f: str) -> bint:
     iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
     excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
 
+    if (f is not None) and (f[-2:] in ["SZ", "fZ"]):
+        # remove last 'Z'
+        f = f[:-1]
+
     for date_sep in [' ', '/', '\\', '-', '.', '']:
         for time_sep in [' ', 'T']:
             if (iso_template(date_sep=date_sep,
