@@ -44,7 +44,7 @@ def write_csv_rows(
         list row
 
     # pre-allocate rows
-    rows = [[None] * (nlevels + ncols) for _ in range(chunksize)]
+    rows = [[None] * (nlevels + ncols) for _ in range(min(chunksize, k))]
 
     if nlevels == 1:
         for j in range(k):
