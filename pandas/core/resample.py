@@ -34,6 +34,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -139,6 +140,8 @@ class Resampler(BaseGroupBy, PandasObject):
         groupby: TimeGrouper,
         axis: int = 0,
         kind=None,
+        *,
+        selection=None,
         **kwargs,
     ):
         self.groupby = groupby
@@ -152,6 +155,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         self.groupby._set_grouper(self._convert_obj(obj), sort=True)
         self.binner, self.grouper = self._get_binner()
+        self._selection = selection
 
     @final
     def _shallow_copy(self, obj, **kwargs):
@@ -195,6 +199,8 @@ class Resampler(BaseGroupBy, PandasObject):
 
     @property
     def ax(self):
+        # we can infer that this is a PeriodIndex/DatetimeIndex/TimedeltaIndex,
+        #  but skipping annotating bc the overrides overwhelming
         return self.groupby.ax
 
     @property
@@ -827,6 +833,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample(method, limit=limit)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
@@ -945,8 +952,6 @@ class Resampler(BaseGroupBy, PandasObject):
     def quantile(self, q=0.5, **kwargs):
         """
         Return value at the given quantile.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1080,13 +1085,16 @@ class _GroupByMixin(PandasObject):
         except IndexError:
             groupby = self._groupby
 
-        self = type(self)(subset, groupby=groupby, parent=self, **kwargs)
-        self._reset_cache()
+        selection = None
         if subset.ndim == 2 and (
-            lib.is_scalar(key) and key in subset or lib.is_list_like(key)
+            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
         ):
-            self._selection = key
-        return self
+            selection = key
+
+        new_rs = type(self)(
+            subset, groupby=groupby, parent=self, selection=selection, **kwargs
+        )
+        return new_rs
 
 
 class DatetimeIndexResampler(Resampler):

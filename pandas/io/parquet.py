@@ -35,7 +35,7 @@ from pandas.io.common import (
 
 
 def get_engine(engine: str) -> BaseImpl:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.parquet.engine")
 
@@ -210,27 +210,21 @@ class PyArrowImpl(BaseImpl):
 
         to_pandas_kwargs = {}
         if use_nullable_dtypes:
-            if Version(self.api.__version__) >= Version("0.16"):
-                import pandas as pd
+            import pandas as pd
 
-                mapping = {
-                    self.api.int8(): pd.Int8Dtype(),
-                    self.api.int16(): pd.Int16Dtype(),
-                    self.api.int32(): pd.Int32Dtype(),
-                    self.api.int64(): pd.Int64Dtype(),
-                    self.api.uint8(): pd.UInt8Dtype(),
-                    self.api.uint16(): pd.UInt16Dtype(),
-                    self.api.uint32(): pd.UInt32Dtype(),
-                    self.api.uint64(): pd.UInt64Dtype(),
-                    self.api.bool_(): pd.BooleanDtype(),
-                    self.api.string(): pd.StringDtype(),
-                }
-                to_pandas_kwargs["types_mapper"] = mapping.get
-            else:
-                raise ValueError(
-                    "'use_nullable_dtypes=True' is only supported for pyarrow >= 0.16 "
-                    f"({self.api.__version__} is installed"
-                )
+            mapping = {
+                self.api.int8(): pd.Int8Dtype(),
+                self.api.int16(): pd.Int16Dtype(),
+                self.api.int32(): pd.Int32Dtype(),
+                self.api.int64(): pd.Int64Dtype(),
+                self.api.uint8(): pd.UInt8Dtype(),
+                self.api.uint16(): pd.UInt16Dtype(),
+                self.api.uint32(): pd.UInt32Dtype(),
+                self.api.uint64(): pd.UInt64Dtype(),
+                self.api.bool_(): pd.BooleanDtype(),
+                self.api.string(): pd.StringDtype(),
+            }
+            to_pandas_kwargs["types_mapper"] = mapping.get
         manager = get_option("mode.data_manager")
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
@@ -327,9 +321,14 @@ class FastParquetImpl(BaseImpl):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
-                path, "rb", **(storage_options or {})
-            ).open()
+            if Version(self.api.__version__) > Version("0.6.1"):
+                parquet_kwargs["fs"] = fsspec.open(
+                    path, "rb", **(storage_options or {})
+                ).fs
+            else:
+                parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
+                    path, "rb", **(storage_options or {})
+                ).open()
         elif isinstance(path, str) and not os.path.isdir(path):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories
@@ -389,16 +388,10 @@ def to_parquet(
         the RangeIndex will be stored as a range in the metadata so it
         doesn't require much space and is faster. Other indexes will
         be included as columns in the file output.
-
-        .. versionadded:: 0.24.0
-
     partition_cols : str or list, optional, default None
         Column names by which to partition the dataset.
         Columns are partitioned in the order they are given.
         Must be None if path is not a string.
-
-        .. versionadded:: 0.24.0
-
     {storage_options}
 
         .. versionadded:: 1.2.0

@@ -24,7 +24,6 @@ from pandas.core.groupby.generic import (
     DataFrameGroupBy,
     SeriesGroupBy,
 )
-from pandas.core.groupby.groupby import DataError
 
 
 def assert_fp_equal(a, b):
@@ -409,7 +408,9 @@ def test_transform_exclude_nuisance(df, duplicates):
     grouped = df.groupby("A")
 
     gbc = grouped["C"]
-    expected["C"] = gbc.transform(np.mean)
+    warn = FutureWarning if duplicates else None
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        expected["C"] = gbc.transform(np.mean)
     if duplicates:
         # squeeze 1-column DataFrame down to Series
         expected["C"] = expected["C"]["C"]
@@ -422,14 +423,16 @@ def test_transform_exclude_nuisance(df, duplicates):
 
     expected["D"] = grouped["D"].transform(np.mean)
     expected = DataFrame(expected)
-    result = df.groupby("A").transform(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = df.groupby("A").transform(np.mean)
 
     tm.assert_frame_equal(result, expected)
 
 
 def test_transform_function_aliases(df):
-    result = df.groupby("A").transform("mean")
-    expected = df.groupby("A").transform(np.mean)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = df.groupby("A").transform("mean")
+        expected = df.groupby("A").transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
@@ -498,7 +501,10 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
     expected = DataFrame(
         {"B": np.nan, "C": Series([-1, 0, 1, -1, 0, 1], dtype="float64")}
     )
@@ -514,7 +520,10 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
     expected = DataFrame({"B": np.nan, "C": [-1.0, 0.0, 1.0, -1.0, 0.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
@@ -522,7 +531,10 @@ def test_groupby_transform_with_int():
     s = Series([2, 3, 4, 10, 5, -1])
     df = DataFrame({"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": s, "D": "foo"})
     with np.errstate(all="ignore"):
-        result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
+        with tm.assert_produces_warning(
+            FutureWarning, match="Dropping invalid columns"
+        ):
+            result = df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
 
     s1 = s.iloc[0:3]
     s1 = (s1 - s1.mean()) / s1.std()
@@ -532,7 +544,8 @@ def test_groupby_transform_with_int():
     tm.assert_frame_equal(result, expected)
 
     # int doesn't get downcasted
-    result = df.groupby("A").transform(lambda x: x * 2 / 2)
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
+        result = df.groupby("A").transform(lambda x: x * 2 / 2)
     expected = DataFrame({"B": 1.0, "C": [2.0, 3.0, 4.0, 10.0, 5.0, -1.0]})
     tm.assert_frame_equal(result, expected)
 
@@ -727,11 +740,21 @@ def test_cython_transform_frame(op, args, targop):
             tm.assert_frame_equal(expected, getattr(gb, op)(*args).sort_index(axis=1))
             # individual columns
             for c in df:
-                if c not in ["float", "int", "float_missing"] and op != "shift":
-                    msg = "No numeric types to aggregate"
-                    with pytest.raises(DataError, match=msg):
+                if (
+                    c not in ["float", "int", "float_missing"]
+                    and op != "shift"
+                    and not (c == "timedelta" and op == "cumsum")
+                ):
+                    msg = "|".join(
+                        [
+                            "does not support .* operations",
+                            ".* is not supported for object dtype",
+                            "is not implemented for this dtype",
+                        ]
+                    )
+                    with pytest.raises(TypeError, match=msg):
                         gb[c].transform(op)
-                    with pytest.raises(DataError, match=msg):
+                    with pytest.raises(TypeError, match=msg):
                         getattr(gb[c], op)()
                 else:
                     expected = gb[c].apply(targop)
@@ -791,7 +814,11 @@ def test_transform_numeric_ret(cols, exp, comp_func, agg_func, request):
         {"a": date_range("2018-01-01", periods=3), "b": range(3), "c": range(7, 10)}
     )
 
-    result = df.groupby("b")[cols].transform(agg_func)
+    warn = FutureWarning
+    if isinstance(exp, Series) or agg_func != "size":
+        warn = None
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        result = df.groupby("b")[cols].transform(agg_func)
 
     if agg_func == "rank":
         exp = exp.astype("float")
@@ -883,7 +910,7 @@ def test_pad_stable_sorting(fill_method):
         y = y[::-1]
 
     df = DataFrame({"x": x, "y": y})
-    expected = df.drop("x", 1)
+    expected = df.drop("x", axis=1)
 
     result = getattr(df.groupby("x"), fill_method)()
 
@@ -1103,7 +1130,12 @@ def test_transform_agg_by_name(request, reduction_func, obj):
 
     args = {"nth": [0], "quantile": [0.5], "corrwith": [obj]}.get(func, [])
 
-    result = g.transform(func, *args)
+    warn = None
+    if isinstance(obj, DataFrame) and func == "size":
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+        result = g.transform(func, *args)
 
     # this is the *definition* of a transformation
     tm.assert_index_equal(result.index, obj.index)
@@ -1236,3 +1268,11 @@ def test_categorical_and_not_categorical_key(observed):
     tm.assert_series_equal(result, expected)
     expected_explicit = Series([4, 2, 4], name="B")
     tm.assert_series_equal(result, expected_explicit)
+
+
+def test_string_rank_grouping():
+    # GH 19354
+    df = DataFrame({"A": [1, 1, 2], "B": [1, 2, 3]})
+    result = df.groupby("A").transform("rank")
+    expected = DataFrame({"B": [1.0, 2.0, 1.0]})
+    tm.assert_frame_equal(result, expected)

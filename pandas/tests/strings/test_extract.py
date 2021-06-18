@@ -38,24 +38,22 @@ def test_extract_expand_kwarg(any_string_dtype):
 
 
 def test_extract_expand_False_mixed_object():
-    mixed = Series(
-        [
-            "aBAD_BAD",
-            np.nan,
-            "BAD_b_BAD",
-            True,
-            datetime.today(),
-            "foo",
-            None,
-            1,
-            2.0,
-        ]
+    ser = Series(
+        ["aBAD_BAD", np.nan, "BAD_b_BAD", True, datetime.today(), "foo", None, 1, 2.0]
     )
 
-    result = Series(mixed).str.extract(".*(BAD[_]+).*(BAD)", expand=False)
+    # two groups
+    result = ser.str.extract(".*(BAD[_]+).*(BAD)", expand=False)
     er = [np.nan, np.nan]  # empty row
     expected = DataFrame([["BAD_", "BAD"], er, ["BAD_", "BAD"], er, er, er, er, er, er])
     tm.assert_frame_equal(result, expected)
+
+    # single group
+    result = ser.str.extract(".*(BAD[_]+).*BAD", expand=False)
+    expected = Series(
+        ["BAD_", np.nan, "BAD_", np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_extract_expand_index_raises():

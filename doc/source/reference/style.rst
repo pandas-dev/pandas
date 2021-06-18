@@ -24,6 +24,7 @@ Styler properties
 
    Styler.env
    Styler.template_html
+   Styler.template_latex
    Styler.loader
 
 Style application
@@ -33,13 +34,15 @@ Style application
 
    Styler.apply
    Styler.applymap
-   Styler.where
    Styler.format
+   Styler.hide_index
+   Styler.hide_columns
    Styler.set_td_classes
    Styler.set_table_styles
    Styler.set_table_attributes
    Styler.set_tooltips
    Styler.set_caption
+   Styler.set_sticky
    Styler.set_properties
    Styler.set_uuid
    Styler.clear
@@ -54,7 +57,9 @@ Builtin styles
    Styler.highlight_max
    Styler.highlight_min
    Styler.highlight_between
+   Styler.highlight_quantile
    Styler.background_gradient
+   Styler.text_gradient
    Styler.bar
 
 Style export and import
@@ -65,4 +70,6 @@ Style export and import
    Styler.render
    Styler.export
    Styler.use
+   Styler.to_html
    Styler.to_excel
+   Styler.to_latex

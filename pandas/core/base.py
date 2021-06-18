@@ -196,6 +196,7 @@ class SelectionMixin(Generic[FrameOrSeries]):
         else:
             return self.obj[self._selection]
 
+    @final
     @cache_readonly
     def ndim(self) -> int:
         return self._selected_obj.ndim
@@ -348,8 +349,6 @@ class IndexOpsMixin(OpsMixin):
         """
         The ExtensionArray of the data backing this Series or Index.
 
-        .. versionadded:: 0.24.0
-
         Returns
         -------
         ExtensionArray
@@ -419,8 +418,6 @@ class IndexOpsMixin(OpsMixin):
     ) -> np.ndarray:
         """
         A NumPy ndarray representing the values in this Series or Index.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -498,8 +495,8 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
         >>> ser.to_numpy(dtype=object)
-        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
-               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
               dtype=object)
 
         Or ``dtype='datetime64[ns]'`` to return an ndarray of native
@@ -1136,13 +1133,13 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        value : array_like
+        value : array-like
             Values to insert into `self`.
         side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
+        sorter : 1-D array-like, optional
             Optional array of integer indices that sort `self` into ascending
             order. They are typically the result of ``np.argsort``.
 
@@ -1151,11 +1148,6 @@ class IndexOpsMixin(OpsMixin):
         int or array of int
             A scalar or array of insertion points with the
             same shape as `value`.
-
-            .. versionchanged:: 0.24.0
-                If `value` is a scalar, an int is now always returned.
-                Previously, scalar inputs returned an 1-item array for
-                :class:`Series` and :class:`Categorical`.
 
         See Also
         --------

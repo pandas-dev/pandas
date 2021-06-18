@@ -6,7 +6,7 @@ dependencies:
 
   # tools
   - cython>=0.29.21
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
@@ -31,7 +31,8 @@ dependencies:
   - openpyxl
   - pandas-gbq
   - google-cloud-bigquery>=1.27.2 # GH 36436
-  - pyarrow=0.17 # GH 38803
+  - protobuf>=3.12.4
+  - pyarrow=0.17.1 # GH 38803
   - pytables>=3.5.1
   - scipy
   - xarray=0.12.3

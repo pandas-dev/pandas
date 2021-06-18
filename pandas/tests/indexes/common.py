@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
 import gc
-from typing import Type
 
 import numpy as np
 import pytest
@@ -36,7 +37,7 @@ class Base:
     Base class for index sub-class tests.
     """
 
-    _index_cls: Type[Index]
+    _index_cls: type[Index]
 
     @pytest.fixture
     def simple_index(self):
@@ -47,11 +48,17 @@ class Base:
 
     def test_pickle_compat_construction(self):
         # need an object to create with
-        msg = (
-            r"Index\(\.\.\.\) must be called with a collection of some "
-            r"kind, None was passed|"
-            r"__new__\(\) missing 1 required positional argument: 'data'|"
-            r"__new__\(\) takes at least 2 arguments \(1 given\)"
+        msg = "|".join(
+            [
+                r"Index\(\.\.\.\) must be called with a collection of some "
+                r"kind, None was passed",
+                r"DatetimeIndex\(\) must be called with a collection of some "
+                r"kind, None was passed",
+                r"TimedeltaIndex\(\) must be called with a collection of some "
+                r"kind, None was passed",
+                r"__new__\(\) missing 1 required positional argument: 'data'",
+                r"__new__\(\) takes at least 2 arguments \(1 given\)",
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             self._index_cls()
@@ -717,9 +724,10 @@ class Base:
         assert len(gc.get_referrers(index)) == nrefs_pre
 
     def test_getitem_2d_deprecated(self, simple_index):
-        # GH#30588
+        # GH#30588, GH#31479
         idx = simple_index
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Support for multi-dimensional indexing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)

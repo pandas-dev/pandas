@@ -25,8 +25,8 @@ class IsIn:
         "category[object]",
         "category[int]",
         "str",
-        "string",
-        "arrow_string",
+        "string[python]",
+        "string[pyarrow]",
     ]
     param_names = ["dtype"]
 
@@ -50,8 +50,6 @@ class IsIn:
 
         elif dtype in ["category[object]", "category[int]"]:
             # Note: sizes are different in this case than others
-            np.random.seed(1234)
-
             n = 5 * 10 ** 5
             sample_size = 100
 
@@ -62,9 +60,7 @@ class IsIn:
             self.values = np.random.choice(arr, sample_size)
             self.series = Series(arr).astype("category")
 
-        elif dtype in ["str", "string", "arrow_string"]:
-            from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
+        elif dtype in ["str", "string[python]", "string[pyarrow]"]:
             try:
                 self.series = Series(tm.makeStringIndex(N), dtype=dtype)
             except ImportError:
@@ -101,7 +97,6 @@ class IsinAlmostFullWithRandomInt:
     def setup(self, dtype, exponent, title):
         M = 3 * 2 ** (exponent - 2)
         # 0.77-the maximal share of occupied buckets
-        np.random.seed(42)
         self.series = Series(np.random.randint(0, M, M)).astype(dtype)
 
         values = np.random.randint(0, M, M).astype(dtype)
@@ -134,7 +129,6 @@ class IsinWithRandomFloat:
     param_names = ["dtype", "size", "title"]
 
     def setup(self, dtype, size, title):
-        np.random.seed(42)
         self.values = np.random.rand(size)
         self.series = Series(self.values).astype(dtype)
         np.random.shuffle(self.values)
@@ -181,7 +175,6 @@ class IsinWithArange:
 
     def setup(self, dtype, M, offset_factor):
         offset = int(M * offset_factor)
-        np.random.seed(42)
         tmp = Series(np.random.randint(offset, M + offset, 10 ** 6))
         self.series = tmp.astype(dtype)
         self.values = np.arange(M).astype(dtype)
@@ -292,10 +285,8 @@ class IsInLongSeriesLookUpDominates:
             raise NotImplementedError
 
         if series_type == "random_hits":
-            np.random.seed(42)
             array = np.random.randint(0, MaxNumber, N)
         if series_type == "random_misses":
-            np.random.seed(42)
             array = np.random.randint(0, MaxNumber, N) + MaxNumber
         if series_type == "monotone_hits":
             array = np.repeat(np.arange(MaxNumber), N // MaxNumber)
@@ -324,7 +315,6 @@ class IsInLongSeriesValuesDominate:
             raise NotImplementedError
 
         if series_type == "random":
-            np.random.seed(42)
             vals = np.random.randint(0, 10 * N, N)
         if series_type == "monotone":
             vals = np.arange(N)

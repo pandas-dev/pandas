@@ -25,7 +25,6 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
-    ints_to_pydatetime,
     parsing,
     timezones,
     to_offset,
@@ -35,11 +34,11 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -256,11 +255,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _comparables = ["name", "freqstr", "tz"]
-    _attributes = ["name", "tz", "freq"]
-
-    _is_numeric_dtype = False
-
     _data: DatetimeArray
     inferred_freq: str | None
     tz: tzinfo | None
@@ -328,10 +322,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> DatetimeIndex:
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -390,10 +381,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-
-    def _mpl_repr(self) -> np.ndarray:
-        # how to represent ourselves to matplotlib
-        return ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
@@ -660,7 +647,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version.  "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -670,8 +657,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         loc : int
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         orig_key = key
         if is_valid_na_for_dtype(key, self.dtype):
