@@ -1777,11 +1777,3 @@ def test_drop_duplicates_pos_args_deprecation():
         result = idx.drop_duplicates("last")
     expected = Index([2, 3, 1])
     tm.assert_index_equal(expected, result)
-
-
-def test_not_hashable():
-    # GH#40013
-    idx = Index([1, 2, 3])
-    msg = "unhashable type: 'Int64Index'"
-    with pytest.raises(TypeError, match=msg):
-        hash(idx)
