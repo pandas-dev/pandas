@@ -3680,7 +3680,7 @@ Keep all original rows and also all original values
         null   -1
         Name: xy, dtype: int64
         """
-        values = self.array
+        values = self.values
         na_mask = isna(values)
         if not any(na_mask):
             res = np.argsort(values, kind=kind)
@@ -3707,7 +3707,11 @@ Keep all original rows and also all original values
             )
             from pandas.core.reshape.concat import concat
 
-            return concat([notna_res_ser, na_res_ser])
+            ret_ser = concat([notna_res_ser, na_res_ser]).__finalize__(
+                self, method="argsort"
+            )
+            assert isinstance(ret_ser, Series)  # mypy: concat 2 Series so is OK
+            return ret_ser
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
