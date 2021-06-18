@@ -138,6 +138,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - Added the option ``styler.render.max_elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
  - Added the method :meth:`.Styler.to_latex` (:issue:`21673`), which also allows some limited CSS conversion (:issue:`40731`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
+ - Added the method :meth:`.Styler.set_sticky` to make index and column headers permanently visible in scrolling HTML frames (:issue:`29072`)
 
 .. _whatsnew_130.enhancements.dataframe_honors_copy_with_dict:
 
@@ -986,6 +987,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`Index.union` and :meth:`MultiIndex.union` dropping duplicate ``Index`` values when ``Index`` was not monotonic or ``sort`` was set to ``False`` (:issue:`36289`, :issue:`31326`, :issue:`40862`)
 - Bug in :meth:`CategoricalIndex.get_indexer` failing to raise ``InvalidIndexError`` when non-unique (:issue:`38372`)
+- Bug in :meth:`IntervalIndex.get_indexer` when ``target`` has ``CategoricalDtype`` and both the index and the target contain NA values (:issue:`41934`)
 - Bug in :meth:`Series.loc` raising a ``ValueError`` when input was filtered with a Boolean list and values to set were a list with lower dimension (:issue:`20438`)
 - Bug in inserting many new columns into a :class:`DataFrame` causing incorrect subsequent indexing behavior (:issue:`38380`)
 - Bug in :meth:`DataFrame.__setitem__` raising a ``ValueError`` when setting multiple values to duplicate columns (:issue:`15695`)
@@ -1025,6 +1027,7 @@ Indexing
 - Bug in :meth:`PeriodIndex.get_loc` failing to raise a ``KeyError`` when given a :class:`Period` with a mismatched ``freq`` (:issue:`41670`)
 - Bug ``.loc.__getitem__`` with a :class:`UInt64Index` and negative-integer keys raising ``OverflowError`` instead of ``KeyError`` in some cases, wrapping around to positive integers in others (:issue:`41777`)
 - Bug in :meth:`Index.get_indexer` failing to raise ``ValueError`` in some cases with invalid ``method``, ``limit``, or ``tolerance`` arguments (:issue:`41918`)
+- Bug when slicing a :class:`Series` or :class:`DataFrame` with a :class:`TimedeltaIndex` when passing an invalid string raising ``ValueError`` instead of a ``TypeError`` (:issue:`41821`)
 
 Missing
 ^^^^^^^
@@ -1033,6 +1036,7 @@ Missing
 - Bug in :meth:`DataFrame.fillna` not accepting a dictionary for the ``downcast`` keyword (:issue:`40809`)
 - Bug in :func:`isna` not returning a copy of the mask for nullable types, causing any subsequent mask modification to change the original array (:issue:`40935`)
 - Bug in :class:`DataFrame` construction with float data containing ``NaN`` and an integer ``dtype`` casting instead of retaining the ``NaN`` (:issue:`26919`)
+- Bug in :meth:`Series.isin` and :meth:`MultiIndex.isin` didn't treat all nans as equivalent if they were in tuples (:issue:`41836`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1040,6 +1044,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.intersection` duplicating ``NaN`` in the result (:issue:`38623`)
 - Bug in :meth:`MultiIndex.equals` incorrectly returning ``True`` when the :class:`MultiIndex` contained ``NaN`` even when they are differently ordered (:issue:`38439`)
 - Bug in :meth:`MultiIndex.intersection` always returning an empty result when intersecting with :class:`CategoricalIndex` (:issue:`38653`)
+- Bug in :meth:`MultiIndex.difference` incorrectly raising ``TypeError`` when indexes contain non-sortable entries (:issue:`41915`)
 - Bug in :meth:`MultiIndex.reindex` raising a ``ValueError`` when used on an empty :class:`MultiIndex` and indexing only a specific level (:issue:`41170`)
 - Bug in :meth:`MultiIndex.reindex` raising ``TypeError`` when reindexing against a flat :class:`Index` (:issue:`41707`)
 
@@ -1079,6 +1084,7 @@ I/O
 - Bug in the conversion from PyArrow to pandas (e.g. for reading Parquet) with nullable dtypes and a PyArrow array whose data buffer size is not a multiple of the dtype size (:issue:`40896`)
 - Bug in :func:`read_excel` would raise an error when pandas could not determine the file type even though the user specified the ``engine`` argument (:issue:`41225`)
 - Bug in :func:`read_clipboard` copying from an excel file shifts values into the wrong column if there are null values in first column (:issue:`41108`)
+- Bug in :meth:`DataFrame.to_hdf` and :meth:`Series.to_hdf` raising a ``TypeError`` when trying to append a string column to an incompatible column (:issue:`41897`)
 
 Period
 ^^^^^^
@@ -1138,6 +1144,8 @@ Groupby/resample/rolling
 - Bug in :class:`DataFrameGroupBy` aggregations incorrectly failing to drop columns with invalid dtypes for that aggregation when there are no valid columns (:issue:`41291`)
 - Bug in :meth:`DataFrame.rolling.__iter__` where ``on`` was not assigned to the index of the resulting objects (:issue:`40373`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.DataFrameGroupBy.agg` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`41647`)
+- Bug in :class:`DataFrameGroupBy` methods ``agg``, ``transform``, ``sum``, ``bfill``, ``ffill``, ``pad``, ``pct_change``, ``shift``, ``ohlc`` dropping ``.columns.names`` (:issue:`41497`)
+
 
 Reshaping
 ^^^^^^^^^
@@ -1160,6 +1168,7 @@ Reshaping
 - Bug in :func:`to_datetime` raising an error when the input sequence contained unhashable items (:issue:`39756`)
 - Bug in :meth:`Series.explode` preserving the index when ``ignore_index`` was ``True`` and values were scalars (:issue:`40487`)
 - Bug in :func:`to_datetime` raising a ``ValueError`` when :class:`Series` contains ``None`` and ``NaT`` and has more than 50 elements (:issue:`39882`)
+- Bug in :meth:`Series.unstack` and :meth:`DataFrame.unstack` with object-dtype values containing timezone-aware datetime objects incorrectly raising ``TypeError`` (:issue:`41875`)
 - Bug in :meth:`DataFrame.melt` raising ``InvalidIndexError`` when :class:`DataFrame` has duplicate columns used as ``value_vars`` (:issue:`41951`)
 
 Sparse
@@ -1206,6 +1215,7 @@ Other
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 - Bug in creating a :class:`Series` from a ``range`` object that does not fit in the bounds of ``int64`` dtype (:issue:`30173`)
 - Bug in creating a :class:`Series` from a ``dict`` with all-tuple keys and an :class:`Index` that requires reindexing (:issue:`41707`)
+- Bug in :func:`pandas.util.hash_pandas_object` not recognizing ``hash_key``, ``encoding`` and ``categorize`` when the input object type is a :class:`DataFrame` (:issue:`41404`)
 
 .. ---------------------------------------------------------------------------
 
