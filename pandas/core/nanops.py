@@ -177,7 +177,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
-        if is_float_dtype(result):
+        if result.dtype in ("f8", "f4"):
             return lib.has_infs(result.ravel("K"))
     try:
         return np.isinf(result).any()
