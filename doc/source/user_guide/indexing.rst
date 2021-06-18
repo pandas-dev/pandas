@@ -1532,9 +1532,8 @@ rows with ``DataFrame.loc``.  For instance:
                        'A': [80, 23, np.nan, 22],
                        'B': [80, 55, 76, 67]})
     df
-    melt = df.melt('col')
-    melt = melt.loc[melt['col'] == melt['variable'], 'value']
-    melt.reset_index(drop=True)
+    idx, cols = pd.factorize(df['col'])
+    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0.
