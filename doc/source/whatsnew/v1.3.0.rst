@@ -138,6 +138,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - Added the option ``styler.render.max_elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
  - Added the method :meth:`.Styler.to_latex` (:issue:`21673`), which also allows some limited CSS conversion (:issue:`40731`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
+ - Added the method :meth:`.Styler.set_sticky` to make index and column headers permanently visible in scrolling HTML frames (:issue:`29072`)
 
 .. _whatsnew_130.enhancements.dataframe_honors_copy_with_dict:
 
