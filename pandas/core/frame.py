@@ -6181,8 +6181,9 @@ class DataFrame(NDFrame, OpsMixin):
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
+        subset_iterable: Iterable
         if subset is None:
-            subset_iterable: Iterable = self.columns
+            subset_iterable = self.columns
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
