@@ -348,6 +348,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # multiples
         else:
+            indices = []
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
@@ -369,7 +370,9 @@ class Apply(metaclass=abc.ABCMeta):
                         raise
                 else:
                     results.append(new_res)
-                    keys.append(col)
+                    indices.append(index)
+
+            keys = selected_obj.columns.take(indices)
 
         # if we are empty
         if not len(results):
@@ -407,6 +410,7 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas import Index
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -443,8 +447,18 @@ class Apply(metaclass=abc.ABCMeta):
             keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
+            if selected_obj.ndim == 2:
+                # keys are columns, so we can preserve names
+                ktu = Index(keys_to_use)
+                ktu._set_names(selected_obj.columns.names)
+                # Incompatible types in assignment (expression has type "Index",
+                # variable has type "List[Hashable]")
+                keys_to_use = ktu  # type: ignore[assignment]
+
             axis = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+            result = concat(
+                {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+            )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(
@@ -842,7 +856,7 @@ class FrameApply(NDFrameApply):
             # Special-cased because DataFrame.size returns a single scalar
             obj = self.obj
             value = obj.shape[self.axis]
-            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+            return obj._constructor_sliced(value, index=self.agg_axis)
         return super().apply_str()
 
 

@@ -1279,9 +1279,9 @@ def test_size_as_str(how, axis):
     # on the columns
     result = getattr(df, how)("size", axis=axis)
     if axis == 0 or axis == "index":
-        expected = Series(df.shape[0], index=df.columns, name="size")
+        expected = Series(df.shape[0], index=df.columns)
     else:
-        expected = Series(df.shape[1], index=df.index, name="size")
+        expected = Series(df.shape[1], index=df.index)
     tm.assert_series_equal(result, expected)
 
 
