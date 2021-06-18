@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
     branches:
       - master
@@ -20,6 +21,10 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+
+    concurrency:
+      group: ${{ github.ref }}-checks
+      cancel-in-progress: true
 
     steps:
     - name: Checkout
@@ -94,8 +99,12 @@ jobs:
   web_and_docs:
     name: Web and docs
     runs-on: ubuntu-latest
-    steps:
 
+    concurrency:
+      group: ${{ github.ref }}-web-docs
+      cancel-in-progress: true
+
+    steps:
     - name: Checkout
       uses: actions/checkout@v2
       with:
@@ -149,8 +158,11 @@ jobs:
     strategy:
       matrix:
         pattern: ["not slow and not network and not clipboard", "slow"]
-    steps:
+    concurrency:
+      group: ${{ github.ref }}-data_manager-${{ matrix.pattern }}
+      cancel-in-progress: true
 
+    steps:
     - name: Checkout
       uses: actions/checkout@v2
       with:
