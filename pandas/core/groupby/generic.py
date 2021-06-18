@@ -1690,7 +1690,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
-        return self._reindex_output(result)
+        # Note: we only need to pass datetime=True in order to get numeric
+        #  values converted
+        return self._reindex_output(result)._convert(datetime=True)
 
     def _iterate_column_groupbys(self, obj: FrameOrSeries):
         for i, colname in enumerate(obj.columns):
