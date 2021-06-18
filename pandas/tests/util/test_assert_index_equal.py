@@ -58,15 +58,30 @@ Index length are different
         tm.assert_index_equal(idx1, idx2, check_exact=check_exact)
 
 
-def test_index_equal_class_mismatch(check_exact):
-    msg = """Index are different
+@pytest.mark.parametrize("exact", [False, "equiv"])
+def test_index_equal_class(exact):
+    idx1 = Index([0, 1, 2])
+    idx2 = RangeIndex(3)
+
+    tm.assert_index_equal(idx1, idx2, exact=exact)
+
+
+@pytest.mark.parametrize(
+    "idx_values, msg_str",
+    [
+        [[1, 2, 3.0], "Float64Index\\(\\[1\\.0, 2\\.0, 3\\.0\\], dtype='float64'\\)"],
+        [range(3), "RangeIndex\\(start=0, stop=3, step=1\\)"],
+    ],
+)
+def test_index_equal_class_mismatch(check_exact, idx_values, msg_str):
+    msg = f"""Index are different
 
 Index classes are different
 \\[left\\]:  Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
-\\[right\\]: Float64Index\\(\\[1\\.0, 2\\.0, 3\\.0\\], dtype='float64'\\)"""
+\\[right\\]: {msg_str}"""
 
     idx1 = Index([1, 2, 3])
-    idx2 = Index([1, 2, 3.0])
+    idx2 = Index(idx_values)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_index_equal(idx1, idx2, exact=True, check_exact=check_exact)
