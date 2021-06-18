@@ -3410,7 +3410,9 @@ class Index(IndexOpsMixin, PandasObject):
         if is_categorical_dtype(target.dtype):
             # potential fastpath
             # get an indexer for unique categories then propagate to codes via take_nd
-            categories_indexer = self.get_indexer(target.categories)
+            # Note: calling get_indexer instead of _get_indexer causes
+            #  RecursionError GH#42088
+            categories_indexer = self._get_indexer(target.categories)
             indexer = algos.take_nd(categories_indexer, target.codes, fill_value=-1)
 
             if (not self._is_multi and self.hasnans) and target.hasnans:
@@ -3792,6 +3794,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return target, indexer
 
+    @final
     def _reindex_non_unique(
         self, target: Index
     ) -> tuple[Index, np.ndarray, np.ndarray | None]:
@@ -3823,14 +3826,15 @@ class Index(IndexOpsMixin, PandasObject):
         new_indexer = None
 
         if len(missing):
-            length = np.arange(len(indexer))
+            length = np.arange(len(indexer), dtype=np.intp)
 
             missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = ensure_platform_int(length[~check])
+            missing_indexer = length[~check]
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = ensure_platform_int(length[check])
+            cur_indexer = length[check]
 
+            # Index constructor below will do inference
             new_labels = np.empty((len(indexer),), dtype=object)
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
