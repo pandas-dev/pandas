@@ -1215,6 +1215,7 @@ Other
 - Bug in :class:`Series` backed by :class:`DatetimeArray` or :class:`TimedeltaArray` sometimes failing to set the array's ``freq`` to ``None`` (:issue:`41425`)
 - Bug in creating a :class:`Series` from a ``range`` object that does not fit in the bounds of ``int64`` dtype (:issue:`30173`)
 - Bug in creating a :class:`Series` from a ``dict`` with all-tuple keys and an :class:`Index` that requires reindexing (:issue:`41707`)
+- Bug in :func:`pandas.util.hash_pandas_object` not recognizing ``hash_key``, ``encoding`` and ``categorize`` when the input object type is a :class:`DataFrame` (:issue:`41404`)
 
 .. ---------------------------------------------------------------------------
 
