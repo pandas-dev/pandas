@@ -299,7 +299,7 @@ class TestGetitemBooleanMask:
 
         # boolean with the duplicate raises
         df = df_dup_cols
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df[df.A > 6]
 
