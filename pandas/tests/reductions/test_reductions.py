@@ -972,18 +972,19 @@ class TestSeriesReductions:
         #                           [skipna=True/any, skipna=True/all]]
         "data,expected_data",
         [
-            ([False, False, False], [[False, False], [False, False]]),
-            ([True, True, True], [[True, True], [True, True]]),
-            ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
-            ([False, pd.NA, False], [[pd.NA, False], [False, False]]),
-            ([True, pd.NA, True], [[True, pd.NA], [True, True]]),
-            ([True, pd.NA, False], [[True, False], [True, False]]),
+            ([0, 0, 0], [[0, 0], [0, 0]]),
+            ([1, 1, 1], [[1, 1], [1, 1]]),
+            ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [0, 1]]),
+            ([0, pd.NA, 0], [[pd.NA, 0], [0, 0]]),
+            ([1, pd.NA, 1], [[1, pd.NA], [1, 1]]),
+            ([1, pd.NA, 0], [[1, 0], [1, 0]]),
         ],
     )
     def test_any_all_nullable_kleene_logic(
         self, bool_agg_func, skipna, data, dtype, expected_data
     ):
-        ser = Series(data, dtype="boolean").astype(dtype)
+        # GH-37506, GH-41967
+        ser = Series(data, dtype=dtype)
         expected = expected_data[skipna][bool_agg_func == "all"]
 
         result = getattr(ser, bool_agg_func)(skipna=skipna)
