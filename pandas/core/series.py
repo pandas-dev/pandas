@@ -3689,6 +3689,9 @@ Keep all original rows and also all original values
         else:
             # GH 42090
             # count the missing index values that will be added to not na results
+            if isinstance(na_mask, pandas.core.arrays.sparse.SparseArray):
+                # avoid RecursionError
+                na_mask = np.asarray(na_mask)
             notna_na_cumsum = na_mask.cumsum()[~na_mask]
             notna_argsort = np.argsort(values[~na_mask])
             notna_argsort += notna_na_cumsum[notna_argsort]
