@@ -205,6 +205,13 @@ class IndexingMixin:
         1   100   200   300   400
         2  1000  2000  3000  4000
 
+        With `slice` and `stride`.
+
+        >>> df.iloc[::2]
+              a     b     c     d
+        0     1     2     3     4
+        2  1000  2000  3000  4000
+
         With a boolean mask the same length as the index.
 
         >>> df.iloc[[True, False, True]]
@@ -244,6 +251,13 @@ class IndexingMixin:
               a     b     c
         1   100   200   300
         2  1000  2000  3000
+
+        With `slice` and `stride`.
+
+        >>> df.iloc[::2, ::3]
+              a     d
+        0     1     4
+        2  1000  4000
 
         With a boolean array whose length matches the columns.
 
