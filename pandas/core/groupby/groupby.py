@@ -1520,9 +1520,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
             if is_object_dtype(vals):
                 # GH#37501: don't raise on pd.NA when skipna=True
-                vals = np.array(
-                    [bool(x) if not (skipna and isna(x)) else True for x in vals]
-                )
+                if skipna:
+                    vals = np.array([bool(x) if not isna(x) else True for x in vals])
+                else:
+                    vals = np.array([bool(x) for x in vals])
             elif isinstance(vals, BaseMaskedArray):
                 vals = vals._data.astype(bool, copy=False)
             else:
