@@ -38,9 +38,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
+
+        # GH 39416
         pip install numpy
 
-    - name: Build Pandas sdist
+    - name: Build pandas sdist
       run: |
         pip list
         python setup.py sdist --formats=gztar
@@ -50,12 +52,12 @@ jobs:
         activate-environment: pandas-sdist
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Pandas From sdist
+    - name: Install pandas from sdist
       run: |
         conda list
         python -m pip install dist/*.gz
 
-    - name: Build Version
+    - name: Import pandas
       run: |
         cd ..
         conda list
