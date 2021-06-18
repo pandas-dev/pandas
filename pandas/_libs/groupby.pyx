@@ -247,24 +247,24 @@ def group_cumsum(numeric[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
+                # For floats, use Kahan summation to reduce floating-point
+                # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
                 if numeric == float32_t or numeric == float64_t:
                     if val == val:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
                         accum[lab, j] = t
-                        out[i, j] = accum[lab, j]
+                        out[i, j] = t
                     else:
                         out[i, j] = NaN
                         if not skipna:
                             accum[lab, j] = NaN
                             break
                 else:
-                    y = val - compensation[lab, j]
-                    t = accum[lab, j] + y
-                    compensation[lab, j] = t - accum[lab, j] - y
+                    t = val + accum[lab, j]
                     accum[lab, j] = t
-                    out[i, j] = accum[lab, j]
+                    out[i, j] = t
 
 
 @cython.boundscheck(False)
@@ -1345,16 +1345,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, size
-        groupby_t val, mval
         groupby_t[:, ::1] accum
-        intp_t lab
-        bint val_is_nan, use_mask
 
-    use_mask = mask is not None
-
-    N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=values.dtype)
+    accum = np.empty((ngroups, (<object>values).shape[1]), dtype=values.dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1362,36 +1355,76 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     else:
         accum[:] = -np.inf if compute_max else np.inf
 
+    if mask is not None:
+        masked_cummin_max(out, values, mask, labels, accum, compute_max)
+    else:
+        cummin_max(out, values, labels, accum, is_datetimelike, compute_max)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef cummin_max(groupby_t[:, ::1] out,
+                ndarray[groupby_t, ndim=2] values,
+                const intp_t[:] labels,
+                groupby_t[:, ::1] accum,
+                bint is_datetimelike,
+                bint compute_max):
+    """
+    Compute the cumulative minimum/maximum of columns of `values`, in row groups
+    `labels`.
+    """
+    cdef:
+        Py_ssize_t i, j, N, K
+        groupby_t val, mval
+        intp_t lab
+
+    N, K = (<object>values).shape
     with nogil:
         for i in range(N):
             lab = labels[i]
-
             if lab < 0:
                 continue
             for j in range(K):
-                val_is_nan = False
-
-                if use_mask:
-                    if mask[i, j]:
-
-                        # `out` does not need to be set since it
-                        # will be masked anyway
-                        val_is_nan = True
+                val = values[i, j]
+                if not _treat_as_na(val, is_datetimelike):
+                    mval = accum[lab, j]
+                    if compute_max:
+                        if val > mval:
+                            accum[lab, j] = mval = val
                     else:
-
-                        # If using the mask, we can avoid grabbing the
-                        # value unless necessary
-                        val = values[i, j]
-
-                # Otherwise, `out` must be set accordingly if the
-                # value is missing
+                        if val < mval:
+                            accum[lab, j] = mval = val
+                    out[i, j] = mval
                 else:
-                    val = values[i, j]
-                    if _treat_as_na(val, is_datetimelike):
-                        val_is_nan = True
-                        out[i, j] = val
+                    out[i, j] = val
 
-                if not val_is_nan:
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef masked_cummin_max(groupby_t[:, ::1] out,
+                       ndarray[groupby_t, ndim=2] values,
+                       uint8_t[:, ::1] mask,
+                       const intp_t[:] labels,
+                       groupby_t[:, ::1] accum,
+                       bint compute_max):
+    """
+    Compute the cumulative minimum/maximum of columns of `values`, in row groups
+    `labels` with a masked algorithm.
+    """
+    cdef:
+        Py_ssize_t i, j, N, K
+        groupby_t val, mval
+        intp_t lab
+
+    N, K = (<object>values).shape
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+            for j in range(K):
+                if not mask[i, j]:
+                    val = values[i, j]
                     mval = accum[lab, j]
                     if compute_max:
                         if val > mval:

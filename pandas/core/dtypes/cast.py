@@ -111,7 +111,7 @@ _int64_max = np.iinfo(np.int64).max
 def maybe_convert_platform(
     values: list | tuple | range | np.ndarray | ExtensionArray,
 ) -> ArrayLike:
-    """ try to do platform conversion, allow ndarray or list here """
+    """try to do platform conversion, allow ndarray or list here"""
     arr: ArrayLike
 
     if isinstance(values, (list, tuple, range)):
@@ -419,18 +419,14 @@ def maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import StringArray
-    from pandas.core.arrays.string_arrow import ArrowStringArray
+    from pandas.core.arrays.string_ import BaseStringArray
 
     assert isinstance(cls, type), f"must pass a type: {cls}"
     assertion_msg = f"must pass a subclass of ExtensionArray: {cls}"
     assert issubclass(cls, ABCExtensionArray), assertion_msg
 
     # Everything can be converted to StringArrays, but we may not want to convert
-    if (
-        issubclass(cls, (StringArray, ArrowStringArray))
-        and lib.infer_dtype(obj) != "string"
-    ):
+    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
         return obj
 
     try:
@@ -917,7 +913,7 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]):
 
 
 def coerce_indexer_dtype(indexer, categories):
-    """ coerce the indexer input array to the smallest dtype possible """
+    """coerce the indexer input array to the smallest dtype possible"""
     length = len(categories)
     if length < _int8_max:
         return ensure_int8(indexer)
@@ -1977,8 +1973,6 @@ def maybe_cast_to_integer_array(
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.
 
-    .. versionadded:: 0.24.0
-
     Parameters
     ----------
     arr : np.ndarray or list
@@ -2170,6 +2164,8 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
     if dtype.kind in ["i", "u"]:
         if tipo is not None:
             if tipo.kind not in ["i", "u"]:
+                if is_float(element) and element.is_integer():
+                    return True
                 # Anything other than integer we cannot hold
                 return False
             elif dtype.itemsize < tipo.itemsize:
