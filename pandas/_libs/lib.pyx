@@ -524,7 +524,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
-        float32_t inf, neginf, val
+        floating inf, neginf, val
         bint ret = False
 
     inf = np.inf
