@@ -3794,6 +3794,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return target, indexer
 
+    @final
     def _reindex_non_unique(
         self, target: Index
     ) -> tuple[Index, np.ndarray, np.ndarray | None]:
@@ -3825,14 +3826,15 @@ class Index(IndexOpsMixin, PandasObject):
         new_indexer = None
 
         if len(missing):
-            length = np.arange(len(indexer))
+            length = np.arange(len(indexer), dtype=np.intp)
 
             missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = ensure_platform_int(length[~check])
+            missing_indexer = length[~check]
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = ensure_platform_int(length[check])
+            cur_indexer = length[check]
 
+            # Index constructor below will do inference
             new_labels = np.empty((len(indexer),), dtype=object)
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
