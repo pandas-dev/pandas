@@ -79,3 +79,11 @@ def test_astype_no_copy():
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_array_dtype(dtype)
+
+
+def test_astype_non_hashable():
+    # GH#40013
+    arr = DummyArray(np.array([1, 2, 3], dtype=np.int64))
+    msg = "unhashable type: 'DummyArray'"
+    with pytest.raises(TypeError, match=msg):
+        hash(arr)
