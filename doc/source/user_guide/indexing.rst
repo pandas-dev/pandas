@@ -1523,8 +1523,8 @@ Looking up values by index/column labels
 ----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
-rows with ``DataFrame.loc``.  For instance:
+and column labels, this can be achieved by ``pandas.factorize`` which extracts the distinct values of the intended column and can be indexed by passing the length of the dataframe to the 
+``numpy.arange`` function and the distinct value array.  For instance:
 
 .. ipython:: python
 
