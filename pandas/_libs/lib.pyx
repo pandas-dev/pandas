@@ -906,12 +906,13 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
         intp_t lab
-        object slobj
-        ndarray[int64_t] starts, ends
+        int64_t[::1] starts, ends
 
     n = len(labels)
 
@@ -920,19 +921,20 @@ def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
 
     start = 0
     group_size = 0
-    for i in range(n):
-        lab = labels[i]
-        if lab < 0:
-            start += 1
-        else:
-            group_size += 1
-            if i == n - 1 or lab != labels[i + 1]:
-                starts[lab] = start
-                ends[lab] = start + group_size
-                start += group_size
-                group_size = 0
+    with nogil:
+        for i in range(n):
+            lab = labels[i]
+            if lab < 0:
+                start += 1
+            else:
+                group_size += 1
+                if i == n - 1 or lab != labels[i + 1]:
+                    starts[lab] = start
+                    ends[lab] = start + group_size
+                    start += group_size
+                    group_size = 0
 
-    return starts, ends
+    return np.asarray(starts), np.asarray(ends)
 
 
 def indices_fast(ndarray[intp_t] index, const int64_t[:] labels, list keys,
