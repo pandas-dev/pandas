@@ -3680,24 +3680,31 @@ Keep all original rows and also all original values
         null   -1
         Name: xy, dtype: int64
         """
-        values = self.to_numpy()
-        mask = isna(values)
-        object_and_nulls = self.dtype == "object" and any(mask)
-        if object_and_nulls:
-            # if an object/string array has nans convert to last ascii character '~'
-            values = np.where(isna(values), "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", values)
-        res = np.argsort(values, kind=kind)
-        if object_and_nulls:
-            if values[res[-1]] != "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~":
-                # then another string has lower sort index than the substitute
-                # so return the original, unedited numpy TypeError
-                raise TypeError(
-                    "'<' not supported between instances of 'float' and 'str'"
-                )
+        values = self.array
+        na_mask = isna(values)
+        if not any(na_mask):
+            res = np.argsort(values, kind=kind)
+            res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
+            return res_ser.__finalize__(self, method="argsort")
+        else:
+            # GH 42090
+            # count the missing index values that will be added to not na results
+            notna_na_cumsum = na_mask.cumsum()[~na_mask]
+            notna_argsort = np.argsort(values[~na_mask])
+            notna_argsort += notna_na_cumsum[notna_argsort]
+            # combine the notna and na series
+            na_res_ser = Series(
+                -1, index=self.index[na_mask], dtype="int64", name=self.name
+            )
+            notna_res_ser = Series(
+                notna_argsort,
+                index=self.index[notna_argsort],
+                dtype="int64",
+                name=self.name,
+            )
+            from pandas.core.reshape.concat import concat
 
-        res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
-        res_ser[self.index[mask]] = -1  # set na tp -1
-        return res_ser.__finalize__(self, method="argsort")
+            return concat([notna_res_ser, na_res_ser])
 
     def nlargest(self, n=5, keep="first") -> Series:
         """
