@@ -1414,6 +1414,71 @@ class Styler(StylerRenderer):
         self.caption = caption
         return self
 
+    def set_sticky(
+        self,
+        axis: Axis = 0,
+        pixel_size: int | None = None,
+        levels: list[int] | None = None,
+    ) -> Styler:
+        """
+        Add CSS to permanently display the index or column headers in a scrolling frame.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Whether to make the index or column headers sticky.
+        pixel_size : int, optional
+            Required to configure the width of index cells or the height of column
+            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+        levels : list of int
+            If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
+            stick all levels.
+
+        Returns
+        -------
+        self : Styler
+        """
+        if axis in [0, "index"]:
+            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            pixel_size = 75 if not pixel_size else pixel_size
+        elif axis in [1, "columns"]:
+            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            pixel_size = 25 if not pixel_size else pixel_size
+        else:
+            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+
+        if not isinstance(obj, pd.MultiIndex):
+            return self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th",
+                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                    }
+                ],
+                overwrite=False,
+            )
+        else:
+            range_idx = list(range(obj.nlevels))
+
+        levels = sorted(levels) if levels else range_idx
+        for i, level in enumerate(levels):
+            self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th.level{level}",
+                        "props": f"position: sticky; "
+                        f"{pos}: {i * pixel_size}px; "
+                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
+                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"background-color: white;",
+                    }
+                ],
+                overwrite=False,
+            )
+
+        return self
+
     def set_table_styles(
         self,
         table_styles: dict[Any, CSSStyles] | CSSStyles,
