@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     from pandas import (
         DatetimeIndex,
         Index,
+        DataFrame,
         Series,
     )
 
