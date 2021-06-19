@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -51,8 +52,11 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
+    CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
+    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -912,9 +916,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                with suppress(KeyError, IndexError, AttributeError):
-                    # AttributeError for IntervalTree get_value
-                    return self.obj._get_value(*key, takeable=self._takeable)
+                return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
@@ -1000,7 +1002,7 @@ class _LocIndexer(_LocationIndexer):
                 # should not be considered scalar
                 return False
 
-            if not ax.is_unique:
+            if not ax._index_as_unique:
                 return False
 
         return True
@@ -1282,13 +1284,21 @@ class _LocIndexer(_LocationIndexer):
         """
         ax = self.obj._get_axis(axis)
 
-        # Have the index compute an indexer or return None
-        # if it cannot handle:
-        indexer, keyarr = ax._convert_listlike_indexer(key)
-        # We only act on all found values:
-        if indexer is not None and (indexer != -1).all():
-            # _validate_read_indexer is a no-op if no -1s, so skip
-            return ax[indexer], indexer
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
+
+        if isinstance(ax, MultiIndex):
+            # get_indexer expects a MultiIndex or sequence of tuples, but
+            #  we may be doing partial-indexing, so need an extra check
+
+            # Have the index compute an indexer or return None
+            # if it cannot handle:
+            indexer = ax._convert_listlike_indexer(keyarr)
+            # We only act on all found values:
+            if indexer is not None and (indexer != -1).all():
+                # _validate_read_indexer is a no-op if no -1s, so skip
+                return ax[indexer], indexer
 
         if ax._index_as_unique:
             indexer = ax.get_indexer_for(keyarr)
@@ -1297,6 +1307,20 @@ class _LocIndexer(_LocationIndexer):
             keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
 
         self._validate_read_indexer(keyarr, indexer, axis)
+
+        if needs_i8_conversion(ax.dtype) or isinstance(
+            ax, (IntervalIndex, CategoricalIndex)
+        ):
+            # For CategoricalIndex take instead of reindex to preserve dtype.
+            #  For IntervalIndex this is to map integers to the Intervals they match to.
+            keyarr = ax.take(indexer)
+            if keyarr.dtype.kind in ["m", "M"]:
+                # DTI/TDI.take can infer a freq in some cases when we dont want one
+                if isinstance(key, list) or (
+                    isinstance(key, type(ax)) and key.freq is None
+                ):
+                    keyarr = keyarr._with_freq(None)
+
         return keyarr, indexer
 
     def _validate_read_indexer(self, key, indexer, axis: int):
@@ -1329,13 +1353,22 @@ class _LocIndexer(_LocationIndexer):
         missing = (missing_mask).sum()
 
         if missing:
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
             ax = self.obj._get_axis(axis)
 
-            not_found = list(set(key) - set(ax))
+            # TODO: remove special-case; this is just to keep exception
+            #  message tests from raising while debugging
+            use_interval_msg = isinstance(ax, IntervalIndex) or (
+                isinstance(ax, CategoricalIndex)
+                and isinstance(ax.categories, IntervalIndex)
+            )
+
+            if missing == len(indexer):
+                axis_name = self.obj._get_axis_name(axis)
+                if use_interval_msg:
+                    key = list(key)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
             raise KeyError(f"{not_found} not in index")
 
 
@@ -2153,7 +2186,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
     Access scalars quickly.
     """
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
@@ -2177,7 +2210,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
 
         if not isinstance(key, tuple):
             key = _tuplify(self.ndim, key)
-        key = list(self._convert_key(key, is_setter=True))
+        key = list(self._convert_key(key))
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
 
@@ -2188,7 +2221,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
 class _AtIndexer(_ScalarAccessIndexer):
     _takeable = False
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key):
         """
         Require they keys to be the same type as the index. (so we don't
         fallback)
@@ -2198,10 +2231,6 @@ class _AtIndexer(_ScalarAccessIndexer):
         # This is already the case for len(key) == 1; e.g. (1,)
         if self.ndim == 1 and len(key) > 1:
             key = (key,)
-
-        # allow arbitrary setting
-        if is_setter:
-            return list(key)
 
         return key
 
@@ -2237,7 +2266,7 @@ class _AtIndexer(_ScalarAccessIndexer):
 class _iAtIndexer(_ScalarAccessIndexer):
     _takeable = True
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key):
         """
         Require integer args. (and convert to label arguments)
         """

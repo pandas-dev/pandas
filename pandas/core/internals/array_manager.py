@@ -433,7 +433,7 @@ class BaseArrayManager(DataManager):
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
-        """ do a list replace """
+        """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         return self.apply_with_block(
@@ -462,7 +462,7 @@ class BaseArrayManager(DataManager):
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if we are a single block and are a view """
+        """return a boolean if we are a single block and are a view"""
         # TODO what is this used for?
         return False
 
