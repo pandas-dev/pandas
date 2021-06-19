@@ -825,9 +825,9 @@ def format_is_iso(f: str) -> bint:
     iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
     excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
 
-    if (f is not None) and (f[-2:] in ["SZ", "fZ"]):
-        # remove last 'Z'
-        f = f[:-1]
+    if (f is not None) and (f[-3:] in ["S%z", "S%Z", "f%z", "f%Z"]):
+        # remove the last '%z' or '%Z'.
+        f = f[:-2]
 
     for date_sep in [' ', '/', '\\', '-', '.', '']:
         for time_sep in [' ', 'T']:
@@ -888,6 +888,7 @@ def guess_datetime_format(
         (('second',), '%S', 2),
         (('microsecond',), '%f', 6),
         (('second', 'microsecond'), '%S.%f', 0),
+        (('tzinfo',), '%z', 0),
         (('tzinfo',), '%Z', 0),
     ]
 
@@ -907,6 +908,22 @@ def guess_datetime_format(
     # the default dt_str_split from dateutil will never raise here; we assume
     #  that any user-provided function will not either.
     tokens = dt_str_split(dt_str)
+
+    # Normalize timezone tokens
+    if (parsed_datetime.tzinfo is not None) and len(tokens) > 1:
+        if tokens[-1] == "Z":
+            # the last "Z" means zero offset
+            tokens[-1] = "+0000"
+        else:
+            # If the input string has a timezone offset like '+0900',
+            # the offset is separated into two tokens, ex. ['+', '0900’].
+            # This separation will prevent subsequent processing
+            # from correctly parsing the time zone format.
+            # So rejoin them here.
+            offset_candidate = ''.join(tokens[-2:])
+            if re.match(r"(\+|-)\d{4}$", offset_candidate):
+                tokens[-2] = offset_candidate
+                tokens = tokens[:-1]
 
     format_guess = [None] * len(tokens)
     found_attrs = set()
