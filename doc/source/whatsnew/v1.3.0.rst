@@ -275,6 +275,7 @@ Other enhancements
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
 - :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
 - Improved error message in ``corr`` and ``cov`` methods on :class:`.Rolling`, :class:`.Expanding`, and :class:`.ExponentialMovingWindow` when ``other`` is not a :class:`DataFrame` or :class:`Series` (:issue:`41741`)
+- :meth:`Series.between` can now accept ``left`` or ``right`` as arguments to ``inclusive`` to include only the left or right boundary (:issue:`40245`)
 
 .. ---------------------------------------------------------------------------
 
