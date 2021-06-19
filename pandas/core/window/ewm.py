@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -21,12 +20,10 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
-if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
-
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas.core.common as common  # noqa: PDF018
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
