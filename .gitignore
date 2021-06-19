@@ -93,10 +93,10 @@ scikits
 # Generated Sources #
 #####################
 !skts.c
-!np_datetime.c
-!np_datetime_strings.c
 *.c
 *.cpp
+# Unignore source c files
+!pandas/_libs/src/**/*.c
 
 # Unit / Performance Testing #
 ##############################
