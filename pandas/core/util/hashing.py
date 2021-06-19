@@ -15,7 +15,9 @@ from typing import (
 import numpy as np
 
 from pandas._libs.hashing import hash_object_array
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -31,7 +33,6 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas import (
         Categorical,
-        DataFrame,
         Index,
         MultiIndex,
         Series,

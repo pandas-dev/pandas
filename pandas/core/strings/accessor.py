@@ -13,7 +13,9 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import DtypeObj
+from pandas._typing import (
+    DtypeObj
+)
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -36,11 +38,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.base import NoNewAttributesMixin
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Index,
-        Series,
-    )
+    from pandas import Index
 
 _shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (

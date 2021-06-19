@@ -16,7 +16,9 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+)
 
 from pandas.core.indexes.api import Index
 
@@ -24,10 +26,7 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import (
-        DataFrame,
-        Series,
-    )
+    from pandas.core.frame import DataFrame
 
 
 def _put_str(s: str | Dtype, space: int) -> str:

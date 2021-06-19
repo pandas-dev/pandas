@@ -8,15 +8,11 @@ from typing import (
 
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
+    FrameOrSeries
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
-from pandas import (
-    DataFrame,
-    Series,
-)
 from pandas.core.window.doc import (
     _shared_docs,
     args_compat,
