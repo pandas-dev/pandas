@@ -2,14 +2,19 @@ from __future__ import annotations
 
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
 
 from pandas._typing import (
     Axis,
-    FrameOrSeries
+    FrameOrSeries,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
