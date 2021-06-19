@@ -1179,7 +1179,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = s.to_json()
         assert expected == ss.to_json()
 
-    pytest.mark.xfail(PY310, reason="segfault GH 42130")
+    @pytest.mark.xfail(PY310, reason="segfault GH 42130")
     @pytest.mark.parametrize(
         "ts",
         [
