@@ -20,6 +20,10 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas.core.common as common  # noqa: PDF018
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
@@ -760,7 +764,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
 
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):
@@ -768,7 +772,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
 
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,

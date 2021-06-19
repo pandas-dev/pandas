@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
     from pandas import (
+        DataFrame,
         DatetimeIndex,
         Index,
         Series,

@@ -29,6 +29,11 @@ if TYPE_CHECKING:
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
 
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 
 def do_adjust_figure(fig: Figure):
     """Whether fig has constrained_layout enabled."""
