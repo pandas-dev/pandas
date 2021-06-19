@@ -837,6 +837,7 @@ Other Deprecations
 - Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
 - In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
 - Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
+- Deprecated boolean arguments of ``inclusive`` in :meth:`Series.between` to have ``{"left", "right", "neither", "both"}`` as standard argument values (:issue:`40628`)
 - Deprecated passing arguments as positional for all of the following, with exceptions noted (:issue:`41485`):
 
   - :func:`concat` (other than ``objs``)
