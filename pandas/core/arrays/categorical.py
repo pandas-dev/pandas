@@ -906,7 +906,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
            Whether or not to reorder the categories in-place or return a copy
            of this categorical with reordered categories.
 
-           .. deprecated:: 1.3.0
+           .. Deprecated:: 1.3.0
 
         Returns
         -------
