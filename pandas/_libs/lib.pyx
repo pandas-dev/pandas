@@ -1893,23 +1893,23 @@ cdef bint is_bytes_array(ndarray values, bint skipna=False):
 
 
 @cython.internal
-cdef class TemporalValidator(Validator):
+cdef class DatetimeValidator(Validator):
     cdef:
         bint all_generic_na
 
-    def __cinit__(self, Py_ssize_t n, dtype dtype=np.dtype(np.object_),
-                  bint skipna=False):
+    def __cinit__(self, Py_ssize_t n, bint skipna=False):
         self.n = n
-        self.dtype = dtype
         self.skipna = skipna
         self.all_generic_na = True
+
+    cdef bint is_value_typed(self, object value) except -1:
+        return PyDateTime_Check(value)
 
     cdef inline bint is_valid(self, object value) except -1:
         return self.is_value_typed(value) or self.is_valid_null(value)
 
-    cdef bint is_valid_null(self, object value) except -1:
-        raise NotImplementedError(f"{type(self).__name__} child class "
-                                  "must define is_valid_null")
+    cdef inline bint is_valid_null(self, object value) except -1:
+        return is_null_datetime64(value)
 
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
@@ -1925,15 +1925,6 @@ cdef class TemporalValidator(Validator):
         for this dtype, we do not infer this dtype.
         """
         return Validator._validate_skipna(self, values) and not self.all_generic_na
-
-
-@cython.internal
-cdef class DatetimeValidator(TemporalValidator):
-    cdef bint is_value_typed(self, object value) except -1:
-        return PyDateTime_Check(value)
-
-    cdef inline bint is_valid_null(self, object value) except -1:
-        return is_null_datetime64(value)
 
 
 cpdef bint is_datetime_array(ndarray values, bint skipna=True):
