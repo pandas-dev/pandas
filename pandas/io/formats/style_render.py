@@ -20,9 +20,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    TypedDict,
-)
+from pandas._typing import TypedDict
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
