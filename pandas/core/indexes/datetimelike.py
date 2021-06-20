@@ -401,7 +401,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
 
     def _parse_with_reso(self, label: str):
