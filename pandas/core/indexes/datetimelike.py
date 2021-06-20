@@ -26,7 +26,10 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
-from pandas._typing import Callable
+from pandas._typing import (
+    Callable,
+    final,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -45,6 +48,7 @@ from pandas.core.dtypes.concat import concat_compat
 
 from pandas.core.arrays import (
     DatetimeArray,
+    ExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -399,6 +403,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
+    @final
     def _partial_date_slice(
         self,
         reso: Resolution,
@@ -595,7 +600,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         try:
             res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            res = com.asarray_tuplesafe(keyarr)
+            if not isinstance(keyarr, ExtensionArray):
+                # e.g. we don't want to cast DTA to ndarray[object]
+                res = com.asarray_tuplesafe(keyarr)
+                # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
+            else:
+                res = keyarr
         return Index(res, dtype=res.dtype)
 
 
