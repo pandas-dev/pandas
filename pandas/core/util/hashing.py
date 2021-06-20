@@ -14,6 +14,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.hashing import hash_object_array
 from pandas._typing import (
     ArrayLike,
@@ -138,7 +139,10 @@ def hash_pandas_object(
         ser = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series._values) for _, series in obj.items())
+        hashes = (
+            hash_array(series._values, encoding, hash_key, categorize)
+            for _, series in obj.items()
+        )
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
@@ -244,7 +248,7 @@ def _hash_categorical(cat: Categorical, encoding: str, hash_key: str) -> np.ndar
         result = np.zeros(len(mask), dtype="uint64")
 
     if mask.any():
-        result[mask] = np.iinfo(np.uint64).max
+        result[mask] = lib.u8max
 
     return result
 

@@ -637,10 +637,11 @@ def test_as_index_select_column():
 
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
-    df = DataFrame(columns=["A", "B", "C"])
+    df = DataFrame(columns=Index(["A", "B", "C"], name="alpha"))
     left = df.groupby(by="A", as_index=False)["B"].sum(numeric_only=False)
-    assert type(left) is DataFrame
-    assert left.to_dict() == {"A": {}, "B": {}}
+
+    expected = DataFrame(columns=df.columns[:2], index=range(0))
+    tm.assert_frame_equal(left, expected)
 
 
 def test_groupby_as_index_agg(df):
@@ -1944,8 +1945,8 @@ def test_groupby_agg_ohlc_non_first():
     # GH 21716
     df = DataFrame(
         [[1], [1]],
-        columns=["foo"],
-        index=date_range("2018-01-01", periods=2, freq="D"),
+        columns=Index(["foo"], name="mycols"),
+        index=date_range("2018-01-01", periods=2, freq="D", name="dti"),
     )
 
     expected = DataFrame(
@@ -1957,9 +1958,10 @@ def test_groupby_agg_ohlc_non_first():
                 ("foo", "ohlc", "high"),
                 ("foo", "ohlc", "low"),
                 ("foo", "ohlc", "close"),
-            )
+            ),
+            names=["mycols", None, None],
         ),
-        index=date_range("2018-01-01", periods=2, freq="D"),
+        index=date_range("2018-01-01", periods=2, freq="D", name="dti"),
     )
 
     result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
@@ -2131,7 +2133,11 @@ def test_groupby_duplicate_index():
 
 
 @pytest.mark.parametrize(
-    "idx", [Index(["a", "a"]), MultiIndex.from_tuples((("a", "a"), ("a", "a")))]
+    "idx",
+    [
+        Index(["a", "a"], name="foo"),
+        MultiIndex.from_tuples((("a", "a"), ("a", "a")), names=["foo", "bar"]),
+    ],
 )
 @pytest.mark.filterwarnings("ignore:tshift is deprecated:FutureWarning")
 def test_dup_labels_output_shape(groupby_func, idx):

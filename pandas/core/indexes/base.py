@@ -3091,7 +3091,7 @@ class Index(IndexOpsMixin, PandasObject):
             return this.intersection(other, sort=sort)
 
         result = self._intersection(other, sort=sort)
-        return self._wrap_setop_result(other, result)
+        return self._wrap_intersection_result(other, result)
 
     def _intersection(self, other: Index, sort=False):
         """
@@ -3112,6 +3112,10 @@ class Index(IndexOpsMixin, PandasObject):
         res_values = self._intersection_via_get_indexer(other, sort=sort)
         res_values = _maybe_try_sort(res_values, sort)
         return res_values
+
+    def _wrap_intersection_result(self, other, result):
+        # We will override for MultiIndex to handle empty results
+        return self._wrap_setop_result(other, result)
 
     def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
         """
@@ -3403,6 +3407,24 @@ class Index(IndexOpsMixin, PandasObject):
             #  matched to Interval scalars
             return self._get_indexer_non_comparable(target, method=method, unique=True)
 
+        if is_categorical_dtype(target.dtype):
+            # potential fastpath
+            # get an indexer for unique categories then propagate to codes via take_nd
+            # Note: calling get_indexer instead of _get_indexer causes
+            #  RecursionError GH#42088
+            categories_indexer = self._get_indexer(target.categories)
+            indexer = algos.take_nd(categories_indexer, target.codes, fill_value=-1)
+
+            if (not self._is_multi and self.hasnans) and target.hasnans:
+                # Exclude MultiIndex because hasnans raises NotImplementedError
+                # we should only get here if we are unique, so loc is an integer
+                # GH#41934
+                loc = self.get_loc(np.nan)
+                mask = target.isna()
+                indexer[mask] = loc
+
+            return ensure_platform_int(indexer)
+
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(
@@ -3496,6 +3518,13 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_fill_indexer(
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> np.ndarray:
+
+        if self._is_multi:
+            # TODO: get_indexer_with_fill docstring says values must be _sorted_
+            #  but that doesn't appear to be enforced
+            return self._engine.get_indexer_with_fill(
+                target=target._values, values=self._values, method=method, limit=limit
+            )
 
         target_values = target._get_engine_target()
 
@@ -3708,7 +3737,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # trying to reindex on an axis with duplicates
         if not self._index_as_unique and len(indexer):
-            raise ValueError("cannot reindex from a duplicate axis")
+            raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
@@ -3765,6 +3794,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return target, indexer
 
+    @final
     def _reindex_non_unique(
         self, target: Index
     ) -> tuple[Index, np.ndarray, np.ndarray | None]:
@@ -3796,14 +3826,15 @@ class Index(IndexOpsMixin, PandasObject):
         new_indexer = None
 
         if len(missing):
-            length = np.arange(len(indexer))
+            length = np.arange(len(indexer), dtype=np.intp)
 
             missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = ensure_platform_int(length[~check])
+            missing_indexer = length[~check]
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = ensure_platform_int(length[check])
+            cur_indexer = length[check]
 
+            # Index constructor below will do inference
             new_labels = np.empty((len(indexer),), dtype=object)
             new_labels[cur_indexer] = cur_labels
             new_labels[missing_indexer] = missing_labels
@@ -5074,7 +5105,7 @@ class Index(IndexOpsMixin, PandasObject):
             # try that
             loc = self.get_loc(key)
         except KeyError:
-            if not self._should_fallback_to_positional():
+            if not self._should_fallback_to_positional:
                 raise
             elif is_integer(key):
                 # If the Index cannot hold integer, then this is unambiguously
@@ -5091,6 +5122,7 @@ class Index(IndexOpsMixin, PandasObject):
             # would convert to numpy arrays and raise later any way) - GH29926
             raise InvalidIndexError(key)
 
+    @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
         """
         Should an integer key be treated as positional?
@@ -5160,6 +5192,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
         # both returned ndarrays are np.intp
         target = ensure_index(target)
+        target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
             # IntervalIndex get special treatment bc numeric scalars can be
@@ -5302,6 +5335,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.inferred_type == "boolean":
             if not is_object_dtype(self.dtype):
                 return self.astype("object"), other.astype("object")
+
+        elif self.dtype.kind == "u" and other.dtype.kind == "i":
+            # GH#41873
+            if other.min() >= 0:
+                # lookup min as it may be cached
+                # TODO: may need itemsize check if we have non-64-bit Indexes
+                return self, other.astype(self.dtype)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
