@@ -931,6 +931,32 @@ ctypedef fused rank_t:
     int64_t
 
 
+cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
+    """
+    Return the value we'll use to represent missing values when sorting depending
+    on if we'd like missing values to end up at the top/bottom. (The second parameter
+    is unused, but needed for fused type specialization)
+    """
+    if rank_nans_highest:
+        if rank_t is object:
+            return Infinity()
+        elif rank_t is int64_t:
+            return util.INT64_MAX
+        elif rank_t is uint64_t:
+            return util.UINT64_MAX
+        else:
+            return np.inf
+    else:
+        if rank_t is object:
+            return NegInfinity()
+        elif rank_t is int64_t:
+            return NPY_NAT
+        elif rank_t is uint64_t:
+            return 0
+        else:
+            return -np.inf
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def rank_1d(
@@ -980,7 +1006,7 @@ def rank_1d(
         ndarray[rank_t, ndim=1] masked_vals
         rank_t[:] masked_vals_memview
         uint8_t[:] mask
-        bint keep_na, check_labels, check_mask
+        bint keep_na, nans_rank_highest, check_labels, check_mask
         rank_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
@@ -1026,27 +1052,12 @@ def rank_1d(
     # If descending, fill with highest value since descending
     # will flip the ordering to still end up with lowest rank.
     # Symmetric logic applies to `na_option == 'bottom'`
-    if ascending ^ (na_option == 'top'):
-        if rank_t is object:
-            nan_fill_val = Infinity()
-        elif rank_t is int64_t:
-            nan_fill_val = np.iinfo(np.int64).max
-        elif rank_t is uint64_t:
-            nan_fill_val = np.iinfo(np.uint64).max
-        else:
-            nan_fill_val = np.inf
+    nans_rank_highest = ascending ^ (na_option == 'top')
+    nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+    if nans_rank_highest:
         order = (masked_vals, mask, labels)
     else:
-        if rank_t is object:
-            nan_fill_val = NegInfinity()
-        elif rank_t is int64_t:
-            nan_fill_val = NPY_NAT
-        elif rank_t is uint64_t:
-            nan_fill_val = 0
-        else:
-            nan_fill_val = -np.inf
-
-        order = (masked_vals, ~(np.array(mask, copy=False)), labels)
+        order = (masked_vals, ~(np.asarray(mask)), labels)
 
     np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
@@ -1073,14 +1084,11 @@ def rank_1d(
             check_mask,
             check_labels,
             keep_na,
+            pct,
             N,
         )
-        if pct:
-            for i in range(N):
-                if grp_sizes[i] != 0:
-                    out[i] = out[i] / grp_sizes[i]
 
-    return np.array(out)
+    return np.asarray(out)
 
 
 @cython.wraparound(False)
@@ -1097,6 +1105,7 @@ cdef void rank_sorted_1d(
     bint check_mask,
     bint check_labels,
     bint keep_na,
+    bint pct,
     Py_ssize_t N,
 ) nogil:
     """
@@ -1108,7 +1117,7 @@ cdef void rank_sorted_1d(
     out : float64_t[::1]
         Array to store computed ranks
     grp_sizes : int64_t[::1]
-        Array to store group counts.
+        Array to store group counts, only used if pct=True
     labels : See rank_1d.__doc__
     sort_indexer : intp_t[:]
         Array of indices which sorts masked_vals
@@ -1118,12 +1127,14 @@ cdef void rank_sorted_1d(
         Array where entries are True if the value is missing, False otherwise
     tiebreak : TiebreakEnumType
         See rank_1d.__doc__ for the different modes
-    check_mask : bint
+    check_mask : bool
         If False, assumes the mask is all False to skip mask indexing
-    check_labels : bint
+    check_labels : bool
         If False, assumes all labels are the same to skip group handling logic
-    keep_na : bint
+    keep_na : bool
         Whether or not to keep nulls
+    pct : bool
+        Compute percentage rank of data within each group
     N : Py_ssize_t
         The number of elements to rank. Note: it is not always true that
         N == len(out) or N == len(masked_vals) (see `nancorr_spearman` usage for why)
@@ -1342,6 +1353,11 @@ cdef void rank_sorted_1d(
                     grp_start = i + 1
                     grp_vals_seen = 1
 
+    if pct:
+        for i in range(N):
+            if grp_sizes[i] != 0:
+                out[i] = out[i] / grp_sizes[i]
+
 
 def rank_2d(
     ndarray[rank_t, ndim=2] in_arr,
@@ -1362,11 +1378,11 @@ def rank_2d(
         ndarray[rank_t, ndim=2] values
         ndarray[intp_t, ndim=2] argsort_indexer
         ndarray[uint8_t, ndim=2] mask
-        rank_t val, nan_value
+        rank_t val, nan_fill_val
         float64_t count, sum_ranks = 0.0
         int tiebreak = 0
         int64_t idx
-        bint check_mask, condition, keep_na
+        bint check_mask, condition, keep_na, nans_rank_highest
 
     tiebreak = tiebreakers[ties_method]
 
@@ -1384,27 +1400,9 @@ def rank_2d(
         if values.dtype != np.object_:
             values = values.astype('O')
 
+    nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
-        if ascending ^ (na_option == 'top'):
-            if rank_t is object:
-                nan_value = Infinity()
-            elif rank_t is float64_t:
-                nan_value = np.inf
-
-            # int64 and datetimelike
-            else:
-                nan_value = np.iinfo(np.int64).max
-
-        else:
-            if rank_t is object:
-                nan_value = NegInfinity()
-            elif rank_t is float64_t:
-                nan_value = -np.inf
-
-            # int64 and datetimelike
-            else:
-                nan_value = NPY_NAT
-
+        nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
         if rank_t is object:
             mask = missing.isnaobj2d(values)
         elif rank_t is float64_t:
@@ -1414,7 +1412,7 @@ def rank_2d(
         else:
             mask = values == NPY_NAT
 
-        np.putmask(values, mask, nan_value)
+        np.putmask(values, mask, nan_fill_val)
     else:
         mask = np.zeros_like(values, dtype=bool)
 

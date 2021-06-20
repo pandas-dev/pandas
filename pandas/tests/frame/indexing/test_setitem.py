@@ -68,7 +68,7 @@ class TestDataFrameSetItem:
             index=Index(["a", "b", "c", "a"], name="foo"),
             name="fiz",
         )
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df["newcol"] = ser
 
