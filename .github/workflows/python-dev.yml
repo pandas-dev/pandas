@@ -14,6 +14,7 @@ env:
   PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
+  TEST_ARGS: "-s"
 
 jobs:
   build:
