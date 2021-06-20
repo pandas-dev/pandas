@@ -916,9 +916,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):
-                with suppress(KeyError, IndexError, AttributeError):
-                    # AttributeError for IntervalTree get_value
-                    return self.obj._get_value(*key, takeable=self._takeable)
+                return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
             # we by definition only have the 0th axis
@@ -1004,7 +1002,7 @@ class _LocIndexer(_LocationIndexer):
                 # should not be considered scalar
                 return False
 
-            if not ax.is_unique:
+            if not ax._index_as_unique:
                 return False
 
         return True
@@ -2188,7 +2186,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
     Access scalars quickly.
     """
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
@@ -2212,7 +2210,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
 
         if not isinstance(key, tuple):
             key = _tuplify(self.ndim, key)
-        key = list(self._convert_key(key, is_setter=True))
+        key = list(self._convert_key(key))
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
 
@@ -2223,7 +2221,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
 class _AtIndexer(_ScalarAccessIndexer):
     _takeable = False
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key):
         """
         Require they keys to be the same type as the index. (so we don't
         fallback)
@@ -2233,10 +2231,6 @@ class _AtIndexer(_ScalarAccessIndexer):
         # This is already the case for len(key) == 1; e.g. (1,)
         if self.ndim == 1 and len(key) > 1:
             key = (key,)
-
-        # allow arbitrary setting
-        if is_setter:
-            return list(key)
 
         return key
 
@@ -2272,7 +2266,7 @@ class _AtIndexer(_ScalarAccessIndexer):
 class _iAtIndexer(_ScalarAccessIndexer):
     _takeable = True
 
-    def _convert_key(self, key, is_setter: bool = False):
+    def _convert_key(self, key):
         """
         Require integer args. (and convert to label arguments)
         """
