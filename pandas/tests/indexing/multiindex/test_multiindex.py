@@ -1,3 +1,5 @@
+from itertools import combinations
+
 import numpy as np
 
 import pandas._libs.index as _index
@@ -98,3 +100,23 @@ class TestMultiIndexBasic:
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
+
+    def test_concat_with_various_multiindex_dtypes(self):
+        # GH #23478
+        columns_list = [
+            MultiIndex.from_product([["a"], range(2)]),
+            MultiIndex.from_product([["a"], np.arange(2.0)]),
+            MultiIndex.from_product([["b"], ["A", "B"]]),
+            MultiIndex.from_product(
+                [["c"], pd.date_range(start="2017", end="2018", periods=2)]
+            ),
+        ]
+
+        dfs = [
+            DataFrame(np.zeros((1, len(columns))), columns=columns)
+            for columns in columns_list
+        ]
+
+        for i, j in combinations(range(len(dfs)), 2):
+            with tm.assert_produces_warning(False):
+                pd.concat((dfs[i], dfs[j]), axis=1)
