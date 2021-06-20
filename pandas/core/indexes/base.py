@@ -6052,6 +6052,9 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: __inv__ vs __invert__?
         return self._unary_method(lambda x: -x)
 
+    # --------------------------------------------------------------------
+    # Reductions
+
     def any(self, *args, **kwargs):
         """
         Return whether any element is Truthy.
@@ -6171,6 +6174,82 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # This call will raise
             make_invalid_op(opname)(self)
+
+    @Appender(IndexOpsMixin.argmin.__doc__)
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_argmin(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return -1
+        return super().argmin(skipna=skipna)
+
+    @Appender(IndexOpsMixin.argmax.__doc__)
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_argmax(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return -1
+        return super().argmax(skipna=skipna)
+
+    @doc(IndexOpsMixin.min)
+    def min(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if not len(self):
+            return self._na_value
+
+        data = self._data
+
+        if len(self) and self.is_monotonic_increasing:
+            # quick check
+            first = self[0]
+            if not isna(first):
+                return first
+
+        if self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return self._na_value
+            data = data[~mask]
+
+        return data.min()  # alt: super().min(skipna=skipna)
+
+    @doc(IndexOpsMixin.max)
+    def max(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if not len(self):
+            return self._na_value
+
+        data = self._data
+
+        if len(self) and self.is_monotonic_increasing:
+            # quick check
+            last = self[-1]
+            if not isna(last):
+                return last
+
+        if self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return self._na_value
+            data = data[~mask]
+
+        return data.max()  # alt: super().max(skipna=skipna)
+
+    # --------------------------------------------------------------------
 
     @final
     @property
