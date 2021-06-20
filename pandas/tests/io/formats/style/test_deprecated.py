@@ -4,6 +4,8 @@ modules collects tests for Styler methods which have been deprecated
 import numpy as np
 import pytest
 
+jinja2 = pytest.importorskip("jinja2")
+
 from pandas import (
     DataFrame,
     IndexSlice,
