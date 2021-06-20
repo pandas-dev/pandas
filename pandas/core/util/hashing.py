@@ -139,7 +139,10 @@ def hash_pandas_object(
         ser = Series(h, index=obj.index, dtype="uint64", copy=False)
 
     elif isinstance(obj, ABCDataFrame):
-        hashes = (hash_array(series._values) for _, series in obj.items())
+        hashes = (
+            hash_array(series._values, encoding, hash_key, categorize)
+            for _, series in obj.items()
+        )
         num_items = len(obj.columns)
         if index:
             index_hash_generator = (
