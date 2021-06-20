@@ -150,7 +150,7 @@ class Styler(StylerRenderer):
     be applied to the indicated cells.
 
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
-    to automatically render itself. Otherwise call Styler.render to get
+    to automatically render itself. Otherwise call Styler.to_html to get
     the generated HTML.
 
     CSS classes are attached to the generated HTML
@@ -213,7 +213,7 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self.render()
+        return self.to_html()
 
     def render(
         self,
@@ -252,10 +252,11 @@ class Styler(StylerRenderer):
         This method is deprecated in favour of ``Styler.to_html``.
 
         Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
+        which automatically calls ``self.to_html()`` when it's the
+        last item in a Notebook cell.
+
+        When calling ``Styler.render()`` directly, wrap the result in
+        ``IPython.display.HTML`` to view the rendered HTML in the notebook.
 
         Pandas uses the following keys in render. Arguments passed
         in ``**kwargs`` take precedence, so think carefully if you want
@@ -344,7 +345,7 @@ class Styler(StylerRenderer):
         >>> ttips = pd.DataFrame(
         ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
         ... )
-        >>> s = df.style.set_tooltips(ttips).render()
+        >>> s = df.style.set_tooltips(ttips).to_html()
 
         Optionally controlling the tooltip visual display
 
@@ -546,7 +547,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()
+        >>> s.to_html()
 
         The equivalent using LaTeX only commands is the following:
 
@@ -944,7 +945,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().render()
+        >>> s.hide_index().to_html()
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
