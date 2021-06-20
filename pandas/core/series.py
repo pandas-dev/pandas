@@ -3885,6 +3885,7 @@ Keep all original rows and also all original values
                     Geography   February     B
         Coursework  History     March        A
                     Geography   April        C
+        dtype: object
 
         In the following example, we will swap the levels of the indices.
         Here, we will swap the levels column-wise, but levels can be swapped row-wise
@@ -3897,6 +3898,7 @@ Keep all original rows and also all original values
                     February    Geography       B
         Coursework  March       History         A
                     April       Geography       C
+        dtype: object
 
         By supplying one argument, we can choose which index to swap the last
         index with. We can for example swap the first index with the last one as
@@ -3907,6 +3909,7 @@ Keep all original rows and also all original values
         February    Geography   Final exam      B
         March       History     Coursework      A
         April       Geography   Coursework      C
+        dtype: object
 
         We can also define explicitly which indices we want to swap by supplying values
         for both i and j. Here, we for example swap the first and second indices.
@@ -3915,12 +3918,13 @@ Keep all original rows and also all original values
         History     Final exam  January         A
         Geography   Final exam  February        B
         History     Coursework  March           A
-        Geography   Coursework  April           C"""
+        Geography   Coursework  April           C
+        dtype: object"""
         ),
     )
     def swaplevel(self, i=-2, j=-1, copy=True) -> Series:
         """
-        Swap levels i and j in a :class:`MultiIndex` on a particular axis.
+        Swap levels i and j in a :class:`MultiIndex`.
 
         Default is to swap the two innermost levels of the index.
 
