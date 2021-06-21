@@ -6,6 +6,7 @@ from datetime import (
     timedelta,
 )
 import locale
+import pickle
 import unicodedata
 
 from dateutil.tz import tzutc
@@ -439,6 +440,17 @@ class TestTimestamp:
         with tm.assert_produces_warning(FutureWarning, match="freq"):
             t2 = Timestamp("2019-01-02 12:00", tz="UTC", freq="T")
             assert t2.tz_convert(tz="UTC").freq == t2.freq
+
+    def test_pickle_freq_no_warning(self):
+        # GH#41949 we don't want a warning on unpickling
+        with tm.assert_produces_warning(FutureWarning, match="freq"):
+            ts = Timestamp("2019-01-01 10:00", freq="H")
+
+        out = pickle.dumps(ts)
+        with tm.assert_produces_warning(None):
+            res = pickle.loads(out)
+
+        assert res._freq == ts._freq
 
 
 class TestTimestampNsOperations:
