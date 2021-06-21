@@ -424,17 +424,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
             reso = Resolution.from_attrname(reso_str)
-            grp = reso.freq_group.value
-            freqn = self.dtype.freq_group_code
 
-            # _get_string_slice will handle cases where grp < freqn
-            assert grp >= freqn
-
-            # BusinessDay is a bit strange. It has a *lower* code, but we never parse
-            # a string as "BusinessDay" resolution, just Day.
-            if grp == freqn or (
-                reso == Resolution.RESO_DAY and self.dtype.freq.name == "B"
-            ):
+            if reso == self.dtype.resolution:
+                # the reso < self.dtype.resolution case goes through _get_string_slice
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 return loc
