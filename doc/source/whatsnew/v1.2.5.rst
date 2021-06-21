@@ -19,6 +19,7 @@ Fixed regressions
 - Regression in :func:`read_csv` when using ``memory_map=True`` with an non-UTF8 encoding (:issue:`40986`)
 - Regression in :meth:`DataFrame.replace` and :meth:`Series.replace` when the values to replace is a NumPy float array (:issue:`40371`)
 - Regression in :func:`ExcelFile` when a corrupt file is opened but not closed (:issue:`41778`)
+- Fixed regression in :meth:`DataFrame.astype` with ``dtype=str`` failing to convert ``NaN`` in categorical columns (:issue:`41797`)
 
 .. ---------------------------------------------------------------------------
 
