@@ -469,7 +469,16 @@ def _json_normalize(
             for obj in data:
                 for val, key in zip(_meta, meta_keys):
                     if level + 1 == len(val):
-                        seen_meta[key] = _pull_field(obj, val[-1])
+                        try:
+                            seen_meta[key] = _pull_field(obj, val[-1])
+                        except KeyError as e:
+                            if errors == "ignore":
+                                seen_meta[key] = np.nan
+                            else:
+                                raise KeyError(
+                                    "Try running with errors='ignore' as key "
+                                    f"{e} is not always present"
+                                ) from e
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
