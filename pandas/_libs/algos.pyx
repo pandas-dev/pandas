@@ -832,6 +832,104 @@ def backfill_2d_inplace(algos_t[:, :] values,
     pad_2d_inplace(values[:, ::-1], mask[:, ::-1], limit)
 
 
+# Fillna logic
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def fillna1d(ndarray arr,
+             object value,
+             limit=None,
+             bint inf_as_na=False
+             ) -> ndarray:
+    """
+    Fills na-like elements inplace for a 1D array
+    according to the criteria defined in `checknull`:
+     - None
+     - nan
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
+
+    Parameters
+    ----------
+    arr : ndarray
+    value : object
+        The value to use to replace nans
+    limit : int, default -1
+        The number of elements to fill. If -1, fills all NaN values
+    inf_as_na:
+        Whether to consider INF and NEGINF as NA
+    """
+    cdef:
+        Py_ssize_t i, N, lim
+        Py_ssize_t count=0
+        object val
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
+
+    N = len(arr)
+    lim = validate_limit(N, limit)
+    if inf_as_na:
+        check_func = missing.checknull_old
+    else:
+        check_func = missing.checknull
+    for i in range(N):
+        val = arr[i]
+        if check_func(val) and count < lim:
+            arr[i] = value
+            count+=1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def fillna2d(ndarray arr,
+             object value,
+             limit=None,
+             bint inf_as_na=False
+             ) -> ndarray:
+    """
+    Fills na-like elements inplace for a 2D array
+    according to the criteria defined in `checknull`:
+     - None
+     - nan
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
+
+    Parameters
+    ----------
+    arr : ndarray
+    value : object
+        The value to use to replace nans
+    limit : int, default -1
+        The number of elements to fill. If -1, fills all NaN values
+    inf_as_na:
+        Whether to consider INF and NEGINF as NA
+    """
+    cdef:
+        Py_ssize_t i, j, n, m, lim
+        Py_ssize_t count=0
+        object val
+
+    assert arr.ndim == 2, "'arr' must be 2-D."
+
+    n, m = (<object>arr).shape
+    lim = validate_limit(n, limit)
+    if inf_as_na:
+        check_func = missing.checknull_old
+    else:
+        check_func = missing.checknull
+    for i in range(n):
+        for j in range(m):
+            val = arr[i, j]
+            if check_func(val) and count < lim:
+                arr[i, j] = value
+                count+=1
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def is_monotonic(ndarray[algos_t, ndim=1] arr, bint timelike):
