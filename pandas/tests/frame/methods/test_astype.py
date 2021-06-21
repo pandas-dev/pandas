@@ -616,3 +616,11 @@ class TestAstype:
         # GH#39474
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
+
+    def test_astype_categorical_to_string_missing(self):
+        # https://github.com/pandas-dev/pandas/issues/41797
+        df = DataFrame(["a", "b", np.nan])
+        expected = df.astype(str)
+        cat = df.astype("category")
+        result = cat.astype(str)
+        tm.assert_frame_equal(result, expected)

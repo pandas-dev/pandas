@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT, algos as libalgos, hashtable as htable
+from pandas._libs import NaT, algos as libalgos, hashtable as htable, lib
 from pandas._libs.lib import no_default
 from pandas._typing import ArrayLike, Dtype, Ordered, Scalar
 from pandas.compat.numpy import function as nv
@@ -429,6 +429,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             try:
                 new_cats = np.asarray(self.categories)
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
+                fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
@@ -436,7 +437,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_1d(new_cats, libalgos.ensure_platform_int(self._codes))
+            result = take_1d(
+                new_cats,
+                libalgos.ensure_platform_int(self._codes),
+                fill_value=fill_value,
+            )
 
         return result
 
