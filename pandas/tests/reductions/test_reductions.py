@@ -1480,3 +1480,10 @@ class TestSeriesMode:
             result = result.sort_values().reset_index(drop=True)
 
         tm.assert_series_equal(result, expected)
+
+    def test_mode_boolean_with_na(self):
+        # GH#42107
+        ser = Series([True, False, True, pd.NA], dtype="boolean")
+        result = ser.mode()
+        expected = Series({0: True}, dtype="boolean")
+        tm.assert_series_equal(result, expected)

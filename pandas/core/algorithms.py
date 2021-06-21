@@ -140,7 +140,11 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             return np.asarray(values).view("uint8"), values.dtype
         else:
             # i.e. all-bool Categorical, BooleanArray
-            return np.asarray(values).astype("uint8", copy=False), values.dtype
+            try:
+                return np.asarray(values).astype("uint8", copy=False), values.dtype
+            except TypeError:
+                # GH#42107 we have pd.NAs present
+                return np.asarray(values), values.dtype
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values), values.dtype
