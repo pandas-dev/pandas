@@ -226,6 +226,9 @@ int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
+    if (a == b) {
+        return 1;
+    }
     if (Py_TYPE(a) == Py_TYPE(b)) {
         // special handling for some built-in types which could have NaNs
         // as we would like to have them equivalent, but the usual
