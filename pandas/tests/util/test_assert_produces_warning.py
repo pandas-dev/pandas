@@ -95,18 +95,21 @@ def test_catch_warning_category_and_match(category, message, match):
 
 
 @pytest.mark.parametrize(
-    "message, match",
+    "match",
     [
-        ("Warning message", "Not this message"),
-        ("Warning message", "warning"),
-        ("Warning message", r"\d+"),
+        ("Not this message"),
+        ("Warning"),
+        (r"\d+"),
     ],
 )
-def test_fail_to_match(category, message, match):
-    msg = f"Did not see warning {repr(category.__name__)} matching"
-    with pytest.raises(AssertionError, match=msg):
+def test_fail_to_match(category, match):
+    msg1 = "This is not a match."
+    msg2 = "Another unmatched warning."
+    unmatched = rf"{category.__name__}\('{msg1}'\), {category.__name__}\('{msg2}'\)"
+    with pytest.raises(AssertionError, match=unmatched):
         with tm.assert_produces_warning(category, match=match):
-            warnings.warn(message, category)
+            warnings.warn(msg1, category)
+            warnings.warn(msg2, category)
 
 
 def test_fail_to_catch_actual_warning(pair_different_warnings):
