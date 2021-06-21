@@ -178,7 +178,7 @@ class TestSetOps:
             return
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.intersection(case)
             assert tm.equalContents(result, second)
@@ -201,15 +201,10 @@ class TestSetOps:
             return
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
-            if not isinstance(index, CategoricalIndex):
-                result = first.union(case)
-                assert tm.equalContents(result, everything), (
-                    result,
-                    everything,
-                    type(case),
-                )
+            result = first.union(case)
+            assert tm.equalContents(result, everything)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -227,16 +222,10 @@ class TestSetOps:
         assert tm.equalContents(result, answer)
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
-            if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                assert type(result) == type(answer)
-                tm.assert_numpy_array_equal(
-                    result.sort_values().asi8, answer.sort_values().asi8
-                )
-            else:
-                result = first.difference(case, sort)
-                assert tm.equalContents(result, answer)
+            result = first.difference(case, sort)
+            assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
@@ -260,16 +249,9 @@ class TestSetOps:
         assert tm.equalContents(result, answer)
 
         # GH#10149
-        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        cases = [second.to_numpy(), second.to_series(), second.to_list()]
         for case in cases:
             result = first.symmetric_difference(case)
-
-            if is_datetime64tz_dtype(first):
-                # second.values casts to tznaive
-                expected = first.union(case)
-                tm.assert_index_equal(result, expected)
-                continue
-
             assert tm.equalContents(result, answer)
 
         if isinstance(index, MultiIndex):
