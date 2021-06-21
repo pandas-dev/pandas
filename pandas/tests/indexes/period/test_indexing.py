@@ -513,11 +513,10 @@ class TestGetIndexer:
                 continue
             # Two different error message patterns depending on dtypes
             msg = "|".join(
-                re.escape(msg)
-                for msg in (
+                [re.escape(msg) for msg in (
                     f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
                     " not supported between instances of ",
-                )
+                )]
             )
             with pytest.raises(TypeError, match=msg):
                 pi.get_indexer(other2, method=method)
