@@ -6225,6 +6225,9 @@ class Index(IndexOpsMixin, PandasObject):
             if not skipna or mask.all():
                 return self._na_value
 
+        if not self._is_multi and not isinstance(self._values, np.ndarray):
+            return self._values.min(skipna=skipna)
+
         return super().min(skipna=skipna)
 
     @doc(IndexOpsMixin.max)
@@ -6246,6 +6249,9 @@ class Index(IndexOpsMixin, PandasObject):
             mask = self._isnan
             if not skipna or mask.all():
                 return self._na_value
+
+        if not self._is_multi and not isinstance(self._values, np.ndarray):
+            return self._values.max(skipna=skipna)
 
         return super().max(skipna=skipna)
 
