@@ -1,5 +1,9 @@
 import calendar
-from datetime import date, datetime, time
+from datetime import (
+    date,
+    datetime,
+    time,
+)
 import locale
 import unicodedata
 
@@ -9,7 +13,10 @@ import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
 
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_list_like,
+)
 
 import pandas as pd
 from pandas import (
@@ -25,7 +32,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    PeriodArray,
+    TimedeltaArray,
+)
 import pandas.core.common as com
 
 
@@ -52,7 +62,7 @@ class TestSeriesDatetimeValues:
             "month_name",
             "isocalendar",
         ]
-        ok_for_td = TimedeltaIndex._datetimelike_ops
+        ok_for_td = TimedeltaArray._datetimelike_ops
         ok_for_td_methods = [
             "components",
             "to_pytimedelta",
@@ -67,7 +77,7 @@ class TestSeriesDatetimeValues:
             if isinstance(result, np.ndarray):
                 if is_integer_dtype(result):
                     result = result.astype("int64")
-            elif not is_list_like(result) or isinstance(result, pd.DataFrame):
+            elif not is_list_like(result) or isinstance(result, DataFrame):
                 return result
             return Series(result, index=s.index, name=s.name)
 
@@ -76,7 +86,7 @@ class TestSeriesDatetimeValues:
             b = get_expected(s, prop)
             if not (is_list_like(a) and is_list_like(b)):
                 assert a == b
-            elif isinstance(a, pd.DataFrame):
+            elif isinstance(a, DataFrame):
                 tm.assert_frame_equal(a, b)
             else:
                 tm.assert_series_equal(a, b)
@@ -173,7 +183,7 @@ class TestSeriesDatetimeValues:
             assert result.dtype == object
 
             result = s.dt.total_seconds()
-            assert isinstance(result, pd.Series)
+            assert isinstance(result, Series)
             assert result.dtype == "float64"
 
             freq_result = s.dt.freq
@@ -229,11 +239,11 @@ class TestSeriesDatetimeValues:
 
         # 11295
         # ambiguous time error on the conversions
-        s = Series(pd.date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        s = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
         s = s.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(s)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
-        exp_values = pd.date_range(
+        exp_values = date_range(
             "2015-01-01", "2016-01-01", freq="T", tz="UTC"
         ).tz_convert("America/Chicago")
         # freq not preserved by tz_localize above
@@ -290,7 +300,7 @@ class TestSeriesDatetimeValues:
     @pytest.mark.parametrize("method", ["ceil", "round", "floor"])
     def test_dt_round_tz_ambiguous(self, method):
         # GH 18946 round near "fall back" DST
-        df1 = pd.DataFrame(
+        df1 = DataFrame(
             [
                 pd.to_datetime("2017-10-29 02:00:00+02:00", utc=True),
                 pd.to_datetime("2017-10-29 02:00:00+01:00", utc=True),
@@ -436,6 +446,7 @@ class TestSeriesDatetimeValues:
         for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
             name = name.capitalize()
             assert s.dt.day_name(locale=time_locale)[day] == name
+            assert s.dt.day_name(locale=None)[day] == eng_name
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
 
@@ -573,7 +584,10 @@ class TestSeriesDatetimeValues:
 
     def test_valid_dt_with_missing_values(self):
 
-        from datetime import date, time
+        from datetime import (
+            date,
+            time,
+        )
 
         # GH 8689
         s = Series(date_range("20130101", periods=5, freq="D"))
@@ -624,7 +638,7 @@ class TestSeriesDatetimeValues:
         assert not hasattr(ser, "dt")
 
     def test_dt_accessor_updates_on_inplace(self):
-        s = Series(pd.date_range("2018-01-01", periods=10))
+        s = Series(date_range("2018-01-01", periods=10))
         s[2] = None
         return_value = s.fillna(pd.Timestamp("2018-01-01"), inplace=True)
         assert return_value is None
@@ -668,9 +682,10 @@ class TestSeriesDatetimeValues:
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Inferring datetime64:FutureWarning")
     def test_isocalendar(self, input_series, expected_output):
         result = pd.to_datetime(Series(input_series)).dt.isocalendar()
-        expected_frame = pd.DataFrame(
+        expected_frame = DataFrame(
             expected_output, columns=["year", "week", "day"], dtype="UInt32"
         )
         tm.assert_frame_equal(result, expected_frame)

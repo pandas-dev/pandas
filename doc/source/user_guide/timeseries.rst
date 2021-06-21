@@ -1422,7 +1422,6 @@ An example of how holidays and holiday calendars are defined:
         MO,
     )
 
-
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
             USMemorialDay,
@@ -1434,7 +1433,6 @@ An example of how holidays and holiday calendars are defined:
                 offset=pd.DateOffset(weekday=MO(2)),
             ),
         ]
-
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1707,12 +1705,10 @@ We can instead only resample those groups where we have points as follows:
     from functools import partial
     from pandas.tseries.frequencies import to_offset
 
-
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
-
 
     ts.groupby(partial(round, freq="3T")).sum()
 
@@ -2255,10 +2251,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s = pd.Series([20121231, 20141130, 99991231])
    s
 
-
    def conv(x):
        return pd.Period(year=x // 10000, month=x // 100 % 100, day=x % 100, freq="D")
-
 
    s.apply(conv)
    s.apply(conv)[2]
@@ -2605,16 +2599,9 @@ For example, to localize and convert a naive stamp to time zone aware.
    s_naive.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
 
 Time zone information can also be manipulated using the ``astype`` method.
-This method can localize and convert time zone naive timestamps or
-convert time zone aware timestamps.
+This method can convert between different timezone-aware dtypes.
 
 .. ipython:: python
-
-   # localize and convert a naive time zone
-   s_naive.astype("datetime64[ns, US/Eastern]")
-
-   # make an aware tz naive
-   s_aware.astype("datetime64[ns]")
 
    # convert to a new time zone
    s_aware.astype("datetime64[ns, CET]")

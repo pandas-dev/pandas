@@ -1,4 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
 import numpy as np
 import pytest
@@ -13,6 +17,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    date_range,
     isna,
 )
 import pandas._testing as tm
@@ -203,8 +208,9 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        # interpreted as seconds, deprecated
-        with pytest.raises(TypeError, match="Passing integers to fillna"):
+        # interpreted as seconds, no longer supported
+        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got 'int'"
+        with pytest.raises(TypeError, match=msg):
             obj.fillna(1)
 
         result = obj.fillna(Timedelta(seconds=1))
@@ -231,7 +237,7 @@ class TestSeriesFillNA:
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
-        result = obj.fillna(np.timedelta64(int(1e9)))
+        result = obj.fillna(np.timedelta64(10 ** 9))
         expected = Series(
             [
                 timedelta(seconds=1),
@@ -313,8 +319,11 @@ class TestSeriesFillNA:
 
         # GH#6587
         # make sure that we are treating as integer when filling
-        # this also tests inference of a datetime-like with NaT's
-        ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"])
+        msg = "containing strings is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # this also tests inference of a datetime-like with NaT's
+            ser = Series([NaT, NaT, "2013-08-05 15:30:00.000001"])
+
         expected = Series(
             [
                 "2013-08-05 15:30:00.000001",
@@ -328,7 +337,7 @@ class TestSeriesFillNA:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "Asia/Tokyo"])
     def test_datetime64_tz_fillna(self, tz):
-        # DatetimeBlock
+        # DatetimeLikeBlock
         ser = Series(
             [
                 Timestamp("2011-01-01 10:00"),
@@ -408,7 +417,7 @@ class TestSeriesFillNA:
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        # DatetimeBlockTZ
+        # DatetimeTZBlock
         idx = DatetimeIndex(["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz=tz)
         ser = Series(idx)
         assert ser.dtype == f"datetime64[ns, {tz}]"
@@ -665,13 +674,15 @@ class TestSeriesFillNA:
     def test_fillna_categorical_raises(self):
         data = ["a", np.nan, "b", np.nan, np.nan]
         ser = Series(Categorical(data, categories=["a", "b"]))
+        cat = ser._values
 
         msg = "Cannot setitem on a Categorical with a new category"
         with pytest.raises(ValueError, match=msg):
             ser.fillna("d")
 
-        with pytest.raises(ValueError, match=msg):
-            ser.fillna(Series("d"))
+        msg2 = "Length of 'value' does not match."
+        with pytest.raises(ValueError, match=msg2):
+            cat.fillna(Series("d"))
 
         with pytest.raises(ValueError, match=msg):
             ser.fillna({1: "d", 3: "a"})
@@ -724,6 +735,34 @@ class TestSeriesFillNA:
                 with pytest.raises(ValueError, match=msg):
                     ser.fillna(1, limit=limit, method=method)
 
+    def test_fillna_datetime64_with_timezone_tzinfo(self):
+        # https://github.com/pandas-dev/pandas/issues/38851
+        # different tzinfos representing UTC treated as equal
+        ser = Series(date_range("2020", periods=3, tz="UTC"))
+        expected = ser.copy()
+        ser[1] = NaT
+        result = ser.fillna(datetime(2020, 1, 2, tzinfo=timezone.utc))
+        tm.assert_series_equal(result, expected)
+
+        # but we dont (yet) consider distinct tzinfos for non-UTC tz equivalent
+        ts = Timestamp("2000-01-01", tz="US/Pacific")
+        ser2 = Series(ser._values.tz_convert("dateutil/US/Pacific"))
+        result = ser2.fillna(ts)
+        expected = Series([ser[0], ts, ser[2]], dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    def test_fillna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        srs = Series([1, 2, 3, np.nan], dtype=float)
+        msg = (
+            r"In a future version of pandas all arguments of Series.fillna "
+            r"except for the argument 'value' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = srs.fillna(0, None, None)
+        expected = Series([1, 2, 3, 0], dtype=float)
+        tm.assert_series_equal(result, expected)
+
 
 class TestFillnaPad:
     def test_fillna_bug(self):
@@ -741,6 +780,18 @@ class TestFillnaPad:
         ts[2] = np.NaN
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
+    def test_ffill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.ffill "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.ffill(0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
+
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
         series = Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
@@ -751,6 +802,18 @@ class TestFillnaPad:
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
         ts[2] = np.NaN
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
+
+    def test_bfill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series.bfill "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.bfill(0)
+        expected = Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
 
     def test_pad_nan(self):
         x = Series(

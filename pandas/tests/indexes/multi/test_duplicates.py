@@ -5,7 +5,10 @@ import pytest
 
 from pandas._libs import hashtable
 
-from pandas import DatetimeIndex, MultiIndex
+from pandas import (
+    DatetimeIndex,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -68,14 +71,14 @@ def test_unique_level(idx, level):
     mi = MultiIndex.from_arrays([[], []], names=["first", "second"])
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
+    tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize("dropna", [True, False])
-def test_get_unique_index(idx, dropna):
+def test_get_unique_index(idx):
     mi = idx[[0, 1, 0, 1, 1, 0, 0]]
     expected = mi._shallow_copy(mi[[0, 1]])
 
-    result = mi._get_unique_index(dropna=dropna)
+    result = mi._get_unique_index()
     assert result.unique
     tm.assert_index_equal(result, expected)
 
@@ -250,7 +253,7 @@ def test_duplicated_large(keep):
     mi = MultiIndex(levels=levels, codes=codes)
 
     result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated_object(mi.values, keep=keep)
+    expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -303,3 +306,16 @@ def test_duplicated_drop_duplicates():
     assert duplicated.dtype == bool
     expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
     tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
+
+
+def test_multi_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    idx = MultiIndex.from_arrays([[1, 2, 3, 1], [1, 2, 3, 1]])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "MultiIndex.drop_duplicates will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.drop_duplicates("last")
+    expected = MultiIndex.from_arrays([[2, 3, 1], [2, 3, 1]])
+    tm.assert_index_equal(expected, result)

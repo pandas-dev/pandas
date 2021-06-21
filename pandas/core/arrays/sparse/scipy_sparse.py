@@ -3,7 +3,10 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 
 
@@ -31,7 +34,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     nonnull_labels = ss.dropna()
 
     def get_indexers(levels):
-        """ Return sparse coords and dense labels for subset levels """
+        """Return sparse coords and dense labels for subset levels"""
         # TODO: how to do this better? cleanly slice nonnull_labels given the
         # coord
         values_ilabels = [tuple(x[i] for i in levels) for x in nonnull_labels.index]

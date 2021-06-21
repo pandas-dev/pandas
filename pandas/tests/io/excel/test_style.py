@@ -21,7 +21,7 @@ from pandas.io.formats.excel import ExcelFormatter
         "openpyxl",
     ],
 )
-def test_styler_to_excel(engine):
+def test_styler_to_excel(request, engine):
     def style(df):
         # TODO: RGB colors not supported in xlwt
         return DataFrame(
@@ -44,8 +44,12 @@ def test_styler_to_excel(engine):
 
     def assert_equal_style(cell1, cell2, engine):
         if engine in ["xlsxwriter", "openpyxl"]:
-            pytest.xfail(
-                reason=(f"GH25351: failing on some attribute comparisons in {engine}")
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        f"GH25351: failing on some attribute comparisons in {engine}"
+                    )
+                )
             )
         # TODO: should find a better way to check equality
         assert cell1.alignment.__dict__ == cell2.alignment.__dict__

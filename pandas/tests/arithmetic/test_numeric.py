@@ -1,11 +1,13 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
+from __future__ import annotations
+
 from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 import pytest
@@ -24,6 +26,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.computation import expressions as expr
 
 
 @pytest.fixture(params=[Index, Series, tm.to_array])
@@ -52,8 +55,8 @@ def adjust_negative_zero(zero, expected):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: List[Any] = [Series, Index]
-lefts: List[Any] = [RangeIndex(10, 40, 10)]
+ser_or_index: list[Any] = [Series, Index]
+lefts: list[Any] = [RangeIndex(10, 40, 10)]
 lefts.extend(
     [
         cls([10, 20, 30], dtype=dtype)
@@ -308,6 +311,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 "Concatenation operation is not implemented for NumPy arrays",
                 # pd.array vs np.datetime64 case
                 r"operand type\(s\) all returned NotImplemented from __array_ufunc__",
+                "can only perform ops with numeric values",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -387,7 +391,7 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, any_real_dtype):
+    def test_ser_div_ser(self, switch_numexpr_min_elements, dtype1, any_real_dtype):
         # no longer do integer div for any ops, but deal with the 0's
         dtype2 = any_real_dtype
 
@@ -401,6 +405,11 @@ class TestDivisionByZero:
                 name=None,
             )
         expected.iloc[0:3] = np.inf
+        if first.dtype == "int64" and second.dtype == "float32":
+            # when using numexpr, the casting rules are slightly different
+            # and int64/float32 combo results in float32 instead of float64
+            if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                expected = expected.astype("float32")
 
         result = first / second
         tm.assert_series_equal(result, expected)
@@ -532,13 +541,25 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
     # Mod By Zero
 
-    def test_df_mod_zero_df(self):
+    def test_df_mod_zero_df(self, using_array_manager):
         # GH#3590, modulo as ints
         df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
-
         # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = Series([0, 0, 0, 0], dtype="float64")
+        first = Series([0, 0, 0, 0])
+        if not using_array_manager:
+            # INFO(ArrayManager) BlockManager doesn't preserve dtype per column
+            # while ArrayManager performs op column-wisedoes and thus preserves
+            # dtype if possible
+            first = first.astype("float64")
+        second = Series([np.nan, np.nan, np.nan, 0])
+        expected = pd.DataFrame({"first": first, "second": second})
+        result = df % df
+        tm.assert_frame_equal(result, expected)
+
+        # GH#38939 If we dont pass copy=False, df is consolidated and
+        #  result["first"] is float64 instead of int64
+        df = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]}, copy=False)
+        first = Series([0, 0, 0, 0], dtype="int64")
         second = Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({"first": first, "second": second})
         result = df % df
@@ -874,7 +895,13 @@ class TestAdditionSubtraction:
 
         # really raise this time
         now = pd.Timestamp.now().to_pydatetime()
-        msg = "unsupported operand type"
+        msg = "|".join(
+            [
+                "unsupported operand type",
+                # wrong error message, see https://github.com/numpy/numpy/issues/18832
+                "Concatenation operation",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             now + ts
 
@@ -1379,3 +1406,18 @@ def test_integer_array_add_list_like(
 
     assert_function(left, expected)
     assert_function(right, expected)
+
+
+def test_sub_multiindex_swapped_levels():
+    # GH 9952
+    df = pd.DataFrame(
+        {"a": np.random.randn(6)},
+        index=pd.MultiIndex.from_product(
+            [["a", "b"], [0, 1, 2]], names=["levA", "levB"]
+        ),
+    )
+    df2 = df.copy()
+    df2.index = df2.index.swaplevel(0, 1)
+    result = df - df2
+    expected = pd.DataFrame([0.0] * 6, columns=["a"], index=df.index)
+    tm.assert_frame_equal(result, expected)

@@ -44,10 +44,16 @@ __version__ = "1.7.0"
 
 import contextlib
 import ctypes
-from ctypes import c_size_t, c_wchar, c_wchar_p, get_errno, sizeof
-import distutils.spawn
+from ctypes import (
+    c_size_t,
+    c_wchar,
+    c_wchar_p,
+    get_errno,
+    sizeof,
+)
 import os
 import platform
+from shutil import which
 import subprocess
 import time
 import warnings
@@ -60,7 +66,7 @@ HAS_DISPLAY = os.getenv("DISPLAY", False)
 EXCEPT_MSG = """
     Pyperclip could not find a copy/paste mechanism for your system.
     For more information, please visit
-    https://pyperclip.readthedocs.io/en/latest/introduction.html#not-implemented-error
+    https://pyperclip.readthedocs.io/en/latest/#not-implemented-error
     """
 
 ENCODING = "utf-8"
@@ -271,12 +277,12 @@ def init_dev_clipboard_clipboard():
         if "\r" in text:
             warnings.warn("Pyperclip cannot handle \\r characters on Cygwin.")
 
-        with open("/dev/clipboard", "wt") as fo:
-            fo.write(text)
+        with open("/dev/clipboard", "wt") as fd:
+            fd.write(text)
 
     def paste_dev_clipboard() -> str:
-        with open("/dev/clipboard") as fo:
-            content = fo.read()
+        with open("/dev/clipboard") as fd:
+            content = fd.read()
         return content
 
     return copy_dev_clipboard, paste_dev_clipboard
@@ -522,7 +528,7 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        if distutils.spawn.find_executable("wslconfig.exe"):
+        if which("wslconfig.exe"):
             return init_wsl_clipboard()
 
     # Setup for the MAC OS X platform:

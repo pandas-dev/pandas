@@ -37,20 +37,24 @@ class TestCategoricalIndex:
         )
 
     def test_loc_scalar(self):
+        dtype = CDT(list("cab"))
         result = self.df.loc["a"]
-        expected = DataFrame(
-            {"A": [0, 1, 5], "B": (Series(list("aaa")).astype(CDT(list("cab"))))}
-        ).set_index("B")
+        bidx = Series(list("aaa"), name="B").astype(dtype)
+        assert bidx.dtype == dtype
+
+        expected = DataFrame({"A": [0, 1, 5]}, index=Index(bidx))
         tm.assert_frame_equal(result, expected)
 
         df = self.df.copy()
         df.loc["a"] = 20
+        bidx2 = Series(list("aabbca"), name="B").astype(dtype)
+        assert bidx2.dtype == dtype
         expected = DataFrame(
             {
                 "A": [20, 20, 2, 3, 4, 20],
-                "B": (Series(list("aabbca")).astype(CDT(list("cab")))),
-            }
-        ).set_index("B")
+            },
+            index=Index(bidx2),
+        )
         tm.assert_frame_equal(df, expected)
 
         # value not in the categories
@@ -64,14 +68,38 @@ class TestCategoricalIndex:
         df2.loc["d"] = 10
         tm.assert_frame_equal(df2, expected)
 
-        msg = "'fill_value=d' is not present in this Categorical's categories"
-        with pytest.raises(TypeError, match=msg):
-            df.loc["d", "A"] = 10
-        with pytest.raises(TypeError, match=msg):
-            df.loc["d", "C"] = 10
+    def test_loc_setitem_with_expansion_non_category(self):
+        # Setting-with-expansion with a new key "d" that is not among caegories
+        df = self.df
+        df.loc["a"] = 20
 
+        # Setting a new row on an existing column
+        df3 = df.copy()
+        df3.loc["d", "A"] = 10
+        bidx3 = Index(list("aabbcad"), name="B")
+        expected3 = DataFrame(
+            {
+                "A": [20, 20, 2, 3, 4, 20, 10.0],
+            },
+            index=Index(bidx3),
+        )
+        tm.assert_frame_equal(df3, expected3)
+
+        # Settig a new row _and_ new column
+        df4 = df.copy()
+        df4.loc["d", "C"] = 10
+        expected3 = DataFrame(
+            {
+                "A": [20, 20, 2, 3, 4, 20, np.nan],
+                "C": [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 10],
+            },
+            index=Index(bidx3),
+        )
+        tm.assert_frame_equal(df4, expected3)
+
+    def test_loc_getitem_scalar_non_category(self):
         with pytest.raises(KeyError, match="^1$"):
-            df.loc[1]
+            self.df.loc[1]
 
     def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
@@ -268,12 +296,7 @@ class TestCategoricalIndex:
     def test_loc_getitem_listlike_unused_category(self):
         # GH#37901 a label that is in index.categories but not in index
         # listlike containing an element in the categories but not in the values
-        msg = (
-            "The following labels were missing: CategoricalIndex(['e'], "
-            "categories=['c', 'a', 'b', 'e'], ordered=False, name='B', "
-            "dtype='category')"
-        )
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['e'] not in index")):
             self.df2.loc[["a", "b", "e"]]
 
     def test_loc_getitem_label_unused_category(self):
@@ -283,10 +306,7 @@ class TestCategoricalIndex:
 
     def test_loc_getitem_non_category(self):
         # not all labels in the categories
-        msg = (
-            "The following labels were missing: Index(['d'], dtype='object', name='B')"
-        )
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['d'] not in index")):
             self.df2.loc[["a", "d"]]
 
     def test_loc_setitem_expansion_label_unused_category(self):
@@ -318,10 +338,10 @@ class TestCategoricalIndex:
         exp = DataFrame({"A": [1, 1, 2], "B": [4, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        msg = "The following labels were missing: Index(['x'], dtype='object')"
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['x'] not in index")):
             df.loc[["a", "x"]]
 
+    def test_loc_listlike_dtypes_duplicated_categories_and_codes(self):
         # duplicated categories and codes
         index = CategoricalIndex(["a", "b", "a"])
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=index)
@@ -341,9 +361,10 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['x'] not in index")):
             df.loc[["a", "x"]]
 
+    def test_loc_listlike_dtypes_unused_category(self):
         # contains unused category
         index = CategoricalIndex(["a", "b", "a", "c"], categories=list("abcde"))
         df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=index)
@@ -363,10 +384,10 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(res, exp, check_index_type=True)
 
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['x'] not in index")):
             df.loc[["a", "x"]]
 
-    def test_loc_getitem_listlike_unused_category_raises_keyerro(self):
+    def test_loc_getitem_listlike_unused_category_raises_keyerror(self):
         # key that is an *unused* category raises
         index = CategoricalIndex(["a", "b", "a", "c"], categories=list("abcde"))
         df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=index)
@@ -375,13 +396,7 @@ class TestCategoricalIndex:
             # For comparison, check the scalar behavior
             df.loc["e"]
 
-        msg = (
-            "Passing list-likes to .loc or [] with any missing labels is no "
-            "longer supported. The following labels were missing: "
-            "CategoricalIndex(['e'], categories=['a', 'b', 'c', 'd', 'e'], "
-            "ordered=False, dtype='category'). See https"
-        )
-        with pytest.raises(KeyError, match=re.escape(msg)):
+        with pytest.raises(KeyError, match=re.escape("['e'] not in index")):
             df.loc[["a", "e"]]
 
     def test_ix_categorical_index(self):
@@ -404,6 +419,8 @@ class TestCategoricalIndex:
         exp_columns = CategoricalIndex(list("XY"), categories=["X", "Y", "Z"])
         expect = DataFrame(df.loc[:, ["X", "Y"]], index=cdf.index, columns=exp_columns)
         tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
+
+    def test_ix_categorical_index_non_unique(self):
 
         # non-unique
         df = DataFrame(np.random.randn(3, 3), index=list("ABA"), columns=list("XYX"))
@@ -435,7 +452,11 @@ class TestCategoricalIndex:
 
     def test_loc_slice(self):
         # GH9748
-        with pytest.raises(KeyError, match="1"):
+        msg = (
+            "cannot do slice indexing on CategoricalIndex with these "
+            r"indexers \[1\] of type int"
+        )
+        with pytest.raises(TypeError, match=msg):
             self.df.loc[1:5]
 
         result = self.df.loc["b":"c"]
@@ -444,30 +465,16 @@ class TestCategoricalIndex:
 
     def test_loc_and_at_with_categorical_index(self):
         # GH 20629
-        s = Series([1, 2, 3], index=CategoricalIndex(["A", "B", "C"]))
-        assert s.loc["A"] == 1
-        assert s.at["A"] == 1
         df = DataFrame(
             [[1, 2], [3, 4], [5, 6]], index=CategoricalIndex(["A", "B", "C"])
         )
+
+        s = df[0]
+        assert s.loc["A"] == 1
+        assert s.at["A"] == 1
+
         assert df.loc["B", 1] == 4
         assert df.at["B", 1] == 4
-
-    def test_indexing_with_category(self):
-
-        # https://github.com/pandas-dev/pandas/issues/12564
-        # consistent result if comparing as Dataframe
-
-        cat = DataFrame({"A": ["foo", "bar", "baz"]})
-        exp = DataFrame({"A": [True, False, False]})
-
-        res = cat[["A"]] == "foo"
-        tm.assert_frame_equal(res, exp)
-
-        cat["A"] = cat["A"].astype("category")
-
-        res = cat[["A"]] == "foo"
-        tm.assert_frame_equal(res, exp)
 
     @pytest.mark.parametrize(
         "idx_values",
@@ -495,7 +502,7 @@ class TestCategoricalIndex:
             pd.timedelta_range(start="1d", periods=3).array,
         ],
     )
-    def test_loc_with_non_string_categories(self, idx_values, ordered):
+    def test_loc_getitem_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
         cat_idx = CategoricalIndex(idx_values, ordered=ordered)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
@@ -533,3 +540,16 @@ class TestCategoricalIndex:
         result.loc[sl, "A"] = ["qux", "qux2"]
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
+
+    def test_getitem_categorical_with_nan(self):
+        # GH#41933
+        ci = CategoricalIndex(["A", "B", np.nan])
+
+        ser = Series(range(3), index=ci)
+
+        assert ser[np.nan] == 2
+        assert ser.loc[np.nan] == 2
+
+        df = DataFrame(ser)
+        assert df.loc[np.nan, 0] == 2
+        assert df.loc[np.nan][0] == 2

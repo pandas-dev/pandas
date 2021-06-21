@@ -1,18 +1,18 @@
 import collections
-from distutils.version import LooseVersion
 from functools import partial
 import string
 
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_version_under1p17
+from pandas.compat import np_version_under1p18
 
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
+from pandas.util.version import Version
 
 
 def test_get_callable_name():
@@ -72,7 +72,7 @@ def test_random_state():
 
     # Check BitGenerators
     # GH32503
-    if not np_version_under1p17:
+    if not np_version_under1p18:
         assert (
             com.random_state(npr.MT19937(3)).uniform()
             == npr.RandomState(npr.MT19937(3)).uniform()
@@ -142,9 +142,9 @@ def test_git_version():
 
 
 def test_version_tag():
-    version = pd.__version__
+    version = Version(pd.__version__)
     try:
-        version > LooseVersion("0.0.1")
+        version > Version("0.0.1")
     except TypeError:
         raise ValueError(
             "No git tags exist, please sync tags between upstream and your repo"
@@ -163,6 +163,5 @@ def test_serializable(obj):
 class TestIsBoolIndexer:
     def test_non_bool_array_with_na(self):
         # in particular, this should not raise
-        arr = np.array(["A", "B", np.nan])
-
+        arr = np.array(["A", "B", np.nan], dtype=object)
         assert not com.is_bool_indexer(arr)

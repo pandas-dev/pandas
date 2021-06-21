@@ -1,6 +1,6 @@
-from typing import Dict
+from __future__ import annotations
 
-_shared_docs: Dict[str, str] = {}
+_shared_docs: dict[str, str] = {}
 
 _shared_docs[
     "aggregate"
@@ -40,6 +40,10 @@ scalar, Series or DataFrame
 Notes
 -----
 `agg` is an alias for `aggregate`. Use the alias.
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
 
 A passed user-defined-function will be passed a Series for evaluation.
 {examples}"""
@@ -108,7 +112,7 @@ sort : bool, default True
     Note this does not influence the order of observations within each
     group. Groupby preserves the order of rows within each group.
 group_keys : bool, default True
-    When calling ``groupby().apply()``, add group keys to index to identify pieces.
+    When calling apply, add group keys to index to identify pieces.
 squeeze : bool, default False
     Reduce the dimensionality of the return type if possible,
     otherwise return a consistent type.
@@ -139,7 +143,7 @@ resample : Convenience method for frequency conversion and resampling
 Notes
 -----
 See the `user guide
-<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+<https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more.
 """
 
 _shared_docs[
@@ -295,6 +299,12 @@ See Also
 --------
 {klass}.agg : Only perform aggregating type operations.
 {klass}.apply : Invoke function on a {klass}.
+
+Notes
+-----
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
 
 Examples
 --------

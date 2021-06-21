@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, date_range
+from pandas import (
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 
@@ -56,7 +59,7 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         # fails on dtype conversion in the first place
-        result = s.isin(s[0:2].values.astype("datetime64[D]"))
+        result = s.isin(np.asarray(s[0:2].values).astype("datetime64[D]"))
         tm.assert_series_equal(result, expected)
 
         result = s.isin([s[1]])

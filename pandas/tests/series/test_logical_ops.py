@@ -4,7 +4,12 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, bdate_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    bdate_range,
+)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -268,13 +273,15 @@ class TestSeriesLogicalOps:
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
+        msg = "operating as a set operation"
+
         expected = Index.symmetric_difference(idx1, ser)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = idx1 ^ ser
         tm.assert_index_equal(result, expected)
 
         expected = Index.symmetric_difference(idx2, ser)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = idx2 ^ ser
         tm.assert_index_equal(result, expected)
 
@@ -286,7 +293,6 @@ class TestSeriesLogicalOps:
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __and__ returns Index intersection",
                     raises=AssertionError,
-                    strict=True,
                 ),
             ),
             pytest.param(
@@ -294,7 +300,6 @@ class TestSeriesLogicalOps:
                 marks=pytest.mark.xfail(
                     reason="GH#22092 Index __or__ returns Index union",
                     raises=AssertionError,
-                    strict=True,
                 ),
             ),
         ],
@@ -305,13 +310,15 @@ class TestSeriesLogicalOps:
         idx1 = Index([True, False, True, False])
         idx2 = Index([1, 0, 1, 0])
 
+        msg = "operating as a set operation"
+
         expected = Series(op(idx1.values, ser.values))
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = op(ser, idx1)
         tm.assert_series_equal(result, expected)
 
         expected = Series(op(idx2.values, ser.values))
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = op(ser, idx2)
         tm.assert_series_equal(result, expected)
 
@@ -328,7 +335,11 @@ class TestSeriesLogicalOps:
         # multi-set Index ops are buggy, so let's avoid duplicates...
         ser = Series([True, False])
         idx = Index([False, True])
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+
+        msg = "operating as a set operation"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             # behaving as set ops is deprecated, will become logical ops
             result = op(ser, idx)
         tm.assert_index_equal(result, expected)

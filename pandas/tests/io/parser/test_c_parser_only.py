@@ -5,7 +5,11 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import BytesIO, StringIO, TextIOWrapper
+from io import (
+    BytesIO,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
 import tarfile
@@ -17,7 +21,10 @@ from pandas.compat import IS64
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -152,6 +159,7 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 
 
 @td.skip_if_32bit
+@pytest.mark.slow
 def test_precise_conversion(c_parser_only):
     from decimal import Decimal
 
@@ -293,6 +301,7 @@ def test_tokenize_CR_with_quoting(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.slow
 def test_grow_boundary_at_cap(c_parser_only):
     # See gh-12494
     #
@@ -305,9 +314,9 @@ def test_grow_boundary_at_cap(c_parser_only):
     parser = c_parser_only
 
     def test_empty_header_read(count):
-        s = StringIO("," * count)
-        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-        df = parser.read_csv(s)
+        with StringIO("," * count) as s:
+            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+            df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
     for cnt in range(1, 101):
@@ -425,10 +434,10 @@ def test_internal_null_byte(c_parser_only):
 def test_read_nrows_large(c_parser_only):
     # gh-7626 - Read only nrows of data in for large inputs (>262144b)
     parser = c_parser_only
-    header_narrow = "\t".join(["COL_HEADER_" + str(i) for i in range(10)]) + "\n"
-    data_narrow = "\t".join(["somedatasomedatasomedata1" for _ in range(10)]) + "\n"
-    header_wide = "\t".join(["COL_HEADER_" + str(i) for i in range(15)]) + "\n"
-    data_wide = "\t".join(["somedatasomedatasomedata2" for _ in range(15)]) + "\n"
+    header_narrow = "\t".join("COL_HEADER_" + str(i) for i in range(10)) + "\n"
+    data_narrow = "\t".join("somedatasomedatasomedata1" for _ in range(10)) + "\n"
+    header_wide = "\t".join("COL_HEADER_" + str(i) for i in range(15)) + "\n"
+    data_wide = "\t".join("somedatasomedatasomedata2" for _ in range(15)) + "\n"
     test_input = header_narrow + data_narrow * 1050 + header_wide + data_wide * 2
 
     df = parser.read_csv(StringIO(test_input), sep="\t", nrows=1010)
@@ -489,7 +498,7 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
         header=None,
         delimiter="\\s+",
         skiprows=0,
-        error_bad_lines=False,
+        on_bad_lines="warn",
     )
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9
@@ -556,7 +565,7 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a high_memory test")
 
-    csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
+    csv = StringIO("strings\n" + "\n".join("x" * (1 << 20) for _ in range(2100)))
     df = parser.read_csv(csv)
     assert not df.empty
 
@@ -651,64 +660,6 @@ def test_1000_sep_with_decimal(
         float_precision=float_precision,
     )
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("float_precision", [None, "legacy", "high", "round_trip"])
-@pytest.mark.parametrize(
-    "value,expected",
-    [
-        ("-1,0", -1.0),
-        ("-1,2e0", -1.2),
-        ("-1e0", -1.0),
-        ("+1e0", 1.0),
-        ("+1e+0", 1.0),
-        ("+1e-1", 0.1),
-        ("+,1e1", 1.0),
-        ("+1,e0", 1.0),
-        ("-,1e1", -1.0),
-        ("-1,e0", -1.0),
-        ("0,1", 0.1),
-        ("1,", 1.0),
-        (",1", 0.1),
-        ("-,1", -0.1),
-        ("1_,", 1.0),
-        ("1_234,56", 1234.56),
-        ("1_234,56e0", 1234.56),
-        # negative cases; must not parse as float
-        ("_", "_"),
-        ("-_", "-_"),
-        ("-_1", "-_1"),
-        ("-_1e0", "-_1e0"),
-        ("_1", "_1"),
-        ("_1,", "_1,"),
-        ("_1,_", "_1,_"),
-        ("_1e0", "_1e0"),
-        ("1,2e_1", "1,2e_1"),
-        ("1,2e1_0", "1,2e1_0"),
-        ("1,_2", "1,_2"),
-        (",1__2", ",1__2"),
-        (",1e", ",1e"),
-        ("-,1e", "-,1e"),
-        ("1_000,000_000", "1_000,000_000"),
-        ("1,e1_2", "1,e1_2"),
-    ],
-)
-def test_1000_sep_decimal_float_precision(
-    c_parser_only, value, expected, float_precision
-):
-    # test decimal and thousand sep handling in across 'float_precision'
-    # parsers
-    parser = c_parser_only
-    df = parser.read_csv(
-        StringIO(value),
-        sep="|",
-        thousands="_",
-        decimal=",",
-        header=None,
-        float_precision=float_precision,
-    )
-    val = df.iloc[0, 0]
-    assert val == expected
 
 
 def test_float_precision_options(c_parser_only):

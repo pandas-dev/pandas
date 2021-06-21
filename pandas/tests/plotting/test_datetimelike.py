@@ -1,18 +1,41 @@
 """ Test cases for time series specific (freq conversion, etc) """
-from datetime import date, datetime, time, timedelta
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 import pickle
 import sys
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import BaseOffset, to_offset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    to_offset,
+)
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Index, NaT, Series, isna, to_datetime
+from pandas import (
+    DataFrame,
+    Index,
+    NaT,
+    Series,
+    isna,
+    to_datetime,
+)
 import pandas._testing as tm
-from pandas.core.indexes.datetimes import DatetimeIndex, bdate_range, date_range
-from pandas.core.indexes.period import Period, PeriodIndex, period_range
+from pandas.core.indexes.datetimes import (
+    DatetimeIndex,
+    bdate_range,
+    date_range,
+)
+from pandas.core.indexes.period import (
+    Period,
+    PeriodIndex,
+    period_range,
+)
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tests.plotting.common import TestPlotBase
 
@@ -394,7 +417,7 @@ class TestTSPlot(TestPlotBase):
         xpl1 = xpl2 = [Period("1999-1-1", freq="B").ordinal] * len(day_lst)
         rs1 = []
         rs2 = []
-        for i, n in enumerate(day_lst):
+        for n in day_lst:
             rng = bdate_range("1999-1-1", periods=n)
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -416,7 +439,7 @@ class TestTSPlot(TestPlotBase):
         xpl1 = xpl2 = [Period("1988Q1").ordinal] * len(yrs)
         rs1 = []
         rs2 = []
-        for i, n in enumerate(yrs):
+        for n in yrs:
             rng = period_range("1987Q2", periods=int(n * 4), freq="Q")
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -438,7 +461,7 @@ class TestTSPlot(TestPlotBase):
         xpl1 = xpl2 = [Period("Jan 1988").ordinal] * len(yrs)
         rs1 = []
         rs2 = []
-        for i, n in enumerate(yrs):
+        for n in yrs:
             rng = period_range("1987Q2", periods=int(n * 12), freq="M")
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -468,7 +491,7 @@ class TestTSPlot(TestPlotBase):
         xp = [1987, 1988, 1990, 1990, 1995, 2020, 2070, 2170]
         xp = [Period(x, freq="A").ordinal for x in xp]
         rs = []
-        for i, nyears in enumerate([5, 10, 19, 49, 99, 199, 599, 1001]):
+        for nyears in [5, 10, 19, 49, 99, 199, 599, 1001]:
             rng = period_range("1987", periods=nyears, freq="A")
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
@@ -1075,7 +1098,7 @@ class TestTSPlot(TestPlotBase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
 
-            us = int(round((t - int(t)) * 1e6))
+            us = round((t - int(t)) * 1e6)
 
             h, m = divmod(m, 60)
             rs = l.get_text()

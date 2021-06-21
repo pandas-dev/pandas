@@ -2,9 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 
 
+# Note: identical the the "multi" entry in the top-level "index" fixture
 @pytest.fixture
 def idx():
     # a MultiIndex used to test the general functionality of the
@@ -47,12 +51,6 @@ def index_names():
     # names that match those in the idx fixture for testing equality of
     # names assigned to the idx
     return ["first", "second"]
-
-
-@pytest.fixture
-def compat_props():
-    # a MultiIndex must have these properties associated with it
-    return ["shape", "ndim", "size"]
 
 
 @pytest.fixture

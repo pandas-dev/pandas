@@ -374,7 +374,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    df.iloc[0, 2] = np.nan
    df
    styled = (df.style
-             .applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black')
+             .applymap(lambda val: 'color:red;' if val < 0 else 'color:black;')
              .highlight_max())
    styled.to_excel('styled.xlsx', engine='openpyxl')
 
@@ -873,10 +873,13 @@ This is *unchanged* from prior versions, but shown for illustration purposes:
                      index=pd.MultiIndex.from_product([list('BA'), range(3)]))
    df
 
-.. ipython:: python
+.. code-block:: python
 
-   df.index.is_lexsorted()
-   df.index.is_monotonic
+   In [87]: df.index.is_lexsorted()
+   Out[87]: False
+
+   In [88]: df.index.is_monotonic
+   Out[88]: False
 
 Sorting works as expected
 
@@ -884,10 +887,13 @@ Sorting works as expected
 
    df.sort_index()
 
-.. ipython:: python
+.. code-block:: python
 
-   df.sort_index().index.is_lexsorted()
-   df.sort_index().index.is_monotonic
+   In [90]: df.sort_index().index.is_lexsorted()
+   Out[90]: True
+
+   In [91]: df.sort_index().index.is_monotonic
+   Out[91]: True
 
 However, this example, which has a non-monotonic 2nd level,
 doesn't behave as desired.
@@ -919,11 +925,23 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: python
 
-   df.sort_index()
-   df.sort_index().index.is_lexsorted()
-   df.sort_index().index.is_monotonic
+   In [94]: df.sort_index()
+   Out[94]:
+         value
+   a aa      2
+     bb      1
+   b aa      4
+     bb      3
+
+   [4 rows x 1 columns]
+
+   In [95]: df.sort_index().index.is_lexsorted()
+   Out[95]: True
+
+   In [96]: df.sort_index().index.is_monotonic
+   Out[96]: True
 
 
 .. _whatsnew_0200.api_breaking.groupby_describe:
@@ -1308,7 +1326,7 @@ Deprecations
 Deprecate ``.ix``
 ^^^^^^^^^^^^^^^^^
 
-The ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc`` and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to do. To wit, ``.ix`` can decide to index *positionally* OR via *labels*, depending on the data type of the index. This has caused quite a bit of user confusion over the years. The full indexing documentation is :ref:`here <indexing>`. (:issue:`14218`)
+The ``.ix`` indexer is deprecated, in favor of the more strict ``.iloc`` and ``.loc`` indexers. ``.ix`` offers a lot of magic on the inference of what the user wants to do. More specifically, ``.ix`` can decide to index *positionally* OR via *labels*, depending on the data type of the index. This has caused quite a bit of user confusion over the years. The full indexing documentation is :ref:`here <indexing>`. (:issue:`14218`)
 
 The recommended methods of indexing are:
 

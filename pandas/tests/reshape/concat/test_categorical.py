@@ -3,7 +3,11 @@ import numpy as np
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -42,6 +46,7 @@ class TestCategoricalConcat:
                 "h": [None] * 6 + cat_values,
             }
         )
+        exp["h"] = exp["h"].astype(df2["h"].dtype)
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_concat_dtypes(self):
@@ -143,8 +148,8 @@ class TestCategoricalConcat:
         result = pd.concat([df2, df3])
         expected = pd.concat(
             [
-                df2.set_axis(df2.index.astype(object), 0),
-                df3.set_axis(df3.index.astype(object), 0),
+                df2.set_axis(df2.index.astype(object), axis=0),
+                df3.set_axis(df3.index.astype(object), axis=0),
             ]
         )
         tm.assert_frame_equal(result, expected)

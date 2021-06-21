@@ -3,10 +3,18 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError, PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 
 import pandas as pd
-from pandas import Categorical, Index, MultiIndex, date_range
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -436,6 +444,18 @@ class TestGetIndexer:
         pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
         expected = np.array([7, 15], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
+
+    def test_get_indexer_kwarg_validation(self):
+        # GH#41918
+        mi = MultiIndex.from_product([range(3), ["A", "B"]])
+
+        msg = "limit argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], limit=4)
+
+        msg = "tolerance argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], tolerance="piano")
 
 
 def test_getitem(idx):

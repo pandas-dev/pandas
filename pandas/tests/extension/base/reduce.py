@@ -4,8 +4,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-
-from .base import BaseExtensionTests
+from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseReduceTests(BaseExtensionTests):
@@ -21,7 +20,7 @@ class BaseReduceTests(BaseExtensionTests):
 
 
 class BaseNoReduceTests(BaseReduceTests):
-    """ we don't define any reductions """
+    """we don't define any reductions"""
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
