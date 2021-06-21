@@ -116,16 +116,10 @@ def _new_DatetimeIndex(cls, d):
 @inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
 @inherit_names(
     [
-        "_bool_ops",
-        "_object_ops",
-        "_field_ops",
-        "_datetimelike_ops",
-        "_datetimelike_methods",
         "tz",
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_has_same_tz",
         "_format_native_types",
         "date",
         "time",

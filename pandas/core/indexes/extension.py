@@ -170,7 +170,16 @@ def make_wrapped_arith_op(opname: str):
             # a chance to implement ops before we unwrap them.
             # See https://github.com/pandas-dev/pandas/issues/31109
             return NotImplemented
-        meth = getattr(self._data, opname)
+
+        try:
+            meth = getattr(self._data, opname)
+        except AttributeError as err:
+            # e.g. Categorical, IntervalArray
+            cls = type(self).__name__
+            raise TypeError(
+                f"cannot perform {opname} with this index type: {cls}"
+            ) from err
+
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
 
@@ -266,6 +275,23 @@ class ExtensionIndex(Index):
     __gt__ = _make_wrapped_comparison_op("__gt__")
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
+
+    __add__ = make_wrapped_arith_op("__add__")
+    __sub__ = make_wrapped_arith_op("__sub__")
+    __radd__ = make_wrapped_arith_op("__radd__")
+    __rsub__ = make_wrapped_arith_op("__rsub__")
+    __pow__ = make_wrapped_arith_op("__pow__")
+    __rpow__ = make_wrapped_arith_op("__rpow__")
+    __mul__ = make_wrapped_arith_op("__mul__")
+    __rmul__ = make_wrapped_arith_op("__rmul__")
+    __floordiv__ = make_wrapped_arith_op("__floordiv__")
+    __rfloordiv__ = make_wrapped_arith_op("__rfloordiv__")
+    __mod__ = make_wrapped_arith_op("__mod__")
+    __rmod__ = make_wrapped_arith_op("__rmod__")
+    __divmod__ = make_wrapped_arith_op("__divmod__")
+    __rdivmod__ = make_wrapped_arith_op("__rdivmod__")
+    __truediv__ = make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
     @property
     def _has_complex_internals(self) -> bool:
