@@ -11,6 +11,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -634,6 +635,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return False
 
     def is_type_compatible(self, kind: str) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
+            "removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
