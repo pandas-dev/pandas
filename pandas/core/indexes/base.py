@@ -4489,6 +4489,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether the index type is compatible with the provided type.
         """
+        warnings.warn(
+            "Index.is_type_compatible is deprecated and will be removed in a "
+            "future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return kind == self.inferred_type
 
     def __contains__(self, key: Any) -> bool:

@@ -11,6 +11,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -519,6 +520,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return False
 
     def is_type_compatible(self, kind: str) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
+            "removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
@@ -578,7 +585,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         elif self.freq.is_anchored():
             # this along with matching freqs ensure that we "line up",
             #  so intersection will preserve freq
-            return True
+            # GH#42104
+            return self.freq.n == 1
 
         elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
@@ -587,7 +595,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             remainder = diff % self.freq.delta
             return remainder == Timedelta(0)
 
-        return True
+        # GH#42104
+        return self.freq.n == 1
 
     def _can_fast_union(self: _T, other: _T) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
