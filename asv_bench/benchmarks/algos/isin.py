@@ -325,3 +325,13 @@ class IsInLongSeriesValuesDominate:
 
     def time_isin(self, dtypes, series_type):
         self.series.isin(self.values)
+
+
+class IsInWithLongTupples:
+    def setup(self):
+        t = tuple(range(1000))
+        self.series = Series([t] * 1000)
+        self.values = [t]
+
+    def time_isin(self):
+        self.series.isin(self.values)
