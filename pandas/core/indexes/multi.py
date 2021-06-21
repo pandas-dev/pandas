@@ -2792,15 +2792,19 @@ class MultiIndex(Index):
         n = len(tup)
         start, end = 0, len(self)
         zipped = zip(tup, self.levels, self.codes)
-        for k, (lab, lev, labs) in enumerate(zipped):
-            section = labs[start:end]
+        for k, (lab, lev, level_codes) in enumerate(zipped):
+            section = level_codes[start:end]
 
             if lab not in lev and not isna(lab):
-                if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
-                    raise TypeError(f"Level type mismatch: {lab}")
-
                 # short circuit
-                loc = lev.searchsorted(lab, side=side)
+                try:
+                    loc = lev.searchsorted(lab, side=side)
+                except TypeError as err:
+                    # non-comparable e.g. test_slice_locs_with_type_mismatch
+                    raise TypeError(f"Level type mismatch: {lab}") from err
+                if not is_integer(loc):
+                    # non-comparable level, e.g. test_groupby_example
+                    raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
                     loc -= 1
                 return start + section.searchsorted(loc, side=side)

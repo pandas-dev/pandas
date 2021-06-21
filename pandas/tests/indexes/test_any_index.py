@@ -66,6 +66,13 @@ def test_ravel_deprecation(index):
         index.ravel()
 
 
+def test_is_type_compatible_deprecation(index):
+    # GH#42113
+    msg = "is_type_compatible is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        index.is_type_compatible(index.inferred_type)
+
+
 class TestConversion:
     def test_to_series(self, index):
         # assert that we are creating a copy of the index
