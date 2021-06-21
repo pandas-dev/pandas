@@ -16,8 +16,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_categorical_dtype,
     is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
     is_interval_dtype,
     is_number,
     is_numeric_dtype,

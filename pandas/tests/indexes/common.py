@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_float_dtype,
     is_integer_dtype,
+    is_unsigned_integer_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -29,7 +30,6 @@ from pandas import (
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
     isna,
 )
 import pandas._testing as tm
@@ -655,7 +655,7 @@ class Base:
         identity = mapper(idx.values, idx)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(idx, UInt64Index) and isinstance(identity, dict):
+        if is_unsigned_integer_dtype(idx.dtype) and isinstance(identity, dict):
             expected = idx.astype("int64")
         else:
             expected = idx

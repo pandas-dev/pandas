@@ -431,17 +431,6 @@ class TestIntNumericIndex(NumericInt):
     def test_constructor(self, dtype):
         index_cls = self._index_cls
 
-        # pass list, coerce fine
-        index = index_cls([-5, 0, 1, 2], dtype=dtype)
-        expected = Index([-5, 0, 1, 2], dtype=dtype)
-        exact = True if index_cls is Int64Index else "equiv"
-        tm.assert_index_equal(index, expected, exact=exact)
-
-        # from iterable
-        index = index_cls(iter([-5, 0, 1, 2]), dtype=dtype)
-        expected = index_cls([-5, 0, 1, 2], dtype=dtype)
-        tm.assert_index_equal(index, expected, exact=True)
-
         # scalar raise Exception
         msg = (
             rf"{index_cls.__name__}\(\.\.\.\) must be called with a collection of some "
@@ -451,6 +440,8 @@ class TestIntNumericIndex(NumericInt):
             index_cls(5)
 
         # copy
+        # pass list, coerce fine
+        index = index_cls([-5, 0, 1, 2], dtype=dtype)
         arr = index.values
         new_index = index_cls(arr, copy=True)
         tm.assert_index_equal(new_index, index, exact=True)
@@ -460,16 +451,28 @@ class TestIntNumericIndex(NumericInt):
         arr[0] = val
         assert new_index[0] != val
 
-        # interpret list-like
-        expected = index_cls([5, 0])
-        for cls in [Index, index_cls]:
-            exact = True if cls is Int64Index else "equiv"
-            for idx in [
-                cls([5, 0], dtype=dtype),
-                cls(np.array([5, 0]), dtype=dtype),
-                cls(Series([5, 0]), dtype=dtype),
-            ]:
-                tm.assert_index_equal(idx, expected, exact=exact)
+        if dtype == np.int64:
+            exact = "equiv" if index_cls != Int64Index else True
+
+            # pass list, coerce fine
+            index = index_cls([-5, 0, 1, 2], dtype=dtype)
+            expected = Index([-5, 0, 1, 2], dtype=dtype)
+            tm.assert_index_equal(index, expected, exact=exact)
+
+            # from iterable
+            index = index_cls(iter([-5, 0, 1, 2]), dtype=dtype)
+            expected = index_cls([-5, 0, 1, 2], dtype=dtype)
+            tm.assert_index_equal(index, expected, exact=exact)
+
+            # interpret list-like
+            expected = index_cls([5, 0], dtype=dtype)
+            for cls in [Index, index_cls]:
+                for idx in [
+                    cls([5, 0], dtype=dtype),
+                    cls(np.array([5, 0]), dtype=dtype),
+                    cls(Series([5, 0]), dtype=dtype),
+                ]:
+                    tm.assert_index_equal(idx, expected, exact=exact)
 
     def test_constructor_corner(self, dtype):
         index_cls = self._index_cls
@@ -477,8 +480,9 @@ class TestIntNumericIndex(NumericInt):
         arr = np.array([1, 2, 3, 4], dtype=object)
         index = index_cls(arr, dtype=dtype)
         assert index.values.dtype == index.dtype
-        exact = True if index_cls is Int64Index else "equiv"
-        tm.assert_index_equal(index, Index(arr), exact=exact)
+        if dtype == np.int64:
+            exact = True if index_cls is Int64Index else "equiv"
+            tm.assert_index_equal(index, Index(arr), exact=exact)
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
