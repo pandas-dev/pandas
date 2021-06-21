@@ -6207,8 +6207,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not len(self):
             return self._na_value
 
-        data = self._data
-
         if len(self) and self.is_monotonic_increasing:
             # quick check
             first = self[0]
@@ -6220,9 +6218,8 @@ class Index(IndexOpsMixin, PandasObject):
             mask = self._isnan
             if not skipna or mask.all():
                 return self._na_value
-            data = data[~mask]
 
-        return data.min()  # alt: super().min(skipna=skipna)
+        return super().min(skipna=skipna)
 
     @doc(IndexOpsMixin.max)
     def max(self, axis=None, skipna=True, *args, **kwargs):
@@ -6231,8 +6228,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not len(self):
             return self._na_value
-
-        data = self._data
 
         if len(self) and self.is_monotonic_increasing:
             # quick check
@@ -6245,9 +6240,8 @@ class Index(IndexOpsMixin, PandasObject):
             mask = self._isnan
             if not skipna or mask.all():
                 return self._na_value
-            data = data[~mask]
 
-        return data.max()  # alt: super().max(skipna=skipna)
+        return super().max(skipna=skipna)
 
     # --------------------------------------------------------------------
 
