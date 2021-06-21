@@ -1,6 +1,5 @@
-from itertools import combinations
-
 import numpy as np
+import pytest
 
 import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
@@ -101,22 +100,32 @@ class TestMultiIndexBasic:
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
 
-    def test_concat_with_various_multiindex_dtypes(self):
-        # GH #23478
-        columns_list = [
+    @pytest.mark.parametrize(
+        "mi1",
+        [
             MultiIndex.from_product([["a"], range(2)]),
             MultiIndex.from_product([["a"], np.arange(2.0)]),
             MultiIndex.from_product([["b"], ["A", "B"]]),
             MultiIndex.from_product(
                 [["c"], pd.date_range(start="2017", end="2018", periods=2)]
             ),
-        ]
+        ],
+    )
+    @pytest.mark.parametrize(
+        "mi2",
+        [
+            MultiIndex.from_product([["a"], range(2)]),
+            MultiIndex.from_product([["a"], np.arange(2.0)]),
+            MultiIndex.from_product([["b"], ["A", "B"]]),
+            MultiIndex.from_product(
+                [["c"], pd.date_range(start="2017", end="2018", periods=2)]
+            ),
+        ],
+    )
+    def test_concat_with_various_multiindex_dtypes(self, mi1, mi2):
+        # GH #23478
+        df1 = DataFrame(np.zeros((1, len(mi1))), columns=mi1)
+        df2 = DataFrame(np.zeros((1, len(mi2))), columns=mi2)
 
-        dfs = [
-            DataFrame(np.zeros((1, len(columns))), columns=columns)
-            for columns in columns_list
-        ]
-
-        for i, j in combinations(range(len(dfs)), 2):
-            with tm.assert_produces_warning(False):
-                pd.concat((dfs[i], dfs[j]), axis=1)
+        with tm.assert_produces_warning(False):
+            pd.concat((df1, df2), axis=1)
