@@ -581,13 +581,6 @@ for name, data in ext_data.items():
     include = data.get("include", [])
     include.append(numpy.get_include())
 
-    if name == "io.rdata._rdata" and is_platform_mac() and "CONDA_PREFIX" in os.environ:
-        # conda builds on mac must adjust paths to libiconv and lib dirs
-        include = [
-            os.path.join(os.environ["CONDA_PREFIX"], "include"),
-            os.path.join(os.environ["CONDA_PREFIX"], "lib"),
-        ] + include
-
     undef_macros = []
 
     if (
