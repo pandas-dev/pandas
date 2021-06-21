@@ -34,7 +34,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import (
-    ArrayLike,
     Axis,
     CompressionOptions,
     Dtype,
@@ -5143,13 +5142,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def sample(
         self: FrameOrSeries,
-        n: Optional[int] = None,
-        frac: Optional[float] = None,
+        n=None,
+        frac: float | None = None,
         replace: bool_t = False,
-        weights: Optional[Union[str, ArrayLike]] = None,
+        weights=None,
         random_state=None,
-        axis: Optional[Axis] = None,
-        ignore_index: Optional[bool_t] = False,
+        axis: Axis | None = None,
+        ignore_index: bool_t | None = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
