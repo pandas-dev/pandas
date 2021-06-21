@@ -1,6 +1,6 @@
 .. _whatsnew_125:
 
-What's new in 1.2.5 (June 18, 2021)
+What's new in 1.2.5 (June 22, 2021)
 -----------------------------------
 
 These are the changes in pandas 1.2.5. See :ref:`release` for a full changelog
