@@ -671,7 +671,7 @@ class StataValueLabel:
         self._prepare_value_labels()
 
     def _prepare_value_labels(self):
-        """ Encode value labels. """
+        """Encode value labels."""
 
         self.text_len = 0
         self.txt: list[bytes] = []
