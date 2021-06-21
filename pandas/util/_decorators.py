@@ -245,7 +245,7 @@ def _format_argument_list(allow_args: list[str]):
         return f" except for the argument '{allow_args[0]}'"
     else:
         last = allow_args[-1]
-        args = ", ".join(["'" + x + "'" for x in allow_args[:-1]])
+        args = ", ".join("'" + x + "'" for x in allow_args[:-1])
         return f" except for the arguments {args} and '{last}'"
 
 
@@ -261,13 +261,13 @@ def deprecate_nonkeyword_arguments(
     version: str | None,
     allowed_args: list[str] | None = None,
     stacklevel: int = 2,
-) -> Callable:
+) -> Callable[[F], F]:
     """
     Decorator to deprecate a use of non-keyword arguments of a function.
 
     Parameters
     ----------
-    version : str
+    version : str, optional
         The version in which positional arguments will become
         keyword-only. If None, then the warning message won't
         specify any particular version.
@@ -385,12 +385,10 @@ def doc(*docstrings: str | Callable, **params) -> Callable[[F], F]:
 
         # formatting templates and concatenating docstring
         decorated.__doc__ = "".join(
-            [
-                component.format(**params)
-                if isinstance(component, str)
-                else dedent(component.__doc__ or "")
-                for component in docstring_components
-            ]
+            component.format(**params)
+            if isinstance(component, str)
+            else dedent(component.__doc__ or "")
+            for component in docstring_components
         )
 
         # error: "F" has no attribute "_docstring_components"

@@ -402,7 +402,7 @@ class TestMultiLevel:
 
 
 class TestSorted:
-    """ everything you wanted to test about sorting """
+    """everything you wanted to test about sorting"""
 
     def test_sort_non_lexsorted(self):
         # degenerate case where we sort but don't

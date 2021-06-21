@@ -19,6 +19,8 @@ from pandas.tests.tseries.offsets.common import (
     assert_offset_equal,
 )
 
+from pandas.tseries.holiday import USFederalHolidayCalendar
+
 
 class TestCustomBusinessHour(Base):
     _offset = CustomBusinessHour
@@ -298,3 +300,11 @@ class TestCustomBusinessHour(Base):
         offset, cases = nano_case
         for base, expected in cases.items():
             assert_offset_equal(offset, base, expected)
+
+    def test_us_federal_holiday_with_datetime(self):
+        # GH 16867
+        bhour_us = CustomBusinessHour(calendar=USFederalHolidayCalendar())
+        t0 = datetime(2014, 1, 17, 15)
+        result = t0 + bhour_us * 8
+        expected = Timestamp("2014-01-21 15:00:00")
+        assert result == expected

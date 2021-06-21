@@ -7,7 +7,7 @@ dependencies:
 
   # tools
   - cython>=0.29.21
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
   - pytest-azurepipelines
@@ -15,7 +15,7 @@ dependencies:
   # pandas dependencies
   - beautifulsoup4
   - bottleneck
-  - fsspec>=0.8.0
+  - fsspec>=0.8.0, <2021.6.0
   - gcsfs>=0.6.0
   - html5lib
   - jinja2

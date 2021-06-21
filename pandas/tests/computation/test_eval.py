@@ -1,11 +1,8 @@
+from __future__ import annotations
+
 from functools import reduce
 from itertools import product
 import operator
-from typing import (
-    Dict,
-    List,
-    Type,
-)
 import warnings
 
 import numpy as np
@@ -29,7 +26,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import pytables
-from pandas.core.computation.check import NUMEXPR_VERSION
 from pandas.core.computation.engines import (
     ENGINES,
     NumExprClobberingError,
@@ -51,7 +47,6 @@ from pandas.core.computation.ops import (
     _binary_ops_dict,
     _unary_math_ops,
 )
-from pandas.util.version import Version
 
 
 @pytest.fixture(
@@ -76,20 +71,8 @@ def parser(request):
     return request.param
 
 
-@pytest.fixture
-def ne_lt_2_6_9():
-    if NUMEXPR_INSTALLED and Version(NUMEXPR_VERSION) >= Version("2.6.9"):
-        pytest.skip("numexpr is >= 2.6.9")
-    return "numexpr"
-
-
 def _get_unary_fns_for_ne():
-    if NUMEXPR_INSTALLED:
-        if Version(NUMEXPR_VERSION) >= Version("2.6.9"):
-            return list(_unary_math_ops)
-        else:
-            return [x for x in _unary_math_ops if x not in ["floor", "ceil"]]
-    return []
+    return list(_unary_math_ops) if NUMEXPR_INSTALLED else []
 
 
 @pytest.fixture(params=_get_unary_fns_for_ne())
@@ -161,8 +144,8 @@ midhs = lhs
 
 @td.skip_if_no_ne
 class TestEvalNumexprPandas:
-    exclude_cmp: List[str] = []
-    exclude_bool: List[str] = []
+    exclude_cmp: list[str] = []
+    exclude_bool: list[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1139,7 +1122,7 @@ class TestAlignment:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPandas:
-    exclude_arith: List[str] = []
+    exclude_arith: list[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1643,7 +1626,7 @@ class TestOperationsNumExprPandas:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
-    exclude_arith: List[str] = ["in", "not in"]
+    exclude_arith: list[str] = ["in", "not in"]
 
     engine = "numexpr"
     parser = "python"
@@ -1737,7 +1720,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
-    exclude_arith: List[str] = []
+    exclude_arith: list[str] = []
 
     engine = "python"
     parser = "pandas"
@@ -1765,13 +1748,6 @@ class TestMathPythonPython:
         with np.errstate(all="ignore"):
             expect = getattr(np, fn)(a)
         tm.assert_series_equal(got, expect, check_names=False)
-
-    @pytest.mark.parametrize("fn", ["floor", "ceil"])
-    def test_floor_and_ceil_functions_raise_error(self, ne_lt_2_6_9, fn):
-        msg = f'"{fn}" is not a supported function'
-        with pytest.raises(ValueError, match=msg):
-            expr = f"{fn}(100)"
-            self.eval(expr)
 
     @pytest.mark.parametrize("fn", _binary_math_ops)
     def test_binary_functions(self, fn):
@@ -1899,7 +1875,7 @@ def test_invalid_parser():
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, parser="asdf")
 
 
-_parsers: Dict[str, Type[BaseExprVisitor]] = {
+_parsers: dict[str, type[BaseExprVisitor]] = {
     "python": PythonExprVisitor,
     "pytables": pytables.PyTablesExprVisitor,
     "pandas": PandasExprVisitor,

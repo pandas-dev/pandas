@@ -1,4 +1,5 @@
 """ implement the TimedeltaIndex """
+from __future__ import annotations
 
 from pandas._libs import (
     index as libindex,
@@ -12,7 +13,6 @@ from pandas._typing import (
     DtypeObj,
     Optional,
 )
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -39,12 +39,6 @@ from pandas.core.indexes.extension import inherit_names
 )
 @inherit_names(
     [
-        "_bool_ops",
-        "_object_ops",
-        "_field_ops",
-        "_datetimelike_ops",
-        "_datetimelike_methods",
-        "_other_ops",
         "components",
         "to_pytimedelta",
         "sum",
@@ -112,10 +106,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _data_cls = TimedeltaArray
     _engine_type = libindex.TimedeltaEngine
 
-    _comparables = ["name", "freq"]
-    _attributes = ["name", "freq"]
-    _is_numeric_dtype = False
-
     _data: TimedeltaArray
 
     # -------------------------------------------------------------------
@@ -134,10 +124,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         if unit in {"Y", "y", "M"}:
             raise ValueError(
@@ -169,7 +156,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        return is_timedelta64_dtype(dtype)
+        return is_timedelta64_dtype(dtype)  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
     # Indexing Methods
@@ -182,8 +169,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         loc : int, slice, or ndarray[int]
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         try:
             key = self._data._validate_scalar(key, unbox=False)
@@ -210,12 +196,16 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
-            parsed = Timedelta(label)
-            lbound = parsed.round(parsed.resolution_string)
-            if side == "left":
-                return lbound
-            else:
-                return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+            try:
+                parsed = Timedelta(label)
+            except ValueError as err:
+                # e.g. 'unit abbreviation w/o a number'
+                raise self._invalid_indexer("slice", label) from err
+
+            # The next two lines are analogous to DTI/PI._parsed_str_to_bounds
+            lower = parsed.round(parsed.resolution_string)
+            upper = lower + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+            return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
             raise self._invalid_indexer("slice", label)
 

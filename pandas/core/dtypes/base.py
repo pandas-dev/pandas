@@ -48,6 +48,7 @@ class ExtensionDtype:
 
     * type
     * name
+    * construct_array_type
 
     The following attributes and methods influence the behavior of the dtype in
     pandas operations
@@ -55,12 +56,6 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
-
-    Optionally one can override construct_array_type for construction
-    with the name of this dtype via the Registry. See
-    :meth:`extensions.register_extension_dtype`.
-
-    * construct_array_type
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
@@ -79,11 +74,6 @@ class ExtensionDtype:
     the attributes in ``_metadata`` don't implement the standard
     ``__eq__`` or ``__hash__``, the default implementations here will not
     work.
-
-    .. versionchanged:: 0.24.0
-
-       Added ``_metadata``, ``__hash__``, and changed the default definition
-       of ``__eq__``.
 
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array or ChunkedArray
@@ -210,7 +200,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise NotImplementedError
+        raise AbstractMethodError(cls)
 
     @classmethod
     def construct_from_string(cls, string: str):
@@ -367,12 +357,17 @@ class ExtensionDtype:
         else:
             return None
 
+    @property
+    def _can_hold_na(self) -> bool:
+        """
+        Can arrays of this dtype hold NA values?
+        """
+        return True
+
 
 def register_extension_dtype(cls: type[E]) -> type[E]:
     """
     Register an ExtensionType with pandas as class decorator.
-
-    .. versionadded:: 0.24.0
 
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.

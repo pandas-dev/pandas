@@ -49,6 +49,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_complex_dtype,
     is_datetime64_any_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_sparse,
@@ -304,10 +305,13 @@ class WrappedCythonOp:
                 return np.dtype(np.int64)
             elif isinstance(dtype, (BooleanDtype, _IntegerDtype)):
                 return Int64Dtype()
-        elif how in ["mean", "median", "var"] and isinstance(
-            dtype, (BooleanDtype, _IntegerDtype)
-        ):
-            return Float64Dtype()
+        elif how in ["mean", "median", "var"]:
+            if isinstance(dtype, (BooleanDtype, _IntegerDtype)):
+                return Float64Dtype()
+            elif is_float_dtype(dtype):
+                return dtype
+            elif is_numeric_dtype(dtype):
+                return np.dtype(np.float64)
         return dtype
 
     def uses_mask(self) -> bool:
@@ -678,7 +682,7 @@ class BaseGrouper:
 
         self.axis = axis
         self._groupings: list[grouper.Grouping] = list(groupings)
-        self.sort = sort
+        self._sort = sort
         self.group_keys = group_keys
         self.mutated = mutated
         self.indexer = indexer
@@ -820,7 +824,7 @@ class BaseGrouper:
 
     @cache_readonly
     def indices(self):
-        """ dict {group name -> group indices} """
+        """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
             return self.groupings[0].indices
@@ -854,7 +858,7 @@ class BaseGrouper:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        """ dict {group name -> group labels} """
+        """dict {group name -> group labels}"""
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
@@ -891,7 +895,7 @@ class BaseGrouper:
     def _get_compressed_codes(self) -> tuple[np.ndarray, np.ndarray]:
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
-            return compress_group_index(group_index, sort=self.sort)
+            return compress_group_index(group_index, sort=self._sort)
 
         ping = self.groupings[0]
         return ping.codes, np.arange(len(ping.group_index))
@@ -1128,7 +1132,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def groups(self):
-        """ dict {group name -> group labels} """
+        """dict {group name -> group labels}"""
         # this is mainly for compat
         # GH 3881
         result = {

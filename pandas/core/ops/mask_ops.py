@@ -1,10 +1,7 @@
 """
 Ops for masked arrays.
 """
-from typing import (
-    Optional,
-    Union,
-)
+from __future__ import annotations
 
 import numpy as np
 
@@ -15,10 +12,10 @@ from pandas._libs import (
 
 
 def kleene_or(
-    left: Union[bool, np.ndarray],
-    right: Union[bool, np.ndarray],
-    left_mask: Optional[np.ndarray],
-    right_mask: Optional[np.ndarray],
+    left: bool | np.ndarray,
+    right: bool | np.ndarray,
+    left_mask: np.ndarray | None,
+    right_mask: np.ndarray | None,
 ):
     """
     Boolean ``or`` using Kleene logic.
@@ -76,10 +73,10 @@ def kleene_or(
 
 
 def kleene_xor(
-    left: Union[bool, np.ndarray],
-    right: Union[bool, np.ndarray],
-    left_mask: Optional[np.ndarray],
-    right_mask: Optional[np.ndarray],
+    left: bool | np.ndarray,
+    right: bool | np.ndarray,
+    left_mask: np.ndarray | None,
+    right_mask: np.ndarray | None,
 ):
     """
     Boolean ``xor`` using Kleene logic.
@@ -125,10 +122,10 @@ def kleene_xor(
 
 
 def kleene_and(
-    left: Union[bool, libmissing.NAType, np.ndarray],
-    right: Union[bool, libmissing.NAType, np.ndarray],
-    left_mask: Optional[np.ndarray],
-    right_mask: Optional[np.ndarray],
+    left: bool | libmissing.NAType | np.ndarray,
+    right: bool | libmissing.NAType | np.ndarray,
+    left_mask: np.ndarray | None,
+    right_mask: np.ndarray | None,
 ):
     """
     Boolean ``and`` using Kleene logic.

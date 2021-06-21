@@ -173,7 +173,7 @@ class RangeIndex(NumericIndex):
 
     @cache_readonly
     def _constructor(self) -> type[Int64Index]:
-        """ return the class to use for construction """
+        """return the class to use for construction"""
         return Int64Index
 
     @cache_readonly
@@ -197,7 +197,7 @@ class RangeIndex(NumericIndex):
         return res
 
     def _get_data_as_items(self):
-        """ return a list of tuples of start, stop, step """
+        """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
@@ -350,7 +350,7 @@ class RangeIndex(NumericIndex):
 
     @property
     def is_unique(self) -> bool:
-        """ return if the index has unique values """
+        """return if the index has unique values"""
         return True
 
     @cache_readonly
@@ -385,6 +385,7 @@ class RangeIndex(NumericIndex):
                     return self._range.index(new_key)
                 except ValueError as err:
                     raise KeyError(key) from err
+            self._check_indexing_error(key)
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -604,11 +605,6 @@ class RangeIndex(NumericIndex):
         no_steps = -(-(lower_limit - self.start) // abs(self.step))
         return self.start + abs(self.step) * no_steps
 
-    def _max_fitting_element(self, upper_limit: int) -> int:
-        """Returns the largest element smaller than or equal to the limit"""
-        no_steps = (upper_limit - self.start) // abs(self.step)
-        return self.start + abs(self.step) * no_steps
-
     def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:
         """
         Extended Euclidean algorithms to solve Bezout's identity:
@@ -734,18 +730,6 @@ class RangeIndex(NumericIndex):
         if first is not self._range:
             new_index = new_index[::-1]
         return new_index
-
-    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
-        if not isinstance(other, RangeIndex) or sort is not None:
-            return super().symmetric_difference(other, result_name, sort)
-
-        left = self.difference(other)
-        right = other.difference(self)
-        result = left.union(right)
-
-        if result_name is not None:
-            result = result.rename(result_name)
-        return result
 
     # --------------------------------------------------------------------
 

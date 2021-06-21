@@ -150,8 +150,8 @@ class Grouper:
     >>> df.groupby(pd.Grouper(key="Animal")).mean()
             Speed
     Animal
-    Falcon    200
-    Parrot     10
+    Falcon  200.0
+    Parrot   10.0
 
     Specify a resample operation on the column 'Publish date'
 
@@ -252,6 +252,8 @@ class Grouper:
     axis: int
     sort: bool
     dropna: bool
+    _gpr_index: Index | None
+    _grouper: Index | None
 
     _attributes: tuple[str, ...] = ("key", "level", "freq", "axis", "sort")
 
@@ -279,6 +281,7 @@ class Grouper:
         self.sort = sort
 
         self.grouper = None
+        self._gpr_index = None
         self.obj = None
         self.indexer = None
         self.binner = None
@@ -288,8 +291,11 @@ class Grouper:
 
     @final
     @property
-    def ax(self):
-        return self.grouper
+    def ax(self) -> Index:
+        index = self._gpr_index
+        if index is None:
+            raise ValueError("_set_grouper must be called before ax is accessed")
+        return index
 
     def _get_grouper(self, obj: FrameOrSeries, validate: bool = True):
         """
@@ -317,6 +323,7 @@ class Grouper:
             validate=validate,
             dropna=self.dropna,
         )
+
         return self.binner, self.grouper, self.obj
 
     @final
@@ -338,14 +345,17 @@ class Grouper:
 
         # Keep self.grouper value before overriding
         if self._grouper is None:
-            self._grouper = self.grouper
+            # TODO: What are we assuming about subsequent calls?
+            self._grouper = self._gpr_index
             self._indexer = self.indexer
 
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
             # The 'on' is already defined
-            if getattr(self.grouper, "name", None) == key and isinstance(obj, Series):
+            if getattr(self._gpr_index, "name", None) == key and isinstance(
+                obj, Series
+            ):
                 # Sometimes self._grouper will have been resorted while
                 # obj has not. In this case there is a mismatch when we
                 # call self._grouper.take(obj.index) so we need to undo the sorting
@@ -390,10 +400,8 @@ class Grouper:
         # error: Incompatible types in assignment (expression has type
         # "FrameOrSeries", variable has type "None")
         self.obj = obj  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "Index",
-        # variable has type "None")
-        self.grouper = ax  # type: ignore[assignment]
-        return self.grouper
+        self._gpr_index = ax
+        return self._gpr_index
 
     @final
     @property
@@ -441,6 +449,9 @@ class Grouping:
 
     _codes: np.ndarray | None = None
     _group_index: Index | None = None
+    _passed_categorical: bool
+    _all_grouper: Categorical | None
+    _index: Index
 
     def __init__(
         self,
@@ -456,13 +467,13 @@ class Grouping:
         self.level = level
         self._orig_grouper = grouper
         self.grouping_vector = _convert_grouper(index, grouper)
-        self.all_grouper = None
-        self.index = index
-        self.sort = sort
+        self._all_grouper = None
+        self._index = index
+        self._sort = sort
         self.obj = obj
-        self.observed = observed
+        self._observed = observed
         self.in_axis = in_axis
-        self.dropna = dropna
+        self._dropna = dropna
 
         self._passed_categorical = False
 
@@ -471,11 +482,15 @@ class Grouping:
 
         ilevel = self._ilevel
         if ilevel is not None:
+            mapper = self.grouping_vector
+            # In extant tests, the new self.grouping_vector matches
+            #  `index.get_level_values(ilevel)` whenever
+            #  mapper is None and isinstance(index, MultiIndex)
             (
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(self.grouping_vector, ilevel)
+            ) = index._get_grouper_for_level(mapper, ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -505,8 +520,8 @@ class Grouping:
             # a passed Categorical
             self._passed_categorical = True
 
-            self.grouping_vector, self.all_grouper = recode_for_groupby(
-                self.grouping_vector, self.sort, observed
+            self.grouping_vector, self._all_grouper = recode_for_groupby(
+                self.grouping_vector, sort, observed
             )
 
         elif not isinstance(
@@ -517,11 +532,11 @@ class Grouping:
                 t = self.name or str(type(self.grouping_vector))
                 raise ValueError(f"Grouper for '{t}' not 1-dimensional")
 
-            self.grouping_vector = self.index.map(self.grouping_vector)
+            self.grouping_vector = index.map(self.grouping_vector)
 
             if not (
                 hasattr(self.grouping_vector, "__len__")
-                and len(self.grouping_vector) == len(self.index)
+                and len(self.grouping_vector) == len(index)
             ):
                 grper = pprint_thing(self.grouping_vector)
                 errmsg = (
@@ -546,7 +561,7 @@ class Grouping:
     def name(self) -> Hashable:
         ilevel = self._ilevel
         if ilevel is not None:
-            return self.index.names[ilevel]
+            return self._index.names[ilevel]
 
         if isinstance(self._orig_grouper, (Index, Series)):
             return self._orig_grouper.name
@@ -569,7 +584,7 @@ class Grouping:
         if level is None:
             return None
         if not isinstance(level, int):
-            index = self.index
+            index = self._index
             if level not in index.names:
                 raise AssertionError(f"Level {level} not in index")
             return index.names.index(level)
@@ -607,10 +622,10 @@ class Grouping:
     @cache_readonly
     def result_index(self) -> Index:
         # TODO: what's the difference between result_index vs group_index?
-        if self.all_grouper is not None:
+        if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
-            return recode_from_groupby(self.all_grouper, self.sort, group_idx)
+            return recode_from_groupby(self._all_grouper, self._sort, group_idx)
         return self.group_index
 
     @cache_readonly
@@ -629,10 +644,10 @@ class Grouping:
             cat = self.grouping_vector
             categories = cat.categories
 
-            if self.observed:
+            if self._observed:
                 ucodes = algorithms.unique1d(cat.codes)
                 ucodes = ucodes[ucodes != -1]
-                if self.sort or cat.ordered:
+                if self._sort or cat.ordered:
                     ucodes = np.sort(ucodes)
             else:
                 ucodes = np.arange(len(categories))
@@ -648,18 +663,18 @@ class Grouping:
             uniques = self.grouping_vector.result_arraylike
         else:
             # GH35667, replace dropna=False with na_sentinel=None
-            if not self.dropna:
+            if not self._dropna:
                 na_sentinel = None
             else:
                 na_sentinel = -1
             codes, uniques = algorithms.factorize(
-                self.grouping_vector, sort=self.sort, na_sentinel=na_sentinel
+                self.grouping_vector, sort=self._sort, na_sentinel=na_sentinel
             )
         return codes, uniques
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self.index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
 
 
 def get_grouper(

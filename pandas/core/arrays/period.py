@@ -564,15 +564,15 @@ class PeriodArray(dtl.DatelikeOps):
         >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
         >>> pidx
         PeriodIndex(['2010', '2011', '2012', '2013', '2014', '2015'],
-        dtype='period[A-DEC]', freq='A-DEC')
+        dtype='period[A-DEC]')
 
         >>> pidx.asfreq('M')
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
-        '2015-12'], dtype='period[M]', freq='M')
+        '2015-12'], dtype='period[M]')
 
         >>> pidx.asfreq('M', how='S')
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
-        '2015-01'], dtype='period[M]', freq='M')
+        '2015-01'], dtype='period[M]')
         """
         how = libperiod.validate_end_alias(how)
 
@@ -866,7 +866,7 @@ class PeriodArray(dtl.DatelikeOps):
     def end_time(self) -> DatetimeArray:
         return self.to_timestamp(how="end")
 
-    def _require_matching_freq(self, other, base=False):
+    def _require_matching_freq(self, other, base: bool = False) -> None:
         # See also arrays.period.raise_on_incompatible
         if isinstance(other, BaseOffset):
             other_freq = other
@@ -1057,7 +1057,7 @@ def dt64arr_to_periodarr(data, freq, tz=None):
 
     Returns
     -------
-    ordinals : ndarray[int]
+    ordinals : ndarray[int64]
     freq : Tick
         The frequency extracted from the Series or DatetimeIndex if that's
         used.
@@ -1072,11 +1072,10 @@ def dt64arr_to_periodarr(data, freq, tz=None):
         elif isinstance(data, ABCSeries):
             data, freq = data._values, data.dt.freq
 
-    freq = Period._maybe_convert_freq(freq)
-
-    if isinstance(data, (ABCIndex, ABCSeries)):
+    elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
 
+    freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
     return c_dt64arr_to_periodarr(data.view("i8"), base, tz), freq
 
@@ -1138,7 +1137,7 @@ def _range_from_fields(
     minute=None,
     second=None,
     freq=None,
-):
+) -> tuple[np.ndarray, BaseOffset]:
     if hour is None:
         hour = 0
     if minute is None:
@@ -1176,7 +1175,7 @@ def _range_from_fields(
     return np.array(ordinals, dtype=np.int64), freq
 
 
-def _make_field_arrays(*fields):
+def _make_field_arrays(*fields) -> list[np.ndarray]:
     length = None
     for x in fields:
         if isinstance(x, (list, np.ndarray, ABCSeries)):
