@@ -371,7 +371,6 @@ if is_platform_mac():
     extra_compile_args.append("-Wno-error=unreachable-code")
 
     # rdata requires system iconv library
-    os.environ["DYLD_LIBRARY_PATH"] = ""
     rdata_includes = ["/usr/include"]
     rdata_libs_dir = ["/usr/lib"]
     rdata_libs = ["iconv"]
@@ -582,8 +581,8 @@ for name, data in ext_data.items():
     include = data.get("include", [])
     include.append(numpy.get_include())
 
-    if name == "io.rdata._rdata" and is_platform_mac():
-        # non-conda builds must adjust paths to libiconv .h and lib dirs
+    if name == "io.rdata._rdata" and is_platform_mac() and "CONDA_PREFIX" in os.environ:
+        # conda builds on mac must adjust paths to libiconv and lib dirs
         include = [
             os.path.join(os.environ["CONDA_PREFIX"], "include"),
             os.path.join(os.environ["CONDA_PREFIX"], "lib"),
