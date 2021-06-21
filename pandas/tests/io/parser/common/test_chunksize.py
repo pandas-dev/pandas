@@ -183,6 +183,7 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
     # be coerced using numerical types, then issue warning.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
+        # Use larger size to hit warning path
         size = 499999
 
     integers = [str(i) for i in range(size)]
@@ -190,24 +191,8 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
 
     buf = StringIO(data)
 
-    try:
-        with tm.assert_produces_warning(warning_type):
-            df = parser.read_csv(buf)
-    except AssertionError as err:
-        # 2021-02-21 this occasionally fails on the CI with an unexpected
-        #  ResourceWarning that we have been unable to track down,
-        #  see GH#38630
-        if "ResourceWarning" not in str(err) or parser.engine != "python":
-            raise
-
-        # Check the main assertion of the test before re-raising
-        assert df.a.dtype == object
-
-        mark = pytest.mark.xfail(
-            reason="ResourceWarning for unclosed SSL Socket, GH#38630"
-        )
-        request.node.add_marker(mark)
-        raise
+    with tm.assert_produces_warning(warning_type):
+        df = parser.read_csv(buf)
 
     assert df.a.dtype == object
 
