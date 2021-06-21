@@ -10744,3 +10744,48 @@ def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value
+# ------------------------------------------------------------------------- 
+    '''
+       pandas.DataFrame.reorder_levels
+DataFrame.reorder_levels(order, axis=0)[source]
+Rearrange index levels using input order. May not drop or duplicate levels.
+
+Parameters
+orderlist of int or list of str
+List representing new level order. Reference level by number (position) or by key (label).
+
+axis{0 or ‘index’, 1 or ‘columns’}, default 0
+Where to reorder levels.
+
+Returns
+DataFrame
+
+    '''
+# Example
+# We create a dataframe with multiple index columns
+import pandas as pd
+data= pd.DataFrame({'Index1':[1,2,3,4,5],'Index2':['a','b','c','d','e'],'col1':['one','two','three','one','two']})
+data.set_index(['Index1','Index2'],inplace=True,drop=True)
+print(data)
+ '''
+                col1
+Index1 Index2       
+1      a         one
+2      b         two
+3      c       three
+4      d         one
+5      e         two
+ '''
+index_order=['Index2','Index1']  # Order of indexes we want
+data= data.reorder_levels(index_order,0) # Reorder the indexes
+print(data)
+'''
+                col1
+Index2 Index1       
+a      1         one
+b      2         two
+c      3       three
+d      4         one
+e      5         two
+'''
+# ------------------------------------------------------------
