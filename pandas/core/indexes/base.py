@@ -6186,7 +6186,7 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
-        if self.hasnans:
+        if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
@@ -6198,7 +6198,7 @@ class Index(IndexOpsMixin, PandasObject):
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 
-        if self.hasnans:
+        if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
@@ -6219,7 +6219,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not isna(first):
                 return first
 
-        if self.hasnans:
+        if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
@@ -6241,7 +6241,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not isna(last):
                 return last
 
-        if self.hasnans:
+        if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
