@@ -1830,6 +1830,23 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "dtype", ["Int32", "Int64", "UInt32", "UInt64", "Float32", "Float64"]
+    )
+    def test_loc_setitem_with_expansion_preserves_nullable_int(self, dtype):
+        # GH#42099
+        ser = Series([0, 1, 2, 3], dtype=dtype)
+        df = DataFrame({"data": ser})
+
+        result = DataFrame(index=df.index)
+        result.loc[df.index, "data"] = ser
+
+        tm.assert_frame_equal(result, df)
+
+        result = DataFrame(index=df.index)
+        result.loc[df.index, "data"] = ser._values
+        tm.assert_frame_equal(result, df)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
