@@ -2230,6 +2230,8 @@ class StataWriter(StataParser):
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
 
+        .. versionadded:: 1.4.0
+
     Returns
     -------
     writer : StataWriter instance
@@ -3168,6 +3170,8 @@ class StataWriter117(StataWriter):
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
 
+        .. versionadded:: 1.4.0
+
     Returns
     -------
     writer : StataWriter117 instance
@@ -3565,6 +3569,8 @@ class StataWriterUTF8(StataWriter117):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
