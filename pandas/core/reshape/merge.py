@@ -29,6 +29,8 @@ from pandas._typing import (
     FrameOrSeries,
     IndexLabel,
     Suffixes,
+    MergeTypes,
+    TimedeltaConvertibleTypes,
 )
 from pandas.errors import MergeError
 from pandas.util._decorators import (
@@ -92,7 +94,7 @@ if TYPE_CHECKING:
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
-    how: str = "inner",
+    how: MergeTypes = "inner",
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -101,7 +103,7 @@ def merge(
     sort: bool = False,
     suffixes: Suffixes = ("_x", "_y"),
     copy: bool = True,
-    indicator: bool = False,
+    indicator: bool | str = False,
     validate: str | None = None,
 ) -> DataFrame:
     op = _MergeOperation(
@@ -331,11 +333,11 @@ def merge_asof(
     right_on: IndexLabel | None = None,
     left_index: bool = False,
     right_index: bool = False,
-    by=None,
-    left_by=None,
-    right_by=None,
+    by: IndexLabel | None = None,
+    left_by: Hashable | None = None,
+    right_by: Hashable | None = None,
     suffixes: Suffixes = ("_x", "_y"),
-    tolerance=None,
+    tolerance: None | TimedeltaConvertibleTypes = None,
     allow_exact_matches: bool = True,
     direction: str = "backward",
 ) -> DataFrame:
@@ -622,7 +624,7 @@ class _MergeOperation:
         sort: bool = True,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        indicator: bool = False,
+        indicator: bool | str = False,
         validate: str | None = None,
     ):
         _left = _validate_operand(left)

@@ -1,4 +1,9 @@
 from __future__ import annotations
+from typing import (
+    Any,
+    Callable,
+    Tuple,
+)
 
 from datetime import (
     datetime,
@@ -31,6 +36,10 @@ from pandas import (
 from pandas.tseries.offsets import (
     Day,
     Easter,
+)
+
+from pandas._typing import (
+    TimestampConvertibleTypes
 )
 
 
@@ -151,27 +160,39 @@ class Holiday:
 
     def __init__(
         self,
-        name,
-        year=None,
-        month=None,
-        day=None,
-        offset=None,
-        observance=None,
-        start_date=None,
-        end_date=None,
-        days_of_week=None,
+        name: str,
+        year: int | None = None,
+        month: int | None = None,
+        day: int | None = None,
+        offset: list[Any] | Any = None,
+        observance: Callable[..., DatetimeIndex] = None,
+        start_date: TimestampConvertibleTypes = None,
+        end_date: TimestampConvertibleTypes = None,
+        days_of_week: Tuple[int, ...] = None,
     ):
         """
         Parameters
         ----------
         name : str
             Name of the holiday , defaults to class name
+        year : int, optional
+            the year in which the holiday occurs
+        month : int, optional
+            the month in which the holiday occurs
+        day : int, optional
+             the day on which the holiday occurs
         offset : array of pandas.tseries.offsets or
                 class from pandas.tseries.offsets
             computes offset from date
         observance: function
             computes when holiday is given a pandas Timestamp
-        days_of_week:
+        start_date : datetime-like
+            optionally constrain the period in which the holdiday occurs
+            can be any valid value for a pandas Timestamp
+        end_date : datetime-like
+            optionally constrain the period in which the holdiday occurs
+            can be any valid value for a pandas Timestamp
+        days_of_week: tuple(int, ...)
             provide a tuple of days e.g  (0,1,2,3,) for Monday Through Thursday
             Monday=0,..,Sunday=6
 
@@ -239,7 +260,12 @@ class Holiday:
         repr = f"Holiday: {self.name} ({info})"
         return repr
 
-    def dates(self, start_date, end_date, return_name=False):
+    def dates(
+            self,
+            start_date: TimestampConvertibleTypes,
+            end_date: TimestampConvertibleTypes,
+            return_name: bool = False,
+    ):
         """
         Calculate holidays observed between start date and end date
 
@@ -286,7 +312,7 @@ class Holiday:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
 
-    def _reference_dates(self, start_date, end_date):
+    def _reference_dates(self, start_date: TimestampConvertibleTypes, end_date: TimestampConvertibleTypes):
         """
         Get reference dates for the holiday.
 
@@ -319,7 +345,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates):
+    def _apply_rule(self, dates: DatetimeIndex):
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
@@ -390,7 +416,7 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
     end_date = Timestamp(datetime(2200, 12, 31))
     _cache = None
 
-    def __init__(self, name=None, rules=None):
+    def __init__(self, name: str = None, rules: list[Holiday] = None):
         """
         Initializes holiday object with a given set a rules.  Normally
         classes just have the rules defined within them.
@@ -417,7 +443,12 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
 
         return None
 
-    def holidays(self, start=None, end=None, return_name=False):
+    def holidays(
+            self,
+            start: TimestampConvertibleTypes = None,
+            end: TimestampConvertibleTypes = None,
+            return_name: bool = False
+    ) -> DatetimeIndex:
         """
         Returns a curve with holidays between start_date and end_date
 

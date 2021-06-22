@@ -5685,7 +5685,7 @@ class Index(IndexOpsMixin, PandasObject):
         if key is not None and not is_integer(key):
             raise self._invalid_indexer(form, key)
 
-    def _maybe_cast_slice_bound(self, label, side: str_t, kind=no_default):
+    def _maybe_cast_slice_bound(self, label, side: str_t, kind: Literal["loc", "getitem"] = no_default):
         """
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing

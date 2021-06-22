@@ -445,7 +445,7 @@ def _maybe_add_count(base: str, count: float) -> str:
 # Frequency comparison
 
 
-def is_subperiod(source, target) -> bool:
+def is_subperiod(source: str | DateOffset, target: str | DateOffset) -> bool:
     """
     Returns True if downsampling is possible between source and target
     frequencies
@@ -501,7 +501,7 @@ def is_subperiod(source, target) -> bool:
         return False
 
 
-def is_superperiod(source, target) -> bool:
+def is_superperiod(source: str | DateOffset, target: str | DateOffset) -> bool:
     """
     Returns True if upsampling is possible between source and target
     frequencies
@@ -559,7 +559,7 @@ def is_superperiod(source, target) -> bool:
         return False
 
 
-def _maybe_coerce_freq(code) -> str:
+def _maybe_coerce_freq(code: str | DateOffset) -> str:
     """we might need to coerce a code to a rule_code
     and uppercase it
 

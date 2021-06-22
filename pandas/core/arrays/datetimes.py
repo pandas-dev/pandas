@@ -1967,12 +1967,12 @@ def sequence_to_datetimes(
 
 def sequence_to_dt64ns(
     data,
-    dtype=None,
-    copy=False,
-    tz=None,
-    dayfirst=False,
-    yearfirst=False,
-    ambiguous="raise",
+    dtype: str = None,
+    copy: bool = False,
+    tz: tzinfo | str = None,
+    dayfirst: bool = False,
+    yearfirst: bool = False,
+    ambiguous: str | bool = "raise",
     *,
     allow_object: bool = False,
     allow_mixed: bool = False,
@@ -2126,10 +2126,10 @@ def sequence_to_dt64ns(
 
 def objects_to_datetime64ns(
     data: np.ndarray,
-    dayfirst,
-    yearfirst,
-    utc=False,
-    errors="raise",
+    dayfirst: bool,
+    yearfirst: bool,
+    utc: bool = False,
+    errors: Literal["raise", "coerce", "ignore"] = "raise",
     require_iso8601: bool = False,
     allow_object: bool = False,
     allow_mixed: bool = False,

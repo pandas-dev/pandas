@@ -4,6 +4,10 @@ Helper functions to generate range-like data for DatetimeArray
 """
 from __future__ import annotations
 
+from typing import (
+    Literal,
+)
+
 import numpy as np
 
 from pandas._libs.lib import i8max
@@ -75,7 +79,7 @@ def generate_regular_range(
 
 
 def _generate_range_overflow_safe(
-    endpoint: int, periods: int, stride: int, side: str = "start"
+    endpoint: int, periods: int, stride: int, side: Literal['start', 'end'] = "start"
 ) -> int:
     """
     Calculate the second endpoint for passing to np.arange, checking
@@ -143,7 +147,7 @@ def _generate_range_overflow_safe(
 
 
 def _generate_range_overflow_safe_signed(
-    endpoint: int, periods: int, stride: int, side: str
+    endpoint: int, periods: int, stride: int, side: Literal['start', 'end']
 ) -> int:
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
@@ -154,7 +158,7 @@ def _generate_range_overflow_safe_signed(
     if side == 'end':
         stride *= -1
 
-    with np.errstate(over="raise"):
+    with np.errstate(over='raise'):
         addend = np.int64(periods) * np.int64(stride)
         try:
             # easy case with no overflows

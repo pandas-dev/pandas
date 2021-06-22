@@ -9,6 +9,7 @@ from typing import (
     Hashable,
     Iterator,
     List,
+    Literal,
     cast,
 )
 import warnings
@@ -518,7 +519,10 @@ class Apply(metaclass=abc.ABCMeta):
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
     def normalize_dictlike_arg(
-        self, how: str, obj: FrameOrSeriesUnion, func: AggFuncTypeDict
+        self,
+        how: Literal['apply', 'agg', 'transform'],
+        obj: FrameOrSeriesUnion,
+        func: AggFuncTypeDict,
     ) -> AggFuncTypeDict:
         """
         Handler for dict-like argument.

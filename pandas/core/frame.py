@@ -9193,7 +9193,7 @@ NaN 12.3   33.0
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
         copy: bool = True,
-        indicator: bool = False,
+        indicator: bool | str = False,
         validate: str | None = None,
     ) -> DataFrame:
         from pandas.core.reshape.merge import merge
