@@ -226,6 +226,9 @@ int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
+    if (a == b) {
+        return 1;
+    }
     if (Py_TYPE(a) == Py_TYPE(b)) {
         // special handling for some built-in types which could have NaNs
         // as we would like to have them equivalent, but the usual
@@ -284,7 +287,7 @@ Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject* key) {
 }
 
 
-khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key);
+khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key);
 
 //we could use any hashing algorithm, this is the original CPython's for tuples
 
@@ -325,7 +328,7 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
 }
 
 
-khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
+khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
     Py_hash_t hash;
     // For PyObject_Hash holds:
     //    hash(0.0) == 0 == hash(-0.0)
