@@ -861,7 +861,7 @@ class DataFrameFormatter:
                 return y
 
             str_columns = list(
-                zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
+                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
             if self.sparsify and len(str_columns):
                 str_columns = sparsify_labels(str_columns)

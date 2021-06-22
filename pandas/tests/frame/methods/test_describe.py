@@ -346,7 +346,7 @@ class TestDataFrameDescribe:
         result = df.describe(percentiles=pct)
 
         expected = DataFrame(
-            {"x": [1.0, 1.0, np.NaN, 1.0, *[1.0 for _ in pct], 1.0]},
+            {"x": [1.0, 1.0, np.NaN, 1.0, *(1.0 for _ in pct), 1.0]},
             index=[
                 "count",
                 "mean",

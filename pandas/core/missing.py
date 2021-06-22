@@ -398,7 +398,7 @@ def interpolate_1d(
         # preserve NaNs on the inside
         preserve_nans |= mid_nans
 
-    # sort preserve_nans and covert to list
+    # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
     result = yvalues.copy()
