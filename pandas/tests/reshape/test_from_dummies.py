@@ -109,48 +109,6 @@ def test_from_dummies_to_df_basic(dummies_basic):
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_to_df_variable_string(dummies_basic):
-    expected = DataFrame(
-        {"C": [1, 2, 3], "varname0": ["a", "b", "a"], "varname1": ["b", "a", "c"]}
-    )
-    result = from_dummies(dummies_basic, variables="varname")
-    tm.assert_frame_equal(result, expected)
-
-
-def test_from_dummies_to_df_variable_list(dummies_basic):
-    expected = DataFrame({"C": [1, 2, 3], "A": ["a", "b", "a"], "B": ["b", "a", "c"]})
-    result = from_dummies(dummies_basic, variables=["A", "B"])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_from_dummies_to_df_variable_list_not_complete(dummies_basic):
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"Length of 'variables' \(1\) did not match "
-            r"the length of the columns being encoded \(2\)."
-        ),
-    ):
-        from_dummies(dummies_basic, variables=["A"])
-
-
-def test_from_dummies_to_df_variable_dict(dummies_basic):
-    expected = DataFrame({"C": [1, 2, 3], "A": ["b", "a", "c"], "B": ["a", "b", "a"]})
-    result = from_dummies(dummies_basic, variables={"col2": "A", "col1": "B"})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_from_dummies_to_df_variable_dict_not_complete(dummies_basic):
-    with pytest.raises(
-        ValueError,
-        match=(
-            r"Length of 'variables' \(1\) did not match "
-            r"the length of the columns being encoded \(2\)."
-        ),
-    ):
-        from_dummies(dummies_basic, variables={"col1": "A"})
-
-
 def test_from_dummies_to_df_prefix_sep_list():
     dummies = DataFrame(
         {

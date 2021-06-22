@@ -1056,7 +1056,6 @@ def _get_dummies_1d(
 def from_dummies(
     data,
     to_series: bool = False,
-    variables: None | str | list[str] | dict[str, str] = None,
     prefix_sep: str | list[str] | dict[str, str] = "_",
     dummy_na: bool = False,
     columns: None | list[str] = None,
@@ -1109,7 +1108,7 @@ def from_dummies(
                 variables_slice[prefix].append(col)
         prefix_sep = sep_for_prefix
 
-    # validate number of passed arguments
+    # validate number of dropped_first
     def check_len(item, name) -> None:
         if not len(item) == len(variables_slice):
             len_msg = (
@@ -1118,24 +1117,6 @@ def from_dummies(
                 f"({len(variables_slice)})."
             )
             raise ValueError(len_msg)
-
-    # obtain prefix to category mapping
-    variables: dict[str, str]
-    if isinstance(variables, dict):
-        check_len(variables, "variables")
-        variables = variables
-    elif is_list_like(variables):
-        check_len(variables, "variables")
-        variables = dict(zip(variables_slice, variables))
-    elif isinstance(variables, str):
-        variables = dict(
-            zip(
-                variables_slice,
-                (f"{variables}{i}" for i in range(len(variables_slice))),
-            )
-        )
-    else:
-        variables = dict(zip(variables_slice, variables_slice))
 
     if dropped_first:
         if isinstance(dropped_first, dict):
@@ -1148,7 +1129,7 @@ def from_dummies(
                 zip(variables_slice, [dropped_first] * len(variables_slice))
             )
 
-    cat_data = {var: [] for _, var in variables.items()}
+    cat_data = {prefix: [] for prefix in variables_slice}
     for index, row in data.iterrows():
         for prefix, prefix_slice in variables_slice.items():
             slice_sum = row[prefix_slice].sum()
@@ -1172,7 +1153,7 @@ def from_dummies(
                 category = prefix_slice[cat_index].split(prefix_sep[prefix])[1]
                 if dummy_na and category == "NaN":
                     category = np.nan
-            cat_data[variables[prefix]].append(category)
+            cat_data[prefix].append(category)
 
     if columns:
         return DataFrame(cat_data)
