@@ -41,23 +41,6 @@ if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     INVGREP_PREPEND="##[error]"
 fi
 
-### LINTING ###
-if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
-
-    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
-    # it doesn't make a difference, but we want to be internally consistent.
-    # Note: this grep pattern is (intended to be) equivalent to the python
-    # regex r'(?<![ ->])> '
-    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
-    invgrep -r -E --include '*.pyx' --include '*.pxi.in' '[a-zA-Z0-9*]> ' pandas/_libs
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # readability/casting: Warnings about C casting instead of C++ casting
-    # runtime/int: Warnings about using C number types instead of C++ ones
-    # build/include_subdir: Warnings about prefacing included header files with directory
-
-fi
-
 ### PATTERNS ###
 if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 

@@ -102,6 +102,9 @@ repos:
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
+
+            # Cython casting is of the form `<type>obj` as opposed to `<type> obj`
+            |[a-zA-Z0-9*]>
         types_or: [python, cython, rst]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
