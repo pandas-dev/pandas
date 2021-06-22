@@ -152,10 +152,17 @@ class PandasDocstring(Validator):
         runner = doctest.DocTestRunner(optionflags=flags)
         context = {"np": numpy, "pd": pandas}
         error_msgs = ""
-        for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = StringIO()
-            runner.run(test, out=f.write)
-            error_msgs += f.getvalue()
+        name = None
+        try:
+            name = self.name
+        except AttributeError:
+            if not isinstance(self.obj, property):
+                name = type(self.obj).__name__
+        if name is not None:
+            for test in finder.find(self.raw_doc, name, globs=context):
+                f = StringIO()
+                runner.run(test, out=f.write)
+                error_msgs += f.getvalue()
         return error_msgs
 
     @property
