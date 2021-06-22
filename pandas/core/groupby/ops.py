@@ -967,9 +967,7 @@ class BaseGrouper:
         """
         Returns the values of a cython operation.
         """
-        if kind not in ["transform", "aggregate"]:
-            raise ValueError('Value for kind argument must be one of: '
-                             'transform, aggregate')
+        assert kind in ["transform", "aggregate"]
 
         cy_op = WrappedCythonOp(kind=kind, how=how)
 

@@ -236,8 +236,7 @@ class NumericIndex(Index):
     @doc(Index._convert_slice_indexer)
     def _convert_slice_indexer(self, key: slice, kind: str):
         if is_float_dtype(self.dtype):
-            if kind not in ["loc", "getitem"]:
-                raise ValueError('Value for kind argument must be one of: loc, getitem')
+            assert kind in ["loc", "getitem"]
 
             # We always treat __getitem__ slicing as label-based
             # translate to locations
@@ -247,9 +246,7 @@ class NumericIndex(Index):
 
     @doc(Index._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        if kind not in ["loc", "getitem", None, lib.no_default]:
-            raise ValueError('Value for kind argument must be one of: '
-                             'loc, getitem or None')
+        assert kind in ["loc", "getitem", None, lib.no_default]
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         # we will try to coerce to integers

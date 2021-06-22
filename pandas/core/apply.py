@@ -520,7 +520,7 @@ class Apply(metaclass=abc.ABCMeta):
 
     def normalize_dictlike_arg(
         self,
-        how: Literal['apply', 'agg', 'transform'],
+        how: Literal["apply", "agg", "transform"],
         obj: FrameOrSeriesUnion,
         func: AggFuncTypeDict,
     ) -> AggFuncTypeDict:

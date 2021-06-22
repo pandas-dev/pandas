@@ -192,9 +192,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         label : object
         """
-        if kind not in ["loc", "getitem", None, lib.no_default]:
-            raise ValueError('Value for kind argument must be one of: '
-                             'loc, getitem or None')
+        assert kind in ["loc", "getitem", None, lib.no_default]
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):

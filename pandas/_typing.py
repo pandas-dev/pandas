@@ -123,8 +123,8 @@ JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
-MergeTypes = Literal['inner', 'outer', 'left', 'right', 'cross']
-ConcatTypes = Literal['inner', 'outer']
+MergeTypes = Literal["inner", "outer", "left", "right", "cross"]
+ConcatTypes = Literal["inner", "outer"]
 
 # dtypes
 NpDtype = Union[str, np.dtype]

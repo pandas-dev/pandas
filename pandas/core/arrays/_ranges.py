@@ -79,7 +79,7 @@ def generate_regular_range(
 
 
 def _generate_range_overflow_safe(
-    endpoint: int, periods: int, stride: int, side: Literal['start', 'end'] = "start"
+    endpoint: int, periods: int, stride: int, side: Literal["start", "end"] = "start"
 ) -> int:
     """
     Calculate the second endpoint for passing to np.arange, checking
@@ -106,8 +106,7 @@ def _generate_range_overflow_safe(
     OutOfBoundsDatetime
     """
     # GH#14187 raise instead of incorrectly wrapping around
-    if side not in ["start", "end"]:
-        raise ValueError('Value for side argument must be one of: start, end')
+    assert side in ["start", "end"]
 
     i64max = np.uint64(i8max)
     msg = f"Cannot generate range with {side}={endpoint} and periods={periods}"
@@ -147,14 +146,14 @@ def _generate_range_overflow_safe(
 
 
 def _generate_range_overflow_safe_signed(
-    endpoint: int, periods: int, stride: int, side: Literal['start', 'end']
+    endpoint: int, periods: int, stride: int, side: Literal["start", "end"]
 ) -> int:
     """
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
     """
-    if side not in ['start', 'end']:
-        raise ValueError('Value for side argument must be one of: start, end')
+    assert side in ['start', 'end']
+
     if side == 'end':
         stride *= -1
 

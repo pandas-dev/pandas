@@ -165,7 +165,7 @@ def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     return method
 
 
-def find_valid_index(values, *, how: Literal['first', 'last']) -> int | None:
+def find_valid_index(values, *, how: Literal["first", "last"]) -> int | None:
     """
     Retrieves the index of the first valid value.
 

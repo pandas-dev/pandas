@@ -19,6 +19,9 @@ from pandas._libs import (
     lib,
     tslib,
 )
+from pandas._typing import (
+    Dtype,
+)
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -1967,7 +1970,7 @@ def sequence_to_datetimes(
 
 def sequence_to_dt64ns(
     data,
-    dtype: str = None,
+    dtype: Dtype = None,
     copy: bool = False,
     tz: tzinfo | str = None,
     dayfirst: bool = False,
