@@ -228,6 +228,33 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
                 assert id(getattr(s2, attr)) != id(getattr(styler, attr))
 
 
+def test_clear(mi_styler_comp):
+    clean_copy = Styler(mi_styler_comp.data, uuid=mi_styler_comp.uuid)
+
+    mi_styler_comp.to_html()  # new attrs maybe created on render
+    excl = [
+        "data",
+        "index",
+        "columns",
+        "uuid",
+        "uuid_len",
+        "cell_ids",
+        "cellstyle_map",  # execution time only
+        "precision",  # deprecated
+        "na_rep",  # deprecated
+    ]
+    # tests variables are not the same before clearing, except for excluded.
+    for attr in [a for a in mi_styler_comp.__dict__ if not (callable(a) or a in excl)]:
+        res = getattr(mi_styler_comp, attr) == getattr(clean_copy, attr)
+        assert not (all(res) if (hasattr(res, "__iter__") and len(res) > 0) else res)
+
+    # test variables are same after clearing
+    mi_styler_comp.clear()
+    for attr in [a for a in mi_styler_comp.__dict__ if not (callable(a))]:
+        res = getattr(mi_styler_comp, attr) == getattr(clean_copy, attr)
+        assert all(res) if hasattr(res, "__iter__") else res
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)
