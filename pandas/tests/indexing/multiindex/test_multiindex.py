@@ -127,5 +127,5 @@ class TestMultiIndexBasic:
         df1 = DataFrame(np.zeros((1, len(mi1))), columns=mi1)
         df2 = DataFrame(np.zeros((1, len(mi2))), columns=mi2)
 
-        with tm.assert_produces_warning(False):
+        with tm.assert_produces_warning(None):
             pd.concat((df1, df2), axis=1)
