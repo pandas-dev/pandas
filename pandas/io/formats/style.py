@@ -976,13 +976,13 @@ class Styler(StylerRenderer):
           - tooltips
           - cell_context (cell css classes)
           - ctx (cell css styles)
-          - applied styles (_todo)
           - caption
 
         Non-data dependent attributes [copied and exported]:
           - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
           - table_attributes
           - table_styles
+          - applied styles (_todo)
 
         """
         # GH 40675
