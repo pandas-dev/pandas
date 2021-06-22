@@ -269,6 +269,7 @@ Other enhancements
 - :meth:`read_csv` and :meth:`read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
+- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising with ``object`` data containing ``pd.NA`` even when ``skipna=True`` (:issue:`37501`)
 - :meth:`.GroupBy.rank` now supports object-dtype data (:issue:`38278`)
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)

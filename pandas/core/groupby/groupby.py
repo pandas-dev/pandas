@@ -47,6 +47,7 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
+    RandomState,
     Scalar,
     T,
     final,
@@ -1519,7 +1520,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
             if is_object_dtype(vals):
-                vals = np.array([bool(x) for x in vals])
+                # GH#37501: don't raise on pd.NA when skipna=True
+                if skipna:
+                    vals = np.array([bool(x) if not isna(x) else True for x in vals])
+                else:
+                    vals = np.array([bool(x) for x in vals])
             elif isinstance(vals, BaseMaskedArray):
                 vals = vals._data.astype(bool, copy=False)
             else:
@@ -3180,7 +3185,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         frac: float | None = None,
         replace: bool = False,
         weights: Sequence | Series | None = None,
-        random_state=None,
+        random_state: RandomState | None = None,
     ):
         """
         Return a random sample of items from each group.
@@ -3207,8 +3212,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Values must be non-negative with at least one positive element
             within each group.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
-            random number generator
+            If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState, use as numpy RandomState object.
 
         Returns
