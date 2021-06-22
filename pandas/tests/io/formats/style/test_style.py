@@ -182,11 +182,11 @@ def test_render_trimming_mi():
     assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
 
 
-@pytest.mark.parametrize("comp", [True, False])
+@pytest.mark.parametrize("comprehensive", [True, False])
 @pytest.mark.parametrize("render", [True, False])
 @pytest.mark.parametrize("deepcopy", [True, False])
-def test_copy(comp, render, deepcopy, mi_styler, mi_styler_comp):
-    styler = mi_styler_comp if comp else mi_styler
+def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
+    styler = mi_styler_comp if comprehensive else mi_styler
     styler.uuid_len = 5
 
     s2 = copy.deepcopy(styler) if deepcopy else copy.copy(styler)  # make copy and check
