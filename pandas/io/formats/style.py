@@ -1011,9 +1011,9 @@ class Styler(StylerRenderer):
         for attr in shallow:
             setattr(styler, attr, getattr(self, attr))
 
-        op = copy.deepcopy if deepcopy else lambda x: x
         for attr in deep:
-            setattr(styler, attr, op(getattr(self, attr)))
+            val = getattr(self, attr)
+            setattr(styler, attr, copy.deepcopy(val) if deepcopy else val)
 
         return styler
 
