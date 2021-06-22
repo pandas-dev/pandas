@@ -833,9 +833,20 @@ def backfill_2d_inplace(algos_t[:, :] values,
 
 
 # Fillna logic
+# We have our own fused type since we don't need to support
+# types that can't hold NAs
+ctypedef fused fillna_t:
+    float64_t
+    float32_t
+    object
+    # TODO: Add datetime64 support through viewing data as uint64
+    uint64_t  # Datetime64
+    # TODO: Complex support?
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def fillna1d(ndarray arr,
+def fillna1d(fillna_t[:] arr,
              object value,
              limit=None,
              bint inf_as_na=False
@@ -856,15 +867,15 @@ def fillna1d(ndarray arr,
     arr : ndarray
     value : object
         The value to use to replace nans
-    limit : int, default -1
-        The number of elements to fill. If -1, fills all NaN values
+    limit : int, default None
+        The number of elements to fill. If None, fills all NaN values
     inf_as_na:
         Whether to consider INF and NEGINF as NA
     """
     cdef:
         Py_ssize_t i, N, lim
         Py_ssize_t count=0
-        object val
+        fillna_t val
 
     assert arr.ndim == 1, "'arr' must be 1-D."
 
@@ -883,7 +894,7 @@ def fillna1d(ndarray arr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def fillna2d(ndarray arr,
+def fillna2d(fillna_t[:, :] arr,
              object value,
              limit=None,
              bint inf_as_na=False
@@ -904,25 +915,26 @@ def fillna2d(ndarray arr,
     arr : ndarray
     value : object
         The value to use to replace nans
-    limit : int, default -1
-        The number of elements to fill. If -1, fills all NaN values
+    limit : int, default None
+        The number of elements to fill. If None, fills all NaN values
     inf_as_na:
         Whether to consider INF and NEGINF as NA
     """
     cdef:
         Py_ssize_t i, j, n, m, lim
         Py_ssize_t count=0
-        object val
+        fillna_t val
 
     assert arr.ndim == 2, "'arr' must be 2-D."
 
     n, m = (<object>arr).shape
-    lim = validate_limit(n, limit)
+    lim = validate_limit(m, limit)
     if inf_as_na:
         check_func = missing.checknull_old
     else:
         check_func = missing.checknull
     for i in range(n):
+        count = 0  # Limit is per axis
         for j in range(m):
             val = arr[i, j]
             if check_func(val) and count < lim:

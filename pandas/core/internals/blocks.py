@@ -436,6 +436,7 @@ class Block(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         arr = self if inplace else self.copy()
+        limit = libalgos.validate_limit(None, limit=limit)
 
         if not self._can_hold_na:
             return [arr]
@@ -461,37 +462,12 @@ class Block(PandasObject):
                     downcast=None,
                 )
         else:
-            # print("hello")
+            # TODO: Verify that this works for EAs
             return [
                 self.make_block_same_class(
                     values=self.values.fillna(value=value, limit=limit)
                 )
             ]
-        # mask = isna(self.values)
-        # mask, noop = validate_putmask(self.values, mask)
-        #
-        # if limit is not None:
-        #     #limit = libalgos.validate_limit(None, limit=limit)
-        #     #mask[mask.cumsum(self.ndim - 1) > limit] = False
-        #
-        # if self._can_hold_element(value):
-        #     putmask_inplace(arr.values, mask, value)
-        #     return arr._maybe_downcast([arr], downcast)
-        #
-        # if noop:
-        #    # we can't process the value, but nothing to do
-        #    return arr
-        #
-        # elif self.ndim == 1 or self.shape[0] == 1:
-        #     blk = self.coerce_to_target_dtype(value)
-        #     # bc we have already cast, inplace=True may avoid an extra copy
-        #     return blk.fillna(value, limit=limit, inplace=True, downcast=None)
-        #
-        # else:
-        #     # operate column-by-column
-        #     return self.split_and_operate(
-        #         type(self).fillna, value, limit=limit, inplace=inplace, downcast=None
-        #     )
 
     @final
     def _split(self) -> list[Block]:
