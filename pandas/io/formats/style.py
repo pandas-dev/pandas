@@ -995,6 +995,7 @@ class Styler(StylerRenderer):
             "hide_columns_",
             "table_attributes",
             "cell_ids",
+            "caption",
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",

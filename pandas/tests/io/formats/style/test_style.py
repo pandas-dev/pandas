@@ -41,6 +41,9 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
+    mi_styler.uuid_len = 5
+    mi_styler.uuid = "abcde_"
+    mi_styler.set_caption("capt")
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
     mi_styler.hide_columns([("c0", "c1_a")])
@@ -205,6 +208,7 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
             "columns",
             "index",
             "uuid_len",
+            "caption",
             "cell_ids",
             "hide_index_",
             "hide_columns_",
