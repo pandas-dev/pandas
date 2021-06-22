@@ -364,13 +364,6 @@ class ExtensionIndex(Index):
         """
         return self._data._validate_setitem_value(value)
 
-    def _get_unique_index(self):
-        if self.is_unique:
-            return self
-
-        result = self._data.unique()
-        return type(self)._simple_new(result, name=self.name)
-
     @doc(Index.map)
     def map(self, mapper, na_action=None):
         # Try to run function on index first, and then on elements of index
