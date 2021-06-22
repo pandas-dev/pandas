@@ -1970,7 +1970,7 @@ def sequence_to_datetimes(
 
 def sequence_to_dt64ns(
     data,
-    dtype: Dtype = None,
+    dtype: Dtype | None = None,
     copy: bool = False,
     tz: tzinfo | str = None,
     dayfirst: bool = False,
