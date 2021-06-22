@@ -94,22 +94,40 @@ def test_catch_warning_category_and_match(category, message, match):
         warnings.warn(message, category)
 
 
-@pytest.mark.parametrize(
-    "match",
-    [
-        ("Not this message"),
-        ("Warning"),
-        (r"\d+"),
-    ],
-)
-def test_fail_to_match(category, match):
-    msg1 = "This is not a match."
-    msg2 = "Another unmatched warning."
-    unmatched = rf"{category.__name__}\('{msg1}'\), {category.__name__}\('{msg2}'\)"
+def test_fail_to_match_1():
+    category = RuntimeWarning
+    match = "Did not see this warning"
+    unmatched = r"Did not see warning 'RuntimeWarning' matching 'Did not see this warning'. "\
+        r"The emitted warning messages are \[RuntimeWarning\('This is not a match.'\),"\
+        r" RuntimeWarning\('Another unmatched warning.'\)\]"
     with pytest.raises(AssertionError, match=unmatched):
         with tm.assert_produces_warning(category, match=match):
-            warnings.warn(msg1, category)
-            warnings.warn(msg2, category)
+            warnings.warn("This is not a match.", category)
+            warnings.warn("Another unmatched warning.", category)
+
+
+def test_fail_to_match_2():
+    category = FutureWarning
+    match = "Warning"
+    unmatched = r"Did not see warning 'FutureWarning' matching 'Warning'. "\
+        r"The emitted warning messages are \[FutureWarning\('This is not a match.'\),"\
+        r" FutureWarning\('Another unmatched warning.'\)\]"
+    with pytest.raises(AssertionError, match=unmatched):
+        with tm.assert_produces_warning(category, match=match):
+            warnings.warn("This is not a match.", category)
+            warnings.warn("Another unmatched warning.", category)
+
+
+def test_fail_to_match_3():
+    category = ResourceWarning
+    match = r"\d+"
+    unmatched = r"Did not see warning 'ResourceWarning' matching '\\d\+'. "\
+        r"The emitted warning messages are \[ResourceWarning\('This is not a match.'\),"\
+        r" ResourceWarning\('Another unmatched warning.'\)\]"
+    with pytest.raises(AssertionError, match=unmatched):
+        with tm.assert_produces_warning(category, match=match):
+            warnings.warn("This is not a match.", category)
+            warnings.warn("Another unmatched warning.", category)
 
 
 def test_fail_to_catch_actual_warning(pair_different_warnings):
