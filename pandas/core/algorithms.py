@@ -28,6 +28,8 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
+    FrameOrSeries,
+    RandomState,
     DtypeObj,
     FrameOrSeriesUnion,
     Scalar,
@@ -63,6 +65,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
@@ -1895,3 +1898,96 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     for i, value in enumerate(unique_array):
         indexer += [i] * int(max(l_count[value], r_count[value]))
     return unique_array.take(indexer)
+
+
+def preprocess_weights(obj: DataFrame | Series, weights, axis: int):
+    if weights is not None:
+
+        # If a series, align with frame
+        if isinstance(weights, ABCSeries):
+            weights = weights.reindex(obj.axes[axis])
+
+        # Strings acceptable if a dataframe and axis = 0
+        if isinstance(weights, str):
+            if isinstance(obj, ABCDataFrame):
+                if axis == 0:
+                    try:
+                        weights = obj[weights]
+                    except KeyError as err:
+                        raise KeyError(
+                            "String passed to weights not a valid column"
+                        ) from err
+                else:
+                    raise ValueError(
+                        "Strings can only be passed to "
+                        "weights when sampling from rows on "
+                        "a DataFrame"
+                    )
+            else:
+                raise ValueError(
+                    "Strings cannot be passed as weights "
+                    "when sampling from a Series."
+                )
+
+        if isinstance(obj, ABCSeries):
+            func = obj._constructor
+        else:
+            func = obj._constructor_sliced
+
+        weights = func(weights, dtype="float64")._values
+
+        if len(weights) != obj.shape[axis]:
+            raise ValueError("Weights and axis to be sampled must be of same length")
+
+        if lib.has_infs(weights):
+            raise ValueError("weight vector may not include `inf` values")
+
+        if (weights < 0).any():
+            raise ValueError("weight vector many not include negative values")
+
+        weights[np.isnan(weights)] = 0
+        return weights
+
+
+def process_sampling_size(n, frac: float | None, replace: bool):
+    # If no frac or n, default to n=1.
+    if n is None and frac is None:
+        n = 1
+    elif frac is not None and frac > 1 and not replace:
+        raise ValueError(
+            "Replace has to be set to `True` when "
+            "upsampling the population `frac` > 1."
+        )
+    elif frac is None and n % 1 != 0:
+        raise ValueError("Only integers accepted as `n` values")
+    elif frac is not None:
+        raise ValueError("Please enter a value for `frac` OR `n`, not both")
+
+    # Check for negative sizes
+    if n < 0:
+        raise ValueError(
+            "A negative number of rows requested. Please provide positive value."
+        )
+
+    return n
+
+
+def sample(
+    obj: FrameOrSeries,
+    size: int,
+    replace: bool,
+    weights: np.ndarray,
+    random_state: RandomState,
+    axis: int,
+) -> FrameOrSeries:
+    axis_length = obj.shape[axis]
+
+    if weights is not None:
+        weight_sum = weights.sum()
+        if weight_sum != 0:
+            weights = weights / weight_sum
+        else:
+            raise ValueError("Invalid weights: weights sum to zero")
+
+    locs = random_state.choice(axis_length, size=size, replace=replace, p=weights)
+    return obj.take(locs, axis=axis)

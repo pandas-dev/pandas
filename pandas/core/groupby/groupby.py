@@ -3272,19 +3272,24 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         from pandas.core.reshape.concat import concat
 
+        n = algorithms.process_sampling_size(n, frac, replace)
+        if n is None:
+            assert frac is not None
+            sizes = []
+
         if weights is not None:
+            weights = algorithms.preprocess_weights(self, weights, axis=0)
             weights = Series(weights, index=self._selected_obj.index)
             ws = [weights.iloc[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
-        if random_state is not None:
-            random_state = com.random_state(random_state)
+        random_state = com.random_state(random_state)
 
         group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         samples = [
-            obj.sample(
-                n=n, frac=frac, replace=replace, weights=w, random_state=random_state
+            algorithms.sample(
+                self, size=size, replace=replace, weights=w, random_state=random_state, axis=0
             )
             for (_, obj), w in zip(group_iterator, ws)
         ]
