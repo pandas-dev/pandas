@@ -1057,7 +1057,6 @@ def from_dummies(
     data,
     to_series: bool = False,
     prefix_sep: str | list[str] | dict[str, str] = "_",
-    dummy_na: bool = False,
     columns: None | list[str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> Series | DataFrame:
@@ -1067,7 +1066,7 @@ def from_dummies(
     from pandas.core.reshape.concat import concat
 
     if to_series:
-        return _from_dummies_1d(data, dummy_na, dropped_first)
+        return _from_dummies_1d(data, dropped_first)
 
     data_to_decode: DataFrame
     if columns is None:
@@ -1141,18 +1140,11 @@ def from_dummies(
             elif slice_sum == 0:
                 if dropped_first:
                     category = dropped_first[prefix]
-                elif not dummy_na:
-                    category = np.nan
                 else:
-                    raise ValueError(
-                        f"Dummy DataFrame contains no assignment for prefix: "
-                        f"'{prefix}' in row {index}."
-                    )
+                    category = np.nan
             else:
                 cat_index = row[prefix_slice].argmax()
                 category = prefix_slice[cat_index].split(prefix_sep[prefix])[1]
-                if dummy_na and category == "NaN":
-                    category = np.nan
             cat_data[prefix].append(category)
 
     if columns:
@@ -1163,7 +1155,6 @@ def from_dummies(
 
 def _from_dummies_1d(
     data,
-    dummy_na: bool = False,
     dropped_first: None | str = None,
 ) -> Series:
     """
@@ -1182,16 +1173,10 @@ def _from_dummies_1d(
         elif row_sum == 0:
             if dropped_first:
                 category = dropped_first
-            elif not dummy_na:
-                category = np.nan
             else:
-                raise ValueError(
-                    f"Dummy DataFrame contains no assignment in row {index}."
-                )
+                category = np.nan
         else:
             category = data.columns[row.argmax()]
-            if dummy_na and category == "NaN":
-                category = np.nan
         cat_data.append(category)
     return Series(cat_data)
 

@@ -44,10 +44,10 @@ def test_from_dummies_to_series_basic():
     tm.assert_series_equal(result, expected)
 
 
-def test_from_dummies_to_series_dummy_na():
+def test_from_dummies_to_series_contains_get_dummies_NaN_column():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0], "NaN": [0, 0, 1]})
-    expected = Series(["a", "b", np.nan])
-    result = from_dummies(dummies, to_series=True, dummy_na=True)
+    expected = Series(["a", "b", "NaN"])
+    result = from_dummies(dummies, to_series=True)
     tm.assert_series_equal(result, expected)
 
 
@@ -80,14 +80,6 @@ def test_from_dummies_to_series_multi_assignment():
         ValueError, match=r"Dummy DataFrame contains multi-assignment in row 2."
     ):
         from_dummies(dummies, to_series=True)
-
-
-def test_from_dummies_to_series_unassigned_row():
-    dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
-    with pytest.raises(
-        ValueError, match=r"Dummy DataFrame contains no assignment in row 2."
-    ):
-        from_dummies(dummies, to_series=True, dummy_na=True)
 
 
 def test_from_dummies_no_dummies():
@@ -151,7 +143,7 @@ def test_from_dummies_to_df_prefix_sep_dict():
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_to_df_dummy_na():
+def test_from_dummies_to_df_contains_get_dummies_NaN_column():
     dummies = DataFrame(
         {
             "C": [1, 2, 3],
@@ -165,9 +157,9 @@ def test_from_dummies_to_df_dummy_na():
         },
     )
     expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", np.nan], "col2": [np.nan, "a", "c"]}
+        {"C": [1, 2, 3], "col1": ["a", "b", "NaN"], "col2": ["NaN", "a", "c"]}
     )
-    result = from_dummies(dummies, dummy_na=True)
+    result = from_dummies(dummies)
     tm.assert_frame_equal(result, expected)
 
 
@@ -262,11 +254,3 @@ def test_from_dummies_to_df_double_assignment():
         ),
     ):
         from_dummies(dummies)
-
-
-def test_from_dummies_to_df_no_assignment(dummies_with_unassigned):
-    with pytest.raises(
-        ValueError,
-        match=r"Dummy DataFrame contains no assignment for prefix: 'col2' in row 0.",
-    ):
-        from_dummies(dummies_with_unassigned, dummy_na=True)
