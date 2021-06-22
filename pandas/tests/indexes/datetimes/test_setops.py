@@ -391,6 +391,23 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
         assert result.tz == rng.tz
 
+    def test_intersection_non_tick_no_fastpath(self):
+        # GH#42104
+        dti = DatetimeIndex(
+            [
+                "2018-12-31",
+                "2019-03-31",
+                "2019-06-30",
+                "2019-09-30",
+                "2019-12-31",
+                "2020-03-31",
+            ],
+            freq="Q-DEC",
+        )
+        result = dti[::2].intersection(dti[1::2])
+        expected = dti[:0]
+        tm.assert_index_equal(result, expected)
+
 
 class TestBusinessDatetimeIndex:
     def setup_method(self, method):
