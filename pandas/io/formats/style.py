@@ -985,6 +985,7 @@ class Styler(StylerRenderer):
           - table_styles
 
         """
+        # GH 40675
         styler = Styler(
             self.data,  # populates attributes 'data', 'columns', 'index' as shallow
             uuid_len=self.uuid_len,
@@ -1016,9 +1017,6 @@ class Styler(StylerRenderer):
         return styler
 
     def __copy__(self) -> Styler:
-        """
-        Deep copy by default.
-        """
         return self._copy(deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
