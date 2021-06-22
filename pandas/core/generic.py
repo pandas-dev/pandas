@@ -47,6 +47,7 @@ from pandas._typing import (
     Level,
     Manager,
     NpDtype,
+    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -5146,7 +5147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         frac=None,
         replace=False,
         weights=None,
-        random_state=None,
+        random_state: RandomState | None = None,
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -5177,8 +5178,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
-            random number generator
+            If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState, use as numpy RandomState object.
 
             .. versionchanged:: 1.1.0

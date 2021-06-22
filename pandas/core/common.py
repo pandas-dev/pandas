@@ -30,6 +30,7 @@ from pandas._libs import lib
 from pandas._typing import (
     AnyArrayLike,
     NpDtype,
+    RandomState,
     Scalar,
     T,
 )
@@ -388,13 +389,13 @@ def standardize_mapping(into):
     return into
 
 
-def random_state(state=None):
+def random_state(state: RandomState | None = None) -> np.random.RandomState:
     """
     Helper function for processing random_state arguments.
 
     Parameters
     ----------
-    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+    state : int, array-like, BitGenerator, np.random.RandomState, None.
         If receives an int, array-like, or BitGenerator, passes to
         np.random.RandomState() as seed.
         If receives an np.random.RandomState object, just returns object.
@@ -403,8 +404,8 @@ def random_state(state=None):
 
         .. versionchanged:: 1.1.0
 
-            array-like and BitGenerator (for NumPy>=1.18) object now passed to
-            np.random.RandomState() as seed
+            array-like and BitGenerator object now passed to np.random.RandomState()
+            as seed
 
         Default None.
 
