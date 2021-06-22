@@ -96,7 +96,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 -
 
 .. ---------------------------------------------------------------------------
