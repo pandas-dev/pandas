@@ -27,14 +27,11 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
-    is_float,
     is_integer,
-    is_scalar,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -411,9 +408,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         orig_key = key
 
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
-
+        self._check_indexing_error(key)
         if isinstance(key, str):
 
             try:
@@ -493,13 +488,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         elif isinstance(label, str):
             try:
                 parsed, reso_str = parse_time_string(label, self.freq)
-                reso = Resolution.from_attrname(reso_str)
-                bounds = self._parsed_string_to_bounds(reso, parsed)
-                return bounds[0 if side == "left" else 1]
             except ValueError as err:
                 # string cannot be parsed as datetime-like
                 raise self._invalid_indexer("slice", label) from err
-        elif is_integer(label) or is_float(label):
+
+            reso = Resolution.from_attrname(reso_str)
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
+            return lower if side == "left" else upper
+        elif not isinstance(label, self._data._recognized_scalars):
             raise self._invalid_indexer("slice", label)
 
         return label

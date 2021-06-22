@@ -1,8 +1,12 @@
 from textwrap import dedent
 
+import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    MultiIndex,
+)
 
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -14,6 +18,12 @@ env = jinja2.Environment(loader=loader, trim_blocks=True)
 @pytest.fixture
 def styler():
     return Styler(DataFrame([[2.61], [2.69]], index=["a", "b"], columns=["A"]))
+
+
+@pytest.fixture
+def styler_mi():
+    midx = MultiIndex.from_product([["a", "b"], ["c", "d"]])
+    return Styler(DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=midx))
 
 
 @pytest.fixture
@@ -236,3 +246,146 @@ def test_from_custom_template(tmpdir):
 def test_caption_as_sequence(styler):
     styler.set_caption(("full cap", "short cap"))
     assert "<caption>full cap</caption>" in styler.render()
+
+
+@pytest.mark.parametrize("index", [False, True])
+@pytest.mark.parametrize("columns", [False, True])
+def test_sticky_basic(styler, index, columns):
+    if index:
+        styler.set_sticky(axis=0)
+    if columns:
+        styler.set_sticky(axis=1)
+
+    res = styler.set_uuid("").to_html()
+    cs1 = "tbody th {\n  position: sticky;\n  left: 0px;\n  background-color: white;\n}"
+    assert (cs1 in res) is index
+    cs2 = "thead th {\n  position: sticky;\n  top: 0px;\n  background-color: white;\n}"
+    assert (cs2 in res) is columns
+
+
+@pytest.mark.parametrize("index", [False, True])
+@pytest.mark.parametrize("columns", [False, True])
+def test_sticky_mi(styler_mi, index, columns):
+    if index:
+        styler_mi.set_sticky(axis=0)
+    if columns:
+        styler_mi.set_sticky(axis=1)
+
+    res = styler_mi.set_uuid("").to_html()
+    assert (
+        (
+            dedent(
+                """\
+        #T_ tbody th.level0 {
+          position: sticky;
+          left: 0px;
+          min-width: 75px;
+          max-width: 75px;
+          background-color: white;
+        }
+        """
+            )
+            in res
+        )
+        is index
+    )
+    assert (
+        (
+            dedent(
+                """\
+        #T_ tbody th.level1 {
+          position: sticky;
+          left: 75px;
+          min-width: 75px;
+          max-width: 75px;
+          background-color: white;
+        }
+        """
+            )
+            in res
+        )
+        is index
+    )
+    assert (
+        (
+            dedent(
+                """\
+        #T_ thead th.level0 {
+          position: sticky;
+          top: 0px;
+          height: 25px;
+          background-color: white;
+        }
+        """
+            )
+            in res
+        )
+        is columns
+    )
+    assert (
+        (
+            dedent(
+                """\
+        #T_ thead th.level1 {
+          position: sticky;
+          top: 25px;
+          height: 25px;
+          background-color: white;
+        }
+        """
+            )
+            in res
+        )
+        is columns
+    )
+
+
+@pytest.mark.parametrize("index", [False, True])
+@pytest.mark.parametrize("columns", [False, True])
+def test_sticky_levels(styler_mi, index, columns):
+    if index:
+        styler_mi.set_sticky(axis=0, levels=[1])
+    if columns:
+        styler_mi.set_sticky(axis=1, levels=[1])
+
+    res = styler_mi.set_uuid("").to_html()
+    assert "#T_ tbody th.level0 {" not in res
+    assert "#T_ thead th.level0 {" not in res
+    assert (
+        (
+            dedent(
+                """\
+        #T_ tbody th.level1 {
+          position: sticky;
+          left: 0px;
+          min-width: 75px;
+          max-width: 75px;
+          background-color: white;
+        }
+        """
+            )
+            in res
+        )
+        is index
+    )
+    assert (
+        (
+            dedent(
+                """\
+        #T_ thead th.level1 {
+          position: sticky;
+          top: 0px;
+          height: 25px;
+          background-color: white;
+        }
+        """
+            )
+            in res
+        )
+        is columns
+    )
+
+
+def test_sticky_raises(styler):
+    with pytest.raises(ValueError, match="`axis` must be"):
+        styler.set_sticky(axis="bad")

@@ -7,10 +7,8 @@ from operator import (
 )
 import textwrap
 from typing import (
-    TYPE_CHECKING,
     Any,
     Hashable,
-    cast,
 )
 
 import numpy as np
@@ -46,7 +44,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_categorical_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
     is_dtype_equal,
@@ -63,7 +60,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
-from pandas.core.algorithms import take_nd
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -90,9 +86,6 @@ from pandas.core.indexes.timedeltas import (
     TimedeltaIndex,
     timedelta_range,
 )
-
-if TYPE_CHECKING:
-    from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
@@ -613,9 +606,7 @@ class IntervalIndex(ExtensionIndex):
         0
         """
         self._check_indexing_method(method)
-
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         if isinstance(key, Interval):
             if self.closed != key.closed:
@@ -668,11 +659,7 @@ class IntervalIndex(ExtensionIndex):
             left_indexer = self.left.get_indexer(target.left)
             right_indexer = self.right.get_indexer(target.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-        elif is_categorical_dtype(target.dtype):
-            target = cast("CategoricalIndex", target)
-            # get an indexer for unique categories then propagate to codes via take_nd
-            categories_indexer = self.get_indexer(target.categories)
-            indexer = take_nd(categories_indexer, target.codes, fill_value=-1)
+
         elif not is_object_dtype(target):
             # homogeneous scalar index: use IntervalTree
             target = self._maybe_convert_i8(target)
@@ -753,6 +740,7 @@ class IntervalIndex(ExtensionIndex):
 
         return super()._convert_slice_indexer(key, kind)
 
+    @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
         # integer lookups in Series.__getitem__ are unambiguously
         #  positional in this case
@@ -801,56 +789,6 @@ class IntervalIndex(ExtensionIndex):
         # TODO: integrate with categorical and make generic
         # name argument is unused here; just for compat with base / categorical
         return self._data._format_data() + "," + self._format_space()
-
-    # --------------------------------------------------------------------
-    # Set Operations
-
-    def _intersection(self, other, sort):
-        """
-        intersection specialized to the case with matching dtypes.
-        """
-        # For IntervalIndex we also know other.closed == self.closed
-        if self.left.is_unique and self.right.is_unique:
-            return super()._intersection(other, sort=sort)
-        elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
-            # Swap other/self if other is unique and self does not have
-            # multiple NaNs
-            return super()._intersection(other, sort=sort)
-        else:
-            # duplicates
-            taken = self._intersection_non_unique(other)
-
-        if sort is None:
-            taken = taken.sort_values()
-
-        return taken
-
-    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
-        """
-        Used when the IntervalIndex does have some common endpoints,
-        on either sides.
-        Return the intersection with another IntervalIndex.
-
-        Parameters
-        ----------
-        other : IntervalIndex
-
-        Returns
-        -------
-        IntervalIndex
-        """
-        mask = np.zeros(len(self), dtype=bool)
-
-        if self.hasnans and other.hasnans:
-            first_nan_loc = np.arange(len(self))[self.isna()][0]
-            mask[first_nan_loc] = True
-
-        other_tups = set(zip(other.left, other.right))
-        for i, tup in enumerate(zip(self.left, self.right)):
-            if tup in other_tups:
-                mask[i] = True
-
-        return self[mask]
 
     # --------------------------------------------------------------------
 
