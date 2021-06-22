@@ -105,6 +105,7 @@ def missing_metadata():
                     "zip": 44646,
                 }
             ],
+            "previous_residences": {"cities": [{"city_name": "Foo York City"}]},
         },
         {
             "addresses": [
@@ -115,7 +116,8 @@ def missing_metadata():
                     "state": "TN",
                     "zip": 37643,
                 }
-            ]
+            ],
+            "previous_residences": {"cities": [{"city_name": "Barmingham"}]},
         },
     ]
 
@@ -620,6 +622,38 @@ class TestNestedToRecord:
         ]
         columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
+        expected = DataFrame(ex_data, columns=columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_missing_meta_multilevel_record_path_errors_raise(self, missing_metadata):
+        # GH41876
+        # Ensure errors='raise' works as intended even when a record_path of length
+        # greater than one is passed in
+        msg = "Try running with errors='ignore' as key 'name' is not always present"
+        with pytest.raises(KeyError, match=msg):
+            json_normalize(
+                data=missing_metadata,
+                record_path=["previous_residences", "cities"],
+                meta="name",
+                errors="raise",
+            )
+
+    def test_missing_meta_multilevel_record_path_errors_ignore(self, missing_metadata):
+        # GH41876
+        # Ensure errors='ignore' works as intended even when a record_path of length
+        # greater than one is passed in
+        result = json_normalize(
+            data=missing_metadata,
+            record_path=["previous_residences", "cities"],
+            meta="name",
+            errors="ignore",
+        )
+        ex_data = [
+            ["Foo York City", "Alice"],
+            ["Barmingham", np.nan],
+        ]
+        columns = ["city_name", "name"]
+        columns = ["city_name", "name"]
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
