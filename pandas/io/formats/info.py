@@ -166,6 +166,57 @@ frame_sub_kwargs = {
 }
 
 
+INFO_DOCSTRING = dedent(
+    """\
+    Print a concise summary of a {klass}.
+
+    This method prints information about a {klass} including
+    the index dtype{type_sub}, non-null values and memory usage.
+    {version_added_sub}\
+
+    Parameters
+    ----------
+    data : {klass}
+        {klass} to print information about.
+    verbose : bool, optional
+        Whether to print the full summary. By default, the setting in
+        ``pandas.options.display.max_info_columns`` is followed.
+    buf : writable buffer, defaults to sys.stdout
+        Where to send the output. By default, the output is printed to
+        sys.stdout. Pass a writable buffer if you need to further process
+        the output.
+    {max_cols_sub}
+    memory_usage : bool, str, optional
+        Specifies whether total memory usage of the {klass}
+        elements (including the index) should be displayed. By default,
+        this follows the ``pandas.options.display.memory_usage`` setting.
+
+        True always show memory usage. False never shows memory usage.
+        A value of 'deep' is equivalent to "True with deep introspection".
+        Memory usage is shown in human-readable units (base-2
+        representation). Without deep introspection a memory estimation is
+        made based in column dtype and number of rows assuming values
+        consume the same memory amount for corresponding dtypes. With deep
+        memory introspection, a real memory usage calculation is performed
+        at the cost of computational resources.
+    {show_counts_sub}s
+
+    Returns
+    -------
+    None
+        This method prints a summary of a {klass} and returns None.
+
+    See Also
+    --------
+    {see_also_sub}
+
+    Examples
+    --------
+    {examples_sub}
+    """
+)
+
+
 def _put_str(s: str | Dtype, space: int) -> str:
     """
     Make string of specified length, padding to the right if necessary.
@@ -312,53 +363,7 @@ class BaseInfo(ABC):
         verbose: bool | None,
         show_counts: bool | None,
     ) -> None:
-        """
-        Print a concise summary of a {klass}.
-
-        This method prints information about a {klass} including
-        the index dtype{type_sub}, non-null values and memory usage.
-        {version_added_sub}\
-
-        Parameters
-        ----------
-        data : {klass}
-            {klass} to print information about.
-        verbose : bool, optional
-            Whether to print the full summary. By default, the setting in
-            ``pandas.options.display.max_info_columns`` is followed.
-        buf : writable buffer, defaults to sys.stdout
-            Where to send the output. By default, the output is printed to
-            sys.stdout. Pass a writable buffer if you need to further process
-            the output.
-        {max_cols_sub}
-        memory_usage : bool, str, optional
-            Specifies whether total memory usage of the {klass}
-            elements (including the index) should be displayed. By default,
-            this follows the ``pandas.options.display.memory_usage`` setting.
-
-            True always show memory usage. False never shows memory usage.
-            A value of 'deep' is equivalent to "True with deep introspection".
-            Memory usage is shown in human-readable units (base-2
-            representation). Without deep introspection a memory estimation is
-            made based in column dtype and number of rows assuming values
-            consume the same memory amount for corresponding dtypes. With deep
-            memory introspection, a real memory usage calculation is performed
-            at the cost of computational resources.
-        {show_counts_sub}s
-
-        Returns
-        -------
-        None
-            This method prints a summary of a {klass} and returns None.
-
-        See Also
-        --------
-        {see_also_sub}
-
-        Examples
-        --------
-        {examples_sub}
-        """
+        pass
 
 
 class DataFrameInfo(BaseInfo):
@@ -421,7 +426,7 @@ class DataFrameInfo(BaseInfo):
         return self.data.memory_usage(index=True, deep=deep).sum()
 
     @doc(
-        BaseInfo.render.__doc__,
+        INFO_DOCSTRING,
         klass="DataFrame",
         type_sub=" and columns",
         max_cols_sub=frame_max_cols_sub,
