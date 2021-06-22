@@ -964,32 +964,54 @@ class Styler(StylerRenderer):
                 self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
+        """
+        Copies a Styler, allowing for deepcopy or shallow copy
+
+        Copying a Styler aims to recreate a new Styler object which contains the same
+        data and styles as the original.
+
+        Data dependent attributes [copied and NOT exported]:
+          - formatting (._display_funcs)
+          - hidden index values or column values (.hidden_rows, .hidden_columns)
+          - tooltips
+          - cell_context (cell css classes)
+          - ctx (cell css styles)
+          - applied styles (_todo)
+          - caption
+
+        Non-data dependent attributes [copied and exported]:
+          - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
+          - table_attributes
+          - table_styles
+
+        """
         styler = Styler(
-            self.data,
-            precision=self.precision,
-            caption=self.caption,
-            table_attributes=self.table_attributes,
-            cell_ids=self.cell_ids,
-            na_rep=self.na_rep,
+            self.data,  # populates attributes 'data', 'columns', 'index' as shallow
+            uuid_len=self.uuid_len,
         )
+        shallow = [  # simple string or boolean immutables
+            "hide_index_",
+            "hide_columns_",
+            "table_attributes",
+            "cell_ids",
+        ]
+        deep = [  # nested lists or dicts
+            "_display_funcs",
+            "hidden_rows",
+            "hidden_columns",
+            "ctx",
+            "cell_context",
+            "_todo",
+            "table_styles",
+            "tooltips",
+        ]
 
-        styler.uuid = self.uuid
-        styler.hide_index_ = self.hide_index_
+        for attr in shallow:
+            setattr(styler, attr, getattr(self, attr))
 
-        if deepcopy:
-            styler.ctx = copy.deepcopy(self.ctx)
-            styler._todo = copy.deepcopy(self._todo)
-            styler.table_styles = copy.deepcopy(self.table_styles)
-            styler.hidden_columns = copy.copy(self.hidden_columns)
-            styler.cell_context = copy.deepcopy(self.cell_context)
-            styler.tooltips = copy.deepcopy(self.tooltips)
-        else:
-            styler.ctx = self.ctx
-            styler._todo = self._todo
-            styler.table_styles = self.table_styles
-            styler.hidden_columns = self.hidden_columns
-            styler.cell_context = self.cell_context
-            styler.tooltips = self.tooltips
+        op = copy.deepcopy if deepcopy else lambda x: x
+        for attr in deep:
+            setattr(styler, attr, op(getattr(self, attr)))
 
         return styler
 
