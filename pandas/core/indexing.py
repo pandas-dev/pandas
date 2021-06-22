@@ -42,8 +42,12 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
+from pandas.core import algorithms as algos
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
@@ -1660,6 +1664,21 @@ class _iLocIndexer(_LocationIndexer):
                         if com.is_null_slice(indexer[0]):
                             # We are setting an entire column
                             self.obj[key] = value
+                            return
+                        elif is_array_like(value):
+                            # GH#42099
+                            arr = extract_array(value, extract_numpy=True)
+                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+                            empty_value = algos.take_nd(arr, taker)
+                            if not isinstance(value, ABCSeries):
+                                # if not Series (in which case we need to align),
+                                #  we can short-circuit
+                                empty_value[indexer[0]] = arr
+                                self.obj[key] = empty_value
+                                return
+
+                            self.obj[key] = empty_value
+
                         else:
                             self.obj[key] = infer_fill_value(value)
 
