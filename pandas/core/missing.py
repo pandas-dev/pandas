@@ -10,8 +10,8 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -180,7 +180,7 @@ def find_valid_index(values, *, how: Literal["first", "last"]) -> int | None:
     int or None
     """
     if how not in ["first", "last"]:
-        raise ValueError(f'Value for how argument must be one of : first, last')
+        raise ValueError("Value for how argument must be one of : first, last")
 
     if len(values) == 0:  # early stop
         return None

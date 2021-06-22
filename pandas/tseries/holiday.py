@@ -1,13 +1,13 @@
 from __future__ import annotations
-from typing import (
-    Any,
-    Callable,
-    Tuple,
-)
 
 from datetime import (
     datetime,
     timedelta,
+)
+from typing import (
+    Any,
+    Callable,
+    Tuple,
 )
 import warnings
 
@@ -38,9 +38,7 @@ from pandas.tseries.offsets import (
     Easter,
 )
 
-from pandas._typing import (
-    TimestampConvertibleTypes
-)
+from pandas._typing import TimestampConvertibleTypes
 
 
 def next_monday(dt: datetime) -> datetime:
@@ -168,7 +166,7 @@ class Holiday:
         observance: Callable[..., DatetimeIndex] = None,
         start_date: TimestampConvertibleTypes = None,
         end_date: TimestampConvertibleTypes = None,
-        days_of_week: Tuple[int, ...] = None,
+        days_of_week: tuple[int, ...] = None,
     ):
         """
         Parameters
@@ -261,10 +259,10 @@ class Holiday:
         return repr
 
     def dates(
-            self,
-            start_date: TimestampConvertibleTypes,
-            end_date: TimestampConvertibleTypes,
-            return_name: bool = False,
+        self,
+        start_date: TimestampConvertibleTypes,
+        end_date: TimestampConvertibleTypes,
+        return_name: bool = False,
     ):
         """
         Calculate holidays observed between start date and end date
@@ -313,9 +311,7 @@ class Holiday:
         return holiday_dates
 
     def _reference_dates(
-            self,
-            start_date: TimestampConvertibleTypes,
-            end_date: TimestampConvertibleTypes
+        self, start_date: TimestampConvertibleTypes, end_date: TimestampConvertibleTypes
     ):
         """
         Get reference dates for the holiday.
@@ -448,10 +444,10 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
         return None
 
     def holidays(
-            self,
-            start: TimestampConvertibleTypes = None,
-            end: TimestampConvertibleTypes = None,
-            return_name: bool = False
+        self,
+        start: TimestampConvertibleTypes = None,
+        end: TimestampConvertibleTypes = None,
+        return_name: bool = False
     ) -> DatetimeIndex:
         """
         Returns a curve with holidays between start_date and end_date

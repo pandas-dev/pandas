@@ -4,9 +4,7 @@ Helper functions to generate range-like data for DatetimeArray
 """
 from __future__ import annotations
 
-from typing import (
-    Literal,
-)
+from typing import Literal
 
 import numpy as np
 
@@ -152,12 +150,12 @@ def _generate_range_overflow_safe_signed(
     A special case for _generate_range_overflow_safe where `periods * stride`
     can be calculated without overflowing int64 bounds.
     """
-    assert side in ['start', 'end']
+    assert side in ["start", "end"]
 
-    if side == 'end':
+    if side == "end":
         stride *= -1
 
-    with np.errstate(over='raise'):
+    with np.errstate(over="raise"):
         addend = np.int64(periods) * np.int64(stride)
         try:
             # easy case with no overflows

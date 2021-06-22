@@ -5684,10 +5684,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise self._invalid_indexer(form, key)
 
     def _maybe_cast_slice_bound(
-            self,
-            label,
-            side: str_t,
-            kind: Literal["loc", "getitem"] = no_default
+            self, label, side: str_t, kind: Literal["loc", "getitem"] = no_default
     ):
         """
         This function should be overloaded in subclasses that allow non-trivial
@@ -5753,8 +5750,9 @@ class Index(IndexOpsMixin, PandasObject):
             Index of label.
         """
         if kind not in ["loc", "getitem", None]:
-            raise ValueError('Value for kind argument must be one of: '
-                             'loc, getitem or None')
+            raise ValueError(
+                "Value for kind argument must be one of: loc, getitem or None"
+            )
 
         if side not in ("left", "right"):
             raise ValueError(

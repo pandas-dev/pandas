@@ -19,9 +19,6 @@ from pandas._libs import (
     lib,
     tslib,
 )
-from pandas._typing import (
-    Dtype,
-)
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -40,6 +37,7 @@ from pandas._libs.tslibs import (
     to_offset,
     tzconversion,
 )
+from pandas._typing import Dtype
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
@@ -2168,8 +2166,9 @@ def objects_to_datetime64ns(
     ValueError : if data cannot be converted to datetimes
     """
     if errors not in ["raise", "ignore", "coerce"]:
-        raise ValueError('Value for errors argument must be one of: '
-                         'raise, coerce, ignore')
+        raise ValueError(
+            "Value for errors argument must be one of: raise, coerce, ignore"
+        )
 
     # if str-dtype, convert
     data = np.array(data, copy=False, dtype=np.object_)

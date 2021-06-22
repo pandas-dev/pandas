@@ -28,8 +28,8 @@ from pandas._typing import (
     DtypeObj,
     FrameOrSeries,
     IndexLabel,
-    Suffixes,
     MergeTypes,
+    Suffixes,
     TimedeltaConvertibleTypes,
 )
 from pandas.errors import MergeError
