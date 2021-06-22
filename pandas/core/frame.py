@@ -158,7 +158,6 @@ from pandas.core.generic import (
 from pandas.core.indexers import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     DatetimeIndex,
     Index,
     PeriodIndex,
@@ -3557,8 +3556,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        Assumes that index and columns both have ax._index_as_unique;
-        caller is responsible for checking.
+        Assumes that both `self.index._index_as_unique` and
+        `self.columns._index_as_unique`; Caller is responsible for checking.
         """
         if takeable:
             series = self._ixs(col, axis=1)
@@ -3567,21 +3566,17 @@ class DataFrame(NDFrame, OpsMixin):
         series = self._get_item_cache(col)
         engine = self.index._engine
 
-        if isinstance(self.index, CategoricalIndex):
-            # Trying to use the engine fastpath may give incorrect results
-            #  if our categories are integers that dont match our codes
-            col = self.columns.get_loc(col)
-            index = self.index.get_loc(index)
-            return self._get_value(index, col, takeable=True)
+        if not isinstance(self.index, MultiIndex):
+            # CategoricalIndex: Trying to use the engine fastpath may give incorrect
+            #  results if our categories are integers that dont match our codes
+            # IntervalIndex: IntervalTree has no get_loc
+            row = self.index.get_loc(index)
+            return series._values[row]
 
-        try:
-            loc = engine.get_loc(index)
-            return series._values[loc]
-        except AttributeError:
-            # IntervalTree has no get_loc
-            col = self.columns.get_loc(col)
-            index = self.index.get_loc(index)
-            return self._get_value(index, col, takeable=True)
+        # For MultiIndex going through engine effectively restricts us to
+        #  same-length tuples; see test_get_set_value_no_partial_indexing
+        loc = engine.get_loc(index)
+        return series._values[loc]
 
     def __setitem__(self, key, value):
         key = com.apply_if_callable(key, self)
@@ -3816,8 +3811,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return
 
             series = self._get_item_cache(col)
-            engine = self.index._engine
-            loc = engine.get_loc(index)
+            loc = self.index.get_loc(index)
             validate_numeric_casting(series.dtype, value)
 
             series._values[loc] = value
@@ -8151,7 +8145,11 @@ NaN 12.3   33.0
 
         return result.__finalize__(self, method="stack")
 
-    def explode(self, column: str | tuple, ignore_index: bool = False) -> DataFrame:
+    def explode(
+        self,
+        column: str | tuple | list[str | tuple],
+        ignore_index: bool = False,
+    ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
 
@@ -8159,8 +8157,15 @@ NaN 12.3   33.0
 
         Parameters
         ----------
-        column : str or tuple
-            Column to explode.
+        column : str or tuple or list thereof
+            Column(s) to explode.
+            For multiple columns, specify a non-empty list with each element
+            be str or tuple, and all specified columns their list-like data
+            on same row of the frame must have matching length.
+
+            .. versionadded:: 1.3.0
+                Multi-column explode
+
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
@@ -8175,7 +8180,10 @@ NaN 12.3   33.0
         Raises
         ------
         ValueError :
-            if columns of the frame are not unique.
+            * If columns of the frame are not unique.
+            * If specified columns to explode is empty list.
+            * If specified columns to explode have not matching count of
+              elements rowwise in the frame.
 
         See Also
         --------
@@ -8194,32 +8202,69 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df = pd.DataFrame({'A': [[0, 1, 2], 'foo', [], [3, 4]],
+        ...                    'B': 1,
+        ...                    'C': [['a', 'b', 'c'], np.nan, [], ['d', 'e']]})
         >>> df
-                   A  B
-        0  [1, 2, 3]  1
-        1        foo  1
-        2         []  1
-        3     [3, 4]  1
+                   A  B          C
+        0  [0, 1, 2]  1  [a, b, c]
+        1        foo  1        NaN
+        2         []  1         []
+        3     [3, 4]  1     [d, e]
+
+        Single-column explode.
 
         >>> df.explode('A')
-             A  B
-        0    1  1
-        0    2  1
-        0    3  1
-        1  foo  1
-        2  NaN  1
-        3    3  1
-        3    4  1
+             A  B          C
+        0    0  1  [a, b, c]
+        0    1  1  [a, b, c]
+        0    2  1  [a, b, c]
+        1  foo  1        NaN
+        2  NaN  1         []
+        3    3  1     [d, e]
+        3    4  1     [d, e]
+
+        Multi-column explode.
+
+        >>> df.explode(list('AC'))
+             A  B    C
+        0    0  1    a
+        0    1  1    b
+        0    2  1    c
+        1  foo  1  NaN
+        2  NaN  1  NaN
+        3    3  1    d
+        3    4  1    e
         """
-        if not (is_scalar(column) or isinstance(column, tuple)):
-            raise ValueError("column must be a scalar")
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
+        columns: list[str | tuple]
+        if is_scalar(column) or isinstance(column, tuple):
+            assert isinstance(column, (str, tuple))
+            columns = [column]
+        elif isinstance(column, list) and all(
+            map(lambda c: is_scalar(c) or isinstance(c, tuple), column)
+        ):
+            if not column:
+                raise ValueError("column must be nonempty")
+            if len(column) > len(set(column)):
+                raise ValueError("column must be unique")
+            columns = column
+        else:
+            raise ValueError("column must be a scalar, tuple, or list thereof")
+
         df = self.reset_index(drop=True)
-        result = df[column].explode()
-        result = df.drop([column], axis=1).join(result)
+        if len(columns) == 1:
+            result = df[columns[0]].explode()
+        else:
+            mylen = lambda x: len(x) if is_list_like(x) else -1
+            counts0 = self[columns[0]].apply(mylen)
+            for c in columns[1:]:
+                if not all(counts0 == self[c].apply(mylen)):
+                    raise ValueError("columns must have matching element counts")
+            result = DataFrame({c: df[c].explode() for c in columns})
+        result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = ibase.default_index(len(result))
         else:
