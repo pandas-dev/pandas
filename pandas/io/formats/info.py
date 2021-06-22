@@ -42,21 +42,17 @@ frame_max_cols_sub = dedent(
 )
 
 
-frame_null_counts_sub = dedent(
+show_counts_sub = dedent(
     """\
-    null_counts : bool, optional
+    show_counts : bool, optional
         Whether to show the non-null counts. By default, this is shown
         only if the DataFrame is smaller than
         ``pandas.options.display.max_info_rows`` and
         ``pandas.options.display.max_info_columns``. A value of True always
-        shows the counts, and False never shows the counts."""
-)
-
-
-show_counts_sub = dedent(
-    """\
-    show_counts : bool, optional
-        Whether to show the non-null counts."""
+        shows the counts, and False never shows the counts.
+    null_counts : bool, optional
+        .. deprecated:: 1.2.0
+            Use show_counts instead."""
 )
 
 
@@ -158,7 +154,6 @@ frame_sub_kwargs = {
     "klass": "DataFrame",
     "type_sub": " and columns",
     "max_cols_sub": frame_max_cols_sub,
-    "null_counts_sub": frame_null_counts_sub,
     "show_counts_sub": show_counts_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub,
@@ -199,7 +194,7 @@ INFO_DOCSTRING = dedent(
         consume the same memory amount for corresponding dtypes. With deep
         memory introspection, a real memory usage calculation is performed
         at the cost of computational resources.
-    {show_counts_sub}s
+    {show_counts_sub}
 
     Returns
     -------
@@ -430,7 +425,6 @@ class DataFrameInfo(BaseInfo):
         klass="DataFrame",
         type_sub=" and columns",
         max_cols_sub=frame_max_cols_sub,
-        null_counts_sub=frame_null_counts_sub,
         show_counts_sub=show_counts_sub,
         examples_sub=frame_examples_sub,
         see_also_sub=frame_see_also_sub,
