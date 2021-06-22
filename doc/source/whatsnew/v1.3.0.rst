@@ -269,12 +269,14 @@ Other enhancements
 - :meth:`read_csv` and :meth:`read_json` expose the argument ``encoding_errors`` to control how encoding errors are handled (:issue:`39450`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` use Kleene logic with nullable data types (:issue:`37506`)
 - :meth:`.GroupBy.any` and :meth:`.GroupBy.all` return a ``BooleanDtype`` for columns with nullable data types (:issue:`33449`)
+- :meth:`.GroupBy.any` and :meth:`.GroupBy.all` raising with ``object`` data containing ``pd.NA`` even when ``skipna=True`` (:issue:`37501`)
 - :meth:`.GroupBy.rank` now supports object-dtype data (:issue:`38278`)
 - Constructing a :class:`DataFrame` or :class:`Series` with the ``data`` argument being a Python iterable that is *not* a NumPy ``ndarray`` consisting of NumPy scalars will now result in a dtype with a precision the maximum of the NumPy scalars; this was already the case when ``data`` is a NumPy ``ndarray`` (:issue:`40908`)
 - Add keyword ``sort`` to :func:`pivot_table` to allow non-sorting of the result (:issue:`39143`)
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
 - :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
 - Improved error message in ``corr`` and ``cov`` methods on :class:`.Rolling`, :class:`.Expanding`, and :class:`.ExponentialMovingWindow` when ``other`` is not a :class:`DataFrame` or :class:`Series` (:issue:`41741`)
+- :meth:`DataFrame.explode` now supports exploding multiple columns. Its ``column`` argument now also accepts a list of str or tuples for exploding on multiple columns at the same time (:issue:`39240`)
 
 .. ---------------------------------------------------------------------------
 
@@ -915,6 +917,7 @@ Datetimelike
 - Bug in constructing a :class:`DataFrame` or :class:`Series` with mismatched ``datetime64`` data and ``timedelta64`` dtype, or vice-versa, failing to raise a ``TypeError`` (:issue:`38575`, :issue:`38764`, :issue:`38792`)
 - Bug in constructing a :class:`Series` or :class:`DataFrame` with a ``datetime`` object out of bounds for ``datetime64[ns]`` dtype or a ``timedelta`` object out of bounds for ``timedelta64[ns]`` dtype (:issue:`38792`, :issue:`38965`)
 - Bug in :meth:`DatetimeIndex.intersection`, :meth:`DatetimeIndex.symmetric_difference`, :meth:`PeriodIndex.intersection`, :meth:`PeriodIndex.symmetric_difference` always returning object-dtype when operating with :class:`CategoricalIndex` (:issue:`38741`)
+- Bug in :meth:`DatetimeIndex.intersection` giving incorrect results with non-Tick frequencies with ``n != 1`` (:issue:`42104`)
 - Bug in :meth:`Series.where` incorrectly casting ``datetime64`` values to ``int64`` (:issue:`37682`)
 - Bug in :class:`Categorical` incorrectly typecasting ``datetime`` object to ``Timestamp`` (:issue:`38878`)
 - Bug in comparisons between :class:`Timestamp` object and ``datetime64`` objects just outside the implementation bounds for nanosecond ``datetime64`` (:issue:`39221`)
