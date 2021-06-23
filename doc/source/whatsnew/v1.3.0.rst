@@ -1210,7 +1210,6 @@ Styler
 
 Other
 ^^^^^
-
 - ``inspect.getmembers(Series)`` no longer raises an ``AbstractMethodError`` (:issue:`38782`)
 - Bug in :meth:`Series.where` with numeric dtype and ``other=None`` not casting to ``nan`` (:issue:`39761`)
 - Bug in :func:`.assert_series_equal`, :func:`.assert_frame_equal`, :func:`.assert_index_equal` and :func:`.assert_extension_array_equal` incorrectly raising when an attribute has an unrecognized NA type (:issue:`39461`)
