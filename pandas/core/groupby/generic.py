@@ -1309,7 +1309,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        def process_result(group, res):
+        def process_result(applied, group, res):
             if isinstance(res, Series):
 
                 # we need to broadcast across the
@@ -1330,10 +1330,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                             columns=group.columns,
                             index=group.index,
                         )
-
-                    return r
+                    applied.append(r)
             else:
-                return res
+                applied.append(res)
 
         try:
             name, group = next(gen)
@@ -1348,12 +1347,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             except ValueError as err:
                 msg = "transform must return a scalar value for each group"
                 raise ValueError(msg) from err
-            applied.append(process_result(group, res))
+            process_result(applied, group, res)
 
         for name, group in gen:
             object.__setattr__(group, "name", name)
             res = path(group)
-            applied.append(process_result(group, res))
+            process_result(applied, group, res)
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
