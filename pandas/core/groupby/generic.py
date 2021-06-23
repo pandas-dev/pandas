@@ -1309,45 +1309,51 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        path = None
-        for name, group in gen:
-            object.__setattr__(group, "name", name)
-
-            if path is None:
-                # Try slow path and fast path.
-                try:
-                    path, res = self._choose_path(fast_path, slow_path, group)
-                except TypeError:
-                    return self._transform_item_by_item(obj, fast_path)
-                except ValueError as err:
-                    msg = "transform must return a scalar value for each group"
-                    raise ValueError(msg) from err
-            else:
-                res = path(group)
-
+        def process_result(group, res):
             if isinstance(res, Series):
 
                 # we need to broadcast across the
                 # other dimension; this will preserve dtypes
                 # GH14457
                 if not np.prod(group.shape):
-                    continue
-                elif res.index.is_(obj.index):
-                    r = concat([res] * len(group.columns), axis=1)
-                    r.columns = group.columns
-                    r.index = group.index
+                    pass
                 else:
-                    r = self.obj._constructor(
-                        np.concatenate([res.values] * len(group.index)).reshape(
-                            group.shape
-                        ),
-                        columns=group.columns,
-                        index=group.index,
-                    )
+                    if res.index.is_(obj.index):
+                        r = concat([res] * len(group.columns), axis=1)
+                        r.columns = group.columns
+                        r.index = group.index
+                    else:
+                        r = self.obj._constructor(
+                            np.concatenate([res.values] * len(group.index)).reshape(
+                                group.shape
+                            ),
+                            columns=group.columns,
+                            index=group.index,
+                        )
 
-                applied.append(r)
+                    return r
             else:
-                applied.append(res)
+                return res
+
+        try:
+            name, group = next(gen)
+        except StopIteration:
+            pass
+        else:
+            object.__setattr__(group, "name", name)
+            try:
+                path, res = self._choose_path(fast_path, slow_path, group)
+            except TypeError:
+                return self._transform_item_by_item(obj, fast_path)
+            except ValueError as err:
+                msg = "transform must return a scalar value for each group"
+                raise ValueError(msg) from err
+            applied.append(process_result(group, res))
+
+        for name, group in gen:
+            object.__setattr__(group, "name", name)
+            res = path(group)
+            applied.append(process_result(group, res))
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
