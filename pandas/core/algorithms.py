@@ -11,11 +11,7 @@ from typing import (
     Union,
     cast,
 )
-from warnings import (
-    catch_warnings,
-    simplefilter,
-    warn,
-)
+from warnings import warn
 
 import numpy as np
 
@@ -159,12 +155,7 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         return np.asarray(values), values.dtype
 
     elif is_complex_dtype(values.dtype):
-        # ignore the fact that we are casting to float
-        # which discards complex parts
-        with catch_warnings():
-            simplefilter("ignore", np.ComplexWarning)
-            values = ensure_float64(values)
-        return values, np.dtype("float64")
+        return values, values.dtype
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
@@ -246,6 +237,8 @@ def _ensure_arraylike(values) -> ArrayLike:
 
 
 _hashtables = {
+    "complex128": htable.Complex128HashTable,
+    "complex64": htable.Complex64HashTable,
     "float64": htable.Float64HashTable,
     "float32": htable.Float32HashTable,
     "uint64": htable.UInt64HashTable,
