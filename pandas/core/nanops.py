@@ -4,6 +4,7 @@ import functools
 import itertools
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     cast,
 )
@@ -55,6 +56,12 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.construction import extract_array
+
+if TYPE_CHECKING:
+    from pandas.core.arrays import (
+        DatetimeArray,
+        TimedeltaArray,
+    )
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -603,7 +610,9 @@ def _mask_datetimelike_result(
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
-        result[axis_mask] = iNaT
+        # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
+        # datetime64, timedelta64]")
+        result[axis_mask] = iNaT  # type: ignore[index]
     else:
         if mask.any():
             return NaT
@@ -755,7 +764,10 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
 
 
 def get_empty_reduction_result(
-    shape: tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
+    shape: tuple[int, ...],
+    axis: int,
+    dtype: np.dtype | type[np.floating],
+    fill_value: Any,
 ) -> np.ndarray:
     """
     The result from a reduction on an empty ndarray.
@@ -809,9 +821,7 @@ def _get_counts_nanvar(
     """
     dtype = get_dtype(dtype)
     count = _get_counts(values_shape, mask, axis, dtype=dtype)
-    # error: Unsupported operand types for - ("int" and "generic")
-    # error: Unsupported operand types for - ("float" and "generic")
-    d = count - dtype.type(ddof)  # type: ignore[operator]
+    d = count - dtype.type(ddof)
 
     # always return NaN, never inf
     if is_scalar(count):
@@ -1400,9 +1410,7 @@ def _get_counts(
             n = mask.size - mask.sum()
         else:
             n = np.prod(values_shape)
-        # error: Incompatible return value type (got "Union[Any, generic]",
-        # expected "Union[int, float, ndarray]")
-        return dtype.type(n)  # type: ignore[return-value]
+        return dtype.type(n)
 
     if mask is not None:
         count = mask.shape[axis] - mask.sum(axis)
@@ -1410,9 +1418,7 @@ def _get_counts(
         count = values_shape[axis]
 
     if is_scalar(count):
-        # error: Incompatible return value type (got "Union[Any, generic]",
-        # expected "Union[int, float, ndarray]")
-        return dtype.type(count)  # type: ignore[return-value]
+        return dtype.type(count)
     try:
         return count.astype(dtype)
     except AttributeError:
@@ -1784,11 +1790,9 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             # DatetimeArray/TimedeltaArray
             # TODO: have this case go through a DTA method?
             # For DatetimeTZDtype, view result as M8[ns]
+            values = cast("DatetimeArray | TimedeltaArray", values)
             npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
-            # error: "Type[ExtensionArray]" has no attribute "_simple_new"
-            result = type(values)._simple_new(  # type: ignore[attr-defined]
-                result.view(npdtype), dtype=orig_dtype
-            )
+            result = type(values)._simple_new(result.view(npdtype), dtype=orig_dtype)
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()

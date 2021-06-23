@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
-    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
@@ -86,10 +85,6 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
 )
 
-if TYPE_CHECKING:
-    from numpy.ma.mrecords import MaskedRecords
-
-
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -142,7 +137,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: MaskedRecords | np.recarray | np.ndarray,
+    data: np.ma.MaskedArray | np.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -188,7 +183,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
+def fill_masked_arrays(data: np.ma.MaskedArray, arr_columns: Index) -> list[np.ndarray]:
     """
     Convert numpy MaskedRecords to ensure mask is softened.
     """
