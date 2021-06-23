@@ -305,8 +305,12 @@ class TestPandasDocstringClass:
         "name", ["pandas.Series.str.isdecimal", "pandas.Series.str.islower"]
     )
     def test_encode_content_write_to_file(self, name):
+        from numpydoc.docscrape import get_doc_object
+        from numpydoc.validate import Validator
+
         # GH25466
-        docstr = validate_docstrings.PandasDocstring(name).validate_pep8()
+        func_obj = get_doc_object(Validator._load_obj(name))
+        docstr = validate_docstrings.PandasDocstring(func_obj).validate_pep8()
         # the list of pep8 errors should be empty
         assert not list(docstr)
 
