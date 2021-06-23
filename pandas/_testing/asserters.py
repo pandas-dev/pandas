@@ -266,9 +266,9 @@ def assert_index_equal(
     left : Index
     right : Index
     exact : bool or {'equiv'}, default 'equiv'
-        It True, check that the Index class, dtype and inferred_type are identical.
-        If 'equiv', numeric indexes will only be compared by dtype and inferred_type.
-        It False, do not check that Index class, dtype and inferred_type are identical.
+        Whether to check the Index class, dtype and inferred_type
+        are identical. If 'equiv', then RangeIndex can be substituted for
+        Int64Index as well.
     check_names : bool, default True
         Whether to check the names attribute.
     check_less_precise : bool or int, default False

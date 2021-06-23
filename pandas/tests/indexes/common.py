@@ -357,7 +357,7 @@ class Base:
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        new_index_cls = type(idx) if not isinstance(idx, RangeIndex) else Int64Index
+        new_index_cls = Int64Index if isinstance(idx, RangeIndex) else idx._constructor
         expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 

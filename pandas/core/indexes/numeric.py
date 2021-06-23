@@ -242,7 +242,7 @@ class NumericIndex(Index):
                     return NumericIndex(arr, name=self.name, dtype=dtype)
         elif self._is_numeric_index:
             if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
-                return type(self)(self, dtype=dtype, copy=copy)
+                return self._constructor(self, dtype=dtype, copy=copy)
 
         return super().astype(dtype, copy=copy)
 

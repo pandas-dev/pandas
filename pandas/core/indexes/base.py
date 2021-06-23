@@ -441,7 +441,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, Index) and data._is_numeric_index and dtype is None:
-            return type(data)(data, name=name, copy=copy)
+            return data._constructor(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -5726,7 +5726,7 @@ class Index(IndexOpsMixin, PandasObject):
             attributes["dtype"] = self.dtype
 
         if self._is_numeric_index and is_numeric_dtype(new_values.dtype):
-            return type(self)(new_values, **attributes)
+            return self._constructor(new_values, **attributes)
 
         return Index(new_values, **attributes)
 
