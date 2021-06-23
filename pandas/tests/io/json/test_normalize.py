@@ -620,7 +620,6 @@ class TestNestedToRecord:
             [9562, "Morris St.", "Massillon", "OH", 44646, "Alice"],
             [8449, "Spring St.", "Elizabethton", "TN", 37643, np.nan],
         ]
-        columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
@@ -652,7 +651,6 @@ class TestNestedToRecord:
             ["Foo York City", "Alice"],
             ["Barmingham", np.nan],
         ]
-        columns = ["city_name", "name"]
         columns = ["city_name", "name"]
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
