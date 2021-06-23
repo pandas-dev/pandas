@@ -187,6 +187,7 @@ def test_to_integer_array_float():
         ([False, True], [0, 1], Int64Dtype(), Int64Dtype()),
         ([False, True], [0, 1], "Int64", Int64Dtype()),
         ([False, True, np.nan], [0, 1, np.nan], Int64Dtype(), Int64Dtype()),
+        ([False, True, pd.NA], [0, 1, pd.NA], Int64Dtype(), Int64Dtype()),
     ],
 )
 def test_to_integer_array_bool(
@@ -195,6 +196,18 @@ def test_to_integer_array_bool(
     result = constructor(bool_values, dtype=target_dtype)
     assert result.dtype == expected_dtype
     expected = pd.array(int_values, dtype=target_dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "bool_values,expected",
+    [([False, True, False], [0, 1, 0]), ([False, True, pd.NA], [0, 1, pd.NA])],
+)
+def test_construct_from_boolean_array(bool_values, expected):
+    # GH-42137
+    data = pd.array(bool_values, dtype="boolean")
+    result = pd.array(data, dtype="Int64")
+    expected = pd.array(expected, dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
 

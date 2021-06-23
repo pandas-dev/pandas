@@ -202,7 +202,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in construction of nullable integer and floating arrays raising ``TypeError`` when passed boolean data containing ``pd.NA`` (:issue:`42137`)
 -
 
 Styler

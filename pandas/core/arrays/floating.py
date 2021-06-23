@@ -139,6 +139,7 @@ def coerce_to_array(
             "mixed-integer",
             "integer-na",
             "mixed-integer-float",
+            "boolean",
         ]:
             raise TypeError(f"{values.dtype} cannot be converted to a FloatingDtype")
 
