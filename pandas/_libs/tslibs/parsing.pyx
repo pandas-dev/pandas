@@ -822,19 +822,17 @@ def format_is_iso(f: str) -> bint:
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
-    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
+    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S{micro_or_tz}'.format
     excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
-
-    if (f is not None) and (f[-3:] in ["S%z", "S%Z", "f%z", "f%Z"]):
-        # remove the last '%z' or '%Z'.
-        f = f[:-2]
 
     for date_sep in [' ', '/', '\\', '-', '.', '']:
         for time_sep in [' ', 'T']:
-            if (iso_template(date_sep=date_sep,
-                             time_sep=time_sep
-                             ).startswith(f) and f not in excluded_formats):
-                return True
+            for micro_or_tz in ['', '%z', '%Z', '.%f', '.%f%z', '.%f%Z']:
+                if (iso_template(date_sep=date_sep,
+                                 time_sep=time_sep,
+                                 micro_or_tz=micro_or_tz,
+                                 ).startswith(f) and f not in excluded_formats):
+                    return True
     return False
 
 
@@ -909,21 +907,52 @@ def guess_datetime_format(
     #  that any user-provided function will not either.
     tokens = dt_str_split(dt_str)
 
-    # Normalize timezone tokens
-    if (parsed_datetime.tzinfo is not None) and len(tokens) > 1:
-        if tokens[-1] == "Z":
-            # the last "Z" means zero offset
-            tokens[-1] = "+0000"
+    # Normalize offset part of tokens.
+    # There are multiple formats for the timezone offset.
+    # To pass the comparison condition between the output of `strftime` and
+    # joined tokens, which is carried out at the final step of the function,
+    # the offset part of the tokens must match the '%z' format like '+0900'
+    # instead of ‘+09:00’.
+    if (parsed_datetime.tzinfo is not None):
+        if (len(tokens) > 0) and (tokens[-1] == 'Z'):
+            # the last 'Z' means zero offset
+            tokens[-1] = '+0000'
         else:
             # If the input string has a timezone offset like '+0900',
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
-            # So rejoin them here.
-            offset_candidate = ''.join(tokens[-2:])
-            if re.match(r"(\+|-)\d{4}$", offset_candidate):
-                tokens[-2] = offset_candidate
-                tokens = tokens[:-1]
+            # So in addition to the format nomalization, we rejoin them here.
+            if (
+                (len(tokens) > 3)
+                and tokens[-1].isdigit()
+                and (tokens[-2] == ':')
+                and tokens[-3].isdigit()
+                and (tokens[-4] in ('+', '-'))
+            ):
+                # ex. [..., '+', '9', ':', '5'] -> [..., '+0905']
+                offset_idx = -4
+                sign, hour_offset, _, min_offset = tokens[offset_idx:]
+                tokens[offset_idx] = (
+                    f'{sign}{int(hour_offset):02d}{int(min_offset):02d}'
+                )
+                tokens = tokens[:offset_idx + 1]
+            elif (
+                (len(tokens) > 1)
+                and tokens[-1].isdigit()
+                and (tokens[-2] in ('+', '-'))
+            ):
+                # ex. [..., '+', '0905'] -> [..., '+0905']
+                offset_idx = -2
+                sign, offset = tokens[offset_idx:]
+                if len(offset) <= 2:
+                    # '+09' -> '+0900'
+                    tokens[offset_idx] = f'{sign}{int(offset):02d}00'
+                else:
+                    tokens[offset_idx] = f'{sign}{int(offset):04d}'
+                tokens = tokens[:offset_idx + 1]
+
+            # else: Other patterns are tried to parse as a timezone name.
 
     format_guess = [None] * len(tokens)
     found_attrs = set()
