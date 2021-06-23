@@ -203,7 +203,7 @@ def test_to_integer_array_bool(
     "bool_values,expected",
     [([False, True, False], [0, 1, 0]), ([False, True, pd.NA], [0, 1, pd.NA])],
 )
-def test_construct_from_boolean_array(bool_values, expected):
+def test_construction_from_boolean_array(bool_values, expected):
     # GH-42137
     data = pd.array(bool_values, dtype="boolean")
     result = pd.array(data, dtype="Int64")
