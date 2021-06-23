@@ -3,7 +3,7 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy=1.21.0
+  - numpy<1.21
   - python=3.8
   - python-dateutil>=2.7.3
   - pytz
