@@ -4,7 +4,6 @@ import functools
 import itertools
 import operator
 from typing import (
-    TYPE_CHECKING,
     Any,
     cast,
 )
@@ -56,12 +55,6 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.construction import extract_array
-
-if TYPE_CHECKING:
-    from pandas.core.arrays import (
-        DatetimeArray,
-        TimedeltaArray,
-    )
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -1790,9 +1783,12 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             # DatetimeArray/TimedeltaArray
             # TODO: have this case go through a DTA method?
             # For DatetimeTZDtype, view result as M8[ns]
-            values = cast("DatetimeArray | TimedeltaArray", values)
             npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
-            result = type(values)._simple_new(result.view(npdtype), dtype=orig_dtype)
+            # Item "type" of "Union[Type[ExtensionArray], Type[ndarray[Any, Any]]]"
+            # has no attribute "_simple_new"
+            result = type(values)._simple_new(  # type: ignore[union-attr]
+                result.view(npdtype), dtype=orig_dtype
+            )
 
     elif skipna and not issubclass(values.dtype.type, (np.integer, np.bool_)):
         vals = values.copy()

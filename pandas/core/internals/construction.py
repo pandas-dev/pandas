@@ -6,9 +6,11 @@ from __future__ import annotations
 
 from collections import abc
 from typing import (
+    TYPE_CHECKING,
     Any,
     Hashable,
     Sequence,
+    cast,
 )
 import warnings
 
@@ -85,6 +87,10 @@ from pandas.core.internals.managers import (
     create_block_manager_from_blocks,
 )
 
+if TYPE_CHECKING:
+    from numpy.ma.mrecords import MaskedRecords
+
+
 # ---------------------------------------------------------------------
 # BlockManager Interface
 
@@ -137,7 +143,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: np.ma.MaskedArray | np.recarray | np.ndarray,
+    data: MaskedRecords | np.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,
@@ -160,6 +166,9 @@ def rec_array_to_mgr(
 
     # fill if needed
     if isinstance(data, np.ma.MaskedArray):
+        # GH#42200 we only get here with MaskedRecords, but check for the
+        #  parent class MaskedArray to avoid the need to import MaskedRecords
+        data = cast("MaskedRecords", data)
         new_arrays = fill_masked_arrays(data, arr_columns)
     else:
         # error: Incompatible types in assignment (expression has type
@@ -183,7 +192,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def fill_masked_arrays(data: np.ma.MaskedArray, arr_columns: Index) -> list[np.ndarray]:
+def fill_masked_arrays(data: MaskedRecords, arr_columns: Index) -> list[np.ndarray]:
     """
     Convert numpy MaskedRecords to ensure mask is softened.
     """
