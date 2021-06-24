@@ -4202,7 +4202,7 @@ Keep all original rows and also all original values
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object. Note that the dtype is always
-            preserved for extension array dtypes, such as Categorical.
+            preserved for some extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
