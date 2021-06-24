@@ -22,7 +22,7 @@ dependencies:
   - numexpr
   - numpy=1.17.3
   - openpyxl
-  - pyarrow=0.17.0
+  - pyarrow=0.17
   - pytables
   - python-dateutil==2.7.3
   - pytz

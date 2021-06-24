@@ -47,6 +47,7 @@ from pandas._typing import (
     Level,
     Manager,
     NpDtype,
+    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -5146,7 +5147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         frac=None,
         replace=False,
         weights=None,
-        random_state=None,
+        random_state: RandomState | None = None,
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -5177,8 +5178,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
-            random number generator
+            If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState, use as numpy RandomState object.
 
             .. versionchanged:: 1.1.0
@@ -7285,11 +7285,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        lower : float or array_like, default None
+        lower : float or array-like, default None
             Minimum threshold value. All values below this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
-        upper : float or array_like, default None
+        upper : float or array-like, default None
             Maximum threshold value. All values above this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
@@ -7889,8 +7889,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Pass a custom function via ``apply``
 
-        >>> def custom_resampler(array_like):
-        ...     return np.sum(array_like) + 5
+        >>> def custom_resampler(arraylike):
+        ...     return np.sum(arraylike) + 5
         ...
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
@@ -10893,7 +10893,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
         alpha: float | None = None,
-        min_periods: int = 0,
+        min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
         axis: Axis = 0,

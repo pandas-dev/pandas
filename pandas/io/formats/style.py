@@ -31,7 +31,10 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
-from pandas import RangeIndex
+from pandas import (
+    IndexSlice,
+    RangeIndex,
+)
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -426,6 +429,7 @@ class Styler(StylerRenderer):
         multicol_align: str = "r",
         siunitx: bool = False,
         encoding: str | None = None,
+        convert_css: bool = False,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -482,6 +486,10 @@ class Styler(StylerRenderer):
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         encoding : str, default "utf-8"
             Character encoding setting.
+        convert_css : bool, default False
+            Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
+            conversion table is dropped. A style can be forced by adding option
+            `--latex`. See notes.
 
         Returns
         -------
@@ -661,6 +669,45 @@ class Styler(StylerRenderer):
          & ix2 & \$3 & 4.400 & CATS \\
         L1 & ix3 & \$2 & 6.600 & COWS \\
         \end{tabular}
+
+        **CSS Conversion**
+
+        This method can convert a Styler constructured with HTML-CSS to LaTeX using
+        the following limited conversions.
+
+        ================== ==================== ============= ==========================
+        CSS Attribute      CSS value            LaTeX Command LaTeX Options
+        ================== ==================== ============= ==========================
+        font-weight        | bold               | bfseries
+                           | bolder             | bfseries
+        font-style         | italic             | itshape
+                           | oblique            | slshape
+        background-color   | red                cellcolor     | {red}--lwrap
+                           | #fe01ea                          | [HTML]{FE01EA}--lwrap
+                           | #f0e                             | [HTML]{FF00EE}--lwrap
+                           | rgb(128,255,0)                   | [rgb]{0.5,1,0}--lwrap
+                           | rgba(128,0,0,0.5)                | [rgb]{0.5,0,0}--lwrap
+                           | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}--lwrap
+        color              | red                color         | {red}
+                           | #fe01ea                          | [HTML]{FE01EA}
+                           | #f0e                             | [HTML]{FF00EE}
+                           | rgb(128,255,0)                   | [rgb]{0.5,1,0}
+                           | rgba(128,0,0,0.5)                | [rgb]{0.5,0,0}
+                           | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}
+        ================== ==================== ============= ==========================
+
+        It is also possible to add user-defined LaTeX only styles to a HTML-CSS Styler
+        using the ``--latex`` flag, and to add LaTeX parsing options that the
+        converter will detect within a CSS-comment.
+
+        >>> df = pd.DataFrame([[1]])
+        >>> df.style.set_properties(
+        ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
+        ... ).to_latex(css_convert=True)
+        \begin{tabular}{lr}
+        {} & {0} \\
+        0 & {\bfseries}{\Huge{1}} \\
+        \end{tabular}
         """
         table_selectors = (
             [style["selector"] for style in self.table_styles]
@@ -682,7 +729,7 @@ class Styler(StylerRenderer):
             self.data.columns = RangeIndex(stop=len(self.data.columns))
             numeric_cols = self.data._get_numeric_data().columns.to_list()
             self.data.columns = _original_columns
-            column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
+            column_format = "" if self.hide_index_ else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
                     column_format += (
@@ -740,6 +787,7 @@ class Styler(StylerRenderer):
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            convert_css=convert_css,
         )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
@@ -926,7 +974,7 @@ class Styler(StylerRenderer):
         )
 
         styler.uuid = self.uuid
-        styler.hidden_index = self.hidden_index
+        styler.hide_index_ = self.hide_index_
 
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -965,7 +1013,7 @@ class Styler(StylerRenderer):
         self.cell_context.clear()
         self._todo.clear()
 
-        self.hidden_index = False
+        self.hide_index_ = False
         self.hidden_columns = []
         # self.format and self.table_styles may be dependent on user
         # input in self.__init__()
@@ -1096,7 +1144,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
-            subset = pd.IndexSlice[:]
+            subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
@@ -1206,12 +1254,14 @@ class Styler(StylerRenderer):
         recommend using instead.
 
         The example:
+
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
         >>> def cond(v, limit=4):
         ...     return v > 1 and v != limit
         >>> df.style.where(cond, value='color:green;', other='color:red;')
 
         should be refactored to:
+
         >>> def style_func(v, value, other, limit=4):
         ...     cond = v > 1 and v != limit
         ...     return value if cond else other
@@ -1364,6 +1414,71 @@ class Styler(StylerRenderer):
         self.caption = caption
         return self
 
+    def set_sticky(
+        self,
+        axis: Axis = 0,
+        pixel_size: int | None = None,
+        levels: list[int] | None = None,
+    ) -> Styler:
+        """
+        Add CSS to permanently display the index or column headers in a scrolling frame.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Whether to make the index or column headers sticky.
+        pixel_size : int, optional
+            Required to configure the width of index cells or the height of column
+            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+        levels : list of int
+            If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
+            stick all levels.
+
+        Returns
+        -------
+        self : Styler
+        """
+        if axis in [0, "index"]:
+            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            pixel_size = 75 if not pixel_size else pixel_size
+        elif axis in [1, "columns"]:
+            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            pixel_size = 25 if not pixel_size else pixel_size
+        else:
+            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+
+        if not isinstance(obj, pd.MultiIndex):
+            return self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th",
+                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                    }
+                ],
+                overwrite=False,
+            )
+        else:
+            range_idx = list(range(obj.nlevels))
+
+        levels = sorted(levels) if levels else range_idx
+        for i, level in enumerate(levels):
+            self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th.level{level}",
+                        "props": f"position: sticky; "
+                        f"{pos}: {i * pixel_size}px; "
+                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
+                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"background-color: white;",
+                    }
+                ],
+                overwrite=False,
+            )
+
+        return self
+
     def set_table_styles(
         self,
         table_styles: dict[Any, CSSStyles] | CSSStyles,
@@ -1509,37 +1624,169 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self) -> Styler:
+    def hide_index(self, subset: Subset | None = None) -> Styler:
         """
-        Hide any indices from rendering.
+        Hide the entire index, or specific keys in the index from rendering.
 
-        Returns
-        -------
-        self : Styler
-        """
-        self.hidden_index = True
-        return self
+        This method has dual functionality:
 
-    def hide_columns(self, subset: Subset) -> Styler:
-        """
-        Hide columns from rendering.
+          - if ``subset`` is ``None`` then the entire index will be hidden whilst
+            displaying all data-rows.
+          - if a ``subset`` is given then those specific rows will be hidden whilst the
+            index itself remains visible.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
-            A valid 1d input or single key along the appropriate axis within
-            `DataFrame.loc[]`, to limit ``data`` to *before* applying the function.
+        subset : label, array-like, IndexSlice, optional
+            A valid 1d input or single key along the index axis within
+            `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
+            the function.
 
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.hide_columns: Hide the entire column headers row, or specific columns.
+
+        Examples
+        --------
+        Simple application hiding specific rows:
+
+        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
+        >>> df.style.hide_index(["a", "b"])
+             0    1
+        c    5    6
+
+        Hide the index and retain the data values:
+
+        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
+        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df.style.format("{:.1f}").hide_index()
+                         x                    y
+           a      b      c      a      b      c
+         0.1    0.0    0.4    1.3    0.6   -1.4
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+         1.4   -0.8    1.6   -0.2   -0.4   -0.3
+         0.4    1.0   -0.2   -0.8   -1.2    1.1
+        -0.6    1.2    1.8    1.9    0.3    0.3
+         0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hide specific rows but retain the index:
+
+        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+                                 x                    y
+                   a      b      c      a      b      c
+        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
+        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Hide specific rows and the index:
+
+        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+        ...     .hide_index()
+                         x                    y
+           a      b      c      a      b      c
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+        -0.6    1.2    1.8    1.9    0.3    0.3
         """
-        subset = non_reducing_slice(subset)
-        hidden_df = self.data.loc[subset]
-        hcols = self.columns.get_indexer_for(hidden_df.columns)
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "Sequence[int]")
-        self.hidden_columns = hcols  # type: ignore[assignment]
+        if subset is None:
+            self.hide_index_ = True
+        else:
+            subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+            subset = non_reducing_slice(subset_)
+            hide = self.data.loc[subset]
+            hrows = self.index.get_indexer_for(hide.index)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_rows = hrows  # type: ignore[assignment]
+        return self
+
+    def hide_columns(self, subset: Subset | None = None) -> Styler:
+        """
+        Hide the column headers or specific keys in the columns from rendering.
+
+        This method has dual functionality:
+
+          - if ``subset`` is ``None`` then the entire column headers row will be hidden
+            whilst the data-values remain visible.
+          - if a ``subset`` is given then those specific columns, including the
+            data-values will be hidden, whilst the column headers row remains visible.
+
+        .. versionchanged:: 1.3.0
+
+        Parameters
+        ----------
+        subset : label, array-like, IndexSlice, optional
+            A valid 1d input or single key along the columns axis within
+            `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
+            the function.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.hide_index: Hide the entire index, or specific keys in the index.
+
+        Examples
+        --------
+        Simple application hiding specific columns:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
+        >>> df.style.hide_columns(["a", "b"])
+             c
+        0    3
+        1    6
+
+        Hide column headers and retain the data values:
+
+        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
+        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df.style.format("{:.1f}").hide_columns()
+        x   d    0.1    0.0    0.4    1.3    0.6   -1.4
+            e    0.7    1.0    1.3    1.5   -0.0   -0.2
+            f    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   d    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            e   -0.6    1.2    1.8    1.9    0.3    0.3
+            f    0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hide specific columns but retain the column headers:
+
+        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+                   x      y
+                   b      b
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+
+        Hide specific columns and the column headers:
+
+        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+        ...     .hide_columns()
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+        """
+        if subset is None:
+            self.hide_columns_ = True
+        else:
+            subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
+            subset = non_reducing_slice(subset_)
+            hide = self.data.loc[subset]
+            hcols = self.columns.get_indexer_for(hide.columns)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
     # -----------------------------------------------------------------------

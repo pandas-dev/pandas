@@ -385,6 +385,7 @@ class RangeIndex(NumericIndex):
                     return self._range.index(new_key)
                 except ValueError as err:
                     raise KeyError(key) from err
+            self._check_indexing_error(key)
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 

@@ -11,6 +11,7 @@ from typing import (
     TypeVar,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -26,7 +27,10 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
-from pandas._typing import Callable
+from pandas._typing import (
+    Callable,
+    final,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,
@@ -45,6 +49,7 @@ from pandas.core.dtypes.concat import concat_compat
 
 from pandas.core.arrays import (
     DatetimeArray,
+    ExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -399,6 +404,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         raise NotImplementedError
 
+    @final
     def _partial_date_slice(
         self,
         reso: Resolution,
@@ -595,7 +601,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         try:
             res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
-            res = com.asarray_tuplesafe(keyarr)
+            if not isinstance(keyarr, ExtensionArray):
+                # e.g. we don't want to cast DTA to ndarray[object]
+                res = com.asarray_tuplesafe(keyarr)
+                # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
+            else:
+                res = keyarr
         return Index(res, dtype=res.dtype)
 
 
@@ -624,6 +635,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return False
 
     def is_type_compatible(self, kind: str) -> bool:
+        warnings.warn(
+            f"{type(self).__name__}.is_type_compatible is deprecated and will be "
+            "removed in a future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return kind in self._data._infer_matches
 
     # --------------------------------------------------------------------
@@ -683,7 +700,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         elif self.freq.is_anchored():
             # this along with matching freqs ensure that we "line up",
             #  so intersection will preserve freq
-            return True
+            # GH#42104
+            return self.freq.n == 1
 
         elif isinstance(self.freq, Tick):
             # We "line up" if and only if the difference between two of our points
@@ -692,7 +710,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             remainder = diff % self.freq.delta
             return remainder == Timedelta(0)
 
-        return True
+        # GH#42104
+        return self.freq.n == 1
 
     def _can_fast_union(self: _T, other: _T) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
