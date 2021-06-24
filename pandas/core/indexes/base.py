@@ -559,7 +559,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             return Int64Index
 
-        elif dtype == object:
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Type[object]")
+        elif dtype == object:  # type: ignore[comparison-overlap]
             # NB: assuming away MultiIndex
             return Index
 

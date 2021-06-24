@@ -410,7 +410,7 @@ def random_state(state=None):
 
     Returns
     -------
-    np.random.RandomState
+    np.random.RandomState or np.random if state is None
 
     """
     if (
