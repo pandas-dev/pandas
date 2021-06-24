@@ -155,7 +155,10 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         return np.asarray(values), values.dtype
 
     elif is_complex_dtype(values.dtype):
-        return values, values.dtype
+        # Incompatible return value type (got "Tuple[Union[Any, ExtensionArray,
+        # ndarray[Any, Any]], Union[Any, ExtensionDtype]]", expected
+        # "Tuple[ndarray[Any, Any], Union[dtype[Any], ExtensionDtype]]")
+        return values, values.dtype  # type: ignore[return-value]
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):

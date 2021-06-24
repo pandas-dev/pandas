@@ -1627,7 +1627,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        nc = unique(self._combined.view("complex128")[:, 0])
+        # Invalid index type "Tuple[slice, int]" for "Union[ExtensionArray,
+        # ndarray[Any, Any]]"; expected type "Union[int, integer[Any], slice,
+        # Sequence[int], ndarray[Any, Any]]"
+        nc = unique(self._combined.view("complex128")[:, 0])  # type: ignore[index]
         nc = nc[:, None]
         return self._from_combined(nc)
 
