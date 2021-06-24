@@ -1,3 +1,4 @@
+# cython: profile=True
 import cython
 from cython import Py_ssize_t
 
@@ -51,6 +52,10 @@ from pandas._libs.khash cimport (
     kh_put_int64,
     kh_resize_int64,
     khiter_t,
+)
+from pandas._libs.missing cimport (
+    checknull,
+    checknull_old,
 )
 from pandas._libs.util cimport (
     get_nat,
@@ -847,7 +852,7 @@ ctypedef fused fillna_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def fillna1d(fillna_t[:] arr,
-             object value,
+             fillna_t value,
              limit=None,
              bint inf_as_na=False
              ) -> ndarray:
@@ -881,15 +886,21 @@ def fillna1d(fillna_t[:] arr,
 
     N = len(arr)
     lim = validate_limit(N, limit)
+    # if fillna_t == float32_t:#or fillna_t is float64_t:
+    #    check_func = util.is_nan
+    # else:
     if inf_as_na:
-        check_func = missing.checknull_old
+        check_func = checknull_old
     else:
-        check_func = missing.checknull
+        check_func = checknull
     for i in range(N):
         val = arr[i]
-        if check_func(val) and count < lim:
+        if val != val and count < lim:
             arr[i] = value
             count+=1
+        # if check_func(val) and count < lim:
+        #     arr[i] = value
+        #     count+=1
 
 
 @cython.boundscheck(False)
@@ -930,9 +941,9 @@ def fillna2d(fillna_t[:, :] arr,
     n, m = (<object>arr).shape
     lim = validate_limit(m, limit)
     if inf_as_na:
-        check_func = missing.checknull_old
+        check_func = checknull_old
     else:
-        check_func = missing.checknull
+        check_func = checknull
     for i in range(n):
         count = 0  # Limit is per axis
         for j in range(m):
