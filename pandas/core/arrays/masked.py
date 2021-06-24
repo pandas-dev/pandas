@@ -409,9 +409,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        # error: No overload variant of "zeros_like" matches argument types
-        # "BaseMaskedArray", "Type[bool]"
-        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
+        mask = np.zeros_like(self, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
