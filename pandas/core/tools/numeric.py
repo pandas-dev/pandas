@@ -190,7 +190,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     # attempt downcast only if the data has been successfully converted
     # to a numerical dtype and if a downcast method has been specified
     if downcast is not None and is_numeric_dtype(values.dtype):
-        typecodes = None
+        typecodes: str | None = None
 
         if downcast in ("integer", "signed"):
             typecodes = np.typecodes["Integer"]
@@ -208,8 +208,8 @@ def to_numeric(arg, errors="raise", downcast=None):
 
         if typecodes is not None:
             # from smallest to largest
-            for dtype in typecodes:
-                dtype = np.dtype(dtype)
+            for typecode in typecodes:
+                dtype = np.dtype(typecode)
                 if dtype.itemsize <= values.dtype.itemsize:
                     values = maybe_downcast_numeric(values, dtype)
 

@@ -1167,13 +1167,17 @@ class Block(PandasObject):
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
 
-        # error: Argument 1 to "maybe_upcast" has incompatible type "Union[ndarray,
-        # ExtensionArray]"; expected "ndarray"
+        # error: Value of type variable "NumpyArrayT" of "maybe_upcast" cannot be
+        # "Union[ndarray[Any, Any], ExtensionArray]"
         new_values, fill_value = maybe_upcast(
-            self.values, fill_value  # type: ignore[arg-type]
+            self.values, fill_value  # type: ignore[type-var]
         )
 
-        new_values = shift(new_values, periods, axis, fill_value)
+        # error: Argument 1 to "shift" has incompatible type "Union[ndarray[Any, Any],
+        # ExtensionArray]"; expected "ndarray[Any, Any]"
+        new_values = shift(
+            new_values, periods, axis, fill_value  # type: ignore[arg-type]
+        )
 
         return [self.make_block(new_values)]
 
@@ -1894,9 +1898,7 @@ def get_block_type(values, dtype: Dtype | None = None):
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
         cls = CategoricalBlock
-    # error: Non-overlapping identity check (left operand type: "Type[generic]",
-    # right operand type: "Type[Timestamp]")
-    elif vtype is Timestamp:  # type: ignore[comparison-overlap]
+    elif vtype is Timestamp:
         cls = DatetimeTZBlock
     elif isinstance(dtype, ExtensionDtype):
         # Note: need to be sure PandasArray is unwrapped before we get here

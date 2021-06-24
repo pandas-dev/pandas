@@ -397,11 +397,13 @@ class ExtensionIndex(Index):
                 return self
             return self.copy()
 
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Literal['M8[ns]']")
         if (
             isinstance(self.dtype, np.dtype)
             and isinstance(dtype, np.dtype)
             and dtype.kind == "M"
-            and dtype != "M8[ns]"
+            and dtype != "M8[ns]"  # type: ignore[comparison-overlap]
         ):
             # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
             raise TypeError(f"Cannot cast {type(self).__name__} to dtype")

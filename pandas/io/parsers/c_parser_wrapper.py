@@ -365,7 +365,9 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
                 numpy_dtypes,  # type: ignore[arg-type]
                 [],
             )
-            if common_type == object:
+            # error: Non-overlapping equality check (left operand type: "dtype[Any]",
+            # right operand type: "Type[object]")
+            if common_type == object:  # type: ignore[comparison-overlap]
                 warning_columns.append(str(name))
 
         dtype = dtypes.pop()
