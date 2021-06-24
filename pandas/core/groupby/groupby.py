@@ -2993,8 +2993,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 "Product space too large to allocate arrays! You're trying to "
                 "group over too complex a column cross-product to fit in memory. "
                 "If any of those columns are categorical, you may be able "
-                "to circumvent this issue by passing `observed=True`.") from err
-
+                "to circumvent this issue by passing `observed=True`."
+            ) from err
 
         if self.as_index:
             d = {
