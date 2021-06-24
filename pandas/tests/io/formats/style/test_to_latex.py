@@ -568,35 +568,25 @@ def test_longtable_minimal(styler):
     )
 
 
-def test_longtable_multiindex_columns(df):
+@pytest.mark.parametrize(
+    "sparse, exp",
+    [(True, "{} & \\multicolumn{2}{r}{A} & {B}"), (False, "{} & {A} & {A} & {B}")],
+)
+def test_longtable_multiindex_columns(df, sparse, exp):
     cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df.columns = cidx
     expected = dedent(
-        """\
-        \\begin{longtable}{lrrl}
-        {} & \\multicolumn{2}{r}{A} & {B} \\\\
-        {} & {a} & {b} & {c} \\\\
+        f"""\
+        \\begin{{longtable}}{{lrrl}}
+        {exp} \\\\
+        {{}} & {{a}} & {{b}} & {{c}} \\\\
         \\endfirsthead
-        {} & \\multicolumn{2}{r}{A} & {B} \\\\
-        {} & {a} & {b} & {c} \\\\
+        {exp} \\\\
+        {{}} & {{a}} & {{b}} & {{c}} \\\\
         \\endhead
         """
     )
-    assert expected in df.style.to_latex(environment="longtable")
-
-    # non-sparse
-    expected = dedent(
-        """\
-        \\begin{longtable}{lrrl}
-        {} & {A} & {A} & {B} \\\\
-        {} & {a} & {b} & {c} \\\\
-        \\endfirsthead
-        {} & {A} & {A} & {B} \\\\
-        {} & {a} & {b} & {c} \\\\
-        \\endhead
-        """
-    )
-    assert expected in df.style.to_latex(environment="longtable", sparse_columns=False)
+    assert expected in df.style.to_latex(environment="longtable", sparse_columns=sparse)
 
 
 def test_longtable_caption_label(styler):
