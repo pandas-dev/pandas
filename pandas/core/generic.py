@@ -9751,7 +9751,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        return np.abs(self)
+        # error: Incompatible return value type (got "ndarray[Any, dtype[Any]]",
+        # expected "FrameOrSeries")
+        return np.abs(self)  # type: ignore[return-value]
 
     @final
     def describe(

@@ -388,9 +388,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                # error: Argument 1 to "len" has incompatible type "dtype"; expected
-                # "Sized"
-                if len(data.dtype):  # type: ignore[arg-type]
+                if len(data.dtype):
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
                     raise ValueError(
