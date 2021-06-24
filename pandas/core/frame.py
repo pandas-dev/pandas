@@ -647,7 +647,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 # i.e. numpy structured array
-                data = cast("np.ma.MaskedArray | np.recarray | np.ndarray", data)
+                data = cast(np.ndarray, data)
                 mgr = rec_array_to_mgr(
                     data,
                     index,
