@@ -61,3 +61,7 @@ def test_write_append_mode_raises(ext):
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=msg):
             ExcelWriter(f, engine="xlsxwriter", mode="a")
+
+def test_engine_kwargs(ext):
+    with tm.ensure_clean(ext) as f:
+        ExcelWriter(f,engine="xlsxwriter",engine_kwargs={"strings_to_formulas":False})
