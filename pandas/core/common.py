@@ -418,24 +418,11 @@ def random_state(state=None):
         or is_array_like(state)
         or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
-        # error: Argument 1 to "RandomState" has incompatible type "Optional[Union[int,
-        # Union[ExtensionArray, ndarray[Any, Any]], Generator, RandomState]]"; expected
-        # "Union[None, Union[Union[_SupportsArray[dtype[Union[bool_, integer[Any]]]],
-        # Sequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]],
-        # Sequence[Sequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]]],
-        # Sequence[Sequence[Sequence[_SupportsArray[dtype[Union[bool_,
-        # integer[Any]]]]]]],
-        # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Union[bool_,
-        # integer[Any]]]]]]]]], Union[bool, int, Sequence[Union[bool, int]],
-        # Sequence[Sequence[Union[bool, int]]], Sequence[Sequence[Sequence[Union[bool,
-        # int]]]], Sequence[Sequence[Sequence[Sequence[Union[bool, int]]]]]]],
-        # BitGenerator]"
-        return np.random.RandomState(state)  # type: ignore[arg-type]
+        return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state
     elif state is None:
-        # error: Incompatible return value type (got Module, expected "RandomState")
-        return np.random  # type: ignore[return-value]
+        return np.random
     else:
         raise ValueError(
             "random_state must be an integer, array-like, a BitGenerator, "
