@@ -6835,6 +6835,52 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+        
+        Examples
+        --------  
+        >>> df = pd.DataFrame(
+        ...     {'col' : pd.Series(np.random.randn(6),
+        ...                 index = [
+        ...                             [1,1,1,2,2,2],
+        ...                             ['a','b','c','a','b','c']
+        ...                           ]
+        ...                         )})
+        >>> df.index.names = ['index_1','index_2']
+        >>> df
+		                col
+        index_1 index_2	
+            1       a	1.763918
+                    b	-0.195622
+                    c	-1.675671
+            2	    a	0.748423
+                    b	1.468277
+                    c	0.077554
+
+
+        In the following example, we will reorder the levels by referencing index positions.
+        
+        >>> df.reorder_levels([1,0])
+		                col
+        index_2	index_1	
+            a	    1	1.763918
+            b	    1	-0.195622
+            c	    1	-1.675671
+            a	    2	0.748423
+            b	    2	1.468277
+            c	    2   0.077554
+
+
+        In the following example, We will reorder the levels by referencing index name
+        
+        >>> df.reorder_levels(['index_2','index_1'])
+        		        col
+        index_2	index_1	
+            a	    1	1.763918
+            b	    1	-0.195622
+            c	    1	-1.675671
+            a	    2	0.748423
+            b	    2	1.468277
+            c	    2	0.077554
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
