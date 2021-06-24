@@ -462,7 +462,7 @@ class Block(PandasObject):
                     downcast=None,
                 )
         else:
-            # TODO: Verify that this works for EAs
+            # TODO: This seems to work for EAS, verify it does
             return [
                 self.make_block_same_class(
                     values=self.values.fillna(value=value, limit=limit)

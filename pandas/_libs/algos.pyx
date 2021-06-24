@@ -68,6 +68,8 @@ cdef:
     float64_t FP_ERR = 1e-13
     float64_t NaN = <float64_t>np.NaN
     int64_t NPY_NAT = get_nat()
+    float64_t INF = <float64_t> np.inf
+    float64_t NEGINF = -INF
 
 cdef enum TiebreakEnumType:
     TIEBREAK_AVERAGE
@@ -838,14 +840,15 @@ def backfill_2d_inplace(algos_t[:, :] values,
 
 
 # Fillna logic
-# We have our own fused type since we don't need to support
-# types that can't hold NAs
+# We have our own fused type instead of algos_t
+# since we don't need to support types that can't hold NAs(ints, etc)
 ctypedef fused fillna_t:
     float64_t
     float32_t
     object
-    # TODO: Add datetime64 support through viewing data as uint64
-    uint64_t  # Datetime64
+    # TODO: Maybe add datetime64 support through viewing data as int64?
+    # But datetime64 seems to be handled elsewhere
+    int64_t  # Datetime64
     # TODO: Complex support?
 
 
@@ -881,21 +884,30 @@ def fillna1d(fillna_t[:] arr,
         Py_ssize_t i, N, lim
         Py_ssize_t count=0
         fillna_t val
+        bint result
 
     assert arr.ndim == 1, "'arr' must be 1-D."
 
     N = len(arr)
     lim = validate_limit(N, limit)
-    # if fillna_t == float32_t:#or fillna_t is float64_t:
-    #    check_func = util.is_nan
+    # if inf_as_na:
+    #     check_func = checknull_old
     # else:
-    if inf_as_na:
-        check_func = checknull_old
-    else:
-        check_func = checknull
+    #     check_func = checknull
     for i in range(N):
         val = arr[i]
-        if val != val and count < lim:
+        if fillna_t is object:
+            if inf_as_na:
+                result = checknull_old(val)
+            else:
+                result = checknull(val)
+        elif fillna_t is float32_t or fillna_t is float64_t:
+            result = val != val
+            if inf_as_na:
+                result = result and (val == INF or val == NEGINF)
+        else:
+            result = val == NPY_NAT
+        if result and count < lim:
             arr[i] = value
             count+=1
         # if check_func(val) and count < lim:
