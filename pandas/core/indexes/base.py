@@ -559,7 +559,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             return Int64Index
 
-        elif dtype == object:
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Type[object]")
+        elif dtype == object:  # type: ignore[comparison-overlap]
             # NB: assuming away MultiIndex
             return Index
 
@@ -4489,6 +4491,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Whether the index type is compatible with the provided type.
         """
+        warnings.warn(
+            "Index.is_type_compatible is deprecated and will be removed in a "
+            "future version",
+            FutureWarning,
+            stacklevel=2,
+        )
         return kind == self.inferred_type
 
     def __contains__(self, key: Any) -> bool:
