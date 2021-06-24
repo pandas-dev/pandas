@@ -99,8 +99,9 @@ def test_fail_to_match_runtime_warning():
     match = "Did not see this warning"
     unmatched = (
         r"Did not see warning 'RuntimeWarning' matching 'Did not see this warning'. "
-        r"The emitted warning messages are \[RuntimeWarning\('This is not a "
-        r"match.'\), RuntimeWarning\('Another unmatched warning.'\)\]"
+        r"The emitted warning messages are "
+        r"\[RuntimeWarning\('This is not a match.'\), "
+        r"RuntimeWarning\('Another unmatched warning.'\)\]"
     )
     with pytest.raises(AssertionError, match=unmatched):
         with tm.assert_produces_warning(category, match=match):
@@ -113,7 +114,8 @@ def test_fail_to_match_future_warning():
     match = "Warning"
     unmatched = (
         r"Did not see warning 'FutureWarning' matching 'Warning'. "
-        r"The emitted warning messages are \[FutureWarning\('This is not a match.'\), "
+        r"The emitted warning messages are "
+        r"\[FutureWarning\('This is not a match.'\), "
         r"FutureWarning\('Another unmatched warning.'\)\]"
     )
     with pytest.raises(AssertionError, match=unmatched):
@@ -127,8 +129,9 @@ def test_fail_to_match_resource_warning():
     match = r"\d+"
     unmatched = (
         r"Did not see warning 'ResourceWarning' matching '\\d\+'. "
-        r"The emitted warning messages are \[ResourceWarning\('This is not a match.'\)"
-        r", ResourceWarning\('Another unmatched warning.'\)\]"
+        r"The emitted warning messages are "
+        r"\[ResourceWarning\('This is not a match.'\), "
+        r"ResourceWarning\('Another unmatched warning.'\)\]"
     )
     with pytest.raises(AssertionError, match=unmatched):
         with tm.assert_produces_warning(category, match=match):
