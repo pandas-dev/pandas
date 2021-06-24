@@ -589,39 +589,28 @@ def test_longtable_multiindex_columns(df, sparse, exp):
     assert expected in df.style.to_latex(environment="longtable", sparse_columns=sparse)
 
 
-def test_longtable_caption_label(styler):
-    expected = dedent(
-        """\
-        \\caption{full} \\\\
-        {} & {A} & {B} & {C} \\\\
-        \\endfirsthead
-        \\caption[]{full} \\\\
-        """
-    )
-    assert expected in styler.to_latex(environment="longtable", caption="full")
+@pytest.mark.parametrize("caption", ["full", ("full", "short")])
+@pytest.mark.parametrize("label", [None, "tab:A"])
+def test_longtable_caption_label(styler, caption, label):
+    if isinstance(caption, str):
+        cap1 = f"\\caption{{{caption}}}"
+        cap2 = f"\\caption[]{{{caption}}}"
+    elif isinstance(caption, tuple):
+        cap1 = f"\\caption[{caption[1]}]{{{caption[0]}}}"
+        cap2 = f"\\caption[]{{{caption[0]}}}"
+
+    lab = "" if label is None else f" \\label{{{label}}}"
 
     expected = dedent(
-        """\
-        \\caption[short]{full} \\label{fig:A} \\\\
-        {} & {A} & {B} & {C} \\\\
+        f"""\
+        {cap1}{lab} \\\\
+        {{}} & {{A}} & {{B}} & {{C}} \\\\
         \\endfirsthead
-        \\caption[]{full} \\\\
+        {cap2} \\\\
         """
     )
     assert expected in styler.to_latex(
-        environment="longtable", caption=("full", "short"), label="fig:A"
-    )
-
-    expected = dedent(
-        """\
-        \\caption{full} \\label{fig:A} \\\\
-        {} & {A} & {B} & {C} \\\\
-        \\endfirsthead
-        \\caption[]{full} \\\\
-        """
-    )
-    assert expected in styler.to_latex(
-        environment="longtable", caption="full", label="fig:A"
+        environment="longtable", caption=caption, label=label
     )
 
 
