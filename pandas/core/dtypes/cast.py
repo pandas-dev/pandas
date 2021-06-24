@@ -663,9 +663,7 @@ def _ensure_dtype_type(value, dtype: np.dtype):
     """
     # Start with exceptions in which we do _not_ cast to numpy types
 
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object_]")
-    if dtype == np.object_:  # type: ignore[comparison-overlap]
+    if dtype == np.dtype("object"):
         return value
 
     # Note: before we get here we have already excluded isna(value)
@@ -1099,10 +1097,7 @@ def astype_nansafe(
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
 
     if arr.dtype.kind in ["m", "M"] and (
-        issubclass(dtype.type, str)
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[object]")
-        or dtype == object  # type: ignore[comparison-overlap]
+        issubclass(dtype.type, str) or dtype == np.dtype("object")
     ):
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
@@ -1113,9 +1108,7 @@ def astype_nansafe(
         return lib.ensure_string_array(arr, skipna=skipna, convert_na_value=False)
 
     elif is_datetime64_dtype(arr):
-        # Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        if dtype == np.int64:  # type: ignore[comparison-overlap]
+        if dtype == np.dtype(np.int64):
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
                 "is deprecated and will raise in a future version. "
@@ -1135,9 +1128,7 @@ def astype_nansafe(
         raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
 
     elif is_timedelta64_dtype(arr):
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[signedinteger[Any]]")
-        if dtype == np.int64:  # type: ignore[comparison-overlap]
+        if dtype == np.dtype(np.int64):
             warnings.warn(
                 f"casting {arr.dtype} values to int64 with .astype(...) "
                 "is deprecated and will raise in a future version. "
@@ -1702,7 +1693,7 @@ def maybe_cast_to_datetime(
             # and no coercion specified
             value = sanitize_to_nanoseconds(value)
 
-        elif value.dtype == object:
+        elif value.dtype == np.dtype("object"):
             value = maybe_infer_to_datetimelike(value)
 
     elif isinstance(value, list):
@@ -1845,9 +1836,7 @@ def construct_2d_arraylike_from_scalar(
 
     if dtype.kind in ["m", "M"]:
         value = maybe_unbox_datetimelike_tz_deprecation(value, dtype, stacklevel=4)
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    elif dtype == object:  # type: ignore[comparison-overlap]
+    elif dtype == np.dtype("object"):
         if isinstance(value, (np.timedelta64, np.datetime64)):
             # calling np.array below would cast to pytimedelta/pydatetime
             out = np.empty(shape, dtype=object)

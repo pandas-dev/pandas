@@ -161,9 +161,8 @@ class WrappedCythonOp:
         f = getattr(libgroupby, ftype)
         if is_numeric:
             return f
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Literal['object']")
-        elif dtype == object:  # type: ignore[comparison-overlap]
+
+        elif dtype == np.dtype("object"):
             if "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(

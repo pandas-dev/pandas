@@ -1017,9 +1017,7 @@ def _get_dummies_1d(
         fill_value: bool | float | int
         if is_integer_dtype(dtype):
             fill_value = 0
-        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-        # operand type: "Type[bool]")
-        elif dtype == bool:  # type: ignore[comparison-overlap]
+        elif dtype == np.dtype("bool"):
             fill_value = False
         else:
             fill_value = 0.0
