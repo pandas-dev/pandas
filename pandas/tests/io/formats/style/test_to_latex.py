@@ -485,31 +485,21 @@ def test_parse_latex_css_conversion(css, expected):
 
 
 @pytest.mark.parametrize("environment", ["tabular", "longtable"])
-def test_parse_latex_css_convert_minimal(styler, environment):
+@pytest.mark.parametrize(
+    "convert, exp", [(True, "bfseries"), (False, "font-weightbold")]
+)
+def test_parse_latex_css_convert_minimal(styler, environment, convert, exp):
     # parameters ensure longtable template is also tested
     styler.highlight_max(props="font-weight:bold;")
-    result = styler.to_latex(convert_css=True, environment=environment)
-    assert (
-        dedent(
-            f"""\
-        0 & 0 & \\bfseries -0.61 & ab \\\\
-        1 & \\bfseries 1 & -1.22 & \\bfseries cd \\\\
+    result = styler.to_latex(convert_css=convert, environment=environment)
+    expected = dedent(
+        f"""\
+        0 & 0 & \\{exp} -0.61 & ab \\\\
+        1 & \\{exp} 1 & -1.22 & \\{exp} cd \\\\
         \\end{{{environment}}}
     """
-        )
-        in result
     )
-    result = styler.to_latex(convert_css=False, environment=environment)
-    assert (
-        dedent(
-            f"""\
-        0 & 0 & \\font-weightbold -0.61 & ab \\\\
-        1 & \\font-weightbold 1 & -1.22 & \\font-weightbold cd \\\\
-        \\end{{{environment}}}
-    """
-        )
-        in result
-    )
+    assert expected in result
 
 
 def test_parse_latex_css_conversion_option():
@@ -523,7 +513,7 @@ def test_longtable_comprehensive(styler):
     result = styler.to_latex(
         environment="longtable", hrules=True, label="fig:A", caption=("full", "short")
     )
-    assert result == dedent(
+    expected = dedent(
         """\
         \\begin{longtable}{lrrl}
         \\caption[short]{full} \\label{fig:A} \\\\
@@ -547,11 +537,12 @@ def test_longtable_comprehensive(styler):
         \\end{longtable}
     """
     )
+    assert result == expected
 
 
 def test_longtable_minimal(styler):
     result = styler.to_latex(environment="longtable")
-    assert result == dedent(
+    expected = dedent(
         """\
         \\begin{longtable}{lrrl}
         {} & {A} & {B} & {C} \\\\
@@ -566,6 +557,7 @@ def test_longtable_minimal(styler):
         \\end{longtable}
     """
     )
+    assert result == expected
 
 
 @pytest.mark.parametrize(
