@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
-
 from pandas import (
     Categorical,
     Index,
@@ -56,7 +54,6 @@ def test_reindex(datetime_series, string_series):
     assert not (result is datetime_series)
 
 
-@pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940")
 def test_reindex_nan():
     ts = Series([2, 3, 5, 7], index=[1, 4, np.nan, 8])
 
