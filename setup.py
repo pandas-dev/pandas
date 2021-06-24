@@ -651,8 +651,6 @@ ujson_ext = Extension(
 extensions.append(ujson_ext)
 
 # ----------------------------------------------------------------------
-
-# ----------------------------------------------------------------------
 # rdata
 
 rdata_srcs = [
@@ -684,7 +682,6 @@ rdata_ext = Extension(
 extensions.append(rdata_ext)
 
 # ----------------------------------------------------------------------
-
 
 if __name__ == "__main__":
     # Freeze to support parallel compilation when using spawn instead of fork
