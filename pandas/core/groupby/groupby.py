@@ -2984,9 +2984,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return output
 
         levels_list = [ping.group_index for ping in groupings]
-        index, _ = MultiIndex.from_product(
-            levels_list, names=self.grouper.names
-        ).sortlevel()
+        try:
+            index, _ = MultiIndex.from_product(
+                levels_list, names=self.grouper.names
+            ).sortlevel()
+        except ValueError as err:
+            raise ValueError(
+                "Product space too large to allocate arrays! You're trying to "
+                "group over too complex a column cross-product to fit in memory. "
+                "If any of those columns are categorical, you may be able "
+                "to circumvent this issue by passing `observed=True`.") from err
+
 
         if self.as_index:
             d = {
