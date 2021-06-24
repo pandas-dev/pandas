@@ -913,8 +913,8 @@ def guess_datetime_format(
     # joined tokens, which is carried out at the final step of the function,
     # the offset part of the tokens must match the '%z' format like '+0900'
     # instead of ‘+09:00’.
-    if (parsed_datetime.tzinfo is not None):
-        if (len(tokens) > 0) and (tokens[-1] == 'Z'):
+    if parsed_datetime.tzinfo is not None:
+        if len(tokens) > 0 and tokens[-1] == 'Z':
             # the last 'Z' means zero offset
             tokens[-1] = '+0000'
         else:
@@ -924,11 +924,10 @@ def guess_datetime_format(
             # from correctly parsing the time zone format.
             # So in addition to the format nomalization, we rejoin them here.
             if (
-                (len(tokens) > 3)
+                len(tokens) > 3
                 and tokens[-1].isdigit()
-                and (tokens[-2] == ':')
                 and tokens[-3].isdigit()
-                and (tokens[-4] in ('+', '-'))
+                and tokens[-4] in ('+', '-')
             ):
                 # ex. [..., '+', '9', ':', '5'] -> [..., '+0905']
                 offset_idx = -4
@@ -938,9 +937,9 @@ def guess_datetime_format(
                 )
                 tokens = tokens[:offset_idx + 1]
             elif (
-                (len(tokens) > 1)
+                len(tokens) > 1
                 and tokens[-1].isdigit()
-                and (tokens[-2] in ('+', '-'))
+                and tokens[-2] in ('+', '-')
             ):
                 # ex. [..., '+', '0905'] -> [..., '+0905']
                 offset_idx = -2
