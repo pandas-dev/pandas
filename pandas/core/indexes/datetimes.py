@@ -116,16 +116,10 @@ def _new_DatetimeIndex(cls, d):
 @inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
 @inherit_names(
     [
-        "_bool_ops",
-        "_object_ops",
-        "_field_ops",
-        "_datetimelike_ops",
-        "_datetimelike_methods",
         "tz",
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_has_same_tz",
         "_format_native_types",
         "date",
         "time",
@@ -732,13 +726,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
-            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             try:
-                parsed, reso_str = parsing.parse_time_string(label, freq)
+                parsed, reso = self._parse_with_reso(label)
             except parsing.DateParseError as err:
                 raise self._invalid_indexer("slice", label) from err
 
-            reso = Resolution.from_attrname(reso_str)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -755,12 +747,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise self._invalid_indexer("slice", label)
 
         return self._maybe_cast_for_get_loc(label)
-
-    def _get_string_slice(self, key: str):
-        freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-        parsed, reso_str = parsing.parse_time_string(key, freq)
-        reso = Resolution.from_attrname(reso_str)
-        return self._partial_date_slice(reso, parsed)
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
