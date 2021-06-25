@@ -46,7 +46,6 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    NpDtype,
     RandomState,
     Renamer,
     StorageOptions,
@@ -55,6 +54,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     final,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1988,7 +1988,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
