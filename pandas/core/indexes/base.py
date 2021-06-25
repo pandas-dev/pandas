@@ -3465,7 +3465,8 @@ class Index(IndexOpsMixin, PandasObject):
         Should we attempt partial-matching indexing?
         """
         if is_interval_dtype(self.dtype):
-            return self.left._should_compare(target)
+            # "Index" has no attribute "left"
+            return self.left._should_compare(target)  # type: ignore[attr-defined]
         return False
 
     @final
