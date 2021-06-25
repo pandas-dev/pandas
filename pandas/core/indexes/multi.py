@@ -3552,7 +3552,7 @@ class MultiIndex(Index):
         return names
 
     def _wrap_intersection_result(self, other, result):
-        other, result_names = self._convert_can_do_setop(other)
+        _, result_names = self._convert_can_do_setop(other)
 
         if len(result) == 0:
             return MultiIndex(
@@ -3564,12 +3564,10 @@ class MultiIndex(Index):
         else:
             return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
-    def _difference(self, other, sort) -> MultiIndex:
-        other, result_names = self._convert_can_do_setop(other)
+    def _wrap_difference_result(self, other, result):
+        _, result_names = self._convert_can_do_setop(other)
 
-        difference = super()._difference(other, sort)
-
-        if len(difference) == 0:
+        if len(result) == 0:
             return MultiIndex(
                 levels=[[]] * self.nlevels,
                 codes=[[]] * self.nlevels,
@@ -3577,7 +3575,7 @@ class MultiIndex(Index):
                 verify_integrity=False,
             )
         else:
-            return MultiIndex.from_tuples(difference, sortorder=0, names=result_names)
+            return MultiIndex.from_tuples(result, sortorder=0, names=result_names)
 
     def _convert_can_do_setop(self, other):
         result_names = self.names
@@ -3598,18 +3596,6 @@ class MultiIndex(Index):
             result_names = get_unanimous_names(self, other)
 
         return other, result_names
-
-    def symmetric_difference(self, other, result_name=None, sort=None):
-        # On equal symmetric_difference MultiIndexes the difference is empty.
-        # Therefore, an empty MultiIndex is returned GH13490
-        tups = Index.symmetric_difference(self, other, result_name, sort)
-        if len(tups) == 0:
-            return type(self)(
-                levels=[[] for _ in range(self.nlevels)],
-                codes=[[] for _ in range(self.nlevels)],
-                names=tups.names,
-            )
-        return tups
 
     # --------------------------------------------------------------------
 
