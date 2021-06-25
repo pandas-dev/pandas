@@ -1894,7 +1894,7 @@ class _iLocIndexer(_LocationIndexer):
         """
         pi = plane_indexer
 
-        if not getattr(self.obj._mgr, "blocks", False):
+        if not hasattr(self.obj._mgr, "blocks"):
             # ArrayManager
             self.obj._mgr.column_setitem(loc, plane_indexer, value)
             self.obj._clear_item_cache()

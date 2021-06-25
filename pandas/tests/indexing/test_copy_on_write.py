@@ -347,6 +347,81 @@ def test_subset_set_with_column_indexer(indexer, using_array_manager):
 
 # TODO add more tests modifying the parent
 
+# -----------------------------------------------------------------------------
+# Series -- Indexing operations taking subset + modifying the subset/parent
+
+
+def test_series_getitem_slice(using_array_manager):
+    # Case: taking a slice of a Series + afterwards modifying the subset
+    s = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    s_orig = s.copy()
+
+    subset = s[:]
+    assert np.may_share_memory(subset.values, s.values)
+
+    subset.iloc[0] = 0
+
+    if using_array_manager:
+        assert not np.may_share_memory(subset.values, s.values)
+
+    expected = pd.Series([0, 2, 3], index=["a", "b", "c"])
+    tm.assert_series_equal(subset, expected)
+
+    if using_array_manager:
+        # original parent series is not modified (CoW)
+        tm.assert_series_equal(s, s_orig)
+    else:
+        # original parent series is actually updated
+        assert s.iloc[0] == 0
+
+
+# -----------------------------------------------------------------------------
+# del operator
+
+
+def test_del_frame(using_array_manager):
+    # Case: deleting a column with `del` on a viewing child dataframe should
+    # not modify parent + update the references
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df[:]
+
+    assert np.may_share_memory(df["a"].values, df2["a"].values)
+
+    del df2["b"]
+
+    assert np.may_share_memory(df["a"].values, df2["a"].values)
+    tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df2, df_orig[["a", "c"]])
+    df2._mgr._verify_integrity()
+
+    # TODO in theory modifying column "b" of the parent wouldn't need a CoW
+    # but the weakref is still alive and so we still perform CoW
+
+    if using_array_manager:
+        # modifying child after deleting a column still doesn't update parent
+        df2.loc[0, "a"] = 100
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_del_series(using_array_manager):
+    s = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    s_orig = s.copy()
+    s2 = s[:]
+
+    assert np.may_share_memory(s.values, s2.values)
+
+    del s2["a"]
+
+    assert not np.may_share_memory(s.values, s2.values)
+    tm.assert_series_equal(s, s_orig)
+    tm.assert_series_equal(s2, s_orig[["b", "c"]])
+
+    # modifying s2 doesn't need copy on write (due to `del`, s2 is backed by new array)
+    values = s2.values
+    s2.loc["b"] = 100
+    assert values[0] == 100
+
 
 # -----------------------------------------------------------------------------
 # Accessing column as Series

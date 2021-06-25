@@ -767,6 +767,12 @@ class ArrayManager(BaseArrayManager):
                     "Passed arrays should be 1-dimensional, got array with "
                     f"{arr.ndim} dimensions instead."
                 )
+        if self.refs is not None:
+            if not len(self.refs) == n_columns:
+                raise ValueError(
+                    "Number of passed refs must equal the size of the column Index: "
+                    f"{len(self.refs)} refs vs {n_columns} columns."
+                )
 
     # --------------------------------------------------------------------
     # Indexing
@@ -937,12 +943,12 @@ class ArrayManager(BaseArrayManager):
         """
         Delete selected locations in-place (new block and array, same BlockManager)
         """
-        # TODO update refs
         to_keep = np.ones(self.shape[0], dtype=np.bool_)
         to_keep[indexer] = False
 
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
+        self.refs = [ref for i, ref in enumerate(self.refs) if to_keep[i]]
         return self
 
     def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value):
@@ -1339,7 +1345,9 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def getitem_mgr(self, indexer) -> SingleArrayManager:
         new_array = self.array[indexer]
         new_index = self.index[indexer]
-        return type(self)([new_array], [new_index])
+        # TODO in theory only need to track reference if new_array is a view
+        ref = weakref.ref(self.array)
+        return type(self)([new_array], [new_index], [ref])
 
     def apply(self, func, **kwargs):
         if callable(func):
@@ -1362,12 +1370,13 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """
         Delete selected locations in-place (new array, same ArrayManager)
         """
-        # TODO clear reference
         to_keep = np.ones(self.shape[0], dtype=np.bool_)
         to_keep[indexer] = False
 
         self.arrays = [self.arrays[0][to_keep]]
         self._axes = [self._axes[0][to_keep]]
+        # clear reference since we are backed by new array
+        self.refs = None
         return self
 
     def _get_data_subset(self, predicate: Callable) -> SingleArrayManager:
