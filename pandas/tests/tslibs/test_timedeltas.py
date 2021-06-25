@@ -8,6 +8,8 @@ from pandas import (
     offsets,
 )
 
+from pandas.errors import OutOfBoundsTimedelta
+
 
 @pytest.mark.parametrize(
     "obj,expected",
@@ -37,3 +39,9 @@ def test_huge_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
     assert delta_to_nanoseconds(Timedelta(nanoseconds=1e10)) == 1e10
+
+
+def test_out_of_bounds():
+    # GH 36615
+    with pytest.raises(OutOfBoundsTimedelta, match="200000 days"):
+        Timedelta(np.timedelta64(200000, "D"))
