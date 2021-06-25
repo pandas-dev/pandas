@@ -97,7 +97,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
--
+- Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key (:issue:`33469`)
 
 .. ---------------------------------------------------------------------------
 
