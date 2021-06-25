@@ -3763,7 +3763,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not isinstance(target, Index) and len(target) == 0:
             if level is not None and self._is_multi:
-                idx = self.levels[level]
+                # "Index" has no attribute "levels"; maybe "nlevels"?
+                idx = self.levels[level]  # type: ignore[attr-defined]
             else:
                 idx = self
             target = idx[:0]
