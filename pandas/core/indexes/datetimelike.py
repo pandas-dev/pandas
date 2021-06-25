@@ -18,7 +18,6 @@ import numpy as np
 from pandas._libs import (
     NaT,
     Timedelta,
-    iNaT,
     lib,
 )
 from pandas._libs.tslibs import (
@@ -197,120 +196,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         Return a list of the underlying data.
         """
         return list(self.astype(object))
-
-    def min(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return the minimum value of the Index or minimum along
-        an axis.
-
-        See Also
-        --------
-        numpy.ndarray.min
-        Series.min : Return the minimum value in a Series.
-        """
-        nv.validate_min(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        if not len(self):
-            return self._na_value
-
-        i8 = self.asi8
-
-        if len(i8) and self.is_monotonic_increasing:
-            # quick check
-            if i8[0] != iNaT:
-                return self._data._box_func(i8[0])
-
-        if self.hasnans:
-            if not skipna:
-                return self._na_value
-            i8 = i8[~self._isnan]
-
-        if not len(i8):
-            return self._na_value
-
-        min_stamp = i8.min()
-        return self._data._box_func(min_stamp)
-
-    def argmin(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Returns the indices of the minimum values along an axis.
-
-        See `numpy.ndarray.argmin` for more information on the
-        `axis` parameter.
-
-        See Also
-        --------
-        numpy.ndarray.argmin
-        """
-        nv.validate_argmin(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        i8 = self.asi8
-        if self.hasnans:
-            mask = self._isnan
-            if mask.all() or not skipna:
-                return -1
-            i8 = i8.copy()
-            i8[mask] = np.iinfo("int64").max
-        return i8.argmin()
-
-    def max(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Return the maximum value of the Index or maximum along
-        an axis.
-
-        See Also
-        --------
-        numpy.ndarray.max
-        Series.max : Return the maximum value in a Series.
-        """
-        nv.validate_max(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        if not len(self):
-            return self._na_value
-
-        i8 = self.asi8
-
-        if len(i8) and self.is_monotonic:
-            # quick check
-            if i8[-1] != iNaT:
-                return self._data._box_func(i8[-1])
-
-        if self.hasnans:
-            if not skipna:
-                return self._na_value
-            i8 = i8[~self._isnan]
-
-        if not len(i8):
-            return self._na_value
-
-        max_stamp = i8.max()
-        return self._data._box_func(max_stamp)
-
-    def argmax(self, axis=None, skipna=True, *args, **kwargs):
-        """
-        Returns the indices of the maximum values along an axis.
-
-        See `numpy.ndarray.argmax` for more information on the
-        `axis` parameter.
-
-        See Also
-        --------
-        numpy.ndarray.argmax
-        """
-        nv.validate_argmax(args, kwargs)
-        nv.validate_minmax_axis(axis)
-
-        i8 = self.asi8
-        if self.hasnans:
-            mask = self._isnan
-            if mask.all() or not skipna:
-                return -1
-            i8 = i8.copy()
-            i8[mask] = 0
-        return i8.argmax()
 
     # --------------------------------------------------------------------
     # Rendering Methods
