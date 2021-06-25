@@ -3270,8 +3270,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2   blue  2
         0    red  0
         """
-        from pandas.core.reshape.concat import concat
-
         n = algorithms.process_sampling_size(n, frac, replace)
         if n is None:
             assert frac is not None
@@ -3292,19 +3290,39 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         random_state = com.random_state(random_state)
 
         group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
-        samples = [
-            algorithms.sample(
+        sampled_indices = []
+        for i, ((ind, obj), w) in enumerate(zip(group_iterator, ws)):
+            grp_idx = self.indices[ind]
+            size = n
+            if n is None:
+                size = round(frac * len(grp_idx))
+            grp_sample = algorithms.sample(
                 obj,
-                size=sizes[i],
+                size=size,
                 replace=replace,
-                weights=w,
+                weights=None if weights is None else weights[grp_idx],
                 random_state=random_state,
                 axis=self.axis,
             )
-            for i, ((_, obj), w) in enumerate(zip(group_iterator, ws))
-        ]
+            sampled_indices.append(grp_idx[grp_sample])
 
-        return concat(samples, axis=self.axis)
+        sampled_indices = np.concatenate(sampled_indices)
+
+        # sampled_indices = np.concatenate([
+        #     algorithms.sample(
+        #         obj,
+        #         size=sizes[i],
+        #         replace=replace,
+        #         weights=w,
+        #         random_state=random_state,
+        #         axis=self.axis,
+        #     )
+        #     for i, ((ind, obj), w) in enumerate(zip(group_iterator, ws))
+        # ])
+        # print(sampled_indices.shape)
+        # print(self._selected_obj)
+
+        return self._selected_obj.take(sampled_indices, axis=self.axis)
 
 
 @doc(GroupBy)

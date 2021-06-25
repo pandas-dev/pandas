@@ -834,7 +834,7 @@ class AggEngine:
 
 class Sample:
     def setup(self):
-        N = 10 ** 5
+        N = 10 ** 3
         self.df = DataFrame({"a": np.zeros(N)})
         self.groups = np.arange(0, N)
         self.weights = np.ones(N)

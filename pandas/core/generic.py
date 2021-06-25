@@ -5275,7 +5275,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             size = round(frac * self.shape[axis])
 
         weights = algos.preprocess_weights(self, weights, axis)
-        return algos.sample(self, size, replace, weights, rs, axis)
+        sampled_indices = algos.sample(self, size, replace, weights, rs, axis)
+        return self.take(sampled_indices, axis=axis)
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])

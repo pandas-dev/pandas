@@ -1995,5 +1995,4 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
-    locs = random_state.choice(axis_length, size=size, replace=replace, p=weights)
-    return obj.take(locs, axis=axis)
+    return random_state.choice(axis_length, size=size, replace=replace, p=weights)
