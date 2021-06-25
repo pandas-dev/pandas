@@ -203,6 +203,10 @@ class BaseArrayManager(DataManager):
 
     # TODO setstate getstate
 
+    def __reduce__(self):
+        # to avoid pickling the refs
+        return type(self), (self.arrays, self._axes)
+
     def __repr__(self) -> str:
         output = type(self).__name__
         output += f"\nIndex: {self._axes[0]}"
@@ -948,19 +952,24 @@ class ArrayManager(BaseArrayManager):
 
         self.arrays = [self.arrays[i] for i in np.nonzero(to_keep)[0]]
         self._axes = [self._axes[0], self._axes[1][to_keep]]
-        self.refs = [ref for i, ref in enumerate(self.refs) if to_keep[i]]
+        if self.refs is not None:
+            self.refs = [ref for i, ref in enumerate(self.refs) if to_keep[i]]
         return self
 
     def column_setitem(self, loc: int, idx: int | slice | np.ndarray, value):
         if self._has_no_reference(loc):
-            # if no reference -> set array inplace
-            self.arrays[loc][idx] = value
+            # if no reference -> set array (potentially) inplace
+            arr = self.arrays[loc]
         else:
             # otherwise perform Copy-on-Write and clear the reference
             arr = self.arrays[loc].copy()
-            arr[idx] = value
-            self.arrays[loc] = arr
             self._clear_reference(loc)
+
+        # create temporary SingleArrayManager without ref to use setitem implementation
+        mgr = SingleArrayManager([arr], [self._axes[0]])
+        new_mgr = mgr.setitem(idx, value)
+        # update existing ArrayManager in-place
+        self.arrays[loc] = new_mgr.arrays[0]
 
     # --------------------------------------------------------------------
     # Array-wise Operation
