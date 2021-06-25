@@ -3271,27 +3271,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         0    red  0
         """
         n = algorithms.process_sampling_size(n, frac, replace)
-        if n is None:
-            assert frac is not None
-            sizes = np.zeros(self.ngroups, dtype="i8")
-            for i, idx in enumerate(self.indices.values()):
-                sizes[i] = round(frac * len(idx))
-        else:
-            sizes = np.full(self.ngroups, n, dtype="i8")
-
         if weights is not None:
             weights = algorithms.preprocess_weights(
                 self._selected_obj, weights, axis=self.axis
             )
-            ws = [weights[idx] for idx in self.indices.values()]
-        else:
-            ws = [None] * self.ngroups
 
         random_state = com.random_state(random_state)
 
         group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         sampled_indices = []
-        for i, ((ind, obj), w) in enumerate(zip(group_iterator, ws)):
+        for i, (ind, obj) in enumerate(group_iterator):
             grp_idx = self.indices[ind]
             size = n
             if n is None:
