@@ -681,13 +681,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-    if_sheet_exists : {'error', 'new', 'replace'}, default 'error'
+         : {'error', 'new', 'replace', 'write_to'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
+        * write_to: Write contents to the existing sheet.
 
         .. versionadded:: 1.3.0
     engine_kwargs : dict, optional
@@ -754,6 +755,27 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
+
+    Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
+    already exists:
+
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="replace"
+    ... ) as writer:
+    ...     df.to_excel(writer, sheet_name="Sheet1")
+
+    You can specify arguments to the underlying engine. For example to not
+    calculate the result of a formula:
+
+    >>> df = pd.DataFrame(["=1+1"])
+    ... with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine_kwargs={"strings_to_formulas":False}
+    ... ) as writer:
+    ...     df.to_excel(writer)
 
     You can store Excel file in RAM:
 
@@ -940,10 +962,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_sheet_exists not in [None, "error", "new", "replace"]:
+        if if_sheet_exists not in [None, "error", "new", "replace", "write_to"]:
             raise ValueError(
                 f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new' and 'replace'."
+                "Valid options are 'error', 'new', 'replace' and 'write_to'."
             )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
