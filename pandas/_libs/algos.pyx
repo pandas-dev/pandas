@@ -1372,26 +1372,29 @@ def rank_2d(
     Fast NaN-friendly version of ``scipy.stats.rankdata``.
     """
     cdef:
-        Py_ssize_t i, j, z, k, n, dups = 0, total_tie_count = 0
-        Py_ssize_t infs
-        ndarray[float64_t, ndim=2] ranks
+        Py_ssize_t k, n, col
+        float64_t[::1, :] out  # Column-major so columns are contiguous
+        int64_t[::1, :] grp_sizes
+        const intp_t[:] labels
         ndarray[rank_t, ndim=2] values
-        ndarray[intp_t, ndim=2] argsort_indexer
-        ndarray[uint8_t, ndim=2] mask
-        rank_t val, nan_fill_val
-        float64_t count, sum_ranks = 0.0
-        int tiebreak = 0
-        int64_t idx
-        bint check_mask, condition, keep_na, nans_rank_highest
+        rank_t[:, :] masked_vals
+        intp_t[:, :] sort_indexer
+        uint8_t[:, :] mask
+        TiebreakEnumType tiebreak
+        bint check_mask, keep_na, nans_rank_highest
+        rank_t nan_fill_val
 
     tiebreak = tiebreakers[ties_method]
+    if tiebreak == TIEBREAK_FIRST:
+        if not ascending:
+            tiebreak = TIEBREAK_FIRST_DESCENDING
 
     keep_na = na_option == 'keep'
 
     # For cases where a mask is not possible, we can avoid mask checks
     check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
 
-    if axis == 0:
+    if axis == 1:
         values = np.asarray(in_arr).T.copy()
     else:
         values = np.asarray(in_arr).copy()
@@ -1403,99 +1406,62 @@ def rank_2d(
     nans_rank_highest = ascending ^ (na_option == 'top')
     if check_mask:
         nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+
         if rank_t is object:
-            mask = missing.isnaobj2d(values)
+            mask = missing.isnaobj2d(values).view(np.uint8)
         elif rank_t is float64_t:
-            mask = np.isnan(values)
+            mask = np.isnan(values).view(np.uint8)
 
         # int64 and datetimelike
         else:
-            mask = values == NPY_NAT
-
+            mask = (values == NPY_NAT).view(np.uint8)
         np.putmask(values, mask, nan_fill_val)
     else:
-        mask = np.zeros_like(values, dtype=bool)
+        mask = np.zeros_like(values, dtype=np.uint8)
+
+    if nans_rank_highest:
+        order = (values, mask)
+    else:
+        order = (values, ~np.asarray(mask))
 
     n, k = (<object>values).shape
-    ranks = np.empty((n, k), dtype='f8')
+    out = np.empty((n, k), dtype='f8', order='F')
+    grp_sizes = np.ones((n, k), dtype='i8', order='F')
+    labels = np.zeros(n, dtype=np.intp)
 
-    if tiebreak == TIEBREAK_FIRST:
-        # need to use a stable sort here
-        argsort_indexer = values.argsort(axis=1, kind='mergesort')
-        if not ascending:
-            tiebreak = TIEBREAK_FIRST_DESCENDING
+    # lexsort is slower, so only use if we need to worry about the mask
+    if check_mask:
+        sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
     else:
-        argsort_indexer = values.argsort(1)
+        kind = "stable" if ties_method == "first" else None
+        sort_indexer = values.argsort(axis=0, kind=kind).astype(np.intp, copy=False)
 
     if not ascending:
-        argsort_indexer = argsort_indexer[:, ::-1]
+        sort_indexer = sort_indexer[::-1, :]
 
-    values = _take_2d(values, argsort_indexer)
+    # putmask doesn't accept a memoryview, so we assign in a separate step
+    masked_vals = values
+    with nogil:
+        for col in range(k):
+            rank_sorted_1d(
+                out[:, col],
+                grp_sizes[:, col],
+                labels,
+                sort_indexer[:, col],
+                masked_vals[:, col],
+                mask[:, col],
+                tiebreak,
+                check_mask,
+                False,
+                keep_na,
+                pct,
+                n,
+            )
 
-    for i in range(n):
-        dups = sum_ranks = infs = 0
-
-        total_tie_count = 0
-        count = 0.0
-        for j in range(k):
-            val = values[i, j]
-            idx = argsort_indexer[i, j]
-            if keep_na and check_mask and mask[i, idx]:
-                ranks[i, idx] = NaN
-                infs += 1
-                continue
-
-            count += 1.0
-
-            sum_ranks += (j - infs) + 1
-            dups += 1
-
-            if rank_t is object:
-                condition = (
-                    j == k - 1 or
-                    are_diff(values[i, j + 1], val) or
-                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
-                )
-            else:
-                condition = (
-                    j == k - 1 or
-                    values[i, j + 1] != val or
-                    (keep_na and check_mask and mask[i, argsort_indexer[i, j + 1]])
-                )
-
-            if condition:
-                if tiebreak == TIEBREAK_AVERAGE:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = sum_ranks / dups
-                elif tiebreak == TIEBREAK_MIN:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = j - dups + 2
-                elif tiebreak == TIEBREAK_MAX:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = j + 1
-                elif tiebreak == TIEBREAK_FIRST:
-                    if rank_t is object:
-                        raise ValueError('first not supported for non-numeric data')
-                    else:
-                        for z in range(j - dups + 1, j + 1):
-                            ranks[i, argsort_indexer[i, z]] = z + 1
-                elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = 2 * j - z - dups + 2
-                elif tiebreak == TIEBREAK_DENSE:
-                    total_tie_count += 1
-                    for z in range(j - dups + 1, j + 1):
-                        ranks[i, argsort_indexer[i, z]] = total_tie_count
-                sum_ranks = dups = 0
-        if pct:
-            if tiebreak == TIEBREAK_DENSE:
-                ranks[i, :] /= total_tie_count
-            else:
-                ranks[i, :] /= count
-    if axis == 0:
-        return ranks.T
+    if axis == 1:
+        return np.asarray(out.T)
     else:
-        return ranks
+        return np.asarray(out)
 
 
 ctypedef fused diff_t:
