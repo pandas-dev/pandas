@@ -126,7 +126,7 @@ class TestCommon:
         new_copy = index.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_unique(self, index_flat):
+    def test_unique_level(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
         index = index_flat
 
@@ -147,7 +147,7 @@ class TestCommon:
         with pytest.raises(KeyError, match=msg):
             index.unique(level="wrong")
 
-    def test_get_unique_index(self, index_flat):
+    def test_unique(self, index_flat):
         # MultiIndex tested separately
         index = index_flat
         if not len(index):
@@ -164,7 +164,7 @@ class TestCommon:
         except NotImplementedError:
             pass
 
-        result = idx._get_unique_index()
+        result = idx.unique()
         tm.assert_index_equal(result, idx_unique)
 
         # nans:
@@ -195,7 +195,7 @@ class TestCommon:
 
         expected = idx_unique_nan
         for i in [idx_nan, idx_unique_nan]:
-            result = i._get_unique_index()
+            result = i.unique()
             tm.assert_index_equal(result, expected)
 
     def test_searchsorted_monotonic(self, index_flat):
