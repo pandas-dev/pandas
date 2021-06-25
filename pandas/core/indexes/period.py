@@ -15,13 +15,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaT,
     Period,
     Resolution,
     Tick,
-)
-from pandas._libs.tslibs.parsing import (
-    DateParseError,
-    parse_time_string,
 )
 from pandas._typing import (
     Dtype,
@@ -35,6 +32,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -409,43 +407,50 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         orig_key = key
 
         self._check_indexing_error(key)
-        if isinstance(key, str):
+
+        if is_valid_na_for_dtype(key, self.dtype):
+            key = NaT
+
+        elif isinstance(key, str):
 
             try:
-                loc = self._get_string_slice(key)
-                return loc
-            except (TypeError, ValueError):
-                pass
-
-            try:
-                asdt, reso_str = parse_time_string(key, self.freq)
-            except (ValueError, DateParseError) as err:
+                parsed, reso = self._parse_with_reso(key)
+            except ValueError as err:
                 # A string with invalid format
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
-            reso = Resolution.from_attrname(reso_str)
+            if self._can_partial_date_slice(reso):
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    # TODO: pass if method is not None, like DTI does?
+                    raise KeyError(key) from err
 
             if reso == self.dtype.resolution:
                 # the reso < self.dtype.resolution case goes through _get_string_slice
-                key = Period(asdt, freq=self.freq)
+                key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
+                # Recursing instead of falling through matters for the exception
+                #  message in test_get_loc3 (though not clear if that really matters)
                 return loc
             elif method is None:
                 raise KeyError(key)
             else:
-                key = asdt
+                key = Period(parsed, freq=self.freq)
 
-        elif is_integer(key):
-            # Period constructor will cast to string, which we dont want
-            raise KeyError(key)
         elif isinstance(key, Period) and key.freq != self.freq:
             raise KeyError(key)
-
-        try:
-            key = Period(key, freq=self.freq)
-        except ValueError as err:
-            # we cannot construct the Period
-            raise KeyError(orig_key) from err
+        elif isinstance(key, Period):
+            pass
+        elif isinstance(key, datetime):
+            try:
+                key = Period(key, freq=self.freq)
+            except ValueError as err:
+                # we cannot construct the Period
+                raise KeyError(orig_key) from err
+        else:
+            # in particular integer, which Period constructor would cast to string
+            raise KeyError(key)
 
         try:
             return Index.get_loc(self, key, method, tolerance)
@@ -496,7 +501,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         iv = Period(parsed, freq=grp.value)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
         grp = reso.freq_group
         freqn = self.dtype.freq_group_code
@@ -505,7 +510,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             # TODO: we used to also check for
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
-            raise ValueError
+            return False
+
+        return True
 
 
 def period_range(
