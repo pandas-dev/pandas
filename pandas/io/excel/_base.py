@@ -757,14 +757,22 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
     already exists:
 
-    >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="replace"
+    ... ) as writer:
     ...     df.to_excel(writer, sheet_name="Sheet1")
 
     You can specify arguments to the underlying engine. For example to not
     calculate the result of a formula:
 
     >>> df = pd.DataFrame(["=1+1"])
-    ... with ExcelWriter("path_to_file.xlsx", engine_kwargs={"strings_to_formulas":False})
+    ... with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine_kwargs={"strings_to_formulas":False}
+    ... ) as writer:
     ...     df.to_excel(writer)
 
     You can store Excel file in RAM:
