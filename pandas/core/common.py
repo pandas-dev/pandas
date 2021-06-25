@@ -403,7 +403,7 @@ def random_state(
     ...
 
 
-def random_state(state: RandomState | None):
+def random_state(state: RandomState | None = None):
     """
     Helper function for processing random_state arguments.
 
@@ -421,9 +421,11 @@ def random_state(state: RandomState | None):
             array-like and BitGenerator object now passed to np.random.RandomState()
             as seed
 
+        Default None.
+
     Returns
     -------
-    np.random.RandomState or np.random.Generator
+    np.random.RandomState or np.random.Generator. If state is None, returns np.random
 
     """
     if (
