@@ -5269,12 +5269,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Process random_state argument
         rs = com.random_state(random_state)
 
-        n = algos.process_sampling_size(n, frac, replace)
-        if n is None:
+        size = algos.process_sampling_size(n, frac, replace)
+        if size is None:
             assert frac is not None
             size = round(frac * self.shape[axis])
-        else:
-            size = n
+
         weights = algos.preprocess_weights(self, weights, axis)
         return algos.sample(self, size, replace, weights, rs, axis)
 

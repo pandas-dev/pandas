@@ -28,10 +28,10 @@ from pandas._libs import (
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
-    FrameOrSeries,
-    RandomState,
     DtypeObj,
+    FrameOrSeries,
     FrameOrSeriesUnion,
+    RandomState,
     Scalar,
 )
 from pandas.util._decorators import doc
@@ -64,8 +64,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
-    ABCDatetimeArray,
     ABCDataFrame,
+    ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
@@ -1939,7 +1939,7 @@ def preprocess_weights(obj: DataFrame | Series, weights, axis: int):
         if len(weights) != obj.shape[axis]:
             raise ValueError("Weights and axis to be sampled must be of same length")
 
-        if lib.has_infs(weights):
+        if lib.has_infs_f8(weights):
             raise ValueError("weight vector may not include `inf` values")
 
         if (weights < 0).any():
@@ -1949,25 +1949,31 @@ def preprocess_weights(obj: DataFrame | Series, weights, axis: int):
         return weights
 
 
-def process_sampling_size(n, frac: float | None, replace: bool):
+def process_sampling_size(
+    n: int | None, frac: float | None, replace: bool
+) -> int | None:
     # If no frac or n, default to n=1.
     if n is None and frac is None:
         n = 1
-    elif frac is not None and frac > 1 and not replace:
-        raise ValueError(
-            "Replace has to be set to `True` when "
-            "upsampling the population `frac` > 1."
-        )
-    elif frac is None and n % 1 != 0:
-        raise ValueError("Only integers accepted as `n` values")
-    elif frac is not None:
+    elif n is not None and frac is not None:
         raise ValueError("Please enter a value for `frac` OR `n`, not both")
-
-    # Check for negative sizes
-    if n < 0:
-        raise ValueError(
-            "A negative number of rows requested. Please provide positive value."
-        )
+    elif n is not None:
+        if n < 0:
+            raise ValueError(
+                "A negative number of rows requested. Please provide `n` >= 0."
+            )
+        if n % 1 != 0:
+            raise ValueError("Only integers accepted as `n` values")
+    else:
+        if frac > 1 and not replace:
+            raise ValueError(
+                "Replace has to be set to `True` when "
+                "upsampling the population `frac` > 1."
+            )
+        if frac < 0:
+            raise ValueError(
+                "A negative number of rows requested. Please provide `frac` >= 0."
+            )
 
     return n
 

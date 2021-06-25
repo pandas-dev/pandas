@@ -3275,12 +3275,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         n = algorithms.process_sampling_size(n, frac, replace)
         if n is None:
             assert frac is not None
-            sizes = []
+            sizes = np.zeros(self.ngroups, dtype="i8")
+            for i, idx in enumerate(self.indices.values()):
+                sizes[i] = round(frac * len(idx))
+        else:
+            sizes = np.full(self.ngroups, n, dtype="i8")
 
         if weights is not None:
-            weights = algorithms.preprocess_weights(self, weights, axis=0)
-            weights = Series(weights, index=self._selected_obj.index)
-            ws = [weights.iloc[idx] for idx in self.indices.values()]
+            weights = algorithms.preprocess_weights(
+                self._selected_obj, weights, axis=self.axis
+            )
+            ws = [weights[idx] for idx in self.indices.values()]
         else:
             ws = [None] * self.ngroups
 
@@ -3289,9 +3294,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
         samples = [
             algorithms.sample(
-                self, size=size, replace=replace, weights=w, random_state=random_state, axis=0
+                obj,
+                size=sizes[i],
+                replace=replace,
+                weights=w,
+                random_state=random_state,
+                axis=self.axis,
             )
-            for (_, obj), w in zip(group_iterator, ws)
+            for i, ((_, obj), w) in enumerate(zip(group_iterator, ws))
         ]
 
         return concat(samples, axis=self.axis)
