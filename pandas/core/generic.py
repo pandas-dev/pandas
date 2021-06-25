@@ -5001,8 +5001,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         on position. It is useful for quickly testing if your object
         has the right type of data in it.
 
-        For negative values of `n`, this function returns all rows except
-        the last `n` rows, equivalent to ``df[:-n]``.
+        For a positive integer `k`, the function ``df.head(-k)`` returns all rows
+        except the last `k` rows, equivalent to ``df[:-k]``.
 
         Parameters
         ----------
@@ -5074,8 +5074,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         position. It is useful for quickly verifying data, for example,
         after sorting or appending rows.
 
-        For negative values of `n`, this function returns all rows except
-        the first `n` rows, equivalent to ``df[n:]``.
+        For a positive integer `k`, the function ``df.tail(-k)`` returns all rows
+        except the first `k` rows, equivalent to ``df[k:]``.
 
         Parameters
         ----------
