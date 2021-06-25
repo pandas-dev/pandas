@@ -3089,8 +3089,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        # TODO(EA): setops-refactor, clean all this up
-
         if self.is_monotonic and other.is_monotonic:
             try:
                 result = self._inner_indexer(other)[0]
@@ -3109,6 +3107,7 @@ class Index(IndexOpsMixin, PandasObject):
         # We will override for MultiIndex to handle empty results
         return self._wrap_setop_result(other, result)
 
+    @final
     def _intersection_via_get_indexer(self, other: Index, sort) -> ArrayLike:
         """
         Find the intersection of two Indexes using get_indexer.
@@ -3184,9 +3183,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self.rename(result_name)
 
         result = self._difference(other, sort=sort)
-        return self._wrap_setop_result(other, result)
+        return self._wrap_difference_result(other, result)
 
     def _difference(self, other, sort):
+        # overridden by RangeIndex
 
         this = self.unique()
 
@@ -3199,6 +3199,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         return the_diff
 
+    def _wrap_difference_result(self, other, result):
+        # We will override for MultiIndex to handle empty results
+        return self._wrap_setop_result(other, result)
+
+    @final
     def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
@@ -3246,6 +3251,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         if result_name is not None:
             result = result.rename(result_name)
+
+        if self._is_multi and len(result) == 0:
+            # On equal symmetric_difference MultiIndexes the difference is empty.
+            # Therefore, an empty MultiIndex is returned GH#13490
+            return type(self)(
+                levels=[[] for _ in range(self.nlevels)],
+                codes=[[] for _ in range(self.nlevels)],
+                names=result.names,
+            )
+
         return result
 
     @final
