@@ -3394,6 +3394,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._index_as_unique:
             raise InvalidIndexError(self._requires_unique_msg)
 
+        if len(target) == 0:
+            return np.array([], dtype=np.intp)
+
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
             # IntervalIndex get special treatment bc numeric scalars can be
             #  matched to Interval scalars
@@ -3402,9 +3405,14 @@ class Index(IndexOpsMixin, PandasObject):
         if is_categorical_dtype(target.dtype):
             # potential fastpath
             # get an indexer for unique categories then propagate to codes via take_nd
-            # Note: calling get_indexer instead of _get_indexer causes
-            #  RecursionError GH#42088
-            categories_indexer = self._get_indexer(target.categories)
+            if is_categorical_dtype(self.dtype):
+                # Avoid RecursionError GH#42088
+                categories_indexer = self._get_indexer(target.categories)
+            else:
+                # get_indexer instead of _get_indexer needed for MultiIndex cases
+                #  e.g. test_append_different_columns_types
+                categories_indexer = self.get_indexer(target.categories)
+
             indexer = algos.take_nd(categories_indexer, target.codes, fill_value=-1)
 
             if (not self._is_multi and self.hasnans) and target.hasnans:
@@ -5340,6 +5348,14 @@ class Index(IndexOpsMixin, PandasObject):
                 # lookup min as it may be cached
                 # TODO: may need itemsize check if we have non-64-bit Indexes
                 return self, other.astype(self.dtype)
+
+        elif self._is_multi and not other._is_multi:
+            try:
+                # "Type[Index]" has no attribute "from_tuples"
+                other = type(self).from_tuples(other)  # type: ignore[attr-defined]
+            except (TypeError, ValueError):
+                # let's instead try with a straight Index
+                self = Index(self._values)
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses

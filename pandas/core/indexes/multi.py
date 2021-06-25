@@ -2644,37 +2644,6 @@ class MultiIndex(Index):
 
         return key
 
-    def _get_indexer(
-        self,
-        target: Index,
-        method: str | None = None,
-        limit: int | None = None,
-        tolerance=None,
-    ) -> np.ndarray:
-        # returned ndarray is np.intp
-
-        # empty indexer
-        if not len(target):
-            return ensure_platform_int(np.array([]))
-
-        if not isinstance(target, MultiIndex):
-            try:
-                target = MultiIndex.from_tuples(target)
-            except (TypeError, ValueError):
-
-                # let's instead try with a straight Index
-                if method is None:
-                    return Index(self._values).get_indexer(
-                        target, method=method, limit=limit, tolerance=tolerance
-                    )
-
-                # TODO: explicitly raise here?  we only have one test that
-                #  gets here, and it is checking that we raise with method="nearest"
-
-        # Note: we only get here (in extant tests at least) with
-        #  target.nlevels == self.nlevels
-        return super()._get_indexer(target, method, limit, tolerance)
-
     def get_slice_bound(
         self, label: Hashable | Sequence[Hashable], side: str, kind: str | None = None
     ) -> int:
