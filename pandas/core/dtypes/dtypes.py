@@ -104,7 +104,7 @@ class PandasExtensionDtype(ExtensionDtype):
 
     @classmethod
     def reset_cache(cls) -> None:
-        """ clear the cache """
+        """clear the cache"""
         cls._cache_dtypes = {}
 
 
@@ -1267,8 +1267,6 @@ class IntervalDtype(PandasExtensionDtype):
 class PandasDtype(ExtensionDtype):
     """
     A Pandas ExtensionDtype for NumPy dtypes.
-
-    .. versionadded:: 0.24.0
 
     This is mostly for internal compatibility, and is not especially
     useful on its own.

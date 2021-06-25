@@ -18,13 +18,13 @@ dependencies:
   - cython>=0.29.21
 
   # code checks
-  - black=20.8b1
+  - black=21.5b2
   - cpplint
   - flake8=3.9.2
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.812
+  - mypy=0.910
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -79,7 +79,7 @@ dependencies:
   - bottleneck>=1.2.1
   - ipykernel
   - ipython>=7.11.1
-  - jinja2<3.0.0  # pandas.Styler
+  - jinja2  # pandas.Styler
   - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
   - numexpr>=2.7.0
   - scipy>=1.2
@@ -106,7 +106,7 @@ dependencies:
   - pyqt>=5.9.2  # pandas.read_clipboard
   - pytables>=3.5.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
-  - fsspec>=0.7.4  # for generic remote file operations
+  - fsspec>=0.7.4, <2021.6.0  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
@@ -118,3 +118,7 @@ dependencies:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
     - pandas-dev-flaker==0.2.0
+    - types-python-dateutil
+    - types-PyMySQL
+    - types-pytz
+    - types-setuptools

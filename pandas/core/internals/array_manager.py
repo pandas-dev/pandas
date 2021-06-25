@@ -455,7 +455,7 @@ class BaseArrayManager(DataManager):
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
-        """ do a list replace """
+        """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         return self.apply_with_block(
@@ -484,7 +484,7 @@ class BaseArrayManager(DataManager):
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if we are a single block and are a view """
+        """return a boolean if we are a single block and are a view"""
         # TODO what is this used for?
         return False
 
@@ -865,9 +865,7 @@ class ArrayManager(BaseArrayManager):
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
             assert len(value) == len(self._axes[0])
-            # error: Invalid index type "Union[int, slice, ndarray]" for
-            # "List[Union[ndarray, ExtensionArray]]"; expected type "int"
-            self.arrays[loc] = value  # type: ignore[index]
+            self.arrays[loc] = value
             return
 
         # multiple columns -> convert slice or array to integer indices
