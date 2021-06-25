@@ -240,11 +240,16 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self):
+    def test_constructor_dtype_nocast_view_dataframe(self, using_array_manager):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
-        should_be_view[0][0] = 99
-        assert df.values[0, 0] == 99
+        if using_array_manager:
+            # INFO(ArrayManager) doesn't mutate original
+            should_be_view.iloc[0, 0] = 99
+            assert df.values[0, 0] == 1
+        else:
+            should_be_view[0][0] = 99
+            assert df.values[0, 0] == 99
 
     @td.skip_array_manager_invalid_test  # TODO(ArrayManager) keep view on 2D array?
     def test_constructor_dtype_nocast_view_2d_array(self):

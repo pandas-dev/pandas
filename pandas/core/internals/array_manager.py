@@ -960,6 +960,9 @@ class ArrayManager(BaseArrayManager):
         if self._has_no_reference(loc):
             # if no reference -> set array (potentially) inplace
             arr = self.arrays[loc]
+            # TODO we should try to avoid this (indexing.py::_setitem_single_column
+            # does a copy for the BM path as well)
+            arr = arr.copy()
         else:
             # otherwise perform Copy-on-Write and clear the reference
             arr = self.arrays[loc].copy()
@@ -967,7 +970,7 @@ class ArrayManager(BaseArrayManager):
 
         # create temporary SingleArrayManager without ref to use setitem implementation
         mgr = SingleArrayManager([arr], [self._axes[0]])
-        new_mgr = mgr.setitem(idx, value)
+        new_mgr = mgr.setitem((idx,), value)
         # update existing ArrayManager in-place
         self.arrays[loc] = new_mgr.arrays[0]
 

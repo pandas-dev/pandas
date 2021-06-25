@@ -119,9 +119,7 @@ class TestXS:
         if using_array_manager:
             # INFO(ArrayManager) with ArrayManager getting a row as a view is
             # not possible
-            msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-            with pytest.raises(com.SettingWithCopyError, match=msg):
-                dm.xs(2)[:] = 20
+            dm.xs(2)[:] = 20
             assert not (dm.xs(2) == 20).any()
         else:
             dm.xs(2)[:] = 20
@@ -158,27 +156,41 @@ class TestXSWithMultiIndex:
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
 
-    def test_xs_setting_with_copy_error(self, multiindex_dataframe_random_data):
+    def test_xs_setting_with_copy_error(
+        self, multiindex_dataframe_random_data, using_array_manager
+    ):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
+        df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if not using_array_manager:
+            # setting this will give a SettingWithCopyError
+            # as we are trying to write a view
+            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                result[:] = 10
+        else:
             result[:] = 10
+        tm.assert_frame_equal(df, df_orig)
 
-    def test_xs_setting_with_copy_error_multiple(self, four_level_index_dataframe):
+    def test_xs_setting_with_copy_error_multiple(
+        self, four_level_index_dataframe, using_array_manager
+    ):
         # this is a copy in 0.14
         df = four_level_index_dataframe
+        df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        # setting this will give a SettingWithCopyError
-        # as we are trying to write a view
-        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if not using_array_manager:
+            # setting this will give a SettingWithCopyError
+            # as we are trying to write a view
+            msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                result[:] = 10
+        else:
             result[:] = 10
+        tm.assert_frame_equal(df, df_orig)
 
     @pytest.mark.parametrize("key, level", [("one", "second"), (["one"], ["second"])])
     def test_xs_with_duplicates(self, key, level, multiindex_dataframe_random_data):

@@ -269,7 +269,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame):
+    def test_setitem(self, float_frame, using_array_manager):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -305,8 +305,12 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
+        if using_array_manager:
+            # With ArrayManager, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
+        else:
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                smaller["col10"] = ["1", "2"]
 
         assert smaller["col10"].dtype == np.object_
         assert (smaller["col10"] == ["1", "2"]).all()
@@ -1004,14 +1008,18 @@ class TestDataFrameIndexing:
         # setting it makes it raise/warn
         subset = df.iloc[slice(4, 8)]
 
-        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        with pytest.raises(com.SettingWithCopyError, match=msg):
-            subset[2] = 0.0
-
         exp_col = original[2].copy()
-        # TODO(ArrayManager) verify it is expected that the original didn't change
-        if not using_array_manager:
+
+        msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
+        if using_array_manager:
+            # INFO(ArrayManager) doesn't modify parent
+            subset[2] = 0.0
+        else:
+            with pytest.raises(com.SettingWithCopyError, match=msg):
+                subset[2] = 0.0
+
             exp_col[4:8] = 0.0
+
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):

@@ -1896,7 +1896,11 @@ class _iLocIndexer(_LocationIndexer):
 
         if not hasattr(self.obj._mgr, "blocks"):
             # ArrayManager
-            self.obj._mgr.column_setitem(loc, plane_indexer, value)
+            if com.is_null_slice(pi) or com.is_full_slice(pi, len(self.obj)):
+                arr = self.obj._sanitize_column(value)
+                self.obj._mgr.iset(loc, arr)
+            else:
+                self.obj._mgr.column_setitem(loc, plane_indexer, value)
             self.obj._clear_item_cache()
             return
 
