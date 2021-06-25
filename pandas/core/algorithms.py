@@ -1998,15 +1998,14 @@ def sample(
     random_state: np.random.RandomState,
 ) -> np.ndarray:
     """
-    Extracts the union from lvals and rvals with respect to duplicates and nans in
-    both arrays.
+    Randomly sample `size` indices in `np.arange(obj_len)`
 
     Parameters
     ----------
     obj_len : int
-        The length of the items to consider
+        The length of the indices being considered
     size : int
-        The number of items to return
+        The number of values to choose
     replace : bool
         Allow or disallow sampling of the same row more than once.
     weights : np.ndarray[np.float64] or None

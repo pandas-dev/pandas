@@ -3279,10 +3279,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         random_state = com.random_state(random_state)
 
         group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
+
         sampled_indices = []
-        for ind, obj in group_iterator:
-            grp_idx = self.indices[ind]
-            group_size = len(grp_idx)
+        for labels, obj in group_iterator:
+            grp_indices = self.indices[labels]
+            group_size = len(grp_indices)
             if size is not None:
                 sample_size = size
             else:
@@ -3293,10 +3294,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 group_size,
                 size=sample_size,
                 replace=replace,
-                weights=None if weights is None else weights_arr[grp_idx],
+                weights=None if weights is None else weights_arr[grp_indices],
                 random_state=random_state,
             )
-            sampled_indices.append(grp_idx[grp_sample])
+            sampled_indices.append(grp_indices[grp_sample])
 
         sampled_indices = np.concatenate(sampled_indices)
         return self._selected_obj.take(sampled_indices, axis=self.axis)
