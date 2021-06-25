@@ -26,6 +26,7 @@ from pandas._libs.tslibs import (
     NaTType,
     Resolution,
     Tick,
+    parsing,
 )
 from pandas._typing import (
     Callable,
@@ -399,8 +400,21 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     def _validate_partial_date_slice(self, reso: Resolution):
         raise NotImplementedError
 
-    def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed):
         raise NotImplementedError
+
+    def _parse_with_reso(self, label: str):
+        # overridden by TimedeltaIndex
+        parsed, reso_str = parsing.parse_time_string(label, self.freq)
+        reso = Resolution.from_attrname(reso_str)
+        return parsed, reso
+
+    def _get_string_slice(self, key: str):
+        parsed, reso = self._parse_with_reso(key)
+        try:
+            return self._partial_date_slice(reso, parsed)
+        except KeyError as err:
+            raise KeyError(key) from err
 
     @final
     def _partial_date_slice(
