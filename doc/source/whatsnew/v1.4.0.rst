@@ -143,7 +143,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
 -
 
 Strings
