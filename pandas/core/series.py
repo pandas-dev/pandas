@@ -41,10 +41,10 @@ from pandas._typing import (
     FillnaOptions,
     FrameOrSeriesUnion,
     IndexKeyFunc,
-    NpDtype,
     SingleManager,
     StorageOptions,
     ValueKeyFunc,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
@@ -808,7 +808,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
