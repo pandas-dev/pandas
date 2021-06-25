@@ -2754,16 +2754,6 @@ class Index(IndexOpsMixin, PandasObject):
             return np.zeros(len(self), dtype=bool)
         return self._duplicated(keep=keep)
 
-    def _get_unique_index(self: _IndexT) -> _IndexT:
-        """
-        Returns an index containing unique values.
-
-        Returns
-        -------
-        Index
-        """
-        return self.unique()
-
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
 
@@ -3200,7 +3190,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _difference(self, other, sort):
 
-        this = self._get_unique_index()
+        this = self.unique()
 
         indexer = this.get_indexer_for(other)
         indexer = indexer.take((indexer != -1).nonzero()[0])
@@ -3404,6 +3394,9 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._index_as_unique:
             raise InvalidIndexError(self._requires_unique_msg)
 
+        if len(target) == 0:
+            return np.array([], dtype=np.intp)
+
         if not self._should_compare(target) and not is_interval_dtype(self.dtype):
             # IntervalIndex get special treatment bc numeric scalars can be
             #  matched to Interval scalars
@@ -3412,9 +3405,14 @@ class Index(IndexOpsMixin, PandasObject):
         if is_categorical_dtype(target.dtype):
             # potential fastpath
             # get an indexer for unique categories then propagate to codes via take_nd
-            # Note: calling get_indexer instead of _get_indexer causes
-            #  RecursionError GH#42088
-            categories_indexer = self._get_indexer(target.categories)
+            if is_categorical_dtype(self.dtype):
+                # Avoid RecursionError GH#42088
+                categories_indexer = self._get_indexer(target.categories)
+            else:
+                # get_indexer instead of _get_indexer needed for MultiIndex cases
+                #  e.g. test_append_different_columns_types
+                categories_indexer = self.get_indexer(target.categories)
+
             indexer = algos.take_nd(categories_indexer, target.codes, fill_value=-1)
 
             if (not self._is_multi and self.hasnans) and target.hasnans:
@@ -5351,6 +5349,14 @@ class Index(IndexOpsMixin, PandasObject):
                 # TODO: may need itemsize check if we have non-64-bit Indexes
                 return self, other.astype(self.dtype)
 
+        elif self._is_multi and not other._is_multi:
+            try:
+                # "Type[Index]" has no attribute "from_tuples"
+                other = type(self).from_tuples(other)  # type: ignore[attr-defined]
+            except (TypeError, ValueError):
+                # let's instead try with a straight Index
+                self = Index(self._values)
+
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
             other, self = other._maybe_promote(self)
@@ -6060,6 +6066,9 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: __inv__ vs __invert__?
         return self._unary_method(lambda x: -x)
 
+    # --------------------------------------------------------------------
+    # Reductions
+
     def any(self, *args, **kwargs):
         """
         Return whether any element is Truthy.
@@ -6179,6 +6188,84 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # This call will raise
             make_invalid_op(opname)(self)
+
+    @Appender(IndexOpsMixin.argmin.__doc__)
+    def argmin(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_argmin(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if not self._is_multi and self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return -1
+        return super().argmin(skipna=skipna)
+
+    @Appender(IndexOpsMixin.argmax.__doc__)
+    def argmax(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_argmax(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if not self._is_multi and self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return -1
+        return super().argmax(skipna=skipna)
+
+    @doc(IndexOpsMixin.min)
+    def min(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_min(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if not len(self):
+            return self._na_value
+
+        if len(self) and self.is_monotonic_increasing:
+            # quick check
+            first = self[0]
+            if not isna(first):
+                return first
+
+        if not self._is_multi and self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return self._na_value
+
+        if not self._is_multi and not isinstance(self._values, np.ndarray):
+            # "ExtensionArray" has no attribute "min"
+            return self._values.min(skipna=skipna)  # type: ignore[attr-defined]
+
+        return super().min(skipna=skipna)
+
+    @doc(IndexOpsMixin.max)
+    def max(self, axis=None, skipna=True, *args, **kwargs):
+        nv.validate_max(args, kwargs)
+        nv.validate_minmax_axis(axis)
+
+        if not len(self):
+            return self._na_value
+
+        if len(self) and self.is_monotonic_increasing:
+            # quick check
+            last = self[-1]
+            if not isna(last):
+                return last
+
+        if not self._is_multi and self.hasnans:
+            # Take advantage of cache
+            mask = self._isnan
+            if not skipna or mask.all():
+                return self._na_value
+
+        if not self._is_multi and not isinstance(self._values, np.ndarray):
+            # "ExtensionArray" has no attribute "max"
+            return self._values.max(skipna=skipna)  # type: ignore[attr-defined]
+
+        return super().max(skipna=skipna)
+
+    # --------------------------------------------------------------------
 
     @final
     @property

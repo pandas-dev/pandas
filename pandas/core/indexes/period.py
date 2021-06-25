@@ -424,17 +424,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 raise KeyError(f"Cannot interpret '{key}' as period") from err
 
             reso = Resolution.from_attrname(reso_str)
-            grp = reso.freq_group.value
-            freqn = self.dtype.freq_group_code
 
-            # _get_string_slice will handle cases where grp < freqn
-            assert grp >= freqn
-
-            # BusinessDay is a bit strange. It has a *lower* code, but we never parse
-            # a string as "BusinessDay" resolution, just Day.
-            if grp == freqn or (
-                reso == Resolution.RESO_DAY and self.dtype.freq.name == "B"
-            ):
+            if reso == self.dtype.resolution:
+                # the reso < self.dtype.resolution case goes through _get_string_slice
                 key = Period(asdt, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 return loc
@@ -487,12 +479,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                parsed, reso_str = parse_time_string(label, self.freq)
+                parsed, reso = self._parse_with_reso(label)
             except ValueError as err:
                 # string cannot be parsed as datetime-like
                 raise self._invalid_indexer("slice", label) from err
 
-            reso = Resolution.from_attrname(reso_str)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
@@ -515,14 +506,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
             raise ValueError
-
-    def _get_string_slice(self, key: str):
-        parsed, reso_str = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso_str)
-        try:
-            return self._partial_date_slice(reso, parsed)
-        except KeyError as err:
-            raise KeyError(key) from err
 
 
 def period_range(
