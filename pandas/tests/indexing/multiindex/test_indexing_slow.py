@@ -1,3 +1,7 @@
+from typing import (
+    Any,
+    List,
+)
 import warnings
 
 import numpy as np
@@ -14,7 +18,7 @@ m = 50
 n = 1000
 cols = ["jim", "joe", "jolie", "joline", "jolia"]
 
-vals = [
+vals: List[Any] = [
     np.random.randint(0, 10, n),
     np.random.choice(list("abcdefghij"), n),
     np.random.choice(pd.date_range("20141009", periods=10).tolist(), n),
@@ -24,7 +28,7 @@ vals = [
 vals = list(map(tuple, zip(*vals)))
 
 # bunch of keys for testing
-keys = [
+keys: List[Any] = [
     np.random.randint(0, 11, m),
     np.random.choice(list("abcdefghijk"), m),
     np.random.choice(pd.date_range("20141009", periods=11).tolist(), m),
