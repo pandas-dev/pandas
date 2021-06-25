@@ -29,7 +29,7 @@ class TestBetween:
         expected = ser[3:18].dropna()
         tm.assert_series_equal(result, expected)
 
-        result = ser[ser.between(ser[3], ser[17], inclusive=False)]
+        result = ser[ser.between(ser[3], ser[17], inclusive="neither")]
         expected = ser[5:16].dropna()
         tm.assert_series_equal(result, expected)
 
