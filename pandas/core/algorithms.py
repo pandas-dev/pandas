@@ -1901,6 +1901,13 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
 
 
 def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
+    """
+    Process and validate the `weights` argument to `NDFrame.sample` and
+    `.GroupBy.sample`.
+
+    Returns `weights` as an ndarray[np.float64], validated except for normalizing
+    weights (because that must be done groupwise in groupby sampling).
+    """
     # If a series, align with frame
     if isinstance(weights, ABCSeries):
         weights = weights.reindex(obj.axes[axis])
@@ -1949,6 +1956,13 @@ def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
 def process_sampling_size(
     n: int | None, frac: float | None, replace: bool
 ) -> int | None:
+    """
+    Process and validate the `n` and `frac` arguments to `NDFrame.sample` and
+    `.GroupBy.sample`.
+
+    Returns None if `frac` should be used (variable sampling sizes), otherwise returns
+    the constant sampling size.
+    """
     # If no frac or n, default to n=1.
     if n is None and frac is None:
         n = 1
@@ -1962,7 +1976,7 @@ def process_sampling_size(
         if n % 1 != 0:
             raise ValueError("Only integers accepted as `n` values")
     else:
-        assert frac is not None
+        assert frac is not None  # for mypy
         if frac > 1 and not replace:
             raise ValueError(
                 "Replace has to be set to `True` when "
@@ -1983,6 +1997,28 @@ def sample(
     weights: np.ndarray | None,
     random_state: np.random.RandomState,
 ) -> np.ndarray:
+    """
+    Extracts the union from lvals and rvals with respect to duplicates and nans in
+    both arrays.
+
+    Parameters
+    ----------
+    obj_len : int
+        The length of the items to consider
+    size : int
+        The number of items to return
+    replace : bool
+        Allow or disallow sampling of the same row more than once.
+    weights : np.ndarray[np.float64] or None
+        If None, equal probability weighting, otherwise weights according
+        to the vector normalized
+    random_state: np.random.RandomState
+        State used for the random sampling
+
+    Returns
+    -------
+    np.ndarray[np.intp]
+    """
     if weights is not None:
         weight_sum = weights.sum()
         if weight_sum != 0:
@@ -1990,4 +2026,6 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
-    return random_state.choice(obj_len, size=size, replace=replace, p=weights)
+    return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
+        np.intp, copy=False
+    )
