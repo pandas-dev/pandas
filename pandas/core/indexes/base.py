@@ -2754,16 +2754,6 @@ class Index(IndexOpsMixin, PandasObject):
             return np.zeros(len(self), dtype=bool)
         return self._duplicated(keep=keep)
 
-    def _get_unique_index(self: _IndexT) -> _IndexT:
-        """
-        Returns an index containing unique values.
-
-        Returns
-        -------
-        Index
-        """
-        return self.unique()
-
     # --------------------------------------------------------------------
     # Arithmetic & Logical Methods
 
@@ -3200,7 +3190,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _difference(self, other, sort):
 
-        this = self._get_unique_index()
+        this = self.unique()
 
         indexer = this.get_indexer_for(other)
         indexer = indexer.take((indexer != -1).nonzero()[0])
