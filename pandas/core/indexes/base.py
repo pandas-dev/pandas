@@ -3077,7 +3077,7 @@ class Index(IndexOpsMixin, PandasObject):
             return Index([], name=result_name)
 
         elif not is_dtype_equal(self.dtype, other.dtype):
-            dtype = find_common_type([self.dtype, other.dtype])
+            dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
             other = other.astype(dtype, copy=False)
             return this.intersection(other, sort=sort)
@@ -3428,6 +3428,10 @@ class Index(IndexOpsMixin, PandasObject):
             return pself.get_indexer(
                 ptarget, method=method, limit=limit, tolerance=tolerance
             )
+
+        if is_dtype_equal(self.dtype, target.dtype) and self.equals(target):
+            # Only call equals if we have same dtype to avoid inference/casting
+            return np.arange(len(target), dtype=np.intp)
 
         return self._get_indexer(target, method, limit, tolerance)
 
@@ -3951,8 +3955,9 @@ class Index(IndexOpsMixin, PandasObject):
             return join_index, lidx, ridx
 
         if not is_dtype_equal(self.dtype, other.dtype):
-            this = self.astype("O")
-            other = other.astype("O")
+            dtype = self._find_common_type_compat(other)
+            this = self.astype(dtype, copy=False)
+            other = other.astype(dtype, copy=False)
             return this.join(other, how=how, return_indexers=True)
 
         _validate_join_method(how)
@@ -5230,6 +5235,8 @@ class Index(IndexOpsMixin, PandasObject):
             that = target.astype(dtype, copy=False)
             return this.get_indexer_non_unique(that)
 
+        # Note: _maybe_promote ensures we never get here with MultiIndex
+        #  self and non-Multi target
         tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
@@ -5962,8 +5969,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             item = self._validate_fill_value(item)
         except TypeError:
-            inferred, _ = infer_dtype_from(item)
-            dtype = find_common_type([self.dtype, inferred])
+            dtype = self._find_common_type_compat(item)
             return self.astype(dtype).insert(loc, item)
 
         arr = np.asarray(self)

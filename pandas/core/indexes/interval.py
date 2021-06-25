@@ -646,10 +646,6 @@ class IntervalIndex(ExtensionIndex):
         # returned ndarray is np.intp
 
         if isinstance(target, IntervalIndex):
-            # equal indexes -> 1:1 positional match
-            if self.equals(target):
-                return np.arange(len(self), dtype="intp")
-
             if not self._should_compare(target):
                 return self._get_indexer_non_comparable(target, method, unique=True)
 
