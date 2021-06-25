@@ -479,12 +479,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             return Period(label, freq=self.freq)
         elif isinstance(label, str):
             try:
-                parsed, reso_str = parse_time_string(label, self.freq)
+                parsed, reso = self._parse_with_reso(label)
             except ValueError as err:
                 # string cannot be parsed as datetime-like
                 raise self._invalid_indexer("slice", label) from err
 
-            reso = Resolution.from_attrname(reso_str)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
@@ -507,14 +506,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             #  reso in ["day", "hour", "minute", "second"]
             #  why is that check not needed?
             raise ValueError
-
-    def _get_string_slice(self, key: str):
-        parsed, reso_str = parse_time_string(key, self.freq)
-        reso = Resolution.from_attrname(reso_str)
-        try:
-            return self._partial_date_slice(reso, parsed)
-        except KeyError as err:
-            raise KeyError(key) from err
 
 
 def period_range(
