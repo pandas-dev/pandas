@@ -63,7 +63,6 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
-    make_wrapped_arith_op,
 )
 from pandas.core.tools.timedeltas import to_timedelta
 
@@ -99,7 +98,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     hasnans = cache_readonly(
         DatetimeLikeArrayMixin._hasnans.fget  # type: ignore[attr-defined]
     )
-    _hasnans = hasnans  # for index / array -agnostic code
 
     @property
     def _is_all_dates(self) -> bool:
@@ -450,23 +448,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
     # --------------------------------------------------------------------
     # Arithmetic Methods
-
-    __add__ = make_wrapped_arith_op("__add__")
-    __sub__ = make_wrapped_arith_op("__sub__")
-    __radd__ = make_wrapped_arith_op("__radd__")
-    __rsub__ = make_wrapped_arith_op("__rsub__")
-    __pow__ = make_wrapped_arith_op("__pow__")
-    __rpow__ = make_wrapped_arith_op("__rpow__")
-    __mul__ = make_wrapped_arith_op("__mul__")
-    __rmul__ = make_wrapped_arith_op("__rmul__")
-    __floordiv__ = make_wrapped_arith_op("__floordiv__")
-    __rfloordiv__ = make_wrapped_arith_op("__rfloordiv__")
-    __mod__ = make_wrapped_arith_op("__mod__")
-    __rmod__ = make_wrapped_arith_op("__rmod__")
-    __divmod__ = make_wrapped_arith_op("__divmod__")
-    __rdivmod__ = make_wrapped_arith_op("__rdivmod__")
-    __truediv__ = make_wrapped_arith_op("__truediv__")
-    __rtruediv__ = make_wrapped_arith_op("__rtruediv__")
 
     def shift(self: _T, periods: int = 1, freq=None) -> _T:
         """
