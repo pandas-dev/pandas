@@ -5143,12 +5143,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def sample(
         self: FrameOrSeries,
-        n=None,
-        frac=None,
-        replace=False,
+        n: int | None = None,
+        frac: float | None = None,
+        replace: bool_t = False,
         weights=None,
         random_state: RandomState | None = None,
-        axis=None,
+        axis: Axis | None = None,
+        ignore_index: bool_t = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
@@ -5189,6 +5190,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -5277,8 +5282,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if weights is not None:
             weights = algos.preprocess_weights(self, weights, axis)
+
         sampled_indices = algos.sample(obj_len, size, replace, weights, rs)
-        return self.take(sampled_indices, axis=axis)
+        result = self.take(sampled_indices, axis=axis)
+
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
+        return result
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])

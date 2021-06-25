@@ -278,6 +278,7 @@ Other enhancements
 - Improved error message in ``corr`` and ``cov`` methods on :class:`.Rolling`, :class:`.Expanding`, and :class:`.ExponentialMovingWindow` when ``other`` is not a :class:`DataFrame` or :class:`Series` (:issue:`41741`)
 - :meth:`Series.between` can now accept ``left`` or ``right`` as arguments to ``inclusive`` to include only the left or right boundary (:issue:`40245`)
 - :meth:`DataFrame.explode` now supports exploding multiple columns. Its ``column`` argument now also accepts a list of str or tuples for exploding on multiple columns at the same time (:issue:`39240`)
+- :meth:`DataFrame.sample` now accepts the ``ignore_index`` argument to reset the index after sampling, similar to :meth:`DataFrame.drop_duplicates` and :meth:`DataFrame.sort_values` (:issue:`38581`)
 
 .. ---------------------------------------------------------------------------
 
