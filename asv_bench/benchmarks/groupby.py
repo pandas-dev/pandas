@@ -840,6 +840,9 @@ class Sample:
         self.weights = np.ones(N)
 
     def time_sample(self):
+        self.df.groupby(self.groups).sample(n=1)
+
+    def time_sample_weights(self):
         self.df.groupby(self.groups).sample(n=1, weights=self.weights)
 
 
