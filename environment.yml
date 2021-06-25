@@ -24,7 +24,7 @@ dependencies:
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.812
+  - mypy=0.910
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -118,3 +118,7 @@ dependencies:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
     - pandas-dev-flaker==0.2.0
+    - types-python-dateutil
+    - types-PyMySQL
+    - types-pytz
+    - types-setuptools

@@ -820,9 +820,7 @@ class ArrayManager(BaseArrayManager):
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
             assert len(value) == len(self._axes[0])
-            # error: Invalid index type "Union[int, slice, ndarray]" for
-            # "List[Union[ndarray, ExtensionArray]]"; expected type "int"
-            self.arrays[loc] = value  # type: ignore[index]
+            self.arrays[loc] = value
             return
 
         # multiple columns -> convert slice or array to integer indices

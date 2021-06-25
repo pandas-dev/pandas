@@ -6190,7 +6190,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Iterable, subset)
+        subset = cast(Sequence, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
