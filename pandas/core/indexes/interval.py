@@ -646,10 +646,6 @@ class IntervalIndex(ExtensionIndex):
         # returned ndarray is np.intp
 
         if isinstance(target, IntervalIndex):
-            # equal indexes -> 1:1 positional match
-            if self.equals(target):
-                return np.arange(len(self), dtype="intp")
-
             # non-overlapping -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match

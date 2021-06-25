@@ -603,7 +603,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             end = end.tz_localize(self.tz)
         return start, end
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
         if (
             self.is_monotonic
@@ -614,12 +614,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # GH3452 and GH2369.
 
             # See also GH14826
-            raise KeyError
+            return False
 
         if reso.attrname == "microsecond":
             # _partial_date_slice doesn't allow microsecond resolution, but
             # _parsed_string_to_bounds allows it.
-            raise KeyError
+            return False
+        return True
 
     def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
@@ -663,14 +664,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
-            try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError, OverflowError):
-                pass
 
+            try:
+                parsed, reso = self._parse_with_reso(key)
+            except ValueError as err:
+                raise KeyError(key) from err
+
+            if self._can_partial_date_slice(reso):
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    if method is None:
+                        raise KeyError(key) from err
             try:
                 key = self._maybe_cast_for_get_loc(key)
             except ValueError as err:
+                # FIXME: we get here because parse_with_reso doesn't raise on "t2m"
                 raise KeyError(key) from err
 
         elif isinstance(key, timedelta):
