@@ -3781,14 +3781,25 @@ class Index(IndexOpsMixin, PandasObject):
         target = ensure_has_len(target)  # target may be an iterator
 
         if not isinstance(target, Index) and len(target) == 0:
-            target = self[:0]
+            if level is not None and self._is_multi:
+                # "Index" has no attribute "levels"; maybe "nlevels"?
+                idx = self.levels[level]  # type: ignore[attr-defined]
+            else:
+                idx = self
+            target = idx[:0]
         else:
             target = ensure_index(target)
 
         if level is not None:
             if method is not None:
                 raise TypeError("Fill method not supported if level passed")
-            _, indexer, _ = self._join_level(target, level, how="right")
+
+            # TODO: tests where passing `keep_order=not self._is_multi`
+            #  makes a difference for non-MultiIndex case
+            target, indexer, _ = self._join_level(
+                target, level, how="right", keep_order=not self._is_multi
+            )
+
         else:
             if self.equals(target):
                 indexer = None
@@ -3797,6 +3808,8 @@ class Index(IndexOpsMixin, PandasObject):
                     indexer = self.get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
                     )
+                elif self._is_multi:
+                    raise ValueError("cannot handle a non-unique multi-index!")
                 else:
                     if method is not None or limit is not None:
                         raise ValueError(
@@ -3805,11 +3818,18 @@ class Index(IndexOpsMixin, PandasObject):
                         )
                     indexer, _ = self.get_indexer_non_unique(target)
 
-        if preserve_names and target.nlevels == 1 and target.name != self.name:
-            target = target.copy()
-            target.name = self.name
-
+        target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
+
+    def _wrap_reindex_result(self, target, indexer, preserve_names: bool):
+        target = self._maybe_preserve_names(target, preserve_names)
+        return target
+
+    def _maybe_preserve_names(self, target: Index, preserve_names: bool):
+        if preserve_names and target.nlevels == 1 and target.name != self.name:
+            target = target.copy(deep=False)
+            target.name = self.name
+        return target
 
     @final
     def _reindex_non_unique(
