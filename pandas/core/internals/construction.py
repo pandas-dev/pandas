@@ -10,6 +10,7 @@ from typing import (
     Any,
     Hashable,
     Sequence,
+    cast,
 )
 import warnings
 
@@ -165,6 +166,9 @@ def rec_array_to_mgr(
 
     # fill if needed
     if isinstance(data, np.ma.MaskedArray):
+        # GH#42200 we only get here with MaskedRecords, but check for the
+        #  parent class MaskedArray to avoid the need to import MaskedRecords
+        data = cast("MaskedRecords", data)
         new_arrays = fill_masked_arrays(data, arr_columns)
     else:
         # error: Incompatible types in assignment (expression has type

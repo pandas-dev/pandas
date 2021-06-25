@@ -47,6 +47,7 @@ from pandas._typing import (
     Level,
     Manager,
     NpDtype,
+    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -5146,7 +5147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         frac=None,
         replace=False,
         weights=None,
-        random_state=None,
+        random_state: RandomState | None = None,
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -5177,8 +5178,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
-            random number generator
+            If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState, use as numpy RandomState object.
 
             .. versionchanged:: 1.1.0
@@ -9751,11 +9751,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "FrameOrSeries"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        return np.abs(self)  # type: ignore[arg-type]
+        # error: Incompatible return value type (got "ndarray[Any, dtype[Any]]",
+        # expected "FrameOrSeries")
+        return np.abs(self)  # type: ignore[return-value]
 
     @final
     def describe(
