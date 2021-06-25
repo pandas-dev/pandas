@@ -9810,8 +9810,12 @@ NaN 12.3   33.0
                 FutureWarning,
                 stacklevel=5,
             )
-            cols = self.columns[~dtype_is_dt]
-            self = self[cols]
+            # Non-copy equivalent to
+            #  cols = self.columns[~dtype_is_dt]
+            #  self = self[cols]
+            predicate = lambda x: not is_datetime64_any_dtype(x.dtype)
+            mgr = self._mgr._get_data_subset(predicate)
+            self = type(self)(mgr)
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)
