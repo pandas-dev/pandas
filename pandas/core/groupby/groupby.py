@@ -3270,9 +3270,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2   blue  2
         0    red  0
         """
-        n = algorithms.process_sampling_size(n, frac, replace)
+        size = algorithms.process_sampling_size(n, frac, replace)
         if weights is not None:
-            weights = algorithms.preprocess_weights(
+            weights_arr = algorithms.preprocess_weights(
                 self._selected_obj, weights, axis=self.axis
             )
 
@@ -3282,13 +3282,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         sampled_indices = []
         for ind, obj in group_iterator:
             grp_idx = self.indices[ind]
+            group_size = len(grp_idx)
+            if size is not None:
+                sample_size = size
+            else:
+                assert frac is not None
+                sample_size = round(frac * group_size)
+
             grp_sample = algorithms.sample(
-                obj,
-                size=n if n is None else round(frac * len(grp_idx)),
+                group_size,
+                size=sample_size,
                 replace=replace,
-                weights=None if weights is None else weights[grp_idx],
+                weights=None if weights is None else weights_arr[grp_idx],
                 random_state=random_state,
-                axis=self.axis,
             )
             sampled_indices.append(grp_idx[grp_sample])
 

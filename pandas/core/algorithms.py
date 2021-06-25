@@ -27,7 +27,6 @@ from pandas._typing import (
     DtypeObj,
     FrameOrSeries,
     FrameOrSeriesUnion,
-    RandomState,
     Scalar,
 )
 from pandas.util._decorators import doc
@@ -1896,53 +1895,55 @@ def union_with_duplicates(lvals: ArrayLike, rvals: ArrayLike) -> ArrayLike:
     return unique_array.take(indexer)
 
 
-def preprocess_weights(obj: DataFrame | Series, weights, axis: int):
-    if weights is not None:
+# ------ #
+# sample #
+# ------ #
 
-        # If a series, align with frame
-        if isinstance(weights, ABCSeries):
-            weights = weights.reindex(obj.axes[axis])
 
-        # Strings acceptable if a dataframe and axis = 0
-        if isinstance(weights, str):
-            if isinstance(obj, ABCDataFrame):
-                if axis == 0:
-                    try:
-                        weights = obj[weights]
-                    except KeyError as err:
-                        raise KeyError(
-                            "String passed to weights not a valid column"
-                        ) from err
-                else:
-                    raise ValueError(
-                        "Strings can only be passed to "
-                        "weights when sampling from rows on "
-                        "a DataFrame"
-                    )
+def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
+    # If a series, align with frame
+    if isinstance(weights, ABCSeries):
+        weights = weights.reindex(obj.axes[axis])
+
+    # Strings acceptable if a dataframe and axis = 0
+    if isinstance(weights, str):
+        if isinstance(obj, ABCDataFrame):
+            if axis == 0:
+                try:
+                    weights = obj[weights]
+                except KeyError as err:
+                    raise KeyError(
+                        "String passed to weights not a valid column"
+                    ) from err
             else:
                 raise ValueError(
-                    "Strings cannot be passed as weights "
-                    "when sampling from a Series."
+                    "Strings can only be passed to "
+                    "weights when sampling from rows on "
+                    "a DataFrame"
                 )
-
-        if isinstance(obj, ABCSeries):
-            func = obj._constructor
         else:
-            func = obj._constructor_sliced
+            raise ValueError(
+                "Strings cannot be passed as weights when sampling from a Series."
+            )
 
-        weights = func(weights, dtype="float64")._values
+    if isinstance(obj, ABCSeries):
+        func = obj._constructor
+    else:
+        func = obj._constructor_sliced
 
-        if len(weights) != obj.shape[axis]:
-            raise ValueError("Weights and axis to be sampled must be of same length")
+    weights = func(weights, dtype="float64")._values
 
-        if lib.has_infs_f8(weights):
-            raise ValueError("weight vector may not include `inf` values")
+    if len(weights) != obj.shape[axis]:
+        raise ValueError("Weights and axis to be sampled must be of same length")
 
-        if (weights < 0).any():
-            raise ValueError("weight vector many not include negative values")
+    if lib.has_infs(weights):
+        raise ValueError("weight vector may not include `inf` values")
 
-        weights[np.isnan(weights)] = 0
-        return weights
+    if (weights < 0).any():
+        raise ValueError("weight vector many not include negative values")
+
+    weights[np.isnan(weights)] = 0
+    return weights
 
 
 def process_sampling_size(
@@ -1961,6 +1962,7 @@ def process_sampling_size(
         if n % 1 != 0:
             raise ValueError("Only integers accepted as `n` values")
     else:
+        assert frac is not None
         if frac > 1 and not replace:
             raise ValueError(
                 "Replace has to be set to `True` when "
@@ -1975,15 +1977,12 @@ def process_sampling_size(
 
 
 def sample(
-    obj: FrameOrSeries,
+    obj_len: int,
     size: int,
     replace: bool,
-    weights: np.ndarray,
-    random_state: RandomState,
-    axis: int,
-) -> FrameOrSeries:
-    axis_length = obj.shape[axis]
-
+    weights: np.ndarray | None,
+    random_state: np.random.RandomState,
+) -> np.ndarray:
     if weights is not None:
         weight_sum = weights.sum()
         if weight_sum != 0:
@@ -1991,4 +1990,4 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
-    return random_state.choice(axis_length, size=size, replace=replace, p=weights)
+    return random_state.choice(obj_len, size=size, replace=replace, p=weights)

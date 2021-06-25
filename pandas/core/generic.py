@@ -5265,6 +5265,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._stat_axis_number
 
         axis = self._get_axis_number(axis)
+        obj_len = self.shape[axis]
 
         # Process random_state argument
         rs = com.random_state(random_state)
@@ -5272,10 +5273,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         size = algos.process_sampling_size(n, frac, replace)
         if size is None:
             assert frac is not None
-            size = round(frac * self.shape[axis])
+            size = round(frac * obj_len)
 
-        weights = algos.preprocess_weights(self, weights, axis)
-        sampled_indices = algos.sample(self, size, replace, weights, rs, axis)
+        if weights is not None:
+            weights = algos.preprocess_weights(self, weights, axis)
+        sampled_indices = algos.sample(obj_len, size, replace, weights, rs)
         return self.take(sampled_indices, axis=axis)
 
     @final
