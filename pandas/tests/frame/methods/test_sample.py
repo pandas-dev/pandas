@@ -5,6 +5,7 @@ from pandas.compat import np_version_under1p18
 
 from pandas import (
     DataFrame,
+    Index,
     Series,
 )
 import pandas._testing as tm
@@ -326,3 +327,12 @@ class TestSampleDataFrame:
 
         with tm.assert_produces_warning(None):
             df2["d"] = 1
+
+    def test_sample_ignore_index(self):
+        # GH 38581
+        df = DataFrame(
+            {"col1": range(10, 20), "col2": range(20, 30), "colString": ["a"] * 10}
+        )
+        result = df.sample(3, ignore_index=True)
+        expected_index = Index([0, 1, 2])
+        tm.assert_index_equal(result.index, expected_index)
