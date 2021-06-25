@@ -2988,13 +2988,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             index, _ = MultiIndex.from_product(
                 levels_list, names=self.grouper.names
             ).sortlevel()
-        except ValueError as err:
-            raise ValueError(
-                "Product space too large to allocate arrays! You're trying to "
-                "group over too complex a column cross-product to fit in memory. "
-                "If any of those columns are categorical, you may be able "
-                "to circumvent this issue by passing `observed=True`."
-            ) from err
+        except (ValueError, MemoryError) as err:
+            err_str = str(err)
+            if "Product space too large" in err_str or "array is too big" in err_str or isinstance(err, MemoryError):
+                raise ValueError(
+                    "Group by product space too large to allocate arrays! "
+                    "Consider setting `observed=True` to reduce size."
+                ) from err
+            else:
+                raise
 
         if self.as_index:
             d = {

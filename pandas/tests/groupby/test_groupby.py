@@ -2174,3 +2174,20 @@ def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
     result = dups.groupby(level=0).mean()
     expected = dups.groupby(dups.index).mean()
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_categorical_crossproduct():
+    n = 10000
+    df = DataFrame({
+        "A": Categorical(np.arange(n), np.arange(n)),
+    })
+    for i in range(ord('B'), ord('L')):
+        v = np.tile(np.arange(25), n // 25)
+        df[chr(i)] = v
+
+    message = r"Group by product space too large to allocate arrays.*"
+    with pytest.raises(ValueError, match=message):
+        g = df.groupby(list(df.columns))
+        g.B.sum()
+    g = df.groupby(list(df.columns), observed=True)
+    assert g.B.sum().max() == 24
