@@ -3118,10 +3118,8 @@ class Index(IndexOpsMixin, PandasObject):
         np.ndarray or ExtensionArray
             The returned array will be unique.
         """
-        # Note: drop_duplicates vs unique matters for MultiIndex, though
-        #  it should not, see GH#41823
-        left_unique = self.drop_duplicates()
-        right_unique = other.drop_duplicates()
+        left_unique = self.unique()
+        right_unique = other.unique()
 
         # even though we are unique, we need get_indexer_for for IntervalIndex
         indexer = left_unique.get_indexer_for(right_unique)
