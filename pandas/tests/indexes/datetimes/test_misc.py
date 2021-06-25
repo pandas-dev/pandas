@@ -16,6 +16,7 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
+from pandas.core.arrays import DatetimeArray
 
 
 class TestTimeSeries:
@@ -223,7 +224,7 @@ class TestDatetime64:
             dti.name = "name"
 
             # non boolean accessors -> return Index
-            for accessor in DatetimeIndex._field_ops:
+            for accessor in DatetimeArray._field_ops:
                 if accessor in ["week", "weekofyear"]:
                     # GH#33595 Deprecate week and weekofyear
                     continue
@@ -233,7 +234,7 @@ class TestDatetime64:
                 assert res.name == "name"
 
             # boolean accessors -> return array
-            for accessor in DatetimeIndex._bool_ops:
+            for accessor in DatetimeArray._bool_ops:
                 res = getattr(dti, accessor)
                 assert len(res) == 365
                 assert isinstance(res, np.ndarray)

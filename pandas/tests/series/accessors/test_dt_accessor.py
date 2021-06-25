@@ -33,6 +33,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import (
+    DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -47,7 +48,7 @@ class TestSeriesDatetimeValues:
 
         ok_for_period = PeriodArray._datetimelike_ops
         ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-        ok_for_dt = DatetimeIndex._datetimelike_ops
+        ok_for_dt = DatetimeArray._datetimelike_ops
         ok_for_dt_methods = [
             "to_period",
             "to_pydatetime",

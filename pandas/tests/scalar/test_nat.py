@@ -38,7 +38,7 @@ from pandas.core.ops import roperator
 @pytest.mark.parametrize(
     "nat,idx",
     [
-        (Timestamp("NaT"), DatetimeIndex),
+        (Timestamp("NaT"), DatetimeArray),
         (Timedelta("NaT"), TimedeltaIndex),
         (Period("NaT", freq="M"), PeriodArray),
     ],
@@ -84,7 +84,7 @@ def test_nat_vector_field_access():
 
     ser = Series(idx)
 
-    for field in DatetimeIndex._field_ops:
+    for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
@@ -97,7 +97,7 @@ def test_nat_vector_field_access():
         expected = [getattr(x, field) for x in idx]
         tm.assert_series_equal(result, Series(expected))
 
-    for field in DatetimeIndex._bool_ops:
+    for field in DatetimeArray._bool_ops:
         result = getattr(ser.dt, field)
         expected = [getattr(x, field) for x in idx]
         tm.assert_series_equal(result, Series(expected))
