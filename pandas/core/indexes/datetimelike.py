@@ -282,7 +282,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         raise NotImplementedError
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed):
@@ -317,7 +317,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         -------
         slice or ndarray[intp]
         """
-        self._validate_partial_date_slice(reso)
+        if not self._can_partial_date_slice(reso):
+            raise ValueError
 
         t1, t2 = self._parsed_string_to_bounds(reso, parsed)
         vals = self._data._ndarray
