@@ -102,6 +102,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     else:
 
         def method(self, *args, **kwargs):
+            if "inplace" in kwargs:
+                raise ValueError(f"cannot use inplace with {type(self).__name__}")
             result = attr(self._data, *args, **kwargs)
             if wrap:
                 if isinstance(result, type(self._data)):
