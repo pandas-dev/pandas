@@ -102,6 +102,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     else:
 
         def method(self, *args, **kwargs):
+            if "inplace" in kwargs:
+                raise ValueError(f"cannot use inplace with {type(self).__name__}")
             result = attr(self._data, *args, **kwargs)
             if wrap:
                 if isinstance(result, type(self._data)):
@@ -159,7 +161,7 @@ def _make_wrapped_comparison_op(opname: str):
     return wrapper
 
 
-def make_wrapped_arith_op(opname: str):
+def _make_wrapped_arith_op(opname: str):
     def method(self, other):
         if (
             isinstance(other, Index)
@@ -170,7 +172,16 @@ def make_wrapped_arith_op(opname: str):
             # a chance to implement ops before we unwrap them.
             # See https://github.com/pandas-dev/pandas/issues/31109
             return NotImplemented
-        meth = getattr(self._data, opname)
+
+        try:
+            meth = getattr(self._data, opname)
+        except AttributeError as err:
+            # e.g. Categorical, IntervalArray
+            cls = type(self).__name__
+            raise TypeError(
+                f"cannot perform {opname} with this index type: {cls}"
+            ) from err
+
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
 
@@ -266,6 +277,23 @@ class ExtensionIndex(Index):
     __gt__ = _make_wrapped_comparison_op("__gt__")
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
+
+    __add__ = _make_wrapped_arith_op("__add__")
+    __sub__ = _make_wrapped_arith_op("__sub__")
+    __radd__ = _make_wrapped_arith_op("__radd__")
+    __rsub__ = _make_wrapped_arith_op("__rsub__")
+    __pow__ = _make_wrapped_arith_op("__pow__")
+    __rpow__ = _make_wrapped_arith_op("__rpow__")
+    __mul__ = _make_wrapped_arith_op("__mul__")
+    __rmul__ = _make_wrapped_arith_op("__rmul__")
+    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
+    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
+    __mod__ = _make_wrapped_arith_op("__mod__")
+    __rmod__ = _make_wrapped_arith_op("__rmod__")
+    __divmod__ = _make_wrapped_arith_op("__divmod__")
+    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
+    __truediv__ = _make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
 
     @property
     def _has_complex_internals(self) -> bool:
@@ -364,13 +392,6 @@ class ExtensionIndex(Index):
         """
         return self._data._validate_setitem_value(value)
 
-    def _get_unique_index(self):
-        if self.is_unique:
-            return self
-
-        result = self._data.unique()
-        return type(self)._simple_new(result, name=self.name)
-
     @doc(Index.map)
     def map(self, mapper, na_action=None):
         # Try to run function on index first, and then on elements of index
@@ -397,11 +418,13 @@ class ExtensionIndex(Index):
                 return self
             return self.copy()
 
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Literal['M8[ns]']")
         if (
             isinstance(self.dtype, np.dtype)
             and isinstance(dtype, np.dtype)
             and dtype.kind == "M"
-            and dtype != "M8[ns]"
+            and dtype != "M8[ns]"  # type: ignore[comparison-overlap]
         ):
             # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
             raise TypeError(f"Cannot cast {type(self).__name__} to dtype")

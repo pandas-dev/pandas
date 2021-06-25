@@ -388,9 +388,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                # error: Argument 1 to "len" has incompatible type "dtype"; expected
-                # "Sized"
-                if len(data.dtype):  # type: ignore[arg-type]
+                if len(data.dtype):
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
                     raise ValueError(
@@ -938,7 +936,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, (list, tuple)):
             key = unpack_1tuple(key)
 
-        if is_integer(key) and self.index._should_fallback_to_positional():
+        if is_integer(key) and self.index._should_fallback_to_positional:
             return self._values[key]
 
         elif key_is_scalar:
@@ -1000,7 +998,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key_type == "integer":
             # We need to decide whether to treat this as a positional indexer
             #  (i.e. self.iloc) or label-based (i.e. self.loc)
-            if not self.index._should_fallback_to_positional():
+            if not self.index._should_fallback_to_positional:
                 return self.loc[key]
             else:
                 return self.iloc[key]
@@ -1061,6 +1059,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if key is Ellipsis:
             key = slice(None)
 
+        if isinstance(key, slice):
+            indexer = self.index._convert_slice_indexer(key, kind="getitem")
+            return self._set_values(indexer, value)
+
         try:
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
@@ -1072,8 +1074,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
 
-        except TypeError as err:
+        except (InvalidIndexError, TypeError) as err:
             if isinstance(key, tuple) and not isinstance(self.index, MultiIndex):
+                # cases with MultiIndex don't get here bc they raise KeyError
                 raise KeyError(
                     "key of type tuple not found and not a MultiIndex"
                 ) from err
@@ -1094,8 +1097,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             self._maybe_update_cacher()
 
     def _set_with_engine(self, key, value) -> None:
-        # fails with AttributeError for IntervalIndex
-        loc = self.index._engine.get_loc(key)
+        loc = self.index.get_loc(key)
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
         # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
@@ -1103,31 +1105,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
-        if isinstance(key, slice):
-            indexer = self.index._convert_slice_indexer(key, kind="getitem")
-            return self._set_values(indexer, value)
+        assert not isinstance(key, tuple)
 
+        if is_scalar(key):
+            key = [key]
+        elif is_iterator(key):
+            # Without this, the call to infer_dtype will consume the generator
+            key = list(key)
+
+        key_type = lib.infer_dtype(key, skipna=False)
+
+        # Note: key_type == "boolean" should not occur because that
+        #  should be caught by the is_bool_indexer check in __setitem__
+        if key_type == "integer":
+            if not self.index._should_fallback_to_positional:
+                self._set_labels(key, value)
+            else:
+                self._set_values(key, value)
         else:
-            assert not isinstance(key, tuple)
-
-            if is_scalar(key):
-                key = [key]
-
-            if isinstance(key, Index):
-                key_type = key.inferred_type
-                key = key._values
-            else:
-                key_type = lib.infer_dtype(key, skipna=False)
-
-            # Note: key_type == "boolean" should not occur because that
-            #  should be caught by the is_bool_indexer check in __setitem__
-            if key_type == "integer":
-                if not self.index._should_fallback_to_positional():
-                    self._set_labels(key, value)
-                else:
-                    self._set_values(key, value)
-            else:
-                self.loc[key] = value
+            self.loc[key] = value
 
     def _set_labels(self, key, value) -> None:
         key = com.asarray_tuplesafe(key)
@@ -1138,7 +1134,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._set_values(indexer, value)
 
     def _set_values(self, key, value) -> None:
-        if isinstance(key, Series):
+        if isinstance(key, (Index, Series)):
             key = key._values
 
         self._mgr = self._mgr.setitem(indexer=key, value=value)
@@ -4206,7 +4202,7 @@ Keep all original rows and also all original values
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object. Note that the dtype is always
-            preserved for extension array dtypes, such as Categorical.
+            preserved for some extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -4969,7 +4965,7 @@ Keep all original rows and also all original values
             self, method="isin"
         )
 
-    def between(self, left, right, inclusive=True) -> Series:
+    def between(self, left, right, inclusive="both") -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
 
@@ -4983,8 +4979,10 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : bool, default True
-            Include boundaries.
+        inclusive : {"both", "neither", "left", "right"}
+            Include boundaries. Whether to set each bound as closed or open.
+
+            .. versionchanged:: 1.3.0
 
         Returns
         -------
@@ -5035,12 +5033,34 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        if inclusive:
+        if inclusive is True or inclusive is False:
+            warnings.warn(
+                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "favour of `both` or `neither`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if inclusive:
+                inclusive = "both"
+            else:
+                inclusive = "neither"
+        if inclusive == "both":
             lmask = self >= left
             rmask = self <= right
-        else:
+        elif inclusive == "left":
+            lmask = self >= left
+            rmask = self < right
+        elif inclusive == "right":
+            lmask = self > left
+            rmask = self <= right
+        elif inclusive == "neither":
             lmask = self > left
             rmask = self < right
+        else:
+            raise ValueError(
+                "Inclusive has to be either string of 'both',"
+                "'left', 'right', or 'neither'."
+            )
 
         return lmask & rmask
 

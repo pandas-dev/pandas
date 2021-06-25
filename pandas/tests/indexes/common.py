@@ -166,11 +166,12 @@ class Base:
             return
 
         typ = type(idx._data).__name__
+        cls = type(idx).__name__
         lmsg = "|".join(
             [
                 rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
                 "cannot perform (__mul__|__truediv__|__floordiv__) with "
-                f"this index type: {typ}",
+                f"this index type: ({cls}|{typ})",
             ]
         )
         with pytest.raises(TypeError, match=lmsg):
@@ -179,7 +180,7 @@ class Base:
             [
                 rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
                 "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
-                f"this index type: {typ}",
+                f"this index type: ({cls}|{typ})",
             ]
         )
         with pytest.raises(TypeError, match=rmsg):
@@ -724,13 +725,10 @@ class Base:
         assert len(gc.get_referrers(index)) == nrefs_pre
 
     def test_getitem_2d_deprecated(self, simple_index):
-        # GH#30588
+        # GH#30588, GH#31479
         idx = simple_index
         msg = "Support for multi-dimensional indexing"
-        check = not isinstance(idx, (RangeIndex, CategoricalIndex))
-        with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=check
-        ):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             res = idx[:, None]
 
         assert isinstance(res, np.ndarray), type(res)

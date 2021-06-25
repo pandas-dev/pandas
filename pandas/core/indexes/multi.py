@@ -2503,9 +2503,7 @@ class MultiIndex(Index):
             target = ibase.ensure_has_len(target)
             if len(target) == 0 and not isinstance(target, Index):
                 idx = self.levels[level]
-                attrs = idx._get_attributes_dict()
-                attrs.pop("freq", None)  # don't preserve freq
-                target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype), **attrs)
+                target = idx[:0]
             else:
                 target = ensure_index(target)
             target, indexer, _ = self._join_level(
@@ -2554,12 +2552,13 @@ class MultiIndex(Index):
             # We have to explicitly exclude generators, as these are hashable.
             raise InvalidIndexError(key)
 
+    @cache_readonly
     def _should_fallback_to_positional(self) -> bool:
         """
         Should integer key(s) be treated as positional?
         """
         # GH#33355
-        return self.levels[0]._should_fallback_to_positional()
+        return self.levels[0]._should_fallback_to_positional
 
     def _get_values_for_loc(self, series: Series, loc, key):
         """
@@ -2644,46 +2643,6 @@ class MultiIndex(Index):
             key = tuple(new_key)
 
         return key
-
-    def _get_indexer(
-        self,
-        target: Index,
-        method: str | None = None,
-        limit: int | None = None,
-        tolerance=None,
-    ) -> np.ndarray:
-        # returned ndarray is np.intp
-
-        # empty indexer
-        if not len(target):
-            return ensure_platform_int(np.array([]))
-
-        if not isinstance(target, MultiIndex):
-            try:
-                target = MultiIndex.from_tuples(target)
-            except (TypeError, ValueError):
-
-                # let's instead try with a straight Index
-                if method is None:
-                    return Index(self._values).get_indexer(
-                        target, method=method, limit=limit, tolerance=tolerance
-                    )
-
-                # TODO: explicitly raise here?  we only have one test that
-                #  gets here, and it is checking that we raise with method="nearest"
-
-        if method == "pad" or method == "backfill":
-            # TODO: get_indexer_with_fill docstring says values must be _sorted_
-            #  but that doesn't appear to be enforced
-            indexer = self._engine.get_indexer_with_fill(
-                target=target._values, values=self._values, method=method, limit=limit
-            )
-        else:
-            indexer = self._engine.get_indexer(target._values)
-
-        # Note: we only get here (in extant tests at least) with
-        #  target.nlevels == self.nlevels
-        return ensure_platform_int(indexer)
 
     def get_slice_bound(
         self, label: Hashable | Sequence[Hashable], side: str, kind: str | None = None
@@ -2802,15 +2761,19 @@ class MultiIndex(Index):
         n = len(tup)
         start, end = 0, len(self)
         zipped = zip(tup, self.levels, self.codes)
-        for k, (lab, lev, labs) in enumerate(zipped):
-            section = labs[start:end]
+        for k, (lab, lev, level_codes) in enumerate(zipped):
+            section = level_codes[start:end]
 
             if lab not in lev and not isna(lab):
-                if not lev.is_type_compatible(lib.infer_dtype([lab], skipna=False)):
-                    raise TypeError(f"Level type mismatch: {lab}")
-
                 # short circuit
-                loc = lev.searchsorted(lab, side=side)
+                try:
+                    loc = lev.searchsorted(lab, side=side)
+                except TypeError as err:
+                    # non-comparable e.g. test_slice_locs_with_type_mismatch
+                    raise TypeError(f"Level type mismatch: {lab}") from err
+                if not is_integer(loc):
+                    # non-comparable level, e.g. test_groupby_example
+                    raise TypeError(f"Level type mismatch: {lab}")
                 if side == "right" and loc >= 0:
                     loc -= 1
                 return start + section.searchsorted(loc, side=side)
@@ -3588,27 +3551,10 @@ class MultiIndex(Index):
                 names.append(None)
         return names
 
-    def _intersection(self, other, sort=False) -> MultiIndex:
+    def _wrap_intersection_result(self, other, result):
         other, result_names = self._convert_can_do_setop(other)
-        other = other.astype(object, copy=False)
 
-        uniq_tuples = None  # flag whether _inner_indexer was successful
-        if self.is_monotonic and other.is_monotonic:
-            try:
-                inner_tuples = self._inner_indexer(other)[0]
-                sort = False  # inner_tuples is already sorted
-            except TypeError:
-                pass
-            else:
-                uniq_tuples = algos.unique(inner_tuples)
-
-        if uniq_tuples is None:
-            uniq_tuples = self._intersection_via_get_indexer(other, sort)
-
-        if sort is None:
-            uniq_tuples = sorted(uniq_tuples)
-
-        if len(uniq_tuples) == 0:
+        if len(result) == 0:
             return MultiIndex(
                 levels=self.levels,
                 codes=[[]] * self.nlevels,
@@ -3616,22 +3562,12 @@ class MultiIndex(Index):
                 verify_integrity=False,
             )
         else:
-            return MultiIndex.from_arrays(
-                zip(*uniq_tuples), sortorder=0, names=result_names
-            )
+            return MultiIndex.from_arrays(zip(*result), sortorder=0, names=result_names)
 
     def _difference(self, other, sort) -> MultiIndex:
         other, result_names = self._convert_can_do_setop(other)
 
-        this = self._get_unique_index()
-
-        indexer = this.get_indexer(other)
-        indexer = indexer.take((indexer != -1).nonzero()[0])
-
-        label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
-        difference = this._values.take(label_diff)
-        if sort is None:
-            difference = sorted(difference)
+        difference = super()._difference(other, sort)
 
         if len(difference) == 0:
             return MultiIndex(

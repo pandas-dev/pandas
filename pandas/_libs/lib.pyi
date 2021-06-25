@@ -25,6 +25,9 @@ class NoDefault(Enum): ...
 
 no_default: NoDefault
 
+i8max: int
+u8max: int
+
 def item_from_zerodim(val: object) -> object: ...
 def infer_dtype(value: object, skipna: bool = True) -> str: ...
 def is_iterator(obj: object) -> bool: ...
@@ -216,8 +219,7 @@ def array_equivalent_object(
     left: np.ndarray,  # object[:]
     right: np.ndarray,  # object[:]
 ) -> bool: ...
-def has_infs_f8(arr: np.ndarray) -> bool: ...  # const float64_t[:]
-def has_infs_f4(arr: np.ndarray) -> bool: ...  # const float32_t[:]
+def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,
