@@ -3870,6 +3870,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Join Methods
 
+    @final
     @_maybe_return_indexers
     def join(
         self,
@@ -3900,6 +3901,19 @@ class Index(IndexOpsMixin, PandasObject):
         other = ensure_index(other)
         self_is_mi = isinstance(self, ABCMultiIndex)
         other_is_mi = isinstance(other, ABCMultiIndex)
+
+        if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
+            if (self.tz is None) ^ (other.tz is None):
+                # Raise instead of casting to object below.
+                raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
+
+        if not self._is_multi and not other._is_multi:
+            # We have specific handling for MultiIndex below
+            pself, pother = self._maybe_promote(other)
+            if pself is not self or pother is not other:
+                return pself.join(
+                    pother, how=how, level=level, return_indexers=True, sort=sort
+                )
 
         lindexer: np.ndarray | None
         rindexer: np.ndarray | None
