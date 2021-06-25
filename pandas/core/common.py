@@ -21,6 +21,7 @@ from typing import (
     Iterable,
     Iterator,
     cast,
+    overload,
 )
 import warnings
 
@@ -29,6 +30,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     AnyArrayLike,
+    ArrayLike,
     NpDtype,
     RandomState,
     Scalar,
@@ -389,16 +391,28 @@ def standardize_mapping(into):
     return into
 
 
-def random_state(state: RandomState | None = None) -> np.random.RandomState:
+@overload
+def random_state(state: np.random.Generator) -> np.random.Generator:
+    ...
+
+
+@overload
+def random_state(
+    state: int | ArrayLike | np.random.BitGenerator | np.random.RandomState | None,
+) -> np.random.RandomState:
+    ...
+
+
+def random_state(state: RandomState | None):
     """
     Helper function for processing random_state arguments.
 
     Parameters
     ----------
-    state : int, array-like, BitGenerator, np.random.RandomState, None.
+    state : int, array-like, BitGenerator, Generator, np.random.RandomState, None.
         If receives an int, array-like, or BitGenerator, passes to
         np.random.RandomState() as seed.
-        If receives an np.random.RandomState object, just returns object.
+        If receives an np.random RandomState or Generator, just returns that unchanged.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
 
@@ -407,11 +421,9 @@ def random_state(state: RandomState | None = None) -> np.random.RandomState:
             array-like and BitGenerator object now passed to np.random.RandomState()
             as seed
 
-        Default None.
-
     Returns
     -------
-    np.random.RandomState or np.random if state is None
+    np.random.RandomState or np.random.Generator
 
     """
     if (
@@ -434,12 +446,13 @@ def random_state(state: RandomState | None = None) -> np.random.RandomState:
         return np.random.RandomState(state)  # type: ignore[arg-type]
     elif isinstance(state, np.random.RandomState):
         return state
+    elif isinstance(state, np.random.Generator):
+        return state
     elif state is None:
-        # error: Incompatible return value type (got Module, expected "RandomState")
-        return np.random  # type: ignore[return-value]
+        return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, array-like, a BitGenerator, "
+            "random_state must be an integer, array-like, a BitGenerator, Generator, "
             "a numpy RandomState, or None"
         )
 
