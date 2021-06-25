@@ -41,10 +41,10 @@ from pandas._typing import (
     FillnaOptions,
     FrameOrSeriesUnion,
     IndexKeyFunc,
-    NpDtype,
     SingleManager,
     StorageOptions,
     ValueKeyFunc,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
@@ -808,7 +808,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -4965,7 +4965,7 @@ Keep all original rows and also all original values
             self, method="isin"
         )
 
-    def between(self, left, right, inclusive=True) -> Series:
+    def between(self, left, right, inclusive="both") -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
 
@@ -4979,8 +4979,10 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : bool, default True
-            Include boundaries.
+        inclusive : {"both", "neither", "left", "right"}
+            Include boundaries. Whether to set each bound as closed or open.
+
+            .. versionchanged:: 1.3.0
 
         Returns
         -------
@@ -5031,12 +5033,34 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        if inclusive:
+        if inclusive is True or inclusive is False:
+            warnings.warn(
+                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "favour of `both` or `neither`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if inclusive:
+                inclusive = "both"
+            else:
+                inclusive = "neither"
+        if inclusive == "both":
             lmask = self >= left
             rmask = self <= right
-        else:
+        elif inclusive == "left":
+            lmask = self >= left
+            rmask = self < right
+        elif inclusive == "right":
+            lmask = self > left
+            rmask = self <= right
+        elif inclusive == "neither":
             lmask = self > left
             rmask = self < right
+        else:
+            raise ValueError(
+                "Inclusive has to be either string of 'both',"
+                "'left', 'right', or 'neither'."
+            )
 
         return lmask & rmask
 

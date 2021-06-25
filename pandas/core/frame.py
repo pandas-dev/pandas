@@ -63,13 +63,13 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
-    NpDtype,
     PythonFuncType,
     Renamer,
     Scalar,
     StorageOptions,
     Suffixes,
     ValueKeyFunc,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1593,7 +1593,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -6190,7 +6190,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast(Iterable, subset)
+        subset = cast(Sequence, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -9856,8 +9856,12 @@ NaN 12.3   33.0
                 FutureWarning,
                 stacklevel=5,
             )
-            cols = self.columns[~dtype_is_dt]
-            self = self[cols]
+            # Non-copy equivalent to
+            #  cols = self.columns[~dtype_is_dt]
+            #  self = self[cols]
+            predicate = lambda x: not is_datetime64_any_dtype(x.dtype)
+            mgr = self._mgr._get_data_subset(predicate)
+            self = type(self)(mgr)
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)

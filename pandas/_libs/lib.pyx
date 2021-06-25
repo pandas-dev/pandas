@@ -25,6 +25,7 @@ from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
 )
+from cython cimport floating
 
 PyDateTime_IMPORT
 
@@ -519,36 +520,22 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs_f4(const float32_t[:] arr) -> bool:
+# Can add const once https://github.com/cython/cython/issues/1772 resolved
+def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
-        float32_t inf, neginf, val
+        floating inf, neginf, val
+        bint ret = False
 
     inf = np.inf
     neginf = -inf
-
-    for i in range(n):
-        val = arr[i]
-        if val == inf or val == neginf:
-            return True
-    return False
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def has_infs_f8(const float64_t[:] arr) -> bool:
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        float64_t inf, neginf, val
-
-    inf = np.inf
-    neginf = -inf
-
-    for i in range(n):
-        val = arr[i]
-        if val == inf or val == neginf:
-            return True
-    return False
+    with nogil:
+        for i in range(n):
+            val = arr[i]
+            if val == inf or val == neginf:
+                ret = True
+                break
+    return ret
 
 
 def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
