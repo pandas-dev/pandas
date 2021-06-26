@@ -538,11 +538,7 @@ def test_errno_attribute():
 def test_create_missing_dirs():
     # GH 24306
     df = tm.makeDataFrame()
-    filepath = 'nonexistent/path/to/file.csv'
-    df.to_csv(filepath)
-    assert os.path.exists(filepath)
-    # Cleanup after test:
-    os.remove(filepath)
-    components = filepath.split('/')
-    for i in reversed(range(1, len(components))):
-        os.rmdir(os.path.join(*components[:i]))
+    with tm.ensure_clean() as fp:
+        full_path = os.path.join(fp, '/nonexistent/path/to/file.csv')
+        df.to_csv(full_path)
+        assert os.path.exists(full_path)
