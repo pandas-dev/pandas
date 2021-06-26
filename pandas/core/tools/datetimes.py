@@ -765,7 +765,7 @@ def to_datetime(
         - list-like: DatetimeIndex
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
-        - list-like with mixed timezones: Index of object
+        - list-like with mixed timezones: Index of object dtype
 
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
