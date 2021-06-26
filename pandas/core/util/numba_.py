@@ -11,6 +11,14 @@ from pandas.errors import NumbaUtilError
 
 from pandas.util.version import Version
 
+try:
+    # Reduce likelihood of segfaulting during parallelism
+    # https://github.com/numba/numba/issues/6839#issuecomment-868352174
+    numba = import_optional_dependency("numba")
+    numba.config.THREADING_LAYER = "threadsafe"
+except ImportError:
+    pass
+
 GLOBAL_USE_NUMBA: bool = False
 NUMBA_FUNC_CACHE: dict[tuple[Callable, str], Callable] = {}
 
