@@ -635,9 +635,9 @@ def get_handle(
 
     # If the parent directory doesn't exist initializing the stream will fail (GH 24306)
     if (
-        _is_writable_mode(mode)
-        and is_path
+        is_path
         and not ioargs.parent_exists
+        and _is_writable_mode(mode)
     ):
         os.makedirs(
             os.path.dirname(ioargs.filepath_or_buffer),
