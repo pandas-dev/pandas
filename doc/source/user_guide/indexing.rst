@@ -701,7 +701,7 @@ Having a duplicated index will raise for a ``.reindex()``:
 .. code-block:: ipython
 
    In [17]: s.reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -717,7 +717,7 @@ However, this would *still* raise if your resulting index is duplicated.
    In [41]: labels = ['a', 'd']
 
    In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 
 .. _indexing.basics.partial_setting:
@@ -1523,8 +1523,8 @@ Looking up values by index/column labels
 ----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
-rows with ``DataFrame.loc``.  For instance:
+and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
+For instance:
 
 .. ipython:: python
 
@@ -1532,9 +1532,8 @@ rows with ``DataFrame.loc``.  For instance:
                        'A': [80, 23, np.nan, 22],
                        'B': [80, 55, 76, 67]})
     df
-    melt = df.melt('col')
-    melt = melt.loc[melt['col'] == melt['variable'], 'value']
-    melt.reset_index(drop=True)
+    idx, cols = pd.factorize(df['col'])
+    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0.

@@ -189,7 +189,7 @@ def get_default_val(pat: str):
 
 
 class DictWrapper:
-    """ provide attribute-style access to a nested dict"""
+    """provide attribute-style access to a nested dict"""
 
     def __init__(self, d: dict[str, Any], prefix: str = ""):
         object.__setattr__(self, "d", d)
@@ -571,7 +571,7 @@ def _get_root(key: str) -> tuple[dict[str, Any], str]:
 
 
 def _is_deprecated(key: str) -> bool:
-    """ Returns True if the given option has been deprecated """
+    """Returns True if the given option has been deprecated"""
     key = key.lower()
     return key in _deprecated_options
 
@@ -643,7 +643,7 @@ def _warn_if_deprecated(key: str) -> bool:
 
 
 def _build_option_description(k: str) -> str:
-    """ Builds a formatted description of a registered option and prints it """
+    """Builds a formatted description of a registered option and prints it"""
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
@@ -667,7 +667,7 @@ def _build_option_description(k: str) -> str:
 
 
 def pp_options_list(keys: Iterable[str], width=80, _print: bool = False):
-    """ Builds a concise listing of available options, grouped by prefix """
+    """Builds a concise listing of available options, grouped by prefix"""
     from itertools import groupby
     from textwrap import wrap
 

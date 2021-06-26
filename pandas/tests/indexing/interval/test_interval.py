@@ -114,6 +114,21 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"\[10\] not in index"):
             df.loc[[10, 4]]
 
+    def test_getitem_interval_with_nans(self, frame_or_series, indexer_sl):
+        # GH#41831
+
+        index = IntervalIndex([np.nan, np.nan])
+        key = index[:-1]
+
+        obj = frame_or_series(range(2), index=index)
+        if frame_or_series is DataFrame and indexer_sl is tm.setitem:
+            obj = obj.T
+
+        result = indexer_sl(obj)[key]
+        expected = obj
+
+        tm.assert_equal(result, expected)
+
 
 class TestIntervalIndexInsideMultiIndex:
     def test_mi_intervalindex_slicing_with_scalar(self):
