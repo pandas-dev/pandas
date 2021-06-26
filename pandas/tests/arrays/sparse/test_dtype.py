@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
-
 import pandas as pd
 from pandas.core.arrays.sparse import SparseDtype
 
@@ -130,12 +128,7 @@ def test_construct_from_string(string, expected):
     [
         (SparseDtype(float, 0.0), SparseDtype(np.dtype("float"), 0.0), True),
         (SparseDtype(int, 0), SparseDtype(int, 0), True),
-        pytest.param(
-            SparseDtype(float, float("nan")),
-            SparseDtype(float, np.nan),
-            True,
-            marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-        ),
+        (SparseDtype(float, float("nan")), SparseDtype(float, np.nan), True),
         (SparseDtype(float, 0), SparseDtype(float, np.nan), False),
         (SparseDtype(int, 0.0), SparseDtype(float, 0.0), False),
     ],

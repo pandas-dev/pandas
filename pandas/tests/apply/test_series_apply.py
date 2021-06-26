@@ -7,8 +7,6 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.compat import PY310
-
 from pandas.core.dtypes.common import is_number
 
 import pandas as pd
@@ -115,20 +113,6 @@ def test_series_map_box_timestamps():
     # it works!
     ser.map(func)
     ser.apply(func)
-
-
-def test_series_map_stringdtype(any_string_dtype):
-    # map test on StringDType, GH#40823
-    ser1 = Series(
-        data=["cat", "dog", "rabbit"],
-        index=["id1", "id2", "id3"],
-        dtype=any_string_dtype,
-    )
-    ser2 = Series(data=["id3", "id2", "id1", "id7000"], dtype=any_string_dtype)
-    result = ser2.map(ser1)
-    expected = Series(data=["rabbit", "dog", "cat", pd.NA], dtype=any_string_dtype)
-
-    tm.assert_series_equal(result, expected)
 
 
 def test_apply_box():
@@ -278,9 +262,7 @@ def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
         request.node.add_marker(
-            pytest.mark.xfail(
-                raises=AssertionError, reason=f"{op} is successful on any dtype"
-            )
+            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
     if op in ("rank", "fillna"):
         pytest.skip(f"{op} doesn't raise TypeError on object")
@@ -810,12 +792,7 @@ def test_map_datetimetz():
 @pytest.mark.parametrize(
     "vals,mapping,exp",
     [
-        pytest.param(
-            list("abc"),
-            {np.nan: "not NaN"},
-            [np.nan] * 3 + ["not NaN"],
-            marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
-        ),
+        (list("abc"), {np.nan: "not NaN"}, [np.nan] * 3 + ["not NaN"]),
         (list("abc"), {"a": "a letter"}, ["a letter"] + [np.nan] * 3),
         (list(range(3)), {0: 42}, [42] + [np.nan] * 3),
     ],
@@ -880,9 +857,7 @@ def test_apply_to_timedelta():
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)  # noqa
-    with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
-        ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)  # noqa
+    b = Series(list_of_strings).apply(pd.to_timedelta)  # noqa
     # Can't compare until apply on a Series gives the correct dtype
     # assert_series_equal(a, b)
 
