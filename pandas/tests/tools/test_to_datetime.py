@@ -969,10 +969,11 @@ class TestToDatetime:
                 (NaT, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
             ),
             (
-                (None, "2012 July 26", Timestamp("2012-07-26"))
-                + (NaT,) * start_caching_at,
-                (NaT, Timestamp("2012-07-26"), Timestamp("2012-07-26"))
-                + (NaT,) * start_caching_at,
+                (None,)
+                + (NaT,) * start_caching_at
+                + ("2012 July 26", Timestamp("2012-07-26")),
+                (NaT,) * (start_caching_at + 1)
+                + (Timestamp("2012-07-26"), Timestamp("2012-07-26")),
             ),
         ),
     )
