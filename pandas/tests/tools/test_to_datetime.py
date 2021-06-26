@@ -959,7 +959,7 @@ class TestToDatetime:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "datetimelikes,expected",
+        "datetimelikes,expected_values",
         (
             (
                 (None, np.nan) + (NaT,) * start_caching_at,
@@ -977,7 +977,7 @@ class TestToDatetime:
             ),
         ),
     )
-    def test_convert_object_to_datetime_with_cache(self, datetimelikes, expected):
+    def test_convert_object_to_datetime_with_cache(self, datetimelikes, expected_values):
         # GH#39882
         ser = Series(
             datetimelikes,
@@ -985,7 +985,7 @@ class TestToDatetime:
         )
         result_series = to_datetime(ser, errors="coerce")
         expected_series = Series(
-            expected,
+            expected_values,
             dtype="datetime64[ns]",
         )
         tm.assert_series_equal(result_series, expected_series)
