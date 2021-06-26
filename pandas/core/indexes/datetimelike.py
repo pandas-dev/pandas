@@ -506,6 +506,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    _join_precedence = 10
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
@@ -679,38 +681,3 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             return result
         else:
             return super()._union(other, sort=sort)._with_freq("infer")
-
-    # --------------------------------------------------------------------
-    # Join Methods
-    _join_precedence = 10
-
-    def join(
-        self,
-        other,
-        how: str = "left",
-        level=None,
-        return_indexers: bool = False,
-        sort: bool = False,
-    ):
-        """
-        See Index.join
-        """
-        pself, pother = self._maybe_promote(other)
-        if pself is not self or pother is not other:
-            return pself.join(
-                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        self._maybe_utc_convert(other)  # raises if we dont have tzawareness compat
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def _maybe_utc_convert(self: _T, other: Index) -> tuple[_T, Index]:
-        # Overridden by DatetimeIndex
-        return self, other
