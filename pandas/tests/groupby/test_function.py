@@ -816,8 +816,11 @@ def test_cummax(dtypes_for_minmax):
 def test_cummin_max_skipna(method, dtype, groups, expected_data):
     # GH-34047
     df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
-    result = getattr(df.groupby(groups)["a"], method)(skipna=False)
+    gb = df.groupby(groups)["a"]
+
+    result = getattr(gb, method)(skipna=False)
     expected = Series(expected_data, dtype=dtype, name="a")
+
     tm.assert_series_equal(result, expected)
 
 
