@@ -681,7 +681,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
         .. versionadded:: 1.2.0
-         : {'error', 'new', 'replace', 'write_to'}, default 'error'
+    if_sheet_exists : {'error', 'new', 'replace', 'write_to'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
@@ -763,19 +763,21 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     "path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
-    ...     if_sheet_exists="replace"
+    ...     if_sheet_exists="replace",
     ... ) as writer:
-    ...     df.to_excel(writer, sheet_name="Sheet1")
+    >>>     df.to_excel(writer, sheet_name="Sheet1")
 
-    You can specify arguments to the underlying engine. For example to not
-    calculate the result of a formula:
+    You can also write multiple DataFrames to a single sheet. Note that the
+    `if_sheet_exists` parameter needs to be set to `write_to` if you are in
+    append mode:
 
-    >>> df = pd.DataFrame(["=1+1"])
-    ... with ExcelWriter(
-    ...     "path_to_file.xlsx",
-    ...     engine_kwargs={"strings_to_formulas":False}
+    >>> with ExcelWriter("path_to_file.xlsx",
+    ...     mode="a",
+    ...     engine="openpyxl",
+    ...     if_sheet_exists="write_to",
     ... ) as writer:
-    ...     df.to_excel(writer)
+    >>>     df.to_excel(writer, sheet_name="Sheet1")
+    >>>     df.to_excel(writer, sheet_name="Sheet1", startcol=3)
 
     You can store Excel file in RAM:
 
