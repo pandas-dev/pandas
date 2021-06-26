@@ -812,14 +812,16 @@ class ArrayManager(BaseArrayManager):
 
         if axis == 0:
             arrays = [arr[slobj] for arr in self.arrays]
+            # slicing results in views -> track references to original arrays
+            # TODO possible to optimizate this with single ref to the full ArrayManager?
+            refs = [weakref.ref(arr) for arr in self.arrays]
         elif axis == 1:
             arrays = self.arrays[slobj]
+            # track reference to subset of column arrays
+            refs = [weakref.ref(arr) for arr in arrays]
 
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
-        # slicing results in views -> track references to original arrays
-        # TODO possible to optimizate this with single ref to the full ArrayManager?
-        refs = [weakref.ref(arr) for arr in self.arrays]
 
         return type(self)(arrays, new_axes, refs, verify_integrity=False)
 

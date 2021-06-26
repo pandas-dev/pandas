@@ -176,6 +176,8 @@ def test_subset_row_slice(using_array_manager):
     df_orig = df.copy()
 
     subset = df[1:3]
+    subset._mgr._verify_integrity()
+
     assert np.may_share_memory(subset["a"].values, df["a"].values)
 
     if using_array_manager:
@@ -198,6 +200,30 @@ def test_subset_row_slice(using_array_manager):
         # original parent dataframe is actually updated
         df_orig.iloc[1, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+
+def test_subset_column_slice(using_array_manager):
+    # Case: taking a subset of the columns of a DataFrame using a slice
+    # + afterwards modifying the subset
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+
+    subset = df.iloc[:, 1:]
+    subset._mgr._verify_integrity()
+
+    if using_array_manager:
+        assert np.may_share_memory(subset["b"].values, df["b"].values)
+
+        subset.iloc[0, 0] = 0
+        assert not np.may_share_memory(subset["b"].values, df["b"].values)
+
+    else:
+        subset.iloc[0, 0] = 0
+
+    expected = pd.DataFrame({"b": [0, 5, 6], "c": [0.1, 0.2, 0.3]})
+    tm.assert_frame_equal(subset, expected)
+    # original parent dataframe is not modified (also not for BlockManager case)
+    tm.assert_frame_equal(df, df_orig)
 
 
 @pytest.mark.parametrize(
@@ -333,8 +359,8 @@ def test_subset_set_with_column_indexer(indexer, using_array_manager):
     expected = pd.DataFrame(
         {"a": [0, 0], "b": [0.0, 0.0], "c": [5, 6]}, index=range(1, 3)
     )
-    if not using_array_manager:
-        expected["b"] = expected["b"].astype("int64")
+    # TODO full row slice .loc[:, idx] update inplace instead of overwrite?
+    expected["b"] = expected["b"].astype("int64")
     tm.assert_frame_equal(subset, expected)
     if using_array_manager:
         tm.assert_frame_equal(df, df_orig)
