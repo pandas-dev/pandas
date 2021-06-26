@@ -127,7 +127,7 @@ def arrays_to_mgr(
     columns = ensure_index(columns)
 
     # from BlockManager perspective
-    axes = [columns, index]
+    axes = [index, columns]
 
     if typ == "block":
         return create_block_manager_from_arrays(
