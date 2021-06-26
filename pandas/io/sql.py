@@ -2009,7 +2009,6 @@ class SQLDatabase(PandasSQL):
             frame=frame,
             name=name,
             if_exists=if_exists,
-            on_conflict=on_conflict,
             index=index,
             index_label=index_label,
             schema=schema,
