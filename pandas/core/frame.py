@@ -63,13 +63,13 @@ from pandas._typing import (
     IndexKeyFunc,
     IndexLabel,
     Level,
-    NpDtype,
     PythonFuncType,
     Renamer,
     Scalar,
     StorageOptions,
     Suffixes,
     ValueKeyFunc,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -647,7 +647,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(data, (np.ndarray, Series, Index)):
             if data.dtype.names:
                 # i.e. numpy structured array
-
+                data = cast(np.ndarray, data)
                 mgr = rec_array_to_mgr(
                     data,
                     index,
@@ -1593,7 +1593,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -2279,9 +2279,7 @@ class DataFrame(NDFrame, OpsMixin):
             if dtype_mapping is None:
                 formats.append(v.dtype)
             elif isinstance(dtype_mapping, (type, np.dtype, str)):
-                # error: Argument 1 to "append" of "list" has incompatible type
-                # "Union[type, dtype, str]"; expected "dtype"
-                formats.append(dtype_mapping)  # type: ignore[arg-type]
+                formats.append(dtype_mapping)
             else:
                 element = "row" if i < index_len else "column"
                 msg = f"Invalid dtype {dtype_mapping} specified for {element} {name}"
@@ -6181,7 +6179,7 @@ class DataFrame(NDFrame, OpsMixin):
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
-        subset_iterable: Iterable
+        subset_iterable: Sequence
         if subset is None:
             subset_iterable = self.columns
         elif (
@@ -6193,7 +6191,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset_iterable = (subset,)
         else:
             #  needed for mypy since can't narrow types using np.iterable
-            subset_iterable = cast(Iterable, subset)
+            subset_iterable = cast(Sequence, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -8146,7 +8144,11 @@ NaN 12.3   33.0
 
         return result.__finalize__(self, method="stack")
 
-    def explode(self, column: str | tuple, ignore_index: bool = False) -> DataFrame:
+    def explode(
+        self,
+        column: str | tuple | list[str | tuple],
+        ignore_index: bool = False,
+    ) -> DataFrame:
         """
         Transform each element of a list-like to a row, replicating index values.
 
@@ -8154,8 +8156,15 @@ NaN 12.3   33.0
 
         Parameters
         ----------
-        column : str or tuple
-            Column to explode.
+        column : str or tuple or list thereof
+            Column(s) to explode.
+            For multiple columns, specify a non-empty list with each element
+            be str or tuple, and all specified columns their list-like data
+            on same row of the frame must have matching length.
+
+            .. versionadded:: 1.3.0
+                Multi-column explode
+
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
@@ -8170,7 +8179,10 @@ NaN 12.3   33.0
         Raises
         ------
         ValueError :
-            if columns of the frame are not unique.
+            * If columns of the frame are not unique.
+            * If specified columns to explode is empty list.
+            * If specified columns to explode have not matching count of
+              elements rowwise in the frame.
 
         See Also
         --------
@@ -8189,32 +8201,69 @@ NaN 12.3   33.0
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [[1, 2, 3], 'foo', [], [3, 4]], 'B': 1})
+        >>> df = pd.DataFrame({'A': [[0, 1, 2], 'foo', [], [3, 4]],
+        ...                    'B': 1,
+        ...                    'C': [['a', 'b', 'c'], np.nan, [], ['d', 'e']]})
         >>> df
-                   A  B
-        0  [1, 2, 3]  1
-        1        foo  1
-        2         []  1
-        3     [3, 4]  1
+                   A  B          C
+        0  [0, 1, 2]  1  [a, b, c]
+        1        foo  1        NaN
+        2         []  1         []
+        3     [3, 4]  1     [d, e]
+
+        Single-column explode.
 
         >>> df.explode('A')
-             A  B
-        0    1  1
-        0    2  1
-        0    3  1
-        1  foo  1
-        2  NaN  1
-        3    3  1
-        3    4  1
+             A  B          C
+        0    0  1  [a, b, c]
+        0    1  1  [a, b, c]
+        0    2  1  [a, b, c]
+        1  foo  1        NaN
+        2  NaN  1         []
+        3    3  1     [d, e]
+        3    4  1     [d, e]
+
+        Multi-column explode.
+
+        >>> df.explode(list('AC'))
+             A  B    C
+        0    0  1    a
+        0    1  1    b
+        0    2  1    c
+        1  foo  1  NaN
+        2  NaN  1  NaN
+        3    3  1    d
+        3    4  1    e
         """
-        if not (is_scalar(column) or isinstance(column, tuple)):
-            raise ValueError("column must be a scalar")
         if not self.columns.is_unique:
             raise ValueError("columns must be unique")
 
+        columns: list[str | tuple]
+        if is_scalar(column) or isinstance(column, tuple):
+            assert isinstance(column, (str, tuple))
+            columns = [column]
+        elif isinstance(column, list) and all(
+            map(lambda c: is_scalar(c) or isinstance(c, tuple), column)
+        ):
+            if not column:
+                raise ValueError("column must be nonempty")
+            if len(column) > len(set(column)):
+                raise ValueError("column must be unique")
+            columns = column
+        else:
+            raise ValueError("column must be a scalar, tuple, or list thereof")
+
         df = self.reset_index(drop=True)
-        result = df[column].explode()
-        result = df.drop([column], axis=1).join(result)
+        if len(columns) == 1:
+            result = df[columns[0]].explode()
+        else:
+            mylen = lambda x: len(x) if is_list_like(x) else -1
+            counts0 = self[columns[0]].apply(mylen)
+            for c in columns[1:]:
+                if not all(counts0 == self[c].apply(mylen)):
+                    raise ValueError("columns must have matching element counts")
+            result = DataFrame({c: df[c].explode() for c in columns})
+        result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = ibase.default_index(len(result))
         else:
@@ -9762,8 +9811,12 @@ NaN 12.3   33.0
                 FutureWarning,
                 stacklevel=5,
             )
-            cols = self.columns[~dtype_is_dt]
-            self = self[cols]
+            # Non-copy equivalent to
+            #  cols = self.columns[~dtype_is_dt]
+            #  self = self[cols]
+            predicate = lambda x: not is_datetime64_any_dtype(x.dtype)
+            mgr = self._mgr._get_data_subset(predicate)
+            self = type(self)(mgr)
 
         # TODO: Make other agg func handle axis=None properly GH#21597
         axis = self._get_axis_number(axis)

@@ -12,7 +12,7 @@ flake8==3.9.2
 flake8-bugbear==21.3.2
 flake8-comprehensions==3.1.0
 isort>=5.2.1
-mypy==0.812
+mypy==0.910
 pre-commit>=2.9.2
 pycodestyle
 pyupgrade
@@ -81,3 +81,7 @@ natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
 numpydoc < 1.2
 pandas-dev-flaker==0.2.0
+types-python-dateutil
+types-PyMySQL
+types-pytz
+types-setuptools
