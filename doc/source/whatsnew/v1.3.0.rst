@@ -1,7 +1,7 @@
 .. _whatsnew_130:
 
-What's new in 1.3.0 (??)
-------------------------
+What's new in 1.3.0 (June ??)
+-----------------------------
 
 These are the changes in pandas 1.3.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -124,7 +124,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - The methods :meth:`.Styler.highlight_null`, :meth:`.Styler.highlight_min`, and :meth:`.Styler.highlight_max` now allow custom CSS highlighting instead of the default background coloring (:issue:`40242`)
  - :meth:`.Styler.apply` now accepts functions that return an ``ndarray`` when ``axis=None``, making it now consistent with the ``axis=0`` and ``axis=1`` behavior (:issue:`39359`)
  - When incorrectly formatted CSS is given via :meth:`.Styler.apply` or :meth:`.Styler.applymap`, an error is now raised upon rendering (:issue:`39660`)
- - :meth:`.Styler.format` now accepts the keyword argument ``escape`` for optional HTML and LaTex escaping (:issue:`40388`, :issue:`41619`)
+ - :meth:`.Styler.format` now accepts the keyword argument ``escape`` for optional HTML and LaTeX escaping (:issue:`40388`, :issue:`41619`)
  - :meth:`.Styler.background_gradient` has gained the argument ``gmap`` to supply a specific gradient map for shading (:issue:`22727`)
  - :meth:`.Styler.clear` now clears :attr:`Styler.hidden_index` and :attr:`Styler.hidden_columns` as well (:issue:`40484`)
  - Added the method :meth:`.Styler.highlight_between` (:issue:`39821`)
@@ -252,7 +252,7 @@ Other enhancements
 - :func:`to_numeric` now supports downcasting of nullable ``ExtensionDtype`` objects (:issue:`33013`)
 - Added support for dict-like names in :class:`MultiIndex.set_names` and :class:`MultiIndex.rename` (:issue:`20421`)
 - :func:`read_excel` can now auto-detect .xlsb files and older .xls files (:issue:`35416`, :issue:`41225`)
-- :class:`ExcelWriter` now accepts an ``if_sheet_exists`` parameter to control the behaviour of append mode when writing to existing sheets (:issue:`40230`)
+- :class:`ExcelWriter` now accepts an ``if_sheet_exists`` parameter to control the behavior of append mode when writing to existing sheets (:issue:`40230`)
 - :meth:`.Rolling.sum`, :meth:`.Expanding.sum`, :meth:`.Rolling.mean`, :meth:`.Expanding.mean`, :meth:`.ExponentialMovingWindow.mean`, :meth:`.Rolling.median`, :meth:`.Expanding.median`, :meth:`.Rolling.max`, :meth:`.Expanding.max`, :meth:`.Rolling.min`, and :meth:`.Expanding.min` now support `Numba <http://numba.pydata.org/>`_ execution with the ``engine`` keyword (:issue:`38895`, :issue:`41267`)
 - :meth:`DataFrame.apply` can now accept NumPy unary operators as strings, e.g. ``df.apply("sqrt")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
 - :meth:`DataFrame.apply` can now accept non-callable DataFrame properties as strings, e.g. ``df.apply("size")``, which was already the case for :meth:`Series.apply` (:issue:`39116`)
@@ -276,7 +276,9 @@ Other enhancements
 - Add keyword ``dropna`` to :meth:`DataFrame.value_counts` to allow counting rows that include ``NA`` values (:issue:`41325`)
 - :meth:`Series.replace` will now cast results to ``PeriodDtype`` where possible instead of ``object`` dtype (:issue:`41526`)
 - Improved error message in ``corr`` and ``cov`` methods on :class:`.Rolling`, :class:`.Expanding`, and :class:`.ExponentialMovingWindow` when ``other`` is not a :class:`DataFrame` or :class:`Series` (:issue:`41741`)
+- :meth:`Series.between` can now accept ``left`` or ``right`` as arguments to ``inclusive`` to include only the left or right boundary (:issue:`40245`)
 - :meth:`DataFrame.explode` now supports exploding multiple columns. Its ``column`` argument now also accepts a list of str or tuples for exploding on multiple columns at the same time (:issue:`39240`)
+- :meth:`DataFrame.sample` now accepts the ``ignore_index`` argument to reset the index after sampling, similar to :meth:`DataFrame.drop_duplicates` and :meth:`DataFrame.sort_values` (:issue:`38581`)
 
 .. ---------------------------------------------------------------------------
 
@@ -305,7 +307,7 @@ As an example of this, given:
         original = pd.Series(cat)
         unique = original.unique()
 
-*pandas < 1.3.0*:
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -315,7 +317,7 @@ As an example of this, given:
     In [2]: original.dtype == unique.dtype
     False
 
-*pandas >= 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -337,7 +339,7 @@ Preserve dtypes in :meth:`DataFrame.combine_first`
    df2
    combined = df1.combine_first(df2)
 
-*pandas 1.2.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -348,7 +350,7 @@ Preserve dtypes in :meth:`DataFrame.combine_first`
    C    float64
    dtype: object
 
-*pandas 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -371,7 +373,7 @@ values as measured by ``np.allclose``. Now no such casting occurs.
     df = pd.DataFrame({'key': [1, 1], 'a': [True, False], 'b': [True, True]})
     df
 
-*pandas 1.2.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -381,7 +383,7 @@ values as measured by ``np.allclose``. Now no such casting occurs.
     key
     1    True  2
 
-*pandas 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -399,7 +401,7 @@ Now, these methods will always return a float dtype. (:issue:`41137`)
 
     df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
 
-*pandas 1.2.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -408,7 +410,7 @@ Now, these methods will always return a float dtype. (:issue:`41137`)
             a  b    c
     0    True  1  1.0
 
-*pandas 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -432,7 +434,7 @@ insert the values into the existing data rather than create an entirely new arra
 In both the new and old behavior, the data in ``values`` is overwritten, but in
 the old behavior the dtype of ``df["A"]`` changed to ``int64``.
 
-*pandas 1.2.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -447,7 +449,7 @@ the old behavior the dtype of ``df["A"]`` changed to ``int64``.
 
 In pandas 1.3.0, ``df`` continues to share data with ``values``
 
-*pandas 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -474,7 +476,7 @@ never casting to the dtypes of the existing arrays.
 In the old behavior, ``5`` was cast to ``float64`` and inserted into the existing
 array backing ``df``:
 
-*pandas 1.2.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -484,7 +486,7 @@ array backing ``df``:
 
 In the new behavior, we get a new array, and retain an integer-dtyped ``5``:
 
-*pandas 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -507,7 +509,7 @@ casts to ``dtype=object`` (:issue:`38709`)
    ser2 = orig.copy()
    ser2.iloc[1] = 2.0
 
-*pandas 1.2.x*
+*Previous behavior*:
 
 .. code-block:: ipython
 
@@ -523,7 +525,7 @@ casts to ``dtype=object`` (:issue:`38709`)
    1     2.0
    dtype: object
 
-*pandas 1.3.0*
+*New behavior*:
 
 .. ipython:: python
 
@@ -786,6 +788,8 @@ For example:
     1   2
     2  12
 
+*Future behavior*:
+
 .. code-block:: ipython
 
     In [5]: gb.prod(numeric_only=False)
@@ -815,8 +819,8 @@ Other Deprecations
 - Deprecated :meth:`ExponentialMovingWindow.vol` (:issue:`39220`)
 - Using ``.astype`` to convert between ``datetime64[ns]`` dtype and :class:`DatetimeTZDtype` is deprecated and will raise in a future version, use ``obj.tz_localize`` or ``obj.dt.tz_localize`` instead (:issue:`38622`)
 - Deprecated casting ``datetime.date`` objects to ``datetime64`` when used as ``fill_value`` in :meth:`DataFrame.unstack`, :meth:`DataFrame.shift`, :meth:`Series.shift`, and :meth:`DataFrame.reindex`, pass ``pd.Timestamp(dateobj)`` instead (:issue:`39767`)
-- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favour of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
-- Deprecated :meth:`.Styler.where` in favour of using an alternative formulation with :meth:`Styler.applymap` (:issue:`40821`)
+- Deprecated :meth:`.Styler.set_na_rep` and :meth:`.Styler.set_precision` in favor of :meth:`.Styler.format` with ``na_rep`` and ``precision`` as existing and new input arguments respectively (:issue:`40134`, :issue:`40425`)
+- Deprecated :meth:`.Styler.where` in favor of using an alternative formulation with :meth:`Styler.applymap` (:issue:`40821`)
 - Deprecated allowing partial failure in :meth:`Series.transform` and :meth:`DataFrame.transform` when ``func`` is list-like or dict-like and raises anything but ``TypeError``; ``func`` raising anything but a ``TypeError`` will raise in a future version (:issue:`40211`)
 - Deprecated arguments ``error_bad_lines`` and ``warn_bad_lines`` in :meth:`read_csv` and :meth:`read_table` in favor of argument ``on_bad_lines`` (:issue:`15122`)
 - Deprecated support for ``np.ma.mrecords.MaskedRecords`` in the :class:`DataFrame` constructor, pass ``{name: data[name] for name in data.dtype.names}`` instead (:issue:`40363`)
@@ -838,6 +842,7 @@ Other Deprecations
 - Deprecated inference of ``timedelta64[ns]``, ``datetime64[ns]``, or ``DatetimeTZDtype`` dtypes in :class:`Series` construction when data containing strings is passed and no ``dtype`` is passed (:issue:`33558`)
 - In a future version, constructing :class:`Series` or :class:`DataFrame` with ``datetime64[ns]`` data and ``DatetimeTZDtype`` will treat the data as wall-times instead of as UTC times (matching DatetimeIndex behavior). To treat the data as UTC times, use ``pd.Series(data).dt.tz_localize("UTC").dt.tz_convert(dtype.tz)`` or ``pd.Series(data.view("int64"), dtype=dtype)`` (:issue:`33401`)
 - Deprecated passing lists as ``key`` to :meth:`DataFrame.xs` and :meth:`Series.xs` (:issue:`41760`)
+- Deprecated boolean arguments of ``inclusive`` in :meth:`Series.between` to have ``{"left", "right", "neither", "both"}`` as standard argument values (:issue:`40628`)
 - Deprecated passing arguments as positional for all of the following, with exceptions noted (:issue:`41485`):
 
   - :func:`concat` (other than ``objs``)
@@ -884,7 +889,7 @@ Performance improvements
 - Performance improvement in :class:`.Styler` where render times are more than 50% reduced and now matches :meth:`DataFrame.to_html` (:issue:`39972` :issue:`39952`, :issue:`40425`)
 - The method :meth:`.Styler.set_td_classes` is now as performant as :meth:`.Styler.apply` and :meth:`.Styler.applymap`, and even more so in some cases (:issue:`40453`)
 - Performance improvement in :meth:`.ExponentialMovingWindow.mean` with ``times`` (:issue:`39784`)
-- Performance improvement in :meth:`.GroupBy.apply` when requiring the python fallback implementation (:issue:`40176`)
+- Performance improvement in :meth:`.GroupBy.apply` when requiring the Python fallback implementation (:issue:`40176`)
 - Performance improvement in the conversion of a PyArrow Boolean array to a pandas nullable Boolean array (:issue:`41051`)
 - Performance improvement for concatenation of data with type :class:`CategoricalDtype` (:issue:`40193`)
 - Performance improvement in :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` with nullable data types (:issue:`37493`)
@@ -955,7 +960,7 @@ Numeric
 - Bug in :class:`Series` and :class:`DataFrame` reductions with methods ``any`` and ``all`` not returning Boolean results for object data (:issue:`12863`, :issue:`35450`, :issue:`27709`)
 - Bug in :meth:`Series.clip` would fail if the Series contains NA values and has nullable int or float as a data type (:issue:`40851`)
 - Bug in :meth:`UInt64Index.where` and :meth:`UInt64Index.putmask` with an ``np.int64`` dtype ``other`` incorrectly raising ``TypeError`` (:issue:`41974`)
-- Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggragation functions when one or more aggregation function fails to produce results (:issue:`33634`)
+- Bug in :meth:`DataFrame.agg()` not sorting the aggregated axis in the order of the provided aggregation functions when one or more aggregation function fails to produce results (:issue:`33634`)
 - Bug in :meth:`DataFrame.clip` not interpreting missing values as no threshold (:issue:`40420`)
 
 Conversion
@@ -1226,4 +1231,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.2.4..v1.3.0|HEAD
+.. contributors:: v1.2.5..v1.3.0|HEAD
