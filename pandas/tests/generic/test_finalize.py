@@ -784,6 +784,7 @@ def test_finalize_frame_series_name():
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
 
+
 def test_concat_retain_attrs():
     '''Only retain the attrs when the attrs are the same across all
     dataframes.'''
@@ -794,6 +795,7 @@ def test_concat_retain_attrs():
     df2.attrs = {1: 1}
     df = pd.concat([df1, df2])
     assert df.attrs == {1: 1}
+
 
 def test_concat_drop_attrs():
     '''Drop the attrs when the attrs when the attrs are different across
