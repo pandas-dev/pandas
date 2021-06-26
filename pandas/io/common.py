@@ -72,6 +72,9 @@ class IOArgs:
     compression: CompressionDict
     should_close: bool = False
 
+    def __post_init__(self):
+        self.parent_exists = dir_exists(self.filepath_or_buffer)
+
 
 @dataclasses.dataclass
 class IOHandles:
@@ -630,6 +633,17 @@ def get_handle(
     compression_args = dict(ioargs.compression)
     compression = compression_args.pop("method")
 
+    # If the parent directory doesn't exist initializing the stream will fail (GH 24306)
+    if (
+            _is_writable_mode(mode)
+            and is_path
+            and not ioargs.parent_exists
+    ):
+        os.makedirs(
+            os.path.dirname(ioargs.filepath_or_buffer),
+            exist_ok=True,
+        )
+
     if compression:
         # compression libraries do not like an explicit text-mode
         ioargs.mode = ioargs.mode.replace("t", "")
@@ -937,6 +951,20 @@ def file_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
     return exists
 
 
+def dir_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
+    """Test whether parent directory exists."""
+    exists = False
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath_or_buffer, str):
+        return exists
+    try:
+        exists = os.path.exists(os.path.dirname(filepath_or_buffer))
+        # gh-5874: if the filepath is too long will raise here
+    except (TypeError, ValueError):
+        pass
+    return exists
+
+
 def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     """Whether the handle is opened in binary mode"""
     # specified by user
@@ -951,3 +979,11 @@ def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     # classes that expect bytes
     binary_classes = (BufferedIOBase, RawIOBase)
     return isinstance(handle, binary_classes) or "b" in getattr(handle, "mode", mode)
+
+
+def _is_writable_mode(mode: str) -> bool:
+    """Whether the handle is opened in writable mode"""
+    writable_prefixes = ('a', 'w', 'r+')
+    if any(map(mode.startswith, writable_prefixes)):
+        return True
+    return False
