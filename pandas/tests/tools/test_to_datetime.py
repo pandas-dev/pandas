@@ -8,6 +8,7 @@ from datetime import (
 )
 from decimal import Decimal
 import locale
+from typing import Any, List, Union
 
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
@@ -958,30 +959,23 @@ class TestToDatetime:
         assert result == expected
 
     @pytest.mark.parametrize(
-        "datetimelikes, expected",
-        [
+        "datetimelikes,expected",
+        (
             (
-                [None] + [NaT] * start_caching_at + [np.nan],
-                [NaT] * (start_caching_at + 2),
+                (None, np.nan) + (NaT,) * start_caching_at,
+                (NaT,) * (start_caching_at + 2),
             ),
             (
-                [None] + [NaT] * start_caching_at + [Timestamp("2012-07-26")],
-                [NaT] * (start_caching_at + 1) + [Timestamp("2012-07-26")],
+                (None, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
+                (NaT, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
             ),
             (
-                [None]
-                + [NaT] * start_caching_at
-                + [
-                    "2012 July 26",
-                    Timestamp("2012-07-26"),
-                ],
-                [NaT] * (start_caching_at + 1)
-                + [
-                    Timestamp("2012-07-26"),
-                    Timestamp("2012-07-26"),
-                ],
+                (None, "2012 July 26", Timestamp("2012-07-26"))
+                + (NaT,) * start_caching_at,
+                (NaT, Timestamp("2012-07-26"), Timestamp("2012-07-26"))
+                + (NaT,) * start_caching_at,
             ),
-        ],
+        ),
     )
     def test_convert_object_to_datetime_with_cache(self, datetimelikes, expected):
         # GH#39882
@@ -989,12 +983,12 @@ class TestToDatetime:
             datetimelikes,
             dtype="object",
         )
-        result = to_datetime(ser, errors="coerce")
-        expected = Series(
+        result_series = to_datetime(ser, errors="coerce")
+        expected_series = Series(
             expected,
             dtype="datetime64[ns]",
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result_series, expected_series)
 
     @pytest.mark.parametrize(
         "date, format",
