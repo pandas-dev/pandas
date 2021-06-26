@@ -46,7 +46,6 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    NpDtype,
     RandomState,
     Renamer,
     StorageOptions,
@@ -55,6 +54,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     final,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1988,7 +1988,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
@@ -5144,11 +5144,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def sample(
         self: FrameOrSeries,
         n=None,
-        frac=None,
-        replace=False,
+        frac: float | None = None,
+        replace: bool_t = False,
         weights=None,
         random_state: RandomState | None = None,
-        axis=None,
+        axis: Axis | None = None,
+        ignore_index: bool_t = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
@@ -5189,6 +5190,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -5350,7 +5355,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis)
+        result = self.take(locs, axis=axis)
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
+        return result
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
