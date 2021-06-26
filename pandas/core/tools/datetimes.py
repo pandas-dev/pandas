@@ -195,8 +195,9 @@ def _maybe_cache(
             cache_dates = convert_listlike(unique_dates, format)
             cache_array = Series(cache_dates, index=unique_dates)
             if not cache_array.index.is_unique:
-                # GH#39882 in case of None and NaT we get duplicates
-                cache_array = cache_array[~cache_array.index.unique()]
+                cache_array = cache_array[
+                    ~cache_array.index.duplicated()
+                ]
     return cache_array
 
 
