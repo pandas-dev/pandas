@@ -341,7 +341,9 @@ class PeriodArray(dtl.DatelikeOps):
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
-        elif dtype == bool:
+        # error: Non-overlapping equality check (left operand type: "Optional[Union[str,
+        # dtype[Any]]]", right operand type: "Type[bool]")
+        elif dtype == bool:  # type: ignore[comparison-overlap]
             return ~self._isnan
 
         # This will raise TypeError for non-object dtypes

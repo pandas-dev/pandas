@@ -964,39 +964,60 @@ class Styler(StylerRenderer):
                 self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
+        """
+        Copies a Styler, allowing for deepcopy or shallow copy
+
+        Copying a Styler aims to recreate a new Styler object which contains the same
+        data and styles as the original.
+
+        Data dependent attributes [copied and NOT exported]:
+          - formatting (._display_funcs)
+          - hidden index values or column values (.hidden_rows, .hidden_columns)
+          - tooltips
+          - cell_context (cell css classes)
+          - ctx (cell css styles)
+          - caption
+
+        Non-data dependent attributes [copied and exported]:
+          - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
+          - table_attributes
+          - table_styles
+          - applied styles (_todo)
+
+        """
+        # GH 40675
         styler = Styler(
-            self.data,
-            precision=self.precision,
-            caption=self.caption,
-            table_attributes=self.table_attributes,
-            cell_ids=self.cell_ids,
-            na_rep=self.na_rep,
+            self.data,  # populates attributes 'data', 'columns', 'index' as shallow
+            uuid_len=self.uuid_len,
         )
+        shallow = [  # simple string or boolean immutables
+            "hide_index_",
+            "hide_columns_",
+            "table_attributes",
+            "cell_ids",
+            "caption",
+        ]
+        deep = [  # nested lists or dicts
+            "_display_funcs",
+            "hidden_rows",
+            "hidden_columns",
+            "ctx",
+            "cell_context",
+            "_todo",
+            "table_styles",
+            "tooltips",
+        ]
 
-        styler.uuid = self.uuid
-        styler.hide_index_ = self.hide_index_
+        for attr in shallow:
+            setattr(styler, attr, getattr(self, attr))
 
-        if deepcopy:
-            styler.ctx = copy.deepcopy(self.ctx)
-            styler._todo = copy.deepcopy(self._todo)
-            styler.table_styles = copy.deepcopy(self.table_styles)
-            styler.hidden_columns = copy.copy(self.hidden_columns)
-            styler.cell_context = copy.deepcopy(self.cell_context)
-            styler.tooltips = copy.deepcopy(self.tooltips)
-        else:
-            styler.ctx = self.ctx
-            styler._todo = self._todo
-            styler.table_styles = self.table_styles
-            styler.hidden_columns = self.hidden_columns
-            styler.cell_context = self.cell_context
-            styler.tooltips = self.tooltips
+        for attr in deep:
+            val = getattr(self, attr)
+            setattr(styler, attr, copy.deepcopy(val) if deepcopy else val)
 
         return styler
 
     def __copy__(self) -> Styler:
-        """
-        Deep copy by default.
-        """
         return self._copy(deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
@@ -1412,6 +1433,71 @@ class Styler(StylerRenderer):
         self : Styler
         """
         self.caption = caption
+        return self
+
+    def set_sticky(
+        self,
+        axis: Axis = 0,
+        pixel_size: int | None = None,
+        levels: list[int] | None = None,
+    ) -> Styler:
+        """
+        Add CSS to permanently display the index or column headers in a scrolling frame.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Whether to make the index or column headers sticky.
+        pixel_size : int, optional
+            Required to configure the width of index cells or the height of column
+            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+        levels : list of int
+            If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
+            stick all levels.
+
+        Returns
+        -------
+        self : Styler
+        """
+        if axis in [0, "index"]:
+            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            pixel_size = 75 if not pixel_size else pixel_size
+        elif axis in [1, "columns"]:
+            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            pixel_size = 25 if not pixel_size else pixel_size
+        else:
+            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+
+        if not isinstance(obj, pd.MultiIndex):
+            return self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th",
+                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                    }
+                ],
+                overwrite=False,
+            )
+        else:
+            range_idx = list(range(obj.nlevels))
+
+        levels = sorted(levels) if levels else range_idx
+        for i, level in enumerate(levels):
+            self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th.level{level}",
+                        "props": f"position: sticky; "
+                        f"{pos}: {i * pixel_size}px; "
+                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
+                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"background-color: white;",
+                    }
+                ],
+                overwrite=False,
+            )
+
         return self
 
     def set_table_styles(

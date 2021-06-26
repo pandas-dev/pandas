@@ -27,7 +27,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import accessor
 from pandas.core.arrays.categorical import (
     Categorical,
     contains,
@@ -63,9 +62,8 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
     ],
     Categorical,
 )
-@accessor.delegate_names(
-    delegate=Categorical,
-    accessors=[
+@inherit_names(
+    [
         "rename_categories",
         "reorder_categories",
         "add_categories",
@@ -75,10 +73,10 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
         "as_ordered",
         "as_unordered",
     ],
-    typ="method",
-    overwrite=True,
+    Categorical,
+    wrap=True,
 )
-class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
+class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -187,17 +185,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
     def _engine_type(self):
         # self.codes can have dtype int8, int16, int32 or int64, so we need
         # to return the corresponding engine type (libindex.Int8Engine, etc.).
-
-        # error: Invalid index type "Type[generic]" for "Dict[Type[signedinteger[Any]],
-        # Any]"; expected type "Type[signedinteger[Any]]"
         return {
             np.int8: libindex.Int8Engine,
             np.int16: libindex.Int16Engine,
             np.int32: libindex.Int32Engine,
             np.int64: libindex.Int64Engine,
-        }[
-            self.codes.dtype.type  # type: ignore[index]
-        ]
+        }[self.codes.dtype.type]
 
     _attributes = ["name"]
 
@@ -442,37 +435,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
 
         return new_target, indexer
 
-    # error: Return type "Tuple[Index, Optional[ndarray], Optional[ndarray]]"
-    # of "_reindex_non_unique" incompatible with return type
-    # "Tuple[Index, ndarray, Optional[ndarray]]" in supertype "Index"
-    def _reindex_non_unique(  # type: ignore[override]
-        self, target: Index
-    ) -> tuple[Index, np.ndarray | None, np.ndarray | None]:
-        """
-        reindex from a non-unique; which CategoricalIndex's are almost
-        always
-        """
-        # TODO: rule out `indexer is None` here to make the signature
-        #  match the parent class's signature. This should be equivalent
-        #  to ruling out `self.equals(target)`
-        new_target, indexer = self.reindex(target)
-        new_indexer = None
-
-        check = indexer == -1
-        # error: Item "bool" of "Union[Any, bool]" has no attribute "any"
-        if check.any():  # type: ignore[union-attr]
-            new_indexer = np.arange(len(self.take(indexer)), dtype=np.intp)
-            new_indexer[check] = -1
-
-        cats = self.categories.get_indexer(target)
-        if not (cats == -1).any():
-            # .reindex returns normal Index. Revert to CategoricalIndex if
-            # all targets are included in my categories
-            cat = Categorical(new_target, dtype=self.dtype)
-            new_target = type(self)._simple_new(cat, name=self.name)
-
-        return new_target, indexer, new_indexer
-
     # --------------------------------------------------------------------
     # Indexing Methods
 
@@ -598,13 +560,3 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         else:
             cat = self._data._from_backing_data(codes)
             return type(self)._simple_new(cat, name=name)
-
-    def _delegate_method(self, name: str, *args, **kwargs):
-        """method delegation to the ._values"""
-        method = getattr(self._values, name)
-        if "inplace" in kwargs:
-            raise ValueError("cannot use inplace with CategoricalIndex")
-        res = method(*args, **kwargs)
-        if is_scalar(res):
-            return res
-        return CategoricalIndex(res, name=self.name)
