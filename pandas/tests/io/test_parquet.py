@@ -737,8 +737,6 @@ class TestParquetPyArrow(Base):
         monkeypatch.setenv("USERPROFILE", "TestingUser")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
             read_parquet("~/file.parquet")
-        with pytest.raises(OSError, match=r".*TestingUser.*"):
-            df_compat.to_parquet("~/file.parquet")
 
     def test_partition_cols_supported(self, pa, df_full):
         # GH #23283
