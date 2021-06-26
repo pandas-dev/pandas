@@ -199,13 +199,6 @@ def test_str_output(datapath, parser):
     assert output == from_file_expected
 
 
-def test_wrong_file_path(parser):
-    with pytest.raises(
-        FileNotFoundError, match=("No such file or directory|没有那个文件或目录")
-    ):
-        geom_df.to_xml("/my/fake/path/output.xml", parser=parser)
-
-
 # INDEX
 
 
