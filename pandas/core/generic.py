@@ -3450,6 +3450,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                         archive_name='out.csv')  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
+
+        Create 'out.csv' in a new folder 'folder/subfolder/'
+
+        >>> import os
+        >>> os.mkdir('folder/subfolder', parents=True, exists_ok=True)
+        >>> df.to_csv('out.csv')
+
+        >>> from pathlib import Path
+        >>> filepath = Path('folder/subfolder/out.csv')
+        >>> filepath.parent.mkdir(parents=True, exist_ok=True)
+        >>> df_to_csv(filepath)
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
