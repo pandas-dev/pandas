@@ -754,17 +754,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
 
-    Here, the `if_sheet_exists` parameter can be set to replace a sheet if it
-    already exists:
-
-    >>> with ExcelWriter(
-    ...     "path_to_file.xlsx",
-    ...     mode="a",
-    ...     engine="openpyxl",
-    ...     if_sheet_exists="replace"
-    ... ) as writer:
-    ...     df.to_excel(writer, sheet_name="Sheet1")
-
     You can specify arguments to the underlying engine. For example to not
     calculate the result of a formula:
 
