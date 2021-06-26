@@ -8,7 +8,6 @@ from datetime import (
 )
 from decimal import Decimal
 import locale
-from typing import Any, List, Union
 
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
@@ -977,7 +976,9 @@ class TestToDatetime:
             ),
         ),
     )
-    def test_convert_object_to_datetime_with_cache(self, datetimelikes, expected_values):
+    def test_convert_object_to_datetime_with_cache(
+        self, datetimelikes, expected_values
+    ):
         # GH#39882
         ser = Series(
             datetimelikes,
