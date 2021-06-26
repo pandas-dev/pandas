@@ -991,12 +991,12 @@ def rank_1d(
     cdef:
         TiebreakEnumType tiebreak
         Py_ssize_t N
-        intp_t[:] sort_indexer
+        int64_t[::1] grp_sizes
+        intp_t[:] lexsort_indexer
         float64_t[::1] out
         ndarray[rank_t, ndim=1] masked_vals
         rank_t[:] masked_vals_memview
-        int64_t[::1] grp_sizes
-        uint8_t[:] mask=None
+        uint8_t[:] mask
         bint keep_na, nans_rank_highest, check_labels, check_mask
         rank_t nan_fill_val
 
@@ -1018,6 +1018,9 @@ def rank_1d(
     # comparisons
     check_labels = labels is not None
 
+    # For cases where a mask is not possible, we can avoid mask checks
+    check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
+
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
     # in values array
@@ -1032,63 +1035,47 @@ def rank_1d(
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
     elif rank_t is float64_t:
         mask = np.isnan(masked_vals).astype(np.uint8)
-
-    # For cases where a mask is not possible, we can avoid mask checks
-    check_mask = mask is not None
-
-    if check_mask:
-        # If `na_option == 'top'`, we want to assign the lowest rank
-        # to NaN regardless of ascending/descending. So if ascending,
-        # fill with lowest value of type to end up with lowest rank.
-        # If descending, fill with highest value since descending
-        # will flip the ordering to still end up with lowest rank.
-        # Symmetric logic applies to `na_option == 'bottom'`
-        nans_rank_highest = ascending ^ (na_option == 'top')
-        nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
-        np.putmask(masked_vals, mask, nan_fill_val)
-
-    # Depending on whether we care about labels and masks, we need
-    # different sorting criteria
-    if check_mask and check_labels:
-        # lexsort using labels, then mask, then actual values
-        # each label corresponds to a different group value,
-        # the mask helps you differentiate missing values before
-        # performing sort on the actual values
-        if nans_rank_highest:
-            order = (masked_vals, mask, labels)
-        else:
-            order = (masked_vals, ~(np.asarray(mask)), labels)
-    elif check_mask:
-        if nans_rank_highest:
-            order = (masked_vals, mask)
-        else:
-            order = (masked_vals, ~(np.asarray(mask)))
-    elif check_labels:
-        order = (masked_vals, labels)
     else:
-        order = None
+        mask = np.zeros(shape=len(masked_vals), dtype=np.uint8)
 
-    # lexsort is slower, so only use if we actually need to sort on multiple keys
-    if order is not None:
-        sort_indexer = np.lexsort(order).astype(np.intp, copy=False)
+    # If `na_option == 'top'`, we want to assign the lowest rank
+    # to NaN regardless of ascending/descending. So if ascending,
+    # fill with lowest value of type to end up with lowest rank.
+    # If descending, fill with highest value since descending
+    # will flip the ordering to still end up with lowest rank.
+    # Symmetric logic applies to `na_option == 'bottom'`
+    nans_rank_highest = ascending ^ (na_option == 'top')
+    nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
+    if nans_rank_highest:
+        order = [masked_vals, mask]
     else:
-        kind = "stable" if ties_method == "first" else None
-        sort_indexer = masked_vals.argsort(kind=kind).astype(np.intp, copy=False)
+        order = [masked_vals, ~(np.asarray(mask))]
 
+    if check_labels:
+        order.append(labels)
+
+    np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
     masked_vals_memview = masked_vals
 
+    # lexsort using labels, then mask, then actual values
+    # each label corresponds to a different group value,
+    # the mask helps you differentiate missing values before
+    # performing sort on the actual values
+    lexsort_indexer = np.lexsort(order).astype(np.intp, copy=False)
+
     if not ascending:
-        sort_indexer = sort_indexer[::-1]
+        lexsort_indexer = lexsort_indexer[::-1]
 
     with nogil:
         rank_sorted_1d(
             out,
-            masked_vals_memview,
-            sort_indexer,
             grp_sizes,
+            lexsort_indexer,
+            masked_vals_memview,
+            mask,
+            check_mask,
             N,
-            mask=mask,
             tiebreak=tiebreak,
             keep_na=keep_na,
             pct=pct,
@@ -1102,17 +1089,18 @@ def rank_1d(
 @cython.boundscheck(False)
 cdef void rank_sorted_1d(
     float64_t[::1] out,
+    int64_t[::1] grp_sizes,
+    const intp_t[:] sort_indexer,
     # Can make const with cython3 (https://github.com/cython/cython/issues/3222)
     rank_t[:] masked_vals,
-    const intp_t[:] sort_indexer,
-    int64_t[::1] grp_sizes,
+    const uint8_t[:] mask,
+    bint check_mask,
     Py_ssize_t N,
-    const uint8_t[:] mask=None,
     TiebreakEnumType tiebreak=TIEBREAK_AVERAGE,
     bint keep_na=True,
     bint pct=False,
     # https://github.com/cython/cython/issues/1630, only trailing arguments can
-    # currently be omitted for cdef functions, which is why we keep these at the end
+    # currently be omitted for cdef functions, which is why we keep this at the end
     const intp_t[:] labels=None,
 ) nogil:
     """
@@ -1123,19 +1111,20 @@ cdef void rank_sorted_1d(
     ----------
     out : float64_t[::1]
         Array to store computed ranks
-    masked_vals : rank_t[:]
-        The values input to rank_1d, with missing values replaced by fill values
-    sort_indexer : intp_t[:]
-        Array of indices which sorts masked_vals
     grp_sizes : int64_t[::1]
         Array to store group counts, only used if pct=True. Should only be None
         if labels is None.
+    sort_indexer : intp_t[:]
+        Array of indices which sorts masked_vals
+    masked_vals : rank_t[:]
+        The values input to rank_1d, with missing values replaced by fill values
+    mask : uint8_t[:]
+        Array where entries are True if the value is missing, False otherwise.
+    check_mask : bool
+        If False, assumes the mask is all False to skip mask indexing
     N : Py_ssize_t
         The number of elements to rank. Note: it is not always true that
         N == len(out) or N == len(masked_vals) (see `nancorr_spearman` usage for why)
-    mask : uint8_t[:], default None
-        Array where entries are True if the value is missing, False otherwise. None
-        implies the mask is all False
     tiebreak : TiebreakEnumType, default TIEBREAK_AVERAGE
         See rank_1d.__doc__ for the different modes
     keep_na : bool, default True
@@ -1148,10 +1137,9 @@ cdef void rank_sorted_1d(
     cdef:
         Py_ssize_t i, j, dups=0, sum_ranks=0,
         Py_ssize_t grp_start=0, grp_vals_seen=1, grp_na_count=0
-        bint at_end, next_val_diff, group_changed, check_mask, check_labels
+        bint at_end, next_val_diff, group_changed, check_labels
         int64_t grp_size
 
-    check_mask = mask is not None
     check_labels = labels is not None
 
     # Loop over the length of the value array
@@ -1382,12 +1370,11 @@ def rank_2d(
     cdef:
         Py_ssize_t k, n, col
         float64_t[::1, :] out  # Column-major so columns are contiguous
+        int64_t[::1] grp_sizes
         ndarray[rank_t, ndim=2] values
         rank_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
-        int64_t[::1] grp_sizes
-        uint8_t[:, :] mask=None
-        uint8_t[:] mask_arg=None
+        uint8_t[:, :] mask
         TiebreakEnumType tiebreak
         bint check_mask, keep_na, nans_rank_highest
         rank_t nan_fill_val
@@ -1424,17 +1411,17 @@ def rank_2d(
         else:
             mask = (values == NPY_NAT).view(np.uint8)
         np.putmask(values, mask, nan_fill_val)
+    else:
+        mask = np.zeros_like(values, dtype=np.uint8)
+
+    if nans_rank_highest:
+        order = (values, mask)
+    else:
+        order = (values, ~np.asarray(mask))
 
     n, k = (<object>values).shape
     out = np.empty((n, k), dtype='f8', order='F')
     grp_sizes = np.ones(n, dtype=np.int64)
-
-    # lexsort is slower, so only use if we need to worry about the mask
-    if check_mask:
-        if nans_rank_highest:
-            order = (values, mask)
-        else:
-            order = (values, ~np.asarray(mask))
 
     # lexsort is slower, so only use if we need to worry about the mask
     if check_mask:
@@ -1450,15 +1437,14 @@ def rank_2d(
     masked_vals = values
     with nogil:
         for col in range(k):
-            if mask is not None:
-                mask_arg = mask[:, col]
             rank_sorted_1d(
                 out[:, col],
-                masked_vals[:, col],
-                sort_indexer[:, col],
                 grp_sizes,
+                sort_indexer[:, col],
+                masked_vals[:, col],
+                mask[:, col],
+                check_mask,
                 n,
-                mask=mask_arg,
                 tiebreak=tiebreak,
                 keep_na=keep_na,
                 pct=pct,
