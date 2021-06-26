@@ -6179,28 +6179,27 @@ class DataFrame(NDFrame, OpsMixin):
             labels, shape = algorithms.factorize(vals, size_hint=len(self))
             return labels.astype("i8", copy=False), len(shape)
 
-        subset_iterable: Sequence
         if subset is None:
-            subset_iterable = self.columns
+            subset = cast(Sequence[Hashable], self.columns)
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
             or isinstance(subset, tuple)
             and subset in self.columns
         ):
-            subset_iterable = (subset,)
-        else:
-            #  needed for mypy since can't narrow types using np.iterable
-            subset_iterable = cast(Sequence, subset)
+            subset = (subset,)
+
+        #  needed for mypy since can't narrow types using np.iterable
+        subset = cast(Sequence, subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
         # key that doesn't exist.
-        diff = Index(subset_iterable).difference(self.columns)
+        diff = Index(subset).difference(self.columns)
         if not diff.empty:
             raise KeyError(diff)
 
-        vals = (col.values for name, col in self.items() if name in subset_iterable)
+        vals = (col.values for name, col in self.items() if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(
