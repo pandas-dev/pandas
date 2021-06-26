@@ -957,11 +957,17 @@ def dir_exists(filepath_or_buffer: FilePathOrBuffer) -> bool:
     filepath_or_buffer = stringify_path(filepath_or_buffer)
     if not isinstance(filepath_or_buffer, str):
         return exists
-    try:
-        exists = os.path.exists(os.path.dirname(filepath_or_buffer))
-        # gh-5874: if the filepath is too long will raise here
-    except (TypeError, ValueError):
-        pass
+
+    dirname = os.path.dirname(filepath_or_buffer)
+    if not len(dirname):
+        # This is the current working directory
+        exists = True
+    else:
+        try:
+            exists = os.path.exists(dirname)
+            # gh-5874: if the filepath is too long will raise here
+        except (TypeError, ValueError):
+            pass
     return exists
 
 
