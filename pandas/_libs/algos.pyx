@@ -1436,6 +1436,8 @@ def rank_2d(
         else:
             order = (values, ~np.asarray(mask))
 
+    # lexsort is slower, so only use if we need to worry about the mask
+    if check_mask:
         sort_indexer = np.lexsort(order, axis=0).astype(np.intp, copy=False)
     else:
         kind = "stable" if ties_method == "first" else None

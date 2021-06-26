@@ -240,14 +240,21 @@ class TestPyObjectHashTableWithNans:
         assert str(error.value) == str(other)
 
 
+def test_hash_equal_tuple_with_nans():
+    a = (float("nan"), (float("nan"), float("nan")))
+    b = (float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
     vals.flags.writeable = writable
     arr, unique = table.get_labels_groupby(vals)
-    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
+    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.intp)
     expected_unique = np.array([1, 2], dtype=np.int64)
-    tm.assert_numpy_array_equal(arr.astype(np.int64), expected_arr)
+    tm.assert_numpy_array_equal(arr, expected_arr)
     tm.assert_numpy_array_equal(unique, expected_unique)
 
 
@@ -337,6 +344,29 @@ class TestHashTableWithNans:
         keys = np.full(N, np.nan, dtype=dtype)
         unique = table.unique(keys)
         assert np.all(np.isnan(unique)) and len(unique) == 1
+
+
+def test_unique_for_nan_objects_floats():
+    table = ht.PyObjectHashTable()
+    keys = np.array([float("nan") for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_complex():
+    table = ht.PyObjectHashTable()
+    keys = np.array([complex(float("nan"), 1.0) for i in range(50)], dtype=np.object_)
+    unique = table.unique(keys)
+    assert len(unique) == 1
+
+
+def test_unique_for_nan_objects_tuple():
+    table = ht.PyObjectHashTable()
+    keys = np.array(
+        [1] + [(1.0, (float("nan"), 1.0)) for i in range(50)], dtype=np.object_
+    )
+    unique = table.unique(keys)
+    assert len(unique) == 2
 
 
 def get_ht_function(fun_name, type_suffix):
@@ -496,4 +526,12 @@ def test_ismember_tuple_with_nans():
     comps = [("a", float("nan"))]
     result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_float_complex_int_are_equal_as_objects():
+    values = ["a", 5, 5.0, 5.0 + 0j]
+    comps = list(range(129))
+    result = isin(values, comps)
+    expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
