@@ -12,6 +12,11 @@ from pandas.core.groupby.base import (
 )
 
 
+@pytest.fixture(params=[True, False])
+def as_index(request):
+    return request.param
+
+
 @pytest.fixture
 def mframe():
     index = MultiIndex(
