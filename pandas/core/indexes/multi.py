@@ -3234,8 +3234,10 @@ class MultiIndex(Index):
                 indexers: Int64Index | None = None
                 for x in k:
                     try:
+                        # Argument "indexer" to "_get_level_indexer" of "MultiIndex"
+                        # has incompatible type "Index"; expected "Optional[Int64Index]"
                         item_lvl_indexer = self._get_level_indexer(
-                            x, level=i, indexer=indexer
+                            x, level=i, indexer=indexer  # type: ignore[arg-type]
                         )
                     except KeyError:
                         # ignore not founds; see discussion in GH#39424
@@ -3262,7 +3264,13 @@ class MultiIndex(Index):
             elif isinstance(k, slice):
 
                 # a slice, include BOTH of the labels
-                lvl_indexer = self._get_level_indexer(k, level=i, indexer=indexer)
+                # Argument "indexer" to "_get_level_indexer" of "MultiIndex" has
+                # incompatible type "Index"; expected "Optional[Int64Index]"
+                lvl_indexer = self._get_level_indexer(
+                    k,
+                    level=i,
+                    indexer=indexer,  # type: ignore[arg-type]
+                )
                 indexer = _update_indexer(
                     _convert_to_indexer(lvl_indexer),
                     indexer=indexer,
