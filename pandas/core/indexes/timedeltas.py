@@ -108,6 +108,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     _data: TimedeltaArray
 
+    # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
+    _get_string_slice = Index._get_string_slice
+
     # -------------------------------------------------------------------
     # Constructors
 
@@ -197,19 +200,28 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         if isinstance(label, str):
             try:
-                parsed = Timedelta(label)
+                parsed, reso = self._parse_with_reso(label)
             except ValueError as err:
                 # e.g. 'unit abbreviation w/o a number'
                 raise self._invalid_indexer("slice", label) from err
 
-            # The next two lines are analogous to DTI/PI._parsed_str_to_bounds
-            lower = parsed.round(parsed.resolution_string)
-            upper = lower + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
             return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
             raise self._invalid_indexer("slice", label)
 
         return label
+
+    def _parse_with_reso(self, label: str):
+        # the "with_reso" is a no-op for TimedeltaIndex
+        parsed = Timedelta(label)
+        return parsed, None
+
+    def _parsed_string_to_bounds(self, reso, parsed: Timedelta):
+        # reso is unused, included to match signature of DTI/PI
+        lbound = parsed.round(parsed.resolution_string)
+        rbound = lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+        return lbound, rbound
 
     # -------------------------------------------------------------------
 
