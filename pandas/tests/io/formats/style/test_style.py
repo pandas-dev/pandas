@@ -231,6 +231,7 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
 def test_clear(mi_styler_comp):
     # NOTE: if this test fails for new features then 'mi_styler_comp' should be updated
     # to ensure proper testing of the 'copy', 'clear', 'export' methods with new feature
+    # GH 40675
     styler = mi_styler_comp
     styler.to_html()  # new attrs maybe created on render
 
