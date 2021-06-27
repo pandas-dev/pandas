@@ -4905,6 +4905,7 @@ class Index(IndexOpsMixin, PandasObject):
         Traceback (most recent call last):
         ValueError: index must be monotonic increasing or decreasing
         """
+        self._searchsorted_monotonic(label)  # validate sortedness
         try:
             loc = self.get_loc(label)
         except (KeyError, TypeError):
