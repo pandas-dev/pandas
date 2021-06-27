@@ -3328,6 +3328,14 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError as err:
                 raise KeyError(key) from err
 
+        warnings.warn(
+            f"Passing method to {type(self).__name__}.get_loc is deprecated "
+            "and will raise in a future version. Use "
+            "index.get_indexer([item], method=...) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         if is_scalar(key) and isna(key) and not self.hasnans:
             raise KeyError(key)
 
@@ -4897,13 +4905,22 @@ class Index(IndexOpsMixin, PandasObject):
         ValueError: index must be monotonic increasing or decreasing
         """
         try:
-            loc = self.get_loc(label, method="pad")
-        except KeyError:
-            return self._na_value
+            loc = self.get_loc(label)
+        except (KeyError, TypeError):
+            # KeyError -> No exact match, try for padded
+            # TypeError -> passed e.g. non-hashable, fall through to get
+            #  the tested exception message
+            indexer = self.get_indexer([label], method="pad")
+            if indexer.ndim > 1 or indexer.size > 1:
+                raise TypeError("asof requires scalar valued input")
+            loc = indexer.item()
+            if loc == -1:
+                return self._na_value
         else:
             if isinstance(loc, slice):
                 loc = loc.indices(len(self))[-1]
-            return self[loc]
+
+        return self[loc]
 
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
