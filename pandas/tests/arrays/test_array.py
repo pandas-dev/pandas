@@ -312,7 +312,7 @@ def test_scalar_raises():
 def test_bounds_check():
     # GH21796
     with pytest.raises(
-        TypeError, match="cannot safely cast non-equivalent int64 to uint16"
+        TypeError, match=r"cannot safely cast non-equivalent int(32|64) to uint16"
     ):
         pd.array([-1, 2, 3], dtype="UInt16")
 
