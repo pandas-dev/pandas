@@ -762,10 +762,12 @@ def to_datetime(
         If parsing succeeded.
         Return type depends on input:
 
-        - list-like: DatetimeIndex
+        - list-like:
+            - DatetimeIndex, if timezone naive or aware with the same timezone
+            - Index of object dtype, if timezone aware with mixed timezones
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
-        - list-like with mixed timezones: Index of object dtype
+
 
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
