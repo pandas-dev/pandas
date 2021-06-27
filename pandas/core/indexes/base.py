@@ -3328,6 +3328,7 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError as err:
                 raise KeyError(key) from err
 
+        # GH#42269
         warnings.warn(
             f"Passing method to {type(self).__name__}.get_loc is deprecated "
             "and will raise in a future version. Use "
