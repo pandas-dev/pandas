@@ -704,9 +704,6 @@ def to_sql(
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
-
-        .. versionadded:: 0.24.0
-
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -945,14 +942,15 @@ class SQLTable(PandasObject):
         tuple of DataFrame, DataFrame
             DataFrame of rows with duplicate pkey, DataFrame of rows with new pkey
         """
+        from pandas.core.indexex.multi import MultiIndex
+
         in_db = _wrap_result(data=keys_in_db, columns=primary_keys)
         # Get temporary dataframe so as not to delete values from main df
         temp = self._get_index_formatted_dataframe()
-        exists_mask = (
-            temp[primary_keys]
-            .apply(tuple, axis=1)
-            .isin(in_db[primary_keys].apply(tuple, axis=1))
-        )
+        # Create multi-indexes for membership lookup
+        in_db_idx = MultiIndex.from_arrays([in_db[col] for col in primary_keys])
+        tmp_idx = MultiIndex.from_arrays([temp[col] for col in primary_keys])
+        exists_mask = tmp_idx.isin(in_db_idx)
         return temp.loc[exists_mask], temp.loc[~exists_mask]
 
     def _generate_update_statements(self, primary_keys, keys_in_db, rows_to_update):
@@ -1067,7 +1065,7 @@ class SQLTable(PandasObject):
             raise ValueError(f"No primary keys found for table {self.name}")
 
         temp = self._get_index_formatted_dataframe()
-        primary_key_values = list(zip(*[temp[key] for key in primary_keys]))
+        primary_key_values = list(zip(*(temp[key] for key in primary_keys)))
         return primary_keys, primary_key_values
 
     def _execute_insert(self, conn, keys: list[str], data_iter):
@@ -1205,7 +1203,7 @@ class SQLTable(PandasObject):
                 if start_i >= end_i:
                     break
 
-                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+                chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(
@@ -1593,7 +1591,7 @@ class SQLAlchemyEngine(BaseEngine):
 
 
 def get_engine(engine: str) -> BaseEngine:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.sql.engine")
 
@@ -1990,9 +1988,6 @@ class SQLDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-
-            .. versionadded:: 0.24.0
-
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -2464,8 +2459,6 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-
-            .. versionadded:: 0.24.0
         """
         if dtype:
             if not is_dict_like(dtype):

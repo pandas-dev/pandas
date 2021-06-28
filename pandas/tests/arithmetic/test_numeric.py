@@ -1,14 +1,13 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
+from __future__ import annotations
+
 from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import (
-    Any,
-    List,
-)
+from typing import Any
 
 import numpy as np
 import pytest
@@ -56,8 +55,8 @@ def adjust_negative_zero(zero, expected):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: List[Any] = [Series, Index]
-lefts: List[Any] = [RangeIndex(10, 40, 10)]
+ser_or_index: list[Any] = [Series, Index]
+lefts: list[Any] = [RangeIndex(10, 40, 10)]
 lefts.extend(
     [
         cls([10, 20, 30], dtype=dtype)

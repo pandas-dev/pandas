@@ -77,7 +77,7 @@ def frame_apply(
     args=None,
     kwargs=None,
 ) -> FrameApply:
-    """ construct and return a row or column based frame apply object """
+    """construct and return a row or column based frame apply object"""
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
@@ -348,6 +348,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # multiples
         else:
+            indices = []
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
@@ -369,7 +370,9 @@ class Apply(metaclass=abc.ABCMeta):
                         raise
                 else:
                     results.append(new_res)
-                    keys.append(col)
+                    indices.append(index)
+
+            keys = selected_obj.columns.take(indices)
 
         # if we are empty
         if not len(results):
@@ -407,6 +410,7 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas import Index
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -443,8 +447,18 @@ class Apply(metaclass=abc.ABCMeta):
             keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
+            if selected_obj.ndim == 2:
+                # keys are columns, so we can preserve names
+                ktu = Index(keys_to_use)
+                ktu._set_names(selected_obj.columns.names)
+                # Incompatible types in assignment (expression has type "Index",
+                # variable has type "List[Hashable]")
+                keys_to_use = ktu  # type: ignore[assignment]
+
             axis = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+            result = concat(
+                {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+            )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(
@@ -639,7 +653,7 @@ class FrameApply(NDFrameApply):
         return self.obj.dtypes
 
     def apply(self) -> FrameOrSeriesUnion:
-        """ compute the results """
+        """compute the results"""
         # dispatch to agg
         if is_list_like(self.f):
             return self.apply_multiple()
@@ -733,7 +747,7 @@ class FrameApply(NDFrameApply):
             return self.obj.copy()
 
     def apply_raw(self):
-        """ apply to the values as a numpy array """
+        """apply to the values as a numpy array"""
 
         def wrap_function(func):
             """
@@ -842,7 +856,7 @@ class FrameApply(NDFrameApply):
             # Special-cased because DataFrame.size returns a single scalar
             obj = self.obj
             value = obj.shape[self.axis]
-            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
+            return obj._constructor_sliced(value, index=self.agg_axis)
         return super().apply_str()
 
 
@@ -867,7 +881,7 @@ class FrameRowApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the rows """
+        """return the results for the rows"""
 
         if self.result_type == "reduce":
             # e.g. test_apply_dict GH#8735
@@ -950,7 +964,7 @@ class FrameColumnApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the columns """
+        """return the results for the columns"""
         result: FrameOrSeriesUnion
 
         # we have requested to expand
@@ -969,7 +983,7 @@ class FrameColumnApply(FrameApply):
         return result
 
     def infer_to_same_shape(self, results: ResType, res_index: Index) -> DataFrame:
-        """ infer the results to the same shape as the input object """
+        """infer the results to the same shape as the input object"""
         result = self.obj._constructor(data=results)
         result = result.T
 
@@ -1062,11 +1076,7 @@ class SeriesApply(NDFrameApply):
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-                # "Series"; expected "Union[Union[int, float, complex, str, bytes,
-                # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-                # Sequence[Sequence[Any]], _SupportsArray]"
-                return f(obj)  # type: ignore[arg-type]
+                return f(obj)
 
             # row-wise access
             if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
