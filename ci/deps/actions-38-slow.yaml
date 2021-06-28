@@ -6,14 +6,14 @@ dependencies:
 
   # tools
   - cython>=0.29.21
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-cov
   - pytest-xdist>=1.21
   - hypothesis>=3.58.0
 
   # pandas dependencies
   - beautifulsoup4
-  - fsspec>=0.7.4
+  - fsspec>=0.7.4, <2021.6.0
   - html5lib
   - lxml
   - matplotlib

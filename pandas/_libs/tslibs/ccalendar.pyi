@@ -1,4 +1,3 @@
-
 DAYS: list[str]
 MONTH_ALIASES: dict[int, str]
 MONTH_NUMBERS: dict[str, int]

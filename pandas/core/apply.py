@@ -24,6 +24,7 @@ from pandas._typing import (
     AggFuncTypeDict,
     AggObjType,
     Axis,
+    FrameOrSeries,
     FrameOrSeriesUnion,
 )
 from pandas.util._decorators import cache_readonly
@@ -51,6 +52,7 @@ import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
     create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
 )
 
 if TYPE_CHECKING:
@@ -59,10 +61,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import (
-        DataFrameGroupBy,
-        SeriesGroupBy,
-    )
+    from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -78,7 +77,7 @@ def frame_apply(
     args=None,
     kwargs=None,
 ) -> FrameApply:
-    """ construct and return a row or column based frame apply object """
+    """construct and return a row or column based frame apply object"""
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
@@ -156,7 +155,7 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(arg, str):
-            return self.maybe_apply_str()
+            return self.apply_str()
 
         if is_dict_like(arg):
             return self.agg_dict_like()
@@ -323,6 +322,7 @@ class Apply(metaclass=abc.ABCMeta):
             # i.e. obj is Series or DataFrame
             selected_obj = obj
         elif obj._selected_obj.ndim == 1:
+            # For SeriesGroupBy this matches _obj_with_exclusions
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
@@ -348,6 +348,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # multiples
         else:
+            indices = []
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
@@ -360,25 +361,28 @@ class Apply(metaclass=abc.ABCMeta):
                         # raised directly in _aggregate_named
                         pass
                     elif "no results" in str(err):
-                        # raised directly in _aggregate_multiple_funcs
+                        # reached in test_frame_apply.test_nuiscance_columns
+                        #  where the colg.aggregate(arg) ends up going through
+                        #  the selected_obj.ndim == 1 branch above with arg == ["sum"]
+                        #  on a datetime64[ns] column
                         pass
                     else:
                         raise
                 else:
                     results.append(new_res)
-                    keys.append(col)
+                    indices.append(index)
+
+            keys = selected_obj.columns.take(indices)
 
         # if we are empty
         if not len(results):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)
+            concatenated = concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
-
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
-
             from pandas import Series
 
             result = Series(results, index=keys, name=obj.name)
@@ -387,6 +391,16 @@ class Apply(metaclass=abc.ABCMeta):
                     "cannot combine transform and aggregation operations"
                 ) from err
             return result
+        else:
+            # Concat uses the first index to determine the final indexing order.
+            # The union of a shorter first index with the other indices causes
+            # the index sorting to be different from the order of the aggregating
+            # functions. Reindex if this is the case.
+            index_size = concatenated.index.size
+            full_ordered_index = next(
+                result.index for result in results if result.index.size == index_size
+            )
+            return concatenated.reindex(full_ordered_index, copy=False)
 
     def agg_dict_like(self) -> FrameOrSeriesUnion:
         """
@@ -396,6 +410,7 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        from pandas import Index
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -432,8 +447,18 @@ class Apply(metaclass=abc.ABCMeta):
             keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
+            if selected_obj.ndim == 2:
+                # keys are columns, so we can preserve names
+                ktu = Index(keys_to_use)
+                ktu._set_names(selected_obj.columns.names)
+                # Incompatible types in assignment (expression has type "Index",
+                # variable has type "List[Hashable]")
+                keys_to_use = ktu  # type: ignore[assignment]
+
             axis = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat({k: results[k] for k in keys_to_use}, axis=axis)
+            result = concat(
+                {k: results[k] for k in keys_to_use}, axis=axis, keys=keys_to_use
+            )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(
@@ -456,7 +481,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def maybe_apply_str(self) -> FrameOrSeriesUnion:
+    def apply_str(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a string.
 
@@ -465,8 +490,7 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series or DataFrame
         """
         # Caller is responsible for checking isinstance(self.f, str)
-        f = self.f
-        f = cast(str, f)
+        f = cast(str, self.f)
 
         obj = self.obj
 
@@ -482,7 +506,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
-    def maybe_apply_multiple(self) -> FrameOrSeriesUnion | None:
+    def apply_multiple(self) -> FrameOrSeriesUnion:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -491,9 +515,6 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.f is a list-like or dict-like, None otherwise.
         """
-        # Note: dict-likes are list-like
-        if not is_list_like(self.f):
-            return None
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
     def normalize_dictlike_arg(
@@ -632,11 +653,10 @@ class FrameApply(NDFrameApply):
         return self.obj.dtypes
 
     def apply(self) -> FrameOrSeriesUnion:
-        """ compute the results """
+        """compute the results"""
         # dispatch to agg
-        result = self.maybe_apply_multiple()
-        if result is not None:
-            return result
+        if is_list_like(self.f):
+            return self.apply_multiple()
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
@@ -644,7 +664,7 @@ class FrameApply(NDFrameApply):
 
         # string dispatch
         if isinstance(self.f, str):
-            return self.maybe_apply_str()
+            return self.apply_str()
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
@@ -727,7 +747,7 @@ class FrameApply(NDFrameApply):
             return self.obj.copy()
 
     def apply_raw(self):
-        """ apply to the values as a numpy array """
+        """apply to the values as a numpy array"""
 
         def wrap_function(func):
             """
@@ -829,15 +849,15 @@ class FrameApply(NDFrameApply):
 
         return result
 
-    def maybe_apply_str(self) -> FrameOrSeriesUnion:
+    def apply_str(self) -> FrameOrSeriesUnion:
         # Caller is responsible for checking isinstance(self.f, str)
         # TODO: GH#39993 - Avoid special-casing by replacing with lambda
         if self.f == "size":
             # Special-cased because DataFrame.size returns a single scalar
             obj = self.obj
             value = obj.shape[self.axis]
-            return obj._constructor_sliced(value, index=self.agg_axis, name="size")
-        return super().maybe_apply_str()
+            return obj._constructor_sliced(value, index=self.agg_axis)
+        return super().apply_str()
 
 
 class FrameRowApply(FrameApply):
@@ -861,7 +881,7 @@ class FrameRowApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the rows """
+        """return the results for the rows"""
 
         if self.result_type == "reduce":
             # e.g. test_apply_dict GH#8735
@@ -910,6 +930,7 @@ class FrameColumnApply(FrameApply):
     @property
     def series_generator(self):
         values = self.values
+        values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
 
         # We create one Series object, and will swap out the data inside
@@ -943,7 +964,7 @@ class FrameColumnApply(FrameApply):
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
     ) -> FrameOrSeriesUnion:
-        """ return the results for the columns """
+        """return the results for the columns"""
         result: FrameOrSeriesUnion
 
         # we have requested to expand
@@ -962,7 +983,7 @@ class FrameColumnApply(FrameApply):
         return result
 
     def infer_to_same_shape(self, results: ResType, res_index: Index) -> DataFrame:
-        """ infer the results to the same shape as the input object """
+        """infer the results to the same shape as the input object"""
         result = self.obj._constructor(data=results)
         result = result.T
 
@@ -1005,13 +1026,12 @@ class SeriesApply(NDFrameApply):
             return self.apply_empty_result()
 
         # dispatch to agg
-        result = self.maybe_apply_multiple()
-        if result is not None:
-            return result
+        if is_list_like(self.f):
+            return self.apply_multiple()
 
         if isinstance(self.f, str):
             # if we are a string, try to dispatch
-            return self.maybe_apply_str()
+            return self.apply_str()
 
         return self.apply_standard()
 
@@ -1056,11 +1076,7 @@ class SeriesApply(NDFrameApply):
 
         with np.errstate(all="ignore"):
             if isinstance(f, np.ufunc):
-                # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-                # "Series"; expected "Union[Union[int, float, complex, str, bytes,
-                # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-                # Sequence[Sequence[Any]], _SupportsArray]"
-                return f(obj)  # type: ignore[arg-type]
+                return f(obj)
 
             # row-wise access
             if is_extension_array_dtype(obj.dtype) and hasattr(obj._values, "map"):
@@ -1090,11 +1106,9 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
-    obj: SeriesGroupBy | DataFrameGroupBy
-
     def __init__(
         self,
-        obj: SeriesGroupBy | DataFrameGroupBy,
+        obj: GroupBy[FrameOrSeries],
         func: AggFuncType,
         args,
         kwargs,

@@ -2,11 +2,15 @@ name: Posix
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
   pull_request:
     branches:
       - master
       - 1.2.x
+      - 1.3.x
+    paths-ignore:
+      - "doc/**"
 
 env:
   PYTEST_WORKERS: "auto"
@@ -41,13 +45,18 @@ jobs:
       LC_ALL: ${{ matrix.settings[4] }}
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
+    concurrency:
+      group: ${{ github.ref }}-${{ matrix.settings[0] }}
+      cancel-in-progress: true
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Cache conda
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       env:
         CACHE_NUMBER: 0
       with:

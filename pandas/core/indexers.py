@@ -13,6 +13,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -164,8 +165,10 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         #  a) not necessarily 1-D indexers, e.g. tuple
         #  b) boolean indexers e.g. BoolArray
         if is_list_like(value):
-            if len(indexer) != len(value):
+            if len(indexer) != len(value) and values.ndim == 1:
                 # boolean with truth values == len of the value is ok too
+                if isinstance(indexer, list):
+                    indexer = np.array(indexer)
                 if not (
                     isinstance(indexer, np.ndarray)
                     and indexer.dtype == np.bool_
@@ -180,7 +183,8 @@ def check_setitem_lengths(indexer, value, values) -> bool:
 
     elif isinstance(indexer, slice):
         if is_list_like(value):
-            if len(value) != length_of_indexer(indexer, values):
+            if len(value) != length_of_indexer(indexer, values) and values.ndim == 1:
+                # In case of two dimensional value is used row-wise and broadcasted
                 raise ValueError(
                     "cannot set using a slice indexer with a "
                     "different length than the value"
@@ -372,7 +376,7 @@ def deprecate_ndim_indexing(result, stacklevel: int = 3):
             "is deprecated and will be removed in a future "
             "version.  Convert to a numpy array before indexing instead.",
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )
 
 

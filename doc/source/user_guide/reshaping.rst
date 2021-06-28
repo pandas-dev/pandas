@@ -18,7 +18,6 @@ Reshaping by pivoting DataFrame objects
 
    import pandas._testing as tm
 
-
    def unpivot(frame):
        N, K = frame.shape
        data = {
@@ -28,7 +27,6 @@ Reshaping by pivoting DataFrame objects
        }
        columns = ["date", "variable", "value"]
        return pd.DataFrame(data, columns=columns)
-
 
    df = unpivot(tm.makeTimeDataFrame(3))
 

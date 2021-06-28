@@ -368,17 +368,14 @@ class InsertColumns:
         self.df = DataFrame(index=range(self.N))
 
     def time_insert(self):
-        np.random.seed(1234)
         for i in range(100):
             self.df.insert(0, i, np.random.randn(self.N), allow_duplicates=True)
 
     def time_assign_with_setitem(self):
-        np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
 
     def time_assign_list_like_with_setitem(self):
-        np.random.seed(1234)
         self.df[list(range(100))] = np.random.randn(self.N, 100)
 
     def time_assign_list_of_columns_concat(self):

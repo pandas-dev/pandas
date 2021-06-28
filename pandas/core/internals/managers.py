@@ -22,9 +22,9 @@ from pandas._libs import (
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
     Shape,
+    npt,
     type_t,
 )
 from pandas.errors import PerformanceWarning
@@ -183,7 +183,7 @@ class BaseBlockManager(DataManager):
         return self._blklocs
 
     def make_empty(self: T, axes=None) -> T:
-        """ return an empty BlockManager with the items axis of len 0 """
+        """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
             axes = [Index([])] + self.axes[1:]
 
@@ -211,20 +211,9 @@ class BaseBlockManager(DataManager):
             axis = 1 if axis == 0 else 0
         return axis
 
-    def set_axis(
-        self, axis: int, new_labels: Index, verify_integrity: bool = True
-    ) -> None:
+    def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
-        if verify_integrity:
-            old_len = len(self.axes[axis])
-            new_len = len(new_labels)
-
-            if new_len != old_len:
-                raise ValueError(
-                    f"Length mismatch: Expected axis has {old_len} elements, new "
-                    f"values have {new_len} elements"
-                )
-
+        self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
 
     @property
@@ -283,41 +272,6 @@ class BaseBlockManager(DataManager):
         for block in self.blocks:
             output += f"\n{block}"
         return output
-
-    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
-        """
-        Apply grouped reduction function blockwise, returning a new BlockManager.
-
-        Parameters
-        ----------
-        func : grouped reduction function
-        ignore_failures : bool, default False
-            Whether to drop blocks where func raises TypeError.
-
-        Returns
-        -------
-        BlockManager
-        """
-        result_blocks: list[Block] = []
-
-        for blk in self.blocks:
-            try:
-                applied = blk.apply(func)
-            except (TypeError, NotImplementedError):
-                if not ignore_failures:
-                    raise
-                continue
-            result_blocks = extend_blocks(applied, result_blocks)
-
-        if len(result_blocks) == 0:
-            index = Index([None])  # placeholder
-        else:
-            index = Index(range(result_blocks[0].values.shape[-1]))
-
-        if ignore_failures:
-            return self._combine(result_blocks, index=index)
-
-        return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
     def apply(
         self: T,
@@ -379,9 +333,6 @@ class BaseBlockManager(DataManager):
 
         if ignore_failures:
             return self._combine(result_blocks)
-
-        if len(result_blocks) == 0:
-            return self.make_empty(self.axes)
 
         return type(self).from_blocks(result_blocks, self.axes)
 
@@ -471,7 +422,7 @@ class BaseBlockManager(DataManager):
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
-        """ do a list replace """
+        """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         bm = self.apply(
@@ -515,7 +466,7 @@ class BaseBlockManager(DataManager):
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if we are a single block and are a view """
+        """return a boolean if we are a single block and are a view"""
         if len(self.blocks) == 1:
             return self.blocks[0].is_view
 
@@ -527,6 +478,10 @@ class BaseBlockManager(DataManager):
         # complicated
 
         return False
+
+    def _get_data_subset(self: T, predicate: Callable) -> T:
+        blocks = [blk for blk in self.blocks if predicate(blk.values)]
+        return self._combine(blocks, copy=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
         """
@@ -565,8 +520,15 @@ class BaseBlockManager(DataManager):
     def _combine(
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
     ) -> T:
-        """ return a new manager with the blocks """
+        """return a new manager with the blocks"""
         if len(blocks) == 0:
+            if self.ndim == 2:
+                # retain our own Index dtype
+                if index is not None:
+                    axes = [self.items[:0], index]
+                else:
+                    axes = [self.items[:0]] + self.axes[1:]
+                return self.make_empty(axes)
             return self.make_empty()
 
         # FIXME: optimization potential
@@ -618,144 +580,6 @@ class BaseBlockManager(DataManager):
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
         return res
-
-    def as_array(
-        self,
-        transpose: bool = False,
-        dtype: Dtype | None = None,
-        copy: bool = False,
-        na_value=lib.no_default,
-    ) -> np.ndarray:
-        """
-        Convert the blockmanager data into an numpy array.
-
-        Parameters
-        ----------
-        transpose : bool, default False
-            If True, transpose the return array.
-        dtype : object, default None
-            Data type of the return array.
-        copy : bool, default False
-            If True then guarantee that a copy is returned. A value of
-            False does not guarantee that the underlying data is not
-            copied.
-        na_value : object, default lib.no_default
-            Value to be used as the missing value sentinel.
-
-        Returns
-        -------
-        arr : ndarray
-        """
-        if len(self.blocks) == 0:
-            arr = np.empty(self.shape, dtype=float)
-            return arr.transpose() if transpose else arr
-
-        # We want to copy when na_value is provided to avoid
-        # mutating the original object
-        copy = copy or na_value is not lib.no_default
-
-        if self.is_single_block:
-            blk = self.blocks[0]
-            if blk.is_extension:
-                # Avoid implicit conversion of extension blocks to object
-
-                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
-                # attribute "to_numpy"
-                arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
-                ).reshape(blk.shape)
-            else:
-                arr = np.asarray(blk.get_values())
-                if dtype:
-                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "Union[dtype[Any], None, type,
-                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
-        else:
-            arr = self._interleave(dtype=dtype, na_value=na_value)
-            # The underlying data was copied within _interleave
-            copy = False
-
-        if copy:
-            arr = arr.copy()
-
-        if na_value is not lib.no_default:
-            arr[isna(arr)] = na_value
-
-        return arr.transpose() if transpose else arr
-
-    def _interleave(
-        self, dtype: Dtype | None = None, na_value=lib.no_default
-    ) -> np.ndarray:
-        """
-        Return ndarray from blocks with specified item order
-        Items must be contained in the blocks
-        """
-        if not dtype:
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-
-        # TODO: https://github.com/pandas-dev/pandas/issues/22791
-        # Give EAs some input on what happens here. Sparse needs this.
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-        elif isinstance(dtype, ExtensionDtype):
-            dtype = "object"
-        elif is_dtype_equal(dtype, str):
-            dtype = "object"
-
-        # error: Argument "dtype" to "empty" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
-        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
-        # Tuple[Any, Any]]]"
-        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
-
-        itemmask = np.zeros(self.shape[0])
-
-        for blk in self.blocks:
-            rl = blk.mgr_locs
-            if blk.is_extension:
-                # Avoid implicit conversion of extension blocks to object
-
-                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
-                # attribute "to_numpy"
-                arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
-                )
-            else:
-                # error: Argument 1 to "get_values" of "Block" has incompatible type
-                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
-                # "Union[dtype[Any], ExtensionDtype, None]"
-                arr = blk.get_values(dtype)  # type: ignore[arg-type]
-            result[rl.indexer] = arr
-            itemmask[rl.indexer] = 1
-
-        if not itemmask.all():
-            raise AssertionError("Some items were not contained in blocks")
-
-        return result
-
-    def to_dict(self, copy: bool = True):
-        """
-        Return a dict of str(dtype) -> BlockManager
-
-        Parameters
-        ----------
-        copy : bool, default True
-
-        Returns
-        -------
-        values : a dict of dtype -> BlockManager
-        """
-
-        bd: dict[str, list[Block]] = {}
-        for b in self.blocks:
-            bd.setdefault(str(b.dtype), []).append(b)
-
-        # TODO(EA2D): the combine will be unnecessary with 2D EAs
-        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
 
     def consolidate(self: T) -> T:
         """
@@ -939,7 +763,8 @@ class BaseBlockManager(DataManager):
                 blk = self.blocks[blkno]
 
                 # Otherwise, slicing along items axis is necessary.
-                if not blk._can_consolidate:
+                if not blk._can_consolidate and not blk._validate_ndim:
+                    # i.e. we dont go through here for DatetimeTZBlock
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
@@ -1363,6 +1188,53 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
+    def grouped_reduce(self: T, func: Callable, ignore_failures: bool = False) -> T:
+        """
+        Apply grouped reduction function blockwise, returning a new BlockManager.
+
+        Parameters
+        ----------
+        func : grouped reduction function
+        ignore_failures : bool, default False
+            Whether to drop blocks where func raises TypeError.
+
+        Returns
+        -------
+        BlockManager
+        """
+        result_blocks: list[Block] = []
+
+        for blk in self.blocks:
+            if blk.is_object:
+                # split on object-dtype blocks bc some columns may raise
+                #  while others do not.
+                for sb in blk._split():
+                    try:
+                        applied = sb.apply(func)
+                    except (TypeError, NotImplementedError):
+                        if not ignore_failures:
+                            raise
+                        continue
+                    result_blocks = extend_blocks(applied, result_blocks)
+            else:
+                try:
+                    applied = blk.apply(func)
+                except (TypeError, NotImplementedError):
+                    if not ignore_failures:
+                        raise
+                    continue
+                result_blocks = extend_blocks(applied, result_blocks)
+
+        if len(result_blocks) == 0:
+            index = Index([None])  # placeholder
+        else:
+            index = Index(range(result_blocks[0].values.shape[-1]))
+
+        if ignore_failures:
+            return self._combine(result_blocks, copy=False, index=index)
+
+        return type(self).from_blocks(result_blocks, [self.axes[0], index])
+
     def reduce(
         self: T, func: Callable, ignore_failures: bool = False
     ) -> tuple[T, np.ndarray]:
@@ -1396,7 +1268,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 new_mgr = self._combine(res_blocks, copy=False, index=index)
             else:
                 indexer = []
-                new_mgr = type(self).from_blocks([], [Index([]), index])
+                new_mgr = type(self).from_blocks([], [self.items[:0], index])
         else:
             indexer = np.arange(self.shape[0])
             new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
@@ -1494,9 +1366,162 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index])
         return bm
 
+    def to_dict(self, copy: bool = True):
+        """
+        Return a dict of str(dtype) -> BlockManager
+
+        Parameters
+        ----------
+        copy : bool, default True
+
+        Returns
+        -------
+        values : a dict of dtype -> BlockManager
+        """
+
+        bd: dict[str, list[Block]] = {}
+        for b in self.blocks:
+            bd.setdefault(str(b.dtype), []).append(b)
+
+        # TODO(EA2D): the combine will be unnecessary with 2D EAs
+        return {dtype: self._combine(blocks, copy=copy) for dtype, blocks in bd.items()}
+
+    def as_array(
+        self,
+        transpose: bool = False,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value=lib.no_default,
+    ) -> np.ndarray:
+        """
+        Convert the blockmanager data into an numpy array.
+
+        Parameters
+        ----------
+        transpose : bool, default False
+            If True, transpose the return array.
+        dtype : object, default None
+            Data type of the return array.
+        copy : bool, default False
+            If True then guarantee that a copy is returned. A value of
+            False does not guarantee that the underlying data is not
+            copied.
+        na_value : object, default lib.no_default
+            Value to be used as the missing value sentinel.
+
+        Returns
+        -------
+        arr : ndarray
+        """
+        if len(self.blocks) == 0:
+            arr = np.empty(self.shape, dtype=float)
+            return arr.transpose() if transpose else arr
+
+        # We want to copy when na_value is provided to avoid
+        # mutating the original object
+        copy = copy or na_value is not lib.no_default
+
+        if self.is_single_block:
+            blk = self.blocks[0]
+            if blk.is_extension:
+                # Avoid implicit conversion of extension blocks to object
+
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    # pandas/core/internals/managers.py:1428: error: Argument "dtype" to
+                    # "to_numpy" of "ExtensionArray" has incompatible type
+                    # "Optional[Union[dtype[Any], None, type, _SupportsDType, str,
+                    # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
+                    # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any,
+                    # Any]]]]"; expected "Optional[Union[ExtensionDtype, Union[str,
+                    # dtype[Any]], Type[str], Type[float], Type[int], Type[complex],
+                    # Type[bool], Type[object]]]"
+                    dtype=dtype,  # type: ignore[arg-type]
+                    na_value=na_value,
+                ).reshape(blk.shape)
+            else:
+                arr = np.asarray(blk.get_values())
+                if dtype:
+                    arr = arr.astype(dtype, copy=False)
+        else:
+            arr = self._interleave(dtype=dtype, na_value=na_value)
+            # The underlying data was copied within _interleave
+            copy = False
+
+        if copy:
+            arr = arr.copy()
+
+        if na_value is not lib.no_default:
+            arr[isna(arr)] = na_value
+
+        return arr.transpose() if transpose else arr
+
+    def _interleave(
+        self,
+        dtype: npt.DTypeLike | ExtensionDtype | None = None,
+        na_value=lib.no_default,
+    ) -> np.ndarray:
+        """
+        Return ndarray from blocks with specified item order
+        Items must be contained in the blocks
+        """
+        if not dtype:
+            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
+
+        # TODO: https://github.com/pandas-dev/pandas/issues/22791
+        # Give EAs some input on what happens here. Sparse needs this.
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+        elif isinstance(dtype, ExtensionDtype):
+            dtype = np.dtype("object")
+        elif is_dtype_equal(dtype, str):
+            dtype = np.dtype("object")
+
+        # error: Argument "dtype" to "empty" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+        # "Union[dtype[Any], None, type, _SupportsDType, str, Union[Tuple[Any, int],
+        # Tuple[Any, Union[int, Sequence[int]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"
+        result = np.empty(self.shape, dtype=dtype)  # type: ignore[arg-type]
+
+        itemmask = np.zeros(self.shape[0])
+
+        for blk in self.blocks:
+            rl = blk.mgr_locs
+            if blk.is_extension:
+                # Avoid implicit conversion of extension blocks to object
+
+                # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
+                # attribute "to_numpy"
+                arr = blk.values.to_numpy(  # type: ignore[union-attr]
+                    # pandas/core/internals/managers.py:1485: error: Argument "dtype" to
+                    # "to_numpy" of "ExtensionArray" has incompatible type
+                    # "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+                    # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any],
+                    # _DTypeDict, Tuple[Any, Any], ExtensionDtype]"; expected
+                    # "Optional[Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
+                    # Type[float], Type[int], Type[complex], Type[bool], Type[object]]]"
+                    # [arg-type]
+                    dtype=dtype,  # type: ignore[arg-type]
+                    na_value=na_value,
+                )
+            else:
+                # error: Argument 1 to "get_values" of "Block" has incompatible type
+                # "Union[ExtensionDtype, str, dtype[Any], Type[object], None]"; expected
+                # "Union[dtype[Any], ExtensionDtype, None]"
+                arr = blk.get_values(dtype)  # type: ignore[arg-type]
+            result[rl.indexer] = arr
+            itemmask[rl.indexer] = 1
+
+        if not itemmask.all():
+            raise AssertionError("Some items were not contained in blocks")
+
+        return result
+
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
-    """ manage a single block with """
+    """manage a single block with"""
 
     ndim = 1
     _is_consolidated = True
@@ -1590,12 +1615,12 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
     @property
     def _blknos(self):
-        """ compat with BlockManager """
+        """compat with BlockManager"""
         return None
 
     @property
     def _blklocs(self):
-        """ compat with BlockManager """
+        """compat with BlockManager"""
         return None
 
     def getitem_mgr(self, indexer) -> SingleBlockManager:
@@ -1753,7 +1778,7 @@ def construction_error(
     axes: list[Index],
     e: ValueError | None = None,
 ):
-    """ raise a helpful message about our construction """
+    """raise a helpful message about our construction"""
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
@@ -1879,7 +1904,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
 
 
 def _multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
-    """ return an array of blocks that potentially have different dtypes """
+    """return an array of blocks that potentially have different dtypes"""
 
     if not consolidate:
         return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)

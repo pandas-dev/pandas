@@ -45,6 +45,12 @@ a.navbar-brand img {
 div.card {
     margin: 0 0 .2em .2em !important;
 }
+@media (min-width: 576px) {
+    .card-group.maintainers div.card {
+        min-width: 10rem;
+        max-width: 10rem;
+    }
+}
 div.card .card-title {
     font-weight: 500;
     color: #130654;

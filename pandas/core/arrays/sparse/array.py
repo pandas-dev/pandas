@@ -224,10 +224,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
-    .. versionchanged:: 0.24.0
-
-       Implements the ExtensionArray interface.
-
     Parameters
     ----------
     data : array-like
@@ -550,7 +546,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Data
     # ------------------------------------------------------------------------
     @property
-    def sp_index(self):
+    def sp_index(self) -> SparseIndex:
         """
         The SparseIndex containing the location of non- ``fill_value`` points.
         """
@@ -570,7 +566,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self._sparse_values
 
     @property
-    def dtype(self):
+    def dtype(self) -> SparseDtype:
         return self._dtype
 
     @property
@@ -597,7 +593,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return "block"
 
     @property
-    def _valid_sp_values(self):
+    def _valid_sp_values(self) -> np.ndarray:
         sp_vals = self.sp_values
         mask = notna(sp_vals)
         return sp_vals[mask]
@@ -620,7 +616,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.sp_values.nbytes + self.sp_index.nbytes
 
     @property
-    def density(self):
+    def density(self) -> float:
         """
         The percent of non- ``fill_value`` points, as decimal.
 
@@ -1397,7 +1393,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # This condition returns a nan if there are no valid values in the array.
         if self.size > 0 and self._valid_sp_values.size == 0:
-            return np.nan
+            return self.fill_value
         else:
             return np.nanmax(self, axis)
 
@@ -1406,7 +1402,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # This condition returns a nan if there are no valid values in the array.
         if self.size > 0 and self._valid_sp_values.size == 0:
-            return np.nan
+            return self.fill_value
         else:
             return np.nanmin(self, axis)
 
@@ -1452,7 +1448,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
             )
 
-        result = getattr(ufunc, method)(*[np.asarray(x) for x in inputs], **kwargs)
+        result = getattr(ufunc, method)(*(np.asarray(x) for x in inputs), **kwargs)
         if out:
             if len(out) == 1:
                 out = out[0]
@@ -1467,11 +1463,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return type(self)(result)
 
     def __abs__(self):
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "SparseArray"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        return np.abs(self)  # type: ignore[arg-type]
+        return np.abs(self)
 
     # ------------------------------------------------------------------------
     # Ops

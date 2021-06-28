@@ -25,7 +25,6 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     Resolution,
-    ints_to_pydatetime,
     parsing,
     timezones,
     to_offset,
@@ -35,11 +34,11 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
 )
-from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -117,16 +116,10 @@ def _new_DatetimeIndex(cls, d):
 @inherit_names(["is_normalized", "_resolution_obj"], DatetimeArray, cache=True)
 @inherit_names(
     [
-        "_bool_ops",
-        "_object_ops",
-        "_field_ops",
-        "_datetimelike_ops",
-        "_datetimelike_methods",
         "tz",
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_has_same_tz",
         "_format_native_types",
         "date",
         "time",
@@ -256,11 +249,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     _engine_type = libindex.DatetimeEngine
     _supports_partial_string_indexing = True
 
-    _comparables = ["name", "freqstr", "tz"]
-    _attributes = ["name", "tz", "freq"]
-
-    _is_numeric_dtype = False
-
     _data: DatetimeArray
     inferred_freq: str | None
     tz: tzinfo | None
@@ -328,10 +316,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     ) -> DatetimeIndex:
 
         if is_scalar(data):
-            raise TypeError(
-                f"{cls.__name__}() must be called with a "
-                f"collection of some kind, {repr(data)} was passed"
-            )
+            raise cls._scalar_data_error(data)
 
         # - Cases checked above all return/raise before reaching here - #
 
@@ -390,10 +375,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-
-    def _mpl_repr(self) -> np.ndarray:
-        # how to represent ourselves to matplotlib
-        return ints_to_pydatetime(self.asi8, self.tz)
 
     @property
     def _formatter_func(self):
@@ -622,7 +603,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             end = end.tz_localize(self.tz)
         return start, end
 
-    def _validate_partial_date_slice(self, reso: Resolution):
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
         if (
             self.is_monotonic
@@ -633,12 +614,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # GH3452 and GH2369.
 
             # See also GH14826
-            raise KeyError
+            return False
 
         if reso.attrname == "microsecond":
             # _partial_date_slice doesn't allow microsecond resolution, but
             # _parsed_string_to_bounds allows it.
-            raise KeyError
+            return False
+        return True
 
     def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
@@ -660,7 +642,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                     "raise KeyError in a future version.  "
                     "Use a timezone-aware object instead."
                 )
-            warnings.warn(msg, FutureWarning, stacklevel=5)
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -670,8 +652,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         loc : int
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         orig_key = key
         if is_valid_na_for_dtype(key, self.dtype):
@@ -683,14 +664,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
-            try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError, OverflowError):
-                pass
 
+            try:
+                parsed, reso = self._parse_with_reso(key)
+            except ValueError as err:
+                raise KeyError(key) from err
+
+            if self._can_partial_date_slice(reso):
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    if method is None:
+                        raise KeyError(key) from err
             try:
                 key = self._maybe_cast_for_get_loc(key)
             except ValueError as err:
+                # FIXME: we get here because parse_with_reso doesn't raise on "t2m"
                 raise KeyError(key) from err
 
         elif isinstance(key, timedelta):
@@ -724,7 +713,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = key.tz_convert(self.tz)
         return key
 
-    def _maybe_cast_slice_bound(self, label, side: str, kind):
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
         """
         If label is a string, cast it to datetime according to resolution.
 
@@ -742,16 +731,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -----
         Value of `side` parameter should be validated in caller.
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
-            freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
             try:
-                parsed, reso_str = parsing.parse_time_string(label, freq)
+                parsed, reso = self._parse_with_reso(label)
             except parsing.DateParseError as err:
                 raise self._invalid_indexer("slice", label) from err
 
-            reso = Resolution.from_attrname(reso_str)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -768,12 +756,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             raise self._invalid_indexer("slice", label)
 
         return self._maybe_cast_for_get_loc(label)
-
-    def _get_string_slice(self, key: str):
-        freq = getattr(self, "freqstr", getattr(self, "inferred_freq", None))
-        parsed, reso_str = parsing.parse_time_string(key, freq)
-        reso = Resolution.from_attrname(reso_str)
-        return self._partial_date_slice(reso, parsed)
 
     def slice_indexer(self, start=None, end=None, step=None, kind=None):
         """
@@ -823,12 +805,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = np.array(True)
         deprecation_mask = np.array(True)
         if start is not None:
-            start_casted = self._maybe_cast_slice_bound(start, "left", kind)
+            start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
             deprecation_mask = start_casted == self
 
         if end is not None:
-            end_casted = self._maybe_cast_slice_bound(end, "right", kind)
+            end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
             deprecation_mask = (end_casted == self) | deprecation_mask
 
