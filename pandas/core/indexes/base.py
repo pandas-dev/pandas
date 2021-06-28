@@ -3099,9 +3099,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        # TODO(EA): setops-refactor, clean all this up
-
-        if self.is_monotonic and other.is_monotonic:
+        if (
+            self.is_monotonic
+            and other.is_monotonic
+            and not is_interval_dtype(self.dtype)
+        ):
+            # For IntervalIndex _inner_indexer is not more performant than get_indexer,
+            #  so don't take this fastpath
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
