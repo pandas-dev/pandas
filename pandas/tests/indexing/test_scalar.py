@@ -7,6 +7,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Series,
@@ -46,7 +48,11 @@ class TestScalar(Base):
         for f in [d["ints"], d["uints"], d["labels"], d["ts"], d["floats"]]:
             _check(f, "at")
 
-    @pytest.mark.parametrize("kind", ["series", "frame"])
+    # TODO(CoW) fix at/iat setting on a DataFrame
+    @pytest.mark.parametrize(
+        "kind",
+        ["series", pytest.param("frame", marks=td.skip_array_manager_invalid_test)],
+    )
     def test_at_and_iat_set(self, kind):
         def _check(f, func, values=False):
 
@@ -207,6 +213,8 @@ class TestScalar2:
         with pytest.raises(KeyError, match="^3$"):
             df.loc[0, 3]
 
+    # TODO(CoW) fix at/iat setting on a DataFrame
+    @td.skip_array_manager_invalid_test
     def test_iat_setter_incompatible_assignment(self):
         # GH 23236
         result = DataFrame({"a": [0, 1], "b": [4, 5]})

@@ -378,6 +378,7 @@ class BaseArrayManager(DataManager):
     #     return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
+        # TODO(CoW) check references to copy if needed
         if align:
             align_keys = ["new", "mask"]
         else:

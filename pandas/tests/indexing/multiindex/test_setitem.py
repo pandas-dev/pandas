@@ -390,16 +390,24 @@ class TestMultiIndexSetItem:
         reindexed = dft.reindex(columns=[("foo", "two")])
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
-    def test_set_column_scalar_with_loc(self, multiindex_dataframe_random_data):
+    def test_set_column_scalar_with_loc(
+        self, multiindex_dataframe_random_data, using_array_manager
+    ):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
 
         frame.loc[subset] = 99
         assert (frame.loc[subset].values == 99).all()
 
+        frame_original = frame.copy()
+
         col = frame["B"]
         col[subset] = 97
-        assert (frame.loc[subset, "B"] == 97).all()
+        if using_array_manager:
+            # chained setitem doesn't work with CoW
+            tm.assert_frame_equal(frame, frame_original)
+        else:
+            assert (frame.loc[subset, "B"] == 97).all()
 
     def test_nonunique_assignment_1750(self):
         df = DataFrame(
@@ -472,21 +480,31 @@ def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     assert (df["foo"].values == 0).all()
 
 
-def test_frame_setitem_copy_raises(multiindex_dataframe_random_data):
+def test_frame_setitem_copy_raises(
+    multiindex_dataframe_random_data, using_array_manager
+):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
-    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    if using_array_manager:
+        # TODO(CoW) it would be nice if this could still warn/raise
         df["foo"]["one"] = 2
+    else:
+        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
+            df["foo"]["one"] = 2
 
 
-def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
+def test_frame_setitem_copy_no_write(
+    multiindex_dataframe_random_data, using_array_manager
+):
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
-    msg = "A value is trying to be set on a copy of a slice from a DataFrame"
-    with pytest.raises(com.SettingWithCopyError, match=msg):
+    if using_array_manager:
         df["foo"]["one"] = 2
+    else:
+        msg = "A value is trying to be set on a copy of a slice from a DataFrame"
+        with pytest.raises(com.SettingWithCopyError, match=msg):
+            df["foo"]["one"] = 2
 
-    result = df
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, expected)

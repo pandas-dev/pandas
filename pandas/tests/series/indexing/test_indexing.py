@@ -204,7 +204,8 @@ def test_basic_getitem_setitem_corner(datetime_series):
         datetime_series[[5, slice(None, None)]] = 2
 
 
-def test_slice(string_series, object_series):
+def test_slice(string_series, object_series, using_array_manager):
+    original = string_series.copy()
     numSlice = string_series[10:20]
     numSliceEnd = string_series[-10:]
     objSlice = object_series[10:20]
@@ -222,7 +223,11 @@ def test_slice(string_series, object_series):
     sl = string_series[10:20]
     sl[:] = 0
 
-    assert (string_series[10:20] == 0).all()
+    if using_array_manager:
+        # Doesn't modify parent (CoW)
+        tm.assert_series_equal(string_series, original)
+    else:
+        assert (string_series[10:20] == 0).all()
 
 
 def test_timedelta_assignment():

@@ -80,10 +80,13 @@ class TestiLocBaseIndependent:
         indexer(df)[key, 0] = cat
 
         overwrite = isinstance(key, slice) and key == slice(None)
+        if using_array_manager and indexer == tm.loc:
+            # TODO(ArrayManager) with loc, slice(3) gets converted into slice(0, 3)
+            # which is then considered as "full" slice and does overwrite. For iloc
+            # this conversion is not done, and so it doesn't overwrite
+            overwrite = overwrite or (isinstance(key, slice) and key == slice(3))
 
-        if overwrite or using_array_manager:
-            # TODO(ArrayManager) we always overwrite because ArrayManager takes
-            #  the "split" path, which still overwrites
+        if overwrite:
             # TODO: GH#39986 this probably shouldn't behave differently
             expected = DataFrame({0: cat})
             assert not np.shares_memory(df.values, orig_vals)
@@ -107,6 +110,8 @@ class TestiLocBaseIndependent:
         orig_vals = df.values
         indexer(df)[key, 0] = cat
         expected = DataFrame({0: cat, 1: range(3)})
+        if using_array_manager and not overwrite:
+            expected[0] = expected[0].astype(object)
         tm.assert_frame_equal(df, expected)
 
     # TODO(ArrayManager) does not yet update parent
@@ -847,7 +852,11 @@ class TestiLocBaseIndependent:
 
         # should also be a shallow copy
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_array_manager:
+            # shallow copy not updated (CoW)
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     def test_indexing_zerodim_np_array(self):
         # GH24919
@@ -1308,8 +1317,9 @@ class TestILocCallable:
 
 
 class TestILocSeries:
-    def test_iloc(self):
+    def test_iloc(self, using_array_manager):
         ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser_original = ser.copy()
 
         for i in range(len(ser)):
             result = ser.iloc[i]
@@ -1323,7 +1333,10 @@ class TestILocSeries:
 
         # test slice is a view
         result[:] = 0
-        assert (ser[1:3] == 0).all()
+        if using_array_manager:
+            tm.assert_series_equal(ser, ser_original)
+        else:
+            assert (ser[1:3] == 0).all()
 
         # list of integers
         result = ser.iloc[[0, 2, 3, 4, 5]]

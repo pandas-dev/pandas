@@ -600,29 +600,33 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # setting integer values into a float dataframe with loc is inplace,
         #  so we retain float dtype
         ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
-        if using_array_manager:
-            # TODO(ArrayManager) with "split" path, we still overwrite the column
-            # and therefore don't take the dtype of the underlying object into account
-            ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_reindex_mixed(self):
+    def test_loc_setitem_frame_with_reindex_mixed(self, using_array_manager):
         # GH#40480
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
-        ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
+        ser = Series([2, 3, 1], index=[3, 5, 4], dtype=float)
+        if not using_array_manager:
+            # when using BlockManager, this takes the "split" path, which
+            # still overwrites the column
+            ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_inverted_slice(self):
+    def test_loc_setitem_frame_with_inverted_slice(self, using_array_manager):
         # GH#40480
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
+        if not using_array_manager:
+            # when using BlockManager, this takes the "split" path, which
+            # still overwrites the column
+            expected["A"] = expected["A"].astype("int64")
         tm.assert_frame_equal(df, expected)
 
     # TODO(ArrayManager) "split" path overwrites column and therefore don't take
@@ -988,7 +992,10 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert original_series[:] is not original_series
 
         original_series[:3] = [7, 8, 9]
-        assert all(sliced_series[:3] == [7, 8, 9])
+        if using_array_manager:
+            assert all(sliced_series[:3] == [1, 2, 3])
+        else:
+            assert all(sliced_series[:3] == [7, 8, 9])
 
     @pytest.mark.xfail(reason="accidental fix reverted - GH37497")
     def test_loc_copy_vs_view(self):

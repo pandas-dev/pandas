@@ -41,7 +41,7 @@ import pandas.core.common as com
 
 
 class TestSeriesDatetimeValues:
-    def test_dt_namespace_accessor(self):
+    def test_dt_namespace_accessor(self, using_array_manager):
 
         # GH 7207, 11128
         # test .dt namespace accessor
@@ -258,10 +258,15 @@ class TestSeriesDatetimeValues:
             s.dt.hour = 5
 
         # trying to set a copy
-        msg = "modifications to a property of a datetimelike.+not supported"
-        with pd.option_context("chained_assignment", "raise"):
-            with pytest.raises(com.SettingWithCopyError, match=msg):
+        if using_array_manager:
+            # TODO(CoW) it would be nice to keep a warning/error for this case
+            with pd.option_context("chained_assignment", "raise"):
                 s.dt.hour[0] = 5
+        else:
+            msg = "modifications to a property of a datetimelike.+not supported"
+            with pd.option_context("chained_assignment", "raise"):
+                with pytest.raises(com.SettingWithCopyError, match=msg):
+                    s.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",

@@ -12,6 +12,7 @@ import pandas._testing as tm
 import pandas.core.common as com
 
 
+@td.skip_array_manager_not_yet_implemented
 def test_detect_chained_assignment():
     # Inplace ops, originally from:
     # https://stackoverflow.com/questions/20508968/series-fillna-in-a-multiindex-dataframe-does-not-fill-is-this-a-bug
