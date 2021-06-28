@@ -6,7 +6,7 @@ Version 0.16.1 (May 11, 2015)
 {{ header }}
 
 
-This is a minor bug-fix release from 0.16.0 and includes a a large number of
+This is a minor bug-fix release from 0.16.0 and includes a large number of
 bug fixes along several new features, enhancements, and performance improvements.
 We recommend that all users upgrade to this version.
 
@@ -72,7 +72,7 @@ setting the index of a ``DataFrame/Series`` with a ``category`` dtype would conv
     Out[4]: Index(['c', 'a', 'b'], dtype='object')
 
 
-setting the index, will create create a ``CategoricalIndex``
+setting the index, will create a ``CategoricalIndex``
 
 .. code-block:: ipython
 

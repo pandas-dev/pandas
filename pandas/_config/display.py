@@ -2,6 +2,8 @@
 Unopinionated display configuration.
 """
 
+from __future__ import annotations
+
 import locale
 import sys
 
@@ -9,7 +11,7 @@ from pandas._config import config as cf
 
 # -----------------------------------------------------------------------------
 # Global formatting options
-_initial_defencoding = None
+_initial_defencoding: str | None = None
 
 
 def detect_console_encoding() -> str:

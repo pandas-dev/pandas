@@ -5,7 +5,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Series, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.tests.arrays.categorical.common import TestCategorical
 
@@ -395,50 +400,3 @@ class TestCategoricalOps:
         msg = "Object with dtype category cannot perform the numpy op log"
         with pytest.raises(TypeError, match=msg):
             np.log(s)
-
-    def test_contains(self):
-        # GH21508
-        c = Categorical(list("aabbca"), categories=list("cab"))
-
-        assert "b" in c
-        assert "z" not in c
-        assert np.nan not in c
-        with pytest.raises(TypeError, match="unhashable type: 'list'"):
-            assert [1] in c
-
-        # assert codes NOT in index
-        assert 0 not in c
-        assert 1 not in c
-
-        c = Categorical(list("aabbca") + [np.nan], categories=list("cab"))
-        assert np.nan in c
-
-    @pytest.mark.parametrize(
-        "item, expected",
-        [
-            (pd.Interval(0, 1), True),
-            (1.5, True),
-            (pd.Interval(0.5, 1.5), False),
-            ("a", False),
-            (pd.Timestamp(1), False),
-            (pd.Timedelta(1), False),
-        ],
-        ids=str,
-    )
-    def test_contains_interval(self, item, expected):
-        # GH 23705
-        cat = Categorical(pd.IntervalIndex.from_breaks(range(3)))
-        result = item in cat
-        assert result is expected
-
-    def test_contains_list(self):
-        # GH#21729
-        cat = Categorical([1, 2, 3])
-
-        assert "a" not in cat
-
-        with pytest.raises(TypeError, match="unhashable type"):
-            ["a"] in cat
-
-        with pytest.raises(TypeError, match="unhashable type"):
-            ["a", "b"] in cat

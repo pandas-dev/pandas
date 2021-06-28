@@ -83,12 +83,6 @@ class TestRollingTS:
         with pytest.raises(ValueError, match=msg):
             self.regular.rolling(window="1D", min_periods=minp)
 
-    def test_invalid_center_datetimelike(self):
-        # center is not implemented
-        msg = "center is not implemented for datetimelike and offset based windows"
-        with pytest.raises(NotImplementedError, match=msg):
-            self.regular.rolling(window="1D", center=True)
-
     def test_on(self):
 
         df = self.regular
@@ -621,23 +615,8 @@ class TestRollingTS:
         expected = er.quantile(0.5)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "f",
-        [
-            "sum",
-            "mean",
-            "count",
-            "median",
-            "std",
-            "var",
-            "kurt",
-            "skew",
-            "min",
-            "max",
-        ],
-    )
-    def test_all2(self, f):
-
+    def test_all2(self, arithmetic_win_operators):
+        f = arithmetic_win_operators
         # more sophisticated comparison of integer vs.
         # time-based windowing
         df = DataFrame(

@@ -1,16 +1,26 @@
 """
 Tests for scalar Timedelta arithmetic ops
 """
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 import operator
 
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import is_numpy_dev
+from pandas.compat import is_numpy_dev
+from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
-from pandas import NaT, Timedelta, Timestamp, compat, offsets
+from pandas import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    compat,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -95,7 +105,7 @@ class TestTimedeltaAdditionSubtraction:
         with pytest.raises(OverflowError, match=msg):
             Timestamp("1700-01-01") + Timedelta(13 * 19999, unit="D")
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             Timestamp("1700-01-01") + timedelta(days=13 * 19999)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
@@ -393,9 +403,9 @@ class TestTimedeltaMultiplicationDivision:
         # truediv
         td = Timedelta("1 days 2 hours 3 ns")
         result = td / np.timedelta64(1, "D")
-        assert result == td.value / float(86400 * 1e9)
+        assert result == td.value / (86400 * 10 ** 9)
         result = td / np.timedelta64(1, "s")
-        assert result == td.value / float(1e9)
+        assert result == td.value / 10 ** 9
         result = td / np.timedelta64(1, "ns")
         assert result == td.value
 
@@ -416,7 +426,7 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=5)
 
-        result = td / 5.0
+        result = td / 5
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=2)
 

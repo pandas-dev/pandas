@@ -16,7 +16,7 @@ def test_categorical_equal(c):
 def test_categorical_equal_order_mismatch(check_category_order):
     c1 = Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
     c2 = Categorical([1, 2, 3, 4], categories=[4, 3, 2, 1])
-    kwargs = dict(check_category_order=check_category_order)
+    kwargs = {"check_category_order": check_category_order}
 
     if check_category_order:
         msg = """Categorical\\.categories are different

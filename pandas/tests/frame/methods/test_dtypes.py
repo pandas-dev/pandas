@@ -5,7 +5,12 @@ import numpy as np
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import DataFrame, Series, date_range, option_context
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    option_context,
+)
 import pandas._testing as tm
 
 
@@ -32,8 +37,8 @@ class TestDataFrameDataTypes:
             norows_int_df.dtypes, Series(np.dtype("int32"), index=list("abc"))
         )
 
-        df = DataFrame(dict([("a", 1), ("b", True), ("c", 1.0)]), index=[1, 2, 3])
-        ex_dtypes = Series(dict([("a", np.int64), ("b", np.bool_), ("c", np.float64)]))
+        df = DataFrame({"a": 1, "b": True, "c": 1.0}, index=[1, 2, 3])
+        ex_dtypes = Series({"a": np.int64, "b": np.bool_, "c": np.float64})
         tm.assert_series_equal(df.dtypes, ex_dtypes)
 
         # same but for empty slice of df
@@ -66,12 +71,12 @@ class TestDataFrameDataTypes:
         df = DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
         tm.assert_series_equal(
             df.dtypes,
-            Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            Series({"a": np.float_, "b": np.float_, "c": np.float_}),
         )
-        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series(dict([("c", np.float_)])))
+        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series({"c": np.float_}))
         tm.assert_series_equal(
             df.dtypes,
-            Series(dict([("a", np.float_), ("b", np.float_), ("c", np.float_)])),
+            Series({"a": np.float_, "b": np.float_, "c": np.float_}),
         )
 
     def test_dtypes_gh8722(self, float_string_frame):
@@ -90,10 +95,10 @@ class TestDataFrameDataTypes:
 
     def test_dtypes_timedeltas(self):
         df = DataFrame(
-            dict(
-                A=Series(date_range("2012-1-1", periods=3, freq="D")),
-                B=Series([timedelta(days=i) for i in range(3)]),
-            )
+            {
+                "A": Series(date_range("2012-1-1", periods=3, freq="D")),
+                "B": Series([timedelta(days=i) for i in range(3)]),
+            }
         )
         result = df.dtypes
         expected = Series(

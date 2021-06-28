@@ -171,7 +171,7 @@ API changes
   ``expanding_cov``, ``expanding_corr`` to allow the calculation of moving
   window covariance and correlation matrices (:issue:`4950`). See
   :ref:`Computing rolling pairwise covariances and correlations
-  <stats.moments.corr_pairwise>` in the docs.
+  <window.corr_pairwise>` in the docs.
 
   .. code-block:: ipython
 
@@ -923,7 +923,7 @@ Bug fixes
 - ``HDFStore.select_as_multiple`` handles start and stop the same way as ``select`` (:issue:`6177`)
 - ``HDFStore.select_as_coordinates`` and ``select_column`` works with a ``where`` clause that results in filters (:issue:`6177`)
 - Regression in join of non_unique_indexes (:issue:`6329`)
-- Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
+- Issue with groupby ``agg`` with a single function and a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
 - Raise when trying to align on different levels of a MultiIndex assignment (:issue:`3738`)

@@ -1,11 +1,14 @@
-from typing import List
+from __future__ import annotations
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 
 
 def _check_mixed_float(df, dtype=None):
     # float16 are most likely to be upcasted to float32
-    dtypes = dict(A="float32", B="float32", C="float16", D="float64")
+    dtypes = {"A": "float32", "B": "float32", "C": "float16", "D": "float64"}
     if isinstance(dtype, str):
         dtypes = {k: dtype for k, v in dtypes.items()}
     elif isinstance(dtype, dict):
@@ -21,7 +24,7 @@ def _check_mixed_float(df, dtype=None):
 
 
 def _check_mixed_int(df, dtype=None):
-    dtypes = dict(A="int32", B="uint64", C="uint8", D="int64")
+    dtypes = {"A": "int32", "B": "uint64", "C": "uint8", "D": "int64"}
     if isinstance(dtype, str):
         dtypes = {k: dtype for k, v in dtypes.items()}
     elif isinstance(dtype, dict):
@@ -36,7 +39,7 @@ def _check_mixed_int(df, dtype=None):
         assert df.dtypes["D"] == dtypes["D"]
 
 
-def zip_frames(frames: List[DataFrame], axis: int = 1) -> DataFrame:
+def zip_frames(frames: list[DataFrame], axis: int = 1) -> DataFrame:
     """
     take a list of frames, zip them together under the
     assumption that these all have the first frames' index/columns.

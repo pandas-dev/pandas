@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, lreshape, melt, wide_to_long
+from pandas import (
+    DataFrame,
+    lreshape,
+    melt,
+    wide_to_long,
+)
 import pandas._testing as tm
 
 
@@ -297,7 +302,7 @@ class TestMelt:
     def test_preserve_category(self):
         # GH 15853
         data = DataFrame({"A": [1, 2], "B": pd.Categorical(["X", "Y"])})
-        result = pd.melt(data, ["B"], ["A"])
+        result = melt(data, ["B"], ["A"])
         expected = DataFrame(
             {"B": pd.Categorical(["X", "Y"]), "variable": ["A", "A"], "value": [1, 2]}
         )
@@ -396,6 +401,15 @@ class TestMelt:
             index=expected_index,
         )
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_melt_with_duplicate_columns(self):
+        # GH#41951
+        df = DataFrame([["id", 2, 3]], columns=["a", "b", "b"])
+        result = df.melt(id_vars=["a"], value_vars=["b"])
+        expected = DataFrame(
+            [["id", "b", 2], ["id", "b", 3]], columns=["a", "variable", "value"]
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -663,7 +677,7 @@ class TestWideToLong:
         stubs = ["inc", "edu"]
 
         # TODO: unused?
-        df_long = pd.wide_to_long(df, stubs, i="id", j="age")  # noqa
+        df_long = wide_to_long(df, stubs, i="id", j="age")  # noqa
 
         assert stubs == ["inc", "edu"]
 
@@ -1050,10 +1064,8 @@ class TestWideToLong:
             "PA3": {0: 0.34, 1: 0.70, 2: 0.52, 3: 0.98, 4: 0.67},
         }
         wide_df = DataFrame.from_dict(wide_data)
-        expected = pd.wide_to_long(
-            wide_df, stubnames=["PA"], i=["node_id", "A"], j="time"
-        )
-        result = pd.wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
+        expected = wide_to_long(wide_df, stubnames=["PA"], i=["node_id", "A"], j="time")
+        result = wide_to_long(wide_df, stubnames="PA", i=["node_id", "A"], j="time")
         tm.assert_frame_equal(result, expected)
 
     def test_warn_of_column_name_value(self):

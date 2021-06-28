@@ -6,7 +6,10 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import DatetimeIndex, Series
+from pandas import (
+    DatetimeIndex,
+    Series,
+)
 import pandas._testing as tm
 
 

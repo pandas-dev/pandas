@@ -3,7 +3,13 @@ from datetime import datetime
 import numpy as np
 
 import pandas as pd
-from pandas import Period, Series, date_range, period_range, to_datetime
+from pandas import (
+    Period,
+    Series,
+    date_range,
+    period_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 
@@ -46,7 +52,7 @@ class TestCombineFirst:
 
         # mixed types
         index = tm.makeStringIndex(20)
-        floats = Series(tm.randn(20), index=index)
+        floats = Series(np.random.randn(20), index=index)
         strings = Series(tm.makeStringIndex(10), index=index[::2])
 
         combined = strings.combine_first(floats)
@@ -72,7 +78,11 @@ class TestCombineFirst:
         s0 = to_datetime(Series(["2010", np.NaN]))
         s1 = Series([np.NaN, "2011"])
         rs = s0.combine_first(s1)
-        xp = Series([datetime(2010, 1, 1), "2011"])
+
+        msg = "containing strings is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            xp = Series([datetime(2010, 1, 1), "2011"])
+
         tm.assert_series_equal(rs, xp)
 
     def test_combine_first_dt_tz_values(self, tz_naive_fixture):

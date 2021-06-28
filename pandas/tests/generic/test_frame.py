@@ -5,10 +5,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
-
-from .test_generic import Generic
+from pandas.tests.generic.test_generic import Generic
 
 
 class TestDataFrame(Generic):
@@ -60,14 +64,6 @@ class TestDataFrame(Generic):
             df.bool()
         with pytest.raises(ValueError, match=msg):
             bool(df)
-
-    def test_get_numeric_data_preserve_dtype(self):
-
-        # get the numeric data
-        o = DataFrame({"A": [1, "2", 3.0]})
-        result = o._get_numeric_data()
-        expected = DataFrame(index=[0, 1, 2], dtype=object)
-        self._compare(result, expected)
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby
@@ -130,7 +126,7 @@ class TestDataFrame(Generic):
             for name in self._metadata:
                 if method == "concat":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        getattr(o, name) for o in other.objs if getattr(o, name, None)
                     )
                     object.__setattr__(self, name, value)
                 else:

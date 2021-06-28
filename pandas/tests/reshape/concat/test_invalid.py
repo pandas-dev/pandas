@@ -3,7 +3,11 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import DataFrame, concat, read_csv
+from pandas import (
+    DataFrame,
+    concat,
+    read_csv,
+)
 import pandas._testing as tm
 
 
@@ -12,7 +16,7 @@ class TestInvalidConcat:
 
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
-        for obj in [1, dict(), [1, 2], (1, 2)]:
+        for obj in [1, {}, [1, 2], (1, 2)]:
 
             msg = (
                 f"cannot concatenate object of type '{type(obj)}'; "
@@ -23,13 +27,12 @@ class TestInvalidConcat:
 
     def test_concat_invalid_first_argument(self):
         df1 = tm.makeCustomDataframe(10, 2)
-        df2 = tm.makeCustomDataframe(10, 2)
         msg = (
             "first argument must be an iterable of pandas "
             'objects, you passed an object of type "DataFrame"'
         )
         with pytest.raises(TypeError, match=msg):
-            concat(df1, df2)
+            concat(df1)
 
         # generator ok though
         concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
@@ -45,7 +48,7 @@ class TestInvalidConcat:
                   bar2,12,13,14,15
                """
 
-        reader = read_csv(StringIO(data), chunksize=1)
-        result = concat(reader, ignore_index=True)
+        with read_csv(StringIO(data), chunksize=1) as reader:
+            result = concat(reader, ignore_index=True)
         expected = read_csv(StringIO(data))
         tm.assert_frame_equal(result, expected)

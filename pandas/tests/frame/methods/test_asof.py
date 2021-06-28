@@ -96,12 +96,16 @@ class TestFrameAsof:
         result = df.asof("1989-12-31")
         assert isinstance(result.name, Period)
 
+    def test_asof_all_nans(self, frame_or_series):
+        # GH 15713
+        # DataFrame/Series is all nans
+        result = frame_or_series([np.nan]).asof([0])
+        expected = frame_or_series([np.nan])
+        tm.assert_equal(result, expected)
+
     def test_all_nans(self, date_range_frame):
         # GH 15713
         # DataFrame is all nans
-        result = DataFrame([np.nan]).asof([0])
-        expected = DataFrame([np.nan])
-        tm.assert_frame_equal(result, expected)
 
         # testing non-default indexes, multiple inputs
         N = 150

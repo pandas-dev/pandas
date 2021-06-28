@@ -17,14 +17,14 @@ import pandas._testing as tm
 @pytest.fixture
 def custom_dialect():
     dialect_name = "weird"
-    dialect_kwargs = dict(
-        doublequote=False,
-        escapechar="~",
-        delimiter=":",
-        skipinitialspace=False,
-        quotechar="~",
-        quoting=3,
-    )
+    dialect_kwargs = {
+        "doublequote": False,
+        "escapechar": "~",
+        "delimiter": ":",
+        "skipinitialspace": False,
+        "quotechar": "~",
+        "quoting": 3,
+    }
     return dialect_name, dialect_kwargs
 
 
@@ -91,16 +91,16 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
     data = "a:b\n1:2"
 
     warning_klass = None
-    kwds = dict()
+    kwds = {}
 
     # arg=None tests when we pass in the dialect without any other arguments.
     if arg is not None:
         if "value" == "dialect":  # No conflict --> no warning.
             kwds[arg] = dialect_kwargs[arg]
         elif "value" == "default":  # Default --> no warning.
-            from pandas.io.parsers import _parser_defaults
+            from pandas.io.parsers.base_parser import parser_defaults
 
-            kwds[arg] = _parser_defaults[arg]
+            kwds[arg] = parser_defaults[arg]
         else:  # Non-default + conflict with dialect --> warning.
             warning_klass = ParserWarning
             kwds[arg] = "blah"
@@ -114,12 +114,12 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
 @pytest.mark.parametrize(
     "kwargs,warning_klass",
     [
-        (dict(sep=","), None),  # sep is default --> sep_override=True
-        (dict(sep="."), ParserWarning),  # sep isn't default --> sep_override=False
-        (dict(delimiter=":"), None),  # No conflict
-        (dict(delimiter=None), None),  # Default arguments --> sep_override=True
-        (dict(delimiter=","), ParserWarning),  # Conflict
-        (dict(delimiter="."), ParserWarning),  # Conflict
+        ({"sep": ","}, None),  # sep is default --> sep_override=True
+        ({"sep": "."}, ParserWarning),  # sep isn't default --> sep_override=False
+        ({"delimiter": ":"}, None),  # No conflict
+        ({"delimiter": None}, None),  # Default arguments --> sep_override=True
+        ({"delimiter": ","}, ParserWarning),  # Conflict
+        ({"delimiter": "."}, ParserWarning),  # Conflict
     ],
     ids=[
         "sep-override-true",

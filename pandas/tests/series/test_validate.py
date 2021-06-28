@@ -17,7 +17,7 @@ import pytest
 def test_validate_bool_args(string_series, func, inplace):
     """Tests for error handling related to data types of method arguments."""
     msg = 'For argument "inplace" expected type bool'
-    kwargs = dict(inplace=inplace)
+    kwargs = {"inplace": inplace}
 
     if func == "_set_name":
         kwargs["name"] = "hello"

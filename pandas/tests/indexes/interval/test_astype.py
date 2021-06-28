@@ -1,7 +1,14 @@
+import re
+
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import CategoricalDtype, IntervalDtype
+from pandas.compat import is_platform_arm
+
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
 
 from pandas import (
     CategoricalIndex,
@@ -15,7 +22,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-class Base:
+class AstypeTests:
     """Tests common to IntervalIndex with any subtype"""
 
     def test_astype_idempotent(self, index):
@@ -72,7 +79,7 @@ class Base:
             index.astype("fake_dtype")
 
 
-class TestIntSubtype(Base):
+class TestIntSubtype(AstypeTests):
     """Tests specific to IntervalIndex with integer-like subtype"""
 
     indexes = [
@@ -88,7 +95,7 @@ class TestIntSubtype(Base):
         "subtype", ["float64", "datetime64[ns]", "timedelta64[ns]"]
     )
     def test_subtype_conversion(self, index, subtype):
-        dtype = IntervalDtype(subtype)
+        dtype = IntervalDtype(subtype, index.closed)
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
             index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
@@ -100,7 +107,7 @@ class TestIntSubtype(Base):
     )
     def test_subtype_integer(self, subtype_start, subtype_end):
         index = IntervalIndex.from_breaks(np.arange(100, dtype=subtype_start))
-        dtype = IntervalDtype(subtype_end)
+        dtype = IntervalDtype(subtype_end, index.closed)
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
             index.left.astype(subtype_end),
@@ -113,12 +120,18 @@ class TestIntSubtype(Base):
     def test_subtype_integer_errors(self):
         # int64 -> uint64 fails with negative values
         index = interval_range(-10, 10)
-        dtype = IntervalDtype("uint64")
-        with pytest.raises(ValueError):
+        dtype = IntervalDtype("uint64", "right")
+
+        # Until we decide what the exception message _should_ be, we
+        #  assert something that it should _not_ be.
+        #  We should _not_ be getting a message suggesting that the -10
+        #  has been wrapped around to a large-positive integer
+        msg = "^(?!(left side of interval must be <= right side))"
+        with pytest.raises(ValueError, match=msg):
             index.astype(dtype)
 
 
-class TestFloatSubtype(Base):
+class TestFloatSubtype(AstypeTests):
     """Tests specific to IntervalIndex with float subtype"""
 
     indexes = [
@@ -135,7 +148,7 @@ class TestFloatSubtype(Base):
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer(self, subtype):
         index = interval_range(0.0, 10.0)
-        dtype = IntervalDtype(subtype)
+        dtype = IntervalDtype(subtype, "right")
         result = index.astype(dtype)
         expected = IntervalIndex.from_arrays(
             index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
@@ -147,33 +160,37 @@ class TestFloatSubtype(Base):
         with pytest.raises(ValueError, match=msg):
             index.insert(0, np.nan).astype(dtype)
 
-    @pytest.mark.xfail(reason="GH#15832")
+    @pytest.mark.parametrize("subtype", ["int64", "uint64"])
+    def test_subtype_integer_with_non_integer_borders(self, subtype):
+        index = interval_range(0.0, 3.0, freq=0.25)
+        dtype = IntervalDtype(subtype, "right")
+        result = index.astype(dtype)
+        expected = IntervalIndex.from_arrays(
+            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
+        )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.xfail(is_platform_arm(), reason="GH 41740")
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
         index = interval_range(-10.0, 10.0)
-        dtype = IntervalDtype("uint64")
-        with pytest.raises(ValueError):
-            index.astype(dtype)
-
-        # float64 -> integer-like fails with non-integer valued floats
-        index = interval_range(0.0, 10.0, freq=0.25)
-        dtype = IntervalDtype("int64")
-        with pytest.raises(ValueError):
-            index.astype(dtype)
-
-        dtype = IntervalDtype("uint64")
-        with pytest.raises(ValueError):
+        dtype = IntervalDtype("uint64", "right")
+        msg = re.escape(
+            "Cannot convert interval[float64, right] to interval[uint64, right]; "
+            "subtypes are incompatible"
+        )
+        with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
     @pytest.mark.parametrize("subtype", ["datetime64[ns]", "timedelta64[ns]"])
     def test_subtype_datetimelike(self, index, subtype):
-        dtype = IntervalDtype(subtype)
+        dtype = IntervalDtype(subtype, "right")
         msg = "Cannot convert .* to .*; subtypes are incompatible"
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
 
-class TestDatetimelikeSubtype(Base):
+class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
 
     indexes = [
@@ -190,22 +207,25 @@ class TestDatetimelikeSubtype(Base):
 
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer(self, index, subtype):
-        dtype = IntervalDtype(subtype)
-        result = index.astype(dtype)
-        expected = IntervalIndex.from_arrays(
-            index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
-        )
+        dtype = IntervalDtype(subtype, "right")
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.astype(dtype)
+            expected = IntervalIndex.from_arrays(
+                index.left.astype(subtype),
+                index.right.astype(subtype),
+                closed=index.closed,
+            )
         tm.assert_index_equal(result, expected)
 
     def test_subtype_float(self, index):
-        dtype = IntervalDtype("float64")
+        dtype = IntervalDtype("float64", "right")
         msg = "Cannot convert .* to .*; subtypes are incompatible"
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
     def test_subtype_datetimelike(self):
         # datetime -> timedelta raises
-        dtype = IntervalDtype("timedelta64[ns]")
+        dtype = IntervalDtype("timedelta64[ns]", "right")
         msg = "Cannot convert .* to .*; subtypes are incompatible"
 
         index = interval_range(Timestamp("2018-01-01"), periods=10)
@@ -217,7 +237,7 @@ class TestDatetimelikeSubtype(Base):
             index.astype(dtype)
 
         # timedelta -> datetime raises
-        dtype = IntervalDtype("datetime64[ns]")
+        dtype = IntervalDtype("datetime64[ns]", "right")
         index = interval_range(Timedelta("0 days"), periods=10)
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)

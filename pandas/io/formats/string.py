@@ -1,8 +1,10 @@
 """
 Module for formatting output data in console (to string).
 """
+from __future__ import annotations
+
 from shutil import get_terminal_size
-from typing import Iterable, List, Optional
+from typing import Iterable
 
 import numpy as np
 
@@ -13,7 +15,7 @@ from pandas.io.formats.printing import pprint_thing
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(self, fmt: DataFrameFormatter, line_width: Optional[int] = None):
+    def __init__(self, fmt: DataFrameFormatter, line_width: int | None = None):
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame
@@ -25,7 +27,7 @@ class StringFormatter:
             text = "".join([text, self.fmt.dimensions_info])
         return text
 
-    def _get_strcols(self) -> List[List[str]]:
+    def _get_strcols(self) -> list[list[str]]:
         strcols = self.fmt.get_strcols()
         if self.fmt.is_truncated:
             strcols = self._insert_dot_separators(strcols)
@@ -58,7 +60,7 @@ class StringFormatter:
     def _need_to_wrap_around(self) -> bool:
         return bool(self.fmt.max_cols is None or self.fmt.max_cols > 0)
 
-    def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
+    def _insert_dot_separators(self, strcols: list[list[str]]) -> list[list[str]]:
         str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)
         index_length = len(str_index)
 
@@ -70,22 +72,26 @@ class StringFormatter:
 
         return strcols
 
+    @property
+    def _adjusted_tr_col_num(self) -> int:
+        return self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
+
     def _insert_dot_separator_horizontal(
-        self, strcols: List[List[str]], index_length: int
-    ) -> List[List[str]]:
-        strcols.insert(self.fmt.tr_col_num + 1, [" ..."] * index_length)
+        self, strcols: list[list[str]], index_length: int
+    ) -> list[list[str]]:
+        strcols.insert(self._adjusted_tr_col_num, [" ..."] * index_length)
         return strcols
 
     def _insert_dot_separator_vertical(
-        self, strcols: List[List[str]], index_length: int
-    ) -> List[List[str]]:
+        self, strcols: list[list[str]], index_length: int
+    ) -> list[list[str]]:
         n_header_rows = index_length - len(self.fmt.tr_frame)
         row_num = self.fmt.tr_row_num
         for ix, col in enumerate(strcols):
             cwidth = self.adj.len(col[row_num])
 
             if self.fmt.is_truncated_horizontally:
-                is_dot_col = ix == self.fmt.tr_col_num + 1
+                is_dot_col = ix == self._adjusted_tr_col_num
             else:
                 is_dot_col = False
 
@@ -94,7 +100,7 @@ class StringFormatter:
             else:
                 dots = ".."
 
-            if ix == 0:
+            if ix == 0 and self.fmt.index:
                 dot_mode = "left"
             elif is_dot_col:
                 cwidth = 4
@@ -106,14 +112,20 @@ class StringFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def _join_multiline(self, strcols_input: Iterable[List[str]]) -> str:
+    def _join_multiline(self, strcols_input: Iterable[list[str]]) -> str:
         lwidth = self.line_width
         adjoin_width = 1
         strcols = list(strcols_input)
 
         if self.fmt.index:
             idx = strcols.pop(0)
-            lwidth -= np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
+            # error: Argument 1 to "__call__" of "_NumberOp" has incompatible type
+            # "None"; expected "Union[int, float, complex, number, bool_]"
+            # error: Incompatible types in assignment (expression has type "number",
+            # variable has type "Optional[int]")
+            lwidth -= (  # type: ignore[assignment,arg-type]
+                np.array([self.adj.len(x) for x in idx]).max() + adjoin_width
+            )
 
         col_widths = [
             np.array([self.adj.len(x) for x in col]).max() if len(col) > 0 else 0
@@ -121,7 +133,9 @@ class StringFormatter:
         ]
 
         assert lwidth is not None
-        col_bins = _binify(col_widths, lwidth)
+        # error: Argument 1 to "_binify" has incompatible type "List[object]"; expected
+        # "List[int]"
+        col_bins = _binify(col_widths, lwidth)  # type: ignore[arg-type]
         nbins = len(col_bins)
 
         if self.fmt.is_truncated_vertically:
@@ -145,7 +159,7 @@ class StringFormatter:
             start = end
         return "\n\n".join(str_lst)
 
-    def _fit_strcols_to_terminal_width(self, strcols: List[List[str]]) -> str:
+    def _fit_strcols_to_terminal_width(self, strcols: list[list[str]]) -> str:
         from pandas import Series
 
         lines = self.adj.adjoin(1, *strcols).split("\n")
@@ -160,7 +174,7 @@ class StringFormatter:
         counter = 0
         while adj_dif > 0 and n_cols > 1:
             counter += 1
-            mid = int(round(n_cols / 2.0))
+            mid = round(n_cols / 2)
             mid_ix = col_lens.index[mid]
             col_len = col_lens[mid_ix]
             # adjoin adds one
@@ -181,7 +195,7 @@ class StringFormatter:
         return self.adj.adjoin(1, *strcols)
 
 
-def _binify(cols: List[int], line_width: int) -> List[int]:
+def _binify(cols: list[int], line_width: int) -> list[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0

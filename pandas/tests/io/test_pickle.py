@@ -13,6 +13,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 import bz2
 import datetime
 import functools
+from functools import partial
 import glob
 import gzip
 import io
@@ -20,22 +21,45 @@ import os
 from pathlib import Path
 import pickle
 import shutil
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+    simplefilter,
+)
 import zipfile
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY38, get_lzma_file, import_lzma, is_platform_little_endian
+from pandas.compat import (
+    PY38,
+    get_lzma_file,
+    import_lzma,
+    is_platform_little_endian,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Index, Series, period_range
+from pandas import (
+    Index,
+    Series,
+    period_range,
+)
 import pandas._testing as tm
 
-from pandas.tseries.offsets import Day, MonthEnd
+from pandas.tseries.offsets import (
+    Day,
+    MonthEnd,
+)
 
 lzma = import_lzma()
+
+
+# TODO(ArrayManager) pickling
+pytestmark = [
+    td.skip_array_manager_not_yet_implemented,
+    pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning"),
+]
 
 
 @pytest.fixture(scope="module")
@@ -43,7 +67,12 @@ def current_pickle_data():
     # our current version pickle data
     from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
-    return create_pickle_data()
+    with catch_warnings():
+        filterwarnings(
+            "ignore", "The 'freq' argument in Timestamp", category=FutureWarning
+        )
+
+        return create_pickle_data()
 
 
 # ---------------------
@@ -185,6 +214,7 @@ def python_unpickler(path):
         ),
     ],
 )
+@pytest.mark.filterwarnings("ignore:The 'freq' argument in Timestamp:FutureWarning")
 def test_round_trip_current(current_pickle_data, pickle_writer):
     data = current_pickle_data
     for typ, dv in data.items():
@@ -412,7 +442,7 @@ class TestProtocol:
 @pytest.mark.parametrize(
     ["pickle_file", "excols"],
     [
-        ("test_py27.pkl", pd.Index(["a", "b", "c"])),
+        ("test_py27.pkl", Index(["a", "b", "c"])),
         (
             "test_mi_py27.pkl",
             pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
@@ -464,6 +494,12 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
                 self.headers = {"Content-Encoding": "gzip"}
             else:
                 self.headers = {"Content-Encoding": None}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.close()
 
         def read(self):
             return self.file.read()
@@ -563,11 +599,39 @@ def test_pickle_timeseries_periodindex():
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-    def _pickle_roundtrip_name(obj):
-        with tm.ensure_clean() as path:
-            obj.to_pickle(path)
-            unpickled = pd.read_pickle(path)
-        return unpickled
 
-    unpickled = _pickle_roundtrip_name(tm.makeTimeSeries(name=name))
+    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
     assert unpickled.name == name
+
+
+def test_pickle_datetimes(datetime_series):
+    unp_ts = tm.round_trip_pickle(datetime_series)
+    tm.assert_series_equal(unp_ts, datetime_series)
+
+
+def test_pickle_strings(string_series):
+    unp_series = tm.round_trip_pickle(string_series)
+    tm.assert_series_equal(unp_series, string_series)
+
+
+def test_pickle_preserves_block_ndim():
+    # GH#37631
+    ser = Series(list("abc")).astype("category").iloc[[0]]
+    res = tm.round_trip_pickle(ser)
+
+    assert res._mgr.blocks[0].ndim == 1
+    assert res._mgr.blocks[0].shape == (1,)
+
+    # GH#37631 OP issue was about indexing, underlying problem was pickle
+    tm.assert_series_equal(res[[True]], ser)
+
+
+@pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
+def test_pickle_big_dataframe_compression(protocol, compression):
+    # GH#39002
+    df = pd.DataFrame(range(100000))
+    result = tm.round_trip_pathlib(
+        partial(df.to_pickle, protocol=protocol, compression=compression),
+        partial(pd.read_pickle, compression=compression),
+    )
+    tm.assert_frame_equal(df, result)

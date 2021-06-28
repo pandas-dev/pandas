@@ -1,3 +1,13 @@
-from pandas.core.window.ewm import ExponentialMovingWindow  # noqa:F401
-from pandas.core.window.expanding import Expanding, ExpandingGroupby  # noqa:F401
-from pandas.core.window.rolling import Rolling, RollingGroupby, Window  # noqa:F401
+from pandas.core.window.ewm import (  # noqa:F401
+    ExponentialMovingWindow,
+    ExponentialMovingWindowGroupby,
+)
+from pandas.core.window.expanding import (  # noqa:F401
+    Expanding,
+    ExpandingGroupby,
+)
+from pandas.core.window.rolling import (  # noqa:F401
+    Rolling,
+    RollingGroupby,
+    Window,
+)

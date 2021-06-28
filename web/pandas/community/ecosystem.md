@@ -6,7 +6,7 @@ encouraging because it means pandas is not only helping users to handle
 their data tasks but also that it provides a better starting point for
 developers to build powerful and more focused data tools. The creation
 of libraries that complement pandas' functionality also allows pandas
-development to remain focused around it's original requirements.
+development to remain focused around its original requirements.
 
 This is an inexhaustive list of projects that build on pandas in order
 to provide tools in the PyData space. For a list of projects that depend
@@ -34,7 +34,7 @@ computation.
 Use pandas DataFrames in your [scikit-learn](https://scikit-learn.org/)
 ML pipeline.
 
-### [Featuretools](https://github.com/featuretools/featuretools/)
+### [Featuretools](https://github.com/alteryx/featuretools/)
 
 Featuretools is a Python library for automated feature engineering built
 on top of pandas. It excels at transforming temporal and relational
@@ -42,7 +42,7 @@ datasets into feature matrices for machine learning using reusable
 feature engineering "primitives". Users can contribute their own
 primitives in Python and share them with the rest of the community.
 
-### [Compose](https://github.com/FeatureLabs/compose)
+### [Compose](https://github.com/alteryx/compose)
 
 Compose is a machine learning tool for labeling data and prediction engineering.
 It allows you to structure the labeling process by parameterizing
@@ -360,6 +360,12 @@ Cyberpandas provides an extension type for storing arrays of IP
 Addresses. These arrays can be stored inside pandas' Series and
 DataFrame.
 
+### [Pandas-Genomics](https://pandas-genomics.readthedocs.io/en/latest/)
+
+Pandas-Genomics provides an extension type and extension array for working
+ with genomics data.  It also includes `genomics` accessors for many useful properties
+ and methods related to QC and analysis of genomics data.
+
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
 Pint-Pandas provides an extension type for storing numeric arrays with units.
@@ -373,10 +379,12 @@ A directory of projects providing
 `extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
-  | Library                                                       | Accessor |  Classes              |
-  | --------------------------------------------------------------|----------|-----------------------|
-  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)   | `ip`     | `Series`              |
-  | [pdvega](https://altair-viz.github.io/pdvega/)                | `vgplot` | `Series`, `DataFrame` |
-  | [pandas_path](https://github.com/drivendataorg/pandas-path/)  | `path`   | `Index`, `Series` |
-  | [pint-pandas](https://github.com/hgrecco/pint-pandas)         | `pint`   | `Series`, `DataFrame` |
-  | [composeml](https://github.com/FeatureLabs/compose)           | `slice`  | `DataFrame`           |
+  | Library                                                              | Accessor   |  Classes              |
+  | ---------------------------------------------------------------------|------------|-----------------------|
+  | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
+  | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
+  | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
+  | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
+  | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
+  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
+  | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |

@@ -53,7 +53,7 @@ class TestTake:
 
     def test_take_fill_value(self):
         # GH#12631
-        idx = pd.RangeIndex(1, 4, name="xxx")
+        idx = RangeIndex(1, 4, name="xxx")
         result = idx.take(np.array([1, 0, -1]))
         expected = pd.Int64Index([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)

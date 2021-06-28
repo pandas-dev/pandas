@@ -2,8 +2,6 @@ from importlib import import_module
 
 import numpy as np
 
-from pandas._libs import lib
-
 import pandas as pd
 
 from .pandas_vb_common import tm
@@ -16,19 +14,6 @@ for imp in ["pandas.util", "pandas.tools.hashing"]:
         pass
 
 
-class MaybeConvertObjects:
-    def setup(self):
-        N = 10 ** 5
-
-        data = list(range(N))
-        data[0] = pd.NaT
-        data = np.array(data)
-        self.data = data
-
-    def time_maybe_convert_objects(self):
-        lib.maybe_convert_objects(self.data)
-
-
 class Factorize:
 
     params = [
@@ -38,28 +23,38 @@ class Factorize:
             "int",
             "uint",
             "float",
-            "string",
+            "object",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "Int64",
             "boolean",
+            "string[pyarrow]",
         ],
     ]
     param_names = ["unique", "sort", "dtype"]
 
     def setup(self, unique, sort, dtype):
         N = 10 ** 5
+        string_index = tm.makeStringIndex(N)
+        string_arrow = None
+        if dtype == "string[pyarrow]":
+            try:
+                string_arrow = pd.array(string_index, dtype="string[pyarrow]")
+            except ImportError:
+                raise NotImplementedError
+
         data = {
             "int": pd.Int64Index(np.arange(N)),
             "uint": pd.UInt64Index(np.arange(N)),
             "float": pd.Float64Index(np.random.randn(N)),
-            "string": tm.makeStringIndex(N),
+            "object": string_index,
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
                 "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
             ),
             "Int64": pd.array(np.arange(N), dtype="Int64"),
             "boolean": pd.array(np.random.randint(0, 2, N), dtype="boolean"),
+            "string[pyarrow]": string_arrow,
         }[dtype]
         if not unique:
             data = data.repeat(5)

@@ -10,6 +10,7 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
+    intp_t,
     ndarray,
     uint8_t,
     uint16_t,
@@ -19,25 +20,21 @@ from numpy cimport (
 
 cnp.import_array()
 
-from pandas._libs.algos import (
-    ensure_platform_int,
-    groupsort_indexer,
-    take_1d_int64_int64,
-)
+from pandas._libs.algos import groupsort_indexer
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
-def inner_join(const int64_t[:] left, const int64_t[:] right,
+def inner_join(const intp_t[:] left, const intp_t[:] right,
                Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
-        ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        intp_t[::1] left_sorter, right_sorter
+        intp_t[::1] left_count, right_count
+        intp_t[::1] left_indexer, right_indexer
+        intp_t lc, rc
+        Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
-
-    # NA group in location 0
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -51,14 +48,13 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
             if rc > 0 and lc > 0:
                 count += lc * rc
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
+    left_indexer = np.empty(count, dtype=np.intp)
+    right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
+        # exclude the NA group
+        left_pos = left_count[0]
+        right_pos = right_count[0]
         for i in range(1, max_groups + 1):
             lc = left_count[i]
             rc = right_count[i]
@@ -73,23 +69,26 @@ def inner_join(const int64_t[:] left, const int64_t[:] right,
             left_pos += lc
             right_pos += rc
 
-    return (_get_result_indexer(left_sorter, left_indexer),
-            _get_result_indexer(right_sorter, right_indexer))
+        # Will overwrite left/right indexer with the result
+        _get_result_indexer(left_sorter, left_indexer)
+        _get_result_indexer(right_sorter, right_indexer)
+
+    return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
-def left_outer_join(const int64_t[:] left, const int64_t[:] right,
+def left_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
-        ndarray rev
-        ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc
-        Py_ssize_t loc, left_pos = 0, right_pos = 0, position = 0
+        ndarray[intp_t] rev
+        intp_t[::1] left_count, right_count
+        intp_t[::1] left_sorter, right_sorter
+        intp_t[::1] left_indexer, right_indexer
+        intp_t lc, rc
+        Py_ssize_t left_pos = 0, right_pos = 0, position = 0
         Py_ssize_t offset
-
-    # NA group in location 0
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -102,14 +101,13 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
             else:
                 count += left_count[i]
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
+    left_indexer = np.empty(count, dtype=np.intp)
+    right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
+        # exclude the NA group
+        left_pos = left_count[0]
+        right_pos = right_count[0]
         for i in range(1, max_groups + 1):
             lc = left_count[i]
             rc = right_count[i]
@@ -129,39 +127,37 @@ def left_outer_join(const int64_t[:] left, const int64_t[:] right,
             left_pos += lc
             right_pos += rc
 
-    left_indexer = _get_result_indexer(left_sorter, left_indexer)
-    right_indexer = _get_result_indexer(right_sorter, right_indexer)
+        # Will overwrite left/right indexer with the result
+        _get_result_indexer(left_sorter, left_indexer)
+        _get_result_indexer(right_sorter, right_indexer)
 
     if not sort:  # if not asked to sort, revert to original order
-        # cast to avoid build warning GH#26757
-        if <Py_ssize_t>len(left) == len(left_indexer):
+        if len(left) == len(left_indexer):
             # no multiple matches for any row on the left
             # this is a short-cut to avoid groupsort_indexer
             # otherwise, the `else` path also works in this case
             rev = np.empty(len(left), dtype=np.intp)
-            rev.put(ensure_platform_int(left_sorter), np.arange(len(left)))
+            rev.put(np.asarray(left_sorter), np.arange(len(left)))
         else:
             rev, _ = groupsort_indexer(left_indexer, len(left))
 
-        rev = ensure_platform_int(rev)
-        right_indexer = right_indexer.take(rev)
-        left_indexer = left_indexer.take(rev)
-
-    return left_indexer, right_indexer
+        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+    else:
+        return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
+@cython.wraparound(False)
 @cython.boundscheck(False)
-def full_outer_join(const int64_t[:] left, const int64_t[:] right,
+def full_outer_join(const intp_t[:] left, const intp_t[:] right,
                     Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
-        ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
-        ndarray[int64_t] left_indexer, right_indexer
-        int64_t lc, rc
-        int64_t left_pos = 0, right_pos = 0
+        intp_t[::1] left_sorter, right_sorter
+        intp_t[::1] left_count, right_count
+        intp_t[::1] left_indexer, right_indexer
+        intp_t lc, rc
+        intp_t left_pos = 0, right_pos = 0
         Py_ssize_t offset, position = 0
-
-    # NA group in location 0
 
     left_sorter, left_count = groupsort_indexer(left, max_groups)
     right_sorter, right_count = groupsort_indexer(right, max_groups)
@@ -177,14 +173,13 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             else:
                 count += lc + rc
 
-    # exclude the NA group
-    left_pos = left_count[0]
-    right_pos = right_count[0]
-
-    left_indexer = np.empty(count, dtype=np.int64)
-    right_indexer = np.empty(count, dtype=np.int64)
+    left_indexer = np.empty(count, dtype=np.intp)
+    right_indexer = np.empty(count, dtype=np.intp)
 
     with nogil:
+        # exclude the NA group
+        left_pos = left_count[0]
+        right_pos = right_count[0]
         for i in range(1, max_groups + 1):
             lc = left_count[i]
             rc = right_count[i]
@@ -209,31 +204,42 @@ def full_outer_join(const int64_t[:] left, const int64_t[:] right,
             left_pos += lc
             right_pos += rc
 
-    return (_get_result_indexer(left_sorter, left_indexer),
-            _get_result_indexer(right_sorter, right_indexer))
+        # Will overwrite left/right indexer with the result
+        _get_result_indexer(left_sorter, left_indexer)
+        _get_result_indexer(right_sorter, right_indexer)
+
+    return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
-cdef _get_result_indexer(ndarray[int64_t] sorter, ndarray[int64_t] indexer):
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) nogil:
+    """NOTE: overwrites indexer with the result to avoid allocating another array"""
+    cdef:
+        Py_ssize_t i, n, idx
+
     if len(sorter) > 0:
         # cython-only equivalent to
         #  `res = algos.take_nd(sorter, indexer, fill_value=-1)`
-        res = np.empty(len(indexer), dtype=np.int64)
-        take_1d_int64_int64(sorter, indexer, res, -1)
+        n = indexer.shape[0]
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                indexer[i] = -1
+            else:
+                indexer[i] = sorter[idx]
     else:
         # length-0 case
-        res = np.empty(len(indexer), dtype=np.int64)
-        res[:] = -1
-
-    return res
+        indexer[:] = -1
 
 
-def ffill_indexer(const int64_t[:] indexer):
+def ffill_indexer(const intp_t[:] indexer) -> np.ndarray:
     cdef:
         Py_ssize_t i, n = len(indexer)
-        ndarray[int64_t] result
-        int64_t val, last_obs
+        ndarray[intp_t] result
+        intp_t val, last_obs
 
-    result = np.empty(n, dtype=np.int64)
+    result = np.empty(n, dtype=np.intp)
     last_obs = -1
 
     for i in range(n):
@@ -268,10 +274,10 @@ ctypedef fused join_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def left_join_indexer_unique(join_t[:] left, join_t[:] right):
+def left_join_indexer_unique(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nleft, nright
-        ndarray[int64_t] indexer
+        ndarray[intp_t] indexer
         join_t lval, rval
 
     i = 0
@@ -279,7 +285,7 @@ def left_join_indexer_unique(join_t[:] left, join_t[:] right):
     nleft = len(left)
     nright = len(right)
 
-    indexer = np.empty(nleft, dtype=np.int64)
+    indexer = np.empty(nleft, dtype=np.intp)
     while True:
         if i == nleft:
             break
@@ -320,7 +326,7 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         join_t lval, rval
-        ndarray[int64_t] lindexer, rindexer
+        ndarray[intp_t] lindexer, rindexer
         ndarray[join_t] result
 
     nleft = len(left)
@@ -362,8 +368,8 @@ def left_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int64)
-    rindexer = np.empty(count, dtype=np.int64)
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
     result = np.empty(count, dtype=left.dtype)
 
     i = 0
@@ -423,7 +429,7 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, k, nright, nleft, count
         join_t lval, rval
-        ndarray[int64_t] lindexer, rindexer
+        ndarray[intp_t] lindexer, rindexer
         ndarray[join_t] result
 
     nleft = len(left)
@@ -464,8 +470,8 @@ def inner_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
 
     # do it again now that result size is known
 
-    lindexer = np.empty(count, dtype=np.int64)
-    rindexer = np.empty(count, dtype=np.int64)
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
     result = np.empty(count, dtype=left.dtype)
 
     i = 0
@@ -513,7 +519,7 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
     cdef:
         Py_ssize_t i, j, nright, nleft, count
         join_t lval, rval
-        ndarray[int64_t] lindexer, rindexer
+        ndarray[intp_t] lindexer, rindexer
         ndarray[join_t] result
 
     nleft = len(left)
@@ -560,8 +566,8 @@ def outer_join_indexer(ndarray[join_t] left, ndarray[join_t] right):
                 count += 1
                 j += 1
 
-    lindexer = np.empty(count, dtype=np.int64)
-    rindexer = np.empty(count, dtype=np.int64)
+    lindexer = np.empty(count, dtype=np.intp)
+    rindexer = np.empty(count, dtype=np.intp)
     result = np.empty(count, dtype=left.dtype)
 
     # do it again, but populate the indexers / result
@@ -669,12 +675,12 @@ def asof_join_backward_on_X_by_Y(asof_t[:] left_values,
                                  asof_t[:] right_values,
                                  by_t[:] left_by_values,
                                  by_t[:] right_by_values,
-                                 bint allow_exact_matches=1,
+                                 bint allow_exact_matches=True,
                                  tolerance=None):
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -689,8 +695,8 @@ def asof_join_backward_on_X_by_Y(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     if by_t is object:
         hash_table = PyObjectHashTable(right_size)
@@ -743,7 +749,7 @@ def asof_join_forward_on_X_by_Y(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size, found_right_pos
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -758,8 +764,8 @@ def asof_join_forward_on_X_by_Y(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     if by_t is object:
         hash_table = PyObjectHashTable(right_size)
@@ -812,14 +818,14 @@ def asof_join_nearest_on_X_by_Y(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_size, right_size, i
-        ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
+        ndarray[intp_t] left_indexer, right_indexer, bli, bri, fli, fri
         asof_t bdiff, fdiff
 
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     # search both forward and backward
     bli, bri = asof_join_backward_on_X_by_Y(
@@ -863,7 +869,7 @@ def asof_join_backward(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -876,8 +882,8 @@ def asof_join_backward(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     right_pos = 0
     for left_pos in range(left_size):
@@ -916,7 +922,7 @@ def asof_join_forward(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_pos, right_pos, left_size, right_size
-        ndarray[int64_t] left_indexer, right_indexer
+        ndarray[intp_t] left_indexer, right_indexer
         bint has_tolerance = False
         asof_t tolerance_ = 0
         asof_t diff = 0
@@ -929,8 +935,8 @@ def asof_join_forward(asof_t[:] left_values,
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     right_pos = right_size - 1
     for left_pos in range(left_size - 1, -1, -1):
@@ -970,14 +976,14 @@ def asof_join_nearest(asof_t[:] left_values,
 
     cdef:
         Py_ssize_t left_size, right_size, i
-        ndarray[int64_t] left_indexer, right_indexer, bli, bri, fli, fri
+        ndarray[intp_t] left_indexer, right_indexer, bli, bri, fli, fri
         asof_t bdiff, fdiff
 
     left_size = len(left_values)
     right_size = len(right_values)
 
-    left_indexer = np.empty(left_size, dtype=np.int64)
-    right_indexer = np.empty(left_size, dtype=np.int64)
+    left_indexer = np.empty(left_size, dtype=np.intp)
+    right_indexer = np.empty(left_size, dtype=np.intp)
 
     # search both forward and backward
     bli, bri = asof_join_backward(left_values, right_values,

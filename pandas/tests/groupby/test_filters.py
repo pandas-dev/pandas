@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -595,3 +599,16 @@ def test_filter_dropna_with_empty_groups():
     result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
     expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)
+
+
+def test_filter_consistent_result_before_after_agg_func():
+    # GH 17091
+    df = DataFrame({"data": range(6), "key": list("ABCABC")})
+    grouper = df.groupby("key")
+    result = grouper.filter(lambda x: True)
+    expected = DataFrame({"data": range(6), "key": list("ABCABC")})
+    tm.assert_frame_equal(result, expected)
+
+    grouper.sum()
+    result = grouper.filter(lambda x: True)
+    tm.assert_frame_equal(result, expected)

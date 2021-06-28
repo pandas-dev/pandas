@@ -1197,6 +1197,7 @@ generated/pandas.Series.str.extractall,../reference/api/pandas.Series.str.extrac
 generated/pandas.Series.str.extract,../reference/api/pandas.Series.str.extract
 generated/pandas.Series.str.findall,../reference/api/pandas.Series.str.findall
 generated/pandas.Series.str.find,../reference/api/pandas.Series.str.find
+generated/pandas.Series.str.fullmatch,../reference/api/pandas.Series.str.fullmatch
 generated/pandas.Series.str.get_dummies,../reference/api/pandas.Series.str.get_dummies
 generated/pandas.Series.str.get,../reference/api/pandas.Series.str.get
 generated/pandas.Series.str,../reference/api/pandas.Series.str

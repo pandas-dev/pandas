@@ -151,6 +151,17 @@ Here are some things to check when reviewing a pull request.
   for regression fixes and small bug fixes, the next minor milestone otherwise)
 * Changes should comply with our :ref:`policies.version`.
 
+Backporting
+-----------
+
+In the case you want to apply changes to a stable branch from a newer branch then you
+can comment::
+
+    @meeseeksdev backport version-branch
+
+This will trigger a workflow which will backport a given change to a branch
+(e.g. @meeseeksdev backport 1.2.x)
+
 Cleaning up old issues
 ----------------------
 

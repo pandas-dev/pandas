@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 
 import pandas as pd
 import pandas._testing as tm
@@ -18,11 +18,17 @@ from pandas.arrays import (
     IntegerArray,
     IntervalArray,
     SparseArray,
-    StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays import PandasArray, integer_array, period_array
-from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decimal
+from pandas.core.arrays import (
+    PandasArray,
+    period_array,
+)
+from pandas.tests.extension.decimal import (
+    DecimalArray,
+    DecimalDtype,
+    to_decimal,
+)
 
 
 @pytest.mark.parametrize(
@@ -122,11 +128,19 @@ from pandas.tests.extension.decimal import DecimalArray, DecimalDtype, to_decima
         # Sparse
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
-        ([1, None], "Int16", integer_array([1, None], dtype="Int16")),
+        ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
         (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
         # String
-        (["a", None], "string", StringArray._from_sequence(["a", None])),
-        (["a", None], pd.StringDtype(), StringArray._from_sequence(["a", None])),
+        (
+            ["a", None],
+            "string",
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype(),
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
         # Boolean
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
         ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
@@ -246,8 +260,14 @@ cet = pytz.timezone("CET")
         ([1, 2.0], FloatingArray._from_sequence([1.0, 2.0])),
         ([1, np.nan, 2.0], FloatingArray._from_sequence([1.0, None, 2.0])),
         # string
-        (["a", "b"], StringArray._from_sequence(["a", "b"])),
-        (["a", None], StringArray._from_sequence(["a", None])),
+        (
+            ["a", "b"],
+            pd.StringDtype().construct_array_type()._from_sequence(["a", "b"]),
+        ),
+        (
+            ["a", None],
+            pd.StringDtype().construct_array_type()._from_sequence(["a", None]),
+        ),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False])),
         ([True, None], BooleanArray._from_sequence([True, None])),
@@ -278,7 +298,7 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]])
+@pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
         pd.array(data, dtype="int64")

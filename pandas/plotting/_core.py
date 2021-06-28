@@ -1,13 +1,28 @@
+from __future__ import annotations
+
 import importlib
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
+import types
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+)
 
 from pandas._config import get_option
 
-from pandas._typing import Label
-from pandas.util._decorators import Appender, Substitution
+from pandas._typing import IndexLabel
+from pandas.util._decorators import (
+    Appender,
+    Substitution,
+)
 
-from pandas.core.dtypes.common import is_integer, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.base import PandasObject
 
@@ -20,13 +35,13 @@ def hist_series(
     by=None,
     ax=None,
     grid: bool = True,
-    xlabelsize: Optional[int] = None,
-    xrot: Optional[float] = None,
-    ylabelsize: Optional[int] = None,
-    yrot: Optional[float] = None,
-    figsize: Optional[Tuple[int, int]] = None,
-    bins: Union[int, Sequence[int]] = 10,
-    backend: Optional[str] = None,
+    xlabelsize: int | None = None,
+    xrot: float | None = None,
+    ylabelsize: int | None = None,
+    yrot: float | None = None,
+    figsize: tuple[int, int] | None = None,
+    bins: int | Sequence[int] = 10,
+    backend: str | None = None,
     legend: bool = False,
     **kwargs,
 ):
@@ -99,26 +114,26 @@ def hist_series(
 
 
 def hist_frame(
-    data: "DataFrame",
-    column: Union[Label, Sequence[Label]] = None,
+    data: DataFrame,
+    column: IndexLabel = None,
     by=None,
     grid: bool = True,
-    xlabelsize: Optional[int] = None,
-    xrot: Optional[float] = None,
-    ylabelsize: Optional[int] = None,
-    yrot: Optional[float] = None,
+    xlabelsize: int | None = None,
+    xrot: float | None = None,
+    ylabelsize: int | None = None,
+    yrot: float | None = None,
     ax=None,
     sharex: bool = False,
     sharey: bool = False,
-    figsize: Optional[Tuple[int, int]] = None,
-    layout: Optional[Tuple[int, int]] = None,
-    bins: Union[int, Sequence[int]] = 10,
-    backend: Optional[str] = None,
+    figsize: tuple[int, int] | None = None,
+    layout: tuple[int, int] | None = None,
+    bins: int | Sequence[int] = 10,
+    backend: str | None = None,
     legend: bool = False,
     **kwargs,
 ):
     """
-    Make a histogram of the DataFrame's.
+    Make a histogram of the DataFrame's columns.
 
     A `histogram`_ is a representation of the distribution of data.
     This function calls :meth:`matplotlib.pyplot.hist`, on each series in
@@ -130,7 +145,7 @@ def hist_frame(
     ----------
     data : DataFrame
         The pandas object holding the data.
-    column : str or sequence
+    column : str or sequence, optional
         If passed, will be used to limit data to a subset of columns.
     by : object, optional
         If passed, then used to form histograms for separate groups.
@@ -157,7 +172,7 @@ def hist_frame(
     sharey : bool, default False
         In case subplots=True, share y axis and set some y axis labels to
         invisible.
-    figsize : tuple
+    figsize : tuple, optional
         The size in inches of the figure to create. Uses the value in
         `matplotlib.rcParams` by default.
     layout : tuple, optional
@@ -413,7 +428,7 @@ _bar_or_line_doc = """
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
-        color : str, array_like, or dict, optional
+        color : str, array-like, or dict, optional
             The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -422,7 +437,9 @@ _bar_or_line_doc = """
             - A sequence of color strings referred to by name, RGB or RGBA
                 code, which will be used for each column recursively. For
                 instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively.
+                green or yellow, alternatively. If there is only a single column to
+                be plotted, then only the first color from the color list will be
+                used.
 
             - A dict of the form {column name : color}, so that each column will be
                 colored accordingly. For example, if your columns are called `a` and
@@ -628,8 +645,8 @@ class PlotAccessor(PandasObject):
         - 'density' : same as 'kde'
         - 'area' : area plot
         - 'pie' : pie plot
-        - 'scatter' : scatter plot
-        - 'hexbin' : hexbin plot.
+        - 'scatter' : scatter plot (DataFrame only)
+        - 'hexbin' : hexbin plot (DataFrame only)
     ax : matplotlib axes object, default None
         An axes of the current figure.
     subplots : bool, default False
@@ -849,7 +866,7 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                f"{name}={repr(value)}" for (name, default), value in zip(arg_def, args)
+                f"{name}={repr(value)}" for (name, _), value in zip(arg_def, args)
             )
             msg = (
                 "`Series.plot()` should not be called with positional "
@@ -860,7 +877,7 @@ class PlotAccessor(PandasObject):
             )
             raise TypeError(msg)
 
-        pos_args = {name: value for value, (name, _) in zip(args, arg_def)}
+        pos_args = {name: value for (name, _), value in zip(arg_def, args)}
         if backend_name == "pandas.plotting._matplotlib":
             kwargs = dict(arg_def, **pos_args, **kwargs)
         else:
@@ -1552,7 +1569,7 @@ class PlotAccessor(PandasObject):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : str, scalar or array_like, optional
+        s : str, scalar or array-like, optional
             The size of each point. Possible values are:
 
             - A string with the name of the column to be used for marker's size.
@@ -1565,7 +1582,7 @@ class PlotAccessor(PandasObject):
 
               .. versionchanged:: 1.1.0
 
-        c : str, int or array_like, optional
+        c : str, int or array-like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
@@ -1708,91 +1725,92 @@ class PlotAccessor(PandasObject):
         return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
 
 
-_backends = {}
+_backends: dict[str, types.ModuleType] = {}
 
 
-def _find_backend(backend: str):
+def _load_backend(backend: str) -> types.ModuleType:
     """
-    Find a pandas plotting backend>
+    Load a pandas plotting backend.
 
     Parameters
     ----------
     backend : str
         The identifier for the backend. Either an entrypoint item registered
-        with pkg_resources, or a module name.
-
-    Notes
-    -----
-    Modifies _backends with imported backends as a side effect.
+        with pkg_resources, "matplotlib", or a module name.
 
     Returns
     -------
     types.ModuleType
         The imported backend.
     """
-    import pkg_resources  # Delay import for performance.
-
-    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
-        if entry_point.name == "matplotlib":
-            # matplotlib is an optional dependency. When
-            # missing, this would raise.
-            continue
-        _backends[entry_point.name] = entry_point.load()
-
-    try:
-        return _backends[backend]
-    except KeyError:
-        # Fall back to unregistered, module name approach.
-        try:
-            module = importlib.import_module(backend)
-        except ImportError:
-            # We re-raise later on.
-            pass
-        else:
-            if hasattr(module, "plot"):
-                # Validate that the interface is implemented when the option
-                # is set, rather than at plot time.
-                _backends[backend] = module
-                return module
-
-    raise ValueError(
-        f"Could not find plotting backend '{backend}'. Ensure that you've installed "
-        f"the package providing the '{backend}' entrypoint, or that the package has a "
-        "top-level `.plot` method."
-    )
-
-
-def _get_plot_backend(backend=None):
-    """
-    Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
-
-    The plotting system of pandas has been using matplotlib, but the idea here
-    is that it can also work with other third-party backends. In the future,
-    this function will return the backend from a pandas option, and all the
-    rest of the code in this file will use the backend specified there for the
-    plotting.
-
-    The backend is imported lazily, as matplotlib is a soft dependency, and
-    pandas can be used without it being installed.
-    """
-    backend = backend or get_option("plotting.backend")
+    import pkg_resources
 
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
         # we need to attempt an import here to raise an ImportError if needed.
         try:
-            import pandas.plotting._matplotlib as module
+            module = importlib.import_module("pandas.plotting._matplotlib")
         except ImportError:
             raise ImportError(
                 "matplotlib is required for plotting when the "
                 'default backend "matplotlib" is selected.'
             ) from None
+        return module
 
-        _backends["matplotlib"] = module
+    found_backend = False
+
+    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
+        found_backend = entry_point.name == backend
+        if found_backend:
+            module = entry_point.load()
+            break
+
+    if not found_backend:
+        # Fall back to unregistered, module name approach.
+        try:
+            module = importlib.import_module(backend)
+            found_backend = True
+        except ImportError:
+            # We re-raise later on.
+            pass
+
+    if found_backend:
+        if hasattr(module, "plot"):
+            # Validate that the interface is implemented when the option is set,
+            # rather than at plot time.
+            return module
+
+    raise ValueError(
+        f"Could not find plotting backend '{backend}'. Ensure that you've "
+        f"installed the package providing the '{backend}' entrypoint, or that "
+        "the package has a top-level `.plot` method."
+    )
+
+
+def _get_plot_backend(backend: str | None = None):
+    """
+    Return the plotting backend to use (e.g. `pandas.plotting._matplotlib`).
+
+    The plotting system of pandas uses matplotlib by default, but the idea here
+    is that it can also work with other third-party backends. This function
+    returns the module which provides a top-level `.plot` method that will
+    actually do the plotting. The backend is specified from a string, which
+    either comes from the keyword argument `backend`, or, if not specified, from
+    the option `pandas.options.plotting.backend`. All the rest of the code in
+    this file uses the backend specified there for the plotting.
+
+    The backend is imported lazily, as matplotlib is a soft dependency, and
+    pandas can be used without it being installed.
+
+    Notes
+    -----
+    Modifies `_backends` with imported backend as a side effect.
+    """
+    backend = backend or get_option("plotting.backend")
 
     if backend in _backends:
         return _backends[backend]
 
-    module = _find_backend(backend)
+    module = _load_backend(backend)
     _backends[backend] = module
     return module

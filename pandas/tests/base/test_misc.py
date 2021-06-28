@@ -3,12 +3,22 @@ import sys
 import numpy as np
 import pytest
 
-from pandas.compat import IS64, PYPY
+from pandas.compat import (
+    IS64,
+    PYPY,
+)
 
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
 
 import pandas as pd
-from pandas import DataFrame, Index, Series
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+)
 
 
 @pytest.mark.parametrize(
@@ -77,7 +87,7 @@ def test_memory_usage(index_or_series_obj):
         if isinstance(obj, Index):
             expected = 0
         else:
-            expected = 80 if IS64 else 48
+            expected = 108 if IS64 else 64
         assert res_deep == res == expected
     elif is_object or is_categorical:
         # only deep will pick them up

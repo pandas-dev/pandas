@@ -3,7 +3,10 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.period import period_range
 

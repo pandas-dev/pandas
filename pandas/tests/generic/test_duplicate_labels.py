@@ -37,8 +37,8 @@ class TestPreserves:
             operator.methodcaller("add", 1),
             operator.methodcaller("rename", str.upper),
             operator.methodcaller("rename", "name"),
-            pytest.param(operator.methodcaller("abs"), marks=not_implemented),
-            # TODO: test np.abs
+            operator.methodcaller("abs"),
+            np.abs,
         ],
     )
     def test_preserved_series(self, func):
@@ -203,7 +203,7 @@ class TestPreserves:
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]).set_flags(
                     allows_duplicate_labels=False
                 ),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -213,7 +213,7 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 False,
                 marks=not_implemented,
             ),
@@ -221,7 +221,7 @@ class TestPreserves:
             (
                 pd.DataFrame({"A": [0, 1]}, index=["a", "b"]),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
-                dict(left_index=True, right_index=True),
+                {"left_index": True, "right_index": True},
                 True,
             ),
         ],
@@ -312,9 +312,7 @@ class TestRaises:
             pytest.param(
                 operator.itemgetter(("a", ["A", "A"])), "loc", marks=not_implemented
             ),
-            pytest.param(
-                operator.itemgetter((["a", "a"], "A")), "loc", marks=not_implemented
-            ),
+            (operator.itemgetter((["a", "a"], "A")), "loc"),
             # iloc
             (operator.itemgetter([0, 0]), "iloc"),
             pytest.param(

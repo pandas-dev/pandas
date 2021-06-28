@@ -6,7 +6,10 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
 
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
 from pandas.core.arrays.sparse.array import SparseArray
 from pandas.core.arrays.sparse.dtype import SparseDtype
 
@@ -329,29 +332,30 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
 
-        dtype = find_common_type(self._parent.dtypes)
+        dtype = find_common_type(self._parent.dtypes.to_list())
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
 
-        cols, rows, datas = [], [], []
+        cols, rows, data = [], [], []
         for col, name in enumerate(self._parent):
             s = self._parent[name]
             row = s.array.sp_index.to_int_index().indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            datas.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(s.array.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
-        datas = np.concatenate(datas)
-        return coo_matrix((datas, (rows, cols)), shape=self._parent.shape)
+        data = np.concatenate(data)
+        return coo_matrix((data, (rows, cols)), shape=self._parent.shape)
 
     @property
     def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points.
         """
-        return np.mean([column.array.density for _, column in self._parent.items()])
+        tmp = np.mean([column.array.density for _, column in self._parent.items()])
+        return tmp
 
     @staticmethod
     def _prep_index(data, index, columns):

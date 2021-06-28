@@ -3,10 +3,18 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError, PerformanceWarning
+from pandas.errors import (
+    InvalidIndexError,
+    PerformanceWarning,
+)
 
 import pandas as pd
-from pandas import Categorical, Index, MultiIndex, date_range
+from pandas import (
+    Categorical,
+    Index,
+    MultiIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -437,6 +445,18 @@ class TestGetIndexer:
         expected = np.array([7, 15], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
+    def test_get_indexer_kwarg_validation(self):
+        # GH#41918
+        mi = MultiIndex.from_product([range(3), ["A", "B"]])
+
+        msg = "limit argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], limit=4)
+
+        msg = "tolerance argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], tolerance="piano")
+
 
 def test_getitem(idx):
     # scalar
@@ -526,7 +546,7 @@ class TestGetLoc:
         xp = 0
         assert rs == xp
 
-        with pytest.raises(KeyError):
+        with pytest.raises(KeyError, match="2"):
             index.get_loc(2)
 
     def test_get_loc_level(self):
@@ -696,7 +716,7 @@ class TestContains:
     def test_contains_with_nat(self):
         # MI with a NaT
         mi = MultiIndex(
-            levels=[["C"], pd.date_range("2012-01-01", periods=5)],
+            levels=[["C"], date_range("2012-01-01", periods=5)],
             codes=[[0, 0, 0, 0, 0, 0], [-1, 0, 1, 2, 3, 4]],
             names=[None, "B"],
         )
@@ -757,7 +777,7 @@ def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
     idx = MultiIndex.from_product(
         [
-            pd.date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
+            date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
             ["x"],
             [3],
         ]
@@ -766,9 +786,9 @@ def test_timestamp_multiindex_indexer():
     result = df.loc[pd.IndexSlice["2019-1-2":, "x", :], "foo"]
     qidx = MultiIndex.from_product(
         [
-            pd.date_range(
+            date_range(
                 start="2019-01-02T00:15:33",
-                end="2019-01-05T02:15:33",
+                end="2019-01-05T03:15:33",
                 freq="H",
                 name="date",
             ),
@@ -817,8 +837,8 @@ def test_pyint_engine():
     # integers, rather than uint64.
     N = 5
     keys = [
-        tuple(l)
-        for l in [
+        tuple(arr)
+        for arr in [
             [0] * 10 * N,
             [1] * 10 * N,
             [2] * 10 * N,

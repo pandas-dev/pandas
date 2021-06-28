@@ -3,7 +3,11 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, Series, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -324,6 +328,7 @@ class TestDataFrameInterpolate:
         expected = df.interpolate(method="linear", axis=axis_number)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) support axis=1
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
     def test_interp_fillna_methods(self, axis, method):
         # GH 12918
@@ -336,4 +341,16 @@ class TestDataFrameInterpolate:
         )
         expected = df.fillna(axis=axis, method=method)
         result = df.interpolate(method=method, axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.interpolate "
+            r"except for the argument 'method' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.interpolate("pad", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

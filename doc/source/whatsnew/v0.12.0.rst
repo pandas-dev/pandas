@@ -419,7 +419,7 @@ Bug fixes
 ~~~~~~~~~
 
   - Plotting functions now raise a ``TypeError`` before trying to plot anything
-    if the associated objects have have a dtype of ``object`` (:issue:`1818`,
+    if the associated objects have a dtype of ``object`` (:issue:`1818`,
     :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
     numeric arrays if possible so that you can still plot, for example, an
     object array with floats. This happens before any drawing takes place which
@@ -430,8 +430,8 @@ Bug fixes
 
   - ``Series.str`` now supports iteration (:issue:`3638`). You can iterate over the
     individual elements of each string in the ``Series``. Each iteration yields
-    yields a ``Series`` with either a single character at each index of the
-    original ``Series`` or ``NaN``. For example,
+    a ``Series`` with either a single character at each index of the original
+    ``Series`` or ``NaN``. For example,
 
     .. ipython:: python
         :okwarning:
