@@ -510,7 +510,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     def _box_func(self, x) -> Timestamp | NaTType:
         if isinstance(x, np.datetime64):
-            x = np.int64(x)
+            # Argument 1 to "signedinteger" has incompatible type "datetime64";
+            # expected "Union[SupportsInt, Union[str, bytes], SupportsIndex]"
+            x = np.int64(x)  # type: ignore[arg-type]
         ts = Timestamp(x, tz=self.tz)
         # Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
