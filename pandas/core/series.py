@@ -1227,7 +1227,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if ref is None:
                 del self._cacher
             else:
-                if len(self) == len(ref):
+                # for ArrayManager with CoW, we never want to update the parent
+                # DataFrame cache if the Series changed, and always pop the cached item
+                if len(self) == len(ref) and not isinstance(
+                    self._mgr, SingleArrayManager
+                ):
                     # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
                 else:
