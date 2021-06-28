@@ -5,8 +5,8 @@ import os
 from pathlib import Path
 import random
 from shutil import rmtree
-import string
 import signal
+import string
 import tempfile
 from typing import (
     IO,

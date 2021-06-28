@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime
 from decimal import Decimal
 from io import StringIO
 
@@ -2420,9 +2420,11 @@ def test_datetime_categorical_multikey_groupby_indices():
 
 def test_groupby_categorical_crossproduct():
     def _make_df(n, k):
-        df = DataFrame({
-            "A": Categorical(np.arange(n), np.arange(n)),
-        })
+        df = DataFrame(
+            {
+                "A": Categorical(np.arange(n), np.arange(n)),
+            }
+        )
         for i in range(1, k):
             v = np.tile(np.arange(25), n // 25)
             df[i] = v
