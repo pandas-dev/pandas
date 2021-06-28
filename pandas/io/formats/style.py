@@ -2042,75 +2042,16 @@ class Styler(StylerRenderer):
         values = "".join(f"{p}: {v};" for p, v in kwargs.items())
         return self.applymap(lambda x: values, subset=subset)
 
-    @staticmethod
-    def _bar(
-        s,
-        align: str,
-        colors: list[str],
-        width: float = 100,
-        vmin: float | None = None,
-        vmax: float | None = None,
-    ):
-        """
-        Draw bar chart in dataframe cells.
-        """
-        # Get input value range.
-        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
-        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
-        if align == "mid":
-            smin = min(0, smin)
-            smax = max(0, smax)
-        elif align == "zero":
-            # For "zero" mode, we want the range to be symmetrical around zero.
-            smax = max(abs(smin), abs(smax))
-            smin = -smax
-        # Transform to percent-range of linear-gradient
-        normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
-        zero = -width * smin / (smax - smin + 1e-12)
-
-        def css_bar(start: float, end: float, color: str) -> str:
-            """
-            Generate CSS code to draw a bar from start to end.
-            """
-            css = "width: 10em; height: 80%;"
-            if end > start:
-                css += "background: linear-gradient(90deg,"
-                if start > 0:
-                    css += f" transparent {start:.1f}%, {color} {start:.1f}%, "
-                e = min(end, width)
-                css += f"{color} {e:.1f}%, transparent {e:.1f}%)"
-            return css
-
-        def css(x):
-            if pd.isna(x):
-                return ""
-
-            # avoid deprecated indexing `colors[x > zero]`
-            color = colors[1] if x > zero else colors[0]
-
-            if align == "left":
-                return css_bar(0, x, color)
-            else:
-                return css_bar(min(x, zero), max(x, zero), color)
-
-        if s.ndim == 1:
-            return [css(x) for x in normed]
-        else:
-            return DataFrame(
-                [[css(x) for x in row] for row in normed],
-                index=s.index,
-                columns=s.columns,
-            )
-
     def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
-        align: str = "left",
+        align: str | float | int | callable = "left",
         vmin: float | None = None,
         vmax: float | None = None,
+        base_css: str = "width: 10em;",
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
@@ -2154,8 +2095,8 @@ class Styler(StylerRenderer):
         -------
         self : Styler
         """
-        if align not in ("left", "zero", "mid"):
-            raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
+        # if align not in ("left", "zero", "mid"):
+        #     raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
 
         if not (is_list_like(color)):
             color = [color, color]
@@ -2172,14 +2113,15 @@ class Styler(StylerRenderer):
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
-            self._bar,
+            _bar,
             subset=subset,
             axis=axis,
             align=align,
             colors=color,
-            width=width,
+            width=width / 100,
             vmin=vmin,
             vmax=vmax,
+            base_css=base_css,
         )
 
         return self
@@ -2815,3 +2757,130 @@ def _highlight_between(
         else np.full(data.shape, True, dtype=bool)
     )
     return np.where(g_left & l_right, props, "")
+
+
+def _bar(
+    data: FrameOrSeries,
+    align: str | float | int | callable,
+    colors: list[str],
+    width: float,
+    vmin: float,
+    vmax: float,
+    base_css: str,
+):
+    """
+    Draw bar chart in dataframe cells.
+    """
+
+    def css_bar(base_css: str, start: float, end: float, color: str) -> str:
+        """
+        Generate CSS code to draw a bar from start to end in a table cell.
+
+        Uses linear-gradient.
+
+        Parameters
+        ----------
+        base_css : str
+            Additional CSS applied to cell as well as linear gradient.
+        start : float
+            Relative positional start of bar coloring in [0,1]
+        end : float
+            Relative positional end of the bar coloring in [0,1]
+        color : str
+            CSS valid color to apply.
+
+        Returns
+        -------
+        str : The CSS applicable to the cell.
+        """
+        if end > start:
+            base_css += "background: linear-gradient(90deg,"
+            if start > 0:
+                base_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%, "
+            base_css += f"{color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+        return base_css
+
+    def css_calc(x, left: float, right: float, align: str, width: float):
+        """
+        Return the correct CSS for bar placement based on calculated values.
+
+        Parameters
+        ----------
+        x : float
+            Value which determines the bar placement.
+        left : float
+            Value marking the left side of calculation.
+        right : float
+            Value marking the right side of the calculation (left < right).
+        align : {"left", "right", "zero"}
+            How the bars will be positioned. Note if using "zero" with an adjustment
+            such as a mean, ensure ``left`` and ``right`` are also adjusted on input.
+        width : float
+            The proportionate width of the cell to take up in [0,1]. Measured according
+            to ``align``.
+
+        Returns
+        -------
+        str : Resultant CSS with linear gradient.
+        """
+        if pd.isna(x):
+            return ""
+
+        color = colors[0] if x < 0 else colors[1]
+        x = left if x < left else x
+        x = right if x > right else x
+
+        if align == "left":
+            end = (x - left) / (right - left)
+            return css_bar(base_css, 0, end * width, color)
+        elif align == "right":
+            start = (x - left) / (right - left)
+            return css_bar(base_css, (1 - width) + start * width, 1, color)
+        elif align == "zero":
+            if right < 0:
+                right = -left  # since abs(right) < abs(left)
+            elif left > 0:
+                left = -right  # since abs(left) < abs(right)
+            elif abs(right) < abs(left):
+                right = -left  # apparent
+            else:
+                left = -right
+
+            if x < 0:
+                start = (x - left) / (right - left)
+                return css_bar(base_css, (1 - width) / 2 + start * width, 0.5, color)
+            else:
+                end = (x - 0) / (right - left)
+                return css_bar(base_css, 0.5, end * width + 0.5, color)
+
+    values = data.to_numpy()
+    left = np.nanmin(values) if vmin is None else vmin
+    right = np.nanmax(values) if vmax is None else vmax
+
+    if align == "mid":
+        z, align = (left + right) / 2, "zero"
+    elif align == "mean":
+        z, align = np.nanmean(values), "zero"
+    elif callable(align):
+        z, align = align(values), "zero"
+    elif isinstance(align, (float, int)):
+        z, align = float(align), "zero"
+    elif align == "left" or align == "right" or align == "zero":
+        z = 0
+    else:
+        raise ValueError(
+            "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or be a "
+            "value defining the center line or a callable that returns a float"
+        )
+
+    if data.ndim == 1:
+        return [css_calc(x - z, left - z, right - z, align, width) for x in values]
+    else:
+        return DataFrame(
+            [
+                [css_calc(x - z, left - z, right - z, align, width) for x in row]
+                for row in values
+            ],
+            index=data.index,
+            columns=data.columns,
+        )

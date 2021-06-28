@@ -7,7 +7,7 @@ pytest.importorskip("jinja2")
 
 def bar_grad(a=None, b=None, c=None, d=None):
     """Used in multiple tests to simplify formatting of expected result"""
-    ret = [("width", "10em"), ("height", "80%")]
+    ret = [("width", "10em")]
     if all(x is None for x in [a, b, c, d]):
         return ret
     return ret + [
@@ -401,6 +401,6 @@ class TestStylerBarAlign:
 
     def test_bar_bad_align_raises(self):
         df = DataFrame({"A": [-100, -60, -30, -20]})
-        msg = "`align` must be one of {'left', 'zero',' mid'}"
+        msg = "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or"
         with pytest.raises(ValueError, match=msg):
-            df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"])
+            df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"]).render()
