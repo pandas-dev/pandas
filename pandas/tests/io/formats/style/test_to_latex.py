@@ -562,7 +562,10 @@ def test_longtable_minimal(styler):
 
 @pytest.mark.parametrize(
     "sparse, exp",
-    [(True, "{} & \\multicolumn{2}{r}{A} & {B}"), (False, "{} & {A} & {A} & {B}")],
+    [
+        (True, "{} & \\multicolumn{2}{r}{A} & {B}"),
+        (False, "{} & {A} & {A} & {B}"),
+    ],
 )
 def test_longtable_multiindex_columns(df, sparse, exp):
     cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
@@ -581,24 +584,24 @@ def test_longtable_multiindex_columns(df, sparse, exp):
     assert expected in df.style.to_latex(environment="longtable", sparse_columns=sparse)
 
 
-@pytest.mark.parametrize("caption", ["full", ("full", "short")])
-@pytest.mark.parametrize("label", [None, "tab:A"])
-def test_longtable_caption_label(styler, caption, label):
-    if isinstance(caption, str):
-        cap1 = f"\\caption{{{caption}}}"
-        cap2 = f"\\caption[]{{{caption}}}"
-    elif isinstance(caption, tuple):
-        cap1 = f"\\caption[{caption[1]}]{{{caption[0]}}}"
-        cap2 = f"\\caption[]{{{caption[0]}}}"
-
-    lab = "" if label is None else f" \\label{{{label}}}"
+@pytest.mark.parametrize(
+    "caption, cap_exp",
+    [
+        ("full", ("{full}", "")),
+        (("full", "short"), ("{full}", "[short]")),
+    ],
+)
+@pytest.mark.parametrize("label, lab_exp", [(None, ""), ("tab:A", " \\label{tab:A}")])
+def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
+    cap_exp1 = f"\\caption{cap_exp[1]}{cap_exp[0]}"
+    cap_exp2 = f"\\caption[]{cap_exp[0]}"
 
     expected = dedent(
         f"""\
-        {cap1}{lab} \\\\
+        {cap_exp1}{lab_exp} \\\\
         {{}} & {{A}} & {{B}} & {{C}} \\\\
         \\endfirsthead
-        {cap2} \\\\
+        {cap_exp2} \\\\
         """
     )
     assert expected in styler.to_latex(
