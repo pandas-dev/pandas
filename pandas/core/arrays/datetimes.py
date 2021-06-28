@@ -509,6 +509,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Descriptive Properties
 
     def _box_func(self, x) -> Timestamp | NaTType:
+        if isinstance(x, np.datetime64):
+            x = np.int64(x)
         ts = Timestamp(x, tz=self.tz)
         # Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
