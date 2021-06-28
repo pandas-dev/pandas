@@ -37,6 +37,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
     find_common_type,
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
@@ -795,6 +796,19 @@ class IntervalIndex(ExtensionIndex):
         as the check is done on the Interval itself
         """
         return False
+
+    def _get_join_target(self) -> np.ndarray:
+        # constructing tuples is much faster than constructing Intervals
+        tups = list(zip(self.left, self.right))
+        target = construct_1d_object_array_from_listlike(tups)
+        return target
+
+    def _from_join_target(self, result):
+        left, right = list(zip(*result))
+        arr = type(self._data).from_arrays(
+            left, right, dtype=self.dtype, closed=self.closed
+        )
+        return type(self)._simple_new(arr, name=self.name)
 
     # TODO: arithmetic operations
 
