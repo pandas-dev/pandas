@@ -137,6 +137,7 @@ from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
+import pandas.core.sample as sample
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
@@ -5275,15 +5276,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Process random_state argument
         rs = com.random_state(random_state)
 
-        size = algos.process_sampling_size(n, frac, replace)
+        size = sample.process_sampling_size(n, frac, replace)
         if size is None:
             assert frac is not None
             size = round(frac * obj_len)
 
         if weights is not None:
-            weights = algos.preprocess_weights(self, weights, axis)
+            weights = sample.preprocess_weights(self, weights, axis)
 
-        sampled_indices = algos.sample(obj_len, size, replace, weights, rs)
+        sampled_indices = sample.sample(obj_len, size, replace, weights, rs)
         result = self.take(sampled_indices, axis=axis)
 
         if ignore_index:

@@ -102,6 +102,7 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
+import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
@@ -3270,9 +3271,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2   blue  2
         0    red  0
         """
-        size = algorithms.process_sampling_size(n, frac, replace)
+        size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
-            weights_arr = algorithms.preprocess_weights(
+            weights_arr = sample.preprocess_weights(
                 self._selected_obj, weights, axis=self.axis
             )
 
@@ -3290,7 +3291,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 assert frac is not None
                 sample_size = round(frac * group_size)
 
-            grp_sample = algorithms.sample(
+            grp_sample = sample.sample(
                 group_size,
                 size=sample_size,
                 replace=replace,
