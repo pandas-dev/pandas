@@ -365,6 +365,7 @@ class TestStylerBarAlign:
                 " transparent 50.0%",
             ),
             (0, 1): bar_grad(" #d65f5f 25.0%", " transparent 25.0%"),
+            (1, 0): bar_grad(),
             (1, 1): bar_grad(
                 " transparent 25.0%",
                 " #d65f5f 25.0%",
@@ -390,6 +391,7 @@ class TestStylerBarAlign:
                 " #d65f5f 50.0%",
                 " transparent 50.0%",
             ),
+            (1, 0): bar_grad(),
             (1, 1): bar_grad(
                 " transparent 50.0%",
                 " #d65f5f 50.0%",

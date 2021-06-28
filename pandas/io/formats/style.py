@@ -2051,7 +2051,7 @@ class Styler(StylerRenderer):
         align: str | float | int | callable = "left",
         vmin: float | None = None,
         vmax: float | None = None,
-        base_css: str = "width: 10em;",
+        props: str = "width: 10em;",
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
@@ -2072,16 +2072,26 @@ class Styler(StylerRenderer):
             first element is the color_negative and the second is the
             color_positive (eg: ['#d65f5f', '#5fba7d']).
         width : float, default 100
-            A number between 0 or 100. The largest value will cover `width`
-            percent of the cell's width.
-        align : {'left', 'zero',' mid'}, default 'left'
-            How to align the bars with the cells.
+            The percentage of the cell, measured from the left, in which to draw the
+            bars, in [0, 100].
+        align : str, int, float, callable, default 'left'
+            How to align the bars within the cells relative to a width adjusted center.
+            If string must be one of:
 
-            - 'left' : the min value starts at the left of the cell.
+            - 'left' : bars are drawn rightwards from the minimum data value.
+            - 'right' : bars are drawn leftwards from the maximum data value.
             - 'zero' : a value of zero is located at the center of the cell.
-            - 'mid' : the center of the cell is at (max-min)/2, or
-              if values are all negative (positive) the zero is aligned
-              at the right (left) of the cell.
+            - 'mid' : a value of (max-min)/2 is located at the center of the cell,
+              or if all values are negative (positive) the zero is
+              aligned at the right (left) of the cell.
+            - 'mean' : the mean value of the data is located at the center of the cell.
+
+            If a float or integer is given this will indicate the center of the cell.
+
+            If a callable should take a 1d or 2d array and return a scalar.
+
+            .. versionchanged:: 1.4.0
+
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -2090,14 +2100,16 @@ class Styler(StylerRenderer):
             Maximum bar value, defining the right hand limit
             of the bar drawing range, higher values are clipped to `vmax`.
             When None (default): the maximum value of the data will be used.
+        props : str, optional
+            The base CSS of the cell that is extended to add the bar chart. Defaults to
+            `"width: 100px;"`
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
         self : Styler
         """
-        # if align not in ("left", "zero", "mid"):
-        #     raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
-
         if not (is_list_like(color)):
             color = [color, color]
         elif len(color) == 1:
@@ -2121,7 +2133,7 @@ class Styler(StylerRenderer):
             width=width / 100,
             vmin=vmin,
             vmax=vmax,
-            base_css=base_css,
+            base_css=props,
         )
 
         return self
@@ -2824,7 +2836,7 @@ def _bar(
         str : Resultant CSS with linear gradient.
         """
         if pd.isna(x):
-            return ""
+            return base_css
 
         color = colors[0] if x < 0 else colors[1]
         x = left if x < left else x
