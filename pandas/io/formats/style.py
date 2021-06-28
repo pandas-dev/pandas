@@ -2832,11 +2832,11 @@ def _bar(
 
         if align == "left":
             # all proportions are measured from the left side between left and right
-            start, end = 0, (x - left) / (right - left) * width
+            start, end = 0, (x - left) / (right - left)
 
         elif align == "right":
             # all proportions are measured from the right side between left and right
-            start, end = (1 - width) + (x - left) / (right - left) * width, 1
+            start, end = (x - left) / (right - left), 1
 
         elif align == "zero":
             # all proportions are measured from the center which is set to zero
@@ -2851,14 +2851,14 @@ def _bar(
                 left = -right
 
             if x < 0:
-                start, end = (1 - width) / 2 + width * (x - left) / (right - left), 0.5
+                start, end = (x - left) / (right - left), 0.5
             else:
-                start, end = 0.5, x / (right - left) * width + 0.5
+                start, end = 0.5, x / (right - left) + 0.5
 
         elif align == "mid":
             mid = (left + right) / 2
             if mid < 0:
-                zero_frac = (0 - mid) / (right - mid) + 0.5
+                zero_frac = (0 - mid) / (right - left) + 0.5
             else:
                 zero_frac = (0 - left) / (right - left)
 
@@ -2869,16 +2869,16 @@ def _bar(
                 start = zero_frac
                 end = (x - left) / (right - left)
 
-        return css_bar(base_css, start, end, color)
+        return css_bar(base_css, start * width, end * width, color)
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin
     right = np.nanmax(values) if vmax is None else vmax
 
     if align == "mid":
-        if all(values >= 0):  # "mid" is documented to act as "left" if all positive
+        if np.all(values >= 0):  # "mid" is documented to act as "left" if all positive
             z, align, left = 0, "left", 0 if vmin is None else vmin
-        elif all(values <= 0):  # "mid" is documented to act as "right" if all negative
+        elif np.all(values <= 0):  # "mid" is documented to act as "right" if all neg
             z, align, right = 0, "right", 0 if vmax is None else vmax
         else:
             z = 0
