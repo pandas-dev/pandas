@@ -2567,12 +2567,12 @@ class Styler(StylerRenderer):
         html_table : str
             Name of your custom template to replace the html_table template.
 
-        .. versionadded:: 1.3.0
+            .. versionadded:: 1.3.0
 
         html_style : str
             Name of your custom template to replace the html_style template.
 
-        .. versionadded:: 1.3.0
+            .. versionadded:: 1.3.0
 
         Returns
         -------
