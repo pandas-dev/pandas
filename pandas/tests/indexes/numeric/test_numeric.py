@@ -2,10 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import (
-    is_platform_arm,
-    is_platform_mac,
-)
 
 import pandas as pd
 from pandas import (
@@ -535,10 +531,6 @@ class TestUInt64Index(NumericInt):
         res = Index([1, 2 ** 63 + 1], dtype=dtype)
         tm.assert_index_equal(res, idx)
 
-    @pytest.mark.xfail(
-        not (is_platform_arm() and is_platform_mac()),
-        reason="https://github.com/numpy/numpy/issues/19146",
-    )
     def test_constructor_does_not_cast_to_float(self):
         # https://github.com/numpy/numpy/issues/19146
         values = [0, np.iinfo(np.uint64).max]
