@@ -22,9 +22,9 @@ from pandas._libs import (
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
     Shape,
+    npt,
     type_t,
 )
 from pandas.errors import PerformanceWarning
@@ -478,6 +478,10 @@ class BaseBlockManager(DataManager):
         # complicated
 
         return False
+
+    def _get_data_subset(self: T, predicate: Callable) -> T:
+        blocks = [blk for blk in self.blocks if predicate(blk.values)]
+        return self._combine(blocks, copy=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
         """
@@ -1385,7 +1389,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def as_array(
         self,
         transpose: bool = False,
-        dtype: Dtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -1425,17 +1429,21 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
+                    # pandas/core/internals/managers.py:1428: error: Argument "dtype" to
+                    # "to_numpy" of "ExtensionArray" has incompatible type
+                    # "Optional[Union[dtype[Any], None, type, _SupportsDType, str,
+                    # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
+                    # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any,
+                    # Any]]]]"; expected "Optional[Union[ExtensionDtype, Union[str,
+                    # dtype[Any]], Type[str], Type[float], Type[int], Type[complex],
+                    # Type[bool], Type[object]]]"
+                    dtype=dtype,  # type: ignore[arg-type]
+                    na_value=na_value,
                 ).reshape(blk.shape)
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "Union[dtype[Any], None, type,
-                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
+                    arr = arr.astype(dtype, copy=False)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -1450,7 +1458,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return arr.transpose() if transpose else arr
 
     def _interleave(
-        self, dtype: Dtype | None = None, na_value=lib.no_default
+        self,
+        dtype: npt.DTypeLike | ExtensionDtype | None = None,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
@@ -1485,7 +1495,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
+                    # pandas/core/internals/managers.py:1485: error: Argument "dtype" to
+                    # "to_numpy" of "ExtensionArray" has incompatible type
+                    # "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+                    # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any],
+                    # _DTypeDict, Tuple[Any, Any], ExtensionDtype]"; expected
+                    # "Optional[Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
+                    # Type[float], Type[int], Type[complex], Type[bool], Type[object]]]"
+                    # [arg-type]
+                    dtype=dtype,  # type: ignore[arg-type]
+                    na_value=na_value,
                 )
             else:
                 # error: Argument 1 to "get_values" of "Block" has incompatible type
