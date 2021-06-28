@@ -2990,10 +2990,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             ).sortlevel()
         except (ValueError, MemoryError) as err:
             err_str = str(err)
-            if "Product space too large" in err_str or "array is too big" in err_str or isinstance(err, MemoryError):
+            if "Product space too large" in err_str or "array is too big" in err_str:
                 raise ValueError(
                     "Group by product space too large to allocate arrays! "
                     "Consider setting `observed=True` to reduce size."
+                ) from err
+            elif isinstance(err, MemoryError):
+                raise MemoryError(
+                    err_str + ". Consider setting `observed=True` to reduce size of "
+                    "group by product space if appropriate."
                 ) from err
             else:
                 raise

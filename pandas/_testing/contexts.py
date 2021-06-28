@@ -6,6 +6,7 @@ from pathlib import Path
 import random
 from shutil import rmtree
 import string
+import signal
 import tempfile
 from typing import (
     IO,
@@ -236,3 +237,17 @@ class RNGContext:
     def __exit__(self, exc_type, exc_value, traceback):
 
         np.random.set_state(self.start_state)
+
+
+@contextmanager
+def timeout(seconds):
+    def timeout_handler(signum, frame):
+        raise RuntimeError
+
+    orig_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, orig_handler)

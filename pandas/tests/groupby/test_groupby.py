@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 from io import StringIO
 
@@ -22,6 +22,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas._testing.contexts import timeout
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 
@@ -2177,17 +2178,42 @@ def test_groupby_mean_duplicate_index(rand_series_with_duplicate_datetimeindex):
 
 
 def test_groupby_categorical_crossproduct():
-    n = 10000
-    df = DataFrame({
-        "A": Categorical(np.arange(n), np.arange(n)),
-    })
-    for i in range(ord('B'), ord('L')):
-        v = np.tile(np.arange(25), n // 25)
-        df[chr(i)] = v
+    def _make_df(n, k):
+        df = DataFrame({
+            "A": Categorical(np.arange(n), np.arange(n)),
+        })
+        for i in range(1, k):
+            v = np.tile(np.arange(25), n // 25)
+            df[i] = v
+        return df
 
-    message = r"Group by product space too large to allocate arrays.*"
+    # This combination will trigger the signed integer overlfow for a 64 bit
+    # integer, thus triggering the ValueError code path. If somehow this doesn't
+    # throw a ValueError, it will throw a MemoryError, trying to allocate > 4 exibytes
+    # of memory.
+    n = 1000
+    k = 16
+    df = _make_df(n, k)
+
+    message = (r"Group by product space too large to allocate arrays.*")
     with pytest.raises(ValueError, match=message):
         g = df.groupby(list(df.columns))
-        g.B.sum()
+        with timeout(1):
+            g[1].sum()
     g = df.groupby(list(df.columns), observed=True)
-    assert g.B.sum().max() == 24
+    with timeout(1):
+        assert g[1].sum().max() == 24
+
+    # This combination will just throw a MemoryError as it tries to allocate
+    # more than 4 exibytes. Test for the patched error message.
+    k = 12
+    df = _make_df(n, k)
+
+    message = (r"Unable to allocate.+(Consider setting `observed=True`).*")
+    with pytest.raises(MemoryError, match=message):
+        g = df.groupby(list(df.columns))
+        with timeout(1):
+            g[1].sum()
+    g = df.groupby(list(df.columns), observed=True)
+    with timeout(1):
+        assert g[1].sum().max() == 24
