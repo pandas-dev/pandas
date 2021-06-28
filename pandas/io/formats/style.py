@@ -2796,8 +2796,8 @@ def _bar(
         if end > start:
             base_css += "background: linear-gradient(90deg,"
             if start > 0:
-                base_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%, "
-            base_css += f"{color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+                base_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
+            base_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
         return base_css
 
     def css_calc(x, left: float, right: float, align: str, width: float):

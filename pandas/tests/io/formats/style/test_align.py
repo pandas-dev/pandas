@@ -24,16 +24,16 @@ class TestStylerBarAlign:
         result = df.style.bar()._compute().ctx
         expected = {
             (0, 0): bar_grad(),
-            (1, 0): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (2, 0): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
+            (1, 0): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (2, 0): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
         }
         assert result == expected
 
         result = df.style.bar(color="red", width=50)._compute().ctx
         expected = {
             (0, 0): bar_grad(),
-            (1, 0): bar_grad("red 25.0%", " transparent 25.0%"),
-            (2, 0): bar_grad("red 50.0%", " transparent 50.0%"),
+            (1, 0): bar_grad(" red 25.0%", " transparent 25.0%"),
+            (2, 0): bar_grad(" red 50.0%", " transparent 50.0%"),
         }
         assert result == expected
 
@@ -51,26 +51,26 @@ class TestStylerBarAlign:
             (0, 0): bar_grad(),
             (0, 1): bar_grad(),
             (0, 2): bar_grad(),
-            (1, 0): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (1, 1): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (1, 2): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (2, 0): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
-            (2, 1): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
-            (2, 2): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
+            (1, 0): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (1, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (1, 2): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (2, 0): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
+            (2, 1): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
+            (2, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
         }
         assert result == expected
 
         result = df.style.bar(axis=1)._compute().ctx
         expected = {
             (0, 0): bar_grad(),
-            (0, 1): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (0, 2): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
+            (0, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (0, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
             (1, 0): bar_grad(),
-            (1, 1): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (1, 2): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
+            (1, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (1, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
             (2, 0): bar_grad(),
-            (2, 1): bar_grad("#d65f5f 50.0%", " transparent 50.0%"),
-            (2, 2): bar_grad("#d65f5f 100.0%", " transparent 100.0%"),
+            (2, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
+            (2, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
         }
         assert result == expected
 
@@ -79,7 +79,7 @@ class TestStylerBarAlign:
         result = df.style.bar(align="mid", color=["#d65f5f", "#5fba7d"])._compute().ctx
         expected = {
             (0, 0): bar_grad(
-                "#d65f5f 10.0%",
+                " #d65f5f 10.0%",
                 " transparent 10.0%",
             ),
             (1, 0): bar_grad(),
@@ -105,19 +105,19 @@ class TestStylerBarAlign:
 
         expected = {
             (0, 0): bar_grad(
-                "#5fba7d 10.0%",
+                " #5fba7d 10.0%",
                 " transparent 10.0%",
             ),
             (1, 0): bar_grad(
-                "#5fba7d 20.0%",
+                " #5fba7d 20.0%",
                 " transparent 20.0%",
             ),
             (2, 0): bar_grad(
-                "#5fba7d 50.0%",
+                " #5fba7d 50.0%",
                 " transparent 50.0%",
             ),
             (3, 0): bar_grad(
-                "#5fba7d 100.0%",
+                " #5fba7d 100.0%",
                 " transparent 100.0%",
             ),
         }
@@ -131,7 +131,7 @@ class TestStylerBarAlign:
 
         expected = {
             (0, 0): bar_grad(
-                "#d65f5f 100.0%",
+                " #d65f5f 100.0%",
                 " transparent 100.0%",
             ),
             (1, 0): bar_grad(
@@ -193,15 +193,15 @@ class TestStylerBarAlign:
         expected = {
             (0, 0): bar_grad(),
             (1, 0): bar_grad(
-                "#d65f5f 25.0%",
+                " #d65f5f 25.0%",
                 " transparent 25.0%",
             ),
             (0, 1): bar_grad(
-                "#d65f5f 50.0%",
+                " #d65f5f 50.0%",
                 " transparent 50.0%",
             ),
             (1, 1): bar_grad(
-                "#d65f5f 100.0%",
+                " #d65f5f 100.0%",
                 " transparent 100.0%",
             ),
         }
@@ -245,7 +245,7 @@ class TestStylerBarAlign:
                 " transparent 50.0%",
             ),
             (0, 1): bar_grad(
-                "#d65f5f 33.3%",
+                " #d65f5f 33.3%",
                 " transparent 33.3%",
             ),
             (1, 1): bar_grad(
@@ -295,7 +295,7 @@ class TestStylerBarAlign:
                 " transparent 30.0%",
             ),
             (0, 1): bar_grad(
-                "#d65f5f 20.0%",
+                " #d65f5f 20.0%",
                 " transparent 20.0%",
             ),
             (1, 1): bar_grad(
@@ -344,7 +344,7 @@ class TestStylerBarAlign:
                 " #d65f5f 50.0%",
                 " transparent 50.0%",
             ),
-            (0, 1): bar_grad("#d65f5f 25.0%", " transparent 25.0%"),
+            (0, 1): bar_grad(" #d65f5f 25.0%", " transparent 25.0%"),
             (1, 1): bar_grad(
                 " transparent 25.0%",
                 " #d65f5f 25.0%",
@@ -364,7 +364,7 @@ class TestStylerBarAlign:
                 " #d65f5f 50.0%",
                 " transparent 50.0%",
             ),
-            (0, 1): bar_grad("#d65f5f 25.0%", " transparent 25.0%"),
+            (0, 1): bar_grad(" #d65f5f 25.0%", " transparent 25.0%"),
             (1, 1): bar_grad(
                 " transparent 25.0%",
                 " #d65f5f 25.0%",
