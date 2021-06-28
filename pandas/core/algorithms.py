@@ -11,11 +11,7 @@ from typing import (
     Union,
     cast,
 )
-from warnings import (
-    catch_warnings,
-    simplefilter,
-    warn,
-)
+from warnings import warn
 
 import numpy as np
 
@@ -140,7 +136,11 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             return np.asarray(values).view("uint8"), values.dtype
         else:
             # i.e. all-bool Categorical, BooleanArray
-            return np.asarray(values).astype("uint8", copy=False), values.dtype
+            try:
+                return np.asarray(values).astype("uint8", copy=False), values.dtype
+            except TypeError:
+                # GH#42107 we have pd.NAs present
+                return np.asarray(values), values.dtype
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values), values.dtype
@@ -155,12 +155,10 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         return np.asarray(values), values.dtype
 
     elif is_complex_dtype(values.dtype):
-        # ignore the fact that we are casting to float
-        # which discards complex parts
-        with catch_warnings():
-            simplefilter("ignore", np.ComplexWarning)
-            values = ensure_float64(values)
-        return values, np.dtype("float64")
+        # Incompatible return value type (got "Tuple[Union[Any, ExtensionArray,
+        # ndarray[Any, Any]], Union[Any, ExtensionDtype]]", expected
+        # "Tuple[ndarray[Any, Any], Union[dtype[Any], ExtensionDtype]]")
+        return values, values.dtype  # type: ignore[return-value]
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
@@ -242,6 +240,8 @@ def _ensure_arraylike(values) -> ArrayLike:
 
 
 _hashtables = {
+    "complex128": htable.Complex128HashTable,
+    "complex64": htable.Complex64HashTable,
     "float64": htable.Float64HashTable,
     "float32": htable.Float32HashTable,
     "uint64": htable.UInt64HashTable,
@@ -1092,18 +1092,19 @@ def checked_add_with_arr(
     # it is negative, we then check whether its sum with the element in
     # 'arr' exceeds np.iinfo(np.int64).min. If so, we have an overflow
     # error as well.
+    i8max = lib.i8max
+    i8min = iNaT
+
     mask1 = b2 > 0
     mask2 = b2 < 0
 
     if not mask1.any():
-        to_raise = ((np.iinfo(np.int64).min - b2 > arr) & not_nan).any()
+        to_raise = ((i8min - b2 > arr) & not_nan).any()
     elif not mask2.any():
-        to_raise = ((np.iinfo(np.int64).max - b2 < arr) & not_nan).any()
+        to_raise = ((i8max - b2 < arr) & not_nan).any()
     else:
-        to_raise = (
-            (np.iinfo(np.int64).max - b2[mask1] < arr[mask1]) & not_nan[mask1]
-        ).any() or (
-            (np.iinfo(np.int64).min - b2[mask2] > arr[mask2]) & not_nan[mask2]
+        to_raise = ((i8max - b2[mask1] < arr[mask1]) & not_nan[mask1]).any() or (
+            (i8min - b2[mask2] > arr[mask2]) & not_nan[mask2]
         ).any()
 
     if to_raise:
@@ -1530,13 +1531,13 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
         Input array. If `sorter` is None, then it must be sorted in
         ascending order, otherwise `sorter` must be an array of indices
         that sort it.
-    value : array_like
+    value : array-like
         Values to insert into `arr`.
     side : {'left', 'right'}, optional
         If 'left', the index of the first suitable location found is given.
         If 'right', return the last such index.  If there is no suitable
         index, return either 0 or N (where N is the length of `self`).
-    sorter : 1-D array_like, optional
+    sorter : 1-D array-like, optional
         Optional array of integer indices that sort array a into ascending
         order. They are typically the result of argsort.
 
@@ -1838,7 +1839,7 @@ def safe_sort(
 
 
 def _sort_mixed(values) -> np.ndarray:
-    """ order ints before strings in 1d arrays, safe in py3 """
+    """order ints before strings in 1d arrays, safe in py3"""
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     nums = np.sort(values[~str_pos])
     strs = np.sort(values[str_pos])

@@ -11,6 +11,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    AnyStr,
     Callable,
     Hashable,
     Mapping,
@@ -45,7 +46,7 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    NpDtype,
+    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -53,6 +54,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     final,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -252,7 +254,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: Dtype | None = None,
         copy: bool_t = False,
     ) -> Manager:
-        """ passed a manager and a axes dict """
+        """passed a manager and a axes dict"""
         for a, axe in axes.items():
             if axe is not None:
                 axe = ensure_index(axe)
@@ -433,7 +435,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @classmethod
     def _validate_dtype(cls, dtype) -> DtypeObj | None:
-        """ validate the passed dtype """
+        """validate the passed dtype"""
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
@@ -1986,7 +1988,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
@@ -3295,7 +3297,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(storage_options=_shared_docs["storage_options"])
     def to_csv(
         self,
-        path_or_buf: FilePathOrBuffer | None = None,
+        path_or_buf: FilePathOrBuffer[AnyStr] | None = None,
         sep: str = ",",
         na_rep: str = "",
         float_format: str | None = None,
@@ -4000,7 +4002,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     @property
     def _is_view(self) -> bool_t:
-        """Return boolean indicating if self is view of another array """
+        """Return boolean indicating if self is view of another array"""
         return self._mgr.is_view
 
     @final
@@ -4856,7 +4858,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy: bool_t = False,
         allow_dups: bool_t = False,
     ) -> FrameOrSeries:
-        """allow_dups indicates an internal call here """
+        """allow_dups indicates an internal call here"""
         # reindex doing multiple operations on different axes if indicated
         new_data = self._mgr
         for axis in sorted(reindexers.keys()):
@@ -5142,11 +5144,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def sample(
         self: FrameOrSeries,
         n=None,
-        frac=None,
-        replace=False,
+        frac: float | None = None,
+        replace: bool_t = False,
         weights=None,
-        random_state=None,
-        axis=None,
+        random_state: RandomState | None = None,
+        axis: Axis | None = None,
+        ignore_index: bool_t = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
@@ -5176,8 +5179,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
-            random number generator
+            If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState, use as numpy RandomState object.
 
             .. versionchanged:: 1.1.0
@@ -5188,6 +5190,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -5349,7 +5355,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis)
+        result = self.take(locs, axis=axis)
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
+        return result
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -5575,7 +5585,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _check_inplace_setting(self, value) -> bool_t:
-        """ check whether we allow in-place setting with this type of value """
+        """check whether we allow in-place setting with this type of value"""
         if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
 
             # allow an actual np.nan thru
@@ -7218,10 +7228,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         with np.errstate(all="ignore"):
             if upper is not None:
-                subset = (self <= upper).to_numpy()
+                subset = self <= upper
                 result = result.where(subset, upper, axis=None, inplace=False)
             if lower is not None:
-                subset = (self >= lower).to_numpy()
+                subset = self >= lower
                 result = result.where(subset, lower, axis=None, inplace=False)
 
         if np.any(mask):
@@ -7284,11 +7294,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        lower : float or array_like, default None
+        lower : float or array-like, default None
             Minimum threshold value. All values below this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
-        upper : float or array_like, default None
+        upper : float or array-like, default None
             Maximum threshold value. All values above this
             threshold will be set to it. A missing
             threshold (e.g `NA`) will not clip the value.
@@ -7888,8 +7898,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Pass a custom function via ``apply``
 
-        >>> def custom_resampler(array_like):
-        ...     return np.sum(array_like) + 5
+        >>> def custom_resampler(arraylike):
+        ...     return np.sum(arraylike) + 5
         ...
         >>> series.resample('3T').apply(custom_resampler)
         2000-01-01 00:00:00     8
@@ -9750,11 +9760,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "FrameOrSeries"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        return np.abs(self)  # type: ignore[arg-type]
+        # error: Incompatible return value type (got "ndarray[Any, dtype[Any]]",
+        # expected "FrameOrSeries")
+        return np.abs(self)  # type: ignore[return-value]
 
     @final
     def describe(
@@ -10892,7 +10900,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
         alpha: float | None = None,
-        min_periods: int = 0,
+        min_periods: int | None = 0,
         adjust: bool_t = True,
         ignore_na: bool_t = False,
         axis: Axis = 0,

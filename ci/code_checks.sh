@@ -38,10 +38,7 @@ function invgrep {
 }
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    FLAKE8_FORMAT="##[error]%(path)s:%(row)s:%(col)s:%(code)s:%(text)s"
     INVGREP_PREPEND="##[error]"
-else
-    FLAKE8_FORMAT="default"
 fi
 
 ### LINTING ###
@@ -75,6 +72,10 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
 
     MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
     invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
+    RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+    MSG='Check for unnecessary random seeds in asv benchmarks' ; echo $MSG
+    invgrep -R --exclude pandas_vb_common.py -E 'np.random.seed' asv_bench/benchmarks/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
