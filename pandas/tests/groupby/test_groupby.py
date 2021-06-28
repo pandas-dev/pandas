@@ -2428,7 +2428,7 @@ def test_groupby_categorical_crossproduct():
             df[i] = v
         return df
 
-    # This combination will trigger the signed integer overlfow for a 64 bit
+    # This combination will trigger the signed integer overflow for a 64 bit
     # integer, thus triggering the ValueError code path. If somehow this doesn't
     # throw a ValueError, it will throw a MemoryError, trying to allocate > 4 exibytes
     # of memory.
@@ -2436,7 +2436,7 @@ def test_groupby_categorical_crossproduct():
     k = 16
     df = _make_df(n, k)
 
-    message = (r"Group by product space too large to allocate arrays.*")
+    message = r"Group by product space too large to allocate arrays.*"
     with pytest.raises(ValueError, match=message):
         g = df.groupby(list(df.columns))
         with timeout(1):
@@ -2450,7 +2450,7 @@ def test_groupby_categorical_crossproduct():
     k = 12
     df = _make_df(n, k)
 
-    message = (r"Unable to allocate.+(Consider setting `observed=True`).*")
+    message = r"Unable to allocate.+(Consider setting `observed=True`).*"
     with pytest.raises(MemoryError, match=message):
         g = df.groupby(list(df.columns))
         with timeout(1):
