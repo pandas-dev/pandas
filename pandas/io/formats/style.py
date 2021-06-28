@@ -2812,7 +2812,7 @@ def _bar(
             Value marking the left side of calculation.
         right : float
             Value marking the right side of the calculation (left < right).
-        align : {"left", "right", "zero"}
+        align : {"left", "right", "zero", "mid"}
             How the bars will be positioned. Note if using "zero" with an adjustment
             such as a mean, ensure ``left`` and ``right`` are also adjusted on input.
         width : float
@@ -2828,37 +2828,60 @@ def _bar(
 
         color = colors[0] if x < 0 else colors[1]
         x = left if x < left else x
-        x = right if x > right else x
+        x = right if x > right else x  # trim data if outside of the window
 
         if align == "left":
-            end = (x - left) / (right - left)
-            return css_bar(base_css, 0, end * width, color)
+            # all proportions are measured from the left side between left and right
+            start, end = 0, (x - left) / (right - left) * width
+
         elif align == "right":
-            start = (x - left) / (right - left)
-            return css_bar(base_css, (1 - width) + start * width, 1, color)
+            # all proportions are measured from the right side between left and right
+            start, end = (1 - width) + (x - left) / (right - left) * width, 1
+
         elif align == "zero":
+            # all proportions are measured from the center which is set to zero
+            # input data will have been translated if centering about a mean for example
             if right < 0:
-                right = -left  # since abs(right) < abs(left)
-            elif left > 0:
-                left = -right  # since abs(left) < abs(right)
+                right = -left  # since abs(right) < abs(left): all data below zero
+            elif left >= 0:
+                left = -right  # since abs(left) < abs(right): all data above zero
             elif abs(right) < abs(left):
-                right = -left  # apparent
+                right = -left  # standardise left and right as same distance from zero
             else:
                 left = -right
 
             if x < 0:
-                start = (x - left) / (right - left)
-                return css_bar(base_css, (1 - width) / 2 + start * width, 0.5, color)
+                start, end = (1 - width) / 2 + width * (x - left) / (right - left), 0.5
             else:
-                end = (x - 0) / (right - left)
-                return css_bar(base_css, 0.5, end * width + 0.5, color)
+                start, end = 0.5, x / (right - left) * width + 0.5
+
+        elif align == "mid":
+            mid = (left + right) / 2
+            if mid < 0:
+                zero_frac = (0 - mid) / (right - mid) + 0.5
+            else:
+                zero_frac = (0 - left) / (right - left)
+
+            if x < 0:
+                start = (x - left) / (right - left)
+                end = zero_frac
+            else:
+                start = zero_frac
+                end = (x - left) / (right - left)
+
+        return css_bar(base_css, start, end, color)
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin
     right = np.nanmax(values) if vmax is None else vmax
 
     if align == "mid":
-        z, align = (left + right) / 2, "zero"
+        if all(values >= 0):  # "mid" is documented to act as "left" if all positive
+            z, align, left = 0, "left", 0 if vmin is None else vmin
+        elif all(values <= 0):  # "mid" is documented to act as "right" if all negative
+            z, align, right = 0, "right", 0 if vmax is None else vmax
+        else:
+            z = 0
     elif align == "mean":
         z, align = np.nanmean(values), "zero"
     elif callable(align):
