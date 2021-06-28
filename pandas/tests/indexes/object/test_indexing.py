@@ -64,6 +64,27 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
 
+class TestGetIndexerNonUnique:
+    # TODO: test with matching-but-not-identical nans
+    def test_get_indexer_non_unique_nas(self, nulls_fixture):
+        # even though this isn't non-unique, this should still work
+        index = Index(["a", "b", nulls_fixture])
+        indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+        expected_indexer = np.array([2], dtype=np.intp)
+        expected_missing = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected_indexer)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+
+        # actually non-unique
+        index = Index(["a", nulls_fixture, "b", nulls_fixture])
+        indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+        expected_indexer = np.array([1, 3], dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected_indexer)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+
+
 class TestSliceLocs:
     @pytest.mark.parametrize(
         "in_slice,expected",
