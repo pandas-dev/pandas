@@ -97,7 +97,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
-- Deprecated treating ``numpy.datetime64`` objects as UTC times when passed to the :class:`Timestamp` constructor along with a timezone. In a future version, these will be treated as wall-times. To retain the old behavior, use ``Timestamp(dt64).tz_localize("UTC").tz_convert(tz)`` (:issue:`??`)
+- Deprecated treating ``numpy.datetime64`` objects as UTC times when passed to the :class:`Timestamp` constructor along with a timezone. In a future version, these will be treated as wall-times. To retain the old behavior, use ``Timestamp(dt64).tz_localize("UTC").tz_convert(tz)`` (:issue:`42288`)
 -
 
 .. ---------------------------------------------------------------------------

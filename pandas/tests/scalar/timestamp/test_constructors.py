@@ -26,6 +26,7 @@ from pandas.tseries import offsets
 
 class TestTimestampConstructors:
     def test_constructor_datetime64_with_tz(self):
+        # GH#42288
         dt = np.datetime64("1970-01-01 05:00:00")
         tzstr = "UTC+05:00"
 
