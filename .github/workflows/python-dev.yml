@@ -14,7 +14,7 @@ env:
   PYTEST_WORKERS: "auto"
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
-  COVERAGE: false
+  COVERAGE: true
 
 jobs:
   build:
@@ -57,6 +57,8 @@ jobs:
     - name: Test with pytest
       run: |
         ci/run_tests.sh
+      # GH 41935
+      continue-on-error: true
 
     - name: Publish test results
       uses: actions/upload-artifact@master
