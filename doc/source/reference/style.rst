@@ -24,6 +24,8 @@ Styler properties
 
    Styler.env
    Styler.template_html
+   Styler.template_html_style
+   Styler.template_html_table
    Styler.template_latex
    Styler.loader
 

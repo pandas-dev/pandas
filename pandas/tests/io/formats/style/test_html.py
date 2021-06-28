@@ -41,8 +41,8 @@ def test_html_template_extends_options():
     # to understand the dependency
     with open("pandas/io/formats/templates/html.tpl") as file:
         result = file.read()
-    assert '{% include "html_style.tpl" %}' in result
-    assert '{% include "html_table.tpl" %}' in result
+    assert "{% include html_style_tpl %}" in result
+    assert "{% include html_table_tpl %}" in result
 
 
 def test_exclude_styles(styler):
@@ -223,24 +223,46 @@ def test_block_names(tpl_style, tpl_table):
     assert result2 == expected_table
 
 
-def test_from_custom_template(tmpdir):
-    p = tmpdir.mkdir("templates").join("myhtml.tpl")
+def test_from_custom_template_table(tmpdir):
+    p = tmpdir.mkdir("tpl").join("myhtml_table.tpl")
     p.write(
         dedent(
             """\
-        {% extends "html.tpl" %}
-        {% block table %}
-        <h1>{{ table_title|default("My Table") }}</h1>
-        {{ super() }}
-        {% endblock table %}"""
+            {% extends "html_table.tpl" %}
+            {% block table %}
+            <h1>{{custom_title}}</h1>
+            {{ super() }}
+            {% endblock table %}"""
         )
     )
-    result = Styler.from_custom_template(str(tmpdir.join("templates")), "myhtml.tpl")
+    result = Styler.from_custom_template(str(tmpdir.join("tpl")), "myhtml_table.tpl")
     assert issubclass(result, Styler)
     assert result.env is not Styler.env
-    assert result.template_html is not Styler.template_html
+    assert result.template_html_table is not Styler.template_html_table
     styler = result(DataFrame({"A": [1, 2]}))
-    assert styler.render()
+    assert "<h1>My Title</h1>\n\n\n<table" in styler.render(custom_title="My Title")
+
+
+def test_from_custom_template_style(tmpdir):
+    p = tmpdir.mkdir("tpl").join("myhtml_style.tpl")
+    p.write(
+        dedent(
+            """\
+            {% extends "html_style.tpl" %}
+            {% block style %}
+            <link rel="stylesheet" href="mystyle.css">
+            {{ super() }}
+            {% endblock style %}"""
+        )
+    )
+    result = Styler.from_custom_template(
+        str(tmpdir.join("tpl")), html_style="myhtml_style.tpl"
+    )
+    assert issubclass(result, Styler)
+    assert result.env is not Styler.env
+    assert result.template_html_style is not Styler.template_html_style
+    styler = result(DataFrame({"A": [1, 2]}))
+    assert '<link rel="stylesheet" href="mystyle.css">\n\n<style' in styler.render()
 
 
 def test_caption_as_sequence(styler):
