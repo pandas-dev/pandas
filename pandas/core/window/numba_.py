@@ -295,7 +295,7 @@ def generate_ewma_numba_table_func(
         old_wt = np.ones(values.shape[0])
 
         result = np.empty(values.shape)
-        weighted_avg = values[0]
+        weighted_avg = values[0].copy()
         nobs = (~np.isnan(weighted_avg)).astype(np.int64)
         result[0] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
 
