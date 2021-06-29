@@ -2102,7 +2102,7 @@ class Styler(StylerRenderer):
             When None (default): the maximum value of the data will be used.
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
-            `"width: 100px;"`
+            `"width: 10em;"`
 
             .. versionadded:: 1.4.0
 
