@@ -29,7 +29,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+-  Additional options added to :meth:`.Styler.bar` to control alignment and display (:issue:`26070`)
 -
 
 .. ---------------------------------------------------------------------------
