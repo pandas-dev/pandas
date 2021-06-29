@@ -19,6 +19,9 @@ class FillNa:
     def time_fillna(self, inplace):
         self.ts.fillna(0.0, inplace=inplace)
 
+    def peakmem_fillna(self, inplace):
+        self.ts.fillna(0.0, inplace=inplace)
+
     def time_fillna_limit(self, inplace):
         self.ts.fillna(0.0, inplace=inplace, limit=10 ** 5)
 
