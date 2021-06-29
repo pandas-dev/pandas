@@ -12,6 +12,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
     type_t,
@@ -128,7 +129,9 @@ class ExtensionDtype:
         return False
 
     def __hash__(self) -> int:
-        return hash(tuple(getattr(self, attr) for attr in self._metadata))
+        # for python>=3.10, different nan objects have different hashes
+        # we need  to avoid that und thus use hash function with old behavior
+        return object_hash(tuple(getattr(self, attr) for attr in self._metadata))
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
