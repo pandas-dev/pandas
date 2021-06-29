@@ -5293,7 +5293,7 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
-    def get_indexer_for(self, target, **kwargs) -> np.ndarray:
+    def get_indexer_for(self, target) -> np.ndarray:
         """
         Guaranteed return of an indexer even when non-unique.
 
@@ -5306,7 +5306,7 @@ class Index(IndexOpsMixin, PandasObject):
             List of indices.
         """
         if self._index_as_unique:
-            return self.get_indexer(target, **kwargs)
+            return self.get_indexer(target)
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
