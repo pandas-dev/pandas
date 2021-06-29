@@ -135,6 +135,11 @@ class MPLPlot:
         self.data = data
         self.by = com.maybe_make_list(by)
 
+        # For `hist` plot, need to get grouped original data before `self.data` is
+        # updated later
+        if self.by and self._kind == "hist":
+            self._grouped = data.groupby(self.by)
+
         # Assign the rest of columns into self.columns if by is explicitly defined
         # while column is not, so as to keep the same behaviour with current df.hist
         # or df.boxplot.
@@ -296,7 +301,7 @@ class MPLPlot:
         if self.data.ndim == 1:
             return 1
         elif self.by and self._kind == "hist":
-            return len(self.data.groupby(self.by))
+            return len(self._grouped)
         elif self.by and self._kind == "box":
             return len(self.columns)
         else:
