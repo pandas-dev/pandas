@@ -22,8 +22,8 @@ from pandas import (
 
 
 def create_iter_data_given_by(
-    data: DataFrame, by: Optional[IndexLabel] = None, kind: str = "hist"
-) -> Union[DataFrame, Dict[str, FrameOrSeriesUnion]]:
+    data: DataFrame, kind: str = "hist"
+) -> Dict[str, FrameOrSeriesUnion]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
     used in both hist and boxplot.
@@ -35,13 +35,12 @@ def create_iter_data_given_by(
 
     Parameters
     ----------
-    data: reformatted grouped data from `_compute_plot_data` method.
-    by: list or None, value assigned to `by`.
-    kind: str, plot kind. This function is only used for `hist` and `box` plots.
+    data : reformatted grouped data from `_compute_plot_data` method.
+    kind : str, plot kind. This function is only used for `hist` and `box` plots.
 
     Returns
     -------
-    iter_data: DataFrame or Dictionary of DataFrames
+    iter_data : DataFrame or Dictionary of DataFrames
 
     Examples
     --------
@@ -53,28 +52,32 @@ def create_iter_data_given_by(
     >>> value = [[1, 3, np.nan, np.nan],
     ...          [3, 4, np.nan, np.nan], [np.nan, np.nan, 5, 6]]
     >>> data = DataFrame(value, columns=mi)
-    >>> create_iter_data_given_by(data, by=["col1"])
+    >>> create_iter_data_given_by(data)
     {'h1': DataFrame({'a': [1, 3, np.nan], 'b': [3, 4, np.nan]}),
      'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
     """
+
+    # For `hist` plot, before transformation, the values in level 0 are
+    # actual subplot titles, and used for column subselection and iteration;
+    # For `box` plot, that's values in level 1
     if kind == "hist":
         level = 0
     elif kind == "box":
         level = 1
     else:
-        raise ValueError("This function is only used for hist and box plot")
+        raise ValueError(
+            f"create_iter_data_given_by can only be used with "
+            f"kind 'hist' and 'box' plots, but used with '{kind}'"
+        )
 
-    iter_data: Union[DataFrame, Dict[str, FrameOrSeriesUnion]]
-    if not by:
-        iter_data = data
-    else:
-        # Select sub-columns based on the value of first level of MI
-        assert isinstance(data.columns, MultiIndex)
-        cols = data.columns.levels[level]
-        iter_data = {
-            col: data.loc[:, data.columns.get_level_values(level) == col]
-            for col in cols
-        }
+    iter_data: Dict[str, FrameOrSeriesUnion]
+
+    # Select sub-columns based on the value of first level of MI
+    assert isinstance(data.columns, MultiIndex)
+    cols = data.columns.levels[level]
+    iter_data = {
+        col: data.loc[:, data.columns.get_level_values(level) == col] for col in cols
+    }
     return iter_data
 
 
@@ -87,9 +90,9 @@ def reconstruct_data_with_by(
 
     Parameters
     ----------
-    data: Original DataFrame to plot
-    by: grouped `by` parameter selected by users
-    cols: columns of data set (excluding columns used in `by`)
+    data : Original DataFrame to plot
+    by : grouped `by` parameter selected by users
+    cols : columns of data set (excluding columns used in `by`)
 
     Returns
     -------
@@ -130,7 +133,5 @@ def reformat_hist_y_given_by(
     will take place and input y is multi-dimensional array.
     """
     if by is not None and len(y.shape) > 1:
-        y = np.array([remove_na_arraylike(col) for col in y.T]).T
-    else:
-        y = remove_na_arraylike(y)
-    return y
+        return np.array([remove_na_arraylike(col) for col in y.T]).T
+    return remove_na_arraylike(y)

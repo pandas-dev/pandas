@@ -692,9 +692,6 @@ def to_sql(
 
         Details and a sample callable implementation can be found in the
         section :ref:`insert method <io.sql.method>`.
-
-        .. versionadded:: 0.24.0
-
     engine : {'auto', 'sqlalchemy'}, default 'auto'
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -966,7 +963,7 @@ class SQLTable(PandasObject):
                 if start_i >= end_i:
                     break
 
-                chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
+                chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
                 exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(
@@ -1354,7 +1351,7 @@ class SQLAlchemyEngine(BaseEngine):
 
 
 def get_engine(engine: str) -> BaseEngine:
-    """ return our implementation """
+    """return our implementation"""
     if engine == "auto":
         engine = get_option("io.sql.engine")
 
@@ -1739,9 +1736,6 @@ class SQLDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-
-            .. versionadded:: 0.24.0
-
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
@@ -2202,8 +2196,6 @@ class SQLiteDatabase(PandasSQL):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
-
-            .. versionadded:: 0.24.0
         """
         if dtype:
             if not is_dict_like(dtype):

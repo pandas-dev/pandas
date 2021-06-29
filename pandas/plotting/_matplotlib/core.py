@@ -147,14 +147,6 @@ class MPLPlot:
         else:
             self.columns = com.maybe_make_list(column)
 
-        # When `by` is explicitly assigned, grouped data size will be defined, and
-        # this will determine number of subplots to have, aka `self.nseries`
-        if self.by:
-            if self._kind == "hist":
-                self._grouped_data_size = len(data.groupby(self.by))
-            elif self._kind == "box":
-                self._grouped_data_size = len(self.columns)
-
         self.kind = kind
 
         self.sort_columns = sort_columns
@@ -298,12 +290,17 @@ class MPLPlot:
 
     @property
     def nseries(self) -> int:
+
+        # When `by` is explicitly assigned, grouped data size will be defined, and
+        # this will determine number of subplots to have, aka `self.nseries`
         if self.data.ndim == 1:
             return 1
-        elif self.by is None:
-            return self.data.shape[1]
+        elif self.by and self._kind == "hist":
+            return len(self.data.groupby(self.by))
+        elif self.by and self._kind == "box":
+            return len(self.columns)
         else:
-            return self._grouped_data_size
+            return self.data.shape[1]
 
     def draw(self):
         self.plt.draw_if_interactive()

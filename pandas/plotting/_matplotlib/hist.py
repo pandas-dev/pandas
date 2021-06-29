@@ -99,7 +99,12 @@ class HistPlot(LinePlot):
     def _make_plot(self):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
-        data = create_iter_data_given_by(self.data, self.by)
+
+        # Re-create iterated data if `by` is assigned by users
+        if self.by is None:
+            data = self.data
+        else:
+            data = create_iter_data_given_by(self.data, self._kind)
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)

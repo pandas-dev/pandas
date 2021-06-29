@@ -32,7 +32,11 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 import pandas.core.common as com
 
 
@@ -44,7 +48,7 @@ class TestSeriesDatetimeValues:
 
         ok_for_period = PeriodArray._datetimelike_ops
         ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
-        ok_for_dt = DatetimeIndex._datetimelike_ops
+        ok_for_dt = DatetimeArray._datetimelike_ops
         ok_for_dt_methods = [
             "to_period",
             "to_pydatetime",
@@ -59,7 +63,7 @@ class TestSeriesDatetimeValues:
             "month_name",
             "isocalendar",
         ]
-        ok_for_td = TimedeltaIndex._datetimelike_ops
+        ok_for_td = TimedeltaArray._datetimelike_ops
         ok_for_td_methods = [
             "components",
             "to_pytimedelta",
