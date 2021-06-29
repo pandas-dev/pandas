@@ -2418,6 +2418,7 @@ def test_datetime_categorical_multikey_groupby_indices():
     }
     assert result == expected
 
+
 def test_groupby_categorical_crossproduct():
     def _make_df(n, k):
         df = DataFrame(
