@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY310
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
@@ -428,6 +430,8 @@ class TestGetDummies:
         result = get_dummies(**get_dummies_kwargs)
         tm.assert_frame_equal(result, expected)
 
+    # This is flaky on Python 3.10
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_get_dummies_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
@@ -467,6 +471,7 @@ class TestGetDummies:
         result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_get_dummies_basic_drop_first_NA(self, sparse):
         # Test NA handling together with drop_first
         s_NA = ["a", "b", np.nan]
