@@ -698,3 +698,11 @@ class TestAstypeCategorical:
             {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_astype_categorical_to_string_missing(self):
+        # https://github.com/pandas-dev/pandas/issues/41797
+        df = DataFrame(["a", "b", np.nan])
+        expected = df.astype(str)
+        cat = df.astype("category")
+        result = cat.astype(str)
+        tm.assert_frame_equal(result, expected)

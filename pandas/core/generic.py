@@ -46,7 +46,7 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    NpDtype,
+    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -54,6 +54,7 @@ from pandas._typing import (
     TimestampConvertibleTypes,
     ValueKeyFunc,
     final,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1873,11 +1874,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Iteration
 
-    def __hash__(self) -> int:
-        raise TypeError(
-            f"{repr(type(self).__name__)} objects are mutable, "
-            f"thus they cannot be hashed"
-        )
+    # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
+    # Incompatible types in assignment (expression has type "None", base class
+    # "object" defined the type as "Callable[[object], int]")
+    __hash__: None  # type: ignore[assignment]
 
     def __iter__(self):
         """
@@ -1987,7 +1987,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # GH#23114 Ensure ndarray.__op__(DataFrame) returns NotImplemented
     __array_priority__ = 1000
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         return np.asarray(self._values, dtype=dtype)
 
     def __array_wrap__(
@@ -5149,11 +5149,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def sample(
         self: FrameOrSeries,
         n=None,
-        frac=None,
-        replace=False,
+        frac: float | None = None,
+        replace: bool_t = False,
         weights=None,
-        random_state=None,
-        axis=None,
+        random_state: RandomState | None = None,
+        axis: Axis | None = None,
+        ignore_index: bool_t = False,
     ) -> FrameOrSeries:
         """
         Return a random sample of items from an axis of object.
@@ -5183,8 +5184,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
         random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator (NumPy>=1.17), seed for
-            random number generator
+            If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState, use as numpy RandomState object.
 
             .. versionchanged:: 1.1.0
@@ -5195,6 +5195,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type (0 for Series and DataFrames).
+        ignore_index : bool, default False
+            If True, the resulting index will be labeled 0, 1, …, n - 1.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -5356,7 +5360,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        return self.take(locs, axis=axis)
+        result = self.take(locs, axis=axis)
+        if ignore_index:
+            result.index = ibase.default_index(len(result))
+
+        return result
 
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
@@ -9757,11 +9765,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "FrameOrSeries"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        return np.abs(self)  # type: ignore[arg-type]
+        # error: Incompatible return value type (got "ndarray[Any, dtype[Any]]",
+        # expected "FrameOrSeries")
+        return np.abs(self)  # type: ignore[return-value]
 
     @final
     def describe(
@@ -10904,6 +10910,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_na: bool_t = False,
         axis: Axis = 0,
         times: str | np.ndarray | FrameOrSeries | None = None,
+        method: str = "single",
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)
         # error: Value of type variable "FrameOrSeries" of "ExponentialMovingWindow"
@@ -10919,6 +10926,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ignore_na=ignore_na,
             axis=axis,
             times=times,
+            method=method,
         )
 
     # ----------------------------------------------------------------------

@@ -861,7 +861,7 @@ class DataFrameFormatter:
                 return y
 
             str_columns = list(
-                zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
+                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
             if self.sparsify and len(str_columns):
                 str_columns = sparsify_labels(str_columns)
@@ -1635,24 +1635,10 @@ def format_percentiles(
 
     percentiles = 100 * percentiles
 
-    # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int, float]],
-    # List[float], List[Union[str, float]]]" has no attribute "astype"
-    # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]], List[float],
-    # List[Union[str, float]]]" has no attribute "astype"
-    # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int, float]],
-    # List[float], List[Union[str, float]]]" has no attribute "astype"
-    int_idx = np.isclose(
-        percentiles.astype(int), percentiles  # type: ignore[union-attr]
-    )
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
-        # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int,
-        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
-        # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]],
-        # List[float], List[Union[str, float]]]" has no attribute "astype"
-        # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int,
-        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
-        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
+        out = percentiles.astype(int).astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
