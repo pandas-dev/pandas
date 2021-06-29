@@ -166,11 +166,12 @@ class Base:
             return
 
         typ = type(idx._data).__name__
+        cls = type(idx).__name__
         lmsg = "|".join(
             [
                 rf"unsupported operand type\(s\) for \*: '{typ}' and 'int'",
                 "cannot perform (__mul__|__truediv__|__floordiv__) with "
-                f"this index type: {typ}",
+                f"this index type: ({cls}|{typ})",
             ]
         )
         with pytest.raises(TypeError, match=lmsg):
@@ -179,7 +180,7 @@ class Base:
             [
                 rf"unsupported operand type\(s\) for \*: 'int' and '{typ}'",
                 "cannot perform (__rmul__|__rtruediv__|__rfloordiv__) with "
-                f"this index type: {typ}",
+                f"this index type: ({cls}|{typ})",
             ]
         )
         with pytest.raises(TypeError, match=rmsg):
