@@ -41,10 +41,10 @@ from pandas._typing import (
     FillnaOptions,
     FrameOrSeriesUnion,
     IndexKeyFunc,
-    NpDtype,
     SingleManager,
     StorageOptions,
     ValueKeyFunc,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import InvalidIndexError
@@ -305,7 +305,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(  # type: ignore[assignment]
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    __hash__ = generic.NDFrame.__hash__
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
     rdiv: Callable[[Series, Any], Series]
@@ -388,9 +387,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 copy = False
 
             elif isinstance(data, np.ndarray):
-                # error: Argument 1 to "len" has incompatible type "dtype"; expected
-                # "Sized"
-                if len(data.dtype):  # type: ignore[arg-type]
+                if len(data.dtype):
                     # GH#13296 we are dealing with a compound dtype, which
                     #  should be treated as 2D
                     raise ValueError(
@@ -810,7 +807,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # NDArray Compat
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(self, dtype: npt.DTypeLike | None = None) -> np.ndarray:
         """
         Return the values as a NumPy array.
 
@@ -3863,6 +3860,65 @@ Keep all original rows and also all original values
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        extra_params=dedent(
+            """copy : bool, default True
+            Whether to copy underlying data."""
+        ),
+        examples=dedent(
+            """Examples
+        --------
+        >>> s = pd.Series(
+        ...     ["A", "B", "A", "C"],
+        ...     index=[
+        ...         ["Final exam", "Final exam", "Coursework", "Coursework"],
+        ...         ["History", "Geography", "History", "Geography"],
+        ...         ["January", "February", "March", "April"],
+        ...     ],
+        ... )
+        >>> s
+        Final exam  History     January      A
+                    Geography   February     B
+        Coursework  History     March        A
+                    Geography   April        C
+        dtype: object
+
+        In the following example, we will swap the levels of the indices.
+        Here, we will swap the levels column-wise, but levels can be swapped row-wise
+        in a similar manner. Note that column-wise is the default behaviour.
+        By not supplying any arguments for i and j, we swap the last and second to
+        last indices.
+
+        >>> s.swaplevel()
+        Final exam  January     History         A
+                    February    Geography       B
+        Coursework  March       History         A
+                    April       Geography       C
+        dtype: object
+
+        By supplying one argument, we can choose which index to swap the last
+        index with. We can for example swap the first index with the last one as
+        follows.
+
+        >>> s.swaplevel(0)
+        January     History     Final exam      A
+        February    Geography   Final exam      B
+        March       History     Coursework      A
+        April       Geography   Coursework      C
+        dtype: object
+
+        We can also define explicitly which indices we want to swap by supplying values
+        for both i and j. Here, we for example swap the first and second indices.
+
+        >>> s.swaplevel(0, 1)
+        History     Final exam  January         A
+        Geography   Final exam  February        B
+        History     Coursework  March           A
+        Geography   Coursework  April           C
+        dtype: object"""
+        ),
+    )
     def swaplevel(self, i=-2, j=-1, copy=True) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
@@ -3871,15 +3927,16 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        i, j : int, str
-            Level of the indices to be swapped. Can pass level name as string.
-        copy : bool, default True
-            Whether to copy underlying data.
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        {extra_params}
 
         Returns
         -------
-        Series
-            Series with levels swapped in MultiIndex.
+        {klass}
+            {klass} with levels swapped in MultiIndex.
+
+        {examples}
         """
         assert isinstance(self.index, MultiIndex)
         new_index = self.index.swaplevel(i, j)
@@ -4204,7 +4261,7 @@ Keep all original rows and also all original values
         convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object. Note that the dtype is always
-            preserved for extension array dtypes, such as Categorical.
+            preserved for some extension array dtypes, such as Categorical.
         args : tuple
             Positional arguments passed to func after the series value.
         **kwargs
@@ -4967,7 +5024,7 @@ Keep all original rows and also all original values
             self, method="isin"
         )
 
-    def between(self, left, right, inclusive=True) -> Series:
+    def between(self, left, right, inclusive="both") -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
 
@@ -4981,8 +5038,10 @@ Keep all original rows and also all original values
             Left boundary.
         right : scalar or list-like
             Right boundary.
-        inclusive : bool, default True
-            Include boundaries.
+        inclusive : {"both", "neither", "left", "right"}
+            Include boundaries. Whether to set each bound as closed or open.
+
+            .. versionchanged:: 1.3.0
 
         Returns
         -------
@@ -5033,12 +5092,34 @@ Keep all original rows and also all original values
         3    False
         dtype: bool
         """
-        if inclusive:
+        if inclusive is True or inclusive is False:
+            warnings.warn(
+                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "favour of `both` or `neither`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            if inclusive:
+                inclusive = "both"
+            else:
+                inclusive = "neither"
+        if inclusive == "both":
             lmask = self >= left
             rmask = self <= right
-        else:
+        elif inclusive == "left":
+            lmask = self >= left
+            rmask = self < right
+        elif inclusive == "right":
+            lmask = self > left
+            rmask = self <= right
+        elif inclusive == "neither":
             lmask = self > left
             rmask = self < right
+        else:
+            raise ValueError(
+                "Inclusive has to be either string of 'both',"
+                "'left', 'right', or 'neither'."
+            )
 
         return lmask & rmask
 

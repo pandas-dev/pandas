@@ -964,39 +964,60 @@ class Styler(StylerRenderer):
                 self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
+        """
+        Copies a Styler, allowing for deepcopy or shallow copy
+
+        Copying a Styler aims to recreate a new Styler object which contains the same
+        data and styles as the original.
+
+        Data dependent attributes [copied and NOT exported]:
+          - formatting (._display_funcs)
+          - hidden index values or column values (.hidden_rows, .hidden_columns)
+          - tooltips
+          - cell_context (cell css classes)
+          - ctx (cell css styles)
+          - caption
+
+        Non-data dependent attributes [copied and exported]:
+          - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
+          - table_attributes
+          - table_styles
+          - applied styles (_todo)
+
+        """
+        # GH 40675
         styler = Styler(
-            self.data,
-            precision=self.precision,
-            caption=self.caption,
-            table_attributes=self.table_attributes,
-            cell_ids=self.cell_ids,
-            na_rep=self.na_rep,
+            self.data,  # populates attributes 'data', 'columns', 'index' as shallow
+            uuid_len=self.uuid_len,
         )
+        shallow = [  # simple string or boolean immutables
+            "hide_index_",
+            "hide_columns_",
+            "table_attributes",
+            "cell_ids",
+            "caption",
+        ]
+        deep = [  # nested lists or dicts
+            "_display_funcs",
+            "hidden_rows",
+            "hidden_columns",
+            "ctx",
+            "cell_context",
+            "_todo",
+            "table_styles",
+            "tooltips",
+        ]
 
-        styler.uuid = self.uuid
-        styler.hide_index_ = self.hide_index_
+        for attr in shallow:
+            setattr(styler, attr, getattr(self, attr))
 
-        if deepcopy:
-            styler.ctx = copy.deepcopy(self.ctx)
-            styler._todo = copy.deepcopy(self._todo)
-            styler.table_styles = copy.deepcopy(self.table_styles)
-            styler.hidden_columns = copy.copy(self.hidden_columns)
-            styler.cell_context = copy.deepcopy(self.cell_context)
-            styler.tooltips = copy.deepcopy(self.tooltips)
-        else:
-            styler.ctx = self.ctx
-            styler._todo = self._todo
-            styler.table_styles = self.table_styles
-            styler.hidden_columns = self.hidden_columns
-            styler.cell_context = self.cell_context
-            styler.tooltips = self.tooltips
+        for attr in deep:
+            val = getattr(self, attr)
+            setattr(styler, attr, copy.deepcopy(val) if deepcopy else val)
 
         return styler
 
     def __copy__(self) -> Styler:
-        """
-        Deep copy by default.
-        """
         return self._copy(deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
@@ -2542,23 +2563,35 @@ class Styler(StylerRenderer):
         )
 
     @classmethod
-    def from_custom_template(cls, searchpath, name):
+    def from_custom_template(
+        cls, searchpath, html_table: str | None = None, html_style: str | None = None
+    ):
         """
         Factory function for creating a subclass of ``Styler``.
 
-        Uses a custom template and Jinja environment.
+        Uses custom templates and Jinja environment.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
-        name : str
-            Name of your custom template to use for rendering.
+        html_table : str
+            Name of your custom template to replace the html_table template.
+
+            .. versionadded:: 1.3.0
+
+        html_style : str
+            Name of your custom template to replace the html_style template.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env`` and ``template`` class attributes set.
+            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            ``template_html_style`` class attributes set.
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
@@ -2567,7 +2600,10 @@ class Styler(StylerRenderer):
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
-            template_html = env.get_template(name)
+            if html_table:
+                template_html_table = env.get_template(html_table)
+            if html_style:
+                template_html_style = env.get_template(html_style)
 
         return MyStyler
 
