@@ -707,6 +707,8 @@ Other API changes
 - Added new ``engine`` and ``**engine_kwargs`` parameters to :meth:`DataFrame.to_sql` to support other future "SQL engines". Currently we still only use ``SQLAlchemy`` under the hood, but more engines are planned to be supported such as `turbodbc <https://turbodbc.readthedocs.io/en/latest/>`_ (:issue:`36893`)
 - Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
 - :meth:`ExtensionDtype.construct_array_type` is now a required method instead of an optional one for :class:`ExtensionDtype` subclasses (:issue:`24860`)
+- Calling ``hash`` on non-hashable pandas objects will now raise ``TypeError`` with the built-in error message (e.g. ``unhashable type: 'Series'``). Previously it would raise a custom message such as ``'Series' objects are mutable, thus they cannot be hashed``. Furthermore, ``isinstance(<Series>, abc.collections.Hashable)`` will now return ``False`` (:issue:`40013`)
+- :meth:`.Styler.from_custom_template` now has two new arguments for template names, and removed the old ``name``, due to template inheritance having been introducing for better parsing (:issue:`42053`). Subclassing modifications to Styler attributes are also needed.
 
 .. _whatsnew_130.api_breaking.build:
 
