@@ -2048,7 +2048,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
-        align: str | float | int | callable = "mid",
+        align: str | float | int | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -2773,7 +2773,7 @@ def _highlight_between(
 
 def _bar(
     data: FrameOrSeries,
-    align: str | float | int | callable,
+    align: str | float | int | Callable,
     colors: list[str],
     width: float,
     vmin: float | None,
@@ -2863,6 +2863,9 @@ def _bar(
         x = left if x < left else x
         x = right if x > right else x  # trim data if outside of the window
 
+        start: float = 0
+        end: float = 1
+
         if align == "left":
             # all proportions are measured from the left side between left and right
             start, end = 0, (x - left) / (right - left)
@@ -2891,44 +2894,41 @@ def _bar(
         elif align == "mid":
             # bars are drawn from zero either leftwards or rightwards with center of
             # cell placed at mid
-            mid = (left + right) / 2
-            if mid < 0:  # get the proportionate location of zero where bars start/end
-                zero_frac = -mid / (right - left) + 0.5
-            else:
-                zero_frac = -left / (right - left)
+            mid: float = (left + right) / 2
+            z_frac: float = (
+                -mid / (right - left) + 0.5 if mid < 0 else -left / (right - left)
+            )
 
             if x < 0:
-                start, end = (x - left) / (right - left), zero_frac
+                start, end = (x - left) / (right - left), z_frac
             else:
-                start, end = zero_frac, (x - left) / (right - left)
+                start, end = z_frac, (x - left) / (right - left)
 
         return css_bar(start * width, end * width, color)
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin
     right = np.nanmax(values) if vmax is None else vmax
+    z: float = 0  # adjustment to translate data
 
     if align == "mid":
         if np.all(values >= 0):  # "mid" is documented to act as "left" if all positive
-            z, align, left = 0, "left", 0 if vmin is None else vmin
+            align, left = "left", 0 if vmin is None else vmin
         elif np.all(values <= 0):  # "mid" is documented to act as "right" if all neg
-            z, align, right = 0, "right", 0 if vmax is None else vmax
-        else:
-            z = 0
+            align, right = "right", 0 if vmax is None else vmax
     elif align == "mean":
         z, align = np.nanmean(values), "zero"
     elif callable(align):
         z, align = align(values), "zero"
     elif isinstance(align, (float, int)):
         z, align = float(align), "zero"
-    elif align == "left" or align == "right" or align == "zero":
-        z = 0
-    else:
+    elif not (align == "left" or align == "right" or align == "zero"):
         raise ValueError(
             "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or be a "
             "value defining the center line or a callable that returns a float"
         )
 
+    assert isinstance(align, str)
     if data.ndim == 1:
         return [css_calc(x - z, left - z, right - z, align) for x in values]
     else:
