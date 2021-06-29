@@ -434,9 +434,12 @@ class Block(PandasObject):
         fillna on the block with the value. If we fail, then convert to
         ObjectBlock and try again
         """
+        # TODO: Handle inf_as_na, we need to get option and pass to cython funcs
         inplace = validate_bool_kwarg(inplace, "inplace")
         arr = self if inplace else self.copy()
-        limit = libalgos.validate_limit(None, limit=limit)
+        limit = libalgos.validate_limit(
+            len(self) if self.ndim == 1 else self.shape[1], limit=limit
+        )
 
         if not self._can_hold_na:
             return [arr]
@@ -444,7 +447,20 @@ class Block(PandasObject):
         if not self.is_extension:
             if self._can_hold_element(value):
                 if self.ndim == 1:
-                    libalgos.fillna1d(arr.values, value=value, limit=limit)
+                    if is_list_like(value):
+                        # TODO: Verify EA case
+                        if is_extension_array_dtype(value):
+                            mask = value.isna()
+                            value = np.asarray(value[mask], dtype=object)
+                            libalgos.fillna1d_multi_values(
+                                arr.values[mask], value=value, limit=limit
+                            )
+                        else:
+                            libalgos.fillna1d_multi_values(
+                                arr.values, value=value, limit=limit
+                            )
+                    else:
+                        libalgos.fillna1d(arr.values, value=value, limit=limit)
                 else:
                     libalgos.fillna2d(arr.values, value=value, limit=limit)
                 return arr._maybe_downcast([arr], downcast)

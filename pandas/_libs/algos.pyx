@@ -856,7 +856,7 @@ ctypedef fused fillna_t:
 @cython.wraparound(False)
 def fillna1d(fillna_t[:] arr,
              fillna_t value,
-             limit=None,
+             Py_ssize_t limit,
              bint inf_as_na=False
              ) -> ndarray:
     """
@@ -889,11 +889,6 @@ def fillna1d(fillna_t[:] arr,
     assert arr.ndim == 1, "'arr' must be 1-D."
 
     N = len(arr)
-    lim = validate_limit(N, limit)
-    # if inf_as_na:
-    #     check_func = checknull_old
-    # else:
-    #     check_func = checknull
     for i in range(N):
         val = arr[i]
         if fillna_t is object:
@@ -907,19 +902,82 @@ def fillna1d(fillna_t[:] arr,
                 result = result and (val == INF or val == NEGINF)
         else:
             result = val == NPY_NAT
-        if result and count < lim:
+        if result and count < limit:
             arr[i] = value
             count+=1
-        # if check_func(val) and count < lim:
-        #     arr[i] = value
-        #     count+=1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def fillna1d_multi_values(fillna_t[:] arr,
+                          algos_t[:] value,
+                          Py_ssize_t limit,
+                          bint inf_as_na=False
+                          ) -> ndarray:
+    """
+    Fills na-like elements inplace for a 1D array
+    according to the criteria defined in `checknull`:
+     - None
+     - nan
+     - NaT
+     - np.datetime64 representation of NaT
+     - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
+
+    Parameters
+    ----------
+    arr : ndarray
+    value : ndarray/ExtensionArray
+        A ndarray/ExtensionArray with same length as arr
+        describing which fill value to use at each position,
+        with a value of np.nan indicating that a position should
+        not be filled
+    limit : int, default None
+        The number of elements to fill. If None, fills all NaN values
+    inf_as_na:
+        Whether to consider INF and NEGINF as NA
+    """
+    cdef:
+        Py_ssize_t i, N
+        Py_ssize_t count=0
+        fillna_t val
+        algos_t fill_value
+        bint result
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
+
+    N = len(arr)
+    for i in range(N):
+        fill_value = value[i]
+        if fill_value != fill_value:
+            # np.nan don't fill
+            continue
+        val = arr[i]
+        if fillna_t is object:
+            if inf_as_na:
+                result = checknull_old(val)
+            else:
+                result = checknull(val)
+        elif fillna_t is float32_t or fillna_t is float64_t:
+            result = val != val
+            if inf_as_na:
+                result = result and (val == INF or val == NEGINF)
+        else:
+            result = val == NPY_NAT
+        if result and count < limit:
+            # Ugh... We have to cast here since technically could have a int64->float32
+            # There shouldn't be any risk here since BlockManager should check
+            # that the element can be held
+            arr[i] = <fillna_t>fill_value
+            count+=1
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def fillna2d(fillna_t[:, :] arr,
-             object value,
-             limit=None,
+             fillna_t value,
+             Py_ssize_t limit,
              bint inf_as_na=False
              ) -> ndarray:
     """
@@ -944,14 +1002,14 @@ def fillna2d(fillna_t[:, :] arr,
         Whether to consider INF and NEGINF as NA
     """
     cdef:
-        Py_ssize_t i, j, n, m, lim
+        Py_ssize_t i, j, n, m
         Py_ssize_t count=0
         fillna_t val
+        bint result
 
     assert arr.ndim == 2, "'arr' must be 2-D."
 
     n, m = (<object>arr).shape
-    lim = validate_limit(m, limit)
     if inf_as_na:
         check_func = checknull_old
     else:
@@ -960,7 +1018,18 @@ def fillna2d(fillna_t[:, :] arr,
         count = 0  # Limit is per axis
         for j in range(m):
             val = arr[i, j]
-            if check_func(val) and count < lim:
+            if fillna_t is object:
+                if inf_as_na:
+                    result = checknull_old(val)
+                else:
+                    result = checknull(val)
+            elif fillna_t is float32_t or fillna_t is float64_t:
+                result = val != val
+                if inf_as_na:
+                    result = result and (val == INF or val == NEGINF)
+            else:
+                result = val == NPY_NAT
+            if result and count < limit:
                 arr[i, j] = value
                 count+=1
 

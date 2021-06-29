@@ -14,9 +14,16 @@ class FillNa:
         data = np.random.randn(N)
         data[::2] = np.nan
         self.ts = pd.Series(data, index=rng)
+        self.df = pd.DataFrame(np.random.randn(10 ** 3, 10 ** 3))
 
     def time_fillna(self, inplace):
         self.ts.fillna(0.0, inplace=inplace)
+
+    def time_fillna_limit(self, inplace):
+        self.ts.fillna(0.0, inplace=inplace, limit=10 ** 5)
+
+    def time_fillna_df(self, inplace):
+        self.df.fillna(0.0, inplace=inplace)
 
     def time_replace(self, inplace):
         self.ts.replace(np.nan, 0.0, inplace=inplace)
