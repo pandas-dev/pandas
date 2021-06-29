@@ -3769,8 +3769,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 loc, new_index = index._get_loc_level(
                     key, level=0, drop_level=drop_level
                 )
-            except TypeError as e:
-                raise TypeError(f"Expected label or tuple of labels, got {key}") from e
+            except TypeError as err:
+                raise TypeError(
+                    f"Expected label or tuple of labels, got {key}"
+                ) from err
         else:
             loc = index.get_loc(key)
 

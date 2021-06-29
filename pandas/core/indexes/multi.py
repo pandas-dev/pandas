@@ -2933,43 +2933,47 @@ class MultiIndex(Index):
             level = [self._get_level_number(lev) for lev in level]
         return self._get_loc_level(key, level=level, drop_level=drop_level)
 
+    def _get_loc_maybe_droplevel(self, indexer, levels, drop_level: bool):
+        # different name to distinguish from maybe_droplevels
+        if not drop_level:
+            return self[indexer]
+
+        # kludge around
+        orig_index = new_index = self[indexer]
+
+        for i in sorted(levels, reverse=True):
+            try:
+                new_index = new_index._drop_level_numbers([i])
+            except ValueError:
+
+                # no dropping here
+                return orig_index
+        return new_index
+
+    def _get_loc_multiple_levels(self, key, level: list[int], drop_level: bool):
+        if len(key) != len(level):
+            raise AssertionError(
+                "Key for location must have same length as number of levels"
+            )
+        result = None
+        for lev, k in zip(level, key):
+            loc, new_index = self._get_loc_level(k, level=lev)
+            if isinstance(loc, slice):
+                mask = np.zeros(len(self), dtype=bool)
+                mask[loc] = True
+                loc = mask
+
+            result = loc if result is None else result & loc
+
+        return result, self._get_loc_maybe_droplevel(result, level, drop_level)
+
     def _get_loc_level(self, key, level: int | list[int] = 0, drop_level: bool = True):
         """
         get_loc_level but with `level` known to be positional, not name-based.
         """
 
-        # different name to distinguish from maybe_droplevels
-        def maybe_mi_droplevels(indexer, levels, drop_level: bool):
-            if not drop_level:
-                return self[indexer]
-            # kludge around
-            orig_index = new_index = self[indexer]
-
-            for i in sorted(levels, reverse=True):
-                try:
-                    new_index = new_index._drop_level_numbers([i])
-                except ValueError:
-
-                    # no dropping here
-                    return orig_index
-            return new_index
-
         if isinstance(level, (tuple, list)):
-            if len(key) != len(level):
-                raise AssertionError(
-                    "Key for location must have same length as number of levels"
-                )
-            result = None
-            for lev, k in zip(level, key):
-                loc, new_index = self._get_loc_level(k, level=lev)
-                if isinstance(loc, slice):
-                    mask = np.zeros(len(self), dtype=bool)
-                    mask[loc] = True
-                    loc = mask
-
-                result = loc if result is None else result & loc
-
-            return result, maybe_mi_droplevels(result, level, drop_level)
+            return self._get_loc_multiple_levels(key, level, drop_level)
 
         # kludge for #1796
         if isinstance(key, list):
@@ -2978,33 +2982,33 @@ class MultiIndex(Index):
         if isinstance(key, tuple) and level == 0:
 
             try:
+                # Check if this tuple is a single key in our first level
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
-                    new_index = maybe_mi_droplevels(indexer, [0], drop_level)
+                    new_index = self._get_loc_maybe_droplevel(indexer, [0], drop_level)
                     return indexer, new_index
             except (TypeError, InvalidIndexError):
                 pass
 
             if not any(isinstance(k, slice) for k in key):
-
                 # partial selection
-                # optionally get indexer to avoid re-calculation
-                def partial_selection(key, indexer=None):
-                    if indexer is None:
-                        indexer = self.get_loc(key)
-                    ilevels = [
-                        i for i in range(len(key)) if key[i] != slice(None, None)
-                    ]
-                    return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
 
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
                     try:
                         return (self._engine.get_loc(key), None)
-                    except KeyError as e:
-                        raise KeyError(key) from e
+                    except KeyError as err:
+                        raise KeyError(key) from err
+
                 else:
-                    return partial_selection(key)
+                    indexer = self.get_loc(key)
+                    ilevels = [
+                        i for i in range(len(key)) if key[i] != slice(None, None)
+                    ]
+                    return indexer, self._get_loc_maybe_droplevel(
+                        indexer, ilevels, drop_level
+                    )
+
             else:
                 indexer = None
                 for i, k in enumerate(key):
@@ -3025,15 +3029,17 @@ class MultiIndex(Index):
 
                     if indexer is None:
                         indexer = k_index
-                    else:  # pragma: no cover
+                    else:
                         indexer &= k_index
                 if indexer is None:
                     indexer = slice(None, None)
                 ilevels = [i for i in range(len(key)) if key[i] != slice(None, None)]
-                return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
+                return indexer, self._get_loc_maybe_droplevel(
+                    indexer, ilevels, drop_level
+                )
         else:
             indexer = self._get_level_indexer(key, level=level)
-            return indexer, maybe_mi_droplevels(indexer, [level], drop_level)
+            return indexer, self._get_loc_maybe_droplevel(indexer, [level], drop_level)
 
     def _get_level_indexer(self, key, level: int = 0, indexer=None):
         # `level` kwarg is _always_ positional, never name
