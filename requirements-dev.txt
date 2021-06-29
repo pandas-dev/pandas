@@ -56,6 +56,7 @@ matplotlib>=2.2.2
 numexpr>=2.7.0
 scipy>=1.2
 numba>=0.46.0
+setuptools>=51.0.0
 beautifulsoup4>=4.6.0
 html5lib
 lxml
