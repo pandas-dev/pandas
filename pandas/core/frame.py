@@ -6180,7 +6180,10 @@ class DataFrame(NDFrame, OpsMixin):
             return labels.astype("i8", copy=False), len(shape)
 
         if subset is None:
-            subset = self.columns
+            # Incompatible types in assignment
+            # (expression has type "Index", variable has type "Sequence[Any]")
+            # (pending on https://github.com/pandas-dev/pandas/issues/28770)
+            subset = self.columns  # type: ignore[assignment]
         elif (
             not np.iterable(subset)
             or isinstance(subset, str)
