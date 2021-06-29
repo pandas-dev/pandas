@@ -240,14 +240,21 @@ class TestPyObjectHashTableWithNans:
         assert str(error.value) == str(other)
 
 
+def test_hash_equal_tuple_with_nans():
+    a = (float("nan"), (float("nan"), float("nan")))
+    b = (float("nan"), (float("nan"), float("nan")))
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+
+
 def test_get_labels_groupby_for_Int64(writable):
     table = ht.Int64HashTable()
     vals = np.array([1, 2, -1, 2, 1, -1], dtype=np.int64)
     vals.flags.writeable = writable
     arr, unique = table.get_labels_groupby(vals)
-    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.int64)
+    expected_arr = np.array([0, 1, -1, 1, 0, -1], dtype=np.intp)
     expected_unique = np.array([1, 2], dtype=np.int64)
-    tm.assert_numpy_array_equal(arr.astype(np.int64), expected_arr)
+    tm.assert_numpy_array_equal(arr, expected_arr)
     tm.assert_numpy_array_equal(unique, expected_unique)
 
 
