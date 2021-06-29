@@ -9,7 +9,10 @@ import pandas._libs.json as json
 from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 
 if TYPE_CHECKING:
     from xlwt import XFStyle
@@ -30,9 +33,12 @@ class XlwtWriter(ExcelWriter):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         # Use the xlwt module as the Excel writer.
         import xlwt
+
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlwt!")
