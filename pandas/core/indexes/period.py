@@ -15,6 +15,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaT,
     Period,
     Resolution,
     Tick,
@@ -37,6 +38,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -413,7 +415,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        if isinstance(key, str):
+        if is_valid_na_for_dtype(key, self.dtype):
+            key = NaT
+
+        elif isinstance(key, str):
 
             try:
                 loc = self._get_string_slice(key)
