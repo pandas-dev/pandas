@@ -15,6 +15,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    NaT,
     Period,
     Resolution,
     Tick,
@@ -37,6 +38,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.arrays.period import (
     PeriodArray,
@@ -413,7 +415,10 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         if not is_scalar(key):
             raise InvalidIndexError(key)
 
-        if isinstance(key, str):
+        if is_valid_na_for_dtype(key, self.dtype):
+            key = NaT
+
+        elif isinstance(key, str):
 
             try:
                 loc = self._get_string_slice(key)
@@ -447,10 +452,25 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             else:
                 key = asdt
 
-        elif is_integer(key):
-            # Period constructor will cast to string, which we dont want
-            raise KeyError(key)
-        elif isinstance(key, Period) and key.freq != self.freq:
+        elif isinstance(key, Period):
+            sfreq = self.freq
+            kfreq = key.freq
+            if not (
+                sfreq.n == kfreq.n
+                and sfreq._period_dtype_code == kfreq._period_dtype_code
+            ):
+                # GH#42247 For the subset of DateOffsets that can be Period freqs,
+                #  checking these two attributes is sufficient to check equality,
+                #  and much more performant than `self.freq == key.freq`
+                raise KeyError(key)
+        elif isinstance(key, datetime):
+            try:
+                key = Period(key, freq=self.freq)
+            except ValueError as err:
+                # we cannot construct the Period
+                raise KeyError(orig_key) from err
+        else:
+            # in particular integer, which Period constructor would cast to string
             raise KeyError(key)
 
         try:
