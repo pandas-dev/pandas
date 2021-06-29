@@ -40,7 +40,10 @@ from pandas.core.window.indexers import (
     ExponentialMovingWindowIndexer,
     GroupbyIndexer,
 )
-from pandas.core.window.numba_ import generate_numba_ewma_func
+from pandas.core.window.numba_ import (
+    generate_ewma_numba_table_func,
+    generate_numba_ewma_func,
+)
 from pandas.core.window.online import (
     EWMMeanState,
     generate_online_numba_ewma_func,
@@ -200,6 +203,16 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
         Only applicable to ``mean()``.
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        Only applicable to ``mean()``
+
+        .. versionadded:: 1.3.0
 
     Returns
     -------
@@ -258,6 +271,7 @@ class ExponentialMovingWindow(BaseWindow):
         "ignore_na",
         "axis",
         "times",
+        "method",
     ]
 
     def __init__(
@@ -272,6 +286,7 @@ class ExponentialMovingWindow(BaseWindow):
         ignore_na: bool = False,
         axis: Axis = 0,
         times: str | np.ndarray | FrameOrSeries | None = None,
+        method: str = "single",
         *,
         selection=None,
     ):
@@ -281,7 +296,7 @@ class ExponentialMovingWindow(BaseWindow):
             on=None,
             center=False,
             closed=None,
-            method="single",
+            method=method,
             axis=axis,
             selection=selection,
         )
@@ -437,12 +452,19 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
-            ewma_func = generate_numba_ewma_func(
-                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
-            )
+            if self.method == "single":
+                ewma_func = generate_numba_ewma_func(
+                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+                )
+                numba_cache_key = (lambda x: x, "ewma")
+            else:
+                ewma_func = generate_ewma_numba_table_func(
+                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+                )
+                numba_cache_key = (lambda x: x, "ewma_table")
             return self._apply(
                 ewma_func,
-                numba_cache_key=(lambda x: x, "ewma"),
+                numba_cache_key=numba_cache_key,
             )
         elif engine in ("cython", None):
             if engine_kwargs is not None:
