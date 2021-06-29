@@ -227,7 +227,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     else:
         keys, values = zip(*groups)
 
-    all_cols = list(set.union(*[set(x) for x in values]))
+    all_cols = list(set.union(*(set(x) for x in values)))
     id_cols = list(data.columns.difference(all_cols))
 
     K = len(values[0])

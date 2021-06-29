@@ -12,11 +12,13 @@ jobs:
         ENV_FILE: ci/deps/azure-windows-37.yaml
         CONDA_PY: "37"
         PATTERN: "not slow and not network"
+        PYTEST_WORKERS: 2  # GH-42236
 
       py38_np18:
         ENV_FILE: ci/deps/azure-windows-38.yaml
         CONDA_PY: "38"
         PATTERN: "not slow and not network and not high_memory"
+        PYTEST_WORKERS: 2  # GH-42236
 
   steps:
     - powershell: |
