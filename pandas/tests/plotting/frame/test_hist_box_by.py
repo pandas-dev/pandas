@@ -123,22 +123,19 @@ class TestHistWithBy(TestPlotBase):
             )
         self._check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
-    def test_hist_plot_invalid_layout_with_by_raises(self):
+    @pytest.mark.parametrize(
+        "msg, by, layout",
+        [
+            ("larger than required size", ["C", "D"], (1, 1)),
+            (re.escape("Layout must be a tuple of (rows, columns)"), "C", (1,)),
+            ("At least one dimension of layout must be positive", "C", (-1, -1)),
+        ],
+    )
+    def test_hist_plot_invalid_layout_with_by_raises(self, msg, by, layout):
         # GH 15079, test if error is raised when invalid layout is given
 
-        # layout too small for all 3 plots
-        msg = "larger than required size"
         with pytest.raises(ValueError, match=msg):
-            self.hist_df.plot.hist(column=["A", "B"], by="C", layout=(1, 1))
-
-        # invalid format for layout
-        msg = re.escape("Layout must be a tuple of (rows, columns)")
-        with pytest.raises(ValueError, match=msg):
-            self.hist_df.plot.hist(column=["A", "B"], by="C", layout=(1,))
-
-        msg = "At least one dimension of layout must be positive"
-        with pytest.raises(ValueError, match=msg):
-            self.hist_df.plot.hist(column=["A", "B"], by="C", layout=(-1, -1))
+            self.hist_df.plot.hist(column=["A", "B"], by=by, layout=layout)
 
     @pytest.mark.slow
     def test_axis_share_x_with_by(self):
@@ -265,22 +262,19 @@ class TestBoxWithBy(TestPlotBase):
         )
         self._check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
-    def test_box_plot_invalid_layout_with_by_raises(self):
+    @pytest.mark.parametrize(
+        "msg, by, layout",
+        [
+            ("larger than required size", ["C", "D"], (1, 1)),
+            (re.escape("Layout must be a tuple of (rows, columns)"), "C", (1,)),
+            ("At least one dimension of layout must be positive", "C", (-1, -1)),
+        ],
+    )
+    def test_box_plot_invalid_layout_with_by_raises(self, msg, by, layout):
         # GH 15079, test if error is raised when invalid layout is given
 
-        # layout too small for all 3 plots
-        msg = "larger than required size"
         with pytest.raises(ValueError, match=msg):
-            self.box_df.plot.box(column=["A", "B"], by=["C", "D"], layout=(1, 1))
-
-        # invalid format for layout
-        msg = re.escape("Layout must be a tuple of (rows, columns)")
-        with pytest.raises(ValueError, match=msg):
-            self.box_df.plot.box(column=["A", "B"], by="C", layout=(1,))
-
-        msg = "At least one dimension of layout must be positive"
-        with pytest.raises(ValueError, match=msg):
-            self.box_df.plot.box(column=["A", "B"], by="C", layout=(-1, -1))
+            self.box_df.plot.box(column=["A", "B"], by=by, layout=layout)
 
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize):
