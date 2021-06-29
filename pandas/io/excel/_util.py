@@ -271,7 +271,8 @@ def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
     engine_kwargs combined with kwargs
     """
     if engine_kwargs is None:
-        engine_kwargs = {}
-    result = kwargs.copy()
-    result.update(engine_kwargs)
+        result = {}
+    else:
+        result = engine_kwargs.copy()
+    result.update(kwargs)
     return result

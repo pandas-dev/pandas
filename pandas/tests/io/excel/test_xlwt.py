@@ -103,6 +103,7 @@ def test_option_xls_writer_deprecated(ext):
 
 @pytest.mark.parametrize("write_only", [True, False])
 def test_kwargs(ext, write_only):
+    # GH 42286
     # xlwt doesn't utilize kwargs, only test that supplying a kwarg works
     kwargs = {"write_only": write_only}
     with tm.ensure_clean(ext) as f:
@@ -115,6 +116,7 @@ def test_kwargs(ext, write_only):
 
 @pytest.mark.parametrize("write_only", [True, False])
 def test_engine_kwargs(ext, write_only):
+    # GH 42286
     # xlwt doesn't utilize kwargs, only test that supplying a engine_kwarg works
     engine_kwargs = {"write_only": write_only}
     with tm.ensure_clean(ext) as f:

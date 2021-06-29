@@ -66,6 +66,7 @@ def test_write_append_mode_raises(ext):
 
 @pytest.mark.parametrize("nan_inf_to_errors", [True, False])
 def test_kwargs(ext, nan_inf_to_errors):
+    # GH 42286
     kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
     with tm.ensure_clean(ext) as f:
         msg = re.escape("Use of **kwargs is deprecated")
@@ -76,6 +77,7 @@ def test_kwargs(ext, nan_inf_to_errors):
 
 @pytest.mark.parametrize("nan_inf_to_errors", [True, False])
 def test_engine_kwargs(ext, nan_inf_to_errors):
+    # GH 42286
     engine_kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
     with tm.ensure_clean(ext) as f:
         with ExcelWriter(f, engine="xlsxwriter", engine_kwargs=engine_kwargs) as writer:

@@ -21,6 +21,7 @@ def test_write_append_mode_raises(ext):
 
 @pytest.mark.parametrize("nan_inf_to_errors", [True, False])
 def test_kwargs(ext, nan_inf_to_errors):
+    # GH 42286
     # odswriter doesn't utilize kwargs, nothing to check except that it works
     kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
     with tm.ensure_clean(ext) as f:
@@ -32,6 +33,7 @@ def test_kwargs(ext, nan_inf_to_errors):
 
 @pytest.mark.parametrize("nan_inf_to_errors", [True, False])
 def test_engine_kwargs(ext, nan_inf_to_errors):
+    # GH 42286
     # odswriter doesn't utilize engine_kwargs, nothing to check except that it works
     engine_kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
     with tm.ensure_clean(ext) as f:
