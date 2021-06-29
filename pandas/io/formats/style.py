@@ -2048,7 +2048,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         color="#d65f5f",
         width: float = 100,
-        align: str | float | int | callable = "left",
+        align: str | float | int | callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
@@ -2074,7 +2074,7 @@ class Styler(StylerRenderer):
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
-        align : str, int, float, callable, default 'left'
+        align : str, int, float, callable, default 'mid'
             How to align the bars within the cells relative to a width adjusted center.
             If string must be one of:
 
@@ -2776,15 +2776,32 @@ def _bar(
     align: str | float | int | callable,
     colors: list[str],
     width: float,
-    vmin: float,
-    vmax: float,
+    vmin: float | None,
+    vmax: float | None,
     base_css: str,
 ):
     """
-    Draw bar chart in dataframe cells.
+    Draw bar chart in data cells using HTML CSS linear gradient.
+
+    Parameters
+    ----------
+    data : Series or DataFrame
+        Underling subset of Styler data on which operations are performed.
+    align : str in {"left", "right", "mid", "zero", "mean"}, int, float, callable
+        Method for how bars are structured or scalar value of centre point.
+    colors : list-like of str
+        Two listed colors as string in valid CSS.
+    width : float in [0,1]
+        The percentage of the cell, measured from left, where drawn bars will reside.
+    vmin : float, optional
+        Overwrite the minimum value of the window.
+    vmax : float, optional
+        Overwrite the maximum value of the window.
+    base_css : str
+        Additional CSS that is included in the cell before bars are drawn.
     """
 
-    def css_bar(base_css: str, start: float, end: float, color: str) -> str:
+    def css_bar(start: float, end: float, color: str) -> str:
         """
         Generate CSS code to draw a bar from start to end in a table cell.
 
@@ -2792,8 +2809,6 @@ def _bar(
 
         Parameters
         ----------
-        base_css : str
-            Additional CSS applied to cell as well as linear gradient.
         start : float
             Relative positional start of bar coloring in [0,1]
         end : float
@@ -2804,15 +2819,20 @@ def _bar(
         Returns
         -------
         str : The CSS applicable to the cell.
-        """
-        if end > start:
-            base_css += "background: linear-gradient(90deg,"
-            if start > 0:
-                base_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
-            base_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
-        return base_css
 
-    def css_calc(x, left: float, right: float, align: str, width: float):
+        Notes
+        -----
+        Uses ``base_css`` from outer scope.
+        """
+        cell_css = base_css
+        if end > start:
+            cell_css += "background: linear-gradient(90deg,"
+            if start > 0:
+                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
+            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+        return cell_css
+
+    def css_calc(x, left: float, right: float, align: str):
         """
         Return the correct CSS for bar placement based on calculated values.
 
@@ -2827,13 +2847,14 @@ def _bar(
         align : {"left", "right", "zero", "mid"}
             How the bars will be positioned. Note if using "zero" with an adjustment
             such as a mean, ensure ``left`` and ``right`` are also adjusted on input.
-        width : float
-            The proportionate width of the cell to take up in [0,1]. Measured according
-            to ``align``.
 
         Returns
         -------
         str : Resultant CSS with linear gradient.
+
+        Notes
+        -----
+        Uses ``colors`` and ``width`` from outer scope.
         """
         if pd.isna(x):
             return base_css
@@ -2868,20 +2889,20 @@ def _bar(
                 start, end = 0.5, x / (right - left) + 0.5
 
         elif align == "mid":
+            # bars are drawn from zero either leftwards or rightwards with center of
+            # cell placed at mid
             mid = (left + right) / 2
-            if mid < 0:
-                zero_frac = (0 - mid) / (right - left) + 0.5
+            if mid < 0:  # get the proportionate location of zero where bars start/end
+                zero_frac = -mid / (right - left) + 0.5
             else:
-                zero_frac = (0 - left) / (right - left)
+                zero_frac = -left / (right - left)
 
             if x < 0:
-                start = (x - left) / (right - left)
-                end = zero_frac
+                start, end = (x - left) / (right - left), zero_frac
             else:
-                start = zero_frac
-                end = (x - left) / (right - left)
+                start, end = zero_frac, (x - left) / (right - left)
 
-        return css_bar(base_css, start * width, end * width, color)
+        return css_bar(start * width, end * width, color)
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin
@@ -2909,11 +2930,11 @@ def _bar(
         )
 
     if data.ndim == 1:
-        return [css_calc(x - z, left - z, right - z, align, width) for x in values]
+        return [css_calc(x - z, left - z, right - z, align) for x in values]
     else:
         return DataFrame(
             [
-                [css_calc(x - z, left - z, right - z, align, width) for x in row]
+                [css_calc(x - z, left - z, right - z, align) for x in row]
                 for row in values
             ],
             index=data.index,

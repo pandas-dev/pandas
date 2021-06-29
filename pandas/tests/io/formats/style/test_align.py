@@ -46,7 +46,7 @@ class TestStylerBarAlign:
 
     def test_bar_align_left_0points(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        result = df.style.bar()._compute().ctx
+        result = df.style.bar(align="left")._compute().ctx
         expected = {
             (0, 0): bar_grad(),
             (0, 1): bar_grad(),
@@ -60,7 +60,7 @@ class TestStylerBarAlign:
         }
         assert result == expected
 
-        result = df.style.bar(axis=1)._compute().ctx
+        result = df.style.bar(axis=1, align="left")._compute().ctx
         expected = {
             (0, 0): bar_grad(),
             (0, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
