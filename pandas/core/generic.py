@@ -1874,11 +1874,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Iteration
 
-    def __hash__(self) -> int:
-        raise TypeError(
-            f"{repr(type(self).__name__)} objects are mutable, "
-            f"thus they cannot be hashed"
-        )
+    # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
+    # Incompatible types in assignment (expression has type "None", base class
+    # "object" defined the type as "Callable[[object], int]")
+    __hash__: None  # type: ignore[assignment]
 
     def __iter__(self):
         """

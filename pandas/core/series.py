@@ -305,7 +305,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(  # type: ignore[assignment]
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    __hash__ = generic.NDFrame.__hash__
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
     rdiv: Callable[[Series, Any], Series]

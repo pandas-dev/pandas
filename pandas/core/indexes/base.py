@@ -4604,9 +4604,10 @@ class Index(IndexOpsMixin, PandasObject):
         except (OverflowError, TypeError, ValueError):
             return False
 
-    @final
-    def __hash__(self):
-        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
+    # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
+    # Incompatible types in assignment (expression has type "None", base class
+    # "object" defined the type as "Callable[[object], int]")
+    __hash__: None  # type: ignore[assignment]
 
     @final
     def __setitem__(self, key, value):
