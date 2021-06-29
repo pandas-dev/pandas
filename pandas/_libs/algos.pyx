@@ -949,9 +949,10 @@ def fillna1d_multi_values(fillna_t[:] arr,
     N = len(arr)
     for i in range(N):
         fill_value = value[i]
-        if fill_value != fill_value:
-            # np.nan don't fill
-            continue
+        if algos_t is object or algos_t is float64_t or algos_t is float32_t:
+            if fill_value != fill_value:
+                # np.nan don't fill
+                continue
         val = arr[i]
         if fillna_t is object:
             if inf_as_na:
