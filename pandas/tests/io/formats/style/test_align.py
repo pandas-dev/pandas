@@ -21,7 +21,7 @@ def bar_grad(a=None, b=None, c=None, d=None):
 class TestStylerBarAlign:
     def test_bar_align_left(self):
         df = DataFrame({"A": [0, 1, 2]})
-        result = df.style.bar()._compute().ctx
+        result = df.style.bar(align="left")._compute().ctx
         expected = {
             (0, 0): bar_grad(),
             (1, 0): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
@@ -29,7 +29,7 @@ class TestStylerBarAlign:
         }
         assert result == expected
 
-        result = df.style.bar(color="red", width=50)._compute().ctx
+        result = df.style.bar(color="red", width=50, align="left")._compute().ctx
         expected = {
             (0, 0): bar_grad(),
             (1, 0): bar_grad(" red 25.0%", " transparent 25.0%"),
@@ -38,10 +38,10 @@ class TestStylerBarAlign:
         assert result == expected
 
         df["C"] = ["a"] * len(df)
-        result = df.style.bar(color="red", width=50)._compute().ctx
+        result = df.style.bar(color="red", width=50, align="left")._compute().ctx
         assert result == expected
         df["C"] = df["C"].astype("category")
-        result = df.style.bar(color="red", width=50)._compute().ctx
+        result = df.style.bar(color="red", width=50, align="left")._compute().ctx
         assert result == expected
 
     def test_bar_align_left_0points(self):
@@ -189,7 +189,7 @@ class TestStylerBarAlign:
 
     def test_bar_align_left_axis_none(self):
         df = DataFrame({"A": [0, 1], "B": [2, 4]})
-        result = df.style.bar(axis=None)._compute().ctx
+        result = df.style.bar(axis=None, align="left")._compute().ctx
         expected = {
             (0, 0): bar_grad(),
             (1, 0): bar_grad(
