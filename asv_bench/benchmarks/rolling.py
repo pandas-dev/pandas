@@ -296,5 +296,8 @@ class TableMethod:
             table_method_func, raw=True, engine="numba"
         )
 
+    def time_ewm_mean(self, method):
+        self.df.ewm(1, method=method).mean(engine="numba")
+
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
