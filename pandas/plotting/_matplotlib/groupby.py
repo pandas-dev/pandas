@@ -123,7 +123,7 @@ def reconstruct_data_with_by(
 
 
 def reformat_hist_y_given_by(
-    y: Union[Series, np.ndarray], by: IndexLabel | None = None
+    y: Union[Series, np.ndarray], by: IndexLabel | None
 ) -> Union[Series, np.ndarray]:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
