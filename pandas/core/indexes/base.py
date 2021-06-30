@@ -3209,7 +3209,6 @@ class Index(IndexOpsMixin, PandasObject):
         # We will override for MultiIndex to handle empty results
         return self._wrap_setop_result(other, result)
 
-    @final
     def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
@@ -3281,6 +3280,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = Index(res_values, name=result_name)
 
         if self._is_multi:
+            self = cast("MultiIndex", self)
             if len(result) == 0:
                 # On equal symmetric_difference MultiIndexes the difference is empty.
                 # Therefore, an empty MultiIndex is returned GH#13490
