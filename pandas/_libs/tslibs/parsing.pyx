@@ -914,44 +914,25 @@ def guess_datetime_format(
     # the offset part of the tokens must match the '%z' format like '+0900'
     # instead of ‘+09:00’.
     if parsed_datetime.tzinfo is not None:
+        offset_index = None
         if len(tokens) > 0 and tokens[-1] == 'Z':
             # the last 'Z' means zero offset
-            tokens[-1] = '+0000'
-        else:
+            offset_index = -1
+        elif len(tokens) > 1 and tokens[-2] in ('+', '-'):
+            # ex. [..., '+', '0900']
+            offset_index = -2
+        elif len(tokens) > 3 and tokens[-4] in ('+', '-'):
+            # ex. [..., '+', '09', ':', '00']
+            offset_index = -4
+
+        if offset_index is not None:
             # If the input string has a timezone offset like '+0900',
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
             # So in addition to the format nomalization, we rejoin them here.
-            if (
-                len(tokens) > 3
-                and tokens[-1].isdigit()
-                and tokens[-3].isdigit()
-                and tokens[-4] in ('+', '-')
-            ):
-                # ex. [..., '+', '9', ':', '5'] -> [..., '+0905']
-                offset_idx = -4
-                sign, hour_offset, _, min_offset = tokens[offset_idx:]
-                tokens[offset_idx] = (
-                    f'{sign}{int(hour_offset):02d}{int(min_offset):02d}'
-                )
-                tokens = tokens[:offset_idx + 1]
-            elif (
-                len(tokens) > 1
-                and tokens[-1].isdigit()
-                and tokens[-2] in ('+', '-')
-            ):
-                # ex. [..., '+', '0905'] -> [..., '+0905']
-                offset_idx = -2
-                sign, offset = tokens[offset_idx:]
-                if len(offset) <= 2:
-                    # '+09' -> '+0900'
-                    tokens[offset_idx] = f'{sign}{int(offset):02d}00'
-                else:
-                    tokens[offset_idx] = f'{sign}{int(offset):04d}'
-                tokens = tokens[:offset_idx + 1]
-
-            # else: Other patterns are tried to parse as a timezone name.
+            tokens[offset_index] = parsed_datetime.strftime("%z")
+            tokens = tokens[:offset_index + 1 or None]
 
     format_guess = [None] * len(tokens)
     found_attrs = set()
