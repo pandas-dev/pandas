@@ -448,8 +448,8 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                             with gil:
                                 # We need to slice back to nobs because rank_1d will
                                 # require arrays of nobs length
-                                rankedx = rank_1d(np.array(maskedx)[:nobs])
-                                rankedy = rank_1d(np.array(maskedy)[:nobs])
+                                rankedx = rank_1d(np.asarray(maskedx)[:nobs])
+                                rankedy = rank_1d(np.asarray(maskedy)[:nobs])
                             for i in range(nobs):
                                 maskedx[i] = rankedx[i]
                                 maskedy[i] = rankedy[i]
@@ -1074,8 +1074,8 @@ def rank_1d(
             lexsort_indexer,
             masked_vals_memview,
             mask,
-            check_mask,
-            N,
+            check_mask=check_mask,
+            N=N,
             tiebreak=tiebreak,
             keep_na=keep_na,
             pct=pct,
@@ -1443,8 +1443,8 @@ def rank_2d(
                 sort_indexer[:, col],
                 masked_vals[:, col],
                 mask[:, col],
-                check_mask,
-                n,
+                check_mask=check_mask,
+                N=n,
                 tiebreak=tiebreak,
                 keep_na=keep_na,
                 pct=pct,
