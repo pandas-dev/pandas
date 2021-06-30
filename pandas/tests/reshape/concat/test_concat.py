@@ -656,9 +656,7 @@ def test_concat_posargs_deprecation():
 
 
 def test_concat_retain_attrs():
-    ''' Retain the attrs during concat
-
-    Only retain the attrs when the attrs are the same across all dataframes.'''
+    # GH#41828
     d = {'col1': [1, 2], 'col2': [3, 4]}
     df1 = pd.DataFrame(data=d)
     df1.attrs = {1: 1}
@@ -669,10 +667,7 @@ def test_concat_retain_attrs():
 
 
 def test_concat_drop_attrs():
-    '''Discard attrs when they don't match.
-
-    Drop the attrs when the attrs when the attrs are different across
-    all dataframes.'''
+    # GH#41828
     d = {'col1': [1, 2], 'col2': [3, 4]}
     df1 = pd.DataFrame(data=d)
     df1.attrs = {1: 1}
