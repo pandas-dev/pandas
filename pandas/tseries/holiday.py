@@ -560,6 +560,7 @@ class USFederalHolidayCalendar(AbstractHolidayCalendar):
         USMartinLutherKingJr,
         USPresidentsDay,
         USMemorialDay,
+        Holiday("Juneteenth", month=6, day=19, observance=nearest_workday),
         Holiday("July 4th", month=7, day=4, observance=nearest_workday),
         USLaborDay,
         USColumbusDay,
