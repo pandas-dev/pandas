@@ -63,6 +63,7 @@ from pandas.core.indexes.extension import (
     inherit_names,
     make_wrapped_arith_op,
 )
+from pandas.core.indexes.numeric import Int64Index
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -784,7 +785,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort=sort)._with_freq("infer")
+            i8self = Int64Index._simple_new(self.asi8)
+            i8other = Int64Index._simple_new(other.asi8)
+            i8result = i8self._union(i8other, sort=sort)
+            result = type(self)(i8result, dtype=self.dtype, freq="infer")
+            return result
 
     # --------------------------------------------------------------------
     # Join Methods
