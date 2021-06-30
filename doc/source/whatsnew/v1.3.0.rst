@@ -240,7 +240,7 @@ For example:
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, :meth:`Series.ewm`, :meth:`DataFrame.ewm`, :meth:`Series.expanding` now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`15095`, :issue:`38995`, :issue:`42273`)
+- :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, and :meth:`Series.expanding` now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`15095`, :issue:`38995`)
 - :class:`.ExponentialMovingWindow` now support a ``online`` method that can perform ``mean`` calculations in an online fashion. See :ref:`Window Overview <window.overview>` (:issue:`41673`)
 - Added :meth:`MultiIndex.dtypes` (:issue:`37062`)
 - Added ``end`` and ``end_day`` options for the ``origin`` argument in :meth:`DataFrame.resample` (:issue:`37804`)
