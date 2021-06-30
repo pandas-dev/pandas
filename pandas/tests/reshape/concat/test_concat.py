@@ -653,3 +653,30 @@ def test_concat_posargs_deprecation():
         result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_retain_attrs():
+    ''' Retain the attrs during concat
+
+    Only retain the attrs when the attrs are the same across all dataframes.'''
+    d = {'col1': [1, 2], 'col2': [3, 4]}
+    df1 = pd.DataFrame(data=d)
+    df1.attrs = {1: 1}
+    df2 = pd.DataFrame(data=d)
+    df2.attrs = {1: 1}
+    df = pd.concat([df1, df2])
+    assert df.attrs == {1: 1}
+
+
+def test_concat_drop_attrs():
+    '''Discard attrs when they don't match.
+
+    Drop the attrs when the attrs when the attrs are different across
+    all dataframes.'''
+    d = {'col1': [1, 2], 'col2': [3, 4]}
+    df1 = pd.DataFrame(data=d)
+    df1.attrs = {1: 1}
+    df2 = pd.DataFrame(data=d)
+    df2.attrs = {1: 2}
+    df = pd.concat([df1, df2])
+    assert df.attrs == {}
