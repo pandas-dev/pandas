@@ -874,10 +874,13 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            if isinstance(self.obj, ABCSeries) and any(
-                isinstance(k, tuple) for k in tup
+            if any(
+                isinstance(k, tuple) and any(not is_hashable(item) for item in k)
+                for k in tup
             ):
                 # GH#35349 Raise if tuple in tuple for series
+                # e.g. test_loc_series_getitem_too_many_dimensions
+                #  tup = (('A', slice(None, None, None)), slice(None, None, None))
                 raise ValueError("Too many indices")
             if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of

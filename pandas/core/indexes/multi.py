@@ -3232,18 +3232,37 @@ class MultiIndex(Index):
                 # a collection of labels to include from this level (these
                 # are or'd)
                 indexers: Int64Index | None = None
-                for x in k:
-                    try:
-                        idxrs = _convert_to_indexer(
-                            self._get_level_indexer(x, level=i, indexer=indexer)
-                        )
-                        indexers = (idxrs if indexers is None else indexers).union(
-                            idxrs, sort=False
-                        )
-                    except KeyError:
 
-                        # ignore not founds
-                        continue
+                # GH#27591 check if this is a single tuple key in the level
+                try:
+                    lev_loc = self._get_level_indexer(k, level=i, indexer=indexer)
+                except (InvalidIndexError, TypeError, KeyError) as err:
+                    # InvalidIndexError e.g. non-hashable, fall back to treating
+                    #  this as a sequence of labels
+                    # KeyError it can be ambiguous if this is a label or sequence
+                    #  of labels
+                    #  github.com/pandas-dev/pandas/issues/39424#issuecomment-871626708
+                    for x in k:
+                        if not is_hashable(x):
+                            # e.g. slice
+                            raise err
+                        try:
+                            idxrs = _convert_to_indexer(
+                                self._get_level_indexer(x, level=i, indexer=indexer)
+                            )
+                        except KeyError:
+                            # ignore not founds
+                            continue
+                        else:
+                            indexers = (idxrs if indexers is None else indexers).union(
+                                idxrs, sort=False
+                            )
+
+                else:
+                    idxrs = _convert_to_indexer(lev_loc)
+                    indexers = (idxrs if indexers is None else indexers).union(
+                        idxrs, sort=False
+                    )
 
                 if indexers is not None:
                     indexer = _update_indexer(indexers, indexer=indexer, key=seq)

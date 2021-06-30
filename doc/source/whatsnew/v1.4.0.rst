@@ -158,7 +158,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` with a :class:`MultiIndex` when indexing with a tuple in which one of the levels is also a tuple (:issue:`27591`)
 -
 
 Missing
