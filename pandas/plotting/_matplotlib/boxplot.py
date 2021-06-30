@@ -137,19 +137,19 @@ class BoxPlot(LinePlot):
             self._return_obj = pd.Series(dtype=object)
 
             # Re-create iterated data if `by` is assigned by users
-            if self.by is None:
-                data = self.data
-            else:
-                data = create_iter_data_given_by(self.data, self._kind)
+            data = (
+                create_iter_data_given_by(self.data, self._kind)
+                if self.by
+                else self.data
+            )
 
             for i, (label, y) in enumerate(self._iter_data(data=data)):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
-                ticklabels = [pprint_thing(label)]
 
                 # When by is applied, show title for subplots to know which group it is
                 # just like df.boxplot, and need to apply T on y to provide right input
-                if self.by is not None:
+                if self.by:
                     y = y.T
                     ax.set_title(pprint_thing(label))
 
@@ -158,6 +158,8 @@ class BoxPlot(LinePlot):
                     ticklabels = [
                         pprint_thing(col) for col in self.data.columns.levels[0]
                     ]
+                else:
+                    ticklabels = [pprint_thing(label)]
 
                 ret, bp = self._plot(
                     ax, y, column_num=i, return_type=self.return_type, **kwds

@@ -1237,6 +1237,8 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence
             Column in the DataFrame to group by.
+
+            .. versionchanged:: 1.4.0
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
@@ -1279,7 +1281,7 @@ class PlotAccessor(PandasObject):
         by : str or sequence, optional
             Column in the DataFrame to group by.
 
-            .. versionadded:: 1.3.0
+            .. versionadded:: 1.4.0
 
         bins : int, default 10
             Number of histogram bins to be used.

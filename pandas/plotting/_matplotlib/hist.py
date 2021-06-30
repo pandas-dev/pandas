@@ -101,10 +101,9 @@ class HistPlot(LinePlot):
         stacking_id = self._get_stacking_id()
 
         # Re-create iterated data if `by` is assigned by users
-        if self.by is None:
-            data = self.data
-        else:
-            data = create_iter_data_given_by(self.data, self._kind)
+        data = (
+            create_iter_data_given_by(self.data, self._kind) if self.by else self.data
+        )
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)

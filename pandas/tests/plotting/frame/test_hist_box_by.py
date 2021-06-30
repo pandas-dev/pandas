@@ -13,7 +13,7 @@ from pandas.tests.plotting.common import (
 )
 
 
-def create_hist_box_with_by_df():
+def _create_hist_box_with_by_df():
     np.random.seed(0)
     df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
     df["C"] = np.random.choice(["a", "b", "c"], 30)
@@ -28,7 +28,7 @@ class TestHistWithBy(TestPlotBase):
         import matplotlib as mpl
 
         mpl.rcdefaults()
-        self.hist_df = create_hist_box_with_by_df()
+        self.hist_df = _create_hist_box_with_by_df()
 
     @pytest.mark.parametrize(
         "by, column, titles, legends",
@@ -185,7 +185,7 @@ class TestBoxWithBy(TestPlotBase):
         import matplotlib as mpl
 
         mpl.rcdefaults()
-        self.box_df = create_hist_box_with_by_df()
+        self.box_df = _create_hist_box_with_by_df()
 
     @pytest.mark.parametrize(
         "by, column, titles, xticklabels",

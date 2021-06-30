@@ -135,15 +135,10 @@ class MPLPlot:
         self.data = data
         self.by = com.maybe_make_list(by)
 
-        # For `hist` plot, need to get grouped original data before `self.data` is
-        # updated later
-        if self.by and self._kind == "hist":
-            self._grouped = data.groupby(self.by)
-
         # Assign the rest of columns into self.columns if by is explicitly defined
-        # while column is not, so as to keep the same behaviour with current df.hist
-        # or df.boxplot.
-        if self.by and column is None:
+        # while column is not
+        # TODO: Might deprecate `column` argument in future PR (#28373)
+        if column is None:
             self.columns = [
                 col
                 for col in data.columns
@@ -151,6 +146,11 @@ class MPLPlot:
             ]
         else:
             self.columns = com.maybe_make_list(column)
+
+        # For `hist` plot, need to get grouped original data before `self.data` is
+        # updated later
+        if self.by and self._kind == "hist":
+            self._grouped = data.groupby(self.by)
 
         self.kind = kind
 

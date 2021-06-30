@@ -57,9 +57,10 @@ def create_iter_data_given_by(
      'h2': DataFrame({'a': [np.nan, np.nan, 5], 'b': [np.nan, np.nan, 6]})}
     """
 
-    # For `hist` plot, before transformation, the values in level 0 are
-    # actual subplot titles, and used for column subselection and iteration;
-    # For `box` plot, that's values in level 1
+    # For `hist` plot, before transformation, the values in level 0 are values
+    # in groups and subplot titles, and later used for column subselection and
+    # iteration; For `box` plot, values in level 1 are column names to show,
+    # and are used for iteration and as subplots titles.
     if kind == "hist":
         level = 0
     elif kind == "box":
@@ -74,11 +75,10 @@ def create_iter_data_given_by(
 
     # Select sub-columns based on the value of first level of MI
     assert isinstance(data.columns, MultiIndex)
-    cols = data.columns.levels[level]
-    iter_data = {
-        col: data.loc[:, data.columns.get_level_values(level) == col] for col in cols
+    return {
+        col: data.loc[:, data.columns.get_level_values(level) == col]
+        for col in data.columns.levels[level]
     }
-    return iter_data
 
 
 def reconstruct_data_with_by(
