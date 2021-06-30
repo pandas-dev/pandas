@@ -132,6 +132,6 @@ def reformat_hist_y_given_by(
     If by is None, input y is 1-d with NaN removed; and if by is not None, groupby
     will take place and input y is multi-dimensional array.
     """
-    if by is not None and len(y.shape) > 1:
+    if by and len(y.shape) > 1:
         return np.array([remove_na_arraylike(col) for col in y.T]).T
     return remove_na_arraylike(y)

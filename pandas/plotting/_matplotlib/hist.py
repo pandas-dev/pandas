@@ -122,7 +122,7 @@ class HistPlot(LinePlot):
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
-            if self.by is not None:
+            if self.by:
                 kwds["bins"] = kwds["bins"][i]
                 kwds["label"] = self.columns
                 kwds.pop("color")
@@ -139,7 +139,7 @@ class HistPlot(LinePlot):
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
 
             # when by is applied, show title for subplots to know which group it is
-            if self.by is not None:
+            if self.by:
                 ax.set_title(pprint_thing(label))
 
             self._append_legend_handles_labels(artists[0], label)

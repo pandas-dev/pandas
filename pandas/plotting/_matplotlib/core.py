@@ -451,7 +451,7 @@ class MPLPlot:
             data = data.to_frame(name=label)
 
         # GH15079 reconstruct data if by is defined
-        if self.by is not None:
+        if self.by:
             self.subplots = True
             data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 
