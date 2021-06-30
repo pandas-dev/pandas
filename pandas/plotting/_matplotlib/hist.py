@@ -53,12 +53,11 @@ class HistPlot(LinePlot):
         # calculate bin number separately in different subplots
         # where subplots are created based on by argument
         if is_integer(self.bins):
-            if self.by is None:
-                self.bins = self._calculate_bins(self.data)
-
-            else:
+            if self.by:
                 grouped = self.data.groupby(self.by)[self.columns]
                 self.bins = [self._calculate_bins(group) for key, group in grouped]
+            else:
+                self.bins = self._calculate_bins(self.data)
 
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
