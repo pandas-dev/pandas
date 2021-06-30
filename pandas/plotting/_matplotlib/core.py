@@ -138,14 +138,14 @@ class MPLPlot:
         # Assign the rest of columns into self.columns if by is explicitly defined
         # while column is not
         # TODO: Might deprecate `column` argument in future PR (#28373)
-        if column is None:
+        if column:
+            self.columns = com.maybe_make_list(column)
+        else:
             self.columns = [
                 col
                 for col in data.columns
                 if col not in self.by and is_numeric_dtype(data[col])
             ]
-        else:
-            self.columns = com.maybe_make_list(column)
 
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later

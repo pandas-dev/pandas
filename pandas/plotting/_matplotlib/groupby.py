@@ -71,8 +71,6 @@ def create_iter_data_given_by(
             f"kind 'hist' and 'box' plots, but used with '{kind}'"
         )
 
-    iter_data: Dict[str, FrameOrSeriesUnion]
-
     # Select sub-columns based on the value of level of MI, and if `by` is
     # assigned, data must be a MI DataFrame
     assert isinstance(data.columns, MultiIndex)
@@ -126,7 +124,7 @@ def reconstruct_data_with_by(
 
 
 def reformat_hist_y_given_by(
-    y: Union[Series, np.ndarray], by: Optional[IndexLabel] = None
+    y: Union[Series, np.ndarray], by: IndexLabel | None = None
 ) -> Union[Series, np.ndarray]:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
