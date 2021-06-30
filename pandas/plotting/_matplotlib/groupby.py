@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from typing import (
-    Dict,
-    Union,
-)
-
 import numpy as np
 
 from pandas._typing import (
@@ -24,7 +19,7 @@ from pandas import (
 
 def create_iter_data_given_by(
     data: DataFrame, kind: str = "hist"
-) -> Dict[str, FrameOrSeriesUnion]:
+) -> dict[str, FrameOrSeriesUnion]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
     used in both hist and boxplot.
@@ -125,8 +120,8 @@ def reconstruct_data_with_by(
 
 
 def reformat_hist_y_given_by(
-    y: Union[Series, np.ndarray], by: IndexLabel | None
-) -> Union[Series, np.ndarray]:
+    y: Series | np.ndarray, by: IndexLabel | None
+) -> Series | np.ndarray:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
     If by is None, input y is 1-d with NaN removed; and if by is not None, groupby
