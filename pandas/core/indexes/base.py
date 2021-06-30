@@ -3209,7 +3209,6 @@ class Index(IndexOpsMixin, PandasObject):
         # We will override for MultiIndex to handle empty results
         return self._wrap_setop_result(other, result)
 
-    @final
     def symmetric_difference(self, other, result_name=None, sort=None):
         """
         Compute the symmetric difference of two Index objects.
@@ -3251,21 +3250,46 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
-        left = self.difference(other, sort=False)
-        right = other.difference(self, sort=False)
-        result = left.union(right, sort=sort)
+        if not self._should_compare(other):
+            return self.union(other, sort=sort).rename(result_name)
 
-        if result_name is not None:
-            result = result.rename(result_name)
+        elif not is_dtype_equal(self.dtype, other.dtype):
+            dtype = self._find_common_type_compat(other)
+            this = self.astype(dtype, copy=False)
+            that = other.astype(dtype, copy=False)
+            return this.symmetric_difference(that, sort=sort).rename(result_name)
 
-        if self._is_multi and len(result) == 0:
-            # On equal symmetric_difference MultiIndexes the difference is empty.
-            # Therefore, an empty MultiIndex is returned GH#13490
-            return type(self)(
-                levels=[[] for _ in range(self.nlevels)],
-                codes=[[] for _ in range(self.nlevels)],
-                names=result.names,
-            )
+        this = self.unique()
+        other = other.unique()
+        indexer = this.get_indexer_for(other)
+
+        # {this} minus {other}
+        common_indexer = indexer.take((indexer != -1).nonzero()[0])
+        left_indexer = np.setdiff1d(
+            np.arange(this.size), common_indexer, assume_unique=True
+        )
+        left_diff = this._values.take(left_indexer)
+
+        # {other} minus {this}
+        right_indexer = (indexer == -1).nonzero()[0]
+        right_diff = other._values.take(right_indexer)
+
+        res_values = concat_compat([left_diff, right_diff])
+        res_values = _maybe_try_sort(res_values, sort)
+
+        result = Index(res_values, name=result_name)
+
+        if self._is_multi:
+            self = cast("MultiIndex", self)
+            if len(result) == 0:
+                # On equal symmetric_difference MultiIndexes the difference is empty.
+                # Therefore, an empty MultiIndex is returned GH#13490
+                return type(self)(
+                    levels=[[] for _ in range(self.nlevels)],
+                    codes=[[] for _ in range(self.nlevels)],
+                    names=result.name,
+                )
+            return type(self).from_tuples(result, names=result.name)
 
         return result
 
