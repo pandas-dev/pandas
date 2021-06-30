@@ -709,6 +709,8 @@ class Styler(StylerRenderer):
         0 & {\bfseries}{\Huge{1}} \\
         \end{tabular}
         """
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+
         table_selectors = (
             [style["selector"] for style in self.table_styles]
             if self.table_styles is not None
@@ -717,7 +719,7 @@ class Styler(StylerRenderer):
 
         if column_format is not None:
             # add more recent setting to table_styles
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
@@ -735,13 +737,13 @@ class Styler(StylerRenderer):
                     column_format += (
                         ("r" if not siunitx else "S") if ci in numeric_cols else "l"
                     )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
 
         if position:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position", "props": f":{position}"}],
                 overwrite=False,
             )
@@ -753,13 +755,13 @@ class Styler(StylerRenderer):
                     f"'raggedright', 'raggedleft', 'centering', "
                     f"got: '{position_float}'"
                 )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
             )
 
         if hrules:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [
                     {"selector": "toprule", "props": ":toprule"},
                     {"selector": "midrule", "props": ":midrule"},
@@ -769,20 +771,20 @@ class Styler(StylerRenderer):
             )
 
         if label:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
                 overwrite=False,
             )
 
         if caption:
-            self.set_caption(caption)
+            obj.set_caption(caption)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
 
-        latex = self._render_latex(
+        latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
