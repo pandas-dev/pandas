@@ -2966,10 +2966,18 @@ class MultiIndex(Index):
                     mask = np.zeros(len(self), dtype=bool)
                     mask[loc] = True
                     loc = mask
-
                 result = loc if result is None else result & loc
 
-            return result, maybe_mi_droplevels(result, level)
+            try:
+                # FIXME: we should be only dropping levels on which we are
+                #  scalar-indexing
+                mi = maybe_mi_droplevels(result, level)
+            except ValueError:
+                # droplevel failed because we tried to drop all levels,
+                #  i.e. len(level) == self.nlevels
+                mi = self[result]
+
+            return result, mi
 
         # kludge for #1796
         if isinstance(key, list):
