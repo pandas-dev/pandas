@@ -29,7 +29,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- Add support for assigning values to ``by`` argument in :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box` (:issue:`15079`, :issue:`28373`)
+- Add support for assigning values to ``by`` argument in :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box` (:issue:`15079`)
 -
 
 .. ---------------------------------------------------------------------------
