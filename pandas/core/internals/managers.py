@@ -381,6 +381,25 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
+        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+            # GH#35488 we need to watch out for multi-block cases
+            # We only get here with fill_value not-lib.no_default
+            ncols = self.shape[0]
+            if periods > 0:
+                indexer = [-1] * periods + list(range(ncols - periods))
+            else:
+                nper = abs(periods)
+                indexer = list(range(nper, ncols)) + [-1] * nper
+            result = self.reindex_indexer(
+                self.items,
+                indexer,
+                axis=0,
+                fill_value=fill_value,
+                allow_dups=True,
+                consolidate=False,
+            )
+            return result
+
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
