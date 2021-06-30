@@ -459,6 +459,8 @@ class Styler(StylerRenderer):
             \\begin{table}[<position>]
 
             \\<position_float>
+
+            Cannot be used if ``environment`` is "longtable".
         hrules : bool, default False
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
@@ -488,8 +490,7 @@ class Styler(StylerRenderer):
         environment : str, optional
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
-            rendered for which the ``position_float`` argument is nullified and does not
-            impact the result.
+            rendered.
         encoding : str, default "utf-8"
             Character encoding setting.
         convert_css : bool, default False
@@ -755,6 +756,10 @@ class Styler(StylerRenderer):
             )
 
         if position_float:
+            if environment == "longtable":
+                raise ValueError(
+                    "`position_float` cannot be used in 'longtable' `environment`"
+                )
             if position_float not in ["raggedright", "raggedleft", "centering"]:
                 raise ValueError(
                     f"`position_float` should be one of "
