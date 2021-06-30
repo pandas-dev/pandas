@@ -136,7 +136,7 @@ class MPLPlot:
         self.by = com.maybe_make_list(by)
 
         # Assign the rest of columns into self.columns if by is explicitly defined
-        # while column is not
+        # while column is not, only need `columns` in hist/box plot.
         # TODO: Might deprecate `column` argument in future PR (#28373)
         if column:
             self.columns = com.maybe_make_list(column)
