@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 from pandas import (
@@ -53,7 +52,7 @@ def test_from_dummies_to_series_contains_get_dummies_NaN_column():
 
 def test_from_dummies_to_series_contains_nan():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
-    expected = Series(["a", "b", np.nan])
+    expected = Series(["a", "b", "nan"])
     result = from_dummies(dummies, to_series=True)
     tm.assert_series_equal(result, expected)
 
@@ -165,7 +164,7 @@ def test_from_dummies_to_df_contains_get_dummies_NaN_column():
 
 def test_from_dummies_to_df_contains_nan(dummies_with_unassigned):
     expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", np.nan], "col2": [np.nan, "a", "c"]}
+        {"C": [1, 2, 3], "col1": ["a", "b", "nan"], "col2": ["nan", "a", "c"]}
     )
     result = from_dummies(dummies_with_unassigned)
     tm.assert_frame_equal(result, expected)

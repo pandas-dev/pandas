@@ -1128,29 +1128,31 @@ def from_dummies(
                 zip(variables_slice, [dropped_first] * len(variables_slice))
             )
 
-    cat_data = {prefix: [] for prefix in variables_slice}
-    for index, row in data.iterrows():
-        for prefix, prefix_slice in variables_slice.items():
-            slice_sum = row[prefix_slice].sum()
-            if slice_sum > 1:
-                raise ValueError(
-                    f"Dummy DataFrame contains multi-assignment(s) for prefix: "
-                    f"'{prefix}' in row {index}."
-                )
-            elif slice_sum == 0:
-                if dropped_first:
-                    category = dropped_first[prefix]
-                else:
-                    category = np.nan
+    cat_data = {}
+    for prefix, prefix_slice in variables_slice.items():
+        cats = [col[len(prefix + prefix_sep[prefix]) :] for col in prefix_slice]
+        assigned = data[prefix_slice].sum(axis=1)
+        if any(assigned > 1):
+            raise ValueError(
+                f"Dummy DataFrame contains multi-assignment(s) for prefix: "
+                f"'{prefix}' in row {assigned.argmax()}."
+            )
+        elif any(assigned == 0):
+            if dropped_first:
+                cats.append(dropped_first[prefix])
             else:
-                cat_index = row[prefix_slice].argmax()
-                category = prefix_slice[cat_index].split(prefix_sep[prefix])[1]
-            cat_data[prefix].append(category)
+                cats.append("nan")
+            bool_data_slice = concat(
+                (data[prefix_slice].astype("boolean"), assigned == 0), axis=1
+            )
+        else:
+            bool_data_slice = data[prefix_slice].astype("boolean")
+        cat_data[prefix] = bool_data_slice.dot(cats)
 
     if columns:
         return DataFrame(cat_data)
     else:
-        return concat([non_cat_data, DataFrame(cat_data)], axis=1)
+        return concat((non_cat_data, DataFrame(cat_data)), axis=1)
 
 
 def _from_dummies_1d(
@@ -1160,25 +1162,26 @@ def _from_dummies_1d(
     """
     soon
     """
+    from pandas.core.reshape.concat import concat
+
     if dropped_first and not isinstance(dropped_first, str):
         raise ValueError("Only one dropped first value possible in 1D dummy DataFrame.")
 
-    cat_data = []
-    for index, row in data.iterrows():
-        row_sum = row.sum()
-        if row_sum > 1:
-            raise ValueError(
-                f"Dummy DataFrame contains multi-assignment in row {index}."
-            )
-        elif row_sum == 0:
-            if dropped_first:
-                category = dropped_first
-            else:
-                category = np.nan
+    cats = data.columns.tolist()
+    assigned = data.sum(axis=1)
+    if any(assigned > 1):
+        raise ValueError(
+            f"Dummy DataFrame contains multi-assignment in row {assigned.argmax()}."
+        )
+    elif any(assigned == 0):
+        if dropped_first:
+            cats.append(dropped_first)
         else:
-            category = data.columns[row.argmax()]
-        cat_data.append(category)
-    return Series(cat_data)
+            cats.append("nan")
+        bool_data_slice = concat((data.astype("boolean"), assigned == 0), axis=1)
+    else:
+        bool_data_slice = data.astype("boolean")
+    return bool_data_slice.dot(cats)
 
 
 def _reorder_for_extension_array_stack(
