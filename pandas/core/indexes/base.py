@@ -3283,6 +3283,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = Index(res_values, name=result_name)
 
+        if self._is_multi:
+            self = cast("MultiIndex", self)
+            if len(result) == 0:
+                # On equal symmetric_difference MultiIndexes the difference is empty.
+                # Therefore, an empty MultiIndex is returned GH#13490
+                return type(self)(
+                    levels=[[] for _ in range(self.nlevels)],
+                    codes=[[] for _ in range(self.nlevels)],
+                    names=result.name,
+                )
+            return type(self).from_tuples(result, names=result.name)
+
         return result
 
     @final
