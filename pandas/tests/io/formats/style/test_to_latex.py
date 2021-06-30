@@ -322,7 +322,8 @@ def test_hidden_index(styler):
     assert styler.to_latex() == expected
 
 
-def test_comprehensive(df):
+@pytest.mark.parametrize("environment", ["table", "figure*", None])
+def test_comprehensive(df, environment):
     # test as many low level features simultaneously as possible
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
@@ -367,8 +368,8 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 \\end{tabular}
 \\end{table}
 """
-    )
-    assert s.format(precision=2).to_latex() == expected
+    ).replace("table", environment if environment else "table")
+    assert s.format(precision=2).to_latex(environment=environment) == expected
 
 
 def test_parse_latex_table_styles(styler):
@@ -484,19 +485,26 @@ def test_parse_latex_css_conversion(css, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("environment", ["tabular", "longtable"])
+@pytest.mark.parametrize(
+    "env, inner_env",
+    [
+        (None, "tabular"),
+        ("table", "tabular"),
+        ("longtable", "longtable"),
+    ],
+)
 @pytest.mark.parametrize(
     "convert, exp", [(True, "bfseries"), (False, "font-weightbold")]
 )
-def test_parse_latex_css_convert_minimal(styler, environment, convert, exp):
+def test_parse_latex_css_convert_minimal(styler, env, inner_env, convert, exp):
     # parameters ensure longtable template is also tested
     styler.highlight_max(props="font-weight:bold;")
-    result = styler.to_latex(convert_css=convert, environment=environment)
+    result = styler.to_latex(convert_css=convert, environment=env)
     expected = dedent(
         f"""\
         0 & 0 & \\{exp} -0.61 & ab \\\\
         1 & \\{exp} 1 & -1.22 & \\{exp} cd \\\\
-        \\end{{{environment}}}
+        \\end{{{inner_env}}}
     """
     )
     assert expected in result
@@ -607,11 +615,3 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
     assert expected in styler.to_latex(
         environment="longtable", caption=caption, label=label
     )
-
-
-def test_latex_environment(styler):
-    result = styler.to_latex(environment="figure*")
-    assert "\\begin{table}" not in result
-    assert "\\end{table}" not in result
-    assert "\\begin{figure*}" in result
-    assert "\\end{figure*}" in result
