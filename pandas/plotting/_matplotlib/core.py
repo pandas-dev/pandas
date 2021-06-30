@@ -144,7 +144,7 @@ class MPLPlot:
             self.columns = [
                 col
                 for col in data.columns
-                if col not in self.by and is_numeric_dtype(data[col])
+                if self.by and col not in self.by and is_numeric_dtype(data[col])
             ]
 
         # For `hist` plot, need to get grouped original data before `self.data` is
