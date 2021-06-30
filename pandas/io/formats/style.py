@@ -2841,12 +2841,16 @@ def _bar(
         x : float
             Value which determines the bar placement.
         left : float
-            Value marking the left side of calculation.
+            Value marking the left side of calculation, usually minimum of data.
         right : float
-            Value marking the right side of the calculation (left < right).
+            Value marking the right side of the calculation, usually maximum of data
+            (left < right).
         align : {"left", "right", "zero", "mid"}
-            How the bars will be positioned. Note if using "zero" with an adjustment
-            such as a mean, ensure ``left`` and ``right`` are also adjusted on input.
+            How the bars will be positioned.
+            "left", "right", "zero" can be used with any values for ``left``, ``right``.
+            "mid" can only be used where ``left <= 0`` and ``right >= 0``.
+            "zero" is used to specify a center when all values ``x``, ``left``,
+            ``right`` are translated, e.g. by say a mean or median.
 
         Returns
         -------
@@ -2868,36 +2872,24 @@ def _bar(
 
         if align == "left":
             # all proportions are measured from the left side between left and right
-            start, end = 0, (x - left) / (right - left)
+            end = (x - left) / (right - left)
 
         elif align == "right":
             # all proportions are measured from the right side between left and right
-            start, end = (x - left) / (right - left), 1
+            start = (x - left) / (right - left)
 
-        elif align == "zero":
-            # all proportions are measured from the center which is set to zero
-            # input data will have been translated if centering about a mean for example
-            if right < 0:
-                right = -left  # since abs(right) < abs(left): all data below zero
-            elif left >= 0:
-                left = -right  # since abs(left) < abs(right): all data above zero
-            elif abs(right) < abs(left):
-                right = -left  # standardise left and right as same distance from zero
-            else:
-                left = -right
-
-            if x < 0:
-                start, end = (x - left) / (right - left), 0.5
-            else:
-                start, end = 0.5, x / (right - left) + 0.5
-
-        elif align == "mid":
-            # bars are drawn from zero either leftwards or rightwards with center of
-            # cell placed at mid
-            mid: float = (left + right) / 2
-            z_frac: float = (
-                -mid / (right - left) + 0.5 if mid < 0 else -left / (right - left)
-            )
+        else:
+            z_frac: float = 0.5  # location of zero based on the left-right range
+            if align == "zero":
+                # all proportions are measured from the center at zero
+                limit: float = max(abs(left), abs(right))
+                left, right = -limit, limit
+            elif align == "mid":
+                # bars drawn from zero either leftwards or rightwards with center at mid
+                mid: float = (left + right) / 2
+                z_frac = (
+                    -mid / (right - left) + 0.5 if mid < 0 else -left / (right - left)
+                )
 
             if x < 0:
                 start, end = (x - left) / (right - left), z_frac
@@ -2912,9 +2904,9 @@ def _bar(
     z: float = 0  # adjustment to translate data
 
     if align == "mid":
-        if np.all(values >= 0):  # "mid" is documented to act as "left" if all positive
+        if left >= 0:  # "mid" is documented to act as "left" if all values positive
             align, left = "left", 0 if vmin is None else vmin
-        elif np.all(values <= 0):  # "mid" is documented to act as "right" if all neg
+        elif right <= 0:  # "mid" is documented to act as "right" if all values negative
             align, right = "right", 0 if vmax is None else vmax
     elif align == "mean":
         z, align = np.nanmean(values), "zero"
@@ -2928,7 +2920,7 @@ def _bar(
             "value defining the center line or a callable that returns a float"
         )
 
-    assert isinstance(align, str)
+    assert isinstance(align, str)  # mypy: should now be in [left, right, mid, zero]
     if data.ndim == 1:
         return [css_calc(x - z, left - z, right - z, align) for x in values]
     else:
