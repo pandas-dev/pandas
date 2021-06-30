@@ -1238,7 +1238,7 @@ class PlotAccessor(PandasObject):
         by : str or sequence
             Column in the DataFrame to group by.
 
-            .. versionchanged:: 1.4.0
+            .. versionadded:: 1.4.0
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
