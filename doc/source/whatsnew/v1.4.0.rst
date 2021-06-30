@@ -172,7 +172,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :func:`json_normalize` where ``errors=Ignore`` could fail to ignore missing values of ``meta`` when ``record_path`` has a length greater than one (:issue:`41876`)
 -
 
 Period

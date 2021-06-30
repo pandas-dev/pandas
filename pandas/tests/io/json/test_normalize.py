@@ -600,7 +600,10 @@ class TestNestedToRecord:
         # If meta keys are not always present a new option to set
         # errors='ignore' has been implemented
 
-        msg = "Try running with errors='ignore' as key 'name' is not always present"
+        msg = (
+            "Key 'name' not found. To replace missing values of "
+            "'name' with np.nan, pass in errors='ignore'"
+        )
         with pytest.raises(KeyError, match=msg):
             json_normalize(
                 data=missing_metadata,
@@ -628,7 +631,10 @@ class TestNestedToRecord:
         # GH41876
         # Ensure errors='raise' works as intended even when a record_path of length
         # greater than one is passed in
-        msg = "Try running with errors='ignore' as key 'name' is not always present"
+        msg = (
+            "Key 'name' not found. To replace missing values of "
+            "'name' with np.nan, pass in errors='ignore'"
+        )
         with pytest.raises(KeyError, match=msg):
             json_normalize(
                 data=missing_metadata,
