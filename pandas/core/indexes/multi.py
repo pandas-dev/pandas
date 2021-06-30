@@ -3273,7 +3273,7 @@ class MultiIndex(Index):
             else:
                 # a single label
                 indexer = _update_indexer(
-                    _convert_to_indexer(self.get_loc_level(k, level=i)[0]),
+                    _convert_to_indexer(self._get_loc_level(k, level=i)[0]),
                     indexer=indexer,
                     key=seq,
                 )
