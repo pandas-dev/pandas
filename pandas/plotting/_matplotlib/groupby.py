@@ -73,7 +73,8 @@ def create_iter_data_given_by(
 
     iter_data: Dict[str, FrameOrSeriesUnion]
 
-    # Select sub-columns based on the value of first level of MI
+    # Select sub-columns based on the value of level of MI, and if `by` is
+    # assigned, data must be a MI DataFrame
     assert isinstance(data.columns, MultiIndex)
     return {
         col: data.loc[:, data.columns.get_level_values(level) == col]
