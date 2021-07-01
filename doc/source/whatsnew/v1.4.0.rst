@@ -97,7 +97,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
--
+- Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 
 .. ---------------------------------------------------------------------------
 
