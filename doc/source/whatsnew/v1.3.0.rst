@@ -1,7 +1,7 @@
 .. _whatsnew_130:
 
-What's new in 1.3.0 (June ??)
------------------------------
+What's new in 1.3.0 (July 2, 2021)
+----------------------------------
 
 These are the changes in pandas 1.3.0. See :ref:`release` for a full changelog
 including other versions of pandas.
