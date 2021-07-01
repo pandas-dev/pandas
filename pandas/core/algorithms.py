@@ -1008,7 +1008,6 @@ def rank(
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
-            labels=np.zeros(len(values), dtype=np.intp),
             is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,

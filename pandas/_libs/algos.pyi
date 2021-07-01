@@ -123,7 +123,7 @@ def is_monotonic(
 
 def rank_1d(
     values: np.ndarray,  # ndarray[rank_t, ndim=1]
-    labels: np.ndarray,  # const int64_t[:]
+    labels: np.ndarray | None = ...,  # const int64_t[:]=None
     is_datetimelike: bool = ...,
     ties_method=...,
     ascending: bool = ...,
