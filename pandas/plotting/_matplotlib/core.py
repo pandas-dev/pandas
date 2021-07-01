@@ -39,6 +39,7 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.common as com
+from pandas.core.frame import DataFrame
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.compat import mpl_ge_3_0_0
@@ -136,16 +137,17 @@ class MPLPlot:
         self.by = com.maybe_make_list(by)
 
         # Assign the rest of columns into self.columns if by is explicitly defined
-        # while column is not, only need `columns` in hist/box plot.
+        # while column is not, only need `columns` in hist/box plot when it's DF
         # TODO: Might deprecate `column` argument in future PR (#28373)
-        if column:
-            self.columns = com.maybe_make_list(column)
-        else:
-            self.columns = [
-                col
-                for col in data.columns
-                if self.by and col not in self.by and is_numeric_dtype(data[col])
-            ]
+        if isinstance(data, DataFrame):
+            if column:
+                self.columns = com.maybe_make_list(column)
+            else:
+                self.columns = [
+                    col
+                    for col in data.columns
+                    if self.by and col not in self.by and is_numeric_dtype(data[col])
+                ]
 
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
