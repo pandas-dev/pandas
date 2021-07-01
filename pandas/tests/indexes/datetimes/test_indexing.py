@@ -422,6 +422,7 @@ class TestTake:
 
 class TestGetLoc:
     @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_method_exact_match(self, method):
         idx = date_range("2000-01-01", periods=3)
         assert idx.get_loc(idx[1], method) == 1
@@ -431,6 +432,7 @@ class TestGetLoc:
         if method is not None:
             assert idx.get_loc(idx[1], method, tolerance=pd.Timedelta("0 days")) == 1
 
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc(self):
         idx = date_range("2000-01-01", periods=3)
 
@@ -498,7 +500,8 @@ class TestGetLoc:
         )
         msg = "cannot yet lookup inexact labels when key is a time object"
         with pytest.raises(NotImplementedError, match=msg):
-            idx.get_loc(time(12, 30), method="pad")
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                idx.get_loc(time(12, 30), method="pad")
 
     def test_get_loc_time_nat(self):
         # GH#35114
@@ -518,7 +521,10 @@ class TestGetLoc:
             freq="5s",
         )
         key = Timestamp("2019-12-12 10:19:25", tz="US/Eastern")
-        result = dti.get_loc(key, method="nearest")
+        with tm.assert_produces_warning(
+            FutureWarning, match="deprecated", check_stacklevel=False
+        ):
+            result = dti.get_loc(key, method="nearest")
         assert result == 7433
 
     def test_get_loc_nat(self):

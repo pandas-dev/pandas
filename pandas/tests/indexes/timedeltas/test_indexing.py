@@ -82,6 +82,7 @@ class TestGetItem:
 
 
 class TestGetLoc:
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc(self):
         idx = to_timedelta(["0 days", "1 days", "2 days"])
 
