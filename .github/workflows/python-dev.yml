@@ -10,6 +10,12 @@ on:
     paths-ignore:
       - "doc/**"
 
+env:
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+  PATTERN: "not slow and not network and not clipboard"
+  COVERAGE: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,7 +42,7 @@ jobs:
         pip install git+https://github.com/numpy/numpy.git
         pip install git+https://github.com/pytest-dev/pytest.git
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest-xdist
+        pip install cython python-dateutil pytz hypothesis pytest-xdist pytest-cov
         pip list
 
     - name: Build Pandas
@@ -50,7 +56,8 @@ jobs:
 
     - name: Test with pytest
       run: |
-        coverage run -m pytest -m 'not slow and not network and not clipboard' pandas
+        ci/run_tests.sh
+      # GH 41935
       continue-on-error: true
 
     - name: Publish test results
