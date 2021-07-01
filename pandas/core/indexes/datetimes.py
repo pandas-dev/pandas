@@ -567,21 +567,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        valid_resos = {
-            "year",
-            "month",
-            "quarter",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "millisecond",
-            "microsecond",
-        }
-        if reso.attrname not in valid_resos:
-            raise KeyError
-
         grp = reso.freq_group
         per = Period(parsed, freq=grp.value)
         start, end = per.start_time, per.end_time
@@ -590,17 +575,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # If an incoming date string contained a UTC offset, need to localize
         # the parsed date to this offset first before aligning with the index's
         # timezone
+        start = start.tz_localize(parsed.tzinfo)
+        end = end.tz_localize(parsed.tzinfo)
+
         if parsed.tzinfo is not None:
             if self.tz is None:
                 raise ValueError(
                     "The index must be timezone aware when indexing "
                     "with a date string with a UTC offset"
                 )
-            start = start.tz_localize(parsed.tzinfo).tz_convert(self.tz)
-            end = end.tz_localize(parsed.tzinfo).tz_convert(self.tz)
-        elif self.tz is not None:
-            start = start.tz_localize(self.tz)
-            end = end.tz_localize(self.tz)
+        start = self._maybe_cast_for_get_loc(start)
+        end = self._maybe_cast_for_get_loc(end)
         return start, end
 
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
