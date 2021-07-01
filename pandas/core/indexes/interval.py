@@ -838,9 +838,11 @@ class IntervalIndex(ExtensionIndex):
         Used when the IntervalIndex does have some common endpoints,
         on either sides.
         Return the intersection with another IntervalIndex.
+
         Parameters
         ----------
         other : IntervalIndex
+
         Returns
         -------
         IntervalIndex
