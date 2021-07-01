@@ -1,12 +1,10 @@
 """
 Module for formatting output data in console (to string).
 """
+from __future__ import annotations
+
 from shutil import get_terminal_size
-from typing import (
-    Iterable,
-    List,
-    Optional,
-)
+from typing import Iterable
 
 import numpy as np
 
@@ -17,7 +15,7 @@ from pandas.io.formats.printing import pprint_thing
 class StringFormatter:
     """Formatter for string representation of a dataframe."""
 
-    def __init__(self, fmt: DataFrameFormatter, line_width: Optional[int] = None):
+    def __init__(self, fmt: DataFrameFormatter, line_width: int | None = None):
         self.fmt = fmt
         self.adj = fmt.adj
         self.frame = fmt.frame
@@ -29,7 +27,7 @@ class StringFormatter:
             text = "".join([text, self.fmt.dimensions_info])
         return text
 
-    def _get_strcols(self) -> List[List[str]]:
+    def _get_strcols(self) -> list[list[str]]:
         strcols = self.fmt.get_strcols()
         if self.fmt.is_truncated:
             strcols = self._insert_dot_separators(strcols)
@@ -62,7 +60,7 @@ class StringFormatter:
     def _need_to_wrap_around(self) -> bool:
         return bool(self.fmt.max_cols is None or self.fmt.max_cols > 0)
 
-    def _insert_dot_separators(self, strcols: List[List[str]]) -> List[List[str]]:
+    def _insert_dot_separators(self, strcols: list[list[str]]) -> list[list[str]]:
         str_index = self.fmt._get_formatted_index(self.fmt.tr_frame)
         index_length = len(str_index)
 
@@ -79,14 +77,14 @@ class StringFormatter:
         return self.fmt.tr_col_num + 1 if self.fmt.index else self.fmt.tr_col_num
 
     def _insert_dot_separator_horizontal(
-        self, strcols: List[List[str]], index_length: int
-    ) -> List[List[str]]:
+        self, strcols: list[list[str]], index_length: int
+    ) -> list[list[str]]:
         strcols.insert(self._adjusted_tr_col_num, [" ..."] * index_length)
         return strcols
 
     def _insert_dot_separator_vertical(
-        self, strcols: List[List[str]], index_length: int
-    ) -> List[List[str]]:
+        self, strcols: list[list[str]], index_length: int
+    ) -> list[list[str]]:
         n_header_rows = index_length - len(self.fmt.tr_frame)
         row_num = self.fmt.tr_row_num
         for ix, col in enumerate(strcols):
@@ -114,7 +112,7 @@ class StringFormatter:
             col.insert(row_num + n_header_rows, dot_str)
         return strcols
 
-    def _join_multiline(self, strcols_input: Iterable[List[str]]) -> str:
+    def _join_multiline(self, strcols_input: Iterable[list[str]]) -> str:
         lwidth = self.line_width
         adjoin_width = 1
         strcols = list(strcols_input)
@@ -161,7 +159,7 @@ class StringFormatter:
             start = end
         return "\n\n".join(str_lst)
 
-    def _fit_strcols_to_terminal_width(self, strcols: List[List[str]]) -> str:
+    def _fit_strcols_to_terminal_width(self, strcols: list[list[str]]) -> str:
         from pandas import Series
 
         lines = self.adj.adjoin(1, *strcols).split("\n")
@@ -197,7 +195,7 @@ class StringFormatter:
         return self.adj.adjoin(1, *strcols)
 
 
-def _binify(cols: List[int], line_width: int) -> List[int]:
+def _binify(cols: list[int], line_width: int) -> list[int]:
     adjoin_width = 1
     bins = []
     curr_width = 0

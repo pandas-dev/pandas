@@ -40,8 +40,6 @@ if TYPE_CHECKING:
     from pandas import MultiIndex
     from pandas.core.indexes.base import Index
 
-_INT64_MAX = np.iinfo(np.int64).max
-
 
 def get_indexer_indexer(
     target: Index,
@@ -133,7 +131,7 @@ def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
         acc = 1
         for i, mul in enumerate(shape):
             acc *= int(mul)
-            if not acc < _INT64_MAX:
+            if not acc < lib.i8max:
                 return i
         return len(shape)
 
@@ -153,7 +151,7 @@ def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
     labels = list(labels)
 
     # Iteratively process all the labels in chunks sized so less
-    # than _INT64_MAX unique int ids will be required for each chunk
+    # than lib.i8max unique int ids will be required for each chunk
     while True:
         # how many levels can be done without overflow:
         nlev = _int64_cut_off(lshape)
@@ -215,7 +213,7 @@ def is_int64_overflow_possible(shape) -> bool:
     for x in shape:
         the_prod *= int(x)
 
-    return the_prod >= _INT64_MAX
+    return the_prod >= lib.i8max
 
 
 def decons_group_index(comp_labels, shape):

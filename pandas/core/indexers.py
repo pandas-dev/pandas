@@ -13,6 +13,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -375,7 +376,7 @@ def deprecate_ndim_indexing(result, stacklevel: int = 3):
             "is deprecated and will be removed in a future "
             "version.  Convert to a numpy array before indexing instead.",
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )
 
 
