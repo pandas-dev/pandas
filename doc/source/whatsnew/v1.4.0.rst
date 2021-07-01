@@ -158,7 +158,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 -
 
 Missing

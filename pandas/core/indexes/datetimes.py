@@ -589,23 +589,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return start, end
 
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        if (
-            self.is_monotonic
-            and reso.attrname in ["day", "hour", "minute", "second"]
-            and self._resolution_obj >= reso
-        ):
-            # These resolution/monotonicity validations came from GH3931,
-            # GH3452 and GH2369.
-
-            # See also GH14826
-            return False
-
-        if reso.attrname == "microsecond":
-            # _partial_date_slice doesn't allow microsecond resolution, but
-            # _parsed_string_to_bounds allows it.
-            return False
-        return True
+        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
+        return reso > self._resolution_obj
 
     def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
