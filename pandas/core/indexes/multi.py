@@ -2931,17 +2931,22 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
         else:
             level = [self._get_level_number(lev) for lev in level]
-        return self._get_loc_level(key, level=level, drop_level=drop_level)
 
-    def _get_loc_level(self, key, level: int | list[int] = 0, drop_level: bool = True):
+        loc, mi = self._get_loc_level(key, level=level)
+        if not drop_level:
+            if lib.is_integer(loc):
+                mi = self[loc : loc + 1]
+            else:
+                mi = self[loc]
+        return loc, mi
+
+    def _get_loc_level(self, key, level: int | list[int] = 0):
         """
         get_loc_level but with `level` known to be positional, not name-based.
         """
 
         # different name to distinguish from maybe_droplevels
-        def maybe_mi_droplevels(indexer, levels, drop_level: bool):
-            if not drop_level:
-                return self[indexer]
+        def maybe_mi_droplevels(indexer, levels):
             # kludge around
             orig_index = new_index = self[indexer]
 
@@ -2969,7 +2974,7 @@ class MultiIndex(Index):
 
                 result = loc if result is None else result & loc
 
-            return result, maybe_mi_droplevels(result, level, drop_level)
+            return result, maybe_mi_droplevels(result, level)
 
         # kludge for #1796
         if isinstance(key, list):
@@ -2980,7 +2985,7 @@ class MultiIndex(Index):
             try:
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
-                    new_index = maybe_mi_droplevels(indexer, [0], drop_level)
+                    new_index = maybe_mi_droplevels(indexer, [0])
                     return indexer, new_index
             except (TypeError, InvalidIndexError):
                 pass
@@ -2995,7 +3000,7 @@ class MultiIndex(Index):
                     ilevels = [
                         i for i in range(len(key)) if key[i] != slice(None, None)
                     ]
-                    return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
+                    return indexer, maybe_mi_droplevels(indexer, ilevels)
 
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
@@ -3030,10 +3035,10 @@ class MultiIndex(Index):
                 if indexer is None:
                     indexer = slice(None, None)
                 ilevels = [i for i in range(len(key)) if key[i] != slice(None, None)]
-                return indexer, maybe_mi_droplevels(indexer, ilevels, drop_level)
+                return indexer, maybe_mi_droplevels(indexer, ilevels)
         else:
             indexer = self._get_level_indexer(key, level=level)
-            return indexer, maybe_mi_droplevels(indexer, [level], drop_level)
+            return indexer, maybe_mi_droplevels(indexer, [level])
 
     def _get_level_indexer(self, key, level: int = 0, indexer=None):
         # `level` kwarg is _always_ positional, never name
@@ -3268,9 +3273,7 @@ class MultiIndex(Index):
             else:
                 # a single label
                 indexer = _update_indexer(
-                    _convert_to_indexer(
-                        self.get_loc_level(k, level=i, drop_level=False)[0]
-                    ),
+                    _convert_to_indexer(self._get_loc_level(k, level=i)[0]),
                     indexer=indexer,
                     key=seq,
                 )
