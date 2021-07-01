@@ -3440,7 +3440,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(target) == 0:
             return np.array([], dtype=np.intp)
 
-        if not self._should_compare(target) and not is_interval_dtype(self.dtype):
+        if not self._should_compare(target) and not self._should_partial_index(target):
             # IntervalIndex get special treatment bc numeric scalars can be
             #  matched to Interval scalars
             return self._get_indexer_non_comparable(target, method=method, unique=True)
@@ -3518,6 +3518,16 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._engine.get_indexer(target._get_engine_target())
 
         return ensure_platform_int(indexer)
+
+    @final
+    def _should_partial_index(self, target: Index) -> bool:
+        """
+        Should we attempt partial-matching indexing?
+        """
+        if is_interval_dtype(self.dtype):
+            # "Index" has no attribute "left"
+            return self.left._should_compare(target)  # type: ignore[attr-defined]
+        return False
 
     @final
     def _check_indexing_method(
