@@ -262,7 +262,7 @@ Visualization
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-setuptools                51.0.0             Utils for entry points of plotting backend
+setuptools                38.6.0             Utils for entry points of plotting backend
 matplotlib                2.2.3              Plotting library
 Jinja2                    2.10               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
