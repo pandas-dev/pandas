@@ -87,7 +87,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
--
+- Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 
 .. ---------------------------------------------------------------------------
 
@@ -159,6 +159,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 -
 
 Missing

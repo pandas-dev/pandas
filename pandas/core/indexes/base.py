@@ -3365,6 +3365,15 @@ class Index(IndexOpsMixin, PandasObject):
             except KeyError as err:
                 raise KeyError(key) from err
 
+        # GH#42269
+        warnings.warn(
+            f"Passing method to {type(self).__name__}.get_loc is deprecated "
+            "and will raise in a future version. Use "
+            "index.get_indexer([item], method=...) instead",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         if is_scalar(key) and isna(key) and not self.hasnans:
             raise KeyError(key)
 
@@ -3447,7 +3456,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(target) == 0:
             return np.array([], dtype=np.intp)
 
-        if not self._should_compare(target) and not is_interval_dtype(self.dtype):
+        if not self._should_compare(target) and not self._should_partial_index(target):
             # IntervalIndex get special treatment bc numeric scalars can be
             #  matched to Interval scalars
             return self._get_indexer_non_comparable(target, method=method, unique=True)
@@ -3493,6 +3502,18 @@ class Index(IndexOpsMixin, PandasObject):
             # Only call equals if we have same dtype to avoid inference/casting
             return np.arange(len(target), dtype=np.intp)
 
+        if not is_dtype_equal(self.dtype, target.dtype) and not is_interval_dtype(
+            self.dtype
+        ):
+            # IntervalIndex gets special treatment for partial-indexing
+            dtype = self._find_common_type_compat(target)
+
+            this = self.astype(dtype, copy=False)
+            target = target.astype(dtype, copy=False)
+            return this._get_indexer(
+                target, method=method, limit=limit, tolerance=tolerance
+            )
+
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
@@ -3505,15 +3526,6 @@ class Index(IndexOpsMixin, PandasObject):
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
-        if not is_dtype_equal(self.dtype, target.dtype):
-            dtype = self._find_common_type_compat(target)
-
-            this = self.astype(dtype, copy=False)
-            target = target.astype(dtype, copy=False)
-            return this.get_indexer(
-                target, method=method, limit=limit, tolerance=tolerance
-            )
-
         if method in ["pad", "backfill"]:
             indexer = self._get_fill_indexer(target, method, limit, tolerance)
         elif method == "nearest":
@@ -3522,6 +3534,16 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self._engine.get_indexer(target._get_engine_target())
 
         return ensure_platform_int(indexer)
+
+    @final
+    def _should_partial_index(self, target: Index) -> bool:
+        """
+        Should we attempt partial-matching indexing?
+        """
+        if is_interval_dtype(self.dtype):
+            # "Index" has no attribute "left"
+            return self.left._should_compare(target)  # type: ignore[attr-defined]
+        return False
 
     @final
     def _check_indexing_method(
@@ -4942,14 +4964,24 @@ class Index(IndexOpsMixin, PandasObject):
         Traceback (most recent call last):
         ValueError: index must be monotonic increasing or decreasing
         """
+        self._searchsorted_monotonic(label)  # validate sortedness
         try:
-            loc = self.get_loc(label, method="pad")
-        except KeyError:
-            return self._na_value
+            loc = self.get_loc(label)
+        except (KeyError, TypeError):
+            # KeyError -> No exact match, try for padded
+            # TypeError -> passed e.g. non-hashable, fall through to get
+            #  the tested exception message
+            indexer = self.get_indexer([label], method="pad")
+            if indexer.ndim > 1 or indexer.size > 1:
+                raise TypeError("asof requires scalar valued input")
+            loc = indexer.item()
+            if loc == -1:
+                return self._na_value
         else:
             if isinstance(loc, slice):
                 loc = loc.indices(len(self))[-1]
-            return self[loc]
+
+        return self[loc]
 
     def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
         """
@@ -5324,7 +5356,7 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
-    def get_indexer_for(self, target, **kwargs) -> np.ndarray:
+    def get_indexer_for(self, target) -> np.ndarray:
         """
         Guaranteed return of an indexer even when non-unique.
 
@@ -5337,7 +5369,7 @@ class Index(IndexOpsMixin, PandasObject):
             List of indices.
         """
         if self._index_as_unique:
-            return self.get_indexer(target, **kwargs)
+            return self.get_indexer(target)
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
@@ -5391,6 +5423,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if method is not None:
             other = unpack_nested_dtype(target)
+            if self._is_multi ^ other._is_multi:
+                kind = other.dtype.type if self._is_multi else self.dtype.type
+                raise TypeError(
+                    f"'<' not supported between instances of {kind} and 'tuple'"
+                )
+            elif self._is_multi and other._is_multi:
+                assert self.nlevels != other.nlevels
+                # Python allows comparison between tuples of different lengths,
+                #  but for our purposes such a comparison is not meaningful.
+                raise TypeError("'<' not supported between tuples of different lengths")
             raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
@@ -5520,6 +5562,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         other = unpack_nested_dtype(other)
         dtype = other.dtype
+        if other._is_multi:
+            if not self._is_multi:
+                # other contains only tuples so unless we are object-dtype,
+                #  there can never be any matches
+                return self._is_comparable_dtype(dtype)
+            return self.nlevels == other.nlevels
+            # TODO: we can get more specific requiring levels are comparable?
+
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
