@@ -3486,6 +3486,18 @@ class Index(IndexOpsMixin, PandasObject):
             # Only call equals if we have same dtype to avoid inference/casting
             return np.arange(len(target), dtype=np.intp)
 
+        if not is_dtype_equal(self.dtype, target.dtype) and not is_interval_dtype(
+            self.dtype
+        ):
+            # IntervalIndex gets special treatment for partial-indexing
+            dtype = self._find_common_type_compat(target)
+
+            this = self.astype(dtype, copy=False)
+            target = target.astype(dtype, copy=False)
+            return this._get_indexer(
+                target, method=method, limit=limit, tolerance=tolerance
+            )
+
         return self._get_indexer(target, method, limit, tolerance)
 
     def _get_indexer(
@@ -3497,15 +3509,6 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> np.ndarray:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
-
-        if not is_dtype_equal(self.dtype, target.dtype):
-            dtype = self._find_common_type_compat(target)
-
-            this = self.astype(dtype, copy=False)
-            target = target.astype(dtype, copy=False)
-            return this.get_indexer(
-                target, method=method, limit=limit, tolerance=tolerance
-            )
 
         if method in ["pad", "backfill"]:
             indexer = self._get_fill_indexer(target, method, limit, tolerance)
