@@ -228,6 +228,38 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
                 assert id(getattr(s2, attr)) != id(getattr(styler, attr))
 
 
+def test_clear(mi_styler_comp):
+    # NOTE: if this test fails for new features then 'mi_styler_comp' should be updated
+    # to ensure proper testing of the 'copy', 'clear', 'export' methods with new feature
+    # GH 40675
+    styler = mi_styler_comp
+    styler.to_html()  # new attrs maybe created on render
+
+    clean_copy = Styler(styler.data, uuid=styler.uuid)
+
+    excl = [
+        "data",
+        "index",
+        "columns",
+        "uuid",
+        "uuid_len",
+        "cell_ids",
+        "cellstyle_map",  # execution time only
+        "precision",  # deprecated
+        "na_rep",  # deprecated
+    ]
+    # tests vars are not same vals on obj and clean copy before clear (except for excl)
+    for attr in [a for a in styler.__dict__ if not (callable(a) or a in excl)]:
+        res = getattr(styler, attr) == getattr(clean_copy, attr)
+        assert not (all(res) if (hasattr(res, "__iter__") and len(res) > 0) else res)
+
+    # test vars have same vales on obj and clean copy after clearing
+    styler.clear()
+    for attr in [a for a in styler.__dict__ if not (callable(a))]:
+        res = getattr(styler, attr) == getattr(clean_copy, attr)
+        assert all(res) if hasattr(res, "__iter__") else res
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)
@@ -282,33 +314,6 @@ class TestStyler:
             (1, 0): [("color", "blue"), ("foo", "baz")],
         }
         assert self.styler.ctx == expected
-
-    def test_clear(self):
-        # updated in GH 39396
-        tt = DataFrame({"A": [None, "tt"]})
-        css = DataFrame({"A": [None, "cls-a"]})
-        s = self.df.style.highlight_max().set_tooltips(tt).set_td_classes(css)
-        s = s.hide_index().hide_columns("A")
-        # _todo, tooltips and cell_context items added to..
-        assert len(s._todo) > 0
-        assert s.tooltips
-        assert len(s.cell_context) > 0
-        assert s.hide_index_ is True
-        assert len(s.hidden_columns) > 0
-
-        s = s._compute()
-        # ctx item affected when a render takes place. _todo is maintained
-        assert len(s.ctx) > 0
-        assert len(s._todo) > 0
-
-        s.clear()
-        # ctx, _todo, tooltips and cell_context items all revert to null state.
-        assert len(s.ctx) == 0
-        assert len(s._todo) == 0
-        assert not s.tooltips
-        assert len(s.cell_context) == 0
-        assert s.hide_index_ is False
-        assert len(s.hidden_columns) == 0
 
     def test_render(self):
         df = DataFrame({"A": [0, 1]})
