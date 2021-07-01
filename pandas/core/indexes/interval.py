@@ -803,7 +803,8 @@ class IntervalIndex(ExtensionIndex):
             # multiple NaNs
             taken = other._intersection_unique(self)
         else:
-            return super()._intersection(other, sort)
+            # duplicates
+            taken = self._intersection_non_unique(other)
 
         if sort is None:
             taken = taken.sort_values()
@@ -831,6 +832,35 @@ class IntervalIndex(ExtensionIndex):
         indexer = unique(indexer)
 
         return self.take(indexer)
+
+    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
+        """
+        Used when the IntervalIndex does have some common endpoints,
+        on either sides.
+        Return the intersection with another IntervalIndex.
+
+        Parameters
+        ----------
+        other : IntervalIndex
+
+        Returns
+        -------
+        IntervalIndex
+        """
+        # Note: this is about 3.25x faster than super()._intersection(other)
+        #  in IntervalIndexMethod.time_intersection_both_duplicate(1000)
+        mask = np.zeros(len(self), dtype=bool)
+
+        if self.hasnans and other.hasnans:
+            first_nan_loc = np.arange(len(self))[self.isna()][0]
+            mask[first_nan_loc] = True
+
+        other_tups = set(zip(other.left, other.right))
+        for i, tup in enumerate(zip(self.left, self.right)):
+            if tup in other_tups:
+                mask[i] = True
+
+        return self[mask]
 
     # --------------------------------------------------------------------
 
