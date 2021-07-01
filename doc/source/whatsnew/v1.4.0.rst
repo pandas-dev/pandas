@@ -158,7 +158,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
 -
 
 Missing
