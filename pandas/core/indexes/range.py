@@ -409,10 +409,6 @@ class RangeIndex(NumericIndex):
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
-        if not is_signed_integer_dtype(target):
-            # checks/conversions/roundings are delegated to general method
-            return super()._get_indexer(target, method=method, tolerance=tolerance)
-
         target_array = np.asarray(target)
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
@@ -730,6 +726,18 @@ class RangeIndex(NumericIndex):
         if first is not self._range:
             new_index = new_index[::-1]
         return new_index
+
+    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+        if not isinstance(other, RangeIndex) or sort is not None:
+            return super().symmetric_difference(other, result_name, sort)
+
+        left = self.difference(other)
+        right = other.difference(self)
+        result = left.union(right)
+
+        if result_name is not None:
+            result = result.rename(result_name)
+        return result
 
     # --------------------------------------------------------------------
 
