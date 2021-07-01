@@ -143,11 +143,16 @@ class MPLPlot:
             if column:
                 self.columns = com.maybe_make_list(column)
             else:
-                self.columns = [
-                    col
-                    for col in data.columns
-                    if self.by and col not in self.by and is_numeric_dtype(data[col])
-                ]
+                if self.by:
+                    self.columns = [
+                        col
+                        for col in data.columns
+                        if col not in self.by and is_numeric_dtype(data[col])
+                    ]
+                else:
+                    self.columns = [
+                        col for col in data.columns if is_numeric_dtype(data[col])
+                    ]
 
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
@@ -451,6 +456,9 @@ class MPLPlot:
             if label is None and data.name is None:
                 label = "None"
             data = data.to_frame(name=label)
+        else:
+            cols = self.columns if self.by is None else self.columns + self.by
+            data = data.loc[:, cols]
 
         # GH15079 reconstruct data if by is defined
         if self.by:

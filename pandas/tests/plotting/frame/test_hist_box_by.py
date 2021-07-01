@@ -97,6 +97,31 @@ class TestHistWithBy(TestPlotBase):
         assert result_legends == legends
         assert result_titles == titles
 
+    @pytest.mark.parametrize(
+        "by, column, legends, title",
+        [
+            ([], ["A"], ["A"], None),
+            (None, "A", ["A"], "hist A"),
+            ([], ["A", "B"], ["A", "B"], "hist A and B"),
+            (None, ["A", "B"], ["A", "B"], "hist A and B"),
+        ],
+    )
+    def test_hist_plot_with_none_empty_list_by(self, by, column, legends, title):
+        # GH 15079
+        axes = _check_plot_works(
+            self.hist_df.plot.hist, column=column, by=by, title=title
+        )
+        result_titles = axes.get_title()
+        result_legends = [legend.get_text() for legend in axes.get_legend().texts]
+
+        assert result_legends == legends
+
+        # Should be no title if it is not subplots
+        if title is None:
+            assert result_titles == ""
+        else:
+            assert result_titles == title
+
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "by, column, layout, axes_num",
@@ -242,6 +267,31 @@ class TestBoxWithBy(TestPlotBase):
 
         assert result_xticklabels == xticklabels
         assert result_titles == titles
+
+    @pytest.mark.parametrize(
+        "by, column, xticklabels, title",
+        [
+            ([], ["A"], ["A"], None),
+            (None, "A", ["A"], "box A"),
+            ([], ["A", "B"], ["A", "B"], "box A and B"),
+            (None, ["A", "B"], ["A", "B"], "box A and B"),
+        ],
+    )
+    def test_box_plot_with_none_empty_list_by(self, by, column, xticklabels, title):
+        # GH 15079
+        axes = _check_plot_works(
+            self.box_df.plot.box, column=column, by=by, title=title
+        )
+        result_titles = axes.get_title()
+        result_legends = [xtick.get_text() for xtick in axes.get_xticklabels()]
+
+        assert result_legends == xticklabels
+
+        # Should be no title if it is not subplots
+        if title is None:
+            assert result_titles == ""
+        else:
+            assert result_titles == title
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
