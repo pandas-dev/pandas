@@ -456,7 +456,7 @@ class MPLPlot:
             if label is None and data.name is None:
                 label = "None"
             data = data.to_frame(name=label)
-        else:
+        elif self._kind in ("hist", "box"):
             cols = self.columns if self.by is None else self.columns + self.by
             data = data.loc[:, cols]
 
