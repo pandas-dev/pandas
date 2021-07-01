@@ -103,6 +103,7 @@ class TestHistWithBy(TestPlotBase):
             ([], ["A"], ["A"], None),
             (None, "A", ["A"], "hist A"),
             ([], ["A", "B"], ["A", "B"], "hist A and B"),
+            ([], None, ["A", "B"], "hist A and B"),
             (None, ["A", "B"], ["A", "B"], "hist A and B"),
         ],
     )
@@ -274,6 +275,7 @@ class TestBoxWithBy(TestPlotBase):
             ([], ["A"], ["A"], None),
             (None, "A", ["A"], "box A"),
             ([], ["A", "B"], ["A", "B"], "box A and B"),
+            ([], None, ["A", "B"], "box A and B"),
             (None, ["A", "B"], ["A", "B"], "box A and B"),
         ],
     )
