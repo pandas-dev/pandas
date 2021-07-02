@@ -536,7 +536,7 @@ class OpenpyxlReader(BaseExcelReader):
 
     @property
     def sheet_names(self) -> list[str]:
-        return self.book.sheetnames
+        return [sheet.title for sheet in self.book.worksheets]
 
     def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)

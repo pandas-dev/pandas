@@ -82,8 +82,9 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
-    sheet positions. Lists of strings/integers are used to request
-    multiple sheets. Specify None to get all sheets.
+    sheet positions (chart sheets do not count as a sheet position).
+    Lists of strings/integers are used to request multiple sheets.
+    Specify None to get all worksheets.
 
     Available cases:
 
@@ -92,7 +93,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * None: All sheets.
+    * None: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed

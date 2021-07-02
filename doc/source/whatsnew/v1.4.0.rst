@@ -173,6 +173,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
 -
 -
 
