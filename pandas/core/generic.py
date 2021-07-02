@@ -46,7 +46,6 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -158,6 +157,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from pandas._libs.tslibs import BaseOffset
+    from pandas._typing import RandomState
 
     from pandas.core.frame import DataFrame
     from pandas.core.resample import Resampler

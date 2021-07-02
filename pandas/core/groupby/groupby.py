@@ -47,7 +47,6 @@ from pandas._typing import (
     FrameOrSeries,
     FrameOrSeriesUnion,
     IndexLabel,
-    RandomState,
     Scalar,
     T,
     final,
@@ -112,6 +111,8 @@ from pandas.core.util.numba_ import (
 
 if TYPE_CHECKING:
     from typing import Literal
+
+    from pandas._typing import RandomState
 
 _common_see_also = """
         See Also
