@@ -84,10 +84,15 @@ class TestSample:
             obj.sample(n=3, frac=0.3)
 
     def test_sample_requires_positive_n_frac(self, obj):
-        msg = "A negative number of rows requested. Please provide positive value."
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(
+            ValueError,
+            match="A negative number of rows requested. Please provide `n` >= 0",
+        ):
             obj.sample(n=-3)
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(
+            ValueError,
+            match="A negative number of rows requested. Please provide `frac` >= 0",
+        ):
             obj.sample(frac=-0.3)
 
     def test_sample_requires_integer_n(self, obj):

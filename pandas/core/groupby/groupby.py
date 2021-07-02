@@ -102,6 +102,7 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 from pandas.core.internals.blocks import ensure_block_shape
+import pandas.core.sample as sample
 from pandas.core.series import Series
 from pandas.core.sorting import get_group_index_sorter
 from pandas.core.util.numba_ import (
@@ -3270,26 +3271,37 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         2   blue  2
         0    red  0
         """
-        from pandas.core.reshape.concat import concat
-
+        size = sample.process_sampling_size(n, frac, replace)
         if weights is not None:
-            weights = Series(weights, index=self._selected_obj.index)
-            ws = [weights.iloc[idx] for idx in self.indices.values()]
-        else:
-            ws = [None] * self.ngroups
+            weights_arr = sample.preprocess_weights(
+                self._selected_obj, weights, axis=self.axis
+            )
 
-        if random_state is not None:
-            random_state = com.random_state(random_state)
+        random_state = com.random_state(random_state)
 
         group_iterator = self.grouper.get_iterator(self._selected_obj, self.axis)
-        samples = [
-            obj.sample(
-                n=n, frac=frac, replace=replace, weights=w, random_state=random_state
-            )
-            for (_, obj), w in zip(group_iterator, ws)
-        ]
 
-        return concat(samples, axis=self.axis)
+        sampled_indices = []
+        for labels, obj in group_iterator:
+            grp_indices = self.indices[labels]
+            group_size = len(grp_indices)
+            if size is not None:
+                sample_size = size
+            else:
+                assert frac is not None
+                sample_size = round(frac * group_size)
+
+            grp_sample = sample.sample(
+                group_size,
+                size=sample_size,
+                replace=replace,
+                weights=None if weights is None else weights_arr[grp_indices],
+                random_state=random_state,
+            )
+            sampled_indices.append(grp_indices[grp_sample])
+
+        sampled_indices = np.concatenate(sampled_indices)
+        return self._selected_obj.take(sampled_indices, axis=self.axis)
 
 
 @doc(GroupBy)
