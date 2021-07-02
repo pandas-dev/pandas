@@ -51,7 +51,7 @@ def test_from_dummies_to_series_contains_get_dummies_NaN_column():
     tm.assert_series_equal(result, expected)
 
 
-def test_from_dummies_to_series_contains_nan():
+def test_from_dummies_to_series_contains_unassigned():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
     expected = Series(["a", "b", "nan"])
     result = from_dummies(dummies, to_series=True)
@@ -96,7 +96,7 @@ def test_from_dummies_to_series_multi_assignment():
         from_dummies(dummies, to_series=True)
 
 
-def test_from_dummies_to_series_no_fillna_but_na_value():
+def test_from_dummies_to_series_no_fillna_but_contains_nan():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, np.nan]})
     with pytest.raises(
         ValueError, match=r"Dummy DataFrame contains NA value in column: 'b'"
@@ -185,7 +185,7 @@ def test_from_dummies_to_df_contains_get_dummies_NaN_column():
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_dummies_to_df_contains_nan(dummies_with_unassigned):
+def test_from_dummies_to_df_contains_unassigned(dummies_with_unassigned):
     expected = DataFrame(
         {"C": [1, 2, 3], "col1": ["a", "b", "nan"], "col2": ["nan", "a", "c"]}
     )
@@ -275,7 +275,7 @@ def test_from_dummies_to_df_wrong_column_type(dummies_basic):
         from_dummies(dummies_basic, columns="col1_a")
 
 
-def test_from_dummies_to_df_no_fillna_but_na_value(dummies_basic):
+def test_from_dummies_to_df_no_fillna_but_contains_nan(dummies_basic):
     dummies_basic["col2_c"][2] = np.nan
     with pytest.raises(
         ValueError, match=r"Dummy DataFrame contains NA value in column: 'col2_c'"
