@@ -13,17 +13,22 @@ class FillNa:
         rng = pd.date_range("1/1/2000", periods=N, freq="min")
         data = np.random.randn(N)
         data[::2] = np.nan
-        self.ts = pd.Series(data, index=rng)
+        self.series = pd.Series(data, index=rng)
+        self.ts = pd.Series(rng.to_series())
+        self.ts[::2] = np.datetime64("nat")
         self.df = pd.DataFrame(np.random.randn(10 ** 3, 10 ** 3))
 
     def time_fillna(self, inplace):
-        self.ts.fillna(0.0, inplace=inplace)
+        self.series.fillna(0.0, inplace=inplace)
+
+    def time_fillna_ts(self, inplace):
+        self.ts.fillna(np.datetime64("2021"), inplace=inplace)
 
     def peakmem_fillna(self, inplace):
-        self.ts.fillna(0.0, inplace=inplace)
+        self.series.fillna(0.0, inplace=inplace)
 
     def time_fillna_limit(self, inplace):
-        self.ts.fillna(0.0, inplace=inplace, limit=10 ** 5)
+        self.series.fillna(0.0, inplace=inplace, limit=10 ** 5)
 
     def time_fillna_df(self, inplace):
         self.df.fillna(0.0, inplace=inplace)

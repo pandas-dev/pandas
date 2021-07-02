@@ -492,7 +492,9 @@ class Block(PandasObject):
             # TODO: This seems to work for EAS, verify it does
             return [
                 self.make_block_same_class(
-                    values=self.values.fillna(value=value, limit=limit)
+                    values=cast(ExtensionArray, self.values).fillna(
+                        value=value, limit=limit
+                    )
                 )
             ]
 

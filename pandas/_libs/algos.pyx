@@ -978,12 +978,16 @@ def fillna1d_multi_values(fillna_t[:] arr,
                 result = checknull_old(val)
             else:
                 result = checknull(val)
-        elif fillna_t is float32_t or fillna_t is float64_t:
+        elif fillna_t is int64_t:
+            # Datetime64/Timedelta64
+            result = val == NPY_NAT
+        elif fillna_t is uint16_t:
+            # Float 16
+            result = val == uNaN
+        else:
             result = val != val
             if inf_as_na:
                 result = result and (val == INF or val == NEGINF)
-        else:
-            result = val == NPY_NAT
         if result and count < limit:
             # Ugh... We have to cast here since technically could have a int64->float32
             # There shouldn't be any risk here since BlockManager should check
@@ -1042,12 +1046,16 @@ def fillna2d(fillna_t[:, :] arr,
                     result = checknull_old(val)
                 else:
                     result = checknull(val)
-            elif fillna_t is float32_t or fillna_t is float64_t:
+            elif fillna_t is int64_t:
+                # Datetime64/Timedelta64
+                result = val == NPY_NAT
+            elif fillna_t is uint16_t:
+                # Float 16
+                result = val == uNaN
+            else:
                 result = val != val
                 if inf_as_na:
                     result = result and (val == INF or val == NEGINF)
-            else:
-                result = val == NPY_NAT
             if result and count < limit:
                 arr[i, j] = value
                 count+=1
