@@ -409,10 +409,6 @@ class RangeIndex(NumericIndex):
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
 
-        if not is_signed_integer_dtype(target):
-            # checks/conversions/roundings are delegated to general method
-            return super()._get_indexer(target, method=method, tolerance=tolerance)
-
         target_array = np.asarray(target)
         locs = target_array - start
         valid = (locs % step == 0) & (locs >= 0) & (target_array < stop)
