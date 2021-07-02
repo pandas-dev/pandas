@@ -137,6 +137,7 @@ from pandas.core.internals.construction import mgr_to_mgr
 from pandas.core.missing import find_valid_index
 from pandas.core.ops import align_method_FRAME
 from pandas.core.reshape.concat import concat
+import pandas.core.sample as sample
 from pandas.core.shared_docs import _shared_docs
 from pandas.core.sorting import get_indexer_indexer
 from pandas.core.window import (
@@ -5146,7 +5147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def sample(
         self: FrameOrSeries,
-        n=None,
+        n: int | None = None,
         frac: float | None = None,
         replace: bool_t = False,
         weights=None,
@@ -5273,92 +5274,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._stat_axis_number
 
         axis = self._get_axis_number(axis)
-        axis_length = self.shape[axis]
+        obj_len = self.shape[axis]
 
         # Process random_state argument
         rs = com.random_state(random_state)
 
-        # Check weights for compliance
+        size = sample.process_sampling_size(n, frac, replace)
+        if size is None:
+            assert frac is not None
+            size = round(frac * obj_len)
+
         if weights is not None:
+            weights = sample.preprocess_weights(self, weights, axis)
 
-            # If a series, align with frame
-            if isinstance(weights, ABCSeries):
-                weights = weights.reindex(self.axes[axis])
+        sampled_indices = sample.sample(obj_len, size, replace, weights, rs)
+        result = self.take(sampled_indices, axis=axis)
 
-            # Strings acceptable if a dataframe and axis = 0
-            if isinstance(weights, str):
-                if isinstance(self, ABCDataFrame):
-                    if axis == 0:
-                        try:
-                            weights = self[weights]
-                        except KeyError as err:
-                            raise KeyError(
-                                "String passed to weights not a valid column"
-                            ) from err
-                    else:
-                        raise ValueError(
-                            "Strings can only be passed to "
-                            "weights when sampling from rows on "
-                            "a DataFrame"
-                        )
-                else:
-                    raise ValueError(
-                        "Strings cannot be passed as weights "
-                        "when sampling from a Series."
-                    )
-
-            if isinstance(self, ABCSeries):
-                func = self._constructor
-            else:
-                func = self._constructor_sliced
-            weights = func(weights, dtype="float64")
-
-            if len(weights) != axis_length:
-                raise ValueError(
-                    "Weights and axis to be sampled must be of same length"
-                )
-
-            if (weights == np.inf).any() or (weights == -np.inf).any():
-                raise ValueError("weight vector may not include `inf` values")
-
-            if (weights < 0).any():
-                raise ValueError("weight vector many not include negative values")
-
-            # If has nan, set to zero.
-            weights = weights.fillna(0)
-
-            # Renormalize if don't sum to 1
-            if weights.sum() != 1:
-                if weights.sum() != 0:
-                    weights = weights / weights.sum()
-                else:
-                    raise ValueError("Invalid weights: weights sum to zero")
-
-            weights = weights._values
-
-        # If no frac or n, default to n=1.
-        if n is None and frac is None:
-            n = 1
-        elif frac is not None and frac > 1 and not replace:
-            raise ValueError(
-                "Replace has to be set to `True` when "
-                "upsampling the population `frac` > 1."
-            )
-        elif frac is None and n % 1 != 0:
-            raise ValueError("Only integers accepted as `n` values")
-        elif n is None and frac is not None:
-            n = round(frac * axis_length)
-        elif frac is not None:
-            raise ValueError("Please enter a value for `frac` OR `n`, not both")
-
-        # Check for negative sizes
-        if n < 0:
-            raise ValueError(
-                "A negative number of rows requested. Please provide positive value."
-            )
-
-        locs = rs.choice(axis_length, size=n, replace=replace, p=weights)
-        result = self.take(locs, axis=axis)
         if ignore_index:
             result.index = ibase.default_index(len(result))
 
