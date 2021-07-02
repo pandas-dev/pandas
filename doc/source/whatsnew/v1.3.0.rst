@@ -1,7 +1,7 @@
 .. _whatsnew_130:
 
-What's new in 1.3.0 (June ??)
------------------------------
+What's new in 1.3.0 (July 2, 2021)
+----------------------------------
 
 These are the changes in pandas 1.3.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -136,7 +136,7 @@ which has been revised and improved (:issue:`39720`, :issue:`39317`, :issue:`404
  - Many features of the :class:`.Styler` class are now either partially or fully usable on a DataFrame with a non-unique indexes or columns (:issue:`41143`)
  - One has greater control of the display through separate sparsification of the index or columns using the :ref:`new styler options <options.available>`, which are also usable via :func:`option_context` (:issue:`41142`)
  - Added the option ``styler.render.max_elements`` to avoid browser overload when styling large DataFrames (:issue:`40712`)
- - Added the method :meth:`.Styler.to_latex` (:issue:`21673`), which also allows some limited CSS conversion (:issue:`40731`)
+ - Added the method :meth:`.Styler.to_latex` (:issue:`21673`, :issue:`42320`), which also allows some limited CSS conversion (:issue:`40731`)
  - Added the method :meth:`.Styler.to_html` (:issue:`13379`)
  - Added the method :meth:`.Styler.set_sticky` to make index and column headers permanently visible in scrolling HTML frames (:issue:`29072`)
 
@@ -707,6 +707,8 @@ Other API changes
 - Added new ``engine`` and ``**engine_kwargs`` parameters to :meth:`DataFrame.to_sql` to support other future "SQL engines". Currently we still only use ``SQLAlchemy`` under the hood, but more engines are planned to be supported such as `turbodbc <https://turbodbc.readthedocs.io/en/latest/>`_ (:issue:`36893`)
 - Removed redundant ``freq`` from :class:`PeriodIndex` string representation (:issue:`41653`)
 - :meth:`ExtensionDtype.construct_array_type` is now a required method instead of an optional one for :class:`ExtensionDtype` subclasses (:issue:`24860`)
+- Calling ``hash`` on non-hashable pandas objects will now raise ``TypeError`` with the built-in error message (e.g. ``unhashable type: 'Series'``). Previously it would raise a custom message such as ``'Series' objects are mutable, thus they cannot be hashed``. Furthermore, ``isinstance(<Series>, abc.collections.Hashable)`` will now return ``False`` (:issue:`40013`)
+- :meth:`.Styler.from_custom_template` now has two new arguments for template names, and removed the old ``name``, due to template inheritance having been introducing for better parsing (:issue:`42053`). Subclassing modifications to Styler attributes are also needed.
 
 .. _whatsnew_130.api_breaking.build:
 
@@ -1231,4 +1233,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.2.5..v1.3.0|HEAD
+.. contributors:: v1.2.5..v1.3.0
