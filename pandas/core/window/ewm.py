@@ -212,7 +212,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         Only applicable to ``mean()``
 
-        .. versionadded:: 1.3.0
+        .. versionadded:: 1.4.0
 
     Returns
     -------
