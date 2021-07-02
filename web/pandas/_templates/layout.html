@@ -12,8 +12,7 @@
         <title>pandas - Python Data Analysis Library</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel='shortcut icon' type='image/x-icon' id='light-scheme-con' href='{{ base_url }}/static/img/favicon.ico'/>
-        <link rel='shortcut icon' type='image/x-icon' id='dark-scheme-icon' href='{{ base_url }}/static/img/favicon_white.ico'/>
+        <link rel='shortcut icon' type='image/x-icon' id='favicon-tag' href='{{ base_url }}/static/img/favicon.ico'/>
         <link rel="stylesheet"
               href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
               integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
@@ -101,34 +100,17 @@
                 integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
                 crossorigin="anonymous"></script>
         <script type="text/javascript">
-        function setupIcons() {
-            // change the favicon based on browser detected color scheme on refresh
-            const lightSchemeIcon = document.querySelector('link#light-scheme-icon');
-            const darkSchemeIcon = document.querySelector('link#dark-scheme-icon');
-
-            function setLight() {
-                document.head.append(lightSchemeIcon);
-                darkSchemeIcon.remove();
-            }
-
-            function setDark() {
-                lightSchemeIcon.remove();
-                document.head.append(darkSchemeIcon);
-            }
-
+            const faviconTag = document.getElementById('favicon-tag');
             const matcher = window.matchMedia('(prefers-color-scheme:dark)');
-            function onUpdate() {
-                if (matcher.matches) {
-                setDark();
-                } else {
-                setLight();
-                }
-            }
-            matcher.addListener(onUpdate);
+            
+            const onUpdate = () => {
+                if (matcher.matches) faviconTag.href = "{{ base_url }}/static/img/favicon_white.ico";
+                else faviconTag.href = "{{ base_url }}/static/img/favicon.ico";
+            };
+            
             onUpdate();
-        }
-
-        setupIcons();
+            
+            matcher.addEventListener('change', onUpdate);
         </script>
     </body>
 </html>
