@@ -567,21 +567,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        valid_resos = {
-            "year",
-            "month",
-            "quarter",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "millisecond",
-            "microsecond",
-        }
-        if reso.attrname not in valid_resos:
-            raise KeyError
-
         grp = reso.freq_group
         per = Period(parsed, freq=grp.value)
         start, end = per.start_time, per.end_time
@@ -590,36 +575,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # If an incoming date string contained a UTC offset, need to localize
         # the parsed date to this offset first before aligning with the index's
         # timezone
+        start = start.tz_localize(parsed.tzinfo)
+        end = end.tz_localize(parsed.tzinfo)
+
         if parsed.tzinfo is not None:
             if self.tz is None:
                 raise ValueError(
                     "The index must be timezone aware when indexing "
                     "with a date string with a UTC offset"
                 )
-            start = start.tz_localize(parsed.tzinfo).tz_convert(self.tz)
-            end = end.tz_localize(parsed.tzinfo).tz_convert(self.tz)
-        elif self.tz is not None:
-            start = start.tz_localize(self.tz)
-            end = end.tz_localize(self.tz)
+        start = self._maybe_cast_for_get_loc(start)
+        end = self._maybe_cast_for_get_loc(end)
         return start, end
 
-    def _validate_partial_date_slice(self, reso: Resolution):
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        if (
-            self.is_monotonic
-            and reso.attrname in ["day", "hour", "minute", "second"]
-            and self._resolution_obj >= reso
-        ):
-            # These resolution/monotonicity validations came from GH3931,
-            # GH3452 and GH2369.
-
-            # See also GH14826
-            raise KeyError
-
-        if reso.attrname == "microsecond":
-            # _partial_date_slice doesn't allow microsecond resolution, but
-            # _parsed_string_to_bounds allows it.
-            raise KeyError
+    def _can_partial_date_slice(self, reso: Resolution) -> bool:
+        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
+        return reso > self._resolution_obj
 
     def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
@@ -663,14 +634,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             key = self._maybe_cast_for_get_loc(key)
 
         elif isinstance(key, str):
-            try:
-                return self._get_string_slice(key)
-            except (TypeError, KeyError, ValueError, OverflowError):
-                pass
 
+            try:
+                parsed, reso = self._parse_with_reso(key)
+            except ValueError as err:
+                raise KeyError(key) from err
+
+            if self._can_partial_date_slice(reso):
+                try:
+                    return self._partial_date_slice(reso, parsed)
+                except KeyError as err:
+                    if method is None:
+                        raise KeyError(key) from err
             try:
                 key = self._maybe_cast_for_get_loc(key)
             except ValueError as err:
+                # FIXME: we get here because parse_with_reso doesn't raise on "t2m"
                 raise KeyError(key) from err
 
         elif isinstance(key, timedelta):
