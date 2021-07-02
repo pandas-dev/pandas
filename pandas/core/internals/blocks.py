@@ -50,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_extension_array_dtype,
     is_list_like,
+    is_scalar,
     is_sparse,
     is_string_dtype,
     pandas_dtype,
@@ -436,16 +437,24 @@ class Block(PandasObject):
         """
         # TODO: Handle inf_as_na, we need to get option and pass to cython funcs
         inplace = validate_bool_kwarg(inplace, "inplace")
-        arr = self if inplace else self.copy()
-        limit = libalgos.validate_limit(
-            len(self) if self.ndim == 1 else self.shape[1], limit=limit
-        )
+        blk = self if inplace else self.copy()
+        nobs = len(self) if self.ndim == 1 else self.shape[-1]
+        limit = libalgos.validate_limit(nobs if nobs > 0 else None, limit=limit)
 
-        if not self._can_hold_na:
-            return [arr]
+        if not self._can_hold_na or nobs == 0:
+            return [blk]
 
         if not self.is_extension:
             if self._can_hold_element(value):
+                if blk.dtype == np.float16:
+                    # Float16 not supported by compiler, use view as uint16 hack
+                    arr = blk.values.view(np.uint16)
+                    if is_scalar(value):
+                        value = np.float16(value).view(np.uint16)
+                    else:
+                        value = value.astype(np.float16).view(np.uint16)
+                else:
+                    arr = blk.values
                 if self.ndim == 1:
                     if is_list_like(value):
                         # TODO: Verify EA case
@@ -453,21 +462,23 @@ class Block(PandasObject):
                             mask = value.isna()
                             value = np.asarray(value[mask], dtype=object)
                             libalgos.fillna1d_multi_values(
-                                arr.values[mask], value=value, limit=limit
+                                arr[mask], value=value, limit=limit
                             )
                         else:
                             libalgos.fillna1d_multi_values(
-                                arr.values, value=value, limit=limit
+                                arr, value=value, limit=limit
                             )
                     else:
-                        libalgos.fillna1d(arr.values, value=value, limit=limit)
+                        libalgos.fillna1d(arr, value=value, limit=limit)
                 else:
-                    libalgos.fillna2d(arr.values, value=value, limit=limit)
-                return arr._maybe_downcast([arr], downcast)
+                    libalgos.fillna2d(arr, value=value, limit=limit)
+                return blk._maybe_downcast([blk], downcast)
             elif self.ndim == 1 or self.shape[0] == 1:
-                blk = self.coerce_to_target_dtype(value)
+                coerced_blk = self.coerce_to_target_dtype(value)
                 # bc we have already cast, inplace=True may avoid an extra copy
-                return blk.fillna(value, limit=limit, inplace=True, downcast=None)
+                return coerced_blk.fillna(
+                    value, limit=limit, inplace=True, downcast=None
+                )
             else:
                 # operate column-by-column
                 return self.split_and_operate(

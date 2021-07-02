@@ -106,6 +106,41 @@ def backfill_2d_inplace(
     mask: np.ndarray,  # const uint8_t[:, :]
     limit=None,
 ) -> None: ...
+
+# ----------------------------------------------------------------------
+# Fillna
+# ----------------------------------------------------------------------
+# ctypedef fused fillna_t:
+#     float64_t
+#     float32_t
+#     object
+#     int64_t  # Datetime64
+#     uint16_t # Float 16
+#     complex64_t
+#     complex128_t
+# ctypedef fused fillna_values_t:
+#     algos_t
+#     uint16_t # Float 16
+#     complex64_t
+#     complex128_t
+def fillna1d(
+    arr: np.ndarray,  # fillna_t[:]
+    value: object,  # fillna_t
+    limit: int,
+    inf_as_na: bool,
+) -> None: ...
+def fillna1d_multi_values(
+    arr: np.ndarray,  # fillna_t[:]
+    values: np.ndarray,  # fillna_values_t
+    limit: int,
+    inf_as_na: bool,
+) -> None: ...
+def fillna2d(
+    arr: np.ndarray,  # fillna_t[:]
+    values: object,  # fillna_t
+    limit: int,
+    inf_as_na: bool,
+) -> None: ...
 def is_monotonic(
     arr: np.ndarray,  # ndarray[algos_t, ndim=1]
     timelike: bool,

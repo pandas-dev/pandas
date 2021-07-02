@@ -26,6 +26,8 @@ from numpy cimport (
     NPY_UINT16,
     NPY_UINT32,
     NPY_UINT64,
+    complex64_t,
+    complex128_t,
     float32_t,
     float64_t,
     int8_t,
@@ -66,6 +68,10 @@ import pandas._libs.missing as missing
 cdef:
     float64_t FP_ERR = 1e-13
     float64_t NaN = <float64_t>np.NaN
+    # Numpy Float 16 is actually Uint16 since most compilers don't support halfs
+    # We use this value in fillna to fill float16 nans
+    # https://docs.scipy.org/doc/numpy-1.13.0/reference/c-api.coremath.html#half-precision-functions
+    uint16_t uNaN = np.float16(np.nan).view(np.uint16)
     int64_t NPY_NAT = get_nat()
     float64_t INF = <float64_t> np.inf
     float64_t NEGINF = -INF
@@ -847,8 +853,17 @@ ctypedef fused fillna_t:
     object
     # TODO: Maybe add datetime64 support through viewing data as int64?
     # But datetime64 seems to be handled elsewhere
-    int64_t  # Datetime64
-    # TODO: Complex support?
+    int64_t   # Datetime64
+    uint16_t  # Float 16
+    complex64_t
+    complex128_t
+
+# algos_t+complex numbers/float16 support
+ctypedef fused fillna_values_t:
+    algos_t
+    uint16_t  # Float 16
+    complex64_t
+    complex128_t
 
 
 @cython.boundscheck(False)
@@ -895,12 +910,16 @@ def fillna1d(fillna_t[:] arr,
                 result = checknull_old(val)
             else:
                 result = checknull(val)
-        elif fillna_t is float32_t or fillna_t is float64_t:
+        elif fillna_t is int64_t:
+            # Datetime64/Timedelta64
+            result = val == NPY_NAT
+        elif fillna_t is uint16_t:
+            # Float 16
+            result = val == uNaN
+        else:
             result = val != val
             if inf_as_na:
                 result = result and (val == INF or val == NEGINF)
-        else:
-            result = val == NPY_NAT
         if result and count < limit:
             arr[i] = value
             count+=1
