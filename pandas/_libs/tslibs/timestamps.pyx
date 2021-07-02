@@ -1330,8 +1330,8 @@ class Timestamp(_Timestamp):
 
         tzobj = maybe_get_tz(tz)
         if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#42288 In the future we will treat datetime64 as wall-time
-            #  (consistent with DatetimeIndex)
+            # GH#24559, GH#42288 In the future we will treat datetime64 as
+            #  wall-time (consistent with DatetimeIndex)
             warnings.warn(
                 "In a future version, when passing a np.datetime64 object and "
                 "a timezone to Timestamp, the datetime64 will be interpreted "
