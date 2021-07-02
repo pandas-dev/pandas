@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas.compat.numpy import np_version_under1p20
+try:
+    from pandas.compat import np_version_under1p20
+except ImportError:
+    from pandas.compat.numpy import _np_version_under1p20 as np_version_under1p20
 
 from pandas import (
     Categorical,
@@ -324,4 +327,14 @@ class IsInLongSeriesValuesDominate:
         self.series = Series(np.arange(M)).astype(dtype)
 
     def time_isin(self, dtypes, series_type):
+        self.series.isin(self.values)
+
+
+class IsInWithLongTupples:
+    def setup(self):
+        t = tuple(range(1000))
+        self.series = Series([t] * 1000)
+        self.values = [t]
+
+    def time_isin(self):
         self.series.isin(self.values)
