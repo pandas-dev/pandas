@@ -73,7 +73,7 @@ cdef:
     # https://docs.scipy.org/doc/numpy-1.13.0/reference/c-api.coremath.html#half-precision-functions
     uint16_t uNaN = np.float16(np.nan).view(np.uint16)
     int64_t NPY_NAT = get_nat()
-    float64_t INF = <float64_t> np.inf
+    float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
 
 cdef enum TiebreakEnumType:
