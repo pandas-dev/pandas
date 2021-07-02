@@ -1,6 +1,9 @@
 import numpy as np
 
-from pandas.compat.numpy import np_version_under1p20
+try:
+    from pandas.compat import np_version_under1p20
+except ImportError:
+    from pandas.compat.numpy import _np_version_under1p20 as np_version_under1p20
 
 from pandas import (
     Categorical,
