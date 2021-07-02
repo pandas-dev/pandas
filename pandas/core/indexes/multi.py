@@ -3248,6 +3248,18 @@ class MultiIndex(Index):
                     except KeyError:
 
                         # ignore not founds
+                        warnings.warn(
+                            "The behavior of indexing on a MultiIndex with a nested "
+                            "sequence of labels is deprecated and will change in a "
+                            "future version. `series.loc[label, sequence]` will "
+                            "raise if any members of 'sequence' or not present in "
+                            "the index's second level. To retain the old behavior, "
+                            "use `series.index.isin(sequence, level=1)`",
+                            # TODO: how to opt in to the future behavior?
+                            # TODO: how to handle IntervalIndex level? (no test cases)
+                            FutureWarning,
+                            stacklevel=7,
+                        )
                         continue
 
                 if indexers is not None:
