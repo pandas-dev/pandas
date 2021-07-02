@@ -1054,11 +1054,12 @@ def _get_dummies_1d(
 
 
 def from_dummies(
-    data,
+    data: DataFrame,
     to_series: bool = False,
     prefix_sep: str | list[str] | dict[str, str] = "_",
     columns: None | list[str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
+    fillna: None | bool = None,
 ) -> Series | DataFrame:
     """
     soon
@@ -1066,7 +1067,7 @@ def from_dummies(
     from pandas.core.reshape.concat import concat
 
     if to_series:
-        return _from_dummies_1d(data, dropped_first)
+        return _from_dummies_1d(data, dropped_first, fillna)
 
     data_to_decode: DataFrame
     if columns is None:
@@ -1078,13 +1079,21 @@ def from_dummies(
                 cat_columns.append(col)
             else:
                 non_cat_columns.append(col)
-        data_to_decode = data[cat_columns]
+        data_to_decode = data[cat_columns].astype("boolean")
         non_cat_data = data[non_cat_columns]
     elif not is_list_like(columns):
         raise TypeError("Input must be a list-like for parameter 'columns'")
     else:
-        data_to_decode = data[columns]
+        data_to_decode = data[columns].astype("boolean")
         non_cat_data = data[[col for col in data.columns if col not in columns]]
+
+    if fillna is not None:
+        data_to_decode = data_to_decode.fillna(fillna)
+    elif data_to_decode.isna().any().any():
+        raise ValueError(
+            f"Dummy DataFrame contains NA value in column: "
+            f"'{data_to_decode.columns[data_to_decode.isna().any().argmax()]}'"
+        )
 
     # get separator for each prefix and lists to slice data for each prefix
     if isinstance(prefix_sep, dict):
@@ -1131,7 +1140,7 @@ def from_dummies(
     cat_data = {}
     for prefix, prefix_slice in variables_slice.items():
         cats = [col[len(prefix + prefix_sep[prefix]) :] for col in prefix_slice]
-        assigned = data[prefix_slice].sum(axis=1)
+        assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
                 f"Dummy DataFrame contains multi-assignment(s) for prefix: "
@@ -1142,12 +1151,10 @@ def from_dummies(
                 cats.append(dropped_first[prefix])
             else:
                 cats.append("nan")
-            bool_data_slice = concat(
-                (data[prefix_slice].astype("boolean"), assigned == 0), axis=1
-            )
+            data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
-            bool_data_slice = data[prefix_slice].astype("boolean")
-        cat_data[prefix] = bool_data_slice.dot(cats)
+            data_slice = data_to_decode[prefix_slice]
+        cat_data[prefix] = data_slice.dot(cats)
 
     if columns:
         return DataFrame(cat_data)
@@ -1156,8 +1163,9 @@ def from_dummies(
 
 
 def _from_dummies_1d(
-    data,
+    data: DataFrame,
     dropped_first: None | str = None,
+    fillna: None | bool = None,
 ) -> Series:
     """
     soon
@@ -1166,6 +1174,15 @@ def _from_dummies_1d(
 
     if dropped_first and not isinstance(dropped_first, str):
         raise ValueError("Only one dropped first value possible in 1D dummy DataFrame.")
+
+    data = data.astype("boolean")
+    if fillna is not None:
+        data = data.fillna(fillna)
+    elif data.isna().any().any():
+        raise ValueError(
+            f"Dummy DataFrame contains NA value in column: "
+            f"'{data.columns[data.isna().any().argmax()]}'"
+        )
 
     cats = data.columns.tolist()
     assigned = data.sum(axis=1)
@@ -1178,10 +1195,9 @@ def _from_dummies_1d(
             cats.append(dropped_first)
         else:
             cats.append("nan")
-        bool_data_slice = concat((data.astype("boolean"), assigned == 0), axis=1)
-    else:
-        bool_data_slice = data.astype("boolean")
-    return bool_data_slice.dot(cats)
+        data = concat((data, assigned == 0), axis=1)
+
+    return data.dot(cats)
 
 
 def _reorder_for_extension_array_stack(
