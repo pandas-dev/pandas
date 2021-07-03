@@ -3441,10 +3441,9 @@ Keep all original rows and also all original values
                 )
             ascending = ascending[0]
 
-        #if not is_bool(ascending):
-        #    raise ValueError("ascending must be boolean")
+        
         if type(ascending)!=bool:
-            raise ValueError("ascending should of type bool")
+            raise ValueError("ascending should be of type bool")
 
         if na_position not in ["first", "last"]:
             raise ValueError(f"invalid na_position: {na_position}")
