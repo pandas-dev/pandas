@@ -17,7 +17,7 @@ import numpy as np
 from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
-    npt,
+    NpDtype,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -428,16 +428,26 @@ class Registry:
         self.dtypes.append(dtype)
 
     @overload
-    def find(self, dtype: ExtensionDtypeT | type_t[ExtensionDtypeT]) -> ExtensionDtypeT:
+    def find(self, dtype: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
         ...
 
     @overload
-    def find(self, dtype: npt.DTypeLike) -> ExtensionDtype | None:
+    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT:
+        ...
+
+    @overload
+    def find(
+        self, dtype: NpDtype | type_t[str | float | int | complex | bool | object]
+    ) -> type_t[ExtensionDtypeT] | ExtensionDtype | None:
         ...
 
     def find(
-        self, dtype: type_t[ExtensionDtype] | ExtensionDtype | npt.DTypeLike
-    ) -> ExtensionDtype | None:
+        self,
+        dtype: type_t[ExtensionDtype]
+        | ExtensionDtype
+        | NpDtype
+        | type_t[str | float | int | complex | bool | object],
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
         """
         Parameters
         ----------
