@@ -18,7 +18,6 @@ from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
     NpDtype,
-    Union,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -467,7 +466,7 @@ class Registry:
             if issubclass(dtype_type, ExtensionDtype):
                 # cast needed here as mypy doesn't know we have figured
                 # out it is an ExtensionDtype or type_t[ExtensionDtype]
-                return cast(Union[ExtensionDtype, type_t[ExtensionDtype]], dtype)
+                return cast("ExtensionDtype | type_t[ExtensionDtype]", dtype)
 
             return None
 
