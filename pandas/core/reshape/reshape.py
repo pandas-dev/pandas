@@ -1059,15 +1059,20 @@ def from_dummies(
     prefix_sep: str | list[str] | dict[str, str] = "_",
     columns: None | list[str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
-    fillna: None | bool = None,
 ) -> Series | DataFrame:
     """
     soon
     """
     from pandas.core.reshape.concat import concat
 
+    if data.isna().any().any():
+        raise ValueError(
+            f"Dummy DataFrame contains NA value in column: "
+            f"'{data.columns[data.isna().any().argmax()]}'"
+        )
+
     if to_series:
-        return _from_dummies_1d(data, dropped_first, fillna)
+        return _from_dummies_1d(data, dropped_first)
 
     data_to_decode: DataFrame
     if columns is None:
@@ -1086,14 +1091,6 @@ def from_dummies(
     else:
         data_to_decode = data[columns].astype("boolean")
         non_cat_data = data[[col for col in data.columns if col not in columns]]
-
-    if fillna is not None:
-        data_to_decode = data_to_decode.fillna(fillna)
-    elif data_to_decode.isna().any().any():
-        raise ValueError(
-            f"Dummy DataFrame contains NA value in column: "
-            f"'{data_to_decode.columns[data_to_decode.isna().any().argmax()]}'"
-        )
 
     # get separator for each prefix and lists to slice data for each prefix
     if isinstance(prefix_sep, dict):
@@ -1165,7 +1162,6 @@ def from_dummies(
 def _from_dummies_1d(
     data: DataFrame,
     dropped_first: None | str = None,
-    fillna: None | bool = None,
 ) -> Series:
     """
     soon
@@ -1176,14 +1172,6 @@ def _from_dummies_1d(
         raise ValueError("Only one dropped first value possible in 1D dummy DataFrame.")
 
     data = data.astype("boolean")
-    if fillna is not None:
-        data = data.fillna(fillna)
-    elif data.isna().any().any():
-        raise ValueError(
-            f"Dummy DataFrame contains NA value in column: "
-            f"'{data.columns[data.isna().any().argmax()]}'"
-        )
-
     cats = data.columns.tolist()
     assigned = data.sum(axis=1)
     if any(assigned > 1):
