@@ -17,7 +17,7 @@ import numpy as np
 from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
-    NpDtype,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -373,7 +373,7 @@ class ExtensionDtype:
         return True
 
 
-def register_extension_dtype(cls: type[ExtensionDtypeT]) -> type[ExtensionDtypeT]:
+def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -414,9 +414,9 @@ class Registry:
     """
 
     def __init__(self):
-        self.dtypes: list[type[ExtensionDtype]] = []
+        self.dtypes: list[type_t[ExtensionDtype]] = []
 
-    def register(self, dtype: type[ExtensionDtype]) -> None:
+    def register(self, dtype: type_t[ExtensionDtype]) -> None:
         """
         Parameters
         ----------
@@ -428,26 +428,16 @@ class Registry:
         self.dtypes.append(dtype)
 
     @overload
-    def find(self, dtype: type[ExtensionDtypeT]) -> ExtensionDtypeT:
+    def find(self, dtype: ExtensionDtypeT | type_t[ExtensionDtypeT]) -> ExtensionDtypeT:
         ...
 
     @overload
-    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT:
+    def find(self, dtype: npt.DTypeLike) -> ExtensionDtype | None:
         ...
 
-    @overload
     def find(
-        self, dtype: NpDtype | type_t[str | float | int | complex | bool | object] | str
+        self, dtype: type_t[ExtensionDtype] | ExtensionDtype | npt.DTypeLike
     ) -> ExtensionDtype | None:
-        ...
-
-    def find(
-        self,
-        dtype: type[ExtensionDtype]
-        | ExtensionDtype
-        | NpDtype
-        | type_t[str | float | int | complex | bool | object],
-    ) -> type[ExtensionDtype] | ExtensionDtype | None:
         """
         Parameters
         ----------
@@ -458,7 +448,7 @@ class Registry:
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
-            dtype_type: type[ExtensionDtype] | type
+            dtype_type: type_t
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
             else:
@@ -470,9 +460,9 @@ class Registry:
 
             return None
 
-        for dtype_loop in self.dtypes:
+        for dtype_type in self.dtypes:
             try:
-                return dtype_loop.construct_from_string(dtype)
+                return dtype_type.construct_from_string(dtype)
             except TypeError:
                 pass
 
