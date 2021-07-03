@@ -709,6 +709,8 @@ class Styler(StylerRenderer):
         0 & {\bfseries}{\Huge{1}} \\
         \end{tabular}
         """
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+
         table_selectors = (
             [style["selector"] for style in self.table_styles]
             if self.table_styles is not None
@@ -717,7 +719,7 @@ class Styler(StylerRenderer):
 
         if column_format is not None:
             # add more recent setting to table_styles
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
@@ -735,13 +737,13 @@ class Styler(StylerRenderer):
                     column_format += (
                         ("r" if not siunitx else "S") if ci in numeric_cols else "l"
                     )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
 
         if position:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position", "props": f":{position}"}],
                 overwrite=False,
             )
@@ -753,13 +755,13 @@ class Styler(StylerRenderer):
                     f"'raggedright', 'raggedleft', 'centering', "
                     f"got: '{position_float}'"
                 )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
             )
 
         if hrules:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [
                     {"selector": "toprule", "props": ":toprule"},
                     {"selector": "midrule", "props": ":midrule"},
@@ -769,20 +771,20 @@ class Styler(StylerRenderer):
             )
 
         if label:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
                 overwrite=False,
             )
 
         if caption:
-            self.set_caption(caption)
+            obj.set_caption(caption)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
 
-        latex = self._render_latex(
+        latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
@@ -1029,15 +1031,14 @@ class Styler(StylerRenderer):
 
         Returns None.
         """
-        self.ctx.clear()
-        self.tooltips = None
-        self.cell_context.clear()
-        self._todo.clear()
-
-        self.hide_index_ = False
-        self.hidden_columns = []
-        # self.format and self.table_styles may be dependent on user
-        # input in self.__init__()
+        # create default GH 40675
+        clean_copy = Styler(self.data, uuid=self.uuid)
+        clean_attrs = [a for a in clean_copy.__dict__ if not callable(a)]
+        self_attrs = [a for a in self.__dict__ if not callable(a)]  # maybe more attrs
+        for attr in clean_attrs:
+            setattr(self, attr, getattr(clean_copy, attr))
+        for attr in set(self_attrs).difference(clean_attrs):
+            delattr(self, attr)
 
     def _apply(
         self,
@@ -2504,23 +2505,35 @@ class Styler(StylerRenderer):
         )
 
     @classmethod
-    def from_custom_template(cls, searchpath, name):
+    def from_custom_template(
+        cls, searchpath, html_table: str | None = None, html_style: str | None = None
+    ):
         """
         Factory function for creating a subclass of ``Styler``.
 
-        Uses a custom template and Jinja environment.
+        Uses custom templates and Jinja environment.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
-        name : str
-            Name of your custom template to use for rendering.
+        html_table : str
+            Name of your custom template to replace the html_table template.
+
+            .. versionadded:: 1.3.0
+
+        html_style : str
+            Name of your custom template to replace the html_style template.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env`` and ``template`` class attributes set.
+            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            ``template_html_style`` class attributes set.
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
@@ -2529,7 +2542,10 @@ class Styler(StylerRenderer):
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
-            template_html = env.get_template(name)
+            if html_table:
+                template_html_table = env.get_template(html_table)
+            if html_style:
+                template_html_style = env.get_template(html_style)
 
         return MyStyler
 

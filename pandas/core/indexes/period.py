@@ -438,10 +438,17 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             else:
                 key = Period(parsed, freq=self.freq)
 
-        elif isinstance(key, Period) and key.freq != self.freq:
-            raise KeyError(key)
         elif isinstance(key, Period):
-            pass
+            sfreq = self.freq
+            kfreq = key.freq
+            if not (
+                sfreq.n == kfreq.n
+                and sfreq._period_dtype_code == kfreq._period_dtype_code
+            ):
+                # GH#42247 For the subset of DateOffsets that can be Period freqs,
+                #  checking these two attributes is sufficient to check equality,
+                #  and much more performant than `self.freq == key.freq`
+                raise KeyError(key)
         elif isinstance(key, datetime):
             try:
                 key = Period(key, freq=self.freq)
@@ -503,16 +510,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
         assert isinstance(reso, Resolution), (type(reso), reso)
-        grp = reso.freq_group
-        freqn = self.dtype.freq_group_code
-
-        if not grp.value < freqn:
-            # TODO: we used to also check for
-            #  reso in ["day", "hour", "minute", "second"]
-            #  why is that check not needed?
-            return False
-
-        return True
+        # e.g. test_getitem_setitem_periodindex
+        return reso > self.dtype.resolution
 
 
 def period_range(

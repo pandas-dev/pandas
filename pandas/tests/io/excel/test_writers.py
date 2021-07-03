@@ -1407,25 +1407,6 @@ class TestExcelWriterEngineTests:
             pytest.param(".ods", marks=td.skip_if_no("odf")),
         ],
     )
-    def test_kwargs_deprecated(self, ext):
-        # GH 40430
-        msg = re.escape("Use of **kwargs is deprecated")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with tm.ensure_clean(ext) as path:
-                try:
-                    with ExcelWriter(path, kwarg=1):
-                        pass
-                except TypeError:
-                    pass
-
-    @pytest.mark.parametrize(
-        "ext",
-        [
-            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
-            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(".ods", marks=td.skip_if_no("odf")),
-        ],
-    )
     def test_engine_kwargs_and_kwargs_raises(self, ext):
         # GH 40430
         msg = re.escape("Cannot use both engine_kwargs and **kwargs")
