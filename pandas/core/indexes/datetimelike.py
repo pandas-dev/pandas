@@ -628,11 +628,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
