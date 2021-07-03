@@ -23,21 +23,41 @@ def no_bar():
     return bar_grad()
 
 
-def bar_to(x):
-    return bar_grad(f" #d65f5f {x:.1f}%", f" transparent {x:.1f}%")
+def bar_to(x, color="#d65f5f"):
+    return bar_grad(f" {color} {x:.1f}%", f" transparent {x:.1f}%")
 
 
-def bar_from_to(x, y):
+def bar_from_to(x, y, color="#d65f5f"):
     return bar_grad(
         f" transparent {x:.1f}%",
-        f" #d65f5f {x:.1f}%",
-        f" #d65f5f {y:.1f}%",
+        f" {color} {x:.1f}%",
+        f" {color} {y:.1f}%",
         f" transparent {y:.1f}%",
     )
 
 
 class TestStylerBarAlign:
-    def test_bar_align_left(self):
+    # TODO: delete 'removed test' comments
+
+    # test_bar_align_left: proportions, single color and numeric selection
+    # test_bar_align_left_0points: axis
+    # test_bar_align_mid_pos_and_neg: align 'mid' with mixed values, mixe colors
+    # test_bar_align_mid_all_pos: align 'mid' with pos values, mixed colors
+    # test_bar_align_mid_all_neg: align 'neg' with neg values, mixed colors
+    # test_bar_align_zero_pos_and_neg: align 'zero' with mixed values
+    # test_bar_align_left_axis_none: align 'left' and axis is None
+    # test_bar_align_zero_axis_none: align 'zero' and axis is None
+    # test_bar_align_mid_axis_none:  align 'mid' and axis is None
+    # test_bar_align_mid_vmin: test vmin
+    # test_bar_align_mid_vmax: test vmax
+    # test_bar_align_mid_vmin_wide: vmin and vmax
+    # test  test_bar_align_mid_clipping: vmin and vmax
+    # test_bar_align_mid_nans: nan with align 'mid'
+    # test_bar_align_zero_nans: nan with align 'zero'
+
+    def test_bar_align_left(
+        self,
+    ):  # test removed in favour of test_bar_align_positive_cases, test_bar_numerics,
         df = DataFrame({"A": [0, 1, 2]})
         result = df.style.bar(align="left")._compute().ctx
         expected = {
@@ -62,35 +82,7 @@ class TestStylerBarAlign:
         result = df.style.bar(color="red", width=50, align="left")._compute().ctx
         assert result == expected
 
-    def test_bar_align_left_0points(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-        result = df.style.bar(align="left")._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (0, 1): bar_grad(),
-            (0, 2): bar_grad(),
-            (1, 0): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (1, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (1, 2): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (2, 0): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-            (2, 1): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-            (2, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-        }
-        assert result == expected
-
-        result = df.style.bar(axis=1, align="left")._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (0, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (0, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-            (1, 0): bar_grad(),
-            (1, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (1, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-            (2, 0): bar_grad(),
-            (2, 1): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (2, 2): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-        }
-        assert result == expected
+    # def test_bar_align_left_0points(self): removed in favour of test_bar_align_axis
 
     def test_bar_align_mid_pos_and_neg(self):
         df = DataFrame({"A": [-10, 0, 20, 90]})
@@ -484,3 +476,80 @@ def test_bar_align_mixed_cases(align, exp):
     result = data.style.bar(align=align)._compute().ctx
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "align, exp",
+    [
+        (
+            "left",
+            {
+                "index": [[no_bar(), no_bar()], [bar_to(100), bar_to(100)]],
+                "columns": [[no_bar(), bar_to(100)], [no_bar(), bar_to(100)]],
+                "none": [[no_bar(), bar_to(33.33)], [bar_to(66.66), bar_to(100)]],
+            },
+        ),
+        (
+            "mid",
+            {
+                "index": [[bar_to(33.33), bar_to(50)], [bar_to(100), bar_to(100)]],
+                "columns": [[bar_to(50), bar_to(100)], [bar_to(75), bar_to(100)]],
+                "none": [[bar_to(25), bar_to(50)], [bar_to(75), bar_to(100)]],
+            },
+        ),
+        (
+            2,
+            {
+                "index": [
+                    [bar_to(50), no_bar()],
+                    [bar_from_to(50, 100), bar_from_to(50, 100)],
+                ],
+                "columns": [
+                    [bar_to(50), no_bar()],
+                    [bar_from_to(50, 75), bar_from_to(50, 100)],
+                ],
+                "none": [
+                    [bar_from_to(25, 50), no_bar()],
+                    [bar_from_to(50, 75), bar_from_to(50, 100)],
+                ],
+            },
+        ),
+    ],
+)
+@pytest.mark.parametrize("axis", ["index", "columns", "none"])
+def test_bar_align_axis(align, exp, axis):
+    # test all axis combinations with positive values and different aligns
+    data = DataFrame([[1, 2], [3, 4]])
+    result = (
+        data.style.bar(align=align, axis=None if axis == "none" else axis)
+        ._compute()
+        .ctx
+    )
+    expec = {
+        (0, 0): exp[axis][0][0],
+        (0, 1): exp[axis][0][1],
+        (1, 0): exp[axis][1][0],
+        (1, 1): exp[axis][1][1],
+    }
+    assert result == expec
+
+
+def test_bar_numerics():
+    # test data is pre-selected for numeric values
+    data = DataFrame([[1, "a"], [2, "b"]])
+    result = data.style.bar()._compute().ctx
+    assert (0, 1) not in result
+    assert (1, 1) not in result
+
+
+@pytest.mark.parametrize(
+    "align, exp",
+    [
+        ("left", [no_bar(), bar_to(100, "green")]),
+        ("right", [bar_to(100, "red"), no_bar()]),
+    ],
+)
+def test_bar_colors(align, exp):
+    data = DataFrame([[-1], [3]])
+    result = data.style.bar(align=align, color=["red", "green"])._compute().ctx
+    assert result == {(0, 0): exp[0], (1, 0): exp[1]}
