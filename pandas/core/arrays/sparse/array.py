@@ -224,10 +224,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
 
-    .. versionchanged:: 0.24.0
-
-       Implements the ExtensionArray interface.
-
     Parameters
     ----------
     data : array-like
@@ -1395,7 +1391,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # This condition returns a nan if there are no valid values in the array.
         if self.size > 0 and self._valid_sp_values.size == 0:
-            return np.nan
+            return self.fill_value
         else:
             return np.nanmax(self, axis)
 
@@ -1404,7 +1400,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # This condition returns a nan if there are no valid values in the array.
         if self.size > 0 and self._valid_sp_values.size == 0:
-            return np.nan
+            return self.fill_value
         else:
             return np.nanmin(self, axis)
 
@@ -1450,7 +1446,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
             )
 
-        result = getattr(ufunc, method)(*[np.asarray(x) for x in inputs], **kwargs)
+        result = getattr(ufunc, method)(*(np.asarray(x) for x in inputs), **kwargs)
         if out:
             if len(out) == 1:
                 out = out[0]
@@ -1465,11 +1461,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return type(self)(result)
 
     def __abs__(self):
-        # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-        # "SparseArray"; expected "Union[Union[int, float, complex, str, bytes,
-        # generic], Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        return np.abs(self)  # type: ignore[arg-type]
+        return np.abs(self)
 
     # ------------------------------------------------------------------------
     # Ops

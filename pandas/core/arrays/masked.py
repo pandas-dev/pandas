@@ -79,7 +79,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
-        """ Return an instance of our numpy dtype """
+        """Return an instance of our numpy dtype"""
         return np.dtype(self.type)
 
     @cache_readonly
@@ -88,7 +88,7 @@ class BaseMaskedDtype(ExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """ Return the number of bytes in this dtype """
+        """Return the number of bytes in this dtype"""
         return self.numpy_dtype.itemsize
 
     @classmethod
@@ -416,9 +416,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result += self._mask
             else:
                 result *= np.invert(self._mask)
-        # error: No overload variant of "zeros_like" matches argument types
-        # "BaseMaskedArray", "Type[bool]"
-        mask = np.zeros_like(self, dtype=bool)  # type: ignore[call-overload]
+        mask = np.zeros_like(self, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:

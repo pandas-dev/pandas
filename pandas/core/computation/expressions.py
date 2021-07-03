@@ -5,12 +5,9 @@ Expressions
 Offer fast expression evaluation through numexpr
 
 """
+from __future__ import annotations
+
 import operator
-from typing import (
-    List,
-    Optional,
-    Set,
-)
 import warnings
 
 import numpy as np
@@ -25,11 +22,11 @@ from pandas.core.ops import roperator
 if NUMEXPR_INSTALLED:
     import numexpr as ne
 
-_TEST_MODE: Optional[bool] = None
-_TEST_RESULT: List[bool] = []
+_TEST_MODE: bool | None = None
+_TEST_RESULT: list[bool] = []
 USE_NUMEXPR = NUMEXPR_INSTALLED
-_evaluate: Optional[FuncType] = None
-_where: Optional[FuncType] = None
+_evaluate: FuncType | None = None
+_where: FuncType | None = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
@@ -73,13 +70,13 @@ def _evaluate_standard(op, op_str, a, b):
 
 
 def _can_use_numexpr(op, op_str, a, b, dtype_check):
-    """ return a boolean if we WILL be using numexpr """
+    """return a boolean if we WILL be using numexpr"""
     if op_str is not None:
 
         # required min elements (otherwise we are adding overhead)
         if a.size > _MIN_ELEMENTS:
             # check for dtype compatibility
-            dtypes: Set[str] = set()
+            dtypes: set[str] = set()
             for o in [a, b]:
                 # ndarray and Series Case
                 if hasattr(o, "dtype"):
@@ -277,7 +274,7 @@ def _store_test_result(used_numexpr: bool) -> None:
         _TEST_RESULT.append(used_numexpr)
 
 
-def get_test_result() -> List[bool]:
+def get_test_result() -> list[bool]:
     """
     Get test result and reset test_results.
     """

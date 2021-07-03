@@ -27,6 +27,7 @@ from pandas._libs import (
     NaT,
     algos as libalgos,
     hashtable as htable,
+    lib,
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import no_default
@@ -354,7 +355,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # tolist is not actually deprecated, just suppressed in the __dir__
     _hidden_attrs = PandasObject._hidden_attrs | frozenset(["tolist"])
     _typ = "categorical"
-    _can_hold_na = True
 
     _dtype: CategoricalDtype
 
@@ -533,6 +533,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             try:
                 new_cats = np.asarray(self.categories)
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
+                fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
@@ -540,7 +541,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_nd(new_cats, ensure_platform_int(self._codes))
+            result = take_nd(
+                new_cats, ensure_platform_int(self._codes), fill_value=fill_value
+            )
 
         return result
 
@@ -662,11 +665,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
-
-            .. versionadded:: 0.24.0
-
-               When `dtype` is provided, neither `categories` nor `ordered`
-               should be provided.
 
         Returns
         -------
@@ -1416,7 +1414,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = np.array(locs, dtype=self.codes.dtype)  # type: ignore[assignment]
         return codes
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         """
         Convert a user-facing fill_value to a representation to use with our
         underlying ndarray, raising TypeError if this is not possible.
@@ -1444,8 +1442,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 "in this Categorical's categories"
             )
         return fill_value
-
-    _validate_scalar = _validate_fill_value
 
     # -------------------------------------------------------------
 
@@ -1653,7 +1649,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return np.array(self)
 
     def check_for_ordered(self, op):
-        """ assert that we are ordered """
+        """assert that we are ordered"""
         if not self.ordered:
             raise TypeError(
                 f"Categorical is not ordered for operation {op}\n"
@@ -2047,7 +2043,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         from pandas import Index
 
-        to_add = Index(rvalue).difference(self.categories)
+        # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
+        to_add = Index(rvalue, tupleize_cols=False).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
@@ -2181,8 +2178,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         dropna : bool, default True
             Don't consider counts of NaN/NaT.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------

@@ -487,6 +487,8 @@ styler.sparse.index                     True         "Sparsify" MultiIndex displ
                                                      elements in outer levels within groups).
 styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
                                                      in Styler output.
+styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
+                                                     trimming either rows, columns or both to fit.
 ======================================= ============ ==================================
 
 

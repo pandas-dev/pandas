@@ -37,6 +37,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    cache_readonly,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -251,8 +252,6 @@ class ExtensionArray:
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -770,8 +769,6 @@ class ExtensionArray:
         Newly introduced missing values are filled with
         ``self.dtype.na_value``.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         periods : int, default 1
@@ -781,8 +778,6 @@ class ExtensionArray:
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
             The default is ``self.dtype.na_value``.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -832,8 +827,6 @@ class ExtensionArray:
         """
         Find indices where elements should be inserted to maintain order.
 
-        .. versionadded:: 0.24.0
-
         Find the indices into a sorted array `self` (a) such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
@@ -849,13 +842,13 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array_like
+        value : array-like
             Values to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
+        sorter : 1-D array-like, optional
             Optional array of integer indices that sort array a into ascending
             order. They are typically the result of argsort.
 
@@ -1289,7 +1282,9 @@ class ExtensionArray:
     # such as take(), reindex(), shift(), etc.  In addition, those results
     # will then be of the ExtensionArray subclass rather than an array
     # of objects
-    _can_hold_na = True
+    @cache_readonly
+    def _can_hold_na(self) -> bool:
+        return self.dtype._can_hold_na
 
     def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
         """
@@ -1317,8 +1312,10 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self) -> int:
-        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
+    # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
+    # Incompatible types in assignment (expression has type "None", base class
+    # "object" defined the type as "Callable[[object], int]")
+    __hash__: None  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods

@@ -42,6 +42,8 @@ if TYPE_CHECKING:
         final,
     )
 
+    import numpy.typing as npt
+
     from pandas._libs import (
         Period,
         Timedelta,
@@ -73,6 +75,7 @@ if TYPE_CHECKING:
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset
 else:
+    npt: Any = None
     # typing.final does not exist until py38
     final = lambda x: x
     # typing.TypedDict does not exist until py38
@@ -122,6 +125,7 @@ Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
+RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
 
 # dtypes
 NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
@@ -168,8 +172,8 @@ PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
-FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
+FileOrBuffer = Union[str, Buffer[AnyStr]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
