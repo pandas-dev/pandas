@@ -19,7 +19,6 @@ from pandas.core.util.numba_ import (
 
 
 def generate_numba_apply_func(
-    args: tuple,
     kwargs: dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: dict[str, bool] | None,
@@ -36,8 +35,6 @@ def generate_numba_apply_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
     kwargs : dict
         **kwargs to be passed into the function
     func : function
@@ -62,7 +59,11 @@ def generate_numba_apply_func(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_apply(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+        *args: Any,
     ) -> np.ndarray:
         result = np.empty(len(begin))
         for i in numba.prange(len(result)):
@@ -169,7 +170,6 @@ def generate_numba_ewma_func(
 
 
 def generate_numba_table_func(
-    args: tuple,
     kwargs: dict[str, Any],
     func: Callable[..., np.ndarray],
     engine_kwargs: dict[str, bool] | None,
@@ -187,8 +187,6 @@ def generate_numba_table_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
     kwargs : dict
         **kwargs to be passed into the function
     func : function
@@ -213,7 +211,11 @@ def generate_numba_table_func(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def roll_table(
-        values: np.ndarray, begin: np.ndarray, end: np.ndarray, minimum_periods: int
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+        *args: Any,
     ):
         result = np.empty(values.shape)
         min_periods_mask = np.empty(values.shape)

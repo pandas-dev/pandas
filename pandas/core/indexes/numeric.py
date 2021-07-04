@@ -153,7 +153,12 @@ class NumericIndex(Index):
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
+            orig = data
             data = np.asarray(data, dtype=dtype)
+            if dtype is None and data.dtype.kind == "f":
+                if cls is UInt64Index and (data >= 0).all():
+                    # https://github.com/numpy/numpy/issues/19146
+                    data = np.asarray(orig, dtype=np.uint64)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)

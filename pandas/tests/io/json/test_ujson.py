@@ -16,6 +16,7 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import (
     IS64,
+    PY310,
     is_platform_windows,
 )
 
@@ -248,7 +249,21 @@ class TestUltraJSONTests:
             assert rounded_input == json.loads(output)
             assert rounded_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("invalid_val", [20, -1, "9", None])
+    @pytest.mark.parametrize(
+        "invalid_val",
+        [
+            20,
+            -1,
+            pytest.param(
+                "9",
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
+            ),
+            pytest.param(
+                None,
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
+            ),
+        ],
+    )
     def test_invalid_double_precision(self, invalid_val):
         double_input = 30.12345678901234567890
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
