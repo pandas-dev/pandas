@@ -3,18 +3,22 @@ Module containing utilities for NDFrame.sample() and .GroupBy.sample()
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas._libs import lib
-from pandas._typing import FrameOrSeries
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
 
+if TYPE_CHECKING:
+    from pandas.core.generic import NDFrame
 
-def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
+
+def preprocess_weights(obj: NDFrame, weights, axis: int) -> np.ndarray:
     """
     Process and validate the `weights` argument to `NDFrame.sample` and
     `.GroupBy.sample`.

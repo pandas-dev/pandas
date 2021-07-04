@@ -44,7 +44,6 @@ from pandas._libs import (
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
-    F,
     FrameOrSeries,
     IndexLabel,
     RandomState,

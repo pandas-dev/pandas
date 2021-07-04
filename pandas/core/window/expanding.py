@@ -41,6 +41,13 @@ from pandas.core.window.rolling import (
     RollingAndExpandingMixin,
 )
 
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
+
 
 class Expanding(RollingAndExpandingMixin):
     """
@@ -101,7 +108,7 @@ class Expanding(RollingAndExpandingMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         min_periods: int = 1,
         center=None,
         axis: Axis = 0,
