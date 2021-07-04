@@ -1500,7 +1500,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_names(self) -> FrozenList:
         return FrozenList((self.name,))
 
-    def _set_names(self, values, level=None) -> None:
+    def _set_names(self, values, *, level=None) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1906,7 +1906,7 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    def _get_grouper_for_level(self, mapper, level=None):
+    def _get_grouper_for_level(self, mapper, *, level=None):
         """
         Get index grouper corresponding to an index level
 
@@ -1915,7 +1915,7 @@ class Index(IndexOpsMixin, PandasObject):
         mapper: Group mapping function or None
             Function mapping index values to groups
         level : int or None
-            Index level
+            Index level, positional
 
         Returns
         -------
@@ -5642,7 +5642,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
-    def _transform_index(self, func, level=None) -> Index:
+    def _transform_index(self, func, *, level=None) -> Index:
         """
         Apply function to all values found in index.
 
@@ -5651,6 +5651,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self, ABCMultiIndex):
             if level is not None:
+                # Caller is responsible for ensuring level is positional.
                 items = [
                     tuple(func(y) if i == level else y for i, y in enumerate(x))
                     for x in self
