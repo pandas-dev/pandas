@@ -1152,7 +1152,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     ]
                     raise KeyError(f"{missing_labels} not found in axis")
 
-            new_index = ax._transform_index(f, level)
+            new_index = ax._transform_index(f, level=level)
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 

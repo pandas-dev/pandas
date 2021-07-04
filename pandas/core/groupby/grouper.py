@@ -490,7 +490,7 @@ class Grouping:
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, ilevel)
+            ) = index._get_grouper_for_level(mapper, level=ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes

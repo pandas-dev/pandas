@@ -761,6 +761,7 @@ class MultiIndex(Index):
     def _set_levels(
         self,
         levels,
+        *,
         level=None,
         copy: bool = False,
         validate: bool = True,
@@ -954,6 +955,7 @@ class MultiIndex(Index):
     def _set_codes(
         self,
         codes,
+        *,
         level=None,
         copy: bool = False,
         validate: bool = True,
@@ -1392,7 +1394,7 @@ class MultiIndex(Index):
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 
-    def _set_names(self, names, level=None, validate: bool = True):
+    def _set_names(self, names, *, level=None, validate: bool = True):
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1473,7 +1475,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     @doc(Index._get_grouper_for_level)
-    def _get_grouper_for_level(self, mapper, level):
+    def _get_grouper_for_level(self, mapper, *, level):
         indexer = self.codes[level]
         level_index = self.levels[level]
 
