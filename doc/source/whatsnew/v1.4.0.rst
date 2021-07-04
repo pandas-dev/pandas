@@ -122,7 +122,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
 -
 
 Timedelta
