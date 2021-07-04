@@ -3,12 +3,12 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - python=3.7.*
+  - python=3.8
 
   # tools
   - pytest>=6.0
-  - pytest-xdist>=1.21
-  - hypothesis>=3.58.0
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
   - pytest-azurepipelines
 
   # pandas dependencies
@@ -17,17 +17,17 @@ dependencies:
   - html5lib
   - jinja2
   - lxml
-  - matplotlib=2.2.3
+  - matplotlib=3.3.2
   - nomkl
   - numexpr
-  - numpy=1.17.3
+  - numpy=1.18.5
   - openpyxl
   - pyarrow=0.17
   - pytables
-  - python-dateutil==2.7.3
+  - python-dateutil==2.8.1
   - pytz
   - xarray
-  - xlrd<2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - pip
