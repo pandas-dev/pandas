@@ -405,7 +405,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
             this, other = this._maybe_utc_convert(other)
 
-            if this._can_fast_union(other):
+            if len(self) and len(other) and this._can_fast_union(other):
+                # union already has fastpath handling for empty cases
                 this = this._fast_union(other)
             else:
                 this = Index.union(this, other)
