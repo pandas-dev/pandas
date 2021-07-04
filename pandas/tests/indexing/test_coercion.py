@@ -273,7 +273,12 @@ class TestSetitemCoercion(CoercionBase):
     ):
         """test index's coercion triggered by assign key"""
         temp = original_series.copy()
-        temp[loc_key] = 5
+        warn = None
+        if isinstance(loc_key, int) and temp.index.dtype == np.float64:
+            # GH#33469
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn):
+            temp[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
@@ -324,7 +329,10 @@ class TestSetitemCoercion(CoercionBase):
             temp = obj.copy()
             msg = "index 5 is out of bounds for axis 0 with size 4"
             with pytest.raises(exp_dtype, match=msg):
-                temp[5] = 5
+                # GH#33469
+                depr_msg = "Treating integers as positional"
+                with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                    temp[5] = 5
             mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
             request.node.add_marker(mark)
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
