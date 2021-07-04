@@ -2949,16 +2949,11 @@ class MultiIndex(Index):
 
         # different name to distinguish from maybe_droplevels
         def maybe_mi_droplevels(indexer, levels):
-            # kludge around
-            orig_index = new_index = self[indexer]
+            new_index = self[indexer]
 
             for i in sorted(levels, reverse=True):
-                try:
-                    new_index = new_index._drop_level_numbers([i])
-                except ValueError:
+                new_index = new_index._drop_level_numbers([i])
 
-                    # no dropping here
-                    return orig_index
             return new_index
 
         if isinstance(level, (tuple, list)):
@@ -2973,10 +2968,18 @@ class MultiIndex(Index):
                     mask = np.zeros(len(self), dtype=bool)
                     mask[loc] = True
                     loc = mask
-
                 result = loc if result is None else result & loc
 
-            return result, maybe_mi_droplevels(result, level)
+            try:
+                # FIXME: we should be only dropping levels on which we are
+                #  scalar-indexing
+                mi = maybe_mi_droplevels(result, level)
+            except ValueError:
+                # droplevel failed because we tried to drop all levels,
+                #  i.e. len(level) == self.nlevels
+                mi = self[result]
+
+            return result, mi
 
         # kludge for #1796
         if isinstance(key, list):
@@ -2994,24 +2997,26 @@ class MultiIndex(Index):
 
             if not any(isinstance(k, slice) for k in key):
 
-                # partial selection
-                # optionally get indexer to avoid re-calculation
-                def partial_selection(key, indexer=None):
-                    if indexer is None:
-                        indexer = self.get_loc(key)
-                    ilevels = [
-                        i for i in range(len(key)) if key[i] != slice(None, None)
-                    ]
-                    return indexer, maybe_mi_droplevels(indexer, ilevels)
-
                 if len(key) == self.nlevels and self.is_unique:
                     # Complete key in unique index -> standard get_loc
                     try:
                         return (self._engine.get_loc(key), None)
-                    except KeyError as e:
-                        raise KeyError(key) from e
-                else:
-                    return partial_selection(key)
+                    except KeyError as err:
+                        raise KeyError(key) from err
+
+                # partial selection
+                indexer = self.get_loc(key)
+                ilevels = [i for i in range(len(key)) if key[i] != slice(None, None)]
+                if len(ilevels) == self.nlevels:
+                    if is_integer(indexer):
+                        # we are dropping all levels
+                        return indexer, None
+
+                    # TODO: in some cases we still need to drop some levels,
+                    #  e.g. test_multiindex_perf_warn
+                    ilevels = []
+                return indexer, maybe_mi_droplevels(indexer, ilevels)
+
             else:
                 indexer = None
                 for i, k in enumerate(key):
@@ -3032,7 +3037,7 @@ class MultiIndex(Index):
 
                     if indexer is None:
                         indexer = k_index
-                    else:  # pragma: no cover
+                    else:
                         indexer &= k_index
                 if indexer is None:
                     indexer = slice(None, None)
