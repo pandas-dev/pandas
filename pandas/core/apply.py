@@ -7,6 +7,7 @@ from typing import (
     Any,
     Dict,
     Hashable,
+    Iterable,
     Iterator,
     List,
     cast,
@@ -443,6 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # combine results
         if all(is_ndframe):
+            keys_to_use: Iterable[Hashable]
             keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
@@ -450,9 +452,7 @@ class Apply(metaclass=abc.ABCMeta):
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
                 ktu._set_names(selected_obj.columns.names)
-                # Incompatible types in assignment (expression has type "Index",
-                # variable has type "List[Hashable]")
-                keys_to_use = ktu  # type: ignore[assignment]
+                keys_to_use = ktu
 
             axis = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
