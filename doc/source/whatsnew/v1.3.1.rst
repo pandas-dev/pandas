@@ -25,6 +25,8 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.isin` and :meth:`Series.isin` raising ``TypeError`` with nullable data containing at least one missing value (:issue:`42405`)
 - Regression in :func:`concat` between objects with bool dtype and integer dtype casting to object instead of to integer (:issue:`42092`)
 - Bug in :class:`Series` constructor not accepting a ``dask.Array`` (:issue:`38645`)
+- Fixed regression in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
+
 
 .. ---------------------------------------------------------------------------
 
