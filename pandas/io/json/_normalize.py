@@ -397,14 +397,13 @@ def _json_normalize(
                     f"Key {e} not found. If specifying a record_path, all elements of "
                     f"data should have the path."
                 ) from e
+            elif errors == "ignore":
+                result = np.nan
             else:
-                if errors == "ignore":
-                    result = np.nan
-                else:
-                    raise KeyError(
-                        f"Key {e} not found. To replace missing values of {e} with "
-                        f"np.nan, pass in errors='ignore'"
-                    ) from e
+                raise KeyError(
+                    f"Key {e} not found. To replace missing values of {e} with "
+                    f"np.nan, pass in errors='ignore'"
+                ) from e
 
         return result
 
