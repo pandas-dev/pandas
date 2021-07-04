@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
@@ -123,9 +138,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         with pytest.raises(TypeError, match=msg):
             s + data
 
-    def test_error(self):
-        pass
-
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
         # Override to use __sub__ instead of __add__
@@ -172,3 +184,7 @@ class TestParsing(BasePeriodTests, base.BaseParsingTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
         super().test_EA_types(engine, data)
+
+
+class Test2DCompat(BasePeriodTests, base.Dim2CompatTests):
+    pass

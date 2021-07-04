@@ -19,8 +19,7 @@ if missing_dependencies:
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat.numpy import (
-    np_version_under1p17 as _np_version_under1p17,
+from pandas.compat import (
     np_version_under1p18 as _np_version_under1p18,
     is_numpy_dev as _is_numpy_dev,
 )
@@ -167,6 +166,7 @@ from pandas.io.api import (
     read_feather,
     read_gbq,
     read_html,
+    read_xml,
     read_json,
     read_stata,
     read_sas,
@@ -180,7 +180,7 @@ import pandas.testing
 import pandas.arrays
 
 # use the closest tagged version if possible
-from ._version import get_versions
+from pandas._version import get_versions
 
 v = get_versions()
 __version__ = v.get("closest-tag", v["version"])

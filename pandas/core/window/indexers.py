@@ -1,6 +1,7 @@
 """Indexer objects for computing start/end window bounds for rolling operations"""
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import Dict, Optional, Tuple, Type
 
 import numpy as np
 
@@ -40,7 +41,7 @@ class BaseIndexer:
     """Base class for window bounds calculations."""
 
     def __init__(
-        self, index_array: Optional[np.ndarray] = None, window_size: int = 0, **kwargs
+        self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
     ):
         """
         Parameters
@@ -58,10 +59,10 @@ class BaseIndexer:
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         raise NotImplementedError
 
@@ -73,10 +74,10 @@ class FixedWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
             offset = (self.window_size - 1) // 2
@@ -103,13 +104,22 @@ class VariableWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
+        # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[bool]"; expected "bool"
+        # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
+        # type "Optional[ndarray]"; expected "ndarray"
         return calculate_variable_window_bounds(
-            num_values, self.window_size, min_periods, center, closed, self.index_array
+            num_values,
+            self.window_size,
+            min_periods,
+            center,  # type: ignore[arg-type]
+            closed,
+            self.index_array,  # type: ignore[arg-type]
         )
 
 
@@ -118,7 +128,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
 
     def __init__(
         self,
-        index_array: Optional[np.ndarray] = None,
+        index_array: np.ndarray | None = None,
         window_size: int = 0,
         index=None,
         offset=None,
@@ -132,10 +142,10 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         # if windows is variable, default is 'right', otherwise default is 'both'
         if closed is None:
@@ -202,10 +212,10 @@ class ExpandingIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         return (
             np.zeros(num_values, dtype=np.int64),
@@ -243,10 +253,10 @@ class FixedForwardWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         if center:
             raise ValueError("Forward-looking windows can't have center=True")
@@ -268,11 +278,11 @@ class GroupbyIndexer(BaseIndexer):
 
     def __init__(
         self,
-        index_array: Optional[np.ndarray] = None,
+        index_array: np.ndarray | None = None,
         window_size: int = 0,
-        groupby_indicies: Optional[Dict] = None,
-        window_indexer: Type[BaseIndexer] = BaseIndexer,
-        indexer_kwargs: Optional[Dict] = None,
+        groupby_indicies: dict | None = None,
+        window_indexer: type[BaseIndexer] = BaseIndexer,
+        indexer_kwargs: dict | None = None,
         **kwargs,
     ):
         """
@@ -304,10 +314,10 @@ class GroupbyIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
         # 1) For each group, get the indices that belong to the group
         # 2) Use the indices to calculate the start & end bounds of the window
         # 3) Append the window bounds in group order
@@ -315,6 +325,8 @@ class GroupbyIndexer(BaseIndexer):
         end_arrays = []
         window_indicies_start = 0
         for key, indices in self.groupby_indicies.items():
+            index_array: np.ndarray | None
+
             if self.index_array is not None:
                 index_array = self.index_array.take(ensure_platform_int(indices))
             else:
@@ -353,9 +365,9 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
     def get_window_bounds(
         self,
         num_values: int = 0,
-        min_periods: Optional[int] = None,
-        center: Optional[bool] = None,
-        closed: Optional[str] = None,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        min_periods: int | None = None,
+        center: bool | None = None,
+        closed: str | None = None,
+    ) -> tuple[np.ndarray, np.ndarray]:
 
         return np.array([0], dtype=np.int64), np.array([num_values], dtype=np.int64)

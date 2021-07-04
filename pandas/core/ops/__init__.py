@@ -3,8 +3,10 @@ Arithmetic operations for PandasObjects
 
 This is not a public API.
 """
+from __future__ import annotations
+
 import operator
-from typing import TYPE_CHECKING, Optional, Set
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -13,17 +15,27 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op  # noqa:
 from pandas._typing import Level
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import is_array_like, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.common import (
+    is_array_like,
+    is_list_like,
+)
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import algorithms
+from pandas.core import (
+    algorithms,
+    roperator,
+)
 from pandas.core.ops.array_ops import (  # noqa:F401
     arithmetic_op,
     comp_method_OBJECT_ARRAY,
     comparison_op,
     get_array_op,
     logical_op,
+    maybe_prepare_scalar_for_op,
 )
 from pandas.core.ops.common import (  # noqa:F401
     get_op_result_name,
@@ -35,9 +47,13 @@ from pandas.core.ops.docstrings import (
     make_flex_doc,
 )
 from pandas.core.ops.invalid import invalid_comparison  # noqa:F401
-from pandas.core.ops.mask_ops import kleene_and, kleene_or, kleene_xor  # noqa: F401
+from pandas.core.ops.mask_ops import (  # noqa: F401
+    kleene_and,
+    kleene_or,
+    kleene_xor,
+)
 from pandas.core.ops.methods import add_flex_arithmetic_methods  # noqa:F401
-from pandas.core.ops.roperator import (  # noqa:F401
+from pandas.core.roperator import (  # noqa:F401
     radd,
     rand_,
     rdiv,
@@ -53,11 +69,14 @@ from pandas.core.ops.roperator import (  # noqa:F401
 )
 
 if TYPE_CHECKING:
-    from pandas import DataFrame, Series
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 # -----------------------------------------------------------------------------
 # constants
-ARITHMETIC_BINOPS: Set[str] = {
+ARITHMETIC_BINOPS: set[str] = {
     "add",
     "sub",
     "mul",
@@ -77,7 +96,7 @@ ARITHMETIC_BINOPS: Set[str] = {
 }
 
 
-COMPARISON_BINOPS: Set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
+COMPARISON_BINOPS: set[str] = {"eq", "ne", "lt", "gt", "le", "ge"}
 
 
 # -----------------------------------------------------------------------------
@@ -129,8 +148,8 @@ def fill_binop(left, right, fill_value):
 # Series
 
 
-def align_method_SERIES(left: "Series", right, align_asobject: bool = False):
-    """ align lhs and rhs Series """
+def align_method_SERIES(left: Series, right, align_asobject: bool = False):
+    """align lhs and rhs Series"""
     # ToDo: Different from align_method_FRAME, list, tuple and ndarray
     # are not coerced here
     # because Series has inconsistencies described in #13637
@@ -185,7 +204,7 @@ def flex_method_SERIES(op):
 
 
 def align_method_FRAME(
-    left, right, axis, flex: Optional[bool] = False, level: Level = None
+    left, right, axis, flex: bool | None = False, level: Level = None
 ):
     """
     Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
@@ -194,8 +213,8 @@ def align_method_FRAME(
     ----------
     left : DataFrame
     right : Any
-    axis: int, str, or None
-    flex: bool or None, default False
+    axis : int, str, or None
+    flex : bool or None, default False
         Whether this is a flex op, in which case we reindex.
         None indicates not to check for alignment.
     level : int or level name, default None
@@ -293,14 +312,14 @@ def align_method_FRAME(
 
 
 def should_reindex_frame_op(
-    left: "DataFrame", right, op, axis, default_axis, fill_value, level
+    left: DataFrame, right, op, axis, default_axis, fill_value, level
 ) -> bool:
     """
     Check if this is an operation between DataFrames that will need to reindex.
     """
     assert isinstance(left, ABCDataFrame)
 
-    if op is operator.pow or op is rpow:
+    if op is operator.pow or op is roperator.rpow:
         # GH#32685 pow has special semantics for operating with null values
         return False
 
@@ -321,9 +340,7 @@ def should_reindex_frame_op(
     return False
 
 
-def frame_arith_method_with_reindex(
-    left: "DataFrame", right: "DataFrame", op
-) -> "DataFrame":
+def frame_arith_method_with_reindex(left: DataFrame, right: DataFrame, op) -> DataFrame:
     """
     For DataFrame-with-DataFrame operations that require reindexing,
     operate only on shared columns, then reindex.
@@ -367,7 +384,7 @@ def frame_arith_method_with_reindex(
     return result
 
 
-def _maybe_align_series_as_frame(frame: "DataFrame", series: "Series", axis: int):
+def _maybe_align_series_as_frame(frame: DataFrame, series: Series, axis: int):
     """
     If the Series operand is not EA-dtype, we can broadcast to 2D and operate
     blockwise.
@@ -412,6 +429,7 @@ def flex_arith_method_FRAME(op):
 
         axis = self._get_axis_number(axis) if axis is not None else 1
 
+        other = maybe_prepare_scalar_for_op(other, self.shape)
         self, other = align_method_FRAME(self, other, axis, flex=True, level=level)
 
         if isinstance(other, ABCDataFrame):

@@ -1,0 +1,35 @@
+<!--
+     This is an HTML fragment that gets included into a notebook & rst document
+
+     Inspired by nbconvert
+
+     https://github.com/jupyter/nbconvert/blob/8ac591a0b8694147d0f34bf6392594c2811c1395/docs/source/template_structure.html
+
+
+   -->
+<style type="text/css">
+    /* Overrides of notebook CSS for static HTML export */
+    .template_block {
+        background-color: hsla(120, 60%, 70%, 0.2);
+        margin: 10px;
+        padding: 5px;
+        border: 1px solid hsla(120, 60%, 70%, 0.5);
+        border-left: 2px solid black;
+    }
+    .template_block pre {
+        background: transparent;
+        padding: 0;
+    }
+    .big_vertical_ellipsis {
+        font-size: 24pt;
+    }
+</style>
+
+<div class="template_block">before_style</div>
+<div class="template_block">style
+    <pre>&lt;style type=&quot;text/css&quot;&gt;</pre>
+    <div class="template_block">table_styles</div>
+    <div class="template_block">before_cellstyle</div>
+    <div class="template_block">cellstyle</div>
+    <pre>&lt;/style&gt;</pre>
+</div><!-- /style -->

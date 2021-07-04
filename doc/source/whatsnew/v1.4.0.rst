@@ -1,0 +1,228 @@
+.. _whatsnew_140:
+
+What's new in 1.4.0 (??)
+------------------------
+
+These are the changes in pandas 1.4.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_140.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+.. _whatsnew_140.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_140.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_140.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+|                 |                 |    X     |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+|                 |                 |    X    |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_140.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+- :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+- Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
+- Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+-
+-
+
+Timedelta
+^^^^^^^^^
+-
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+- Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
+- Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
+-
+
+Conversion
+^^^^^^^^^^
+- Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+- Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
+-
+
+I/O
+^^^
+- Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
+-
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+-
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+-
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.contributors:
+
+Contributors
+~~~~~~~~~~~~

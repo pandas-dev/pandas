@@ -33,7 +33,6 @@ run under the older AND the newer version.
 """
 
 from datetime import timedelta
-from distutils.version import LooseVersion
 import os
 import pickle
 import platform as pl
@@ -54,9 +53,11 @@ from pandas import (
     Timestamp,
     bdate_range,
     date_range,
+    interval_range,
     period_range,
     timedelta_range,
 )
+from pandas.arrays import SparseArray
 
 from pandas.tseries.offsets import (
     FY5253,
@@ -80,15 +81,6 @@ from pandas.tseries.offsets import (
     YearBegin,
     YearEnd,
 )
-
-try:
-    # TODO: remove try/except when 0.24.0 is the legacy version.
-    from pandas.arrays import SparseArray
-except ImportError:
-    from pandas.core.sparse.api import SparseArray
-
-
-_loose_version = LooseVersion(pandas.__version__)
 
 
 def _create_sp_series():
@@ -133,7 +125,7 @@ def _create_sp_frame():
 
 
 def create_data():
-    """ create the pickle data """
+    """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
@@ -155,10 +147,7 @@ def create_data():
 
     index["range"] = RangeIndex(10)
 
-    if _loose_version >= LooseVersion("0.21"):
-        from pandas import interval_range
-
-        index["interval"] = interval_range(0, periods=10)
+    index["interval"] = interval_range(0, periods=10)
 
     mi = {
         "reg2": MultiIndex.from_tuples(
@@ -327,9 +316,8 @@ def write_legacy_pickles(output_dir):
 
     pth = f"{platform_name()}.pickle"
 
-    fh = open(os.path.join(output_dir, pth), "wb")
-    pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
-    fh.close()
+    with open(os.path.join(output_dir, pth), "wb") as fh:
+        pickle.dump(create_pickle_data(), fh, pickle.DEFAULT_PROTOCOL)
 
     print(f"created pickle file: {pth}")
 

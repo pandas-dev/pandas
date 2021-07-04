@@ -2,7 +2,10 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas import DatetimeIndex, date_range
+from pandas import (
+    DatetimeIndex,
+    date_range,
+)
 import pandas._testing as tm
 
 

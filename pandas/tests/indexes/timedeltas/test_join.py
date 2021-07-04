@@ -1,6 +1,10 @@
 import numpy as np
 
-from pandas import Index, Timedelta, timedelta_range
+from pandas import (
+    Index,
+    Timedelta,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 

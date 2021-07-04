@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 
 import pandas.util._test_decorators as td
@@ -115,3 +117,13 @@ def test_to_json_compression(compression_only, read_infer, to_infer):
         df.to_json(path, compression=to_compression)
         result = pd.read_json(path, compression=read_compression)
         tm.assert_frame_equal(result, df)
+
+
+def test_to_json_compression_mode(compression):
+    # GH 39985 (read_json does not support user-provided binary files)
+    expected = pd.DataFrame({"A": [1]})
+
+    with BytesIO() as buffer:
+        expected.to_json(buffer, compression=compression)
+        # df = pd.read_json(buffer, compression=compression)
+        # tm.assert_frame_equal(expected, df)

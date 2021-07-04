@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -230,6 +232,7 @@ class TestFillNA:
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) implement downcast
     def test_fillna_downcast(self):
         # GH#15277
         # infer int64 from float64
@@ -244,6 +247,7 @@ class TestFillNA:
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
     def test_fillna_dtype_conversion(self):
         # make sure that fillna on an empty frame works
         df = DataFrame(index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
@@ -261,13 +265,15 @@ class TestFillNA:
         expected = DataFrame("nan", index=range(3), columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-        # equiv of replace
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) object upcasting
+    @pytest.mark.parametrize("val", ["", 1, np.nan, 1.0])
+    def test_fillna_dtype_conversion_equiv_replace(self, val):
         df = DataFrame({"A": [1, np.nan], "B": [1.0, 2.0]})
-        for v in ["", 1, np.nan, 1.0]:
-            expected = df.replace(np.nan, v)
-            result = df.fillna(v)
-            tm.assert_frame_equal(result, expected)
+        expected = df.replace(np.nan, val)
+        result = df.fillna(val)
+        tm.assert_frame_equal(result, expected)
 
+    @td.skip_array_manager_invalid_test
     def test_fillna_datetime_columns(self):
         # GH#7095
         df = DataFrame(
@@ -320,6 +326,18 @@ class TestFillNA:
             datetime_frame.ffill(), datetime_frame.fillna(method="ffill")
         )
 
+    def test_ffill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.ffill "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.ffill(0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
     def test_bfill(self, datetime_frame):
         datetime_frame["A"][:5] = np.nan
         datetime_frame["A"][-5:] = np.nan
@@ -328,6 +346,18 @@ class TestFillNA:
             datetime_frame.bfill(), datetime_frame.fillna(method="bfill")
         )
 
+    def test_bfill_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.bfill "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.bfill(0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
         df = DataFrame(np.random.randn(10, 4), index=index)
@@ -335,13 +365,13 @@ class TestFillNA:
         result = df[:2].reindex(index, method="pad", limit=5)
 
         expected = df[:2].reindex(index).fillna(method="pad")
-        expected.values[-3:] = np.nan
+        expected.iloc[-3:] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = df[-2:].reindex(index, method="backfill", limit=5)
 
         expected = df[-2:].reindex(index).fillna(method="backfill")
-        expected.values[:3] = np.nan
+        expected.iloc[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_frame_fillna_limit(self):
@@ -352,14 +382,14 @@ class TestFillNA:
         result = result.fillna(method="pad", limit=5)
 
         expected = df[:2].reindex(index).fillna(method="pad")
-        expected.values[-3:] = np.nan
+        expected.iloc[-3:] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = df[-2:].reindex(index)
         result = result.fillna(method="backfill", limit=5)
 
         expected = df[-2:].reindex(index).fillna(method="backfill")
-        expected.values[:3] = np.nan
+        expected.iloc[:3] = np.nan
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_skip_certain_blocks(self):
@@ -524,6 +554,25 @@ class TestFillNA:
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
+
+    def test_fillna_downcast_dict(self):
+        # GH#40809
+        df = DataFrame({"col1": [1, np.nan]})
+        result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
+        expected = DataFrame({"col1": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3, np.nan]}, dtype=float)
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.fillna "
+            r"except for the argument 'value' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna(0, None, None)
+        expected = DataFrame({"a": [1, 2, 3, 0]}, dtype=float)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_fillna_nonconsolidated_frame():

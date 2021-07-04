@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -75,7 +80,7 @@ class TestDataFrameDiff:
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_with_nat_zero_periods(self, tz):
         # diff on NaT values should give NaT, not timedelta64(0)
-        dti = pd.date_range("2016-01-01", periods=4, tz=tz)
+        dti = date_range("2016-01-01", periods=4, tz=tz)
         ser = Series(dti)
         df = ser.to_frame()
 
@@ -173,7 +178,7 @@ class TestDataFrameDiff:
 
     def test_diff_period(self):
         # GH#32995 Don't pass an incorrect axis
-        pi = pd.date_range("2016-01-01", periods=3).to_period("D")
+        pi = date_range("2016-01-01", periods=3).to_period("D")
         df = DataFrame({"A": pi})
 
         result = df.diff(1, axis=1)
@@ -279,4 +284,13 @@ class TestDataFrameDiff:
         df = DataFrame(arr)
         result = df.diff()
         expected = DataFrame(np.array(df)).diff()
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_all_int_dtype(self, any_int_dtype):
+        # GH 14773
+        df = DataFrame(range(5))
+        df = df.astype(any_int_dtype)
+        result = df.diff()
+        expected_dtype = "float32" if any_int_dtype in ("int8", "int16") else "float64"
+        expected = DataFrame([np.nan, 1.0, 1.0, 1.0, 1.0], dtype=expected_dtype)
         tm.assert_frame_equal(result, expected)

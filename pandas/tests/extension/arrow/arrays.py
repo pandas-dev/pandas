@@ -6,13 +6,16 @@ Eventually, we'll want to parametrize the type and support
 multiple dtypes. Not all methods are implemented yet, and the
 current implementation is not efficient.
 """
+from __future__ import annotations
+
 import copy
 import itertools
 import operator
-from typing import Type
 
 import numpy as np
 import pyarrow as pa
+
+from pandas._typing import type_t
 
 import pandas as pd
 from pandas.api.extensions import (
@@ -21,6 +24,7 @@ from pandas.api.extensions import (
     register_extension_dtype,
     take,
 )
+from pandas.api.types import is_scalar
 from pandas.core.arraylike import OpsMixin
 
 
@@ -33,7 +37,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowBoolArray"]:
+    def construct_array_type(cls) -> type_t[ArrowBoolArray]:
         """
         Return the array type associated with this dtype.
 
@@ -57,7 +61,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type["ArrowStringArray"]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -89,7 +93,7 @@ class ArrowExtensionArray(OpsMixin, ExtensionArray):
         return f"{type(self).__name__}({repr(self._data)})"
 
     def __getitem__(self, item):
-        if pd.api.types.is_scalar(item):
+        if is_scalar(item):
             return self._data.to_pandas()[item]
         else:
             vals = self._data.to_pandas()[item]

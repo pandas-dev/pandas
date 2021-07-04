@@ -2,7 +2,11 @@
 test date_range, bdate_range construction from the convenience range functions
 """
 
-from datetime import datetime, time, timedelta
+from datetime import (
+    datetime,
+    time,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -10,12 +14,25 @@ import pytz
 from pytz import timezone
 
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslibs.offsets import BDay, CDay, DateOffset, MonthEnd, prefix_mapping
+from pandas._libs.tslibs.offsets import (
+    BDay,
+    CDay,
+    DateOffset,
+    MonthEnd,
+    prefix_mapping,
+)
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import DatetimeIndex, Timestamp, bdate_range, date_range, offsets
+from pandas import (
+    DatetimeIndex,
+    Timedelta,
+    Timestamp,
+    bdate_range,
+    date_range,
+    offsets,
+)
 import pandas._testing as tm
 from pandas.core.arrays.datetimes import generate_range
 
@@ -32,21 +49,21 @@ class TestTimestampEquivDateRange:
         rng = date_range("20090415", "20090519", tz="US/Eastern")
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz="US/Eastern", freq="D")
+        ts = Timestamp("20090415", tz="US/Eastern")
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_dateutil(self):
         rng = date_range("20090415", "20090519", tz="dateutil/US/Eastern")
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz="dateutil/US/Eastern", freq="D")
+        ts = Timestamp("20090415", tz="dateutil/US/Eastern")
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_explicit_pytz(self):
         rng = date_range("20090415", "20090519", tz=pytz.timezone("US/Eastern"))
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"), freq="D")
+        ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         assert ts == stamp
 
     @td.skip_if_windows_python_3
@@ -56,7 +73,7 @@ class TestTimestampEquivDateRange:
         rng = date_range("20090415", "20090519", tz=gettz("US/Eastern"))
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz=gettz("US/Eastern"), freq="D")
+        ts = Timestamp("20090415", tz=gettz("US/Eastern"))
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_from_datetime_instance(self):
@@ -65,17 +82,24 @@ class TestTimestampEquivDateRange:
         # addition/subtraction of integers
         timestamp_instance = date_range(datetime_instance, periods=1, freq="D")[0]
 
-        ts = Timestamp(datetime_instance, freq="D")
+        ts = Timestamp(datetime_instance)
         assert ts == timestamp_instance
 
     def test_date_range_timestamp_equiv_preserve_frequency(self):
         timestamp_instance = date_range("2014-03-05", periods=1, freq="D")[0]
-        ts = Timestamp("2014-03-05", freq="D")
+        ts = Timestamp("2014-03-05")
 
         assert timestamp_instance == ts
 
 
 class TestDateRanges:
+    def test_date_range_near_implementation_bound(self):
+        # GH#???
+        freq = Timedelta(1)
+
+        with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):
+            date_range(end=Timestamp.min, periods=2, freq=freq)
+
     def test_date_range_nat(self):
         # GH#11587
         msg = "Neither `start` nor `end` can be NaT"
@@ -122,6 +146,7 @@ class TestDateRanges:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             date_range(end="1969-11-14", periods=106752 * 24, freq="H")
 
+    @pytest.mark.slow
     def test_date_range_int64_overflow_stride_endpoint_different_signs(self):
         # cases where stride * periods overflow int64 and stride/endpoint
         #  have different signs
@@ -375,9 +400,7 @@ class TestDateRanges:
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
-        result = date_range(
-            Timestamp("1960-04-01 00:00:00", freq="QS-JAN"), periods=76, freq="QS-JAN"
-        )
+        result = date_range(Timestamp("1960-04-01 00:00:00"), periods=76, freq="QS-JAN")
         assert len(result) == 76
 
     def test_catch_infinite_loop(self):
@@ -1002,7 +1025,7 @@ class TestCustomDateRange:
 
 def test_date_range_with_custom_holidays():
     # GH 30593
-    freq = pd.offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
+    freq = offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
     result = date_range(start="2020-11-25 15:00", periods=4, freq=freq)
     expected = DatetimeIndex(
         [

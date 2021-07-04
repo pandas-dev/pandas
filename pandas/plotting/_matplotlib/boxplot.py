@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from typing import TYPE_CHECKING
 import warnings
@@ -12,9 +14,16 @@ import pandas as pd
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
-from pandas.plotting._matplotlib.core import LinePlot, MPLPlot
+from pandas.plotting._matplotlib.core import (
+    LinePlot,
+    MPLPlot,
+)
 from pandas.plotting._matplotlib.style import get_standard_colors
-from pandas.plotting._matplotlib.tools import create_subplots, flatten_axes
+from pandas.plotting._matplotlib.tools import (
+    create_subplots,
+    flatten_axes,
+    maybe_adjust_figure,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -26,7 +35,7 @@ class BoxPlot(LinePlot):
 
     _valid_return_types = (None, "axes", "dict", "both")
     # namedtuple to hold results
-    BP = namedtuple("Boxplot", ["ax", "lines"])
+    BP = namedtuple("BP", ["ax", "lines"])
 
     def __init__(self, data, return_type="axes", **kwargs):
         # Do not call LinePlot.__init__ which may fill nan
@@ -75,7 +84,7 @@ class BoxPlot(LinePlot):
 
             if isinstance(self.color, dict):
                 valid_keys = ["boxes", "whiskers", "medians", "caps"]
-                for key, values in self.color.items():
+                for key in self.color:
                     if key not in valid_keys:
                         raise ValueError(
                             f"color dict contains invalid key '{key}'. "
@@ -92,7 +101,7 @@ class BoxPlot(LinePlot):
         self._boxes_c = colors[0]
         self._whiskers_c = colors[0]
         self._medians_c = colors[2]
-        self._caps_c = "k"  # mpl default
+        self._caps_c = colors[0]
 
     def _get_colors(self, num_colors=None, color_kwds="color"):
         pass
@@ -155,7 +164,7 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax: "Axes", labels):
+    def _set_ticklabels(self, ax: Axes, labels):
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
@@ -227,7 +236,7 @@ def _grouped_plot_by_column(
 
     byline = by[0] if len(by) == 1 else by
     fig.suptitle(f"Boxplot grouped by {byline}")
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
+    maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result
 
@@ -297,7 +306,7 @@ def boxplot(
         if not kwds.get("capprops"):
             setp(bp["caps"], color=colors[3], alpha=1)
 
-    def plot_group(keys, values, ax: "Axes"):
+    def plot_group(keys, values, ax: Axes):
         keys = [pprint_thing(x) for x in keys]
         values = [np.asarray(remove_na_arraylike(v), dtype=object) for v in values]
         bp = ax.boxplot(values, **kwds)
@@ -434,7 +443,7 @@ def boxplot_frame_groupby(
             )
             ax.set_title(pprint_thing(key))
             ret.loc[key] = d
-        fig.subplots_adjust(bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
+        maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
         if grouped.axis == 0:

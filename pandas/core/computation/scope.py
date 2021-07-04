@@ -1,6 +1,7 @@
 """
 Module for scope operations
 """
+from __future__ import annotations
 
 import datetime
 import inspect
@@ -9,7 +10,6 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import List
 
 import numpy as np
 
@@ -19,7 +19,7 @@ from pandas.compat.chainmap import DeepChainMap
 
 def ensure_scope(
     level: int, global_dict=None, local_dict=None, resolvers=(), target=None, **kwargs
-) -> "Scope":
+) -> Scope:
     """Ensure that we are grabbing the correct scope."""
     return Scope(
         level + 1,
@@ -106,9 +106,13 @@ class Scope:
     """
 
     __slots__ = ["level", "scope", "target", "resolvers", "temps"]
+    level: int
+    scope: DeepChainMap
+    resolvers: DeepChainMap
+    temps: dict
 
     def __init__(
-        self, level, global_dict=None, local_dict=None, resolvers=(), target=None
+        self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None
     ):
         self.level = level + 1
 
@@ -130,17 +134,14 @@ class Scope:
             # scope when we align terms (alignment accesses the underlying
             # numpy array of pandas objects)
 
-            # pandas\core\computation\scope.py:132: error: Incompatible types
-            # in assignment (expression has type "ChainMap[str, Any]", variable
-            # has type "DeepChainMap[str, Any]")  [assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
             self.scope = self.scope.new_child(  # type: ignore[assignment]
                 (global_dict or frame.f_globals).copy()
             )
             if not isinstance(local_dict, Scope):
-                # pandas\core\computation\scope.py:134: error: Incompatible
-                # types in assignment (expression has type "ChainMap[str,
-                # Any]", variable has type "DeepChainMap[str, Any]")
-                # [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
                 self.scope = self.scope.new_child(  # type: ignore[assignment]
                     (local_dict or frame.f_locals).copy()
                 )
@@ -149,9 +150,7 @@ class Scope:
 
         # assumes that resolvers are going from outermost scope to inner
         if isinstance(local_dict, Scope):
-            # pandas\core\computation\scope.py:140: error: Cannot determine
-            # type of 'resolvers'  [has-type]
-            resolvers += tuple(local_dict.resolvers.maps)  # type: ignore[has-type]
+            resolvers += tuple(local_dict.resolvers.maps)
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
@@ -216,7 +215,7 @@ class Scope:
 
                 raise UndefinedVariableError(key, is_local) from err
 
-    def swapkey(self, old_key: str, new_key: str, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None) -> None:
         """
         Replace a variable name, with a potentially new value.
 
@@ -238,12 +237,11 @@ class Scope:
 
         for mapping in maps:
             if old_key in mapping:
-                # pandas\core\computation\scope.py:228: error: Unsupported
-                # target for indexed assignment ("Mapping[Any, Any]")  [index]
+                # error: Unsupported target for indexed assignment ("Mapping[Any, Any]")
                 mapping[new_key] = new_value  # type: ignore[index]
                 return
 
-    def _get_vars(self, stack, scopes: List[str]):
+    def _get_vars(self, stack, scopes: list[str]) -> None:
         """
         Get specifically scoped variables from a list of stack frames.
 
@@ -259,10 +257,8 @@ class Scope:
         for scope, (frame, _, _, _, _, _) in variables:
             try:
                 d = getattr(frame, "f_" + scope)
-                # pandas\core\computation\scope.py:247: error: Incompatible
-                # types in assignment (expression has type "ChainMap[str,
-                # Any]", variable has type "DeepChainMap[str, Any]")
-                # [assignment]
+                # error: Incompatible types in assignment (expression has type
+                # "ChainMap[str, Any]", variable has type "DeepChainMap[str, Any]")
                 self.scope = self.scope.new_child(d)  # type: ignore[assignment]
             finally:
                 # won't remove it, but DECREF it
@@ -270,7 +266,7 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def _update(self, level: int):
+    def _update(self, level: int) -> None:
         """
         Update the current scope by going back `level` levels.
 
@@ -320,7 +316,7 @@ class Scope:
         return len(self.temps)
 
     @property
-    def full_scope(self):
+    def full_scope(self) -> DeepChainMap:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.
@@ -330,13 +326,10 @@ class Scope:
         vars : DeepChainMap
             All variables in this scope.
         """
-        # pandas\core\computation\scope.py:314: error: Unsupported operand
-        # types for + ("List[Dict[Any, Any]]" and "List[Mapping[Any, Any]]")
-        # [operator]
-
-        # pandas\core\computation\scope.py:314: error: Unsupported operand
-        # types for + ("List[Dict[Any, Any]]" and "List[Mapping[str, Any]]")
-        # [operator]
+        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
+        # "List[Mapping[Any, Any]]")
+        # error: Unsupported operand types for + ("List[Dict[Any, Any]]" and
+        # "List[Mapping[str, Any]]")
         maps = (
             [self.temps]
             + self.resolvers.maps  # type: ignore[operator]

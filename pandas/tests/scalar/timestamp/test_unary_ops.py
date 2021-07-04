@@ -1,11 +1,20 @@
 from datetime import datetime
 
 from dateutil.tz import gettz
+import numpy as np
 import pytest
 import pytz
 from pytz import utc
 
-from pandas._libs.tslibs import NaT, Timestamp, conversion, to_offset
+from pandas._libs import lib
+from pandas._libs.tslibs import (
+    NaT,
+    Timedelta,
+    Timestamp,
+    conversion,
+    iNaT,
+    to_offset,
+)
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 import pandas.util._test_decorators as td
 
@@ -246,6 +255,81 @@ class TestTimestampUnaryOps:
         if unit % 2 == 0 and abs(result.value - dt.value) == unit // 2:
             # round half to even
             assert result.value // unit % 2 == 0, "round half to even error"
+
+    def test_round_implementation_bounds(self):
+        # See also: analogous test for Timedelta
+        result = Timestamp.min.ceil("s")
+        expected = Timestamp(1677, 9, 21, 0, 12, 44)
+        assert result == expected
+
+        result = Timestamp.max.floor("s")
+        expected = Timestamp.max - Timedelta(854775807)
+        assert result == expected
+
+        with pytest.raises(OverflowError, match="value too large"):
+            Timestamp.min.floor("s")
+
+        # the second message here shows up in windows builds
+        msg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            Timestamp.max.ceil("s")
+
+    @pytest.mark.parametrize("n", range(100))
+    @pytest.mark.parametrize(
+        "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
+    )
+    def test_round_sanity(self, method, n):
+        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
+        ts = Timestamp(val)
+
+        def checker(res, ts, nanos):
+            if method is Timestamp.round:
+                diff = np.abs((res - ts).value)
+                assert diff <= nanos / 2
+            elif method is Timestamp.floor:
+                assert res <= ts
+            elif method is Timestamp.ceil:
+                assert res >= ts
+
+        assert method(ts, "ns") == ts
+
+        res = method(ts, "us")
+        nanos = 1000
+        assert np.abs((res - ts).value) < nanos
+        assert res.value % nanos == 0
+        checker(res, ts, nanos)
+
+        res = method(ts, "ms")
+        nanos = 1_000_000
+        assert np.abs((res - ts).value) < nanos
+        assert res.value % nanos == 0
+        checker(res, ts, nanos)
+
+        res = method(ts, "s")
+        nanos = 1_000_000_000
+        assert np.abs((res - ts).value) < nanos
+        assert res.value % nanos == 0
+        checker(res, ts, nanos)
+
+        res = method(ts, "min")
+        nanos = 60 * 1_000_000_000
+        assert np.abs((res - ts).value) < nanos
+        assert res.value % nanos == 0
+        checker(res, ts, nanos)
+
+        res = method(ts, "h")
+        nanos = 60 * 60 * 1_000_000_000
+        assert np.abs((res - ts).value) < nanos
+        assert res.value % nanos == 0
+        checker(res, ts, nanos)
+
+        res = method(ts, "D")
+        nanos = 24 * 60 * 60 * 1_000_000_000
+        assert np.abs((res - ts).value) < nanos
+        assert res.value % nanos == 0
+        checker(res, ts, nanos)
 
     # --------------------------------------------------------------
     # Timestamp.replace

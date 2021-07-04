@@ -3,12 +3,15 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import _np_version_under1p20
+from pandas.compat import np_version_under1p20
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.arrays.sparse import SparseArray, SparseDtype
+from pandas.core.arrays.sparse import (
+    SparseArray,
+    SparseDtype,
+)
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -122,10 +125,15 @@ class TestSparseArrayArithmetics:
     ):
         op = all_arithmetic_functions
 
-        if not _np_version_under1p20:
+        if not np_version_under1p20:
             if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
-                request.node.add_marker(mark)
+                if op is operator.floordiv and scalar != 0:
+                    pass
+                elif op is ops.rfloordiv and scalar == 0:
+                    pass
+                else:
+                    mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+                    request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
 
@@ -169,10 +177,13 @@ class TestSparseArrayArithmetics:
         # when sp_index are the same
         op = all_arithmetic_functions
 
-        if not _np_version_under1p20:
-            if op in [operator.floordiv, ops.rfloordiv]:
-                mark = pytest.mark.xfail(strict=False, reason="GH#38172")
-                request.node.add_marker(mark)
+        if (
+            not np_version_under1p20
+            and op is ops.rfloordiv
+            and not (mix and kind == "block")
+        ):
+            mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+            request.node.add_marker(mark)
 
         values = self._base([np.nan, 1, 2, 0, np.nan, 0, 1, 2, 1, np.nan])
         rvalues = self._base([np.nan, 2, 3, 4, np.nan, 0, 1, 3, 2, np.nan])
@@ -349,10 +360,13 @@ class TestSparseArrayArithmetics:
     def test_mixed_array_float_int(self, kind, mix, all_arithmetic_functions, request):
         op = all_arithmetic_functions
 
-        if not _np_version_under1p20:
-            if op in [operator.floordiv, ops.rfloordiv] and mix:
-                mark = pytest.mark.xfail(strict=True, reason="GH#38172")
-                request.node.add_marker(mark)
+        if (
+            not np_version_under1p20
+            and op in [operator.floordiv, ops.rfloordiv]
+            and mix
+        ):
+            mark = pytest.mark.xfail(raises=AssertionError, reason="GH#38172")
+            request.node.add_marker(mark)
 
         rdtype = "int64"
 

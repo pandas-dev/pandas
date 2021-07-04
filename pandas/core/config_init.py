@@ -9,6 +9,7 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+import os
 import warnings
 
 import pandas._config.config as cf
@@ -493,9 +494,29 @@ with cf.config_prefix("mode"):
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
 
+
 cf.deprecate_option(
     "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
 )
+
+
+data_manager_doc = """
+: string
+    Internal data manager type; can be "block" or "array". Defaults to "block",
+    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
+    to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "data_manager",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to "block". This environment variable can be set for testing.
+        os.environ.get("PANDAS_DATA_MANAGER", "block"),
+        data_manager_doc,
+        validator=is_one_of_factory(["block", "array"]),
+    )
 
 
 # user warnings
@@ -513,6 +534,19 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([None, "warn", "raise"]),
     )
 
+
+string_storage_doc = """
+: string
+    The default storage for StringDtype.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "string_storage",
+        "python",
+        string_storage_doc,
+        validator=is_one_of_factory(["python", "pyarrow"]),
+    )
 
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
@@ -640,6 +674,22 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
+
+# Set up the io.sql specific configuration.
+sql_engine_doc = """
+: string
+    The default sql reader/writer engine. Available options:
+    'auto', 'sqlalchemy', the default is 'auto'
+"""
+
+with cf.config_prefix("io.sql"):
+    cf.register_option(
+        "engine",
+        "auto",
+        sql_engine_doc,
+        validator=is_one_of_factory(["auto", "sqlalchemy"]),
+    )
+
 # --------
 # Plotting
 # ---------
@@ -697,4 +747,40 @@ with cf.config_prefix("plotting.matplotlib"):
         register_converter_doc,
         validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
+    )
+
+# ------
+# Styler
+# ------
+
+styler_sparse_index_doc = """
+: bool
+    Whether to sparsify the display of a hierarchical index. Setting to False will
+    display each explicit level element in a hierarchical key for each row.
+"""
+
+styler_sparse_columns_doc = """
+: bool
+    Whether to sparsify the display of hierarchical columns. Setting to False will
+    display each explicit level element in a hierarchical key for each column.
+"""
+
+styler_max_elements = """
+: int
+    The maximum number of data-cell (<td>) elements that will be rendered before
+    trimming will occur over columns, rows or both if needed.
+"""
+
+with cf.config_prefix("styler"):
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
+
+    cf.register_option(
+        "sparse.columns", True, styler_sparse_columns_doc, validator=bool
+    )
+
+    cf.register_option(
+        "render.max_elements",
+        2 ** 18,
+        styler_max_elements,
+        validator=is_nonnegative_int,
     )

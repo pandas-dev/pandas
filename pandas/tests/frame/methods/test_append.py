@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp, date_range, timedelta_range
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+    date_range,
+    timedelta_range,
+)
 import pandas._testing as tm
 
 
@@ -134,7 +140,7 @@ class TestDataFrameAppend:
         expected = df1.copy()
         tm.assert_frame_equal(result, expected)
 
-    def test_append_dtypes(self):
+    def test_append_dtypes(self, using_array_manager):
 
         # GH 5754
         # row appends of different dtypes (so need to do by-item)
@@ -158,6 +164,10 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
+        if using_array_manager:
+            # TODO(ArrayManager) decide on exact casting rules in concat
+            # With ArrayManager, all-NaN float is not ignored
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
@@ -166,6 +176,9 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([Timestamp("20130101"), np.nan], dtype="M8[ns]")}
         )
+        if using_array_manager:
+            # With ArrayManager, all-NaN float is not ignored
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": np.nan}, index=range(1))
@@ -174,6 +187,9 @@ class TestDataFrameAppend:
         expected = DataFrame(
             {"bar": Series([np.nan, Timestamp("20130101")], dtype="M8[ns]")}
         )
+        if using_array_manager:
+            # With ArrayManager, all-NaN float is not ignored
+            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
         df1 = DataFrame({"bar": Timestamp("20130101")}, index=range(1))
@@ -222,3 +238,22 @@ class TestDataFrameAppend:
 
         result = df.append(other)
         assert (result["B"] == index).all()
+
+    @pytest.mark.filterwarnings("ignore:The values in the array:RuntimeWarning")
+    def test_multiindex_column_append_multiple(self):
+        # GH 29699
+        df = DataFrame(
+            [[1, 11], [2, 12], [3, 13]],
+            columns=pd.MultiIndex.from_tuples(
+                [("multi", "col1"), ("multi", "col2")], names=["level1", None]
+            ),
+        )
+        df2 = df.copy()
+        for i in range(1, 10):
+            df[i, "colA"] = 10
+            df = df.append(df2, ignore_index=True)
+            result = df["multi"]
+            expected = DataFrame(
+                {"col1": [1, 2, 3] * (i + 1), "col2": [11, 12, 13] * (i + 1)}
+            )
+            tm.assert_frame_equal(result, expected)

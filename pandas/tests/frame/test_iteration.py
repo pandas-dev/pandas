@@ -2,9 +2,17 @@ import datetime
 
 import numpy as np
 
-from pandas.compat import IS64, is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
-from pandas import Categorical, DataFrame, Series, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 

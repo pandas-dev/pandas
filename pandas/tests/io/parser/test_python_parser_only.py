@@ -6,13 +6,20 @@ arguments when parsing.
 """
 
 import csv
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -269,9 +276,7 @@ def test_none_delimiter(python_parser_only, capsys):
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
     # not expect any errors to occur.
-    result = parser.read_csv(
-        StringIO(data), header=0, sep=None, warn_bad_lines=True, error_bad_lines=False
-    )
+    result = parser.read_csv(StringIO(data), header=0, sep=None, on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
 
     captured = capsys.readouterr()
@@ -305,49 +310,3 @@ footer
     msg = "Expected 3 fields in line 4, saw 5"
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#", skipfooter=1)
-
-
-@pytest.mark.parametrize("thousands", [None, "."])
-@pytest.mark.parametrize(
-    "value, result_value",
-    [
-        ("1,2", 1.2),
-        ("1,2e-1", 0.12),
-        ("1,2E-1", 0.12),
-        ("1,2e-10", 0.0000000012),
-        ("1,2e1", 12.0),
-        ("1,2E1", 12.0),
-        ("-1,2e-1", -0.12),
-        ("0,2", 0.2),
-        (",2", 0.2),
-    ],
-)
-def test_decimal_and_exponential(python_parser_only, thousands, value, result_value):
-    # GH#31920
-    data = StringIO(
-        f"""a	b
-    1,1	{value}
-    """
-    )
-    result = python_parser_only.read_csv(
-        data, "\t", decimal=",", engine="python", thousands=thousands
-    )
-    expected = DataFrame({"a": [1.1], "b": [result_value]})
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("thousands", [None, "."])
-@pytest.mark.parametrize(
-    "value",
-    ["e11,2", "1e11,2", "1,2,2", "1,2.1", "1,2e-10e1", "--1,2", "1a.2,1", "1..2,3"],
-)
-def test_decimal_and_exponential_erroneous(python_parser_only, thousands, value):
-    # GH#31920
-    data = StringIO(
-        f"""a	b
-    1,1	{value}
-    """
-    )
-    result = python_parser_only.read_csv(data, "\t", decimal=",", thousands=thousands)
-    expected = DataFrame({"a": [1.1], "b": [value]})
-    tm.assert_frame_equal(result, expected)

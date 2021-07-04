@@ -9,13 +9,22 @@ from cython import Py_ssize_t
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport int8_t, int32_t, int64_t, ndarray, uint32_t
+from numpy cimport (
+    int8_t,
+    int32_t,
+    int64_t,
+    ndarray,
+    uint32_t,
+)
 
 cnp.import_array()
 
 from pandas._config.localization import set_locale
 
-from pandas._libs.tslibs.ccalendar import DAYS_FULL, MONTHS_FULL
+from pandas._libs.tslibs.ccalendar import (
+    DAYS_FULL,
+    MONTHS_FULL,
+)
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -84,7 +93,7 @@ def build_field_sarray(const int64_t[:] dtindex):
     return out
 
 
-def month_position_check(fields, weekdays):
+def month_position_check(fields, weekdays) -> str | None:
     cdef:
         int32_t daysinmonth, y, m, d
         bint calendar_end = True
@@ -174,6 +183,18 @@ def get_date_name_field(const int64_t[:] dtindex, str field, object locale=None)
     return out
 
 
+cdef inline bint _is_on_month(int month, int compare_month, int modby) nogil:
+    """
+    Analogous to DateOffset.is_on_offset checking for the month part of a date.
+    """
+    if modby == 1:
+        return True
+    elif modby == 3:
+        return (month - compare_month) % 3 == 0
+    else:
+        return month == compare_month
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def get_start_end_field(const int64_t[:] dtindex, str field,
@@ -191,6 +212,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
         int start_month = 1
         ndarray[int8_t] out
         npy_datetimestruct dts
+        int compare_month, modby
 
     out = np.zeros(count, dtype='int8')
 
@@ -215,7 +237,15 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
         end_month = 12
         start_month = 1
 
-    if field == 'is_month_start':
+    compare_month = start_month if "start" in field else end_month
+    if "month" in field:
+        modby = 1
+    elif "quarter" in field:
+        modby = 3
+    else:
+        modby = 12
+
+    if field in ["is_month_start", "is_quarter_start", "is_year_start"]:
         if is_business:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -224,53 +254,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
 
-                if dts.day == get_firstbday(dts.year, dts.month):
-                    out[i] = 1
-
-        else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if dts.day == 1:
-                    out[i] = 1
-
-    elif field == 'is_month_end':
-        if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if dts.day == get_lastbday(dts.year, dts.month):
-                    out[i] = 1
-
-        else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if dts.day == get_days_in_month(dts.year, dts.month):
-                    out[i] = 1
-
-    elif field == 'is_quarter_start':
-        if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if ((dts.month - start_month) % 3 == 0) and (
+                if _is_on_month(dts.month, compare_month, modby) and (
                         dts.day == get_firstbday(dts.year, dts.month)):
                     out[i] = 1
 
@@ -282,10 +266,10 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
 
-                if ((dts.month - start_month) % 3 == 0) and dts.day == 1:
+                if _is_on_month(dts.month, compare_month, modby) and dts.day == 1:
                     out[i] = 1
 
-    elif field == 'is_quarter_end':
+    elif field in ["is_month_end", "is_quarter_end", "is_year_end"]:
         if is_business:
             for i in range(count):
                 if dtindex[i] == NPY_NAT:
@@ -294,7 +278,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
 
-                if ((dts.month - end_month) % 3 == 0) and (
+                if _is_on_month(dts.month, compare_month, modby) and (
                         dts.day == get_lastbday(dts.year, dts.month)):
                     out[i] = 1
 
@@ -306,56 +290,7 @@ def get_start_end_field(const int64_t[:] dtindex, str field,
 
                 dt64_to_dtstruct(dtindex[i], &dts)
 
-                if ((dts.month - end_month) % 3 == 0) and (
-                        dts.day == get_days_in_month(dts.year, dts.month)):
-                    out[i] = 1
-
-    elif field == 'is_year_start':
-        if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if (dts.month == start_month) and (
-                        dts.day == get_firstbday(dts.year, dts.month)):
-                    out[i] = 1
-
-        else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if (dts.month == start_month) and dts.day == 1:
-                    out[i] = 1
-
-    elif field == 'is_year_end':
-        if is_business:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if (dts.month == end_month) and (
-                        dts.day == get_lastbday(dts.year, dts.month)):
-                    out[i] = 1
-
-        else:
-            for i in range(count):
-                if dtindex[i] == NPY_NAT:
-                    out[i] = 0
-                    continue
-
-                dt64_to_dtstruct(dtindex[i], &dts)
-
-                if (dts.month == end_month) and (
+                if _is_on_month(dts.month, compare_month, modby) and (
                         dts.day == get_days_in_month(dts.year, dts.month)):
                     out[i] = 1
 
@@ -700,9 +635,9 @@ def get_locale_names(name_type: str, locale: object = None):
 
     Parameters
     ----------
-    name_type : string, attribute of LocaleTime() in which to return localized
-        names
-    locale : string
+    name_type : str
+        Attribute of LocaleTime() in which to return localized names.
+    locale : str
 
     Returns
     -------
@@ -710,3 +645,154 @@ def get_locale_names(name_type: str, locale: object = None):
     """
     with set_locale(locale, LC_TIME):
         return getattr(LocaleTime(), name_type)
+
+
+# ---------------------------------------------------------------------
+# Rounding
+
+
+class RoundTo:
+    """
+    enumeration defining the available rounding modes
+
+    Attributes
+    ----------
+    MINUS_INFTY
+        round towards -∞, or floor [2]_
+    PLUS_INFTY
+        round towards +∞, or ceil [3]_
+    NEAREST_HALF_EVEN
+        round to nearest, tie-break half to even [6]_
+    NEAREST_HALF_MINUS_INFTY
+        round to nearest, tie-break half to -∞ [5]_
+    NEAREST_HALF_PLUS_INFTY
+        round to nearest, tie-break half to +∞ [4]_
+
+
+    References
+    ----------
+    .. [1] "Rounding - Wikipedia"
+           https://en.wikipedia.org/wiki/Rounding
+    .. [2] "Rounding down"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_down
+    .. [3] "Rounding up"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_up
+    .. [4] "Round half up"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_up
+    .. [5] "Round half down"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_down
+    .. [6] "Round half to even"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
+    """
+    @property
+    def MINUS_INFTY(self) -> int:
+        return 0
+
+    @property
+    def PLUS_INFTY(self) -> int:
+        return 1
+
+    @property
+    def NEAREST_HALF_EVEN(self) -> int:
+        return 2
+
+    @property
+    def NEAREST_HALF_PLUS_INFTY(self) -> int:
+        return 3
+
+    @property
+    def NEAREST_HALF_MINUS_INFTY(self) -> int:
+        return 4
+
+
+cdef inline ndarray[int64_t] _floor_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                res = value - value % unit
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _ceil_int64(int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
+                else:
+                    res = value + (unit - remainder)
+
+            result[i] = res
+
+    return result
+
+
+cdef inline ndarray[int64_t] _rounddown_int64(values, int64_t unit):
+    return _ceil_int64(values - unit // 2, unit)
+
+
+cdef inline ndarray[int64_t] _roundup_int64(values, int64_t unit):
+    return _floor_int64(values + unit // 2, unit)
+
+
+def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
+    """
+    Applies rounding mode at given frequency
+
+    Parameters
+    ----------
+    values : np.ndarray[int64_t]`
+    mode : instance of `RoundTo` enumeration
+    nanos : np.int64
+        Freq to round to, expressed in nanoseconds
+
+    Returns
+    -------
+    np.ndarray[int64_t]
+    """
+    cdef:
+        int64_t unit = nanos
+
+    if mode == RoundTo.MINUS_INFTY:
+        return _floor_int64(values, unit)
+    elif mode == RoundTo.PLUS_INFTY:
+        return _ceil_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_MINUS_INFTY:
+        return _rounddown_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_PLUS_INFTY:
+        return _roundup_int64(values, unit)
+    elif mode == RoundTo.NEAREST_HALF_EVEN:
+        # for odd unit there is no need of a tie break
+        if unit % 2:
+            return _rounddown_int64(values, unit)
+        quotient, remainder = np.divmod(values, unit)
+        mask = np.logical_or(
+            remainder > (unit // 2),
+            np.logical_and(remainder == (unit // 2), quotient % 2)
+        )
+        quotient[mask] += 1
+        return quotient * unit
+
+    # if/elif above should catch all rounding modes defined in enum 'RoundTo':
+    # if flow of control arrives here, it is a bug
+    raise ValueError("round_nsint64 called with an unrecognized rounding mode")

@@ -3,7 +3,14 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, json_normalize
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    json_normalize,
+)
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
@@ -144,6 +151,8 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    # TODO(ArrayManager) sanitize S/U numpy dtypes to object
+    @td.skip_array_manager_not_yet_implemented
     def test_simple_normalize(self, state_data):
         result = json_normalize(state_data[0], "counties")
         expected = DataFrame(state_data[0]["counties"])
@@ -363,6 +372,8 @@ class TestJSONNormalize:
         for val in ["metafoo", "metabar", "foo", "bar"]:
             assert val in result
 
+    # TODO(ArrayManager) sanitize S/U numpy dtypes to object
+    @td.skip_array_manager_not_yet_implemented
     def test_record_prefix(self, state_data):
         result = json_normalize(state_data[0], "counties")
         expected = DataFrame(state_data[0]["counties"])

@@ -11,7 +11,7 @@
 
    tips[
        ["date1", "date2", "date1_year", "date2_month", "date1_next", "months_between"]
-   ].head()
+   ]
 
 .. ipython:: python
    :suppress:

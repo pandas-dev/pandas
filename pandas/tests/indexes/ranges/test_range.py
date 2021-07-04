@@ -4,10 +4,14 @@ import pytest
 from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
-from pandas import Float64Index, Index, Int64Index, RangeIndex
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+)
 import pandas._testing as tm
-
-from ..test_numeric import Numeric
+from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read
 RI = RangeIndex
@@ -16,9 +20,22 @@ F64 = Float64Index
 OI = Index
 
 
-class TestRangeIndex(Numeric):
-    _holder = RangeIndex
-    _compat_props = ["shape", "ndim", "size"]
+class TestRangeIndex(NumericBase):
+    _index_cls = RangeIndex
+
+    @pytest.fixture
+    def dtype(self):
+        return np.int64
+
+    @pytest.fixture(
+        params=["uint64", "float64", "category", "datetime64", "object"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return self._index_cls(start=0, stop=20, step=2)
 
     @pytest.fixture(
         params=[
@@ -30,16 +47,18 @@ class TestRangeIndex(Numeric):
     def index(self, request):
         return request.param
 
-    def create_index(self) -> RangeIndex:
-        return RangeIndex(start=0, stop=20, step=2)
+    def test_constructor_unwraps_index(self, dtype):
+        result = self._index_cls(1, 3)
+        expected = np.array([1, 2], dtype=dtype)
+        tm.assert_numpy_array_equal(result._data, expected)
 
-    def test_can_hold_identifiers(self):
-        idx = self.create_index()
+    def test_can_hold_identifiers(self, simple_index):
+        idx = simple_index
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
-    def test_too_many_names(self):
-        index = self.create_index()
+    def test_too_many_names(self, simple_index):
+        index = simple_index
         with pytest.raises(ValueError, match="^Length"):
             index.names = ["roger", "harold"]
 
@@ -59,9 +78,9 @@ class TestRangeIndex(Numeric):
         assert index.step == step
 
     @pytest.mark.parametrize("attr_name", ["_start", "_stop", "_step"])
-    def test_deprecated_start_stop_step_attrs(self, attr_name):
+    def test_deprecated_start_stop_step_attrs(self, attr_name, simple_index):
         # GH 26581
-        idx = self.create_index()
+        idx = simple_index
         with tm.assert_produces_warning(FutureWarning):
             getattr(idx, attr_name)
 
@@ -137,8 +156,8 @@ class TestRangeIndex(Numeric):
         i_view = i.view(RangeIndex)
         tm.assert_index_equal(i, i_view)
 
-    def test_dtype(self):
-        index = self.create_index()
+    def test_dtype(self, simple_index):
+        index = simple_index
         assert index.dtype == np.int64
 
     def test_cache(self):
@@ -200,7 +219,7 @@ class TestRangeIndex(Numeric):
         idx._data
         assert isinstance(idx._data, np.ndarray)
         assert idx._data is idx._data  # check cached value is reused
-        assert len(idx._cache) == 4
+        assert len(idx._cache) == 1
         expected = np.arange(0, 100, 10, dtype="int64")
         tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 
@@ -250,13 +269,13 @@ class TestRangeIndex(Numeric):
             assert left.equals(right)
             assert right.equals(left)
 
-    def test_logical_compat(self):
-        idx = self.create_index()
+    def test_logical_compat(self, simple_index):
+        idx = simple_index
         assert idx.all() == idx.values.all()
         assert idx.any() == idx.values.any()
 
-    def test_identical(self):
-        index = self.create_index()
+    def test_identical(self, simple_index):
+        index = simple_index
         i = Index(index.copy())
         assert i.identical(index)
 
@@ -301,17 +320,17 @@ class TestRangeIndex(Numeric):
         with pytest.raises(TypeError, match=msg):
             RangeIndex(start, stop, step)
 
-    def test_view_index(self):
-        index = self.create_index()
+    def test_view_index(self, simple_index):
+        index = simple_index
         index.view(Index)
 
-    def test_prevent_casting(self):
-        index = self.create_index()
+    def test_prevent_casting(self, simple_index):
+        index = simple_index
         result = index.astype("O")
         assert result.dtype == np.object_
 
-    def test_repr_roundtrip(self):
-        index = self.create_index()
+    def test_repr_roundtrip(self, simple_index):
+        index = simple_index
         tm.assert_index_equal(eval(repr(index)), index)
 
     def test_slice_keep_name(self):
@@ -322,8 +341,8 @@ class TestRangeIndex(Numeric):
         assert index.is_unique
         assert not index.has_duplicates
 
-    def test_extended_gcd(self):
-        index = self.create_index()
+    def test_extended_gcd(self, simple_index):
+        index = simple_index
         result = index._extended_gcd(6, 10)
         assert result[0] == result[1] * 6 + result[2] * 10
         assert 2 == result[0]
@@ -350,30 +369,12 @@ class TestRangeIndex(Numeric):
         result = RangeIndex(5, big_num * 2, 1)._min_fitting_element(big_num)
         assert big_num == result
 
-    def test_max_fitting_element(self):
-        result = RangeIndex(0, 20, 2)._max_fitting_element(17)
-        assert 16 == result
-
-        result = RangeIndex(1, 6)._max_fitting_element(4)
-        assert 4 == result
-
-        result = RangeIndex(18, -2, -2)._max_fitting_element(17)
-        assert 16 == result
-
-        result = RangeIndex(5, 0, -1)._max_fitting_element(4)
-        assert 4 == result
-
-        big_num = 500000000000000000000000
-
-        result = RangeIndex(5, big_num * 2, 1)._max_fitting_element(big_num)
-        assert big_num == result
-
     def test_pickle_compat_construction(self):
         # RangeIndex() is a valid constructor
         pass
 
-    def test_slice_specialised(self):
-        index = self.create_index()
+    def test_slice_specialised(self, simple_index):
+        index = simple_index
         index.name = "foo"
 
         # scalar indexing
@@ -503,6 +504,29 @@ class TestRangeIndex(Numeric):
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._holder(0)
+        empty_idx = self._index_cls(0)
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
+
+    @pytest.mark.parametrize(
+        "RI",
+        [
+            RangeIndex(0, -1, -1),
+            RangeIndex(0, 1, 1),
+            RangeIndex(1, 3, 2),
+            RangeIndex(0, -1, -2),
+            RangeIndex(-3, -5, -2),
+        ],
+    )
+    def test_append_len_one(self, RI):
+        # GH39401
+        result = RI.append([])
+        tm.assert_index_equal(result, RI, exact=True)
+
+    @pytest.mark.parametrize("base", [RangeIndex(0, 2), Index([0, 1])])
+    def test_isin_range(self, base):
+        # GH#41151
+        values = RangeIndex(0, 1)
+        result = base.isin(values)
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)

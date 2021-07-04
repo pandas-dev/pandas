@@ -1,12 +1,21 @@
 import numpy as np
 
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Series, Timestamp, date_range
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    Timestamp,
+    date_range,
+)
 
 from .pandas_vb_common import tm
 
 try:
-    from pandas.tseries.offsets import Hour, Nano
+    from pandas.tseries.offsets import (
+        Hour,
+        Nano,
+    )
 except ImportError:
     # For compatibility with older versions
     from pandas.core.datetools import *  # noqa
@@ -58,7 +67,6 @@ class FromDictwithTimestamp:
 
     def setup(self, offset):
         N = 10 ** 3
-        np.random.seed(1234)
         idx = date_range(Timestamp("1/1/1900"), freq=offset, periods=N)
         df = DataFrame(np.random.randn(N, 10), index=idx)
         self.d = df.to_dict()

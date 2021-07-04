@@ -4,7 +4,10 @@ import warnings
 
 from pandas.core.dtypes.generic import ABCDataFrame
 
-from pandas import get_option, option_context
+from pandas import (
+    get_option,
+    option_context,
+)
 
 
 def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
@@ -55,9 +58,14 @@ def read_clipboard(sep=r"\s+", **kwargs):  # pragma: no cover
     # 0  1  2
     # 1  3  4
 
-    counts = {x.lstrip().count("\t") for x in lines}
+    counts = {x.lstrip(" ").count("\t") for x in lines}
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
         sep = "\t"
+        # check the number of leading tabs in the first line
+        # to account for index columns
+        index_length = len(lines[0]) - len(lines[0].lstrip(" \t"))
+        if index_length != 0:
+            kwargs.setdefault("index_col", list(range(index_length)))
 
     # Edge case where sep is specified to be None, return to default
     if sep is None and kwargs.get("delim_whitespace") is None:
@@ -83,7 +91,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     Parameters
     ----------
     obj : the object to write to the clipboard
-    excel : boolean, defaults to True
+    excel : bool, defaults to True
             if True, use the provided separator, writing in a csv
             format for allowing easy pasting into excel.
             if False, write a string representation of the object

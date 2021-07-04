@@ -429,7 +429,7 @@ For the rationale behind this behavior, see
    s = pd.Series(list('abcdef'), index=[0, 3, 2, 5, 4, 2])
    s.loc[3:5]
 
-Also, if the index has duplicate labels *and* either the start or the stop label is dupulicated,
+Also, if the index has duplicate labels *and* either the start or the stop label is duplicated,
 an error will be raised. For instance, in the above example, ``s.loc[2:5]`` would raise a ``KeyError``.
 
 For more information about duplicate labels, see
@@ -701,7 +701,7 @@ Having a duplicated index will raise for a ``.reindex()``:
 .. code-block:: ipython
 
    In [17]: s.reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -717,7 +717,7 @@ However, this would *still* raise if your resulting index is duplicated.
    In [41]: labels = ['a', 'd']
 
    In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex from a duplicate axis
+   ValueError: cannot reindex on an axis with duplicate labels
 
 
 .. _indexing.basics.partial_setting:
@@ -1138,10 +1138,10 @@ Setting with enlargement conditionally using :func:`numpy`
 ----------------------------------------------------------
 
 An alternative to :meth:`~pandas.DataFrame.where` is to use :func:`numpy.where`.
-Combined with setting a new column, you can use it to enlarge a dataframe where the
+Combined with setting a new column, you can use it to enlarge a DataFrame where the
 values are determined conditionally.
 
-Consider you have two choices to choose from in the following dataframe. And you want to
+Consider you have two choices to choose from in the following DataFrame. And you want to
 set a new column color to 'green' when the second column has 'Z'.  You can do the
 following:
 
@@ -1293,8 +1293,8 @@ Full numpy-like syntax:
    df.query('(a < b) & (b < c)')
    df[(df['a'] < df['b']) & (df['b'] < df['c'])]
 
-Slightly nicer by removing the parentheses (by binding making comparison
-operators bind tighter than ``&`` and ``|``).
+Slightly nicer by removing the parentheses (comparison operators bind tighter
+than ``&`` and ``|``):
 
 .. ipython:: python
 
@@ -1523,8 +1523,8 @@ Looking up values by index/column labels
 ----------------------------------------
 
 Sometimes you want to extract a set of values given a sequence of row labels
-and column labels, this can be achieved by ``DataFrame.melt`` combined by filtering the corresponding
-rows with ``DataFrame.loc``.  For instance:
+and column labels, this can be achieved by ``pandas.factorize``  and NumPy indexing.
+For instance:
 
 .. ipython:: python
 
@@ -1532,9 +1532,8 @@ rows with ``DataFrame.loc``.  For instance:
                        'A': [80, 23, np.nan, 22],
                        'B': [80, 55, 76, 67]})
     df
-    melt = df.melt('col')
-    melt = melt.loc[melt['col'] == melt['variable'], 'value']
-    melt.reset_index(drop=True)
+    idx, cols = pd.factorize(df['col'])
+    df.reindex(cols, axis=1).to_numpy()[np.arange(len(df)), idx]
 
 Formerly this could be achieved with the dedicated ``DataFrame.lookup`` method
 which was deprecated in version 1.2.0.

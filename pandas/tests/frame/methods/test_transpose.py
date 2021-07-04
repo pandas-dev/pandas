@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, date_range
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -79,8 +84,22 @@ class TestTranspose:
         for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
+    @td.skip_array_manager_invalid_test
     def test_transpose_get_view(self, float_frame):
         dft = float_frame.T
         dft.values[:, 5:10] = 5
 
         assert (float_frame.values[5:10] == 5).all()
+
+    @td.skip_array_manager_invalid_test
+    def test_transpose_get_view_dt64tzget_view(self):
+        dti = date_range("2016-01-01", periods=6, tz="US/Pacific")
+        arr = dti._data.reshape(3, 2)
+        df = DataFrame(arr)
+        assert df._mgr.nblocks == 1
+
+        result = df.T
+        assert result._mgr.nblocks == 1
+
+        rtrip = result._mgr.blocks[0].values
+        assert np.shares_memory(arr._data, rtrip._data)

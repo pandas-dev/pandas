@@ -1,0 +1,33 @@
+.. _whatsnew_124:
+
+What's new in 1.2.4 (April 12, 2021)
+------------------------------------
+
+These are the changes in pandas 1.2.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_124.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in :meth:`DataFrame.sum` when ``min_count`` greater than the :class:`DataFrame` shape was passed resulted in a ``ValueError`` (:issue:`39738`)
+- Fixed regression in :meth:`DataFrame.to_json` raising ``AttributeError`` when run on PyPy (:issue:`39837`)
+- Fixed regression in (in)equality comparison of ``pd.NaT`` with a non-datetimelike numpy array returning a scalar instead of an array (:issue:`40722`)
+- Fixed regression in :meth:`DataFrame.where` not returning a copy in the case of an all True condition (:issue:`39595`)
+- Fixed regression in :meth:`DataFrame.replace` raising ``IndexError`` when ``regex`` was a multi-key dictionary (:issue:`39338`)
+- Fixed regression in repr of floats in an ``object`` column not respecting ``float_format`` when printed in the console or outputted through :meth:`DataFrame.to_string`, :meth:`DataFrame.to_html`, and :meth:`DataFrame.to_latex` (:issue:`40024`)
+- Fixed regression in NumPy ufuncs such as ``np.add`` not passing through all arguments for :class:`DataFrame` (:issue:`40662`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_124.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.3..v1.2.4

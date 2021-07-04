@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import Categorical, CategoricalIndex, Index
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Index,
+    MultiIndex,
+)
 
 
 class TestEquals:
@@ -75,3 +80,11 @@ class TestEquals:
         other = Index(["A", "B", "D", np.nan])
 
         assert not ci.equals(other)
+
+    def test_equals_multiindex(self):
+        # dont raise NotImplementedError when calling is_dtype_compat
+
+        mi = MultiIndex.from_arrays([["A", "B", "C", "D"], range(4)])
+        ci = mi.to_flat_index().astype("category")
+
+        assert not ci.equals(mi)

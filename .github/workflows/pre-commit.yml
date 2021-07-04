@@ -3,11 +3,15 @@ name: pre-commit
 on:
   pull_request:
   push:
-    branches: [master]
+    branches:
+      - master
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.ref }}-pre-commit
+      cancel-in-progress: true
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2

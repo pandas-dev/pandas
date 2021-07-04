@@ -1,11 +1,18 @@
-from collections import OrderedDict, defaultdict
+from collections import (
+    OrderedDict,
+    defaultdict,
+)
 from datetime import datetime
 
 import numpy as np
 import pytest
 import pytz
 
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -74,7 +81,8 @@ class TestDataFrameToDict:
     def test_to_dict_short_orient_warns(self, orient):
         # GH#32515
         df = DataFrame({"A": [0, 1]})
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "Using short name for 'orient' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.to_dict(orient=orient)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
@@ -256,31 +264,51 @@ class TestDataFrameToDict:
         expected = {f"A_{i:d}": i for i in range(256)}
         assert result == expected
 
-    def test_to_dict_orient_dtype(self):
-        # GH22620 & GH21256
-
-        df = DataFrame(
-            {
-                "bool": [True, True, False],
-                "datetime": [
+    @pytest.mark.parametrize(
+        "data,dtype",
+        (
+            ([True, True, False], bool),
+            [
+                [
                     datetime(2018, 1, 1),
                     datetime(2019, 2, 2),
                     datetime(2020, 3, 3),
                 ],
-                "float": [1.0, 2.0, 3.0],
-                "int": [1, 2, 3],
-                "str": ["X", "Y", "Z"],
-            }
-        )
+                Timestamp,
+            ],
+            [[1.0, 2.0, 3.0], float],
+            [[1, 2, 3], int],
+            [["X", "Y", "Z"], str],
+        ),
+    )
+    def test_to_dict_orient_dtype(self, data, dtype):
+        # GH22620 & GH21256
 
-        expected = {
-            "int": int,
-            "float": float,
-            "str": str,
-            "datetime": Timestamp,
-            "bool": bool,
-        }
+        df = DataFrame({"a": data})
+        d = df.to_dict(orient="records")
+        assert all(type(record["a"]) is dtype for record in d)
 
-        for df_dict in df.to_dict("records"):
-            result = {col: type(df_dict[col]) for col in list(df.columns)}
-            assert result == expected
+    @pytest.mark.parametrize(
+        "data,expected_dtype",
+        (
+            [np.uint64(2), int],
+            [np.int64(-9), int],
+            [np.float64(1.1), float],
+            [np.bool_(True), bool],
+            [np.datetime64("2005-02-25"), Timestamp],
+        ),
+    )
+    def test_to_dict_scalar_constructor_orient_dtype(self, data, expected_dtype):
+        # GH22620 & GH21256
+
+        df = DataFrame({"a": data}, index=[0])
+        d = df.to_dict(orient="records")
+        result = type(d[0]["a"])
+        assert result is expected_dtype
+
+    def test_to_dict_mixed_numeric_frame(self):
+        # GH 12859
+        df = DataFrame({"a": [1.0], "b": [9.0]})
+        result = df.reset_index().to_dict("records")
+        expected = [{"index": 0, "a": 1.0, "b": 9.0}]
+        assert result == expected

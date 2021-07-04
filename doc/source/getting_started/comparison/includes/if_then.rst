@@ -4,7 +4,7 @@ the ``where`` method from ``numpy``.
 .. ipython:: python
 
    tips["bucket"] = np.where(tips["total_bill"] < 10, "low", "high")
-   tips.head()
+   tips
 
 .. ipython:: python
    :suppress:
