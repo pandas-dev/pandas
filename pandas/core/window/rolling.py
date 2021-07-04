@@ -28,7 +28,6 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -408,7 +407,7 @@ class BaseWindow(SelectionMixin):
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
@@ -443,7 +442,7 @@ class BaseWindow(SelectionMixin):
 
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame across the entire object
         """
@@ -460,11 +459,11 @@ class BaseWindow(SelectionMixin):
 
     def _apply_pairwise(
         self,
-        target: FrameOrSeriesUnion,
-        other: FrameOrSeriesUnion | None,
+        target: DataFrame | Series,
+        other: DataFrame | Series | None,
         pairwise: bool | None,
-        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
-    ) -> FrameOrSeriesUnion:
+        func: Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series],
+    ) -> DataFrame | Series:
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
@@ -639,11 +638,11 @@ class BaseWindowGroupby(BaseWindow):
 
     def _apply_pairwise(
         self,
-        target: FrameOrSeriesUnion,
-        other: FrameOrSeriesUnion | None,
+        target: DataFrame | Series,
+        other: DataFrame | Series | None,
         pairwise: bool | None,
-        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
-    ) -> FrameOrSeriesUnion:
+        func: Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series],
+    ) -> DataFrame | Series:
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
@@ -1379,7 +1378,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -1417,7 +1416,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -2159,7 +2158,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -2284,7 +2283,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
