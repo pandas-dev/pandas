@@ -482,7 +482,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
-        numba_args: tuple = (),
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -586,12 +586,14 @@ class BaseWindowGroupby(BaseWindow):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
             numba_cache_key,
+            numba_args,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex
@@ -972,6 +974,7 @@ class Window(BaseWindow):
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -984,6 +987,8 @@ class Window(BaseWindow):
         func : callable function to apply
         name : str,
         use_numba_cache : tuple
+            unused
+        numba_args : tuple
             unused
         **kwargs
             additional arguments for scipy windows if necessary
@@ -1162,7 +1167,7 @@ class RollingAndExpandingMixin(BaseWindow):
             raise ValueError("raw parameter must be `True` or `False`")
 
         numba_cache_key = None
-        numba_args = ()
+        numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
