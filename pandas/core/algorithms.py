@@ -25,7 +25,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
-    FrameOrSeriesUnion,
     NumpySorter,
     NumpyValueArrayLike,
     Scalar,
@@ -1213,7 +1212,7 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> FrameOrSeriesUnion:
+    def compute(self, method: str) -> DataFrame | Series:
         raise NotImplementedError
 
     def nlargest(self):
