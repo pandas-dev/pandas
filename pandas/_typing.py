@@ -104,12 +104,6 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
-# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
-# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
-# in, either a DataFrame or a Series is returned.
-FrameOrSeriesUnion = Union["DataFrame", "Series"]
-
 # FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
 # used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is

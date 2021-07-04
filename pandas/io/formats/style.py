@@ -23,7 +23,6 @@ from pandas._typing import (
     Axis,
     FilePathOrBuffer,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
 )
@@ -174,7 +173,7 @@ class Styler(StylerRenderer):
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,

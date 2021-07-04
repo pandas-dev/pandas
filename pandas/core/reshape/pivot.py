@@ -14,7 +14,6 @@ from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
     AggFuncTypeDict,
-    FrameOrSeriesUnion,
     IndexLabel,
 )
 from pandas.util._decorators import (
@@ -254,7 +253,7 @@ def __internal_pivot_table(
 
 
 def _add_margins(
-    table: FrameOrSeriesUnion,
+    table: DataFrame | Series,
     data,
     values,
     rows,
