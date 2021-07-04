@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Pandas could not be build on PyPy (GH-42355)
 -
 
 .. ---------------------------------------------------------------------------
