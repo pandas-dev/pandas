@@ -7614,6 +7614,7 @@ NaN 12.3   33.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
+        # https://github.com/python/mypy/issues/7642
         # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
         # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
