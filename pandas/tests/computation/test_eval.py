@@ -1283,7 +1283,7 @@ class TestOperationsNumExprPandas:
         with pytest.raises(SyntaxError, match=msg):
             df.eval("d,c = a + b")
 
-        msg = "can't assign to function call"
+        msg = "cannot assign to function call"
         with pytest.raises(SyntaxError, match=msg):
             df.eval('Timestamp("20131001") = a + b')
 
