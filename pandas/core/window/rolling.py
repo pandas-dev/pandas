@@ -481,6 +481,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -494,6 +495,8 @@ class BaseWindow(SelectionMixin):
         name : str,
         numba_cache_key : tuple
             caching key to be used to store a compiled numba func
+        numba_args : tuple
+            args to be passed when func is a numba func
         **kwargs
             additional arguments for rolling function and window function
 
@@ -521,7 +524,7 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                return func(x, start, end, min_periods)
+                return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
                 if values.ndim > 1 and self.method == "single":
@@ -582,12 +585,14 @@ class BaseWindowGroupby(BaseWindow):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
             numba_cache_key,
+            numba_args,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex
@@ -968,6 +973,7 @@ class Window(BaseWindow):
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -980,6 +986,8 @@ class Window(BaseWindow):
         func : callable function to apply
         name : str,
         use_numba_cache : tuple
+            unused
+        numba_args : tuple
             unused
         **kwargs
             additional arguments for scipy windows if necessary
@@ -1158,18 +1166,20 @@ class RollingAndExpandingMixin(BaseWindow):
             raise ValueError("raw parameter must be `True` or `False`")
 
         numba_cache_key = None
+        numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             caller_name = type(self).__name__
+            numba_args = args
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    args, kwargs, func, engine_kwargs, caller_name
+                    kwargs, func, engine_kwargs, caller_name
                 )
                 numba_cache_key = (func, f"{caller_name}_apply_single")
             else:
                 apply_func = generate_numba_table_func(
-                    args, kwargs, func, engine_kwargs, f"{caller_name}_apply"
+                    kwargs, func, engine_kwargs, f"{caller_name}_apply"
                 )
                 numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
@@ -1182,6 +1192,7 @@ class RollingAndExpandingMixin(BaseWindow):
         return self._apply(
             apply_func,
             numba_cache_key=numba_cache_key,
+            numba_args=numba_args,
         )
 
     def _generate_cython_apply_func(
