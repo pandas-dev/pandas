@@ -29,6 +29,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- Added HTML representation for grouped DataFrame and Series (:issue:`34926`)
 -
 -
 
