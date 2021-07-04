@@ -25,11 +25,13 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
@@ -233,14 +235,21 @@ class _Unstacker:
         if mask_all:
             dtype = values.dtype
             new_values = np.empty(result_shape, dtype=dtype)
+            name = np.dtype(dtype).name
         else:
             dtype, fill_value = maybe_promote(values.dtype, fill_value)
-            new_values = np.empty(result_shape, dtype=dtype)
-            new_values.fill(fill_value)
+            if isinstance(dtype, ExtensionDtype):
+                # GH#41875
+                cls = dtype.construct_array_type()
+                new_values = cls._empty(result_shape, dtype=dtype)
+                new_values[:] = fill_value
+                name = dtype.name
+            else:
+                new_values = np.empty(result_shape, dtype=dtype)
+                new_values.fill(fill_value)
+                name = np.dtype(dtype).name
 
         new_mask = np.zeros(result_shape, dtype=bool)
-
-        name = np.dtype(dtype).name
 
         # we need to convert to a basic dtype
         # and possibly coerce an input to our output dtype
@@ -267,6 +276,10 @@ class _Unstacker:
 
         # reconstruct dtype if needed
         if needs_i8_conversion(values.dtype):
+            # view as datetime64 so we can wrap in DatetimeArray and use
+            #  DTA's view method
+            new_values = new_values.view("M8[ns]")
+            new_values = ensure_wrapped_if_datetimelike(new_values)
             new_values = new_values.view(values.dtype)
 
         return new_values, new_mask
@@ -1004,7 +1017,9 @@ def _get_dummies_1d(
         fill_value: bool | float | int
         if is_integer_dtype(dtype):
             fill_value = 0
-        elif dtype == bool:
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Type[bool]")
+        elif dtype == bool:  # type: ignore[comparison-overlap]
             fill_value = False
         else:
             fill_value = 0.0

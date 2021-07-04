@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import (
     ABC,
     abstractmethod,
@@ -10,10 +12,6 @@ from typing import (
     Any,
     Callable,
     Mapping,
-    Optional,
-    Tuple,
-    Type,
-    Union,
 )
 
 import numpy as np
@@ -78,12 +76,12 @@ TABLE_SCHEMA_VERSION = "0.20.0"
 def to_json(
     path_or_buf,
     obj: NDFrame,
-    orient: Optional[str] = None,
+    orient: str | None = None,
     date_format: str = "epoch",
     double_precision: int = 10,
     force_ascii: bool = True,
     date_unit: str = "ms",
-    default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+    default_handler: Callable[[Any], JSONSerializable] | None = None,
     lines: bool = False,
     compression: CompressionOptions = "infer",
     index: bool = True,
@@ -102,7 +100,7 @@ def to_json(
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
 
-    writer: Type[Writer]
+    writer: type[Writer]
     if orient == "table" and isinstance(obj, DataFrame):
         writer = JSONTableWriter
     elif isinstance(obj, Series):
@@ -143,13 +141,13 @@ class Writer(ABC):
     def __init__(
         self,
         obj,
-        orient: Optional[str],
+        orient: str | None,
         date_format: str,
         double_precision: int,
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+        default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
     ):
         self.obj = obj
@@ -187,7 +185,7 @@ class Writer(ABC):
 
     @property
     @abstractmethod
-    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
+    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         """Object to write in JSON format."""
         pass
 
@@ -196,7 +194,7 @@ class SeriesWriter(Writer):
     _default_orient = "index"
 
     @property
-    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
+    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         if not self.index and self.orient == "split":
             return {"name": self.obj.name, "data": self.obj.values}
         else:
@@ -211,7 +209,7 @@ class FrameWriter(Writer):
     _default_orient = "columns"
 
     @property
-    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
+    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         if not self.index and self.orient == "split":
             obj_to_write = self.obj.to_dict(orient="split")
             del obj_to_write["index"]
@@ -243,13 +241,13 @@ class JSONTableWriter(FrameWriter):
     def __init__(
         self,
         obj,
-        orient: Optional[str],
+        orient: str | None,
         date_format: str,
         double_precision: int,
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
-        default_handler: Optional[Callable[[Any], JSONSerializable]] = None,
+        default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
     ):
         """
@@ -313,7 +311,7 @@ class JSONTableWriter(FrameWriter):
         self.index = index
 
     @property
-    def obj_to_write(self) -> Union[NDFrame, Mapping[IndexLabel, Any]]:
+    def obj_to_write(self) -> NDFrame | Mapping[IndexLabel, Any]:
         return {"schema": self.schema, "data": self.obj}
 
 
@@ -326,7 +324,7 @@ def read_json(
     path_or_buf=None,
     orient=None,
     typ="frame",
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     convert_axes=None,
     convert_dates=True,
     keep_default_dates: bool = True,
@@ -334,11 +332,11 @@ def read_json(
     precise_float: bool = False,
     date_unit=None,
     encoding=None,
-    encoding_errors: Optional[str] = "strict",
+    encoding_errors: str | None = "strict",
     lines: bool = False,
-    chunksize: Optional[int] = None,
+    chunksize: int | None = None,
     compression: CompressionOptions = "infer",
-    nrows: Optional[int] = None,
+    nrows: int | None = None,
     storage_options: StorageOptions = None,
 ):
     """
@@ -461,7 +459,7 @@ def read_json(
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
-        .. versionadded:: 1.3
+        .. versionadded:: 1.3.0
 
     lines : bool, default False
         Read the file as a json object per line.
@@ -639,11 +637,11 @@ class JsonReader(abc.Iterator):
         date_unit,
         encoding,
         lines: bool,
-        chunksize: Optional[int],
+        chunksize: int | None,
         compression: CompressionOptions,
-        nrows: Optional[int],
+        nrows: int | None,
         storage_options: StorageOptions = None,
-        encoding_errors: Optional[str] = "strict",
+        encoding_errors: str | None = "strict",
     ):
 
         self.orient = orient
@@ -663,7 +661,7 @@ class JsonReader(abc.Iterator):
         self.nrows_seen = 0
         self.nrows = nrows
         self.encoding_errors = encoding_errors
-        self.handles: Optional[IOHandles] = None
+        self.handles: IOHandles | None = None
 
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
@@ -816,7 +814,7 @@ class JsonReader(abc.Iterator):
 
 
 class Parser:
-    _split_keys: Tuple[str, ...]
+    _split_keys: tuple[str, ...]
     _default_orient: str
 
     _STAMP_UNITS = ("s", "ms", "us", "ns")
@@ -831,7 +829,7 @@ class Parser:
         self,
         json,
         orient,
-        dtype: Optional[DtypeArg] = None,
+        dtype: DtypeArg | None = None,
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=False,
@@ -865,7 +863,7 @@ class Parser:
         self.convert_dates = convert_dates
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
-        self.obj: Optional[FrameOrSeriesUnion] = None
+        self.obj: FrameOrSeriesUnion | None = None
 
     def check_keys_split(self, decoded):
         """

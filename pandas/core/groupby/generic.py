@@ -67,10 +67,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.base import (
-    DataError,
-    SpecificationError,
-)
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -516,16 +513,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
         obj = self._selected_obj
 
-        is_numeric = is_numeric_dtype(obj.dtype)
-        if numeric_only and not is_numeric:
-            raise DataError("No numeric types to aggregate")
-
         try:
             result = self.grouper._cython_operation(
                 "transform", obj._values, how, axis, **kwargs
             )
-        except (NotImplementedError, TypeError):
-            raise DataError("No numeric types to aggregate")
+        except NotImplementedError as err:
+            raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
@@ -1027,13 +1020,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     if isinstance(sobj, Series):
                         # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = [sobj.name]
+                        result.columns = self._obj_with_exclusions.columns.copy()
                     else:
+                        # Retain our column names
+                        result.columns._set_names(
+                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
+                        )
                         # select everything except for the last level, which is the one
                         # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.rename(
-                            [sobj.columns.name] * result.columns.nlevels
-                        ).droplevel(-1)
+                        result.columns = result.columns.droplevel(-1)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1064,7 +1059,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Note: we never get here with how="ohlc"; that goes through SeriesGroupBy
 
         data: Manager2D = self._get_data_to_aggregate()
-        orig = data
 
         if numeric_only:
             data = data.get_numeric_data(copy=False)
@@ -1087,9 +1081,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not len(new_mgr) and len(orig):
-            # If the original Manager was already empty, no need to raise
-            raise DataError("No numeric types to aggregate")
         if len(new_mgr) < len(data):
             warnings.warn(
                 f"Dropping invalid columns in {type(self).__name__}.{how} "
@@ -1676,7 +1667,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = self.obj.columns
         else:
             columns = Index(key.label for key in output)
-            columns.name = self.obj.columns.name
+            columns._set_names(self.obj._get_axis(1 - self.axis).names)
             result.columns = columns
 
         result.index = self.obj.index
@@ -1685,7 +1676,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
-            index = Index(range(mgr.shape[1]))
+            # GH 41998 - empty mgr always gets index of length 0
+            rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
+            index = Index(range(rows))
             mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
@@ -1811,7 +1804,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         results = self._apply_to_column_groupbys(
             lambda sgb: sgb.nunique(dropna), obj=obj
         )
-        results.columns.names = obj.columns.names  # TODO: do at higher level?
 
         if not self.as_index:
             results.index = Index(range(len(results)))
