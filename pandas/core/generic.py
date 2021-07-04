@@ -46,7 +46,6 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
-    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -158,6 +157,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from pandas._libs.tslibs import BaseOffset
+    from pandas._typing import RandomState
 
     from pandas.core.frame import DataFrame
     from pandas.core.resample import Resampler
@@ -5184,14 +5184,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator, seed for random number generator.
-            If np.random.RandomState, use as numpy RandomState object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState,
+            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
+            random number generator. If np.random.RandomState or np.random.Generator,
+            use as given.
 
             .. versionchanged:: 1.1.0
 
-                array-like and BitGenerator (for NumPy>=1.17) object now passed to
-                np.random.RandomState() as seed
+                array-like and BitGenerator object now passed to np.random.RandomState()
+                as seed
+
+            .. versionchanged:: 1.4.0
+
+                np.random.Generator objects now accepted
 
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis

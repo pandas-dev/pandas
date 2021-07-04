@@ -109,7 +109,7 @@ def sample(
     size: int,
     replace: bool,
     weights: np.ndarray | None,
-    random_state: np.random.RandomState,
+    random_state: np.random.RandomState | np.random.Generator,
 ) -> np.ndarray:
     """
     Randomly sample `size` indices in `np.arange(obj_len)`
@@ -125,7 +125,7 @@ def sample(
     weights : np.ndarray[np.float64] or None
         If None, equal probability weighting, otherwise weights according
         to the vector normalized
-    random_state: np.random.RandomState
+    random_state: np.random.RandomState or np.random.Generator
         State used for the random sampling
 
     Returns

@@ -119,7 +119,16 @@ Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
-RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
+
+# BitGenerator isn't exposed until 1.18
+if TYPE_CHECKING:
+    RandomState = Union[
+        int,
+        ArrayLike,
+        np.random.Generator,
+        np.random.BitGenerator,
+        np.random.RandomState,
+    ]
 
 # dtypes
 NpDtype = Union[str, np.dtype]
