@@ -423,6 +423,7 @@ def test_url():
     tm.assert_frame_equal(df_url, df_expected)
 
 
+@tm.network
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
         url = "https://www.w3schools.com/xml/python.xml"
