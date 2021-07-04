@@ -226,6 +226,9 @@ int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
 
 
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
+    if (a == b) {
+        return 1;
+    }
     if (Py_TYPE(a) == Py_TYPE(b)) {
         // special handling for some built-in types which could have NaNs
         // as we would like to have them equivalent, but the usual
@@ -269,6 +272,8 @@ Py_hash_t PANDAS_INLINE floatobject_hash(PyFloatObject* key) {
 }
 
 
+#define _PandasHASH_IMAG 1000003UL
+
 // replaces _Py_HashDouble with _Pandas_HashDouble
 Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject* key) {
     Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(key->cval.real);
@@ -276,7 +281,7 @@ Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject* key) {
     if (realhash == (Py_uhash_t)-1 || imaghash == (Py_uhash_t)-1) {
         return -1;
     }
-    Py_uhash_t combined = realhash + _PyHASH_IMAG * imaghash;
+    Py_uhash_t combined = realhash + _PandasHASH_IMAG * imaghash;
     if (combined == (Py_uhash_t)-1) {
         return -2;
     }
@@ -284,7 +289,7 @@ Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject* key) {
 }
 
 
-khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key);
+khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key);
 
 //we could use any hashing algorithm, this is the original CPython's for tuples
 
@@ -325,7 +330,7 @@ Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
 }
 
 
-khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
+khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
     Py_hash_t hash;
     // For PyObject_Hash holds:
     //    hash(0.0) == 0 == hash(-0.0)

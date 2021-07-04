@@ -33,7 +33,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Manager2D,
 )
 from pandas.util._decorators import (
@@ -296,7 +295,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: dict[base.OutputKey, FrameOrSeriesUnion] = {}
+        results: dict[base.OutputKey, DataFrame | Series] = {}
         for idx, (name, func) in enumerate(arg):
 
             key = base.OutputKey(label=name, position=idx)
@@ -422,7 +421,7 @@ class SeriesGroupBy(GroupBy[Series]):
         keys: Index,
         values: list[Any] | None,
         not_indexed_same: bool = False,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
 
@@ -1193,7 +1192,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
         # TODO: Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
@@ -1676,7 +1675,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
-            index = Index(range(mgr.shape[1]))
+            # GH 41998 - empty mgr always gets index of length 0
+            rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
+            index = Index(range(rows))
             mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 

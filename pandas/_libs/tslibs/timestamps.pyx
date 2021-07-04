@@ -129,6 +129,13 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
+def _unpickle_timestamp(value, freq, tz):
+    # GH#41949 dont warn on unpickle if we have a freq
+    ts = Timestamp(value, tz=tz)
+    ts._set_freq(freq)
+    return ts
+
+
 # ----------------------------------------------------------------------
 
 def integer_op_not_supported(obj):
@@ -725,7 +732,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __reduce__(self):
         object_state = self.value, self._freq, self.tzinfo
-        return (Timestamp, object_state)
+        return (_unpickle_timestamp, object_state)
 
     # -----------------------------------------------------------------
     # Rendering Methods
