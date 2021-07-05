@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Pandas could not be built on PyPy (:issue:`42355`)
--
+- Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42338`)
 
 .. ---------------------------------------------------------------------------
 
