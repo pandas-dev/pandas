@@ -490,6 +490,8 @@ class Styler(StylerRenderer):
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
             rendered.
+
+            .. versionadded:: 1.4.0
         encoding : str, default "utf-8"
             Character encoding setting.
         convert_css : bool, default False
