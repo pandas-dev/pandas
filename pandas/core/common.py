@@ -34,7 +34,6 @@ from pandas._typing import (
     Scalar,
     T,
 )
-from pandas.compat import np_version_under1p18
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -417,7 +416,7 @@ def random_state(state: RandomState | None = None) -> np.random.RandomState:
     if (
         is_integer(state)
         or is_array_like(state)
-        or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
+        or isinstance(state, np.random.BitGenerator)
     ):
         # error: Argument 1 to "RandomState" has incompatible type "Optional[Union[int,
         # Union[ExtensionArray, ndarray[Any, Any]], Generator, RandomState]]"; expected

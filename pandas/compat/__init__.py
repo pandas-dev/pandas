@@ -16,7 +16,6 @@ from pandas.compat.numpy import (
     is_numpy_dev,
     np_array_datetime64_compat,
     np_datetime64_compat,
-    np_version_under1p18,
     np_version_under1p19,
     np_version_under1p20,
 )
@@ -151,7 +150,6 @@ __all__ = [
     "is_numpy_dev",
     "np_array_datetime64_compat",
     "np_datetime64_compat",
-    "np_version_under1p18",
     "np_version_under1p19",
     "np_version_under1p20",
     "pa_version_under1p0",
