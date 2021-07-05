@@ -25,11 +25,12 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     FillnaOptions,
-    NpDtype,
     PositionalIndexer,
     Shape,
+    npt,
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -517,7 +518,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
@@ -525,10 +526,10 @@ class ExtensionArray:
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
         ...
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 

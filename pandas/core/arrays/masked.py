@@ -16,10 +16,11 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    Dtype,
+    AstypeArg,
     NpDtype,
     PositionalIndexer,
     Scalar,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -301,7 +302,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return data
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
@@ -309,10 +310,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
         ...
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):

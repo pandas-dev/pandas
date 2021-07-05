@@ -11,9 +11,9 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    Dtype,
+    AstypeArg,
     DtypeObj,
-    NpDtype,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -276,7 +276,7 @@ class FloatingArray(NumericArray):
         return coerce_to_array(value, dtype=self.dtype)
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
@@ -284,10 +284,10 @@ class FloatingArray(NumericArray):
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
         ...
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 

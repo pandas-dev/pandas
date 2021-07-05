@@ -25,6 +25,7 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas._typing import (
+    AstypeArg,
     Dtype,
     NpDtype,
     Scalar,
@@ -1056,7 +1057,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype: Dtype | None = None, copy=True):
+    def astype(self, dtype: AstypeArg | None = None, copy=True):
         """
         Change the dtype of a SparseArray.
 

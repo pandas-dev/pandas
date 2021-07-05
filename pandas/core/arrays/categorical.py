@@ -33,11 +33,13 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import no_default
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     NpDtype,
     Ordered,
     Scalar,
     Shape,
+    npt,
     type_t,
 )
 from pandas.compat.numpy import function as nv
@@ -483,7 +485,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return Categorical(scalars, dtype=dtype, copy=copy)
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
@@ -491,10 +493,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
         ...
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Coerce this type to another dtype
 
