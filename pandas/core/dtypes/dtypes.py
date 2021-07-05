@@ -30,6 +30,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     Ordered,
+    npt,
     type_t,
 )
 
@@ -1282,7 +1283,7 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: str | np.dtype | PandasDtype | None):
+    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None):
         if isinstance(dtype, PandasDtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype

@@ -37,6 +37,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -397,11 +398,15 @@ class BooleanArray(BaseMaskedArray):
         return coerce_to_array(value)
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = True) -> np.ndarray:
+    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
         ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:

@@ -521,6 +521,10 @@ class ExtensionArray:
         ...
 
     @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
     def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
         ...
 

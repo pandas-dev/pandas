@@ -301,11 +301,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return data
 
     @overload
-    def astype(self, dtype: NpDtype, copy: bool = True) -> np.ndarray:
+    def astype(self, dtype: NpDtype, copy: bool = ...) -> np.ndarray:
         ...
 
     @overload
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: Dtype, copy: bool = ...) -> ArrayLike:
         ...
 
     def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
