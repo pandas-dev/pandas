@@ -5779,8 +5779,6 @@ class DataFrame(NDFrame, OpsMixin):
                         (n if n is not None else f"level_{i}")
                         for i, n in enumerate(self.index.names)
                     ]
-                else:
-                    names = names
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = "index" if "index" not in self else "level_0"
