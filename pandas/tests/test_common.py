@@ -84,7 +84,7 @@ def test_random_state():
 
     # Error for floats or strings
     msg = (
-        "random_state must be an integer, array-like, a BitGenerator, "
+        "random_state must be an integer, array-like, a BitGenerator, Generator, "
         "a numpy RandomState, or None"
     )
     with pytest.raises(ValueError, match=msg):
