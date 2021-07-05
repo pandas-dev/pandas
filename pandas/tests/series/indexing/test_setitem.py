@@ -10,6 +10,7 @@ from pandas import (
     Categorical,
     DatetimeIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
     NaT,
     Series,
@@ -906,3 +907,41 @@ class TestSeriesNoneCoercion(SetitemCastingEquivalents):
     def is_inplace(self, obj):
         # This is specific to the 4 cases currently implemented for this class.
         return obj.dtype.kind != "i"
+
+
+def test_setitem_int_as_positional_fallback_deprecation():
+    # GH#42215 deprecated falling back to positional on __setitem__ with an
+    #  int not contained in the index
+    ser = Series([1, 2, 3, 4], index=[1.1, 2.1, 3.0, 4.1])
+    assert not ser.index._should_fallback_to_positional
+    # assert not ser.index.astype(object)._should_fallback_to_positional
+
+    with tm.assert_produces_warning(None):
+        # 3.0 is in our index, so future behavior is unchanged
+        ser[3] = 10
+    expected = Series([1, 2, 10, 4], index=ser.index)
+    tm.assert_series_equal(ser, expected)
+
+    msg = "Treating integers as positional in Series.__setitem__"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(IndexError, match="index 5 is out of bounds"):
+            ser[5] = 5
+    # Once the deprecation is enforced, we will have
+    #  expected = Series([1, 2, 3, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
+
+    ii = IntervalIndex.from_breaks(range(10))[::2]
+    ser2 = Series(range(len(ii)), index=ii)
+    expected2 = ser2.copy()
+    expected2.iloc[-1] = 9
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2[4] = 9
+    tm.assert_series_equal(ser2, expected2)
+
+    mi = MultiIndex.from_product([ser.index, ["A", "B"]])
+    ser3 = Series(range(len(mi)), index=mi)
+    expected3 = ser3.copy()
+    expected3.iloc[4] = 99
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser3[4] = 99
+    tm.assert_series_equal(ser3, expected3)
