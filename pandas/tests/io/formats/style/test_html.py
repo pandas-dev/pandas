@@ -414,26 +414,22 @@ def test_sticky_raises(styler):
         styler.set_sticky(axis="bad")
 
 
-def test_sparse_options():
+@pytest.mark.parametrize(
+    "sparse_index, sparse_columns",
+    [(True, True), (True, False), (False, True), (False, False)],
+)
+def test_sparse_options(sparse_index, sparse_columns):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=ridx, columns=cidx)
     styler = df.style
 
-    base_html = styler.to_html()
+    default_html = styler.to_html()  # defaults under pd.options to (True , True)
 
-    # test option context and method arguments simultaneously
-    # output generation is tested in test_style.test_mi_sparse
-    for sparse_index in [True, False]:
-        with option_context("styler.sparse.index", sparse_index):
-            html1 = styler.to_html()
-            assert (html1 == base_html) is sparse_index
-        html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=True)
-        assert html1 == html2
-
-    for sparse_columns in [True, False]:
-        with option_context("styler.sparse.columns", sparse_columns):
-            html1 = styler.to_html()
-            assert (html1 == base_html) is sparse_columns
-        html2 = styler.to_html(sparse_index=True, sparse_columns=sparse_columns)
-        assert html1 == html2
+    with option_context(
+        "styler.sparse.index", sparse_index, "styler.sparse.columns", sparse_columns
+    ):
+        html1 = styler.to_html()
+        assert (html1 == default_html) is (sparse_index and sparse_columns)
+    html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=sparse_columns)
+    assert html1 == html2
