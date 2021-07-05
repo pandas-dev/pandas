@@ -124,7 +124,7 @@ RandomState = Union[int, ArrayLike, np.random.Generator, np.random.RandomState]
 # dtypes
 NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
 Dtype = Union["ExtensionDtype", NpDtype]
-AstypeArg = Union["ExtensionDtype", npt.DTypeLike]
+AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
