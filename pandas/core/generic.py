@@ -3765,18 +3765,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
-            try:
-                loc, new_index = index._get_loc_level(key, level=0)
-            except TypeError as err:
-                raise TypeError(
-                    f"Expected label or tuple of labels, got {key}"
-                ) from err
-            else:
-                if not drop_level:
-                    if lib.is_integer(loc):
-                        new_index = index[loc : loc + 1]
-                    else:
-                        new_index = index[loc]
+            loc, new_index = index._get_loc_level(key, level=0)
+            if not drop_level:
+                if lib.is_integer(loc):
+                    new_index = index[loc : loc + 1]
+                else:
+                    new_index = index[loc]
         else:
             loc = index.get_loc(key)
 
