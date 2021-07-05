@@ -27,6 +27,23 @@ def test_series_grouper():
     tm.assert_almost_equal(counts, exp_counts)
 
 
+def test_series_grouper_timestamp():
+    # GH 42390
+    obj = Series([1], index=[pd.Timestamp("2018-01-16 00:00:00+00:00")], dtype=np.intp)
+    labels = np.array([0], dtype=np.intp)
+
+    def agg(series):
+        # this should not raise
+        if series.isna().values.all():
+            return None
+        return np.sum(series)
+
+    grouper = libreduction.SeriesGrouper(obj, agg, labels, 1)
+    result, counts = grouper.get_result()
+    tm.assert_numpy_array_equal(result, np.array([1], dtype=object))
+    tm.assert_numpy_array_equal(counts, np.array([1], dtype=np.int64))
+
+
 def test_series_grouper_result_length_difference():
     # GH 40014
     obj = Series(np.random.randn(10), dtype="float64")

@@ -165,10 +165,6 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
-        cached_index, cached_series = self._init_dummy_series_and_index(
-            islider, vslider
-        )
-
         start = 0
         try:
             for i in range(self.ngroups):
@@ -177,6 +173,11 @@ cdef class SeriesBinGrouper(_BaseGrouper):
 
                 islider.move(start, end)
                 vslider.move(start, end)
+
+                if cached_index is None:
+                    cached_index, cached_series = self._init_dummy_series_and_index(
+                        islider, vslider
+                    )
 
                 self._update_cached_objs(
                     cached_series, cached_index, islider, vslider)
@@ -254,10 +255,6 @@ cdef class SeriesGrouper(_BaseGrouper):
 
         result = np.empty(self.ngroups, dtype='O')
 
-        cached_index, cached_series = self._init_dummy_series_and_index(
-            islider, vslider
-        )
-
         start = 0
         try:
             for i in range(n):
@@ -274,6 +271,11 @@ cdef class SeriesGrouper(_BaseGrouper):
                     end = start + group_size
                     islider.move(start, end)
                     vslider.move(start, end)
+
+                    if cached_index is None:
+                        cached_index, cached_series = self._init_dummy_series_and_index(
+                            islider, vslider
+                        )
 
                     self._update_cached_objs(
                         cached_series, cached_index, islider, vslider)
