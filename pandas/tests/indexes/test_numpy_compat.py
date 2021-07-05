@@ -84,10 +84,13 @@ def test_numpy_ufuncs_other(index, func, request):
             mark = pytest.mark.xfail(reason="__array_ufunc__ is not defined")
             request.node.add_marker(mark)
 
-        if func in [np.isfinite, np.isinf, np.isnan]:
+        if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/tfd64
             result = func(index)
             assert isinstance(result, np.ndarray)
+        else:
+            with tm.external_error_raised(TypeError):
+                func(index)
 
     elif isinstance(index, PeriodIndex):
         with tm.external_error_raised(TypeError):
