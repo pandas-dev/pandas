@@ -14,8 +14,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <link rel='shortcut icon' type='image/x-icon' href='{{ base_url }}/static/img/favicon.ico'/>
         <link rel="stylesheet"
-              href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-              integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+              href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
+              integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
               crossorigin="anonymous">
         {% for stylesheet in static.css %}
             <link rel="stylesheet"
@@ -27,14 +27,14 @@
         <header>
             <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
                 <div class="container">
-                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#nav-content" aria-controls="nav-content" aria-expanded="false" aria-label="Toggle navigation">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav-content" aria-controls="nav-content" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
                     {% if static.logo %}<a class="navbar-brand" href="{{ base_url }}/"><img alt="" src="{{ base_url }}{{ static.logo }}"/></a>{% endif %}
 
                     <div class="collapse navbar-collapse" id="nav-content">   
-                        <ul class="navbar-nav ml-auto">
+                        <ul class="navbar-nav ms-auto">
                             {% for item in navbar %}
                                 {% if not item.has_subitems %}
                                     <li class="nav-item">
@@ -43,7 +43,7 @@
                                 {% else %}
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle"
-                                           data-toggle="dropdown"
+                                           data-bs-toggle="dropdown"
                                            id="{{ item.slug }}"
                                            href="#"
                                            role="button"
@@ -68,7 +68,7 @@
             </div>
         </main>
         <footer class="container pt-4 pt-md-5 border-top">
-            <ul class="list-inline social-buttons float-right">
+            <ul class="list-inline social-buttons float-end">
                 <li class="list-inline-item">
                     <a href="https://twitter.com/pandas_dev/">
                         <i class="fab fa-twitter"></i>
@@ -89,15 +89,9 @@
                 pandas is a fiscally sponsored project of <a href="https://numfocus.org">NumFOCUS.</a>
             </p>
         </footer>
-                
-        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
-                integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
-                crossorigin="anonymous"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-                integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-                crossorigin="anonymous"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
-                integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" 
+                integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" 
                 crossorigin="anonymous"></script>
     </body>
 </html>
