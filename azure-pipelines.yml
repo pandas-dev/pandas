@@ -3,7 +3,6 @@ trigger:
   branches:
     include:
     - master
-    - 1.2.x
     - 1.3.x
   paths:
     exclude:
