@@ -26,7 +26,6 @@ from pandas.compat.pyarrow import (
     pa_version_under4p0,
 )
 
-PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
