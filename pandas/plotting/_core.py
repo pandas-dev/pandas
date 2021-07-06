@@ -1743,7 +1743,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     types.ModuleType
         The imported backend.
     """
-    import pkg_resources
+    from importlib.metadata import entry_points
 
     if backend == "matplotlib":
         # Because matplotlib is an optional dependency and first-party backend,
@@ -1759,7 +1759,8 @@ def _load_backend(backend: str) -> types.ModuleType:
 
     found_backend = False
 
-    for entry_point in pkg_resources.iter_entry_points("pandas_plotting_backends"):
+    eps = entry_points()
+    for entry_point in eps.get("pandas_plotting_backends"):
         found_backend = entry_point.name == backend
         if found_backend:
             module = entry_point.load()
