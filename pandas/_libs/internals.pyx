@@ -572,7 +572,7 @@ cdef class BlockManager:
     def __cinit__(self, blocks=None, axes=None, verify_integrity=True):
         # None as defaults for unpickling GH#42345
         if blocks is None:
-            # TODO: how does this affect perf?
+            # This adds 1-2 microseconds to DataFrame(np.array([]))
             return
 
         if isinstance(blocks, list):
