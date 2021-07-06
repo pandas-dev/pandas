@@ -14,6 +14,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sized,
     TypeVar,
     cast,
@@ -93,7 +94,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas.core.arrays import (
         DatetimeArray,

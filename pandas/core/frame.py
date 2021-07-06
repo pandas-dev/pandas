@@ -27,6 +27,7 @@ from typing import (
     Hashable,
     Iterable,
     Iterator,
+    Literal,
     Sequence,
     cast,
     overload,
@@ -207,7 +208,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         TimedeltaConvertibleTypes,

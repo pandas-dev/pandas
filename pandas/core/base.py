@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Hashable,
+    Literal,
     TypeVar,
     cast,
 )
@@ -64,7 +65,6 @@ from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import Categorical
 

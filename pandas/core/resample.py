@@ -4,9 +4,9 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Hashable,
+    Literal,
     no_type_check,
 )
 
@@ -87,9 +87,6 @@ from pandas.tseries.offsets import (
     Nano,
     Tick,
 )
-
-if TYPE_CHECKING:
-    from typing import Literal
 
 _shared_docs_kwargs: dict[str, str] = {}
 

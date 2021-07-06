@@ -21,6 +21,7 @@ from typing import (
     Dict,
     Hashable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -37,7 +38,6 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from typing import (
-        Literal,
         TypedDict,
         final,
     )
@@ -200,10 +200,7 @@ ColspaceArgType = Union[
 ]
 
 # Arguments for fillna()
-if TYPE_CHECKING:
-    FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
-else:
-    FillnaOptions = str
+FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
 
 # internals
 Manager = Union[

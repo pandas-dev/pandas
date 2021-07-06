@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    Literal,
     Sequence,
     Union,
     cast,
@@ -140,7 +141,6 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         TimedeltaConvertibleTypes,

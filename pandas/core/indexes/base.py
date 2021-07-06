@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -159,7 +160,6 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import (
         CategoricalIndex,
