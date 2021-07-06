@@ -32,7 +32,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
-    PY38,
     get_lzma_file,
     import_lzma,
     is_platform_little_endian,
@@ -210,7 +209,6 @@ def python_unpickler(path):
         pytest.param(
             functools.partial(pd.to_pickle, protocol=5),
             id="pandas_proto_5",
-            marks=pytest.mark.skipif(not PY38, reason="protocol 5 not supported"),
         ),
     ],
 )
