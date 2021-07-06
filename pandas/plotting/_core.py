@@ -1760,11 +1760,12 @@ def _load_backend(backend: str) -> types.ModuleType:
     found_backend = False
 
     eps = entry_points()
-    for entry_point in eps.get("pandas_plotting_backends"):
-        found_backend = entry_point.name == backend
-        if found_backend:
-            module = entry_point.load()
-            break
+    if "pandas_plotting_backends" in eps:
+        for entry_point in eps["pandas_plotting_backends"]:
+            found_backend = entry_point.name == backend
+            if found_backend:
+                module = entry_point.load()
+                break
 
     if not found_backend:
         # Fall back to unregistered, module name approach.
