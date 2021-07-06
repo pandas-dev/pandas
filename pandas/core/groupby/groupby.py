@@ -24,6 +24,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Sequence,
     TypeVar,
@@ -109,7 +110,6 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import RandomState
 
