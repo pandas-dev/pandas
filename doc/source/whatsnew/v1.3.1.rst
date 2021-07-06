@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Pandas could not be built on PyPy (:issue:`42355`)
+- :class:`DataFrame` constructed with with an older version of pandas could not be unpickled (:issue:`42345`)
 -
 
 .. ---------------------------------------------------------------------------
