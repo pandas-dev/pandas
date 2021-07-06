@@ -1187,13 +1187,10 @@ def quantile(x, q, interpolation_method="fraction"):
 
     if is_scalar(q):
         return _get_score(q)
-    else:
-        q = np.asarray(q, np.float64)
-        result = [_get_score(x) for x in q]
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "List[Any]")
-        result = np.array(result, dtype=np.float64)  # type: ignore[assignment]
-        return result
+
+    q = np.asarray(q, np.float64)
+    result = [_get_score(x) for x in q]
+    return np.array(result, dtype=np.float64)
 
 
 # --------------- #

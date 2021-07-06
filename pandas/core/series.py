@@ -1067,6 +1067,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             values = self._values
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
+                if not self.index._should_fallback_to_positional:
+                    # GH#33469
+                    warnings.warn(
+                        "Treating integers as positional in Series.__setitem__ "
+                        "with a Float64Index is deprecated. In a future version, "
+                        "`series[an_int] = val` will insert a new key into the "
+                        "Series. Use `series.iloc[an_int] = val` to treat the "
+                        "key as positional.",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
                 values[key] = value
             else:
                 # GH#12862 adding a new key to the Series
