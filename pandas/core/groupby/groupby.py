@@ -2686,39 +2686,35 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'group': ['a', 'a', 'a', 'b',
-        ...                              'a', 'b', 'b', 'b', 'b', 'a'],
-        ...                    'value': [.2, .4, .2, 0.01,
-        ...                              .3, .11, .21, .4, .01, 0.2]})
+        >>> df = pd.DataFrame({'group': ['a', 'a', 'a', 'a',
+        ...                              'a', 'b', 'b', 'b', 'b', 'b'],
+        ...                    'value': [2, 4, 2, 3, 5, 1, 2, 4, 1, 5]})
         >>> df
           group  value
-        0     a   0.20
-        1     a   0.40
-        2     a   0.20
-        3     b   0.01
-        4     a   0.30
-        5     b   0.11
-        6     b   0.21
-        7     b   0.40
-        8     b   0.01
-        9     a   0.20
-        >>> df['average_rank'] = df.groupby('group')['value'].rank('average')
-        >>> df['min_rank'] = df.groupby('group')['value'].rank('min')
-        >>> df['max_rank'] = df.groupby('group')['value'].rank('max')
-        >>> df['dense_rank'] = df.groupby('group')['value'].rank('dense')
-        >>> df['first_rank'] = df.groupby('group')['value'].rank('first')
+        0     a      2
+        1     a      4
+        2     a      2
+        3     a      3
+        4     a      5
+        5     b      1
+        6     b      2
+        7     b      4
+        8     b      1
+        9     b      5
+        >>> for method in ['average', 'min', 'max', 'dense', 'first']:
+        ...     df[f'{method}_rank'] = df.groupby('group')['value'].rank(method)
         >>> df
           group  value  average_rank  min_rank  max_rank  dense_rank  first_rank
-        0     a   0.20           2.0       1.0       3.0         1.0         1.0
-        1     a   0.40           5.0       5.0       5.0         3.0         5.0
-        2     a   0.20           2.0       1.0       3.0         1.0         2.0
-        3     b   0.01           1.5       1.0       2.0         1.0         1.0
-        4     a   0.30           4.0       4.0       4.0         2.0         4.0
-        5     b   0.11           3.0       3.0       3.0         2.0         3.0
-        6     b   0.21           4.0       4.0       4.0         3.0         4.0
-        7     b   0.40           5.0       5.0       5.0         4.0         5.0
-        8     b   0.01           1.5       1.0       2.0         1.0         2.0
-        9     a   0.20           2.0       1.0       3.0         1.0         3.0
+        0     a      2           1.5       1.0       2.0         1.0         1.0
+        1     a      4           4.0       4.0       4.0         3.0         4.0
+        2     a      2           1.5       1.0       2.0         1.0         2.0
+        3     a      3           3.0       3.0       3.0         2.0         3.0
+        4     a      5           5.0       5.0       5.0         4.0         5.0
+        5     b      1           1.5       1.0       2.0         1.0         1.0
+        6     b      2           3.0       3.0       3.0         2.0         3.0
+        7     b      4           4.0       4.0       4.0         3.0         4.0
+        8     b      1           1.5       1.0       2.0         1.0         2.0
+        9     b      5           5.0       5.0       5.0         4.0         5.0
         """
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
