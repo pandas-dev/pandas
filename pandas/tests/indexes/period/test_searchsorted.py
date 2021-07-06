@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
-from pandas.compat import np_version_under1p18
 
 from pandas import (
     NaT,
@@ -28,13 +27,7 @@ class TestSearchsorted:
         p2 = Period("2014-01-04", freq=freq)
         assert pidx.searchsorted(p2) == 3
 
-        if np_version_under1p18:
-            # GH#36254
-            # Following numpy convention, NaT goes at the beginning
-            #  (unlike NaN which goes at the end)
-            assert pidx.searchsorted(NaT) == 0
-        else:
-            assert pidx.searchsorted(NaT) == 5
+        assert pidx.searchsorted(NaT) == 5
 
         msg = "Input has different freq=H from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):

@@ -10,7 +10,6 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
-from pandas.compat import np_version_under1p18
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -288,12 +287,7 @@ class SharedTests:
         # GH#29884 match numpy convention on whether NaT goes
         #  at the end or the beginning
         result = arr.searchsorted(NaT)
-        if np_version_under1p18:
-            # Following numpy convention, NaT goes at the beginning
-            #  (unlike NaN which goes at the end)
-            assert result == 0
-        else:
-            assert result == 10
+        assert result == 10
 
     @pytest.mark.parametrize("box", [None, "index", "series"])
     def test_searchsorted_castable_strings(self, arr1d, box, request, string_storage):
@@ -1244,17 +1238,11 @@ def test_invalid_nat_setitem_array(arr, non_casting_nats):
     ],
 )
 def test_to_numpy_extra(arr):
-    if np_version_under1p18:
-        # np.isnan(NaT) raises, so use pandas'
-        isnan = pd.isna
-    else:
-        isnan = np.isnan
-
     arr[0] = NaT
     original = arr.copy()
 
     result = arr.to_numpy()
-    assert isnan(result[0])
+    assert np.isnan(result[0])
 
     result = arr.to_numpy(dtype="int64")
     assert result[0] == -9223372036854775808

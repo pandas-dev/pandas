@@ -193,7 +193,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p18",
         "_is_numpy_dev",
         "_testing",
         "_tslib",
