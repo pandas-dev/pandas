@@ -825,7 +825,15 @@ class _LocationIndexer(NDFrameIndexerBase):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, MultiIndex) and self.name != "iloc":
+        if (
+            isinstance(ax0, MultiIndex)
+            and self.name != "iloc"
+            and not any(isinstance(x, slice) for x in tup)
+        ):
+            # Note: in all extant test cases, replacing the slice condition with
+            #  `all(is_hashable(x) or com.is_null_slice(x) for x in tup)`
+            #  is equivalent.
+            #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
                 return self._handle_lowerdim_multi_index_axis0(tup)
 
@@ -879,7 +887,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             ):
                 # GH#35349 Raise if tuple in tuple for series
                 raise ValueError("Too many indices")
-            if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
+            if all(is_hashable(x) or com.is_null_slice(x) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
@@ -1117,16 +1125,16 @@ class _LocIndexer(_LocationIndexer):
         try:
             # fast path for series or for tup devoid of slices
             return self._get_label(tup, axis=axis)
-        except (TypeError, InvalidIndexError):
+        except TypeError as err:
             # slices are unhashable
-            pass
+            raise IndexingError("No label returned") from err
+
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
             if self.ndim < len(tup) <= self.obj.index.nlevels:
                 raise ek
-
-        raise IndexingError("No label returned")
+            raise IndexingError("No label returned") from ek
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1236,9 +1244,7 @@ class _LocIndexer(_LocationIndexer):
             return {"key": key}
 
         if is_nested_tuple(key, labels):
-            if isinstance(self.obj, ABCSeries) and any(
-                isinstance(k, tuple) for k in key
-            ):
+            if self.ndim == 1 and any(isinstance(k, tuple) for k in key):
                 # GH#35349 Raise if tuple in tuple for series
                 raise ValueError("Too many indices")
             return labels.get_locs(key)
