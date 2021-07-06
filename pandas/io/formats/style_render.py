@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import partial
+import re
 from typing import (
     Any,
     Callable,
@@ -20,10 +21,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    FrameOrSeriesUnion,
-    TypedDict,
-)
+from pandas._typing import TypedDict
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -66,11 +64,13 @@ class StylerRenderer:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
+    template_html_table = env.get_template("html_table.tpl")
+    template_html_style = env.get_template("html_style.tpl")
     template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         uuid: str | None = None,
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
@@ -97,7 +97,9 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hidden_index: bool = False
+        self.hide_index_: bool = False  # bools for hiding col/row headers
+        self.hide_columns_: bool = False
+        self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
@@ -117,7 +119,11 @@ class StylerRenderer:
         # TODO: namespace all the pandas keys
         d = self._translate(sparse_index, sparse_columns)
         d.update(kwargs)
-        return self.template_html.render(**d)
+        return self.template_html.render(
+            **d,
+            html_table_tpl=self.template_html_table,
+            html_style_tpl=self.template_html_style,
+        )
 
     def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
@@ -297,55 +303,56 @@ class StylerRenderer:
 
         head = []
         # 1) column headers
-        for r in range(self.data.columns.nlevels):
-            index_blanks = [
-                _element("th", blank_class, blank_value, not self.hidden_index)
-            ] * (self.data.index.nlevels - 1)
+        if not self.hide_columns_:
+            for r in range(self.data.columns.nlevels):
+                index_blanks = [
+                    _element("th", blank_class, blank_value, not self.hide_index_)
+                ] * (self.data.index.nlevels - 1)
 
-            name = self.data.columns.names[r]
-            column_name = [
-                _element(
-                    "th",
-                    f"{blank_class if name is None else index_name_class} level{r}",
-                    name if name is not None else blank_value,
-                    not self.hidden_index,
-                )
-            ]
-
-            if clabels:
-                column_headers = [
+                name = self.data.columns.names[r]
+                column_name = [
                     _element(
                         "th",
-                        f"{col_heading_class} level{r} col{c}",
-                        value,
-                        _is_visible(c, r, col_lengths),
-                        attributes=(
-                            f'colspan="{col_lengths.get((r, c), 0)}"'
-                            if col_lengths.get((r, c), 0) > 1
-                            else ""
-                        ),
+                        f"{blank_class if name is None else index_name_class} level{r}",
+                        name if name is not None else blank_value,
+                        not self.hide_index_,
                     )
-                    for c, value in enumerate(clabels[r])
                 ]
 
-                if len(self.data.columns) > max_cols:
-                    # add an extra column with `...` value to indicate trimming
-                    column_headers.append(
+                if clabels:
+                    column_headers = [
                         _element(
                             "th",
-                            f"{col_heading_class} level{r} {trimmed_col_class}",
-                            "...",
-                            True,
-                            attributes="",
+                            f"{col_heading_class} level{r} col{c}",
+                            value,
+                            _is_visible(c, r, col_lengths),
+                            attributes=(
+                                f'colspan="{col_lengths.get((r, c), 0)}"'
+                                if col_lengths.get((r, c), 0) > 1
+                                else ""
+                            ),
                         )
-                    )
-                head.append(index_blanks + column_name + column_headers)
+                        for c, value in enumerate(clabels[r])
+                    ]
+
+                    if len(self.data.columns) > max_cols:
+                        # add an extra column with `...` value to indicate trimming
+                        column_headers.append(
+                            _element(
+                                "th",
+                                f"{col_heading_class} level{r} {trimmed_col_class}",
+                                "...",
+                                True,
+                                attributes="",
+                            )
+                        )
+                    head.append(index_blanks + column_name + column_headers)
 
         # 2) index names
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
-            and not self.hidden_index
+            and not self.hide_index_
         ):
             index_names = [
                 _element(
@@ -411,7 +418,9 @@ class StylerRenderer:
             The associated HTML elements needed for template rendering.
         """
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index, sparsify_index, max_rows)
+        idx_lengths = _get_level_lengths(
+            self.index, sparsify_index, max_rows, self.hidden_rows
+        )
 
         rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
         if self.data.index.nlevels == 1:
@@ -425,7 +434,7 @@ class StylerRenderer:
                         "th",
                         f"{row_heading_class} level{c} {trimmed_row_class}",
                         "...",
-                        not self.hidden_index,
+                        not self.hide_index_,
                         attributes="",
                     )
                     for c in range(self.data.index.nlevels)
@@ -462,7 +471,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hidden_index),
+                    (_is_visible(r, c, idx_lengths) and not self.hide_index_),
                     id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -496,7 +505,7 @@ class StylerRenderer:
                     "td",
                     f"{data_class} row{r} col{c}{cls}",
                     value,
-                    (c not in self.hidden_columns),
+                    (c not in self.hidden_columns and r not in self.hidden_rows),
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )
@@ -527,7 +536,7 @@ class StylerRenderer:
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
-            if self.hidden_index:
+            if self.hide_index_:
                 row_body_headers = []
             else:
                 row_body_headers = [
@@ -842,7 +851,13 @@ def _get_level_lengths(
                 last_label = j
                 lengths[(i, last_label)] = 0
             elif j not in hidden_elements:
-                lengths[(i, last_label)] += 1
+                if lengths[(i, last_label)] == 0:
+                    # if the previous iteration was first-of-kind but hidden then offset
+                    last_label = j
+                    lengths[(i, last_label)] = 1
+                else:
+                    # else add to previous iteration
+                    lengths[(i, last_label)] += 1
 
     non_zero_lengths = {
         element: length for element, length in lengths.items() if length >= 1
@@ -1159,7 +1174,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
+    def _translate(self, styler_data: DataFrame | Series, uuid: str, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -1253,7 +1268,9 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
     return None
 
 
-def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
+def _parse_latex_cell_styles(
+    latex_styles: CSSList, display_value: str, convert_css: bool = False
+) -> str:
     r"""
     Mutate the ``display_value`` string including LaTeX commands from ``latex_styles``.
 
@@ -1279,6 +1296,8 @@ def _parse_latex_cell_styles(latex_styles: CSSList, display_value: str) -> str:
     For example for styles:
     `[('c1', 'o1--wrap'), ('c2', 'o2')]` this returns: `{\c1o1 \c2o2{display_value}}
     """
+    if convert_css:
+        latex_styles = _parse_latex_css_conversion(latex_styles)
     for (command, options) in latex_styles[::-1]:  # in reverse for most recent style
         formatter = {
             "--wrap": f"{{\\{command}--to_parse {display_value}}}",
@@ -1349,6 +1368,82 @@ def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
     For example: 'red /* --wrap */  ' --> 'red'
     """
     return str(value).replace(arg, "").replace("/*", "").replace("*/", "").strip()
+
+
+def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
+    """
+    Convert CSS (attribute,value) pairs to equivalent LaTeX (command,options) pairs.
+
+    Ignore conversion if tagged with `--latex` option, skipped if no conversion found.
+    """
+
+    def font_weight(value, arg):
+        if value == "bold" or value == "bolder":
+            return "bfseries", f"{arg}"
+        return None
+
+    def font_style(value, arg):
+        if value == "italic":
+            return "itshape", f"{arg}"
+        elif value == "oblique":
+            return "slshape", f"{arg}"
+        return None
+
+    def color(value, user_arg, command, comm_arg):
+        """
+        CSS colors have 5 formats to process:
+
+         - 6 digit hex code: "#ff23ee"     --> [HTML]{FF23EE}
+         - 3 digit hex code: "#f0e"        --> [HTML]{FF00EE}
+         - rgba: rgba(128, 255, 0, 0.5)    --> [rgb]{0.502, 1.000, 0.000}
+         - rgb: rgb(128, 255, 0,)          --> [rbg]{0.502, 1.000, 0.000}
+         - string: red                     --> {red}
+
+        Additionally rgb or rgba can be expressed in % which is also parsed.
+        """
+        arg = user_arg if user_arg != "" else comm_arg
+
+        if value[0] == "#" and len(value) == 7:  # color is hex code
+            return command, f"[HTML]{{{value[1:].upper()}}}{arg}"
+        if value[0] == "#" and len(value) == 4:  # color is short hex code
+            val = f"{value[1].upper()*2}{value[2].upper()*2}{value[3].upper()*2}"
+            return command, f"[HTML]{{{val}}}{arg}"
+        elif value[:3] == "rgb":  # color is rgb or rgba
+            r = re.findall("(?<=\\()[0-9\\s%]+(?=,)", value)[0].strip()
+            r = float(r[:-1]) / 100 if "%" in r else int(r) / 255
+            g = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[0].strip()
+            g = float(g[:-1]) / 100 if "%" in g else int(g) / 255
+            if value[3] == "a":  # color is rgba
+                b = re.findall("(?<=,)[0-9\\s%]+(?=,)", value)[1].strip()
+            else:  # color is rgb
+                b = re.findall("(?<=,)[0-9\\s%]+(?=\\))", value)[0].strip()
+            b = float(b[:-1]) / 100 if "%" in b else int(b) / 255
+            return command, f"[rgb]{{{r:.3f}, {g:.3f}, {b:.3f}}}{arg}"
+        else:
+            return command, f"{{{value}}}{arg}"  # color is likely string-named
+
+    CONVERTED_ATTRIBUTES: dict[str, Callable] = {
+        "font-weight": font_weight,
+        "background-color": partial(color, command="cellcolor", comm_arg="--lwrap"),
+        "color": partial(color, command="color", comm_arg=""),
+        "font-style": font_style,
+    }
+
+    latex_styles: CSSList = []
+    for (attribute, value) in styles:
+        if isinstance(value, str) and "--latex" in value:
+            # return the style without conversion but drop '--latex'
+            latex_styles.append((attribute, value.replace("--latex", "")))
+        if attribute in CONVERTED_ATTRIBUTES.keys():
+            arg = ""
+            for x in ["--wrap", "--nowrap", "--lwrap", "--dwrap", "--rwrap"]:
+                if x in str(value):
+                    arg, value = x, _parse_latex_options_strip(value, x)
+                    break
+            latex_style = CONVERTED_ATTRIBUTES[attribute](value, arg)
+            if latex_style is not None:
+                latex_styles.extend([latex_style])
+    return latex_styles
 
 
 def _escape_latex(s):

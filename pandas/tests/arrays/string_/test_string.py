@@ -2,9 +2,6 @@
 This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
-
-import re
-
 import numpy as np
 import pytest
 
@@ -314,7 +311,7 @@ def test_astype_int(dtype):
     tm.assert_numpy_array_equal(result, expected)
 
     arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
-    msg = re.escape("int() argument must be a string, a bytes-like object or a number")
+    msg = r"int\(\) argument must be a string, a bytes-like object or a( real)? number"
     with pytest.raises(TypeError, match=msg):
         arr.astype("int64")
 

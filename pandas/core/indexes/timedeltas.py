@@ -13,7 +13,6 @@ from pandas._typing import (
     DtypeObj,
     Optional,
 )
-from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -109,6 +108,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     _data: TimedeltaArray
 
+    # Use base class method instead of DatetimeTimedeltaMixin._get_string_slice
+    _get_string_slice = Index._get_string_slice
+
     # -------------------------------------------------------------------
     # Constructors
 
@@ -170,8 +172,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         -------
         loc : int, slice, or ndarray[int]
         """
-        if not is_scalar(key):
-            raise InvalidIndexError(key)
+        self._check_indexing_error(key)
 
         try:
             key = self._data._validate_scalar(key, unbox=False)
@@ -198,16 +199,29 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
 
         if isinstance(label, str):
-            parsed = Timedelta(label)
-            lbound = parsed.round(parsed.resolution_string)
-            if side == "left":
-                return lbound
-            else:
-                return lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+            try:
+                parsed, reso = self._parse_with_reso(label)
+            except ValueError as err:
+                # e.g. 'unit abbreviation w/o a number'
+                raise self._invalid_indexer("slice", label) from err
+
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
+            return lower if side == "left" else upper
         elif not isinstance(label, self._data._recognized_scalars):
             raise self._invalid_indexer("slice", label)
 
         return label
+
+    def _parse_with_reso(self, label: str):
+        # the "with_reso" is a no-op for TimedeltaIndex
+        parsed = Timedelta(label)
+        return parsed, None
+
+    def _parsed_string_to_bounds(self, reso, parsed: Timedelta):
+        # reso is unused, included to match signature of DTI/PI
+        lbound = parsed.round(parsed.resolution_string)
+        rbound = lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+        return lbound, rbound
 
     # -------------------------------------------------------------------
 

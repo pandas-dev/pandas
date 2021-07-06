@@ -3,9 +3,9 @@ channels:
   - conda-forge
 dependencies:
   # required
-  - numpy>=1.17.3
+  - numpy>=1.18.5
   - python=3.8
-  - python-dateutil>=2.7.3
+  - python-dateutil>=2.8.1
   - pytz
 
   # benchmarks
@@ -24,7 +24,7 @@ dependencies:
   - flake8-bugbear=21.3.2  # used by flake8, find likely bugs
   - flake8-comprehensions=3.1.0  # used by flake8, linting of unnecessary comprehensions
   - isort>=5.2.1  # check that imports are in the right order
-  - mypy=0.812
+  - mypy=0.910
   - pre-commit>=2.9.2
   - pycodestyle  # used by flake8
   - pyupgrade
@@ -55,12 +55,12 @@ dependencies:
   # testing
   - boto3
   - botocore>=1.11
-  - hypothesis>=3.82
+  - hypothesis>=5.5.3
   - moto  # mock S3
   - flask
-  - pytest>=5.0.1
+  - pytest>=6.0
   - pytest-cov
-  - pytest-xdist>=1.21
+  - pytest-xdist>=1.31
   - pytest-asyncio
   - pytest-instafail
 
@@ -71,24 +71,24 @@ dependencies:
   # unused (required indirectly may be?)
   - ipywidgets
   - nbformat
-  - notebook>=5.7.5
+  - notebook>=6.0.3
   - pip
 
   # optional
   - blosc
-  - bottleneck>=1.2.1
+  - bottleneck>=1.3.1
   - ipykernel
   - ipython>=7.11.1
   - jinja2  # pandas.Styler
-  - matplotlib>=2.2.2  # pandas.plotting, Series.plot, DataFrame.plot
-  - numexpr>=2.7.0
-  - scipy>=1.2
-  - numba>=0.46.0
+  - matplotlib>=3.3.2  # pandas.plotting, Series.plot, DataFrame.plot
+  - numexpr>=2.7.1
+  - scipy>=1.4.1
+  - numba>=0.50.1
 
   # optional for io
   # ---------------
   # pd.read_html
-  - beautifulsoup4>=4.6.0
+  - beautifulsoup4>=4.8.2
   - html5lib
   - lxml
 
@@ -99,14 +99,13 @@ dependencies:
   - xlwt
   - odfpy
 
-  - fastparquet>=0.3.2  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
   - pyarrow>=0.17.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
-  - pyqt>=5.9.2  # pandas.read_clipboard
-  - pytables>=3.5.1  # pandas.read_hdf, DataFrame.to_hdf
+  - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
-  - fsspec>=0.7.4  # for generic remote file operations
+  - fsspec>=0.7.4, <2021.6.0  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
   - xarray  # DataFrame.to_xarray
@@ -118,3 +117,7 @@ dependencies:
     - git+https://github.com/pydata/pydata-sphinx-theme.git@master
     - numpydoc < 1.2  # 2021-02-09 1.2dev breaking CI
     - pandas-dev-flaker==0.2.0
+    - types-python-dateutil
+    - types-PyMySQL
+    - types-pytz
+    - types-setuptools

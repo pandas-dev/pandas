@@ -40,7 +40,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Shape,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -2593,7 +2592,7 @@ class Fixed:
 
     pandas_kind: str
     format_type: str = "fixed"  # GH#30962 needed by dask
-    obj_type: type[FrameOrSeriesUnion]
+    obj_type: type[DataFrame | Series]
     ndim: int
     encoding: str
     parent: HDFStore
@@ -3363,7 +3362,7 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(
-        self, obj: FrameOrSeriesUnion
+        self, obj: DataFrame | Series
     ) -> tuple[DataFrame, list[Hashable]]:
         """
         validate that we can store the multi-index; reset and return the
@@ -4500,7 +4499,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = "frame_table"
     table_type = "appendable_frame"
     ndim = 2
-    obj_type: type[FrameOrSeriesUnion] = DataFrame
+    obj_type: type[DataFrame | Series] = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -5000,7 +4999,7 @@ def _maybe_convert_for_string_atom(
     # check for column in the values conflicts
     if existing_col is not None:
         eci = existing_col.validate_col(itemsize)
-        if eci > itemsize:
+        if eci is not None and eci > itemsize:
             itemsize = eci
 
     data_converted = data_converted.astype(f"|S{itemsize}", copy=False)

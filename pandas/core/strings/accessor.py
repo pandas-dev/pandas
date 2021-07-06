@@ -13,10 +13,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import (
-    DtypeObj,
-    FrameOrSeriesUnion,
-)
+from pandas._typing import DtypeObj
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -39,7 +36,11 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.base import NoNewAttributesMixin
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        DataFrame,
+        Index,
+        Series,
+    )
 
 _shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
@@ -2314,7 +2315,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def extract(
         self, pat: str, flags: int = 0, expand: bool = True
-    ) -> FrameOrSeriesUnion | Index:
+    ) -> DataFrame | Series | Index:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 
@@ -3005,7 +3006,7 @@ class StringMethods(NoNewAttributesMixin):
         "isdigit", docstring=_shared_docs["ismethods"] % _doc_args["isdigit"]
     )
     isspace = _map_and_wrap(
-        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isalnum"]
+        "isspace", docstring=_shared_docs["ismethods"] % _doc_args["isspace"]
     )
     islower = _map_and_wrap(
         "islower", docstring=_shared_docs["ismethods"] % _doc_args["islower"]
