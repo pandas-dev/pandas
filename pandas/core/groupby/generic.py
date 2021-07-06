@@ -1309,6 +1309,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         for name, group in gen:
+            if group.size == 0:
+                continue
             object.__setattr__(group, "name", name)
 
             # Try slow path and fast path.
@@ -1325,9 +1327,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # we need to broadcast across the
                 # other dimension; this will preserve dtypes
                 # GH14457
-                if not np.prod(group.shape):
-                    continue
-                elif res.index.is_(obj.index):
+                if res.index.is_(obj.index):
                     r = concat([res] * len(group.columns), axis=1)
                     r.columns = group.columns
                     r.index = group.index
