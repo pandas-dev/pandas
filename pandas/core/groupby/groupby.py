@@ -2686,8 +2686,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'group': ['a', 'a', 'a', 'b', 'a', 'b', 'b', 'b', 'b', 'a'],
-        ...                    'value': [.2, .4, .2, 0.01, .3, .11, .21, .4, .01, 0.2]})
+        >>> df = pd.DataFrame({'group': ['a', 'a', 'a', 'b',
+        ...                              'a', 'b', 'b', 'b', 'b', 'a'],
+        ...                    'value': [.2, .4, .2, 0.01,
+        ...                              .3, .11, .21, .4, .01, 0.2]})
         >>> df
           group  value
         0     a   0.20
