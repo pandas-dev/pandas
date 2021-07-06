@@ -531,7 +531,6 @@ class TestUInt64Index(NumericInt):
         res = Index([1, 2 ** 63 + 1], dtype=dtype)
         tm.assert_index_equal(res, idx)
 
-    @pytest.mark.xfail(reason="https://github.com/numpy/numpy/issues/19146")
     def test_constructor_does_not_cast_to_float(self):
         # https://github.com/numpy/numpy/issues/19146
         values = [0, np.iinfo(np.uint64).max]

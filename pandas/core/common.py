@@ -21,6 +21,7 @@ from typing import (
     Iterable,
     Iterator,
     cast,
+    overload,
 )
 import warnings
 
@@ -29,6 +30,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     AnyArrayLike,
+    ArrayLike,
     NpDtype,
     Scalar,
     T,
@@ -51,6 +53,9 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
+    # Includes BitGenerator, which only exists >= 1.18
+    from pandas._typing import RandomState
+
     from pandas import Index
 
 
@@ -142,8 +147,8 @@ def is_bool_indexer(key: Any) -> bool:
         elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
-        arr = np.asarray(key)
-        return arr.dtype == np.bool_ and len(arr) == len(key)
+        # check if np.array(key).dtype would be bool
+        return len(key) > 0 and lib.is_bool_list(key)
 
     return False
 
@@ -388,29 +393,41 @@ def standardize_mapping(into):
     return into
 
 
-def random_state(state=None):
+@overload
+def random_state(state: np.random.Generator) -> np.random.Generator:
+    ...
+
+
+@overload
+def random_state(
+    state: int | ArrayLike | np.random.BitGenerator | np.random.RandomState | None,
+) -> np.random.RandomState:
+    ...
+
+
+def random_state(state: RandomState | None = None):
     """
     Helper function for processing random_state arguments.
 
     Parameters
     ----------
-    state : int, array-like, BitGenerator (NumPy>=1.17), np.random.RandomState, None.
+    state : int, array-like, BitGenerator, Generator, np.random.RandomState, None.
         If receives an int, array-like, or BitGenerator, passes to
         np.random.RandomState() as seed.
-        If receives an np.random.RandomState object, just returns object.
+        If receives an np.random RandomState or Generator, just returns that unchanged.
         If receives `None`, returns np.random.
         If receives anything else, raises an informative ValueError.
 
         .. versionchanged:: 1.1.0
 
-            array-like and BitGenerator (for NumPy>=1.18) object now passed to
-            np.random.RandomState() as seed
+            array-like and BitGenerator object now passed to np.random.RandomState()
+            as seed
 
         Default None.
 
     Returns
     -------
-    np.random.RandomState
+    np.random.RandomState or np.random.Generator. If state is None, returns np.random
 
     """
     if (
@@ -418,14 +435,28 @@ def random_state(state=None):
         or is_array_like(state)
         or (not np_version_under1p18 and isinstance(state, np.random.BitGenerator))
     ):
-        return np.random.RandomState(state)
+        # error: Argument 1 to "RandomState" has incompatible type "Optional[Union[int,
+        # Union[ExtensionArray, ndarray[Any, Any]], Generator, RandomState]]"; expected
+        # "Union[None, Union[Union[_SupportsArray[dtype[Union[bool_, integer[Any]]]],
+        # Sequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]],
+        # Sequence[Sequence[_SupportsArray[dtype[Union[bool_, integer[Any]]]]]],
+        # Sequence[Sequence[Sequence[_SupportsArray[dtype[Union[bool_,
+        # integer[Any]]]]]]],
+        # Sequence[Sequence[Sequence[Sequence[_SupportsArray[dtype[Union[bool_,
+        # integer[Any]]]]]]]]], Union[bool, int, Sequence[Union[bool, int]],
+        # Sequence[Sequence[Union[bool, int]]], Sequence[Sequence[Sequence[Union[bool,
+        # int]]]], Sequence[Sequence[Sequence[Sequence[Union[bool, int]]]]]]],
+        # BitGenerator]"
+        return np.random.RandomState(state)  # type: ignore[arg-type]
     elif isinstance(state, np.random.RandomState):
+        return state
+    elif isinstance(state, np.random.Generator):
         return state
     elif state is None:
         return np.random
     else:
         raise ValueError(
-            "random_state must be an integer, array-like, a BitGenerator, "
+            "random_state must be an integer, array-like, a BitGenerator, Generator, "
             "a numpy RandomState, or None"
         )
 

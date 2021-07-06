@@ -22,7 +22,6 @@ import numpy as np
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Hashable,
 )
 from pandas.util._validators import validate_percentile
@@ -107,12 +106,12 @@ class NDFrameDescriberAbstract(ABC):
         Whether to treat datetime dtypes as numeric.
     """
 
-    def __init__(self, obj: FrameOrSeriesUnion, datetime_is_numeric: bool):
+    def __init__(self, obj: DataFrame | Series, datetime_is_numeric: bool):
         self.obj = obj
         self.datetime_is_numeric = datetime_is_numeric
 
     @abstractmethod
-    def describe(self, percentiles: Sequence[float]) -> FrameOrSeriesUnion:
+    def describe(self, percentiles: Sequence[float]) -> DataFrame | Series:
         """Do describe either series or dataframe.
 
         Parameters

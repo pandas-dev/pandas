@@ -33,7 +33,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Manager2D,
 )
 from pandas.util._decorators import (
@@ -296,7 +295,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: dict[base.OutputKey, FrameOrSeriesUnion] = {}
+        results: dict[base.OutputKey, DataFrame | Series] = {}
         for idx, (name, func) in enumerate(arg):
 
             key = base.OutputKey(label=name, position=idx)
@@ -422,7 +421,7 @@ class SeriesGroupBy(GroupBy[Series]):
         keys: Index,
         values: list[Any] | None,
         not_indexed_same: bool = False,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
 
@@ -1020,13 +1019,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     if isinstance(sobj, Series):
                         # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = [sobj.name]
+                        result.columns = self._obj_with_exclusions.columns.copy()
                     else:
+                        # Retain our column names
+                        result.columns._set_names(
+                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
+                        )
                         # select everything except for the last level, which is the one
                         # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.rename(
-                            [sobj.columns.name] * result.columns.nlevels
-                        ).droplevel(-1)
+                        result.columns = result.columns.droplevel(-1)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -1191,7 +1192,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
         # TODO: Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
@@ -1665,7 +1666,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = self.obj.columns
         else:
             columns = Index(key.label for key in output)
-            columns.name = self.obj.columns.name
+            columns._set_names(self.obj._get_axis(1 - self.axis).names)
             result.columns = columns
 
         result.index = self.obj.index
@@ -1674,7 +1675,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
-            index = Index(range(mgr.shape[1]))
+            # GH 41998 - empty mgr always gets index of length 0
+            rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
+            index = Index(range(rows))
             mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
@@ -1800,7 +1803,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         results = self._apply_to_column_groupbys(
             lambda sgb: sgb.nunique(dropna), obj=obj
         )
-        results.columns.names = obj.columns.names  # TODO: do at higher level?
 
         if not self.as_index:
             results.index = Index(range(len(results)))

@@ -26,6 +26,7 @@ from pandas._libs import (
     NaT,
     algos as libalgos,
     hashtable as htable,
+    lib,
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import no_default
@@ -523,6 +524,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             try:
                 new_cats = np.asarray(self.categories)
                 new_cats = new_cats.astype(dtype=dtype, copy=copy)
+                fill_value = lib.item_from_zerodim(np.array(np.nan).astype(dtype))
             except (
                 TypeError,  # downstream error msg for CategoricalIndex is misleading
                 ValueError,
@@ -530,7 +532,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 msg = f"Cannot cast {self.categories.dtype} dtype to {dtype}"
                 raise ValueError(msg)
 
-            result = take_nd(new_cats, ensure_platform_int(self._codes))
+            result = take_nd(
+                new_cats, ensure_platform_int(self._codes), fill_value=fill_value
+            )
 
         return result
 
@@ -652,11 +656,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
-
-            .. versionadded:: 0.24.0
-
-               When `dtype` is provided, neither `categories` nor `ordered`
-               should be provided.
 
         Returns
         -------
@@ -1641,7 +1640,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return np.array(self)
 
     def check_for_ordered(self, op):
-        """ assert that we are ordered """
+        """assert that we are ordered"""
         if not self.ordered:
             raise TypeError(
                 f"Categorical is not ordered for operation {op}\n"
@@ -2035,7 +2034,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         from pandas import Index
 
-        to_add = Index(rvalue).difference(self.categories)
+        # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
+        to_add = Index(rvalue, tupleize_cols=False).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
@@ -2169,8 +2169,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         dropna : bool, default True
             Don't consider counts of NaN/NaT.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------

@@ -12,6 +12,7 @@ pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 from pandas.io.formats.style_render import (
     _parse_latex_cell_styles,
+    _parse_latex_css_conversion,
     _parse_latex_header_span,
     _parse_latex_table_styles,
     _parse_latex_table_wrapping,
@@ -443,3 +444,64 @@ def test_parse_latex_table_wrapping(styler):
 def test_short_caption(styler):
     result = styler.to_latex(caption=("full cap", "short cap"))
     assert "\\caption[short cap]{full cap}" in result
+
+
+@pytest.mark.parametrize(
+    "css, expected",
+    [
+        ([("color", "red")], [("color", "{red}")]),  # test color and input format types
+        (
+            [("color", "rgb(128, 128, 128 )")],
+            [("color", "[rgb]{0.502, 0.502, 0.502}")],
+        ),
+        (
+            [("color", "rgb(128, 50%, 25% )")],
+            [("color", "[rgb]{0.502, 0.500, 0.250}")],
+        ),
+        (
+            [("color", "rgba(128,128,128,1)")],
+            [("color", "[rgb]{0.502, 0.502, 0.502}")],
+        ),
+        ([("color", "#FF00FF")], [("color", "[HTML]{FF00FF}")]),
+        ([("color", "#F0F")], [("color", "[HTML]{FF00FF}")]),
+        ([("font-weight", "bold")], [("bfseries", "")]),  # test font-weight and types
+        ([("font-weight", "bolder")], [("bfseries", "")]),
+        ([("font-weight", "normal")], []),
+        ([("background-color", "red")], [("cellcolor", "{red}--lwrap")]),
+        (
+            [("background-color", "#FF00FF")],  # test background-color command and wrap
+            [("cellcolor", "[HTML]{FF00FF}--lwrap")],
+        ),
+        ([("font-style", "italic")], [("itshape", "")]),  # test font-style and types
+        ([("font-style", "oblique")], [("slshape", "")]),
+        ([("font-style", "normal")], []),
+        ([("color", "red /*--dwrap*/")], [("color", "{red}--dwrap")]),  # css comments
+        ([("background-color", "red /* --dwrap */")], [("cellcolor", "{red}--dwrap")]),
+    ],
+)
+def test_parse_latex_css_conversion(css, expected):
+    result = _parse_latex_css_conversion(css)
+    assert result == expected
+
+
+def test_parse_latex_css_conversion_option():
+    css = [("command", "option--latex--wrap")]
+    expected = [("command", "option--wrap")]
+    result = _parse_latex_css_conversion(css)
+    assert result == expected
+
+
+def test_styler_object_after_render(styler):
+    # GH 42320
+    pre_render = styler._copy(deepcopy=True)
+    styler.to_latex(
+        column_format="rllr",
+        position="h",
+        position_float="centering",
+        hrules=True,
+        label="my lab",
+        caption="my cap",
+    )
+
+    assert pre_render.table_styles == styler.table_styles
+    assert pre_render.caption == styler.caption

@@ -129,6 +129,13 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
+def _unpickle_timestamp(value, freq, tz):
+    # GH#41949 dont warn on unpickle if we have a freq
+    ts = Timestamp(value, tz=tz)
+    ts._set_freq(freq)
+    return ts
+
+
 # ----------------------------------------------------------------------
 
 def integer_op_not_supported(obj):
@@ -725,7 +732,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __reduce__(self):
         object_state = self.value, self._freq, self.tzinfo
-        return (Timestamp, object_state)
+        return (_unpickle_timestamp, object_state)
 
     # -----------------------------------------------------------------
     # Rendering Methods
@@ -1378,7 +1385,6 @@ class Timestamp(_Timestamp):
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -1392,8 +1398,6 @@ timedelta}, default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -1458,7 +1462,6 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -1472,8 +1475,6 @@ timedelta}, default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -1532,7 +1533,6 @@ timedelta}, default 'raise'
             * 'NaT' will return NaT for an ambiguous time.
             * 'raise' will raise an AmbiguousTimeError for an ambiguous time.
 
-            .. versionadded:: 0.24.0
         nonexistent : {'raise', 'shift_forward', 'shift_backward, 'NaT', \
 timedelta}, default 'raise'
             A nonexistent time does not exist in a particular timezone
@@ -1546,8 +1546,6 @@ timedelta}, default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -1668,8 +1666,6 @@ default 'raise'
             * timedelta objects will shift nonexistent times by the timedelta.
             * 'raise' will raise an NonExistentTimeError if there are
               nonexistent times.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
