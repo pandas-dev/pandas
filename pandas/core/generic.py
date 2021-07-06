@@ -14,6 +14,7 @@ from typing import (
     AnyStr,
     Callable,
     Hashable,
+    Literal,
     Mapping,
     Sequence,
     cast,
@@ -154,7 +155,6 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._libs.tslibs import BaseOffset
     from pandas._typing import RandomState
