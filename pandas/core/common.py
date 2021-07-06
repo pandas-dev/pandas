@@ -32,6 +32,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     NpDtype,
+    RandomState,
     Scalar,
     T,
 )
@@ -52,9 +53,6 @@ from pandas.core.dtypes.inference import iterable_not_string
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
-    # Includes BitGenerator, which only exists >= 1.18
-    from pandas._typing import RandomState
-
     from pandas import Index
 
 
