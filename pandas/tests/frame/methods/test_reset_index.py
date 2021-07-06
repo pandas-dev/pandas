@@ -184,13 +184,13 @@ class TestResetIndex:
         assert df.index.name is None
 
     def test_reset_index_rename(self, float_frame):
-
+        # GH 6878
         rdf = float_frame.reset_index(names="new_name")
         exp = Series(float_frame.index.values, name="new_name")
         tm.assert_series_equal(rdf["new_name"], exp)
 
     def test_reset_index_rename_multiindex(self, float_frame):
-
+        # GH 6878
         stacked = float_frame.stack()[::2]
         stacked = DataFrame({"foo": stacked, "bar": stacked})
 
