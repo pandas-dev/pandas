@@ -1309,7 +1309,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         for name, group in gen:
-            if not np.prod(group.shape):
+            if group.size == 0:
                 continue
             object.__setattr__(group, "name", name)
 
