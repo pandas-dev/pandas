@@ -27,6 +27,7 @@ from typing import (
     Hashable,
     Iterable,
     Iterator,
+    Literal,
     Sequence,
     cast,
     overload,
@@ -58,7 +59,6 @@ from pandas._typing import (
     FillnaOptions,
     FloatFormatType,
     FormattersType,
-    FrameOrSeriesUnion,
     Frequency,
     IndexKeyFunc,
     IndexLabel,
@@ -208,7 +208,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         TimedeltaConvertibleTypes,
@@ -1362,7 +1361,7 @@ class DataFrame(NDFrame, OpsMixin):
     def dot(self, other: DataFrame | Index | ArrayLike) -> DataFrame:
         ...
 
-    def dot(self, other: AnyArrayLike | FrameOrSeriesUnion) -> FrameOrSeriesUnion:
+    def dot(self, other: AnyArrayLike | DataFrame | Series) -> DataFrame | Series:
         """
         Compute the matrix multiplication between the DataFrame and other.
 
@@ -1478,13 +1477,13 @@ class DataFrame(NDFrame, OpsMixin):
 
     @overload
     def __matmul__(
-        self, other: AnyArrayLike | FrameOrSeriesUnion
-    ) -> FrameOrSeriesUnion:
+        self, other: AnyArrayLike | DataFrame | Series
+    ) -> DataFrame | Series:
         ...
 
     def __matmul__(
-        self, other: AnyArrayLike | FrameOrSeriesUnion
-    ) -> FrameOrSeriesUnion:
+        self, other: AnyArrayLike | DataFrame | Series
+    ) -> DataFrame | Series:
         """
         Matrix multiplication using binary `@` operator in Python>=3.5.
         """
@@ -7615,6 +7614,7 @@ NaN 12.3   33.0
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)
 
+        # https://github.com/python/mypy/issues/7642
         # error: Argument "squeeze" to "DataFrameGroupBy" has incompatible type
         # "Union[bool, NoDefault]"; expected "bool"
         return DataFrameGroupBy(
@@ -8432,8 +8432,8 @@ NaN 12.3   33.0
         self,
         key: IndexLabel,
         ndim: int,
-        subset: FrameOrSeriesUnion | None = None,
-    ) -> FrameOrSeriesUnion:
+        subset: DataFrame | Series | None = None,
+    ) -> DataFrame | Series:
         """
         Sub-classes to define. Return a sliced object.
 
@@ -8962,7 +8962,7 @@ NaN 12.3   33.0
 
     def join(
         self,
-        other: FrameOrSeriesUnion,
+        other: DataFrame | Series,
         on: IndexLabel | None = None,
         how: str = "left",
         lsuffix: str = "",
@@ -9092,7 +9092,7 @@ NaN 12.3   33.0
 
     def _join_compat(
         self,
-        other: FrameOrSeriesUnion,
+        other: DataFrame | Series,
         on: IndexLabel | None = None,
         how: str = "left",
         lsuffix: str = "",
@@ -9162,7 +9162,7 @@ NaN 12.3   33.0
     @Appender(_merge_doc, indents=2)
     def merge(
         self,
-        right: FrameOrSeriesUnion,
+        right: DataFrame | Series,
         how: str = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
@@ -10759,7 +10759,7 @@ def _from_nested_dict(data) -> collections.defaultdict:
     return new_data
 
 
-def _reindex_for_setitem(value: FrameOrSeriesUnion, index: Index) -> ArrayLike:
+def _reindex_for_setitem(value: DataFrame | Series, index: Index) -> ArrayLike:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):

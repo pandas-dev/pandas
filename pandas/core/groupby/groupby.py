@@ -24,6 +24,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Sequence,
     TypeVar,
@@ -45,9 +46,7 @@ from pandas._typing import (
     ArrayLike,
     F,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
-    RandomState,
     Scalar,
     T,
     final,
@@ -111,7 +110,8 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
+
+    from pandas._typing import RandomState
 
 _common_see_also = """
         See Also
@@ -730,7 +730,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries]):
     plot = property(GroupByPlot)
 
     @final
-    def get_group(self, name, obj=None) -> FrameOrSeriesUnion:
+    def get_group(self, name, obj=None) -> DataFrame | Series:
         """
         Construct DataFrame from group with provided name.
 
@@ -1269,8 +1269,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _python_apply_general(
-        self, f: F, data: FrameOrSeriesUnion
-    ) -> FrameOrSeriesUnion:
+        self, f: F, data: DataFrame | Series
+    ) -> DataFrame | Series:
         """
         Apply function f in python space
 
@@ -1792,7 +1792,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def size(self) -> FrameOrSeriesUnion:
+    def size(self) -> DataFrame | Series:
         """
         Compute group sizes.
 
@@ -3212,9 +3212,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sampling probabilities after normalization within each group.
             Values must be non-negative with at least one positive element
             within each group.
-        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator, seed for random number generator.
-            If np.random.RandomState, use as numpy RandomState object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState,
+            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
+            random number generator. If np.random.RandomState or np.random.Generator,
+            use as given.
+
+            .. versionchanged:: 1.4.0
+
+                np.random.Generator objects now accepted
 
         Returns
         -------

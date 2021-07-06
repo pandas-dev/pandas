@@ -57,10 +57,10 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.19.4
+    rev: v2.20.0
     hooks:
     -   id: pyupgrade
-        args: [--py37-plus]
+        args: [--py38-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.9.0
     hooks:
