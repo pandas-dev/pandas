@@ -400,7 +400,7 @@ getting a column from a DataFrame, you can do:
            "D": np.random.randn(8),
        }
    )
-   
+
    df
 
    grouped = df.groupby(["A"])
