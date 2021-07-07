@@ -1309,30 +1309,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        def process_result(applied, group, res):
+        def process_result(
+            group: FrameOrSeriesUnion, res: FrameOrSeriesUnion
+        ) -> FrameOrSeriesUnion:
             if isinstance(res, Series):
-
                 # we need to broadcast across the
                 # other dimension; this will preserve dtypes
                 # GH14457
-                if not np.prod(group.shape):
-                    pass
+                if res.index.is_(obj.index):
+                    r = concat([res] * len(group.columns), axis=1)
+                    r.columns = group.columns
+                    r.index = group.index
                 else:
-                    if res.index.is_(obj.index):
-                        r = concat([res] * len(group.columns), axis=1)
-                        r.columns = group.columns
-                        r.index = group.index
-                    else:
-                        r = self.obj._constructor(
-                            np.concatenate([res.values] * len(group.index)).reshape(
-                                group.shape
-                            ),
-                            columns=group.columns,
-                            index=group.index,
-                        )
-                    applied.append(r)
+                    r = self.obj._constructor(
+                        np.concatenate([res.values] * len(group.index)).reshape(
+                            group.shape
+                        ),
+                        columns=group.columns,
+                        index=group.index,
+                    )
+                return r
             else:
-                applied.append(res)
+                return res
 
         try:
             name, group = next(gen)
@@ -1347,12 +1345,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             except ValueError as err:
                 msg = "transform must return a scalar value for each group"
                 raise ValueError(msg) from err
-            process_result(applied, group, res)
+            if group.size > 0:
+                applied.append(process_result(group, res))
 
         for name, group in gen:
+            if group.size == 0:
+                continue
             object.__setattr__(group, "name", name)
             res = path(group)
-            process_result(applied, group, res)
+            applied.append(process_result(group, res))
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
