@@ -2988,6 +2988,7 @@ class MultiIndex(Index):
         if isinstance(key, tuple) and level == 0:
 
             try:
+                # Check if this tuple is a single key in our first level
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
                     new_index = maybe_mi_droplevels(indexer, [0])
@@ -3021,19 +3022,25 @@ class MultiIndex(Index):
                 indexer = None
                 for i, k in enumerate(key):
                     if not isinstance(k, slice):
-                        k = self._get_level_indexer(k, level=i)
-                        if isinstance(k, slice):
-                            # everything
-                            if k.start == 0 and k.stop == len(self):
-                                k = slice(None, None)
+                        loc_level = self._get_level_indexer(k, level=i)
+                        if isinstance(loc_level, slice):
+                            if com.is_null_slice(loc_level) or com.is_full_slice(
+                                loc_level, len(self)
+                            ):
+                                # everything
+                                continue
+                            else:
+                                raise TypeError(
+                                    f"Expected label or tuple of labels, got {key}"
+                                )
                         else:
-                            k_index = k
+                            k_index = loc_level
 
-                    if isinstance(k, slice):
-                        if k == slice(None, None):
-                            continue
-                        else:
-                            raise TypeError(key)
+                    elif com.is_null_slice(k):
+                        # taking everything, does not affect `indexer` below
+                        continue
+                    else:
+                        raise TypeError(f"Expected label or tuple of labels, got {key}")
 
                     if indexer is None:
                         indexer = k_index
