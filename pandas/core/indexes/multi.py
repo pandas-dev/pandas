@@ -3030,16 +3030,20 @@ class MultiIndex(Index):
                                 # everything
                                 continue
                             else:
-                                raise TypeError(
-                                    f"Expected label or tuple of labels, got {key}"
-                                )
+                                # e.g. test_xs_IndexSlice_argument_not_implemented
+                                k_index = np.zeros(len(self), dtype=bool)
+                                k_index[loc_level] = True
+
                         else:
                             k_index = loc_level
 
                     elif com.is_null_slice(k):
                         # taking everything, does not affect `indexer` below
                         continue
+
                     else:
+                        # FIXME: this message can be inaccurate, e.g.
+                        #  test_series_varied_multiindex_alignment
                         raise TypeError(f"Expected label or tuple of labels, got {key}")
 
                     if indexer is None:
