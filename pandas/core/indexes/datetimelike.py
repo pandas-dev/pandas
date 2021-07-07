@@ -10,6 +10,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -27,10 +28,7 @@ from pandas._libs.tslibs import (
     Tick,
     parsing,
 )
-from pandas._typing import (
-    Callable,
-    final,
-)
+from pandas._typing import Callable
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender,

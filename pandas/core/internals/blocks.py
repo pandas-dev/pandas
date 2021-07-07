@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     Sequence,
     cast,
+    final,
 )
 import warnings
 
@@ -28,7 +29,6 @@ from pandas._typing import (
     DtypeObj,
     F,
     Shape,
-    final,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -1661,7 +1661,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
 
-    getitem_block_index = libinternals.NumpyBlock.getitem_block_index
+    getitem_block_index = final(libinternals.NumpyBlock.getitem_block_index)
 
 
 class NumericBlock(NumpyBlock):
@@ -1675,7 +1675,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-    getitem_block_index = libinternals.NDArrayBackedBlock.getitem_block_index
+    getitem_block_index = final(libinternals.NDArrayBackedBlock.getitem_block_index)
 
     @property
     def is_view(self) -> bool:

@@ -50,10 +50,12 @@ class SharedBlock:
 
 class NumpyBlock(SharedBlock):
     values: np.ndarray
+    # @final  # not useful in cython, but we _would_ annotate with @final
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class NDArrayBackedBlock(SharedBlock):
     values: NDArrayBackedExtensionArray
+    # @final  # not useful in cython, but we _would_ annotate with @final
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class Block(SharedBlock): ...

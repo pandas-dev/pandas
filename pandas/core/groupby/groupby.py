@@ -29,6 +29,7 @@ from typing import (
     TypeVar,
     Union,
     cast,
+    final,
 )
 import warnings
 
@@ -49,7 +50,6 @@ from pandas._typing import (
     RandomState,
     Scalar,
     T,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
