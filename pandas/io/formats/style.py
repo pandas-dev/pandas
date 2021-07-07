@@ -528,6 +528,8 @@ class Styler(StylerRenderer):
         italic (with siunitx) | \\usepackage{etoolbox}
                               | \\robustify\\itshape
                               | \\sisetup{detect-all = true}  *(within {document})*
+        environment           \\usepackage{longtable} if arg is "longtable"
+                              | or any other relevant environment package
         ===================== ==========================================================
 
         **Cell Styles**
