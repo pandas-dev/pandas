@@ -585,12 +585,8 @@ cdef class BlockManager:
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blknos = None  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blklocs = None  # type: ignore[assignment]
+        self._blknos = None
+        self._blklocs = None
 
     # -------------------------------------------------------------------
     # Pickle
