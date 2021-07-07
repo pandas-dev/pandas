@@ -489,6 +489,15 @@ class TestCategoricalAPIWithFactor(TestCategorical):
 
         tm.assert_index_equal(cat.categories, Index(["a", "b", "c", "d"]))
 
+    def test_codes_setter_deprecated(self):
+        cat = Categorical([1, 2, 3, 1, 2, 3, 3, 2, 1, 1, 1])
+        new_codes = cat._codes + 1
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#40606
+            cat._codes = new_codes
+
+        assert cat._codes is new_codes
+
 
 class TestPrivateCategoricalAPI:
     def test_codes_immutable(self):

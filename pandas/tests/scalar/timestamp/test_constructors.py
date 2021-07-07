@@ -17,8 +17,8 @@ from pandas import (
     Period,
     Timedelta,
     Timestamp,
-    compat,
 )
+import pandas._testing as tm
 
 from pandas.tseries import offsets
 
@@ -195,11 +195,13 @@ class TestTimestampConstructors:
             Timestamp("2017-10-22", tzinfo=pytz.utc, tz="UTC")
 
         msg = "Invalid frequency:"
+        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
             # GH#5168
             # case where user tries to pass tz as an arg, not kwarg, gets
             # interpreted as a `freq`
-            Timestamp("2012-01-01", "US/Pacific")
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                Timestamp("2012-01-01", "US/Pacific")
 
     def test_constructor_strptime(self):
         # GH25016
@@ -287,6 +289,8 @@ class TestTimestampConstructors:
             == repr(Timestamp("2015-11-12 01:02:03.999999"))
         )
 
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_constructor_fromordinal(self):
         base = datetime(2000, 1, 1)
 
@@ -437,6 +441,13 @@ class TestTimestampConstructors:
                 dt64 = np.datetime64(date_string, unit)
                 Timestamp(dt64)
 
+    @pytest.mark.parametrize("arg", ["001-01-01", "0001-01-01"])
+    def test_out_of_bounds_string_consistency(self, arg):
+        # GH 15829
+        msg = "Out of bounds"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp(arg)
+
     def test_min_valid(self):
         # Ensure that Timestamp.min is a valid Timestamp
         Timestamp(Timestamp.min)
@@ -516,15 +527,18 @@ class TestTimestampConstructors:
 
     def test_construct_timestamp_preserve_original_frequency(self):
         # GH 22311
-        result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            result = Timestamp(Timestamp("2010-08-08", freq="D")).freq
         expected = offsets.Day()
         assert result == expected
 
     def test_constructor_invalid_frequency(self):
         # GH 22311
         msg = "Invalid frequency:"
+        msg2 = "The 'freq' argument"
         with pytest.raises(ValueError, match=msg):
-            Timestamp("2012-01-01", freq=[])
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                Timestamp("2012-01-01", freq=[])
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
@@ -554,10 +568,6 @@ class TestTimestampConstructors:
         expected = Timestamp(2000, 1, 1)
         assert result == expected
 
-    @pytest.mark.skipif(
-        not compat.PY38,
-        reason="datetime.fromisocalendar was added in Python version 3.8",
-    )
     def test_constructor_fromisocalendar(self):
         # GH 30395
         expected_timestamp = Timestamp("2000-01-03 00:00:00")

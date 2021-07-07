@@ -445,6 +445,27 @@ class TestGetIndexer:
         expected = np.array([7, 15], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
+    def test_get_indexer_kwarg_validation(self):
+        # GH#41918
+        mi = MultiIndex.from_product([range(3), ["A", "B"]])
+
+        msg = "limit argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], limit=4)
+
+        msg = "tolerance argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], tolerance="piano")
+
+    def test_get_indexer_mismatched_nlevels(self):
+        mi = MultiIndex.from_product([range(3), ["A", "B"]])
+
+        other = MultiIndex.from_product([range(3), ["A", "B"], range(2)])
+
+        msg = "tuples of different lengths"
+        with pytest.raises(TypeError, match=msg):
+            mi.get_indexer(other, method="pad")
+
 
 def test_getitem(idx):
     # scalar

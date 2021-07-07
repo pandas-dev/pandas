@@ -27,7 +27,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Suffixes,
 )
@@ -81,15 +80,18 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.arrays import DatetimeArray
 
 
-@Substitution("\nleft : DataFrame")
+@Substitution("\nleft : DataFrame or named Series")
 @Appender(_merge_doc, indents=0)
 def merge(
-    left: FrameOrSeriesUnion,
-    right: FrameOrSeriesUnion,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     how: str = "inner",
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
@@ -322,8 +324,8 @@ def merge_ordered(
 
 
 def merge_asof(
-    left: DataFrame,
-    right: DataFrame,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -362,8 +364,8 @@ def merge_asof(
 
     Parameters
     ----------
-    left : DataFrame
-    right : DataFrame
+    left : DataFrame or named Series
+    right : DataFrame or named Series
     on : label
         Field name to join on. Must be found in both DataFrames.
         The data MUST be ordered. Furthermore this must be a numeric column,
@@ -608,8 +610,8 @@ class _MergeOperation:
 
     def __init__(
         self,
-        left: FrameOrSeriesUnion,
-        right: FrameOrSeriesUnion,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         how: str = "inner",
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
@@ -673,6 +675,8 @@ class _MergeOperation:
                 f"in a future version. ({left.columns.nlevels} levels on the left,"
                 f"{right.columns.nlevels} on the right)"
             )
+            # stacklevel chosen to be correct when this is reached via pd.merge
+            # (and not DataFrame.join)
             warnings.warn(msg, FutureWarning, stacklevel=3)
 
         self._validate_specification()
@@ -927,7 +931,7 @@ class _MergeOperation:
                     result.insert(i, name or f"key_{i}", key_col)
 
     def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
-        """ return the join indexers """
+        """return the join indexers"""
         # Both returned ndarrays are np.intp
         return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
@@ -1471,7 +1475,7 @@ def get_join_indexers(
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
-    llab, rlab, shape = [list(x) for x in zipped]
+    llab, rlab, shape = (list(x) for x in zipped)
 
     # get flat i8 keys from label lists
     lkey, rkey = _get_join_keys(llab, rlab, shape, sort)
@@ -1597,8 +1601,8 @@ class _OrderedMerge(_MergeOperation):
 
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1688,7 +1692,7 @@ _type_casters = {
 
 
 def _get_cython_type_upcast(dtype: DtypeObj) -> str:
-    """ Upcast a dtype to 'int64_t', 'double', or 'object' """
+    """Upcast a dtype to 'int64_t', 'double', or 'object'"""
     if is_integer_dtype(dtype):
         return "int64_t"
     elif is_float_dtype(dtype):
@@ -1702,8 +1706,8 @@ class _AsOfMerge(_OrderedMerge):
 
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
@@ -1879,10 +1883,10 @@ class _AsOfMerge(_OrderedMerge):
 
     def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
         # Both returned ndarrays are np.intp
-        """ return the join indexers """
+        """return the join indexers"""
 
         def flip(xs) -> np.ndarray:
-            """ unlike np.transpose, this returns an array of tuples """
+            """unlike np.transpose, this returns an array of tuples"""
             # error: Item "ndarray" of "Union[Any, Union[ExtensionArray, ndarray]]" has
             # no attribute "_values_for_argsort"
             xs = [
@@ -1981,7 +1985,7 @@ def _get_multiindex_indexer(
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
-    rcodes, lcodes, shape = [list(x) for x in zipped]
+    rcodes, lcodes, shape = (list(x) for x in zipped)
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))
     else:
@@ -2153,7 +2157,7 @@ def _factorize_keys(
         rk = ensure_int64(np.asarray(rk, dtype=np.int64))
 
     else:
-        klass = libhashtable.Factorizer
+        klass = libhashtable.ObjectFactorizer
         lk = ensure_object(lk)
         rk = ensure_object(rk)
 

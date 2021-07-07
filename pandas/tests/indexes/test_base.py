@@ -12,6 +12,7 @@ import pytest
 
 from pandas.compat import (
     IS64,
+    PY310,
     np_datetime64_compat,
 )
 from pandas.util._test_decorators import async_mark
@@ -992,7 +993,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -1003,6 +1004,24 @@ class TestIndex(Base):
             and math.isnan(nulls_fixture)
             and math.isnan(nulls_fixture2)
         ):
+            if PY310:
+                if (
+                    # Failing cases are
+                    # np.nan, float('nan')
+                    # float('nan'), np.nan
+                    # float('nan'), float('nan')
+                    # Since only float('nan'), np.nan is float
+                    # Use not np.nan to identify float('nan')
+                    nulls_fixture is np.nan
+                    and nulls_fixture2 is not np.nan
+                    or nulls_fixture is not np.nan
+                ):
+                    request.applymarker(
+                        # This test is flaky :(
+                        pytest.mark.xfail(
+                            reason="Failing on Python 3.10 GH41940", strict=False
+                        )
+                    )
             tm.assert_numpy_array_equal(
                 Index(["a", nulls_fixture]).isin([nulls_fixture2]),
                 np.array([False, True]),
@@ -1366,7 +1385,7 @@ class TestIndex(Base):
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; idx = Index([1, 2])"
+        code = "import pandas as pd; idx = pd.Index([1, 2])"
         await ip.run_code(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
@@ -1622,6 +1641,18 @@ class TestIndexUtils:
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_ensure_index_uint64(self):
+        # with both 0 and a large-uint64, np.array will infer to float64
+        #  https://github.com/numpy/numpy/issues/19146
+        #  but a more accurate choice would be uint64
+        values = [0, np.iinfo(np.uint64).max]
+
+        result = ensure_index(values)
+        assert list(result) == values
+
+        expected = Index(values, dtype="uint64")
+        tm.assert_index_equal(result, expected)
+
     def test_get_combined_index(self):
         result = _get_combined_index([])
         expected = Index([])
@@ -1720,3 +1751,48 @@ def test_validate_1d_input():
     ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
+
+
+@pytest.mark.parametrize(
+    "klass, extra_kwargs",
+    [
+        [Index, {}],
+        [Int64Index, {}],
+        [Float64Index, {}],
+        [DatetimeIndex, {}],
+        [TimedeltaIndex, {}],
+        [PeriodIndex, {"freq": "Y"}],
+    ],
+)
+def test_construct_from_memoryview(klass, extra_kwargs):
+    # GH 13120
+    result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
+    expected = klass(range(2000, 2005), **extra_kwargs)
+    tm.assert_index_equal(result, expected)
+
+
+def test_index_set_names_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 4])
+    msg = (
+        "In a future version of pandas all arguments of Index.set_names "
+        "except for the argument 'names' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_names("quarter", None)
+    expected = Index([1, 2, 3, 4], name="quarter")
+    tm.assert_index_equal(result, expected)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 1])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Index.drop_duplicates will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx.drop_duplicates("last")
+        result = idx.drop_duplicates("last")
+    expected = Index([2, 3, 1])
+    tm.assert_index_equal(expected, result)

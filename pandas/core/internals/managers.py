@@ -22,9 +22,9 @@ from pandas._libs import (
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
     Shape,
+    npt,
     type_t,
 )
 from pandas.errors import PerformanceWarning
@@ -183,7 +183,7 @@ class BaseBlockManager(DataManager):
         return self._blklocs
 
     def make_empty(self: T, axes=None) -> T:
-        """ return an empty BlockManager with the items axis of len 0 """
+        """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
             axes = [Index([])] + self.axes[1:]
 
@@ -381,6 +381,25 @@ class BaseBlockManager(DataManager):
         if fill_value is lib.no_default:
             fill_value = None
 
+        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+            # GH#35488 we need to watch out for multi-block cases
+            # We only get here with fill_value not-lib.no_default
+            ncols = self.shape[0]
+            if periods > 0:
+                indexer = [-1] * periods + list(range(ncols - periods))
+            else:
+                nper = abs(periods)
+                indexer = list(range(nper, ncols)) + [-1] * nper
+            result = self.reindex_indexer(
+                self.items,
+                indexer,
+                axis=0,
+                fill_value=fill_value,
+                allow_dups=True,
+                consolidate=False,
+            )
+            return result
+
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
@@ -422,7 +441,7 @@ class BaseBlockManager(DataManager):
         inplace: bool = False,
         regex: bool = False,
     ) -> T:
-        """ do a list replace """
+        """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         bm = self.apply(
@@ -466,7 +485,7 @@ class BaseBlockManager(DataManager):
 
     @property
     def is_view(self) -> bool:
-        """ return a boolean if we are a single block and are a view """
+        """return a boolean if we are a single block and are a view"""
         if len(self.blocks) == 1:
             return self.blocks[0].is_view
 
@@ -478,6 +497,10 @@ class BaseBlockManager(DataManager):
         # complicated
 
         return False
+
+    def _get_data_subset(self: T, predicate: Callable) -> T:
+        blocks = [blk for blk in self.blocks if predicate(blk.values)]
+        return self._combine(blocks, copy=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
         """
@@ -516,7 +539,7 @@ class BaseBlockManager(DataManager):
     def _combine(
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
     ) -> T:
-        """ return a new manager with the blocks """
+        """return a new manager with the blocks"""
         if len(blocks) == 0:
             if self.ndim == 2:
                 # retain our own Index dtype
@@ -759,7 +782,8 @@ class BaseBlockManager(DataManager):
                 blk = self.blocks[blkno]
 
                 # Otherwise, slicing along items axis is necessary.
-                if not blk._can_consolidate:
+                if not blk._can_consolidate and not blk._validate_ndim:
+                    # i.e. we dont go through here for DatetimeTZBlock
                     # A non-consolidatable block, it's easy, because there's
                     # only one item and each mgr loc is a copy of that single
                     # item.
@@ -1384,7 +1408,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     def as_array(
         self,
         transpose: bool = False,
-        dtype: Dtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -1424,17 +1448,21 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
+                    # pandas/core/internals/managers.py:1428: error: Argument "dtype" to
+                    # "to_numpy" of "ExtensionArray" has incompatible type
+                    # "Optional[Union[dtype[Any], None, type, _SupportsDType, str,
+                    # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
+                    # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any,
+                    # Any]]]]"; expected "Optional[Union[ExtensionDtype, Union[str,
+                    # dtype[Any]], Type[str], Type[float], Type[int], Type[complex],
+                    # Type[bool], Type[object]]]"
+                    dtype=dtype,  # type: ignore[arg-type]
+                    na_value=na_value,
                 ).reshape(blk.shape)
             else:
                 arr = np.asarray(blk.get_values())
                 if dtype:
-                    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has
-                    # incompatible type "Union[ExtensionDtype, str, dtype[Any],
-                    # Type[object]]"; expected "Union[dtype[Any], None, type,
-                    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-                    # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-                    arr = arr.astype(dtype, copy=False)  # type: ignore[arg-type]
+                    arr = arr.astype(dtype, copy=False)
         else:
             arr = self._interleave(dtype=dtype, na_value=na_value)
             # The underlying data was copied within _interleave
@@ -1449,7 +1477,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return arr.transpose() if transpose else arr
 
     def _interleave(
-        self, dtype: Dtype | None = None, na_value=lib.no_default
+        self,
+        dtype: npt.DTypeLike | ExtensionDtype | None = None,
+        na_value=lib.no_default,
     ) -> np.ndarray:
         """
         Return ndarray from blocks with specified item order
@@ -1484,7 +1514,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
                 # attribute "to_numpy"
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
-                    dtype=dtype, na_value=na_value
+                    # pandas/core/internals/managers.py:1485: error: Argument "dtype" to
+                    # "to_numpy" of "ExtensionArray" has incompatible type
+                    # "Union[dtype[Any], None, type, _SupportsDType, str, Tuple[Any,
+                    # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any],
+                    # _DTypeDict, Tuple[Any, Any], ExtensionDtype]"; expected
+                    # "Optional[Union[ExtensionDtype, Union[str, dtype[Any]], Type[str],
+                    # Type[float], Type[int], Type[complex], Type[bool], Type[object]]]"
+                    # [arg-type]
+                    dtype=dtype,  # type: ignore[arg-type]
+                    na_value=na_value,
                 )
             else:
                 # error: Argument 1 to "get_values" of "Block" has incompatible type
@@ -1501,7 +1540,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
-    """ manage a single block with """
+    """manage a single block with"""
 
     ndim = 1
     _is_consolidated = True
@@ -1595,12 +1634,12 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
     @property
     def _blknos(self):
-        """ compat with BlockManager """
+        """compat with BlockManager"""
         return None
 
     @property
     def _blklocs(self):
-        """ compat with BlockManager """
+        """compat with BlockManager"""
         return None
 
     def getitem_mgr(self, indexer) -> SingleBlockManager:
@@ -1758,7 +1797,7 @@ def construction_error(
     axes: list[Index],
     e: ValueError | None = None,
 ):
-    """ raise a helpful message about our construction """
+    """raise a helpful message about our construction"""
     passed = tuple(map(int, [tot_items] + list(block_shape)))
     # Correcting the user facing error message during dataframe construction
     if len(passed) <= 2:
@@ -1884,7 +1923,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
 
 
 def _multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
-    """ return an array of blocks that potentially have different dtypes """
+    """return an array of blocks that potentially have different dtypes"""
 
     if not consolidate:
         return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)

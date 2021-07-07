@@ -763,7 +763,7 @@ class TestFrameArithmetic:
         if opname in ["__rmod__", "__rfloordiv__"]:
             # Series ops may return mixed int/float dtypes in cases where
             #   DataFrame op will return all-float.  So we upcast `expected`
-            dtype = np.common_type(*[x.values for x in exvals.values()])
+            dtype = np.common_type(*(x.values for x in exvals.values()))
 
         expected = DataFrame(exvals, columns=df.columns, index=df.index, dtype=dtype)
 
@@ -1021,6 +1021,7 @@ def test_zero_len_frame_with_series_corner_cases():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_frame_single_columns_object_sum_axis_1():
     # GH 13758
     data = {
@@ -1835,4 +1836,12 @@ def test_arithemetic_multiindex_align():
         columns=MultiIndex.from_product([[0], [1]], names=["a", "b"]),
     )
     result = df1 - df2
+    tm.assert_frame_equal(result, expected)
+
+
+def test_bool_frame_mult_float():
+    # GH 18549
+    df = DataFrame(True, list("ab"), list("cd"))
+    result = df * 1.0
+    expected = DataFrame(np.ones((2, 2)), list("ab"), list("cd"))
     tm.assert_frame_equal(result, expected)

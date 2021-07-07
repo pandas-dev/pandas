@@ -30,7 +30,7 @@ def safe_close(store):
 
 
 def create_tempfile(path):
-    """ create an unopened named temporary file """
+    """create an unopened named temporary file"""
     return os.path.join(tempfile.gettempdir(), path)
 
 
