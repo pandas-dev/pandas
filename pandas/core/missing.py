@@ -980,30 +980,8 @@ def _can_hold_element(values, element: Any) -> bool:
     """
     Expanded version of core.dtypes.cast.can_hold_element
     """
-    from pandas.core.arrays import (
-        ExtensionArray,
-        FloatingArray,
-        IntegerArray,
-    )
-
-    if isinstance(values, ExtensionArray):
-        if hasattr(values, "_validate_setitem_value"):
-            # NDArrayBackedExtensionArray
-            try:
-                # error: "Callable[..., Any]" has no attribute "_validate_setitem_value"
-                values._validate_setitem_value(element)  # type: ignore[attr-defined]
-                return True
-            except (ValueError, TypeError):
-                return False
-        else:
-            # other ExtensionArrays
-            return True
-    else:
-        element = extract_array(element, extract_numpy=True)
-        if isinstance(element, (IntegerArray, FloatingArray)):
-            if element._mask.any():
-                return False
-        return can_hold_element(values, element)
+    element = extract_array(element, extract_numpy=True)
+    return can_hold_element(values, element)
 
 
 def coerce_to_target_dtype(values, other):
