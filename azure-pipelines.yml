@@ -21,12 +21,12 @@ jobs:
 - template: ci/azure/posix.yml
   parameters:
     name: macOS
-    vmImage: macOS-10.14
+    vmImage: macOS-10.15
 
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2016
+    vmImage: windows-2019
 
 - job: py38_32bit
   pool:
