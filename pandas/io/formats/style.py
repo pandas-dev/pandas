@@ -23,7 +23,6 @@ from pandas._typing import (
     Axis,
     FilePathOrBuffer,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
 )
@@ -174,7 +173,7 @@ class Styler(StylerRenderer):
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
@@ -703,7 +702,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> df.style.set_properties(
         ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
-        ... ).to_latex(css_convert=True)
+        ... ).to_latex(convert_css=True)
         \begin{tabular}{lr}
         {} & {0} \\
         0 & {\bfseries}{\Huge{1}} \\

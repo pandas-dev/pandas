@@ -14,6 +14,7 @@ from typing import (
     AnyStr,
     Callable,
     Hashable,
+    Literal,
     Mapping,
     Sequence,
     cast,
@@ -155,7 +156,6 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._libs.tslibs import BaseOffset
 
@@ -1152,7 +1152,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     ]
                     raise KeyError(f"{missing_labels} not found in axis")
 
-            new_index = ax._transform_index(f, level)
+            new_index = ax._transform_index(f, level=level)
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
             result._clear_item_cache()
 
@@ -3767,8 +3767,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(index, MultiIndex):
             try:
                 loc, new_index = index._get_loc_level(key, level=0)
-            except TypeError as e:
-                raise TypeError(f"Expected label or tuple of labels, got {key}") from e
+            except TypeError as err:
+                raise TypeError(
+                    f"Expected label or tuple of labels, got {key}"
+                ) from err
             else:
                 if not drop_level:
                     if lib.is_integer(loc):
@@ -5182,14 +5184,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
             Infinite values not allowed.
-        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator, seed for random number generator.
-            If np.random.RandomState, use as numpy RandomState object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState,
+            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
+            random number generator. If np.random.RandomState or np.random.Generator,
+            use as given.
 
             .. versionchanged:: 1.1.0
 
-                array-like and BitGenerator (for NumPy>=1.17) object now passed to
-                np.random.RandomState() as seed
+                array-like and BitGenerator object now passed to np.random.RandomState()
+                as seed
+
+            .. versionchanged:: 1.4.0
+
+                np.random.Generator objects now accepted
 
         axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
@@ -10839,6 +10846,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_na: bool_t = False,
         axis: Axis = 0,
         times: str | np.ndarray | FrameOrSeries | None = None,
+        method: str = "single",
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)
         # error: Value of type variable "FrameOrSeries" of "ExponentialMovingWindow"
@@ -10854,6 +10862,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ignore_na=ignore_na,
             axis=axis,
             times=times,
+            method=method,
         )
 
     # ----------------------------------------------------------------------

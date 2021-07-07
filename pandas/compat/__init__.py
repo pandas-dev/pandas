@@ -16,7 +16,6 @@ from pandas.compat.numpy import (
     is_numpy_dev,
     np_array_datetime64_compat,
     np_datetime64_compat,
-    np_version_under1p18,
     np_version_under1p19,
     np_version_under1p20,
 )
@@ -27,7 +26,6 @@ from pandas.compat.pyarrow import (
     pa_version_under4p0,
 )
 
-PY38 = sys.version_info >= (3, 8)
 PY39 = sys.version_info >= (3, 9)
 PY310 = sys.version_info >= (3, 10)
 PYPY = platform.python_implementation() == "PyPy"
@@ -151,7 +149,6 @@ __all__ = [
     "is_numpy_dev",
     "np_array_datetime64_compat",
     "np_datetime64_compat",
-    "np_version_under1p18",
     "np_version_under1p19",
     "np_version_under1p20",
     "pa_version_under1p0",
