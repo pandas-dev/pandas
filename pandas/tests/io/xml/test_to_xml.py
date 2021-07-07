@@ -1,14 +1,14 @@
+from __future__ import annotations
+
 from io import (
     BytesIO,
     StringIO,
 )
 import os
-from typing import Union
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -363,10 +363,6 @@ def test_na_empty_elem_option(datapath, parser):
 # ATTR_COLS
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
-)
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -382,10 +378,6 @@ def test_attrs_cols_nan_output(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -540,10 +532,6 @@ def test_hierarchical_columns(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -613,10 +601,6 @@ def test_multi_index(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -963,7 +947,7 @@ def test_stylesheet_file_like(datapath, mode):
 def test_stylesheet_io(datapath, mode):
     xsl_path = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    xsl_obj: Union[BytesIO, StringIO]
+    xsl_obj: BytesIO | StringIO
 
     with open(xsl_path, mode) as f:
         if mode == "rb":
@@ -1172,7 +1156,6 @@ def test_style_to_string():
     assert out_xml == out_str
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
 @td.skip_if_no("lxml")
 def test_style_to_json():
     xsl = """\

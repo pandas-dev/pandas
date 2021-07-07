@@ -19,7 +19,10 @@ from pandas.io.excel._base import (
     BaseExcelReader,
     ExcelWriter,
 )
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
@@ -39,9 +42,12 @@ class OpenpyxlWriter(ExcelWriter):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
+
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
         super().__init__(
             path,
@@ -528,15 +534,9 @@ class OpenpyxlReader(BaseExcelReader):
             filepath_or_buffer, read_only=True, data_only=True, keep_links=False
         )
 
-    def close(self):
-        # https://stackoverflow.com/questions/31416842/
-        #  openpyxl-does-not-close-excel-workbook-in-read-only-mode
-        self.book.close()
-        super().close()
-
     @property
     def sheet_names(self) -> list[str]:
-        return self.book.sheetnames
+        return [sheet.title for sheet in self.book.worksheets]
 
     def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)
@@ -571,15 +571,18 @@ class OpenpyxlReader(BaseExcelReader):
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
             converted_row = [self._convert_cell(cell, convert_float) for cell in row]
-            if not all(cell == "" for cell in converted_row):
+            while converted_row and converted_row[-1] == "":
+                # trim trailing empty elements
+                converted_row.pop()
+            if converted_row:
                 last_row_with_data = row_number
             data.append(converted_row)
 
         # Trim trailing empty rows
         data = data[: last_row_with_data + 1]
 
-        if self.book.read_only and len(data) > 0:
-            # With dimension reset, openpyxl no longer pads rows
+        if len(data) > 0:
+            # extend rows to max width
             max_width = max(len(data_row) for data_row in data)
             if min(len(data_row) for data_row in data) < max_width:
                 empty_cell: list[Scalar] = [""]

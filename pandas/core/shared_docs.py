@@ -42,7 +42,7 @@ Notes
 `agg` is an alias for `aggregate`. Use the alias.
 
 Functions that mutate the passed object can produce unexpected
-behavior or errors and are not supported. See :ref:`udf-mutation`
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
 A passed user-defined-function will be passed a Series for evaluation.
@@ -303,7 +303,7 @@ See Also
 Notes
 -----
 Functions that mutate the passed object can produce unexpected
-behavior or errors and are not supported. See :ref:`udf-mutation`
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
 Examples

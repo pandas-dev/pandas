@@ -41,6 +41,9 @@ cdef extern from "khash_python.h":
     bint are_equivalent_float32_t \
     "kh_floats_hash_equal" (float32_t a, float32_t b) nogil
 
+    uint32_t kh_python_hash_func(object key)
+    bint kh_python_hash_equal(object a, object b)
+
     ctypedef struct kh_pymap_t:
         khuint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags

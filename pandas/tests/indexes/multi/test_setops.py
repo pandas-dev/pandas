@@ -3,7 +3,9 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    CategoricalIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
     Series,
 )
@@ -214,11 +216,10 @@ def test_difference_sort_incomparable():
 
     other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
     # sort=None, the default
-    # MultiIndex.difference deviates here from other difference
-    # implementations in not catching the TypeError
-    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
-    with pytest.raises(TypeError, match=msg):
+    msg = "sort order is undefined for incomparable objects"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
         result = idx.difference(other)
+    tm.assert_index_equal(result, idx)
 
     # sort=False
     result = idx.difference(other, sort=False)
@@ -414,6 +415,18 @@ def test_union_empty_self_different_names():
     tm.assert_index_equal(result, expected)
 
 
+def test_union_multiindex_empty_rangeindex():
+    # GH#41234
+    mi = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    ri = pd.RangeIndex(0)
+
+    result_left = mi.union(ri)
+    tm.assert_index_equal(mi, result_left, check_names=False)
+
+    result_right = ri.union(mi)
+    tm.assert_index_equal(mi, result_right, check_names=False)
+
+
 @pytest.mark.parametrize(
     "method", ["union", "intersection", "difference", "symmetric_difference"]
 )
@@ -496,3 +509,26 @@ def test_intersection_with_missing_values_on_both_sides(nulls_fixture):
     result = mi1.intersection(mi2)
     expected = MultiIndex.from_arrays([[3.0, nulls_fixture], [1, 2]])
     tm.assert_index_equal(result, expected)
+
+
+def test_union_nan_got_duplicated():
+    # GH#38977
+    mi1 = MultiIndex.from_arrays([[1.0, np.nan], [2, 3]])
+    mi2 = MultiIndex.from_arrays([[1.0, np.nan, 3.0], [2, 3, 4]])
+    result = mi1.union(mi2)
+    tm.assert_index_equal(result, mi2)
+
+
+def test_union_duplicates(index):
+    # GH#38977
+    if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):
+        # No duplicates in empty indexes
+        return
+    values = index.unique().values.tolist()
+    mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
+    mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
+    result = mi1.union(mi2)
+    tm.assert_index_equal(result, mi2.sort_values())
+
+    result = mi2.union(mi1)
+    tm.assert_index_equal(result, mi2.sort_values())

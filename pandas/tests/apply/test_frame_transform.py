@@ -39,8 +39,15 @@ def test_transform_ufunc(axis, float_frame, frame_or_series):
 
 
 @pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel(axis, float_frame, op, request):
+def test_transform_groupby_kernel(axis, float_frame, op, using_array_manager, request):
     # GH 35964
+    if using_array_manager and op == "pct_change" and axis in (1, "columns"):
+        # TODO(ArrayManager) shift with axis=1
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="shift axis=1 not yet implemented for ArrayManager"
+            )
+        )
 
     args = [0.0] if op == "fillna" else []
     if axis == 0 or axis == "index":
@@ -50,6 +57,19 @@ def test_transform_groupby_kernel(axis, float_frame, op, request):
     expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
+
+    # same thing, but ensuring we have multiple blocks
+    assert "E" not in float_frame.columns
+    float_frame["E"] = float_frame["A"].copy()
+    assert len(float_frame._mgr.arrays) > 1
+
+    if axis == 0 or axis == "index":
+        ones = np.ones(float_frame.shape[0])
+    else:
+        ones = np.ones(float_frame.shape[1])
+    expected2 = float_frame.groupby(ones, axis=axis).transform(op, *args)
+    result2 = float_frame.transform(op, axis, *args)
+    tm.assert_frame_equal(result2, expected2)
 
 
 @pytest.mark.parametrize(
@@ -160,7 +180,9 @@ def test_transform_bad_dtype(op, frame_or_series, request):
     # GH 35964
     if op == "rank":
         request.node.add_marker(
-            pytest.mark.xfail(reason="GH 40418: rank does not raise a TypeError")
+            pytest.mark.xfail(
+                raises=ValueError, reason="GH 40418: rank does not raise a TypeError"
+            )
         )
 
     obj = DataFrame({"A": 3 * [object]})  # DataFrame that will fail on most transforms

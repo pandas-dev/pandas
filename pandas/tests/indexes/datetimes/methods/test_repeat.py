@@ -62,10 +62,10 @@ class TestRepeat:
 
         expected_rng = DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 00:00:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 00:30:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 00:30:00", tz=tz, freq="30T"),
+                Timestamp("2016-01-01 00:00:00", tz=tz),
+                Timestamp("2016-01-01 00:00:00", tz=tz),
+                Timestamp("2016-01-01 00:30:00", tz=tz),
+                Timestamp("2016-01-01 00:30:00", tz=tz),
             ]
         )
 

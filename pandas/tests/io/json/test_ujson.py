@@ -16,6 +16,7 @@ import pytz
 import pandas._libs.json as ujson
 from pandas.compat import (
     IS64,
+    PY310,
     is_platform_windows,
 )
 
@@ -248,7 +249,21 @@ class TestUltraJSONTests:
             assert rounded_input == json.loads(output)
             assert rounded_input == ujson.decode(output)
 
-    @pytest.mark.parametrize("invalid_val", [20, -1, "9", None])
+    @pytest.mark.parametrize(
+        "invalid_val",
+        [
+            20,
+            -1,
+            pytest.param(
+                "9",
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
+            ),
+            pytest.param(
+                None,
+                marks=pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940"),
+            ),
+        ],
+    )
     def test_invalid_double_precision(self, invalid_val):
         double_input = 30.12345678901234567890
         expected_exception = ValueError if isinstance(invalid_val, int) else TypeError
@@ -828,65 +843,65 @@ class TestNumpyJSONTests:
             (
                 [{}, []],
                 ValueError,
-                "nesting not supported for object or variable length dtypes",
+                r"nesting not supported for object or variable length dtypes",
                 {},
             ),
             (
                 [42, None],
                 TypeError,
-                "int() argument must be a string, a bytes-like object or a number, "
-                "not 'NoneType'",
+                r"int\(\) argument must be a string, a bytes-like object or a( real)? "
+                r"number, not 'NoneType'",
                 {},
             ),
             (
                 [["a"], 42],
                 ValueError,
-                "Cannot decode multidimensional arrays with variable length elements "
-                "to numpy",
+                r"Cannot decode multidimensional arrays with variable length elements "
+                r"to numpy",
                 {},
             ),
             (
                 [42, {}, "a"],
                 TypeError,
-                "int() argument must be a string, a bytes-like object or a number, "
-                "not 'dict'",
+                r"int\(\) argument must be a string, a bytes-like object or a( real)? "
+                r"number, not 'dict'",
                 {},
             ),
             (
                 [42, ["a"], 42],
                 ValueError,
-                "invalid literal for int() with base 10: 'a'",
+                r"invalid literal for int\(\) with base 10: 'a'",
                 {},
             ),
             (
                 ["a", "b", [], "c"],
                 ValueError,
-                "nesting not supported for object or variable length dtypes",
+                r"nesting not supported for object or variable length dtypes",
                 {},
             ),
             (
                 [{"a": "b"}],
                 ValueError,
-                "Cannot decode multidimensional arrays with variable length elements "
-                "to numpy",
+                r"Cannot decode multidimensional arrays with variable length elements "
+                r"to numpy",
                 {"labelled": True},
             ),
             (
                 {"a": {"b": {"c": 42}}},
                 ValueError,
-                "labels only supported up to 2 dimensions",
+                r"labels only supported up to 2 dimensions",
                 {"labelled": True},
             ),
             (
                 [{"a": 42, "b": 23}, {"c": 17}],
                 ValueError,
-                "cannot reshape array of size 3 into shape (2,1)",
+                r"cannot reshape array of size 3 into shape \(2,1\)",
                 {"labelled": True},
             ),
         ],
     )
     def test_array_numpy_except(self, bad_input, exc_type, err_msg, kwargs):
-        with pytest.raises(exc_type, match=re.escape(err_msg)):
+        with pytest.raises(exc_type, match=err_msg):
             ujson.decode(ujson.dumps(bad_input), numpy=True, **kwargs)
 
     def test_array_numpy_labelled(self):

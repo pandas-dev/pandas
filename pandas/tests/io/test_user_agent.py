@@ -182,12 +182,7 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
     "responder, read_method, parquet_engine",
     [
         (CSVUserAgentResponder, pd.read_csv, None),
-        pytest.param(
-            JSONUserAgentResponder,
-            pd.read_json,
-            None,
-            marks=td.skip_array_manager_not_yet_implemented,
-        ),
+        (JSONUserAgentResponder, pd.read_json, None),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
         pytest.param(
             ParquetFastParquetUserAgentResponder,
@@ -199,12 +194,7 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
-        pytest.param(
-            GzippedJSONUserAgentResponder,
-            pd.read_json,
-            None,
-            marks=td.skip_array_manager_not_yet_implemented,
-        ),
+        (GzippedJSONUserAgentResponder, pd.read_json, None),
     ],
 )
 def test_server_and_default_headers(responder, read_method, parquet_engine):
@@ -233,12 +223,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
     "responder, read_method, parquet_engine",
     [
         (CSVUserAgentResponder, pd.read_csv, None),
-        pytest.param(
-            JSONUserAgentResponder,
-            pd.read_json,
-            None,
-            marks=td.skip_array_manager_not_yet_implemented,
-        ),
+        (JSONUserAgentResponder, pd.read_json, None),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
         pytest.param(
             ParquetFastParquetUserAgentResponder,
@@ -250,12 +235,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
         (PickleUserAgentResponder, pd.read_pickle, None),
         (StataUserAgentResponder, pd.read_stata, None),
         (GzippedCSVUserAgentResponder, pd.read_csv, None),
-        pytest.param(
-            GzippedJSONUserAgentResponder,
-            pd.read_json,
-            None,
-            marks=td.skip_array_manager_not_yet_implemented,
-        ),
+        (GzippedJSONUserAgentResponder, pd.read_json, None),
     ],
 )
 def test_server_and_custom_headers(responder, read_method, parquet_engine):

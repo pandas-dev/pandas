@@ -20,7 +20,7 @@ def test_series_grouper():
     grouper = libreduction.SeriesGrouper(obj, np.mean, labels, 2)
     result, counts = grouper.get_result()
 
-    expected = np.array([obj[3:6].mean(), obj[6:].mean()])
+    expected = np.array([obj[3:6].mean(), obj[6:].mean()], dtype=object)
     tm.assert_almost_equal(result, expected)
 
     exp_counts = np.array([3, 4], dtype=np.int64)
@@ -36,7 +36,7 @@ def test_series_grouper_result_length_difference():
     grouper = libreduction.SeriesGrouper(obj, lambda x: all(x > 0), labels, 2)
     result, counts = grouper.get_result()
 
-    expected = np.array([all(obj[3:6] > 0), all(obj[6:] > 0)])
+    expected = np.array([all(obj[3:6] > 0), all(obj[6:] > 0)], dtype=object)
     tm.assert_equal(result, expected)
 
     exp_counts = np.array([3, 4], dtype=np.int64)
@@ -56,12 +56,12 @@ def test_series_grouper_requires_nonempty_raises():
 def test_series_bin_grouper():
     obj = Series(np.random.randn(10))
 
-    bins = np.array([3, 6])
+    bins = np.array([3, 6], dtype=np.int64)
 
     grouper = libreduction.SeriesBinGrouper(obj, np.mean, bins)
     result, counts = grouper.get_result()
 
-    expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
+    expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()], dtype=object)
     tm.assert_almost_equal(result, expected)
 
     exp_counts = np.array([3, 3, 4], dtype=np.int64)

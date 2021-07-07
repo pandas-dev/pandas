@@ -119,7 +119,9 @@ class TestRangeIndexConstructors:
         expected = RangeIndex(1, 5, 2)
         tm.assert_index_equal(result, expected, exact=True)
 
-        msg = r"^from_range\(\) got an unexpected keyword argument"
+        msg = (
+            r"(RangeIndex.)?from_range\(\) got an unexpected keyword argument( 'copy')?"
+        )
         with pytest.raises(TypeError, match=msg):
             RangeIndex.from_range(range(10), copy=True)
 

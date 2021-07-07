@@ -408,7 +408,7 @@ def interpolate_1d(
         # preserve NaNs on the inside
         preserve_nans |= mid_nans
 
-    # sort preserve_nans and covert to list
+    # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
     result = yvalues.copy()
@@ -534,11 +534,11 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         sorted 1D array of x-coordinates
-    yi : array_like or list of array-likes
+    yi : array-like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    order: None or int or array_like of ints. Default: None.
+    order: None or int or array-like of ints. Default: None.
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
     der : int or list
@@ -556,7 +556,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of length R or length M or M by R.
     """
     from scipy import interpolate
@@ -578,13 +578,13 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         A sorted list of x-coordinates, of length N.
-    yi : array_like
+    yi : array-like
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
-    x : scalar or array_like
+    x : scalar or array-like
         Of length M.
     der : int, optional
         How many derivatives to extract; None for all potentially
@@ -600,7 +600,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of length R or length M or M by R,
 
     """
@@ -619,14 +619,14 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
     Parameters
     ----------
-    xi : array_like, shape (n,)
+    xi : array-like, shape (n,)
         1-d array containing values of the independent variable.
         Values must be real, finite and in strictly increasing order.
-    yi : array_like
+    yi : array-like
         Array containing values of the dependent variable. It can have
         arbitrary number of dimensions, but the length along ``axis``
         (see below) must match the length of ``x``. Values must be finite.
-    x : scalar or array_like, shape (m,)
+    x : scalar or array-like, shape (m,)
     axis : int, optional
         Axis along which `y` is assumed to be varying. Meaning that for
         ``x[i]`` the corresponding values are ``np.take(y, i, axis=axis)``.
@@ -654,7 +654,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
         tuple `(order, deriv_values)` allowing to specify arbitrary
         derivatives at curve ends:
         * `order`: the derivative order, 1 or 2.
-        * `deriv_value`: array_like containing derivative values, shape must
+        * `deriv_value`: array-like containing derivative values, shape must
           be the same as `y`, excluding ``axis`` dimension. For example, if
           `y` is 1D, then `deriv_value` must be a scalar. If `y` is 3D with
           the shape (n0, n1, n2) and axis=2, then `deriv_value` must be 2D
@@ -671,7 +671,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of shape (m,)
 
     References
