@@ -18,12 +18,12 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Hashable,
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Sequence,
     TypeVar,
@@ -46,6 +46,7 @@ from pandas._typing import (
     F,
     FrameOrSeries,
     IndexLabel,
+    RandomState,
     Scalar,
     T,
     final,
@@ -107,11 +108,6 @@ from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     maybe_use_numba,
 )
-
-if TYPE_CHECKING:
-    from typing import Literal
-
-    from pandas._typing import RandomState
 
 _common_see_also = """
         See Also

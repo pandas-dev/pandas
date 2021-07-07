@@ -11,6 +11,7 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Sequence,
     cast,
@@ -50,7 +51,7 @@ def describe_ndframe(
     include: str | Sequence[str] | None,
     exclude: str | Sequence[str] | None,
     datetime_is_numeric: bool,
-    percentiles: Sequence[float] | None,
+    percentiles: Sequence[float] | np.ndarray | None,
 ) -> FrameOrSeries:
     """Describe series or dataframe.
 
@@ -111,7 +112,7 @@ class NDFrameDescriberAbstract(ABC):
         self.datetime_is_numeric = datetime_is_numeric
 
     @abstractmethod
-    def describe(self, percentiles: Sequence[float]) -> DataFrame | Series:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame | Series:
         """Do describe either series or dataframe.
 
         Parameters
@@ -126,7 +127,7 @@ class SeriesDescriber(NDFrameDescriberAbstract):
 
     obj: Series
 
-    def describe(self, percentiles: Sequence[float]) -> Series:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> Series:
         describe_func = select_describe_func(
             self.obj,
             self.datetime_is_numeric,
@@ -165,7 +166,7 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
 
         super().__init__(obj, datetime_is_numeric=datetime_is_numeric)
 
-    def describe(self, percentiles: Sequence[float]) -> DataFrame:
+    def describe(self, percentiles: Sequence[float] | np.ndarray) -> DataFrame:
         data = self._select_data()
 
         ldesc: list[Series] = []
@@ -387,8 +388,11 @@ def select_describe_func(
         return describe_categorical_1d
 
 
-def refine_percentiles(percentiles: Sequence[float] | None) -> Sequence[float]:
-    """Ensure that percentiles are unique and sorted.
+def refine_percentiles(
+    percentiles: Sequence[float] | np.ndarray | None,
+) -> np.ndarray[Any, np.dtype[np.float64]]:
+    """
+    Ensure that percentiles are unique and sorted.
 
     Parameters
     ----------
@@ -396,9 +400,7 @@ def refine_percentiles(percentiles: Sequence[float] | None) -> Sequence[float]:
         The percentiles to include in the output.
     """
     if percentiles is None:
-        # error: Incompatible return value type (got "ndarray", expected
-        # "Sequence[float]")
-        return np.array([0.25, 0.5, 0.75])  # type: ignore[return-value]
+        return np.array([0.25, 0.5, 0.75])
 
     # explicit conversion of `percentiles` to list
     percentiles = list(percentiles)
@@ -410,9 +412,7 @@ def refine_percentiles(percentiles: Sequence[float] | None) -> Sequence[float]:
     if 0.5 not in percentiles:
         percentiles.append(0.5)
 
-    # error: Incompatible types in assignment (expression has type "ndarray", variable
-    # has type "Optional[Sequence[float]]")
-    percentiles = np.asarray(percentiles)  # type: ignore[assignment]
+    percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)
