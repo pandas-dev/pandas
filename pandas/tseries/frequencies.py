@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -27,6 +28,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
+from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -34,9 +36,20 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_timedelta64_dtype,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCFloat64Index,
+    ABCIndex,
+    ABCInt64Index,
+    ABCSeries,
+)
 
 from pandas.core.algorithms import unique
+
+if TYPE_CHECKING:
+    from pandas import (
+        DatetimeIndex,
+        TimedeltaIndex,
+    )
 
 _ONE_MICRO = 1000
 _ONE_MILLI = _ONE_MICRO * 1000
@@ -153,7 +166,7 @@ def infer_freq(index, warn: bool = True) -> str | None:
     >>> pd.infer_freq(idx)
     'D'
     """
-    import pandas as pd
+    from pandas.core.indexes.datetimes import DatetimeIndex
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -182,15 +195,15 @@ def infer_freq(index, warn: bool = True) -> str | None:
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 
-    if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
-        if isinstance(index, (pd.Int64Index, pd.Float64Index)):
+    if isinstance(index, ABCIndex) and not isinstance(index, DatetimeIndex):
+        if isinstance(index, (ABCInt64Index, ABCFloat64Index)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
         index = index._values
 
-    if not isinstance(index, pd.DatetimeIndex):
-        index = pd.DatetimeIndex(index)
+    if not isinstance(index, DatetimeIndex):
+        index = DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -201,16 +214,19 @@ class _FrequencyInferer:
     Not sure if I can avoid the state machine here
     """
 
-    def __init__(self, index, warn: bool = True):
+    def __init__(self, index: DatetimeIndex | TimedeltaIndex, warn: bool = True):
         self.index = index
         self.i8values = index.asi8
 
         # This moves the values, which are implicitly in UTC, to the
         # the timezone so they are in local time
         if hasattr(index, "tz"):
-            if index.tz is not None:
+            # https://github.com/python/mypy/issues/1424
+            # error: Item "TimedeltaIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has
+            # no attribute "tz"
+            if index.tz is not None:  # type: ignore[union-attr]
                 self.i8values = tzconversion.tz_convert_from_utc(
-                    self.i8values, index.tz
+                    self.i8values, index.tz  # type: ignore[union-attr]
                 )
 
         self.warn = warn
@@ -223,11 +239,11 @@ class _FrequencyInferer:
         )
 
     @cache_readonly
-    def deltas(self):
+    def deltas(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.i8values)
 
     @cache_readonly
-    def deltas_asi8(self):
+    def deltas_asi8(self) -> npt.NDArray[np.int64]:
         # NB: we cannot use self.i8values here because we may have converted
         #  the tz in __init__
         return unique_deltas(self.index.asi8)
@@ -295,7 +311,7 @@ class _FrequencyInferer:
         return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
-    def fields(self):
+    def fields(self) -> np.ndarray:  # structured array of fields
         return build_field_sarray(self.i8values)
 
     @cache_readonly
@@ -303,15 +319,21 @@ class _FrequencyInferer:
         return Timestamp(self.i8values[0])
 
     def month_position_check(self):
-        return month_position_check(self.fields, self.index.dayofweek)
+        # error: Item "DatetimeIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has no
+        # attribute "dayofweek"
+        # error: Item "TimedeltaIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has no
+        # attribute "dayofweek"
+        return month_position_check(
+            self.fields, self.index.dayofweek  # type: ignore[union-attr]
+        )
 
     @cache_readonly
-    def mdiffs(self):
+    def mdiffs(self) -> npt.NDArray[np.int64]:
         nmonths = self.fields["Y"] * 12 + self.fields["M"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
-    def ydiffs(self):
+    def ydiffs(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.fields["Y"].astype("i8"))
 
     def _infer_daily_rule(self) -> str | None:
@@ -405,11 +427,19 @@ class _FrequencyInferer:
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
         #         return None
 
-        weekdays = unique(self.index.weekday)
+        # error: Item "DatetimeIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has no
+        # attribute "weekday"
+        # error: Item "TimedeltaIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has no
+        # attribute "weekday"
+        weekdays = unique(self.index.weekday)  # type: ignore[union-attr]
         if len(weekdays) > 1:
             return None
 
-        week_of_months = unique((self.index.day - 1) // 7)
+        # error: Item "DatetimeIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has no
+        # attribute "day"
+        # error: Item "TimedeltaIndex" of "Union[DatetimeIndex, TimedeltaIndex]" has no
+        # attribute "day"
+        week_of_months = unique((self.index.day - 1) // 7)  # type: ignore[union-attr]
         # Only attempt to infer up to WOM-4. See #9425
         week_of_months = week_of_months[week_of_months < 4]
         if len(week_of_months) == 0 or len(week_of_months) > 1:

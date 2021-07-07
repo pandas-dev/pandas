@@ -21,6 +21,7 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
     IndexKeyFunc,
     Shape,
+    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -602,8 +603,8 @@ def get_indexer_dict(
 
 
 def get_group_index_sorter(
-    group_index: np.ndarray, ngroups: int | None = None
-) -> np.ndarray:
+    group_index: npt.NDArray[np.intp], ngroups: int | None = None
+) -> npt.NDArray[np.intp]:
     """
     algos.groupsort_indexer implements `counting sort` and it is at least
     O(ngroups), where

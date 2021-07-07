@@ -49,6 +49,7 @@ from pandas._typing import (
     DtypeObj,
     NpDtype,
     PositionalIndexer2D,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -274,7 +275,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return (self._box_func(v) for v in self.asi8)
 
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self) -> npt.NDArray[np.int64]:
         """
         Integer representation of the values.
 

@@ -15,6 +15,7 @@ from pandas._libs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -337,7 +338,7 @@ class IntegerIndex(NumericIndex):
     """
 
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self) -> npt.NDArray[np.int64]:
         # do not cache or you'll create a memory leak
         warnings.warn(
             "Index.asi8 is deprecated and will be removed in a future version",

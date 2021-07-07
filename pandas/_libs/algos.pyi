@@ -1,7 +1,11 @@
 # Note: this covers algos.pyx and algos_common_helper but NOT algos_take_helper
-from typing import Any
+from typing import (
+    Any,
+    Union,
+)
 
 import numpy as np
+import numpy.typing as npt
 
 class Infinity:
     """
@@ -28,18 +32,18 @@ class NegInfinity:
     def __ge__(self, other) -> bool: ...
 
 def unique_deltas(
-    arr: np.ndarray,  # const int64_t[:]
-) -> np.ndarray: ...  # np.ndarray[np.int64, ndim=1]
-def is_lexsorted(list_of_arrays: list[np.ndarray]) -> bool: ...
+    arr: npt.NDArray[np.int64],  # const int64_t[:]
+) -> npt.NDArray[np.int64]: ...  # np.ndarray[np.int64, ndim=1]
+def is_lexsorted(list_of_arrays: list[npt.NDArray[np.int64]]) -> bool: ...
 def groupsort_indexer(
-    index: np.ndarray,  # const int64_t[:]
+    index: npt.NDArray[np.intp],  # const intp_t[:]
     ngroups: int,
 ) -> tuple[
-    np.ndarray,  # ndarray[int64_t, ndim=1]
-    np.ndarray,  # ndarray[int64_t, ndim=1]
+    npt.NDArray[np.intp],  # ndarray[intp_t, ndim=1]
+    npt.NDArray[np.intp],  # ndarray[intp_t, ndim=1]
 ]: ...
 def kth_smallest(
-    a: np.ndarray,  # numeric[:]
+    a: npt.NDArray[np.number | np.bool_],  # numeric[:]
     k: int,
 ) -> Any: ...  # numeric
 
@@ -47,67 +51,68 @@ def kth_smallest(
 # Pairwise correlation/covariance
 
 def nancorr(
-    mat: np.ndarray,  # const float64_t[:, :]
+    mat: npt.NDArray[np.float64],  # const float64_t[:, :]
     cov: bool = False,
     minp=None,
-) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
+) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 def nancorr_spearman(
-    mat: np.ndarray,  # ndarray[float64_t, ndim=2]
+    mat: npt.NDArray[np.float64],  # ndarray[float64_t, ndim=2]
     minp: int = 1,
-) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
+) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 def nancorr_kendall(
-    mat: np.ndarray,  # ndarray[float64_t, ndim=2]
+    mat: npt.NDArray[np.float64],  # ndarray[float64_t, ndim=2]
     minp: int = 1,
-) -> np.ndarray: ...  # ndarray[float64_t, ndim=2]
+) -> npt.NDArray[np.float64]: ...  # ndarray[float64_t, ndim=2]
 
 # ----------------------------------------------------------------------
 
-# ctypedef fused algos_t:
-#    float64_t
-#    float32_t
-#    object
-#    int64_t
-#    int32_t
-#    int16_t
-#    int8_t
-#    uint64_t
-#    uint32_t
-#    uint16_t
-#    uint8_t
+algos_t = Union[
+    np.float64,
+    np.float32,
+    np.object_,
+    np.int64,
+    np.int32,
+    np.int16,
+    np.int8,
+    np.uint64,
+    np.uint32,
+    np.uint16,
+    np.uint8,
+]
 
 def validate_limit(nobs: int | None, limit=None) -> int: ...
 def pad(
-    old: np.ndarray,  # ndarray[algos_t]
-    new: np.ndarray,  # ndarray[algos_t]
+    old: npt.NDArray[algos_t],  # ndarray[algos_t]
+    new: npt.NDArray[algos_t],  # ndarray[algos_t]
     limit=None,
-) -> np.ndarray: ...  # np.ndarray[np.intp, ndim=1]
+) -> npt.NDArray[np.uintp]: ...  # np.ndarray[np.intp, ndim=1]
 def pad_inplace(
-    values: np.ndarray,  # algos_t[:]
-    mask: np.ndarray,  # uint8_t[:]
+    values: npt.NDArray[algos_t],  # algos_t[:]
+    mask: npt.NDArray[np.uint8],  # uint8_t[:]
     limit=None,
 ) -> None: ...
 def pad_2d_inplace(
-    values: np.ndarray,  # algos_t[:, :]
-    mask: np.ndarray,  # const uint8_t[:, :]
+    values: npt.NDArray[algos_t],  # algos_t[:, :]
+    mask: npt.NDArray[np.uint8],  # const uint8_t[:, :]
     limit=None,
 ) -> None: ...
 def backfill(
-    old: np.ndarray,  # ndarray[algos_t]
-    new: np.ndarray,  # ndarray[algos_t]
+    old: npt.NDArray[algos_t],  # ndarray[algos_t]
+    new: npt.NDArray[algos_t],  # ndarray[algos_t]
     limit=None,
-) -> np.ndarray: ...  # np.ndarray[np.intp, ndim=1]
+) -> npt.NDArray[np.uintp]: ...  # np.ndarray[np.intp, ndim=1]
 def backfill_inplace(
-    values: np.ndarray,  # algos_t[:]
-    mask: np.ndarray,  # uint8_t[:]
+    values: npt.NDArray[algos_t],  # algos_t[:]
+    mask: npt.NDArray[np.uint8],  # uint8_t[:]
     limit=None,
 ) -> None: ...
 def backfill_2d_inplace(
-    values: np.ndarray,  # algos_t[:, :]
-    mask: np.ndarray,  # const uint8_t[:, :]
+    values: npt.NDArray[algos_t],  # algos_t[:, :]
+    mask: npt.NDArray[np.uint8],  # const uint8_t[:, :]
     limit=None,
 ) -> None: ...
 def is_monotonic(
-    arr: np.ndarray,  # ndarray[algos_t, ndim=1]
+    arr: npt.NDArray[algos_t],  # ndarray[algos_t, ndim=1]
     timelike: bool,
 ) -> tuple[bool, bool, bool]: ...
 
@@ -146,18 +151,18 @@ def diff_2d(
     axis: int,
     datetimelike: bool = ...,
 ) -> None: ...
-def ensure_platform_int(arr: object) -> np.ndarray: ...
-def ensure_object(arr: object) -> np.ndarray: ...
-def ensure_float64(arr: object, copy=True) -> np.ndarray: ...
-def ensure_float32(arr: object, copy=True) -> np.ndarray: ...
-def ensure_int8(arr: object, copy=True) -> np.ndarray: ...
-def ensure_int16(arr: object, copy=True) -> np.ndarray: ...
-def ensure_int32(arr: object, copy=True) -> np.ndarray: ...
-def ensure_int64(arr: object, copy=True) -> np.ndarray: ...
-def ensure_uint8(arr: object, copy=True) -> np.ndarray: ...
-def ensure_uint16(arr: object, copy=True) -> np.ndarray: ...
-def ensure_uint32(arr: object, copy=True) -> np.ndarray: ...
-def ensure_uint64(arr: object, copy=True) -> np.ndarray: ...
+def ensure_platform_int(arr: object) -> npt.NDArray[np.intp]: ...
+def ensure_object(arr: object) -> npt.NDArray[np.object_]: ...
+def ensure_float64(arr: object, copy=True) -> npt.NDArray[np.float64]: ...
+def ensure_float32(arr: object, copy=True) -> npt.NDArray[np.float32]: ...
+def ensure_int8(arr: object, copy=True) -> npt.NDArray[np.int8]: ...
+def ensure_int16(arr: object, copy=True) -> npt.NDArray[np.int16]: ...
+def ensure_int32(arr: object, copy=True) -> npt.NDArray[np.int32]: ...
+def ensure_int64(arr: object, copy=True) -> npt.NDArray[np.int64]: ...
+def ensure_uint8(arr: object, copy=True) -> npt.NDArray[np.uint8]: ...
+def ensure_uint16(arr: object, copy=True) -> npt.NDArray[np.uint16]: ...
+def ensure_uint32(arr: object, copy=True) -> npt.NDArray[np.uint32]: ...
+def ensure_uint64(arr: object, copy=True) -> npt.NDArray[np.uint64]: ...
 def take_1d_int8_int8(
     values: np.ndarray, indexer: np.ndarray, out: np.ndarray, fill_value=...
 ) -> None: ...

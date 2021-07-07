@@ -45,6 +45,7 @@ from pandas._typing import (
     Shape,
     T,
     final,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -586,7 +587,7 @@ class Index(IndexOpsMixin, PandasObject):
     """
 
     @property
-    def asi8(self):
+    def asi8(self) -> npt.NDArray[np.int64]:
         """
         Integer representation of the values.
 
@@ -600,7 +601,9 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        return None
+        # error: Incompatible return value type (got "None", expected "ndarray[Any,
+        # dtype[signedinteger[_64Bit]]]")
+        return None  # type: ignore[return-value]
 
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
@@ -4248,7 +4251,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels: list[np.ndarray]) -> np.ndarray:
+        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
