@@ -8,6 +8,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Literal,
     cast,
     overload,
 )
@@ -81,7 +82,6 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import DataFrame
     from pandas.core.arrays import (
