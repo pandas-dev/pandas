@@ -30,7 +30,9 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :meth:`Series.sample`, :meth:`DataFrame.sample`, and :meth:`.GroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
+- :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 - Added keyword argument ``environment`` to :meth:`.Styler.to_latex` also allowing a specific "longtable" entry with a separate jinja2 template (:issue:`41866`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -81,8 +83,6 @@ If installed, we now require:
 | pytest (dev)    | 6.0             |          |         |
 +-----------------+-----------------+----------+---------+
 | mypy (dev)      | 0.910           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| setuptools      | 38.6.0          |          |         |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
