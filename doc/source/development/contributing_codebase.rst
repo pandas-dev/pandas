@@ -821,6 +821,13 @@ documentation page; ideally links would only be added if they resolve. You can
 usually find similar examples by checking the release notes for one of the previous
 versions.
 
+If your code is a bugfix, add your entry to the relevant bugfix section. Avoid
+adding to the ``Other`` section; only in rare cases should entries go there.
+Being as concise as possible, the description of the bug should include how the
+user may encounter it and an indication of the bug itself, e.g.
+"produces incorrect results" or "incorrectly raises". It may be necessary to also
+indicate the new behavior.
+
 If your code is an enhancement, it is most likely necessary to add usage
 examples to the existing documentation.  This can be done following the section
 regarding :ref:`documentation <contributing_documentation>`.
@@ -835,10 +842,3 @@ This will put the text *New in version 1.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).
-
-If your code is a bugfix, add your entry to the relevant bugfix section. Avoid
-adding to the ``Other`` section; only in rare cases should entries go here.
-Being as concise as possible, the description of the bug should include how the
-user may encounter it and an indication of the bug itself, e.g.
-"produces incorrect results" or "incorrectly raises". It may be necessary to also
-indicate the new behavior.
