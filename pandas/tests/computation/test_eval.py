@@ -21,7 +21,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Series,
-    compat,
     date_range,
 )
 import pandas._testing as tm
@@ -1283,10 +1282,8 @@ class TestOperationsNumExprPandas:
         msg = "left hand side of an assignment must be a single name"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("d,c = a + b")
-        if compat.PY38:
-            msg = "cannot assign to function call"
-        else:
-            msg = "can't assign to function call"
+
+        msg = "cannot assign to function call"
         with pytest.raises(SyntaxError, match=msg):
             df.eval('Timestamp("20131001") = a + b')
 
@@ -1971,9 +1968,7 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     "other",
     [
         "'x'",
-        pytest.param(
-            "...", marks=pytest.mark.xfail(not compat.PY38, reason="GH-28116")
-        ),
+        "...",
     ],
 )
 def test_equals_various(other):
