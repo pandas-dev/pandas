@@ -832,4 +832,18 @@ class AggEngine:
         self.grouper.agg(function, engine="cython")
 
 
+class Sample:
+    def setup(self):
+        N = 10 ** 3
+        self.df = DataFrame({"a": np.zeros(N)})
+        self.groups = np.arange(0, N)
+        self.weights = np.ones(N)
+
+    def time_sample(self):
+        self.df.groupby(self.groups).sample(n=1)
+
+    def time_sample_weights(self):
+        self.df.groupby(self.groups).sample(n=1, weights=self.weights)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
