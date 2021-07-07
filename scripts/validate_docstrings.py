@@ -15,39 +15,27 @@ Usage::
 """
 from __future__ import annotations
 
-import argparse
+from argparse import ArgumentParser
 import doctest
-import glob
-import importlib
-import json
-import os
-import subprocess
+from importlib import import_module
+from io import StringIO
+from json import dumps
+from pathlib import Path
+from subprocess import run
 import sys
-import tempfile
+from tempfile import NamedTemporaryFile
 
-try:
-    from io import StringIO
-except ImportError:
-    from cStringIO import StringIO
+import matplotlib
+import numpy
+from numpydoc.validate import (
+    Docstring,
+    validate,
+)
 
-# Template backend makes matplotlib to not plot anything. This is useful
-# to avoid that plot windows are open from the doctests while running the
-# script. Setting here before matplotlib is loaded.
-# We don't warn for the number of open plots, as none is actually being opened
-os.environ["MPLBACKEND"] = "Template"
-import matplotlib  # isort:skip
+import pandas
 
+matplotlib.rcParams["backend"] = "template"
 matplotlib.rc("figure", max_open_warning=10000)
-
-import numpy  # isort:skip
-
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas  # isort:skip
-
-sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.validate import validate, Docstring  # isort:skip
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
@@ -130,7 +118,7 @@ def get_api_items(api_doc_fd):
                 position = None
                 continue
             item = line.strip()
-            func = importlib.import_module(current_module)
+            func = import_module(current_module)
             for part in item.split("."):
                 func = getattr(func, part)
 
@@ -182,11 +170,11 @@ class PandasDocstring(Docstring):
         )
 
         error_messages = []
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
+        with NamedTemporaryFile(mode="w", encoding="utf-8") as file:
             file.write(content)
             file.flush()
             cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
-            response = subprocess.run(cmd, capture_output=True, text=True)
+            response = run(cmd, capture_output=True, text=True)
             stdout = response.stdout
             stdout = stdout.replace(file.name, "")
             messages = stdout.strip("\n")
@@ -288,13 +276,14 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    api_doc_fnames = os.path.join(BASE_PATH, "doc", "source", "reference", "*.rst")
+    base_path = Path(__file__).parent.parent
+    api_doc_fnames = Path(base_path, "doc", "source", "reference")
     api_items = []
-    for api_doc_fname in glob.glob(api_doc_fnames):
+    for api_doc_fname in api_doc_fnames.glob("*.rst"):
         with open(api_doc_fname) as f:
             api_items += list(get_api_items(f))
 
-    for func_name, func_obj, section, subsection in api_items:
+    for func_name, _, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = pandas_validate(func_name)
@@ -330,7 +319,7 @@ def print_validate_all_results(
     result = validate_all(prefix, ignore_deprecated)
 
     if output_format == "json":
-        sys.stdout.write(json.dumps(result))
+        sys.stdout.write(dumps(result))
         return 0
 
     prefix = "##[error]" if output_format == "actions" else ""
@@ -398,7 +387,7 @@ if __name__ == "__main__":
         "if not provided, all docstrings are validated and returned "
         "as JSON"
     )
-    argparser = argparse.ArgumentParser(description="validate pandas docstrings")
+    argparser = ArgumentParser(description="validate pandas docstrings")
     argparser.add_argument("function", nargs="?", default=None, help=func_help)
     argparser.add_argument(
         "--format",
