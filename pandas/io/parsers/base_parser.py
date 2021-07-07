@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 import csv
 import datetime
+from enum import Enum
 import itertools
 from typing import (
     Any,
@@ -22,6 +23,7 @@ import pandas._libs.parsers as parsers
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas._libs.tslibs import parsing
 from pandas._typing import (
+    ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
     final,
@@ -108,10 +110,16 @@ parser_defaults = {
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
+    "on_bad_lines": "error",
 }
 
 
 class ParserBase:
+    class BadLineHandleMethod(Enum):
+        ERROR = 0
+        WARN = 1
+        SKIP = 2
+
     _implicit_index: bool = False
     _first_chunk: bool
 
@@ -203,9 +211,13 @@ class ParserBase:
 
         self.handles: IOHandles | None = None
 
+        # Fallback to error to pass a sketchy test(test_override_set_noconvert_columns)
+        # Normally, this arg would get pre-processed earlier on
+        self.on_bad_lines = kwds.get("on_bad_lines", self.BadLineHandleMethod.ERROR)
+
     def _open_handles(self, src: FilePathOrBuffer, kwds: dict[str, Any]) -> None:
         """
-        Let the readers open IOHanldes after they are done with their potential raises.
+        Let the readers open IOHandles after they are done with their potential raises.
         """
         self.handles = get_handle(
             src,
@@ -791,6 +803,29 @@ class ParserBase:
             )
 
         return names, data
+
+    def _check_data_length(self, columns: list[str], data: list[ArrayLike]) -> None:
+        """Checks if length of data is equal to length of column names.
+
+        One set of trailing commas is allowed. self.index_col not False
+        results in a ParserError previously when lengths do not match.
+
+        Parameters
+        ----------
+        columns: list of column names
+        data: list of array-likes containing the data column-wise.
+        """
+        if not self.index_col and len(columns) != len(data) and columns:
+            if len(columns) == len(data) - 1 and np.all(
+                (is_object_dtype(data[-1]) and data[-1] == "") | isna(data[-1])
+            ):
+                return
+            warnings.warn(
+                "Length of header or names does not match length of data. This leads "
+                "to a loss of data with index_col=False.",
+                ParserWarning,
+                stacklevel=6,
+            )
 
     def _evaluate_usecols(self, usecols, names):
         """

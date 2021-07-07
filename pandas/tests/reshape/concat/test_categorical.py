@@ -148,8 +148,8 @@ class TestCategoricalConcat:
         result = pd.concat([df2, df3])
         expected = pd.concat(
             [
-                df2.set_axis(df2.index.astype(object), 0),
-                df3.set_axis(df3.index.astype(object), 0),
+                df2.set_axis(df2.index.astype(object), axis=0),
+                df3.set_axis(df3.index.astype(object), axis=0),
             ]
         )
         tm.assert_frame_equal(result, expected)
@@ -202,3 +202,24 @@ class TestCategoricalConcat:
 
         dfa = df1.append(df2)
         tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
+
+    def test_categorical_index_upcast(self):
+        # GH 17629
+        # test upcasting to object when concatinating on categorical indexes
+        # with non-identical categories
+
+        a = DataFrame({"foo": [1, 2]}, index=Categorical(["foo", "bar"]))
+        b = DataFrame({"foo": [4, 3]}, index=Categorical(["baz", "bar"]))
+
+        res = pd.concat([a, b])
+        exp = DataFrame({"foo": [1, 2, 4, 3]}, index=["foo", "bar", "baz", "bar"])
+
+        tm.assert_equal(res, exp)
+
+        a = Series([1, 2], index=Categorical(["foo", "bar"]))
+        b = Series([4, 3], index=Categorical(["baz", "bar"]))
+
+        res = pd.concat([a, b])
+        exp = Series([1, 2, 4, 3], index=["foo", "bar", "baz", "bar"])
+
+        tm.assert_equal(res, exp)

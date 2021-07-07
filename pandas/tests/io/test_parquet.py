@@ -13,10 +13,7 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas.compat import (
-    PY38,
-    is_platform_windows,
-)
+from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under1p0,
     pa_version_under2p0,
@@ -651,7 +648,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.xfail(
-        is_platform_windows() and PY38,
+        is_platform_windows(),
         reason="localhost connection rejected",
         strict=False,
     )
@@ -810,12 +807,11 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @td.skip_if_no("pyarrow", min_version="1.0.0")
-    def test_pyarrow_backed_string_array(self, pa):
+    def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="arrow_string")})
-        check_round_trip(df, pa, expected=df)
+        df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
+        with pd.option_context("string_storage", string_storage):
+            check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
     @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):

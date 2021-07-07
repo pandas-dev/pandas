@@ -48,7 +48,7 @@ class CSVFormatter:
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        path_or_buf: FilePathOrBuffer[str] = "",
+        path_or_buf: FilePathOrBuffer[str] | FilePathOrBuffer[bytes] = "",
         sep: str = ",",
         cols: Sequence[Hashable] | None = None,
         index_label: IndexLabel | None = None,

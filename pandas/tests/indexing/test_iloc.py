@@ -13,6 +13,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -595,7 +596,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "single positional indexer is out-of-bounds"
+        msg = "index 5 is out of bounds for axis 0 with size 4"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -1340,3 +1341,10 @@ class TestILocSeries:
         ser1.iloc[1:3] = ser2.iloc[1:3]
         expected = Series([1, 5, 6])
         tm.assert_series_equal(ser1, expected)
+
+    def test_iloc_nullable_int64_size_1_nan(self):
+        # GH 31861
+        result = DataFrame({"a": ["test"], "b": [np.nan]})
+        result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+        expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)

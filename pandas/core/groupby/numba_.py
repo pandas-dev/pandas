@@ -56,11 +56,12 @@ def validate_udf(func: Callable) -> None:
 
 
 def generate_numba_agg_func(
-    args: tuple,
     kwargs: dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: dict[str, bool] | None,
-) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
+) -> Callable[
+    [np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int, Any], np.ndarray
+]:
     """
     Generate a numba jitted agg function specified by values from engine_kwargs.
 
@@ -72,8 +73,6 @@ def generate_numba_agg_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
     kwargs : dict
         **kwargs to be passed into the function
     func : function
@@ -103,6 +102,7 @@ def generate_numba_agg_func(
         end: np.ndarray,
         num_groups: int,
         num_columns: int,
+        *args: Any,
     ) -> np.ndarray:
         result = np.empty((num_groups, num_columns))
         for i in numba.prange(num_groups):
@@ -116,11 +116,12 @@ def generate_numba_agg_func(
 
 
 def generate_numba_transform_func(
-    args: tuple,
     kwargs: dict[str, Any],
     func: Callable[..., np.ndarray],
     engine_kwargs: dict[str, bool] | None,
-) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int], np.ndarray]:
+) -> Callable[
+    [np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int, Any], np.ndarray
+]:
     """
     Generate a numba jitted transform function specified by values from engine_kwargs.
 
@@ -132,8 +133,6 @@ def generate_numba_transform_func(
 
     Parameters
     ----------
-    args : tuple
-        *args to be passed into the function
     kwargs : dict
         **kwargs to be passed into the function
     func : function
@@ -163,6 +162,7 @@ def generate_numba_transform_func(
         end: np.ndarray,
         num_groups: int,
         num_columns: int,
+        *args: Any,
     ) -> np.ndarray:
         result = np.empty((len(values), num_columns))
         for i in numba.prange(num_groups):

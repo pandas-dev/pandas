@@ -764,11 +764,33 @@ def test_loc_getitem_index_differently_ordered_slice_none():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("indexer", [[1, 2, 7, 6, 2, 3, 8, 7], [1, 2, 7, 6, 3, 8]])
+def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
+    # GH#40978
+    df = DataFrame(
+        [1] * 8,
+        index=MultiIndex.from_tuples(
+            [(1, 1), (1, 2), (1, 7), (1, 6), (2, 2), (2, 3), (2, 8), (2, 7)]
+        ),
+        columns=["a"],
+    )
+    result = df.loc[(slice(None), indexer), :]
+    expected = DataFrame(
+        [1] * 8,
+        index=[[1, 1, 2, 1, 2, 1, 2, 2], [1, 2, 2, 7, 7, 6, 3, 8]],
+        columns=["a"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[df.index.isin(indexer, level=1), :]
+    tm.assert_frame_equal(result, df)
+
+
 def test_loc_getitem_drops_levels_for_one_row_dataframe():
-    # GH#10521
+    # GH#10521 "x" and "z" are both scalar indexing, so those levels are dropped
     mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
     df = DataFrame({"d": [0]}, index=mi)
-    expected = df.copy()
+    expected = df.droplevel([0, 2])
     result = df.loc["x", :, "z"]
     tm.assert_frame_equal(result, expected)
 
@@ -844,3 +866,27 @@ def test_loc_get_scalar_casting_to_float():
     result = df.loc[[(3, 4)], "b"].iloc[0]
     assert result == 2
     assert isinstance(result, np.int64)
+
+
+def test_loc_empty_single_selector_with_names():
+    # GH 19517
+    idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=[1, 0])
+    s2 = Series(index=idx, dtype=np.float64)
+    result = s2.loc["a"]
+    expected = Series([np.nan, np.nan], index=Index(["A", "B"], name=0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_keyerror_rightmost_key_missing():
+    # GH 20951
+
+    df = DataFrame(
+        {
+            "A": [100, 100, 200, 200, 300, 300],
+            "B": [10, 10, 20, 21, 31, 33],
+            "C": range(6),
+        }
+    )
+    df = df.set_index(["A", "B"])
+    with pytest.raises(KeyError, match="^1$"):
+        df.loc[(100, 1)]

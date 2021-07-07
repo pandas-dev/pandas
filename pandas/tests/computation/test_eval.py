@@ -1,11 +1,8 @@
+from __future__ import annotations
+
 from functools import reduce
 from itertools import product
 import operator
-from typing import (
-    Dict,
-    List,
-    Type,
-)
 import warnings
 
 import numpy as np
@@ -24,7 +21,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Series,
-    compat,
     date_range,
 )
 import pandas._testing as tm
@@ -147,8 +143,8 @@ midhs = lhs
 
 @td.skip_if_no_ne
 class TestEvalNumexprPandas:
-    exclude_cmp: List[str] = []
-    exclude_bool: List[str] = []
+    exclude_cmp: list[str] = []
+    exclude_bool: list[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1125,7 +1121,7 @@ class TestAlignment:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPandas:
-    exclude_arith: List[str] = []
+    exclude_arith: list[str] = []
 
     engine = "numexpr"
     parser = "pandas"
@@ -1286,10 +1282,8 @@ class TestOperationsNumExprPandas:
         msg = "left hand side of an assignment must be a single name"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("d,c = a + b")
-        if compat.PY38:
-            msg = "cannot assign to function call"
-        else:
-            msg = "can't assign to function call"
+
+        msg = "cannot assign to function call"
         with pytest.raises(SyntaxError, match=msg):
             df.eval('Timestamp("20131001") = a + b')
 
@@ -1629,7 +1623,7 @@ class TestOperationsNumExprPandas:
 
 @td.skip_if_no_ne
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
-    exclude_arith: List[str] = ["in", "not in"]
+    exclude_arith: list[str] = ["in", "not in"]
 
     engine = "numexpr"
     parser = "python"
@@ -1723,7 +1717,7 @@ class TestOperationsPythonPython(TestOperationsNumExprPython):
 
 
 class TestOperationsPythonPandas(TestOperationsNumExprPandas):
-    exclude_arith: List[str] = []
+    exclude_arith: list[str] = []
 
     engine = "python"
     parser = "pandas"
@@ -1878,7 +1872,7 @@ def test_invalid_parser():
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, parser="asdf")
 
 
-_parsers: Dict[str, Type[BaseExprVisitor]] = {
+_parsers: dict[str, type[BaseExprVisitor]] = {
     "python": PythonExprVisitor,
     "pytables": pytables.PyTablesExprVisitor,
     "pandas": PandasExprVisitor,
@@ -1974,9 +1968,7 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     "other",
     [
         "'x'",
-        pytest.param(
-            "...", marks=pytest.mark.xfail(not compat.PY38, reason="GH-28116")
-        ),
+        "...",
     ],
 )
 def test_equals_various(other):

@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
+import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -106,7 +107,7 @@ def melt(
                 id_vars + value_vars
             )
         else:
-            idx = frame.columns.get_indexer(id_vars + value_vars)
+            idx = algos.unique(frame.columns.get_indexer_for(id_vars + value_vars))
         frame = frame.iloc[:, idx]
     else:
         frame = frame.copy()
@@ -226,7 +227,7 @@ def lreshape(data: DataFrame, groups, dropna: bool = True, label=None) -> DataFr
     else:
         keys, values = zip(*groups)
 
-    all_cols = list(set.union(*[set(x) for x in values]))
+    all_cols = list(set.union(*(set(x) for x in values)))
     id_cols = list(data.columns.difference(all_cols))
 
     K = len(values[0])
