@@ -33,7 +33,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Manager2D,
 )
 from pandas.util._decorators import (
@@ -296,7 +295,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: dict[base.OutputKey, FrameOrSeriesUnion] = {}
+        results: dict[base.OutputKey, DataFrame | Series] = {}
         for idx, (name, func) in enumerate(arg):
 
             key = base.OutputKey(label=name, position=idx)
@@ -422,7 +421,7 @@ class SeriesGroupBy(GroupBy[Series]):
         keys: Index,
         values: list[Any] | None,
         not_indexed_same: bool = False,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
 
@@ -1193,7 +1192,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
         # TODO: Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
@@ -1310,6 +1309,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
         for name, group in gen:
+            if group.size == 0:
+                continue
             object.__setattr__(group, "name", name)
 
             # Try slow path and fast path.
@@ -1326,9 +1327,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # we need to broadcast across the
                 # other dimension; this will preserve dtypes
                 # GH14457
-                if not np.prod(group.shape):
-                    continue
-                elif res.index.is_(obj.index):
+                if res.index.is_(obj.index):
                     r = concat([res] * len(group.columns), axis=1)
                     r.columns = group.columns
                     r.index = group.index

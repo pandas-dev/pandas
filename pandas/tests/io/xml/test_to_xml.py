@@ -9,7 +9,6 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -364,10 +363,6 @@ def test_na_empty_elem_option(datapath, parser):
 # ATTR_COLS
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
-)
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -383,10 +378,6 @@ def test_attrs_cols_nan_output(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -541,10 +532,6 @@ def test_hierarchical_columns(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -614,10 +601,6 @@ def test_multi_index(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
