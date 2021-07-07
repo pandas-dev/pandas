@@ -2080,10 +2080,13 @@ class TestDataFrameConstructors:
 
         assert not (series["A"] == 5).all()
 
-    def test_2d_object_array_does_not_copy(self):
-        arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
-        df = DataFrame(arr)
-        assert np.shares_memory(df.values, arr)
+    def test_object_array_does_not_copy(self):
+        a = np.array(["a", "b"], dtype="object")
+        b = np.array([["a", "b"], ["c", "d"]], dtype="object")
+        df = DataFrame(a)
+        assert np.shares_memory(df.values, a)
+        df2 = DataFrame(b)
+        assert np.shares_memory(df2.values, b)
 
     def test_constructor_with_nas(self):
         # GH 5016
