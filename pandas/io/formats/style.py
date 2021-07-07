@@ -23,7 +23,6 @@ from pandas._typing import (
     Axis,
     FilePathOrBuffer,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
 )
@@ -174,7 +173,7 @@ class Styler(StylerRenderer):
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
@@ -703,7 +702,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> df.style.set_properties(
         ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
-        ... ).to_latex(css_convert=True)
+        ... ).to_latex(convert_css=True)
         \begin{tabular}{lr}
         {} & {0} \\
         0 & {\bfseries}{\Huge{1}} \\
@@ -1031,15 +1030,14 @@ class Styler(StylerRenderer):
 
         Returns None.
         """
-        self.ctx.clear()
-        self.tooltips = None
-        self.cell_context.clear()
-        self._todo.clear()
-
-        self.hide_index_ = False
-        self.hidden_columns = []
-        # self.format and self.table_styles may be dependent on user
-        # input in self.__init__()
+        # create default GH 40675
+        clean_copy = Styler(self.data, uuid=self.uuid)
+        clean_attrs = [a for a in clean_copy.__dict__ if not callable(a)]
+        self_attrs = [a for a in self.__dict__ if not callable(a)]  # maybe more attrs
+        for attr in clean_attrs:
+            setattr(self, attr, getattr(clean_copy, attr))
+        for attr in set(self_attrs).difference(clean_attrs):
+            delattr(self, attr)
 
     def _apply(
         self,
