@@ -24,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :class:`DataFrame` constructor always copying 2D object arrays (:issue:`39272`)
 -
 
 .. ---------------------------------------------------------------------------
