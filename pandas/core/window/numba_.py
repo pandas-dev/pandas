@@ -250,3 +250,82 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
         return result
 
     return nan_agg_with_axis
+
+
+def generate_ewma_numba_table_func(
+    engine_kwargs: dict[str, bool] | None,
+    com: float,
+    adjust: bool,
+    ignore_na: bool,
+    deltas: np.ndarray,
+):
+    """
+    Generate a numba jitted ewma function applied table wise specified
+    by values from engine_kwargs.
+
+    Parameters
+    ----------
+    engine_kwargs : dict
+        dictionary of arguments to be passed into numba.jit
+    com : float
+    adjust : bool
+    ignore_na : bool
+    deltas : numpy.ndarray
+
+    Returns
+    -------
+    Numba function
+    """
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs)
+
+    cache_key = (lambda x: x, "ewma_table")
+    if cache_key in NUMBA_FUNC_CACHE:
+        return NUMBA_FUNC_CACHE[cache_key]
+
+    numba = import_optional_dependency("numba")
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def ewma_table(
+        values: np.ndarray,
+        begin: np.ndarray,
+        end: np.ndarray,
+        minimum_periods: int,
+    ) -> np.ndarray:
+        alpha = 1.0 / (1.0 + com)
+        old_wt_factor = 1.0 - alpha
+        new_wt = 1.0 if adjust else alpha
+        old_wt = np.ones(values.shape[1])
+
+        result = np.empty(values.shape)
+        weighted_avg = values[0].copy()
+        nobs = (~np.isnan(weighted_avg)).astype(np.int64)
+        result[0] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
+        for i in range(1, len(values)):
+            cur = values[i]
+            is_observations = ~np.isnan(cur)
+            nobs += is_observations.astype(np.int64)
+            for j in numba.prange(len(cur)):
+                if not np.isnan(weighted_avg[j]):
+                    if is_observations[j] or not ignore_na:
+
+                        # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
+                        # used in conjunction with vals[i+1]
+                        old_wt[j] *= old_wt_factor ** deltas[i - 1]
+                        if is_observations[j]:
+                            # avoid numerical errors on constant series
+                            if weighted_avg[j] != cur[j]:
+                                weighted_avg[j] = (
+                                    (old_wt[j] * weighted_avg[j]) + (new_wt * cur[j])
+                                ) / (old_wt[j] + new_wt)
+                            if adjust:
+                                old_wt[j] += new_wt
+                            else:
+                                old_wt[j] = 1.0
+                elif is_observations[j]:
+                    weighted_avg[j] = cur[j]
+
+            result[i] = np.where(nobs >= minimum_periods, weighted_avg, np.nan)
+
+        return result
+
+    return ewma_table
