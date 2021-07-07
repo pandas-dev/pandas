@@ -212,7 +212,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
--
+- Bug in :class:`Series.argsort` where the index was misaligned and the indexed values were not correct (:issue:`42056`, :issue:`12694`)
 
 Missing
 ^^^^^^^
