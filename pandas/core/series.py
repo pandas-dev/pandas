@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    Literal,
     Sequence,
     Union,
     cast,
@@ -140,7 +141,6 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         TimedeltaConvertibleTypes,
@@ -201,7 +201,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     methods from ndarray have been overridden to automatically exclude
     missing data (currently represented as NaN).
 
-    Operations between Series (+, -, /, *, **) align values based on their
+    Operations between Series (+, -, /, \\*, \\*\\*) align values based on their
     associated index values-- they need not be the same length. The result
     index will be the sorted union of the two indexes.
 

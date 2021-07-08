@@ -14,6 +14,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sized,
     TypeVar,
     cast,
@@ -93,7 +94,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas.core.arrays import (
         DatetimeArray,
@@ -779,6 +779,21 @@ def infer_dtype_from_scalar(val, pandas_dtype: bool = False) -> tuple[DtypeObj, 
             dtype = IntervalDtype(subtype=subtype, closed=val.closed)
 
     return dtype, val
+
+
+def dict_compat(d: dict[Scalar, Scalar]) -> dict[Scalar, Scalar]:
+    """
+    Convert datetimelike-keyed dicts to a Timestamp-keyed dict.
+
+    Parameters
+    ----------
+    d: dict-like object
+
+    Returns
+    -------
+    dict
+    """
+    return {maybe_box_datetimelike(key): value for key, value in d.items()}
 
 
 def infer_dtype_from_array(
