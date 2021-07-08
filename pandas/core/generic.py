@@ -3765,18 +3765,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
-            try:
-                loc, new_index = index._get_loc_level(key, level=0)
-            except TypeError as err:
-                raise TypeError(
-                    f"Expected label or tuple of labels, got {key}"
-                ) from err
-            else:
-                if not drop_level:
-                    if lib.is_integer(loc):
-                        new_index = index[loc : loc + 1]
-                    else:
-                        new_index = index[loc]
+            loc, new_index = index._get_loc_level(key, level=0)
+            if not drop_level:
+                if lib.is_integer(loc):
+                    new_index = index[loc : loc + 1]
+                else:
+                    new_index = index[loc]
         else:
             loc = index.get_loc(key)
 
@@ -9388,7 +9382,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if before is not None and after is not None and before > after:
             raise ValueError(f"Truncate: {after} must be after {before}")
 
-        if len(ax) > 1 and ax.is_monotonic_decreasing:
+        if len(ax) > 1 and ax.is_monotonic_decreasing and ax.nunique() > 1:
             before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
