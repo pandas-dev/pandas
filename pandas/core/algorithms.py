@@ -8,6 +8,7 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Literal,
     Union,
     cast,
 )
@@ -79,7 +80,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import (
         Categorical,

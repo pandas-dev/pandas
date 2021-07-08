@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Iterator,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -72,7 +73,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
