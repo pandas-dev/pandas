@@ -8,6 +8,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Literal,
     overload,
 )
 import warnings
@@ -80,7 +81,6 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import DataFrame
     from pandas.core.arrays import (
@@ -506,6 +506,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Descriptive Properties
 
     def _box_func(self, x) -> Timestamp | NaTType:
+        if isinstance(x, np.datetime64):
+            # GH#42228
+            # Argument 1 to "signedinteger" has incompatible type "datetime64";
+            # expected "Union[SupportsInt, Union[str, bytes], SupportsIndex]"
+            x = np.int64(x)  # type: ignore[arg-type]
         ts = Timestamp(x, tz=self.tz)
         # Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")

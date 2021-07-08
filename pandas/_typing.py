@@ -21,6 +21,7 @@ from typing import (
     Dict,
     Hashable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -37,7 +38,6 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from typing import (
-        Literal,
         TypedDict,
         final,
     )
@@ -120,15 +120,13 @@ JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
 
-# BitGenerator isn't exposed until 1.18
-if TYPE_CHECKING:
-    RandomState = Union[
-        int,
-        ArrayLike,
-        np.random.Generator,
-        np.random.BitGenerator,
-        np.random.RandomState,
-    ]
+RandomState = Union[
+    int,
+    ArrayLike,
+    np.random.Generator,
+    np.random.BitGenerator,
+    np.random.RandomState,
+]
 
 # dtypes
 NpDtype = Union[str, np.dtype]
@@ -200,10 +198,7 @@ ColspaceArgType = Union[
 ]
 
 # Arguments for fillna()
-if TYPE_CHECKING:
-    FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
-else:
-    FillnaOptions = str
+FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
 
 # internals
 Manager = Union[
