@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Hashable,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -159,7 +160,6 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import (
         CategoricalIndex,
@@ -1500,7 +1500,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_names(self) -> FrozenList:
         return FrozenList((self.name,))
 
-    def _set_names(self, values, level=None) -> None:
+    def _set_names(self, values, *, level=None) -> None:
         """
         Set new names on index. Each name has to be a hashable type.
 
@@ -1906,7 +1906,7 @@ class Index(IndexOpsMixin, PandasObject):
                 verify_integrity=False,
             )
 
-    def _get_grouper_for_level(self, mapper, level=None):
+    def _get_grouper_for_level(self, mapper, *, level=None):
         """
         Get index grouper corresponding to an index level
 
@@ -1915,7 +1915,7 @@ class Index(IndexOpsMixin, PandasObject):
         mapper: Group mapping function or None
             Function mapping index values to groups
         level : int or None
-            Index level
+            Index level, positional
 
         Returns
         -------
@@ -3069,6 +3069,30 @@ class Index(IndexOpsMixin, PandasObject):
             if self.has_duplicates:
                 return self.unique()._get_reconciled_name_object(other)
             return self._get_reconciled_name_object(other)
+
+        if len(self) == 0 or len(other) == 0:
+            # fastpath; we need to be careful about having commutativity
+
+            if self._is_multi or other._is_multi:
+                # _convert_can_do_setop ensures that we have both or neither
+                # We retain self.levels
+                return self[:0].rename(result_name)
+
+            dtype = self._find_common_type_compat(other)
+            if is_dtype_equal(self.dtype, dtype):
+                # Slicing allows us to retain DTI/TDI.freq, RangeIndex
+
+                # Note: self[:0] vs other[:0] affects
+                #  1) which index's `freq` we get in DTI/TDI cases
+                #     This may be a historical artifact, i.e. no documented
+                #     reason for this choice.
+                #  2) The `step` we get in RangeIndex cases
+                if len(self) == 0:
+                    return self[:0].rename(result_name)
+                else:
+                    return other[:0].rename(result_name)
+
+            return Index([], dtype=dtype, name=result_name)
 
         elif not self._should_compare(other):
             # We can infer that the intersection is empty.
@@ -5642,7 +5666,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
-    def _transform_index(self, func, level=None) -> Index:
+    def _transform_index(self, func, *, level=None) -> Index:
         """
         Apply function to all values found in index.
 
@@ -5651,6 +5675,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self, ABCMultiIndex):
             if level is not None:
+                # Caller is responsible for ensuring level is positional.
                 items = [
                     tuple(func(y) if i == level else y for i, y in enumerate(x))
                     for x in self
