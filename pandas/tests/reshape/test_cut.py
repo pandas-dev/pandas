@@ -694,7 +694,7 @@ def test_cut_no_warnings():
 
 
 def test_cut_with_duplicated_index_lowest_included():
-    # GH 42425
+    # GH 42185
     expected = Series(
         [Interval(-0.001, 2, closed="right")] * 3
         + [Interval(2, 4, closed="right"), Interval(-0.001, 2, closed="right")],
