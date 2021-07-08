@@ -262,26 +262,24 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
 .. code-block:: ipython
 
    In [2]: from pandas.api.indexers import BaseIndexer
-   ...:
-   ...: class CustomIndexer(BaseIndexer):
-   ...:
-   ...:    def get_window_bounds(self, num_values, min_periods, center, closed):
-   ...:        start = np.empty(num_values, dtype=np.int64)
-   ...:        end = np.empty(num_values, dtype=np.int64)
-   ...:        for i in range(num_values):
-   ...:            if self.use_expanding[i]:
-   ...:                start[i] = 0
-   ...:                end[i] = i + 1
-   ...:            else:
-   ...:                start[i] = i
-   ...:                end[i] = i + self.window_size
-   ...:        return start, end
-   ...:
 
-   In [3]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+   In [3]: class CustomIndexer(BaseIndexer):
+      ...:     def get_window_bounds(self, num_values, min_periods, center, closed):
+      ...:         start = np.empty(num_values, dtype=np.int64)
+      ...:         end = np.empty(num_values, dtype=np.int64)
+      ...:         for i in range(num_values):
+      ...:             if self.use_expanding[i]:
+      ...:                 start[i] = 0
+      ...:                 end[i] = i + 1
+      ...:             else:
+      ...:                 start[i] = i
+      ...:                 end[i] = i + self.window_size
+      ...:         return start, end
 
-   In [4]: df.rolling(indexer).sum()
-   Out[4]:
+   In [4]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+
+   In [5]: df.rolling(indexer).sum()
+   Out[5]:
        values
    0     0.0
    1     1.0
