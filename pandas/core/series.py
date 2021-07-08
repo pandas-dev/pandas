@@ -3649,7 +3649,7 @@ Keep all original rows and also all original values
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
             Has no effect but is accepted for compatibility with numpy.
-        na_position : {"first", "last", None}
+        na_position : {None, "first", "last"}
             Puts NaNs at the beginning if *first*; *last* puts NaNs at the end.
             Defaults to *None*, which puts NaNs at the end an gives them all a sorting
             index of '-1'.
