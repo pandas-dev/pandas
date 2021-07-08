@@ -708,6 +708,7 @@ def test_cut_with_duplicated_index_lowest_included():
 
 
 def test_cut_with_nonexact_categorical_indices():
+
     # GH 42424
 
     ser = Series(range(0, 100))

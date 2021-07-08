@@ -421,8 +421,7 @@ def _bins_to_cuts(
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        if isinstance(x, ABCSeries):
-            ids[np.asarray(x) == bins[0]] = 1
+        ids[np.asarray(x) == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
