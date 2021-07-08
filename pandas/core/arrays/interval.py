@@ -1643,10 +1643,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        # Invalid index type "Tuple[slice, int]" for "Union[ExtensionArray,
-        # ndarray[Any, Any]]"; expected type "Union[int, integer[Any], slice,
-        # Sequence[int], ndarray[Any, Any]]"
-        nc = unique(self._combined.view("complex128")[:, 0])  # type: ignore[index]
+        # No overload variant of "__getitem__" of "ExtensionArray" matches argument
+        # type "Tuple[slice, int]"
+        nc = unique(
+            self._combined.view("complex128")[:, 0]  # type: ignore[call-overload]
+        )
         nc = nc[:, None]
         return self._from_combined(nc)
 
