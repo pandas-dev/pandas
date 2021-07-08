@@ -3338,10 +3338,12 @@ class DataFrame(NDFrame, OpsMixin):
         ):
             # We have EAs with the same dtype. We can preserve that dtype in transpose.
             dtype = dtypes[0]
+            arr_type = dtype.construct_array_type()
             values = self.values
 
-            result = self._constructor(
-                values.T, index=self.columns, columns=self.index, dtype=dtype
+            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+            result = type(self)._from_arrays(
+                new_values, index=self.columns, columns=self.index
             )
 
         else:
