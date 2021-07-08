@@ -16,6 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Pandas could not be built on PyPy (:issue:`42355`)
 - :class:`DataFrame` constructed with with an older version of pandas could not be unpickled (:issue:`42345`)
+- Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42338`)
 -
 
 .. ---------------------------------------------------------------------------
