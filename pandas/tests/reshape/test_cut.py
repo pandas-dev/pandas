@@ -707,7 +707,7 @@ def test_cut_with_duplicated_index_lowest_included():
     tm.assert_series_equal(result, expected)
 
 
-def df_from_series_with_nonexact_categoricalindices_frompdcut():
+def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
     ser = Series(range(0, 100))
