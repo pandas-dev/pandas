@@ -150,6 +150,7 @@ Deprecations
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 - Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 - Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)
+- Deprecated treating ``numpy.datetime64`` objects as UTC times when passed to the :class:`Timestamp` constructor along with a timezone. In a future version, these will be treated as wall-times. To retain the old behavior, use ``Timestamp(dt64).tz_localize("UTC").tz_convert(tz)`` (:issue:`24559`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -159,7 +160,7 @@ Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
--
+- Performance improvement in :meth:`.GroupBy.transform` for user-defined functions (:issue:`41598`)
 
 .. ---------------------------------------------------------------------------
 
@@ -212,7 +213,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
--
+- Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` when the object's Index has a length greater than one but only one unique value (:issue:`42365`)
 
 Missing
 ^^^^^^^
