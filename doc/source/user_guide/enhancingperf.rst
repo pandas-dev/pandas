@@ -345,7 +345,7 @@ a larger amount of data points (e.g. 1+ million).
    In [3]: def f(x):
       ...:     return np.sum(x) + 5
    # Run the first time, compilation time will affect performance
-   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)  # noqa: E225, E999
+   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)
    1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
    # Function is cached and performance will improve
    In [5]: %timeit roll.apply(f, engine='numba', raw=True)
