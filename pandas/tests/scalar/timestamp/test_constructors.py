@@ -24,6 +24,24 @@ from pandas.tseries import offsets
 
 
 class TestTimestampConstructors:
+    def test_constructor_datetime64_with_tz(self):
+        # GH#42288, GH#24559
+        dt = np.datetime64("1970-01-01 05:00:00")
+        tzstr = "UTC+05:00"
+
+        msg = "interpreted as a wall time"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts = Timestamp(dt, tz=tzstr)
+
+        # Check that we match the old behavior
+        alt = Timestamp(dt).tz_localize("UTC").tz_convert(tzstr)
+        assert ts == alt
+
+        # Check that we *don't* match the future behavior
+        assert ts.hour != 5
+        expected_future = Timestamp(dt).tz_localize(tzstr)
+        assert ts != expected_future
+
     def test_constructor(self):
         base_str = "2014-07-01 09:00"
         base_dt = datetime(2014, 7, 1, 9)
