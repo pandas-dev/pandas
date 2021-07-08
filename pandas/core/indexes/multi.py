@@ -2862,9 +2862,15 @@ class MultiIndex(Index):
         # needs linear search within the slice
         i = self._lexsort_depth
         lead_key, follow_key = key[:i], key[i:]
-        start, stop = (
-            self.slice_locs(lead_key, lead_key) if lead_key else (0, len(self))
-        )
+
+        try:
+            start, stop = (
+                self.slice_locs(lead_key, lead_key) if lead_key else (0, len(self))
+            )
+        except TypeError as err:
+            # e.g. test_groupby_example key = ((0, 0, 1, 2), "new_col")
+            #  when self has 5 integer levels
+            raise KeyError(key) from err
 
         if start == stop:
             raise KeyError(key)
