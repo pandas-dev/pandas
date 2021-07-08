@@ -14,6 +14,7 @@ from typing import (
     AnyStr,
     Callable,
     Hashable,
+    Literal,
     Mapping,
     Sequence,
     cast,
@@ -46,6 +47,7 @@ from pandas._typing import (
     JSONSerializable,
     Level,
     Manager,
+    RandomState,
     Renamer,
     StorageOptions,
     T,
@@ -154,10 +156,8 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._libs.tslibs import BaseOffset
-    from pandas._typing import RandomState
 
     from pandas.core.frame import DataFrame
     from pandas.core.resample import Resampler
@@ -3765,18 +3765,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
-            try:
-                loc, new_index = index._get_loc_level(key, level=0)
-            except TypeError as err:
-                raise TypeError(
-                    f"Expected label or tuple of labels, got {key}"
-                ) from err
-            else:
-                if not drop_level:
-                    if lib.is_integer(loc):
-                        new_index = index[loc : loc + 1]
-                    else:
-                        new_index = index[loc]
+            loc, new_index = index._get_loc_level(key, level=0)
+            if not drop_level:
+                if lib.is_integer(loc):
+                    new_index = index[loc : loc + 1]
+                else:
+                    new_index = index[loc]
         else:
             loc = index.get_loc(key)
 
@@ -9388,7 +9382,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if before is not None and after is not None and before > after:
             raise ValueError(f"Truncate: {after} must be after {before}")
 
-        if len(ax) > 1 and ax.is_monotonic_decreasing:
+        if len(ax) > 1 and ax.is_monotonic_decreasing and ax.nunique() > 1:
             before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
@@ -10846,6 +10840,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_na: bool_t = False,
         axis: Axis = 0,
         times: str | np.ndarray | FrameOrSeries | None = None,
+        method: str = "single",
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)
         # error: Value of type variable "FrameOrSeries" of "ExponentialMovingWindow"
@@ -10861,6 +10856,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ignore_na=ignore_na,
             axis=axis,
             times=times,
+            method=method,
         )
 
     # ----------------------------------------------------------------------
