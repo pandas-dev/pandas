@@ -437,7 +437,7 @@ Consider the following example of doubling each observation:
 Caveats
 ~~~~~~~
 
-* Numba is best at accelerating functions that apply numerical functions to NumPy
+Numba is best at accelerating functions that apply numerical functions to NumPy
 arrays. If you try to ``@jit`` a function that contains unsupported `Python <https://numba.readthedocs.io/en/stable/reference/pysupported.html>`__
 or `NumPy <https://numba.readthedocs.io/en/stable/reference/numpysupported.html>`__
 code, compilation will revert `object mode <https://numba.readthedocs.io/en/stable/glossary.html#term-object-mode>`__ which
@@ -448,7 +448,7 @@ speeds up your code, pass Numba the argument
 troubleshooting Numba modes, see the `Numba troubleshooting page
 <https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-* Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may use an unsafe threading layer to execute parallelism, potentially
+Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may use an unsafe threading layer to execute parallelism, potentially
 leading to segfaults. You may need to first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__
 before running a JIT function with ``parallel=True``.
 
