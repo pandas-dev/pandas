@@ -338,7 +338,7 @@ a larger amount of data points (e.g. 1+ million).
 
 .. code-block:: ipython
 
-   In [1]: data = pd.Series(range(1_000_000))
+   In [1]: data = pd.Series(range(1_000_000))  # noqa: E225
 
    In [2]: roll = data.rolling(10)
 
