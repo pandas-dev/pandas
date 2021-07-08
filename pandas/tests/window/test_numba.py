@@ -332,3 +332,17 @@ class TestTableMethod:
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
+    def test_table_method_ewm(self, data, axis, nogil, parallel, nopython):
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(data)
+
+        result = df.ewm(com=1, method="table", axis=axis).mean(
+            engine_kwargs=engine_kwargs, engine="numba"
+        )
+        expected = df.ewm(com=1, method="single", axis=axis).mean(
+            engine_kwargs=engine_kwargs, engine="numba"
+        )
+        tm.assert_frame_equal(result, expected)
