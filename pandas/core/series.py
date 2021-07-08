@@ -3633,12 +3633,12 @@ Keep all original rows and also all original values
             key,
         )
 
-    def argsort(self, axis=0, kind="quicksort", order=None) -> Series:
+    def argsort(self, axis=0, kind="quicksort", order=None, na_position=None) -> Series:
         """
         Return the integer indices that would sort the Series values.
 
-        Override ndarray.argsort. NA/null sort indices are replaced by -1. The index
-        is sorted so that index labels correspond to the integer indices
+        Override ndarray.argsort. The index is also sorted so that index labels
+        correspond to the integer indices.
 
         Parameters
         ----------
@@ -3649,20 +3649,26 @@ Keep all original rows and also all original values
             information. 'mergesort' and 'stable' are the only stable algorithms.
         order : None
             Has no effect but is accepted for compatibility with numpy.
+        na_position : {"first", "last", None}
+            Puts NaNs at the beginning if *first*; *last* puts NaNs at the end.
+            Defaults to *None*, which puts NaNs at the end an gives them all a sorting
+            index of '-1'.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
         Series[np.intp]
-            Positions of values within the sort order with -1 indicating
-            nan values.
+            Positions of values within the sort order with associated sorted index.
 
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
+        Series.idxmax : Return the row label of the maximum value.
+        Series.idxmin : Return the row label of the minimum value.
 
         Examples
         --------
-
         Argsorting a basic Series.
 
         >>> series = Series([30, 10, 20], index=["high", "low", "mid"], name="xy")
@@ -3682,25 +3688,53 @@ Keep all original rows and also all original values
         high    0
         null   -1
         Name: xy, dtype: int64
+
+        Argsorting a Series using ``na_position``
+
+        >>> series.argsort(na_position="first")
+        null    2
+        low     1
+        mid     3
+        high    0
+        Name: xy, dtype: int64
         """
         values = self.values
         na_mask = isna(values)
-        if not any(na_mask):
+        n_na = na_mask.sum()
+        if n_na == 0:  # number of NaN values is zero
             res = np.argsort(values, kind=kind)
             res_ser = Series(res, index=self.index[res], dtype="int64", name=self.name)
             return res_ser.__finalize__(self, method="argsort")
         else:
             # GH 42090
-            # count the missing index values that will be added to not na results
             if isinstance(na_mask, pandas.core.arrays.sparse.SparseArray):
                 # avoid RecursionError
                 na_mask = np.asarray(na_mask)
+
+            # Do the not_na argsort:
+            # count the missing index values within arrays added to not_na results
             notna_na_cumsum = na_mask.cumsum()[~na_mask]
+            # argsort the values excluding the nans
             notna_argsort = np.argsort(values[~na_mask])
+            # add to these the indexes where nans have been removed
             notna_argsort += notna_na_cumsum[notna_argsort]
-            # combine the notna and na series
+
+            # Do the na argsort:
+            if na_position is None:
+                na_argsort = -1
+            elif na_position == "first" or na_position == "last":
+                # count the missing index values within arrays added to na results
+                na_notna_cumsum = (~na_mask).cumsum()[na_mask]
+                # argsort the nans
+                na_argsort = np.arange(n_na)
+                # add to these the indexes where not nans have been removed
+                na_argsort += na_notna_cumsum
+            else:
+                raise ValueError("`na_position` must be one of {'first', 'last', None}")
+
+            # create and combine the Series:
             na_res_ser = Series(
-                -1, index=self.index[na_mask], dtype="int64", name=self.name
+                na_argsort, index=self.index[na_mask], dtype="int64", name=self.name
             )
             notna_res_ser = Series(
                 notna_argsort,
@@ -3710,9 +3744,10 @@ Keep all original rows and also all original values
             )
             from pandas.core.reshape.concat import concat
 
-            ret_ser = concat([notna_res_ser, na_res_ser]).__finalize__(
-                self, method="argsort"
-            )
+            concat_order = [notna_res_ser, na_res_ser]
+            if na_position == "first":
+                concat_order = [na_res_ser, notna_res_ser]
+            ret_ser = concat(concat_order).__finalize__(self, method="argsort")
             assert isinstance(ret_ser, Series)  # mypy: concat 2 Series so is OK
             return ret_ser
 

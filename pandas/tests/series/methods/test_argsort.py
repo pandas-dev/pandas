@@ -70,3 +70,20 @@ class TestSeriesArgsort:
     def test_argsort_preserve_name(self, datetime_series):
         result = datetime_series.argsort()
         assert result.name == datetime_series.name
+
+    def test_na_pos_raises(self):
+        s = Series([0, np.nan])
+        with pytest.raises(ValueError, match="`na_position` must be one of"):
+            s.argsort(na_position="bad input")
+
+    @pytest.mark.parametrize(
+        "na_position, expected",
+        [
+            (None, Series([2, 0, -1, -1], index=["c", "a", "b", "d"])),
+            ("first", Series([1, 3, 2, 0], index=["b", "d", "c", "a"])),
+            ("last", Series([2, 0, 1, 3], index=["c", "a", "b", "d"])),
+        ],
+    )
+    def test_na_position(self, na_position, expected):
+        s = Series([2, np.nan, 1, np.nan], index=["a", "b", "c", "d"])
+        tm.assert_series_equal(s.argsort(na_position=na_position), expected)
