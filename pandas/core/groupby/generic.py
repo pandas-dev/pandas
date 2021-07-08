@@ -1858,16 +1858,16 @@ def _wrap_transform_general_frame(
         # other dimension; this will preserve dtypes
         # GH14457
         if res.index.is_(obj.index):
-            r = concat([res] * len(group.columns), axis=1)
-            r.columns = group.columns
-            r.index = group.index
+            res_frame = concat([res] * len(group.columns), axis=1)
+            res_frame.columns = group.columns
+            res_frame.index = group.index
         else:
-            r = obj._constructor(
+            res_frame = obj._constructor(
                 np.concatenate([res.values] * len(group.index)).reshape(group.shape),
                 columns=group.columns,
                 index=group.index,
             )
-        assert isinstance(r, DataFrame)
-        return r
+        assert isinstance(res_frame, DataFrame)
+        return res_frame
     else:
         return res
