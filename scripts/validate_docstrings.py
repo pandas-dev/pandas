@@ -15,17 +15,18 @@ Usage::
 """
 from __future__ import annotations
 
-from argparse import ArgumentParser
+import argparse
 import doctest
-from importlib import import_module
-from io import StringIO
-from json import dumps
-from pathlib import Path
-from subprocess import run
+import importlib
+import io
+import json
+import pathlib
+import subprocess
 import sys
-from tempfile import NamedTemporaryFile
+import tempfile
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy
 from numpydoc.validate import (
     Docstring,
@@ -34,8 +35,8 @@ from numpydoc.validate import (
 
 import pandas
 
-matplotlib.rcParams["backend"] = "template"
-matplotlib.rc("figure", max_open_warning=10000)
+# With template backend, matplotlib plots nothing
+matplotlib.use("template")
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
@@ -118,7 +119,7 @@ def get_api_items(api_doc_fd):
                 position = None
                 continue
             item = line.strip()
-            func = import_module(current_module)
+            func = importlib.import_module(current_module)
             for part in item.split("."):
                 func = getattr(func, part)
 
@@ -145,7 +146,7 @@ class PandasDocstring(Docstring):
         context = {"np": numpy, "pd": pandas}
         error_msgs = ""
         for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = StringIO()
+            f = io.StringIO()
             runner.run(test, out=f.write)
             error_msgs += f.getvalue()
         return error_msgs
@@ -170,11 +171,11 @@ class PandasDocstring(Docstring):
         )
 
         error_messages = []
-        with NamedTemporaryFile(mode="w", encoding="utf-8") as file:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as file:
             file.write(content)
             file.flush()
             cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
-            response = run(cmd, capture_output=True, text=True)
+            response = subprocess.run(cmd, capture_output=True, text=True)
             stdout = response.stdout
             stdout = stdout.replace(file.name, "")
             messages = stdout.strip("\n")
@@ -251,6 +252,7 @@ def pandas_validate(func_name: str):
     if doc.non_hyphenated_array_like():
         result["errors"].append(pandas_error("GL05"))
 
+    plt.close("all")
     return result
 
 
@@ -276,8 +278,8 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    base_path = Path(__file__).parent.parent
-    api_doc_fnames = Path(base_path, "doc", "source", "reference")
+    base_path = pathlib.Path(__file__).parent.parent
+    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     api_items = []
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
         with open(api_doc_fname) as f:
@@ -319,7 +321,7 @@ def print_validate_all_results(
     result = validate_all(prefix, ignore_deprecated)
 
     if output_format == "json":
-        sys.stdout.write(dumps(result))
+        sys.stdout.write(json.dumps(result))
         return 0
 
     prefix = "##[error]" if output_format == "actions" else ""
@@ -387,7 +389,7 @@ if __name__ == "__main__":
         "if not provided, all docstrings are validated and returned "
         "as JSON"
     )
-    argparser = ArgumentParser(description="validate pandas docstrings")
+    argparser = argparse.ArgumentParser(description="validate pandas docstrings")
     argparser.add_argument("function", nargs="?", default=None, help=func_help)
     argparser.add_argument(
         "--format",
