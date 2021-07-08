@@ -1028,10 +1028,7 @@ class BaseGrouper:
         else:
             result = self._aggregate_series_fast(obj, func)
 
-        convert_datetime = obj.dtype.kind == "M"
-        npvalues = lib.maybe_convert_objects(
-            result, try_float=False, convert_datetime=convert_datetime
-        )
+        npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
             out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
         else:
