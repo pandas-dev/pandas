@@ -36,7 +36,6 @@ from numpydoc.validate import (
 
 import pandas
 
-
 # With template backend, matplotlib plots nothing
 matplotlib.use("template")
 
@@ -154,7 +153,7 @@ class PandasDocstring(Validator):
                 name = type(self.obj).__name__
         if name is not None:
             for test in finder.find(self.raw_doc, name, globs=context):
-                f = StringIO()
+                f = io.StringIO()
                 runner.run(test, out=f.write)
                 error_msgs += f.getvalue()
         return error_msgs
