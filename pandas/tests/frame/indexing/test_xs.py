@@ -318,12 +318,13 @@ class TestXSWithMultiIndex:
         if klass is Series:
             obj = obj[0]
 
-        msg = (
-            "Expected label or tuple of labels, got "
-            r"\(\('foo', 'qux', 0\), slice\(None, None, None\)\)"
-        )
-        with pytest.raises(TypeError, match=msg):
-            obj.xs(IndexSlice[("foo", "qux", 0), :])
+        expected = obj.iloc[-2:].droplevel(0)
+
+        result = obj.xs(IndexSlice[("foo", "qux", 0), :])
+        tm.assert_equal(result, expected)
+
+        result = obj.loc[IndexSlice[("foo", "qux", 0), :]]
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [DataFrame, Series])
     def test_xs_levels_raises(self, klass):

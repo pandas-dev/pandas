@@ -924,7 +924,7 @@ def test_series_varied_multiindex_alignment():
         [1000 * i for i in range(1, 5)],
         index=pd.MultiIndex.from_product([list("xy"), [1, 2]], names=["xy", "num"]),
     )
-    result = s1.loc[pd.IndexSlice["a", :, :]] + s2
+    result = s1.loc[pd.IndexSlice[["a"], :, :]] + s2
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
