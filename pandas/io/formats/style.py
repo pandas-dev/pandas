@@ -730,7 +730,9 @@ class Styler(StylerRenderer):
             self.data.columns = RangeIndex(stop=len(self.data.columns))
             numeric_cols = self.data._get_numeric_data().columns.to_list()
             self.data.columns = _original_columns
-            column_format = "" if self.hide_index_ else "l" * self.data.index.nlevels
+            column_format = ""
+            for level in range(self.index.nlevels):
+                column_format += "" if self.hide_index_[level] else "l"
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
                     column_format += (
@@ -1714,7 +1716,7 @@ class Styler(StylerRenderer):
         -0.6    1.2    1.8    1.9    0.3    0.3
         """
         if subset is None:
-            self.hide_index_ = True
+            self.hide_index_ = [True for level in range(self.index.nlevels)]
         else:
             subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
