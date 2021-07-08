@@ -24,7 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bugs pertaining to :meth:`pandas.cut` operations on :class:`Series` with duplicate indices(:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 -
 
 .. ---------------------------------------------------------------------------
