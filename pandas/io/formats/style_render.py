@@ -97,7 +97,7 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hide_index_: bool = False  # bools for hiding col/row headers
+        self.hide_index_: list = [False for level in range(self.index.nlevels)]
         self.hide_columns_: bool = False
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
@@ -306,8 +306,11 @@ class StylerRenderer:
         if not self.hide_columns_:
             for r in range(self.data.columns.nlevels):
                 index_blanks = [
-                    _element("th", blank_class, blank_value, not self.hide_index_)
-                ] * (self.data.index.nlevels - 1)
+                    _element(
+                        "th", blank_class, blank_value, not self.hide_index_[level]
+                    )
+                    for level in range(self.index.nlevels - 1)
+                ]
 
                 name = self.data.columns.names[r]
                 column_name = [
@@ -315,7 +318,7 @@ class StylerRenderer:
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
                         name if name is not None else blank_value,
-                        not self.hide_index_,
+                        not all(self.hide_index_),
                     )
                 ]
 
@@ -352,14 +355,14 @@ class StylerRenderer:
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
-            and not self.hide_index_
+            and not all(self.hide_index_)
         ):
             index_names = [
                 _element(
                     "th",
                     f"{index_name_class} level{c}",
                     blank_value if name is None else name,
-                    True,
+                    not self.hide_index_[c],
                 )
                 for c, name in enumerate(self.data.index.names)
             ]
@@ -434,7 +437,7 @@ class StylerRenderer:
                         "th",
                         f"{row_heading_class} level{c} {trimmed_row_class}",
                         "...",
-                        not self.hide_index_,
+                        not self.hide_index_[c],
                         attributes="",
                     )
                     for c in range(self.data.index.nlevels)
@@ -471,7 +474,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hide_index_),
+                    (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
                     id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -536,7 +539,7 @@ class StylerRenderer:
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
-            if self.hide_index_:
+            if all(self.hide_index_):
                 row_body_headers = []
             else:
                 row_body_headers = [
