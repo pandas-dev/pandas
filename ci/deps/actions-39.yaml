@@ -12,11 +12,30 @@ dependencies:
   - hypothesis>=5.5.3
 
   # pandas dependencies
+  - beautifulsoup4
+  - bottleneck
+  - fsspec>=0.8.0, <2021.6.0
+  - gcsfs
+  - html5lib
+  - jinja2
+  - lxml
+  - matplotlib
+  - moto>=1.3.14
+  - flask
+  - numexpr
   - numpy
+  - openpyxl
+  - pyarrow
+  - pytables
   - python-dateutil
   - pytz
-
-  # optional dependencies
-  - pytables
+  - s3fs>=0.4.2
   - scipy
-  - pyarrow=1.0
+  - sqlalchemy
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - pyreadstat
+  - pip
+  - pip:
+    - pyxlsb
