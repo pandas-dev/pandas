@@ -189,6 +189,9 @@ class TestResetIndex:
         exp = Series(float_frame.index.values, name="new_name")
         tm.assert_series_equal(rdf["new_name"], exp)
 
+        with pytest.raises(ValueError, match="Names must be a string"):
+            float_frame.reset_index(names=1)
+
     def test_reset_index_rename_multiindex(self, float_frame):
         # GH 6878
         stacked = float_frame.stack()[::2]
@@ -204,6 +207,12 @@ class TestResetIndex:
         tm.assert_series_equal(
             deleveled["second"], deleveled2["new_second"], check_names=False
         )
+
+        with pytest.raises(ValueError, match=r".* number of provided names .*"):
+            stacked.reset_index(names=["new_first"])
+
+        with pytest.raises(ValueError, match="Names must be a tuple or list"):
+            stacked.reset_index(names={"first": "new_first", "second": "new_second"})
 
     def test_reset_index_level(self):
         df = DataFrame([[1, 2, 3, 4], [5, 6, 7, 8]], columns=["A", "B", "C", "D"])

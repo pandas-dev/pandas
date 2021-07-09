@@ -5639,6 +5639,12 @@ class DataFrame(NDFrame, OpsMixin):
         col_fill : object, default ''
             If the columns have multiple levels, determines how the other
             levels are named. If None then the index name is repeated.
+        names : str, tuple or list, default None
+            Using the given string, rename the DataFrame column which contains the index data.
+            If the DataFrame has a MultiIndex, this has to be a list or tuple with length
+            equal to the number of levels.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -5781,6 +5787,14 @@ class DataFrame(NDFrame, OpsMixin):
             if len(level) < self.index.nlevels:
                 new_index = self.index.droplevel(level)
 
+        if names is not None:
+            if isinstance(self.index, MultiIndex):
+                if not isinstance(names, (tuple, list)):
+                    raise ValueError("Names must be a tuple or list")
+            else:
+                if not isinstance(names, str):
+                    raise ValueError("Names must be a string")
+
         if not drop:
             to_insert: Iterable[tuple[Any, Any | None]]
             if isinstance(self.index, MultiIndex):
@@ -5789,6 +5803,14 @@ class DataFrame(NDFrame, OpsMixin):
                         (n if n is not None else f"level_{i}")
                         for i, n in enumerate(self.index.names)
                     ]
+                else:
+
+                    if len(names) != self.index.nlevels:
+                        raise ValueError(
+                            f"The number of provided names "
+                            f"({len(names)}) does not match the number of"
+                            f" MultiIndex levels ({self.index.nlevels})"
+                        )
                 to_insert = zip(self.index.levels, self.index.codes)
             else:
                 default = "index" if "index" not in self else "level_0"
