@@ -2854,7 +2854,12 @@ class MultiIndex(Index):
             )
 
         if keylen == self.nlevels and self.is_unique:
-            return self._engine.get_loc(key)
+            try:
+                return self._engine.get_loc(key)
+            except TypeError:
+                # e.g. partial string slicing
+                loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
+                return loc
 
         # -- partial selection or non-unique index
         # break the key into 2 parts based on the lexsort_depth of the index;
@@ -3153,15 +3158,21 @@ class MultiIndex(Index):
 
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
-                locs = np.array(level_codes == idx, dtype=bool, copy=False)
+                if isinstance(idx, slice):
+                    # test_get_loc_partial_timestamp_multiindex
+                    locs = (level_codes >= idx.start) & (level_codes < idx.stop)
+                else:
+                    locs = np.array(level_codes == idx, dtype=bool, copy=False)
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)
                 return locs
 
             if isinstance(idx, slice):
-                start = idx.start
-                end = idx.stop
+                # test_get_loc_partial_timestamp_multiindex
+                locs = (level_codes >= idx.start) & (level_codes < idx.stop)
+                locs = lib.maybe_booleans_to_slice(locs)
+                return locs
             else:
                 start = level_codes.searchsorted(idx, side="left")
                 end = level_codes.searchsorted(idx, side="right")
