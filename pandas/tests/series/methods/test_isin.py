@@ -173,8 +173,8 @@ class TestSeriesIsIn:
         ser = Series(data, dtype=dtype)
 
         result = ser.isin(values)
-
         expected = Series(expected, dtype="boolean")
+
         tm.assert_series_equal(result, expected)
 
 

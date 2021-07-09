@@ -411,8 +411,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self._hasna:
             values_have_NA = lib.has_NA(values_arr)
 
-            # For now, NA does not propagate so set result to False, see
-            # https://github.com/pandas-dev/pandas/pull/38379 for some discussion
+            # For now, NA does not propagate so set result according to presence of NA,
+            # see https://github.com/pandas-dev/pandas/pull/38379 for some discussion
             result[self._mask] = values_have_NA
 
         mask = np.zeros_like(self, dtype=bool)
