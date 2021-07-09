@@ -1,7 +1,11 @@
 import numpy as np
 
+from pandas.core.dtypes.cast import is_extension_array_dtype
+
 from pandas import (
     Categorical,
+    Float64Dtype,
+    Int64Dtype,
     NaT,
     Series,
     date_range,
@@ -269,7 +273,15 @@ class IsInForObjects:
 
 class IsInLongSeriesLookUpDominates:
     params = [
-        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
+        [
+            "int64",
+            "int32",
+            "float64",
+            "float32",
+            "object",
+            Int64Dtype(),
+            Float64Dtype(),
+        ],
         [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
@@ -288,7 +300,12 @@ class IsInLongSeriesLookUpDominates:
             array = np.arange(N) + MaxNumber
 
         self.series = Series(array).astype(dtype)
-        self.values = np.arange(MaxNumber).astype(dtype)
+
+        if is_extension_array_dtype(dtype):
+            vals_dtype = dtype.type
+        else:
+            vals_dtype = dtype
+        self.values = np.arange(MaxNumber).astype(vals_dtype)
 
     def time_isin(self, dtypes, MaxNumber, series_type):
         self.series.isin(self.values)
@@ -296,7 +313,15 @@ class IsInLongSeriesLookUpDominates:
 
 class IsInLongSeriesValuesDominate:
     params = [
-        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
+        [
+            "int64",
+            "int32",
+            "float64",
+            "float32",
+            "object",
+            Int64Dtype(),
+            Float64Dtype(),
+        ],
         ["random", "monotone"],
     ]
     param_names = ["dtype", "series_type"]
@@ -309,7 +334,13 @@ class IsInLongSeriesValuesDominate:
         if series_type == "monotone":
             vals = np.arange(N)
 
-        self.values = vals.astype(dtype)
+        if is_extension_array_dtype(dtype):
+            vals_dtype = dtype.type
+        else:
+            vals_dtype = dtype
+
+        self.values = vals.astype(vals_dtype)
+
         M = 10 ** 6 + 1
         self.series = Series(np.arange(M)).astype(dtype)
 
