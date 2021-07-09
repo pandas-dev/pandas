@@ -1647,14 +1647,18 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self, subset: Subset | None = None) -> Styler:
+    def hide_index(
+        self,
+        subset: Subset | None = None,
+        level: int | str | list[int | str] | None = None,
+    ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
 
         This method has dual functionality:
 
-          - if ``subset`` is ``None`` then the entire index will be hidden whilst
-            displaying all data-rows.
+          - if ``subset`` is ``None`` then the entire index, or specified levels, will
+            be hidden whilst displaying all data-rows.
           - if a ``subset`` is given then those specific rows will be hidden whilst the
             index itself remains visible.
 
@@ -1666,6 +1670,9 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the index axis within
             `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
             the function.
+        level : int, str, list
+            The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
+            used simultaneously with ``subset``.
 
         Returns
         -------
@@ -1715,8 +1722,26 @@ class Styler(StylerRenderer):
          0.7    1.0    1.3    1.5   -0.0   -0.2
         -0.6    1.2    1.8    1.9    0.3    0.3
         """
+        if level is not None and subset is not None:
+            raise ValueError("`subset` and `level` cannot be passed simultaneously")
+
         if subset is None:
-            self.hide_index_ = [True for level in range(self.index.nlevels)]
+            if level is None:
+                levels: list[int] = list(range(self.index.nlevels))
+            elif isinstance(level, int):
+                levels = [level]
+            elif isinstance(level, str):
+                levels = [self.index._get_level_number(level)]
+            elif isinstance(level, list):
+                levels = [
+                    self.index._get_level_number(lev) if isinstance(lev, str) else lev
+                    for lev in level
+                ]
+            else:
+                raise ValueError("`level` must be of type `int`, `str` or list of such")
+            self.hide_index_ = [
+                True if lev in levels else False for lev in range(self.index.nlevels)
+            ]
         else:
             subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)

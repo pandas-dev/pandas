@@ -97,7 +97,7 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hide_index_: list = [False for level in range(self.index.nlevels)]
+        self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: bool = False
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
@@ -305,12 +305,9 @@ class StylerRenderer:
         # 1) column headers
         if not self.hide_columns_:
             for r in range(self.data.columns.nlevels):
-                index_blanks = [
-                    _element(
-                        "th", blank_class, blank_value, not self.hide_index_[level]
-                    )
-                    for level in range(self.index.nlevels - 1)
-                ]
+                index_blanks = [_element("th", blank_class, blank_value, True)] * (
+                    self.index.nlevels - sum(self.hide_index_) - 1
+                )
 
                 name = self.data.columns.names[r]
                 column_name = [
