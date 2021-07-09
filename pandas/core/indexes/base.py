@@ -3380,6 +3380,7 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._engine.get_loc(casted_key)
             except KeyError as err:
+                logging.Logger(name='pandas').error(msg=f'KeyError: "{key}"\n Current valid keys: {self.values}')
                 raise KeyError(key) from err
 
         # GH#42269
