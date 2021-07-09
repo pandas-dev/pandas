@@ -39,8 +39,6 @@ def bar_from_to(x, y, color="#d65f5f"):
 class TestStylerBarAlign:
     # TODO: delete 'removed test' comments
 
-    # test_bar_align_left: proportions, single color and numeric selection
-    # test_bar_align_left_0points: axis
     # test_bar_align_mid_pos_and_neg: align 'mid' with mixed values, mixe colors
     # test_bar_align_mid_all_pos: align 'mid' with pos values, mixed colors
     # test_bar_align_mid_all_neg: align 'neg' with neg values, mixed colors
@@ -55,58 +53,17 @@ class TestStylerBarAlign:
     # test_bar_align_mid_nans: nan with align 'mid'
     # test_bar_align_zero_nans: nan with align 'zero'
 
-    def test_bar_align_left(
-        self,
-    ):  # test removed in favour of test_bar_align_positive_cases, test_bar_numerics,
-        df = DataFrame({"A": [0, 1, 2]})
-        result = df.style.bar(align="left")._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(" #d65f5f 50.0%", " transparent 50.0%"),
-            (2, 0): bar_grad(" #d65f5f 100.0%", " transparent 100.0%"),
-        }
-        assert result == expected
+    # test_bar_align_left removed with cases covered by:
+    #   - test_align_positive_cases: param 'left'
+    #   - test_numerics
+    #   - test_colors: param 'left'
 
-        result = df.style.bar(color="red", width=50, align="left")._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(" red 25.0%", " transparent 25.0%"),
-            (2, 0): bar_grad(" red 50.0%", " transparent 50.0%"),
-        }
-        assert result == expected
+    # test_bar_align_left_0points removed with cases covered by:
+    #   - test_align_axis: param 'index' 'columns', param 'left'
 
-        df["C"] = ["a"] * len(df)
-        result = df.style.bar(color="red", width=50, align="left")._compute().ctx
-        assert result == expected
-        df["C"] = df["C"].astype("category")
-        result = df.style.bar(color="red", width=50, align="left")._compute().ctx
-        assert result == expected
-
-    # def test_bar_align_left_0points(self): removed in favour of test_bar_align_axis
-
-    def test_bar_align_mid_pos_and_neg(self):
-        df = DataFrame({"A": [-10, 0, 20, 90]})
-        result = df.style.bar(align="mid", color=["#d65f5f", "#5fba7d"])._compute().ctx
-        expected = {
-            (0, 0): bar_grad(
-                " #d65f5f 10.0%",
-                " transparent 10.0%",
-            ),
-            (1, 0): bar_grad(),
-            (2, 0): bar_grad(
-                " transparent 10.0%",
-                " #5fba7d 10.0%",
-                " #5fba7d 30.0%",
-                " transparent 30.0%",
-            ),
-            (3, 0): bar_grad(
-                " transparent 10.0%",
-                " #5fba7d 10.0%",
-                " #5fba7d 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
+    # test_bar_align_mid_pos_and_neg removed with cases covered by:
+    #   - test_align_mixed_cases: param 'mid'
+    #   - test_colors: param 'mid'
 
     def test_bar_align_mid_all_pos(self):
         df = DataFrame({"A": [10, 20, 50, 100]})
@@ -430,7 +387,7 @@ class TestStylerBarAlign:
         (np.median, [bar_to(50), no_bar(), bar_from_to(50, 100)]),
     ],
 )
-def test_bar_align_positive_cases(align, exp):
+def test_align_positive_cases(align, exp):
     # test different align cases for all positive values
     data = DataFrame([[1], [2], [3]])
     result = data.style.bar(align=align)._compute().ctx
@@ -450,7 +407,7 @@ def test_bar_align_positive_cases(align, exp):
         (np.median, [bar_from_to(50, 100), no_bar(), bar_to(50)]),
     ],
 )
-def test_bar_align_negative_cases(align, exp):
+def test_align_negative_cases(align, exp):
     # test different align cases for all negative values
     data = DataFrame([[-1], [-2], [-3]])
     result = data.style.bar(align=align)._compute().ctx
@@ -470,7 +427,7 @@ def test_bar_align_negative_cases(align, exp):
         (np.median, [bar_to(50), no_bar(), bar_from_to(50, 62.5)]),
     ],
 )
-def test_bar_align_mixed_cases(align, exp):
+def test_align_mixed_cases(align, exp):
     # test different align cases for mixed positive and negative values
     data = DataFrame([[-3], [1], [2]])
     result = data.style.bar(align=align)._compute().ctx
@@ -517,7 +474,7 @@ def test_bar_align_mixed_cases(align, exp):
     ],
 )
 @pytest.mark.parametrize("axis", ["index", "columns", "none"])
-def test_bar_align_axis(align, exp, axis):
+def test_align_axis(align, exp, axis):
     # test all axis combinations with positive values and different aligns
     data = DataFrame([[1, 2], [3, 4]])
     result = (
@@ -534,7 +491,7 @@ def test_bar_align_axis(align, exp, axis):
     assert result == expec
 
 
-def test_bar_numerics():
+def test_numerics():
     # test data is pre-selected for numeric values
     data = DataFrame([[1, "a"], [2, "b"]])
     result = data.style.bar()._compute().ctx
@@ -547,9 +504,11 @@ def test_bar_numerics():
     [
         ("left", [no_bar(), bar_to(100, "green")]),
         ("right", [bar_to(100, "red"), no_bar()]),
+        ("mid", [bar_to(25, "red"), bar_from_to(25, 100, "green")]),
+        ("zero", [bar_from_to(33.33, 50, "red"), bar_from_to(50, 100, "green")]),
     ],
 )
-def test_bar_colors(align, exp):
+def test_colors(align, exp):
     data = DataFrame([[-1], [3]])
     result = data.style.bar(align=align, color=["red", "green"])._compute().ctx
     assert result == {(0, 0): exp[0], (1, 0): exp[1]}
