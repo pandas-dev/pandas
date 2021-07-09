@@ -386,10 +386,12 @@ class BaseBlockManager(DataManager):
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
             if periods > 0:
-                indexer = [-1] * periods + list(range(ncols - periods))
+                indexer = np.concatenate(
+                    [np.repeat(-1, periods), np.arange(ncols - periods)]
+                )
             else:
                 nper = abs(periods)
-                indexer = list(range(nper, ncols)) + [-1] * nper
+                indexer = np.concatenate([np.arange(nper, ncols), np.repeat(-1, nper)])
             result = self.reindex_indexer(
                 self.items,
                 indexer,

@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.shift` where TypeError occurred when shifting DataFrame created by concatenation of slices and fills with values (:issue:`42719`)
 -
 
 .. ---------------------------------------------------------------------------
