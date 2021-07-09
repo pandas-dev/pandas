@@ -540,12 +540,14 @@ def has_infs(floating[:] arr) -> bool:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_NA(object[:] arr) -> bool:
+def has_NA(ndarray arr) -> bool:
     """
     Return True if NA present in arr, False otherwise
     """
     cdef:
         Py_ssize_t i
+
+    assert arr.ndim == 1, "'arr' must be 1-D."
 
     for i in range(len(arr)):
         if arr[i] is C_NA:

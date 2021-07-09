@@ -399,13 +399,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     # error: Return type "BooleanArray" of "isin" incompatible with return type
     # "ndarray" in supertype "ExtensionArray"
-    def isin(self, values: np.ndarray) -> BooleanArray:  # type: ignore[override]
+    def isin(self, values) -> BooleanArray:  # type: ignore[override]
 
         from pandas.core.arrays import BooleanArray
 
-        result = isin(self._data, values)
+        # algorithms.isin will eventually convert values to an ndarray, so no extra
+        # cost to doing it here first
+        values_arr = np.asarray(values)
+        result = isin(self._data, values_arr)
+
         if self._hasna:
-            values_have_NA = libmissing.has_NA(values)
+            values_have_NA = lib.has_NA(values_arr)
 
             # For now, NA does not propagate so set result to False, see
             # https://github.com/pandas-dev/pandas/pull/38379 for some discussion

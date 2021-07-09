@@ -1,10 +1,5 @@
 import numpy as np
 
-try:
-    from pandas.compat import np_version_under1p20
-except ImportError:
-    from pandas.compat.numpy import _np_version_under1p20 as np_version_under1p20
-
 from pandas import (
     Categorical,
     NaT,
@@ -308,10 +303,6 @@ class IsInLongSeriesValuesDominate:
 
     def setup(self, dtype, series_type):
         N = 10 ** 7
-
-        # https://github.com/pandas-dev/pandas/issues/39844
-        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
-            raise NotImplementedError
 
         if series_type == "random":
             vals = np.random.randint(0, 10 * N, N)
