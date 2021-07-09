@@ -2,12 +2,9 @@ from collections import (
     Counter,
     defaultdict,
 )
-from itertools import chain
 
 import numpy as np
 import pytest
-
-from pandas.core.dtypes.common import is_number
 
 import pandas as pd
 from pandas import (
@@ -85,14 +82,6 @@ def test_apply_dont_convert_dtype():
 
     result = s.apply(f, convert_dtype=False)
     assert result.dtype == object
-
-
-def test_with_string_args(datetime_series):
-
-    for arg in ["sum", "mean", "min", "max", "std"]:
-        result = datetime_series.apply(arg)
-        expected = getattr(datetime_series, arg)()
-        assert result == expected
 
 
 def test_apply_args():
@@ -415,92 +404,6 @@ def test_non_callable_aggregates(how):
     # test when mixed w/ callable reducers
     result = getattr(s, how)(["size", "count", "mean"])
     expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("sum", 0),
-                ("max", np.nan),
-                ("min", np.nan),
-                ("all", True),
-                ("any", False),
-                ("mean", np.nan),
-                ("prod", 1),
-                ("std", np.nan),
-                ("var", np.nan),
-                ("median", np.nan),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("sum", 6),
-                ("max", 3),
-                ("min", 1),
-                ("all", True),
-                ("any", True),
-                ("mean", 2),
-                ("prod", 6),
-                ("std", 1),
-                ("var", 1),
-                ("median", 2),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()),
-            [
-                ("sum", "abc"),
-                ("max", "c"),
-                ("min", "a"),
-                ("all", True),
-                ("any", True),
-            ],
-        ),
-    ),
-)
-def test_agg_cython_table(series, func, expected):
-    # GH21224
-    # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
-    if is_number(expected):
-        assert np.isclose(result, expected, equal_nan=True)
-    else:
-        assert result == expected
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("cumprod", Series([], Index([]), dtype=np.float64)),
-                ("cumsum", Series([], Index([]), dtype=np.float64)),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("cumprod", Series([np.nan, 1, 2, 6])),
-                ("cumsum", Series([np.nan, 1, 3, 6])),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
-        ),
-    ),
-)
-def test_agg_cython_table_transform(series, func, expected):
-    # GH21224
-    # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
