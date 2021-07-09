@@ -283,10 +283,6 @@ class IsInLongSeriesLookUpDominates:
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
 
-        # https://github.com/pandas-dev/pandas/issues/39844
-        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
-            raise NotImplementedError
-
         if series_type == "random_hits":
             array = np.random.randint(0, MaxNumber, N)
         if series_type == "random_misses":

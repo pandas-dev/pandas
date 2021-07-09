@@ -221,6 +221,7 @@ def array_equivalent_object(
     right: np.ndarray,  # object[:]
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
+def has_NA(arr: np.ndarray) -> bool: ...
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,
