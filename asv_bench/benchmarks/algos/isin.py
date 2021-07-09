@@ -274,11 +274,11 @@ class IsInForObjects:
 class IsInLongSeriesLookUpDominates:
     params = [
         [
-            # "int64",
-            # "int32",
-            # "float64",
-            # "float32",
-            # "object",
+            "int64",
+            "int32",
+            "float64",
+            "float32",
+            "object",
             Int64Dtype(),
             Float64Dtype(),
         ],
