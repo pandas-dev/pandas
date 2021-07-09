@@ -39,17 +39,6 @@ def bar_from_to(x, y, color="#d65f5f"):
 class TestStylerBarAlign:
     # TODO: delete 'removed test' comments
 
-    # test_bar_align_zero_pos_and_neg: align 'zero' with mixed values
-    # test_bar_align_left_axis_none: align 'left' and axis is None
-    # test_bar_align_zero_axis_none: align 'zero' and axis is None
-    # test_bar_align_mid_axis_none:  align 'mid' and axis is None
-    # test_bar_align_mid_vmin: test vmin
-    # test_bar_align_mid_vmax: test vmax
-    # test_bar_align_mid_vmin_wide: vmin and vmax
-    # test  test_bar_align_mid_clipping: vmin and vmax
-    # test_bar_align_mid_nans: nan with align 'mid'
-    # test_bar_align_zero_nans: nan with align 'zero'
-
     # test_bar_align_left removed with cases covered by:
     #   - test_align_positive_cases: param 'left'
     #   - test_numerics
@@ -68,107 +57,18 @@ class TestStylerBarAlign:
     # test_bar_align_mid_all_neg removed with cases covered by:
     #   - test_align_negative_cases: param 'mid'
 
-    def test_bar_align_zero_pos_and_neg(self):
-        # See https://github.com/pandas-dev/pandas/pull/14757
-        df = DataFrame({"A": [-10, 0, 20, 90]})
+    # test_bar_align_zero_pos_and_neg removed with cases covered by:
+    #   - test_align_mixed_cases: param 'zero'
+    #   - test_colors_mixed: param 'zero'
 
-        result = (
-            df.style.bar(align="zero", color=["#d65f5f", "#5fba7d"], width=90)
-            ._compute()
-            .ctx
-        )
-        expected = {
-            (0, 0): bar_grad(
-                " transparent 40.0%",
-                " #d65f5f 40.0%",
-                " #d65f5f 45.0%",
-                " transparent 45.0%",
-            ),
-            (1, 0): bar_grad(),
-            (2, 0): bar_grad(
-                " transparent 45.0%",
-                " #5fba7d 45.0%",
-                " #5fba7d 55.0%",
-                " transparent 55.0%",
-            ),
-            (3, 0): bar_grad(
-                " transparent 45.0%",
-                " #5fba7d 45.0%",
-                " #5fba7d 90.0%",
-                " transparent 90.0%",
-            ),
-        }
-        assert result == expected
+    # test_bar_align_left_axis_none removed with cases covered by:
+    #   - test_align_axis: param 'left', param 'None'
 
-    def test_bar_align_left_axis_none(self):
-        df = DataFrame({"A": [0, 1], "B": [2, 4]})
-        result = df.style.bar(axis=None, align="left")._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " #d65f5f 25.0%",
-                " transparent 25.0%",
-            ),
-            (0, 1): bar_grad(
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (1, 1): bar_grad(
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
+    # test_bar_align_zero_axis_none removed with cases covered by:
+    #   - test_align_axis: param 'zero', param 'None'
 
-    def test_bar_align_zero_axis_none(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="zero", axis=None)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " transparent 50.0%",
-                " #d65f5f 50.0%",
-                " #d65f5f 62.5%",
-                " transparent 62.5%",
-            ),
-            (0, 1): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (1, 1): bar_grad(
-                " transparent 50.0%",
-                " #d65f5f 50.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
-
-    def test_bar_align_mid_axis_none(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " transparent 33.3%",
-                " #d65f5f 33.3%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (0, 1): bar_grad(
-                " #d65f5f 33.3%",
-                " transparent 33.3%",
-            ),
-            (1, 1): bar_grad(
-                " transparent 33.3%",
-                " #d65f5f 33.3%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
+    # test_bar_align_mid_axis_none removed with cases covered by:
+    #   - test_align_axis: param 'mid', param 'None'
 
     def test_bar_align_mid_vmin(self):
         df = DataFrame({"A": [0, 1], "B": [-2, 4]})
