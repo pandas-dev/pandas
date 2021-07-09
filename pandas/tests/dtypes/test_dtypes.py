@@ -1095,3 +1095,16 @@ def test_period_dtype_compare_to_string():
     dtype = PeriodDtype(freq="M")
     assert (dtype == "period[M]") is True
     assert (dtype != "period[M]") is False
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int_", "int8", "int16", "int32", "uint16", "uint32", "uint64"]
+)
+def test_dtype_frame_order_astype(dtype):
+
+    # GH 42396
+    npa = np.random.RandomState(0).randint(100, size=(20, 8))
+    df = pd.DataFrame(npa, columns=[f"c{i}" for i in range(8)])
+    expected = df.iloc[:6, :3]
+    result = df.iloc[:6, :3].astype(dtype)
+    tm.assert_almost_equal(expected, result, check_dtype=False)

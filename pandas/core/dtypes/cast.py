@@ -1099,6 +1099,9 @@ def astype_nansafe(
         flat = arr.ravel("K")
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
         order: Literal["C", "F"] = "F" if flags.f_contiguous else "C"
+        order: Literal["C", "F"] = (
+            "F" if (not flags.f_contiguous and not flags.c_contiguous) else order
+        )
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
         # attribute "reshape"
         return result.reshape(arr.shape, order=order)  # type: ignore[union-attr]
