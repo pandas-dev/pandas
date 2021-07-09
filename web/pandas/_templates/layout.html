@@ -12,7 +12,7 @@
         <title>pandas - Python Data Analysis Library</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <link rel='shortcut icon' type='image/x-icon' href='{{ base_url }}/static/img/favicon.ico'/>
+        <link rel='shortcut icon' type='image/x-icon' id='favicon-tag' href='{{ base_url }}/static/img/favicon.ico'/>
         <link rel="stylesheet"
               href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
               integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
@@ -93,5 +93,18 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js" 
                 integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4" 
                 crossorigin="anonymous"></script>
+        <script type="text/javascript">
+            const faviconTag = document.getElementById('favicon-tag');
+            const matcher = window.matchMedia('(prefers-color-scheme:dark)');
+            
+            const onUpdate = () => {
+                if (matcher.matches) faviconTag.href = "{{ base_url }}/static/img/favicon_white.ico";
+                else faviconTag.href = "{{ base_url }}/static/img/favicon.ico";
+            };
+            
+            onUpdate();
+            
+            matcher.addEventListener('change', onUpdate);
+        </script>
     </body>
 </html>
