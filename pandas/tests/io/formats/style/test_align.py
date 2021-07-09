@@ -37,39 +37,6 @@ def bar_from_to(x, y, color="#d65f5f"):
 
 
 class TestStylerBarAlign:
-    # TODO: delete 'removed test' comments
-
-    # test_bar_align_left removed with cases covered by:
-    #   - test_align_positive_cases: param 'left'
-    #   - test_numerics
-    #   - test_colors_mixed: param 'left'
-
-    # test_bar_align_left_0points removed with cases covered by:
-    #   - test_align_axis: param 'index' 'columns', param 'left'
-
-    # test_bar_align_mid_pos_and_neg removed with cases covered by:
-    #   - test_align_mixed_cases: param 'mid'
-    #   - test_colors_mixed: param 'mid'
-
-    # test_bar_align_mid_all_pos removed with cases covered by:
-    #   - test_align_positive_cases: param 'mid'
-
-    # test_bar_align_mid_all_neg removed with cases covered by:
-    #   - test_align_negative_cases: param 'mid'
-
-    # test_bar_align_zero_pos_and_neg removed with cases covered by:
-    #   - test_align_mixed_cases: param 'zero'
-    #   - test_colors_mixed: param 'zero'
-
-    # test_bar_align_left_axis_none removed with cases covered by:
-    #   - test_align_axis: param 'left', param 'None'
-
-    # test_bar_align_zero_axis_none removed with cases covered by:
-    #   - test_align_axis: param 'zero', param 'None'
-
-    # test_bar_align_mid_axis_none removed with cases covered by:
-    #   - test_align_axis: param 'mid', param 'None'
-
     def test_bar_align_mid_vmin(self):
         df = DataFrame({"A": [0, 1], "B": [-2, 4]})
         result = df.style.bar(align="mid", axis=None, vmin=-6)._compute().ctx
