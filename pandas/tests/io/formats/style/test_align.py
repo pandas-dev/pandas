@@ -268,6 +268,23 @@ def test_align_mixed_cases(align, exp):
             },
         ),
         (
+            "zero",
+            {
+                "index": [
+                    [bar_from_to(50, 66.66), bar_from_to(50, 75)],
+                    [bar_from_to(50, 100), bar_from_to(50, 100)],
+                ],
+                "columns": [
+                    [bar_from_to(50, 75), bar_from_to(50, 100)],
+                    [bar_from_to(50, 87.5), bar_from_to(50, 100)],
+                ],
+                "none": [
+                    [bar_from_to(50, 62.5), bar_from_to(50, 75)],
+                    [bar_from_to(50, 87.5), bar_from_to(50, 100)],
+                ],
+            },
+        ),
+        (
             2,
             {
                 "index": [
