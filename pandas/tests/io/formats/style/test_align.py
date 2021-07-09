@@ -312,13 +312,13 @@ def test_align_axis(align, exp, axis):
         ._compute()
         .ctx
     )
-    expec = {
+    expected = {
         (0, 0): exp[axis][0][0],
         (0, 1): exp[axis][0][1],
         (1, 0): exp[axis][1][0],
         (1, 1): exp[axis][1][1],
     }
-    assert result == expec
+    assert result == expected
 
 
 def test_numerics():
