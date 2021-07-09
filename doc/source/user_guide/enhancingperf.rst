@@ -448,9 +448,12 @@ speeds up your code, pass Numba the argument
 troubleshooting Numba modes, see the `Numba troubleshooting page
 <https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may use an unsafe threading layer to execute parallelism, potentially
-leading to segfaults. You may need to first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__
+Using ``parallel=True`` (e.g. ``@jit(parallel=True)``) may result in a ``SIGABRT`` if the threading layer leads to unsafe
+behavior. You can first `specify a safe threading layer <https://numba.readthedocs.io/en/stable/user/threading-layer.html#selecting-a-threading-layer-for-safe-parallel-execution>`__
 before running a JIT function with ``parallel=True``.
+
+Generally if the you encounter a segfault (``SIGSEGV``) while using Numba, please report the issue
+to the `Numba issue tracker. <https://github.com/numba/numba/issues/new/choose>`__
 
 .. _enhancingperf.eval:
 
