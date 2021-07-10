@@ -14,7 +14,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     Sized,
     TypeVar,
     cast,
@@ -1095,13 +1094,11 @@ def astype_nansafe(
     """
     if arr.ndim > 1:
         # Make sure we are doing non-copy ravel and reshape.
-        flags = arr.flags
-        flat = arr.ravel("K")
+        flat = arr.ravel()
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        order: Literal["C", "F"] = "F" if flags.f_contiguous else "C"
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
         # attribute "reshape"
-        return result.reshape(arr.shape, order=order)  # type: ignore[union-attr]
+        return result.reshape(arr.shape)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)
