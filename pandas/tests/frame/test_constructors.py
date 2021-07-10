@@ -2868,3 +2868,13 @@ class TestFromScalar:
 
         assert np.all(result.dtypes == "M8[ns]")
         assert np.all(result == ts_naive)
+
+    def test_1d_object_array_does_not_copy(self):
+        a = np.array(["a", "b"], dtype="object")
+        df = DataFrame(a, copy=False)
+        assert np.shares_memory(df.values, a)
+
+    def test_2d_object_array_does_not_copy(self):
+        b = np.array([["a", "b"], ["c", "d"]], dtype="object")
+        df2 = DataFrame(b, copy=False)
+        assert np.shares_memory(df2.values, b)
