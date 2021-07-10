@@ -5526,12 +5526,22 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
    # Create your engine.
    engine = create_engine("sqlite:///:memory:")
 
-If you want to manage your own connections you can pass one of those instead:
+If you want to manage your own connections you can pass one of those instead. The example below opens a
+connection to the database using a Python context manager that automatically closes the connection after
+the block has completed.
+See the `SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/core/connections.html#basic-usage>`__
+for an explanation of how the database connection is handled.
 
 .. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table("data", conn)
+
+.. warning::
+
+	When you open a connection to a database you are also responsible for closing it.
+	Side effects of leaving a connection open may include locking the database or
+	other breaking behaviour.
 
 Writing DataFrames
 ''''''''''''''''''

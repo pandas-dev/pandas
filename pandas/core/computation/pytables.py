@@ -226,11 +226,7 @@ class BinOp(ops.BinOp):
             if v not in metadata:
                 result = -1
             else:
-                # error: Incompatible types in assignment (expression has type
-                # "Union[Any, ndarray]", variable has type "int")
-                result = metadata.searchsorted(  # type: ignore[assignment]
-                    v, side="left"
-                )
+                result = metadata.searchsorted(v, side="left")
             return TermValue(result, result, "integer")
         elif kind == "integer":
             v = int(float(v))

@@ -177,10 +177,8 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
 
 def _has_infs(result) -> bool:
     if isinstance(result, np.ndarray):
-        if result.dtype == "f8":
-            return lib.has_infs_f8(result.ravel("K"))
-        elif result.dtype == "f4":
-            return lib.has_infs_f4(result.ravel("K"))
+        if result.dtype == "f8" or result.dtype == "f4":
+            return lib.has_infs(result.ravel("K"))
     try:
         return np.isinf(result).any()
     except (TypeError, NotImplementedError):
@@ -583,9 +581,7 @@ def nansum(
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type
-        # "Type[float64]", variable has type "dtype")
-        dtype_sum = np.float64  # type: ignore[assignment]
+        dtype_sum = np.dtype(np.float64)
 
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
@@ -603,7 +599,9 @@ def _mask_datetimelike_result(
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
-        result[axis_mask] = iNaT
+        # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
+        # datetime64, timedelta64]")
+        result[axis_mask] = iNaT  # type: ignore[index]
     else:
         if mask.any():
             return NaT
@@ -755,7 +753,10 @@ def nanmedian(values, *, axis=None, skipna=True, mask=None):
 
 
 def get_empty_reduction_result(
-    shape: tuple[int, ...], axis: int, dtype: np.dtype, fill_value: Any
+    shape: tuple[int, ...],
+    axis: int,
+    dtype: np.dtype | type[np.floating],
+    fill_value: Any,
 ) -> np.ndarray:
     """
     The result from a reduction on an empty ndarray.
@@ -784,7 +785,7 @@ def _get_counts_nanvar(
     axis: int | None,
     ddof: int,
     dtype: Dtype = float,
-) -> tuple[int | np.ndarray, int | np.ndarray]:
+) -> tuple[int | float | np.ndarray, int | float | np.ndarray]:
     """
     Get the count of non-null values along an axis, accounting
     for degrees of freedom.
@@ -804,14 +805,12 @@ def _get_counts_nanvar(
 
     Returns
     -------
-    count : scalar or array
-    d : scalar or array
+    count : int, np.nan or np.ndarray
+    d : int, np.nan or np.ndarray
     """
     dtype = get_dtype(dtype)
     count = _get_counts(values_shape, mask, axis, dtype=dtype)
-    # error: Unsupported operand types for - ("int" and "generic")
-    # error: Unsupported operand types for - ("float" and "generic")
-    d = count - dtype.type(ddof)  # type: ignore[operator]
+    d = count - dtype.type(ddof)
 
     # always return NaN, never inf
     if is_scalar(count):
@@ -819,16 +818,13 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        # error: Incompatible types in assignment (expression has type
-        # "Union[bool, Any]", variable has type "ndarray")
-        mask2: np.ndarray = count <= ddof  # type: ignore[assignment]
-        if mask2.any():
-            np.putmask(d, mask2, np.nan)
-            np.putmask(count, mask2, np.nan)
-    # error: Incompatible return value type (got "Tuple[Union[int, float,
-    # ndarray], Any]", expected "Tuple[Union[int, ndarray], Union[int,
-    # ndarray]]")
-    return count, d  # type: ignore[return-value]
+        # count is not narrowed by is_scalar check
+        count = cast(np.ndarray, count)
+        mask = count <= ddof
+        if mask.any():
+            np.putmask(d, mask, np.nan)
+            np.putmask(count, mask, np.nan)
+    return count, d
 
 
 @bottleneck_switch(ddof=1)
@@ -1400,9 +1396,7 @@ def _get_counts(
             n = mask.size - mask.sum()
         else:
             n = np.prod(values_shape)
-        # error: Incompatible return value type (got "Union[Any, generic]",
-        # expected "Union[int, float, ndarray]")
-        return dtype.type(n)  # type: ignore[return-value]
+        return dtype.type(n)
 
     if mask is not None:
         count = mask.shape[axis] - mask.sum(axis)
@@ -1410,9 +1404,7 @@ def _get_counts(
         count = values_shape[axis]
 
     if is_scalar(count):
-        # error: Incompatible return value type (got "Union[Any, generic]",
-        # expected "Union[int, float, ndarray]")
-        return dtype.type(count)  # type: ignore[return-value]
+        return dtype.type(count)
     try:
         return count.astype(dtype)
     except AttributeError:
@@ -1785,8 +1777,9 @@ def na_accum_func(values: ArrayLike, accum_func, *, skipna: bool) -> ArrayLike:
             # TODO: have this case go through a DTA method?
             # For DatetimeTZDtype, view result as M8[ns]
             npdtype = orig_dtype if isinstance(orig_dtype, np.dtype) else "M8[ns]"
-            # error: "Type[ExtensionArray]" has no attribute "_simple_new"
-            result = type(values)._simple_new(  # type: ignore[attr-defined]
+            # Item "type" of "Union[Type[ExtensionArray], Type[ndarray[Any, Any]]]"
+            # has no attribute "_simple_new"
+            result = type(values)._simple_new(  # type: ignore[union-attr]
                 result.view(npdtype), dtype=orig_dtype
             )
 
