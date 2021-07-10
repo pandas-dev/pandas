@@ -686,9 +686,9 @@ class TestAstype:
         data = np.arange(16).reshape(4, 4)
         df = DataFrame(data)
 
-        result = df.iloc[index_slice].astype("int16").to_numpy()
-        expected = data[index_slice].astype("int16")
-        tm.assert_numpy_array_equal(result, expected)
+        result = df.iloc[index_slice].astype("int16")
+        expected = df.iloc[index_slice]
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 class TestAstypeCategorical:
