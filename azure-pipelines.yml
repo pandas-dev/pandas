@@ -3,7 +3,6 @@ trigger:
   branches:
     include:
     - master
-    - 1.2.x
     - 1.3.x
   paths:
     exclude:
@@ -22,14 +21,14 @@ jobs:
 - template: ci/azure/posix.yml
   parameters:
     name: macOS
-    vmImage: macOS-10.14
+    vmImage: macOS-10.15
 
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2016
+    vmImage: windows-2019
 
-- job: py37_32bit
+- job: py38_32bit
   pool:
     vmImage: ubuntu-18.04
 
@@ -38,7 +37,7 @@ jobs:
         docker pull quay.io/pypa/manylinux2014_i686
         docker run -v $(pwd):/pandas quay.io/pypa/manylinux2014_i686 \
         /bin/bash -xc "cd pandas && \
-        /opt/python/cp37-cp37m/bin/python -m venv ~/virtualenvs/pandas-dev && \
+        /opt/python/cp38-cp38/bin/python -m venv ~/virtualenvs/pandas-dev && \
         . ~/virtualenvs/pandas-dev/bin/activate && \
         python -m pip install --no-deps -U pip wheel setuptools && \
         pip install cython numpy python-dateutil pytz pytest pytest-xdist hypothesis pytest-azurepipelines && \
@@ -52,4 +51,4 @@ jobs:
       inputs:
         testResultsFiles: '**/test-*.xml'
         failTaskOnFailedTests: true
-        testRunTitle: 'Publish test results for Python 3.7-32 bit full Linux'
+        testRunTitle: 'Publish test results for Python 3.8-32 bit full Linux'

@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - master
-      - 1.2.x
       - 1.3.x
     paths-ignore:
       - "doc/**"
@@ -19,7 +18,7 @@ env:
   COVERAGE: true
 
 jobs:
-  Linux_py37_IO:
+  Linux_py38_IO:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,7 +26,7 @@ jobs:
 
     strategy:
       matrix:
-        ENV_FILE: [ci/deps/actions-37-db-min.yaml, ci/deps/actions-37-db.yaml]
+        ENV_FILE: [ci/deps/actions-38-db-min.yaml, ci/deps/actions-38-db.yaml]
       fail-fast: false
 
     concurrency:

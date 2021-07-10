@@ -1,3 +1,4 @@
+import re
 import warnings
 
 import pytest
@@ -63,9 +64,22 @@ def test_write_append_mode_raises(ext):
             ExcelWriter(f, engine="xlsxwriter", mode="a")
 
 
-def test_engine_kwargs(ext):
-    # to test that kwargs are accurately passed on to the engine.
+
+@pytest.mark.parametrize("nan_inf_to_errors", [True, False])
+def test_kwargs(ext, nan_inf_to_errors):
+    # GH 42286
+    kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
     with tm.ensure_clean(ext) as f:
-        ExcelWriter(
-            f, engine="xlsxwriter", engine_kwargs={"strings_to_formulas": False}
-        )
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with ExcelWriter(f, engine="xlsxwriter", **kwargs) as writer:
+                assert writer.book.nan_inf_to_errors == nan_inf_to_errors
+
+
+@pytest.mark.parametrize("nan_inf_to_errors", [True, False])
+def test_engine_kwargs(ext, nan_inf_to_errors):
+    # GH 42286
+    engine_kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="xlsxwriter", engine_kwargs=engine_kwargs) as writer:
+            assert writer.book.nan_inf_to_errors == nan_inf_to_errors
