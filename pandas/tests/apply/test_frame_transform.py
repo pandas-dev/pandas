@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -36,33 +34,6 @@ def test_transform_ufunc(axis, float_frame, frame_or_series):
     result = obj.transform(np.sqrt, axis=axis)
     expected = f_sqrt
     tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize("op", frame_transform_kernels)
-def test_transform_groupby_kernel(axis, float_frame, op, request):
-    # GH 35964
-
-    args = [0.0] if op == "fillna" else []
-    if axis == 0 or axis == "index":
-        ones = np.ones(float_frame.shape[0])
-    else:
-        ones = np.ones(float_frame.shape[1])
-    expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
-    result = float_frame.transform(op, axis, *args)
-    tm.assert_frame_equal(result, expected)
-
-    # same thing, but ensuring we have multiple blocks
-    assert "E" not in float_frame.columns
-    float_frame["E"] = float_frame["A"].copy()
-    assert len(float_frame._mgr.arrays) > 1
-
-    if axis == 0 or axis == "index":
-        ones = np.ones(float_frame.shape[0])
-    else:
-        ones = np.ones(float_frame.shape[1])
-    expected2 = float_frame.groupby(ones, axis=axis).transform(op, *args)
-    result2 = float_frame.transform(op, axis, *args)
-    tm.assert_frame_equal(result2, expected2)
 
 
 @pytest.mark.parametrize(
@@ -153,15 +124,6 @@ def test_transform_udf(axis, float_frame, use_apply, frame_or_series):
     result = obj.transform(func, axis=axis)
     expected = obj + 1
     tm.assert_equal(result, expected)
-
-
-@pytest.mark.parametrize("method", ["abs", "shift", "pct_change", "cumsum", "rank"])
-def test_transform_method_name(method):
-    # GH 19760
-    df = DataFrame({"A": [-1, 2]})
-    result = df.transform(method)
-    expected = operator.methodcaller(method)(df)
-    tm.assert_frame_equal(result, expected)
 
 
 wont_fail = ["ffill", "bfill", "fillna", "pad", "backfill", "shift"]

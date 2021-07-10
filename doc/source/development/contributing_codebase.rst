@@ -812,7 +812,21 @@ Changes should be reflected in the release notes located in ``doc/source/whatsne
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
 GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
-issue/pull request number).
+issue/pull request number). Your entry should be written using full sentences and proper
+grammar.
+
+When mentioning parts of the API, use a Sphinx ``:func:``, ``:meth:``, or ``:class:``
+directive as appropriate. Not all public API functions and methods have a
+documentation page; ideally links would only be added if they resolve. You can
+usually find similar examples by checking the release notes for one of the previous
+versions.
+
+If your code is a bugfix, add your entry to the relevant bugfix section. Avoid
+adding to the ``Other`` section; only in rare cases should entries go there.
+Being as concise as possible, the description of the bug should include how the
+user may encounter it and an indication of the bug itself, e.g.
+"produces incorrect results" or "incorrectly raises". It may be necessary to also
+indicate the new behavior.
 
 If your code is an enhancement, it is most likely necessary to add usage
 examples to the existing documentation.  This can be done following the section

@@ -787,10 +787,10 @@ def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
 
 
 def test_loc_getitem_drops_levels_for_one_row_dataframe():
-    # GH#10521
+    # GH#10521 "x" and "z" are both scalar indexing, so those levels are dropped
     mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
     df = DataFrame({"d": [0]}, index=mi)
-    expected = df.copy()
+    expected = df.droplevel([0, 2])
     result = df.loc["x", :, "z"]
     tm.assert_frame_equal(result, expected)
 

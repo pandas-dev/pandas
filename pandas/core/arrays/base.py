@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Iterator,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -72,7 +73,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -1296,8 +1296,10 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self) -> int:
-        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
+    # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
+    # Incompatible types in assignment (expression has type "None", base class
+    # "object" defined the type as "Callable[[object], int]")
+    __hash__: None  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
