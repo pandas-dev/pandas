@@ -684,11 +684,11 @@ class TestAstype:
     def test_astype_noncontiguous(self, index_slice):
         # GH#42396
         data = np.arange(16).reshape(4, 4)
-        df = DataFrame(data, dtype=np.intp)
+        df = DataFrame(data)
 
-        result = df.iloc[index_slice].astype("int16").astype(np.intp)
-        expected = df.iloc[index_slice]
-        tm.assert_frame_equal(result, expected)
+        result = df.iloc[index_slice].astype("int16").to_numpy()
+        expected = data[index_slice].astype("int16")
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestAstypeCategorical:
