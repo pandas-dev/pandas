@@ -253,6 +253,18 @@ class TestDataFrameConstructors:
         should_be_view[0][0] = 97
         assert df.values[0, 0] == 97
 
+    @td.skip_array_manager_invalid_test
+    def test_1d_object_array_does_not_copy(self):
+        arr = np.array(["a", "b"], dtype="object")
+        df = DataFrame(arr)
+        assert np.shares_memory(df.values, arr)
+
+    @td.skip_array_manager_invalid_test
+    def test_2d_object_array_does_not_copy(self):
+        arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
+        df = DataFrame(arr)
+        assert np.shares_memory(df.values, arr)
+
     def test_constructor_dtype_list_data(self):
         df = DataFrame([[1, "2"], [None, "a"]], dtype=object)
         assert df.loc[1, 0] is None
@@ -2079,14 +2091,6 @@ class TestDataFrameConstructors:
         df["A"][:] = 5
 
         assert not (series["A"] == 5).all()
-
-    def test_object_array_does_not_copy(self):
-        a = np.array(["a", "b"], dtype="object")
-        b = np.array([["a", "b"], ["c", "d"]], dtype="object")
-        df = DataFrame(a)
-        assert np.shares_memory(df.values, a)
-        df2 = DataFrame(b)
-        assert np.shares_memory(df2.values, b)
 
     def test_constructor_with_nas(self):
         # GH 5016
