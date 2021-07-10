@@ -32,5 +32,4 @@ class TestAsArray:
         x = np.zeros((10, 3))
         df = [DataFrame(batch.reshape(1, 3), columns=["1", "2", "3"]) for batch in x]
         result = np.ravel(df)
-        expected = np.ravel([DataFrame(batch.reshape(1, 3)) for batch in x])
-        assert all([a == b for a, b in zip(result, expected)])
+        np.testing.assert_array_equal(result, np.zeros(30))
