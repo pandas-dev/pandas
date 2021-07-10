@@ -674,10 +674,14 @@ class TestAstype:
     def test_astype_noncontiguous(self, step1, step2):
         # GH#42396
         data = np.arange(16).reshape(4, 4)
-        df = DataFrame(data)
+        df = DataFrame(data, dtype=np.intp)
 
         result = df.iloc[:step1, :step2].astype("int16").astype(np.intp)
         expected = df.iloc[:step1, :step2]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[::step1, ::step2].astype("int16").astype(np.intp)
+        expected = df.iloc[::step1, ::step2]
         tm.assert_frame_equal(result, expected)
 
 
