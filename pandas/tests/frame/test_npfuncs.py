@@ -30,6 +30,7 @@ class TestAsArray:
     def test_np_ravel(self):
         # GH#26247 np.ravel() fails on list of DataFrames with column names
         x = np.zeros((10, 3))
-        result = np.ravel([DataFrame(batch.reshape(1, 3), columns=["x1", "x2", "x3"]) for batch in x])
+        df = [DataFrame(batch.reshape(1, 3), columns=["1", "2", "3"]) for batch in x]
+        result = np.ravel(df)
         expected = np.ravel([DataFrame(batch.reshape(1,3)) for batch in x])
         assert all([a == b for a, b in zip(result, expected)])
