@@ -32,4 +32,3 @@ class TestAsArray:
         result = np.ravel([DataFrame(batch.reshape(1,3), columns=["x1", "x2", "x3"]) for batch in x])
         expected  = np.ravel([DataFrame(batch.reshape(1,3)) for batch in x])
         assert all([a == b for a, b in zip(result,expected)])
-        
