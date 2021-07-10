@@ -670,18 +670,24 @@ class TestAstype:
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
 
-    @pytest.mark.parametrize("step1,step2", [(2, 2), (2, 1), (1, 2)])
-    def test_astype_noncontiguous(self, step1, step2):
+    @pytest.mark.parametrize(
+        "index_slice",
+        [
+            np.s_[:2, :2],
+            np.s_[:1, :2],
+            np.s_[:2, :1],
+            np.s_[::2, ::2],
+            np.s_[::1, ::2],
+            np.s_[::2, ::1],
+        ],
+    )
+    def test_astype_noncontiguous(self, index_slice):
         # GH#42396
         data = np.arange(16).reshape(4, 4)
         df = DataFrame(data, dtype=np.intp)
 
-        result = df.iloc[:step1, :step2].astype("int16").astype(np.intp)
-        expected = df.iloc[:step1, :step2]
-        tm.assert_frame_equal(result, expected)
-
-        result = df.iloc[::step1, ::step2].astype("int16").astype(np.intp)
-        expected = df.iloc[::step1, ::step2]
+        result = df.iloc[index_slice].astype("int16").astype(np.intp)
+        expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected)
 
 
