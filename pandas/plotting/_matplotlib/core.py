@@ -134,6 +134,11 @@ class MPLPlot:
         import matplotlib.pyplot as plt
 
         self.data = data
+
+        # if users assign an empty list or tuple, treat them as None
+        # then no group-by will be conducted.
+        if by in ([], ()):
+            by = None
         self.by = com.maybe_make_list(by)
 
         # Assign the rest of columns into self.columns if by is explicitly defined
@@ -143,20 +148,20 @@ class MPLPlot:
             if column:
                 self.columns = com.maybe_make_list(column)
             else:
-                if self.by:
+                if self.by is None:
+                    self.columns = [
+                        col for col in data.columns if is_numeric_dtype(data[col])
+                    ]
+                else:
                     self.columns = [
                         col
                         for col in data.columns
                         if col not in self.by and is_numeric_dtype(data[col])
                     ]
-                else:
-                    self.columns = [
-                        col for col in data.columns if is_numeric_dtype(data[col])
-                    ]
 
         # For `hist` plot, need to get grouped original data before `self.data` is
         # updated later
-        if self.by and self._kind == "hist":
+        if self.by is not None and self._kind == "hist":
             self._grouped = data.groupby(self.by)
 
         self.kind = kind
@@ -307,9 +312,9 @@ class MPLPlot:
         # this will determine number of subplots to have, aka `self.nseries`
         if self.data.ndim == 1:
             return 1
-        elif self.by and self._kind == "hist":
+        elif self.by is not None and self._kind == "hist":
             return len(self._grouped)
-        elif self.by and self._kind == "box":
+        elif self.by is not None and self._kind == "box":
             return len(self.columns)
         else:
             return self.data.shape[1]
@@ -461,7 +466,7 @@ class MPLPlot:
             data = data.loc[:, cols]
 
         # GH15079 reconstruct data if by is defined
-        if self.by:
+        if self.by is not None:
             self.subplots = True
             data = reconstruct_data_with_by(self.data, by=self.by, cols=self.columns)
 

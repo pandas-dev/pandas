@@ -53,7 +53,7 @@ class HistPlot(LinePlot):
         # calculate bin number separately in different subplots
         # where subplots are created based on by argument
         if is_integer(self.bins):
-            if self.by:
+            if self.by is not None:
                 grouped = self.data.groupby(self.by)[self.columns]
                 self.bins = [self._calculate_bins(group) for key, group in grouped]
             else:
@@ -101,7 +101,9 @@ class HistPlot(LinePlot):
 
         # Re-create iterated data if `by` is assigned by users
         data = (
-            create_iter_data_given_by(self.data, self._kind) if self.by else self.data
+            create_iter_data_given_by(self.data, self._kind)
+            if self.by is not None
+            else self.data
         )
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
@@ -121,7 +123,7 @@ class HistPlot(LinePlot):
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
-            if self.by:
+            if self.by is not None:
                 kwds["bins"] = kwds["bins"][i]
                 kwds["label"] = self.columns
                 kwds.pop("color")
@@ -138,7 +140,7 @@ class HistPlot(LinePlot):
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
 
             # when by is applied, show title for subplots to know which group it is
-            if self.by:
+            if self.by is not None:
                 ax.set_title(pprint_thing(label))
 
             self._append_legend_handles_labels(artists[0], label)

@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - master
-      - 1.2.x
       - 1.3.x
     paths-ignore:
       - "doc/**"
@@ -25,14 +24,13 @@ jobs:
     strategy:
       matrix:
         settings: [
-          [actions-37-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-37.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
-          [actions-37-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
-          [actions-37-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
+          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
           [actions-38.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
           [actions-38-slow.yaml, "slow", "", "", "", "", ""],
           [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
-          [actions-38-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
+          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
           [actions-39.yaml, "not slow and not network and not clipboard", "", "", "", "", ""]
         ]
       fail-fast: false

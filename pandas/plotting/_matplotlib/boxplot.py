@@ -139,7 +139,7 @@ class BoxPlot(LinePlot):
             # Re-create iterated data if `by` is assigned by users
             data = (
                 create_iter_data_given_by(self.data, self._kind)
-                if self.by
+                if self.by is not None
                 else self.data
             )
 
@@ -149,7 +149,7 @@ class BoxPlot(LinePlot):
 
                 # When by is applied, show title for subplots to know which group it is
                 # just like df.boxplot, and need to apply T on y to provide right input
-                if self.by:
+                if self.by is not None:
                     y = y.T
                     ax.set_title(pprint_thing(label))
 

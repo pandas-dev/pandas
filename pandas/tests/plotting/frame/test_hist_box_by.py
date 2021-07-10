@@ -98,6 +98,43 @@ class TestHistWithBy(TestPlotBase):
         assert result_titles == titles
 
     @pytest.mark.parametrize(
+        "by, column, titles, legends",
+        [
+            (0, "A", ["a", "b", "c"], [["A"]] * 3),
+            (0, None, ["a", "b", "c"], [["A", "B"]] * 3),
+            (
+                [0, "D"],
+                "A",
+                [
+                    "(a, a)",
+                    "(a, b)",
+                    "(a, c)",
+                    "(b, a)",
+                    "(b, b)",
+                    "(b, c)",
+                    "(c, a)",
+                    "(c, b)",
+                    "(c, c)",
+                ],
+                [["A"]] * 9,
+            ),
+        ],
+    )
+    def test_hist_plot_by_0(self, by, column, titles, legends):
+        # GH 15079
+        df = self.hist_df.copy()
+        df = df.rename(columns={"C": 0})
+
+        axes = _check_plot_works(df.plot.hist, column=column, by=by)
+        result_titles = [ax.get_title() for ax in axes]
+        result_legends = [
+            [legend.get_text() for legend in ax.get_legend().texts] for ax in axes
+        ]
+
+        assert result_legends == legends
+        assert result_titles == titles
+
+    @pytest.mark.parametrize(
         "by, column, legends, title",
         [
             ([], ["A"], ["A"], None),
@@ -261,6 +298,45 @@ class TestBoxWithBy(TestPlotBase):
     def test_box_plot_by_argument(self, by, column, titles, xticklabels):
         # GH 15079
         axes = _check_plot_works(self.box_df.plot.box, column=column, by=by)
+        result_titles = [ax.get_title() for ax in axes]
+        result_xticklabels = [
+            [label.get_text() for label in ax.get_xticklabels()] for ax in axes
+        ]
+
+        assert result_xticklabels == xticklabels
+        assert result_titles == titles
+
+    @pytest.mark.parametrize(
+        "by, column, titles, xticklabels",
+        [
+            (0, "A", ["A"], [["a", "b", "c"]]),
+            (
+                [0, "D"],
+                "A",
+                ["A"],
+                [
+                    [
+                        "(a, a)",
+                        "(a, b)",
+                        "(a, c)",
+                        "(b, a)",
+                        "(b, b)",
+                        "(b, c)",
+                        "(c, a)",
+                        "(c, b)",
+                        "(c, c)",
+                    ]
+                ],
+            ),
+            (0, None, ["A", "B"], [["a", "b", "c"]] * 2),
+        ],
+    )
+    def test_box_plot_by_0(self, by, column, titles, xticklabels):
+        # GH 15079
+        df = self.box_df.copy()
+        df = df.rename(columns={"C": 0})
+
+        axes = _check_plot_works(df.plot.box, column=column, by=by)
         result_titles = [ax.get_title() for ax in axes]
         result_xticklabels = [
             [label.get_text() for label in ax.get_xticklabels()] for ax in axes
