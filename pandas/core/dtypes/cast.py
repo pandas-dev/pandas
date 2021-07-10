@@ -1093,7 +1093,7 @@ def astype_nansafe(
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
     if arr.ndim > 1:
-        # Make sure we are doing non-copy ravel and reshape.
+        # TODO: try to use contiguity to avoid potentially copying here, see #42475
         flat = arr.ravel()
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
