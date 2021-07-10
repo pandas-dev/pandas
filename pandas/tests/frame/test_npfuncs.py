@@ -9,6 +9,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+
 class TestAsArray:
     def test_asarray_homogenous(self):
         df = DataFrame({"A": Categorical([1, 2]), "B": Categorical([1, 2])})
