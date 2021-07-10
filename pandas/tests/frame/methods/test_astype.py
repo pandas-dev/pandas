@@ -670,6 +670,16 @@ class TestAstype:
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
 
+    @pytest.mark.parametrize("step1,step2", [(6, 3), (6, 1), (1, 3)])
+    def test_astype_noncontiguous(self, step1, step2):
+        # GH#42396
+        data = np.arange(72).reshape(12, 6)
+        df = DataFrame(data)
+
+        result = df.iloc[:step1, :step2].astype("int32").astype("int64")
+        expected = df.iloc[:step1, :step2]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestAstypeCategorical:
     def test_astype_from_categorical3(self):
