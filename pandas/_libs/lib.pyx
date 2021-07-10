@@ -538,24 +538,6 @@ def has_infs(floating[:] arr) -> bool:
     return ret
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def has_NA(ndarray arr) -> bool:
-    """
-    Return True if NA present in arr, False otherwise
-    """
-    cdef:
-        Py_ssize_t i
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    for i in range(len(arr)):
-        if arr[i] is C_NA:
-            return True
-
-    return False
-
-
 def maybe_indices_to_slice(ndarray[intp_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)

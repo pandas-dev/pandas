@@ -1,6 +1,6 @@
 import numpy as np
 
-from pandas.core.dtypes.cast import is_extension_array_dtype
+from pandas.core.dtypes.common import is_extension_array_dtype
 
 from pandas import (
     Categorical,
