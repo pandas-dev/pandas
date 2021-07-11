@@ -2542,29 +2542,32 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def _convert_listlike_indexer(self, keyarr) -> np.ndarray | None:
-        """
-        Analogous to get_indexer when we are partial-indexing on our first level.
+    def get_indexer_strict(self, key, axis_name) -> np.ndarray:
 
-        Parameters
-        ----------
-        keyarr : Index, np.ndarray, or ExtensionArray
-            Indexer to convert.
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
 
-        Returns
-        -------
-        np.ndarray[intp] or None
-        """
-        indexer = None
-
-        # are we indexing a specific level
         if len(keyarr) and not isinstance(keyarr[0], tuple):
             _, indexer = self.reindex(keyarr, level=0)
 
-            # take all
             if indexer is None:
+                # exact match
                 indexer = np.arange(len(self), dtype=np.intp)
-                return indexer
+
+            else:
+                self._raise_if_missing(key, indexer, axis_name)
+            return self[indexer], indexer
+
+        return super().get_indexer_strict(key, axis_name)
+
+    def _raise_if_missing(self, key, indexer, axis_name: str):
+        keyarr = key
+        if not isinstance(key, Index):
+            keyarr = com.asarray_tuplesafe(key)
+
+        if len(keyarr) and not isinstance(keyarr[0], tuple):
+            # i.e. same condition for special case in MultiIndex.get_indexer_strict
 
             check = self.levels[0].get_indexer(keyarr)
             mask = check == -1
@@ -2574,8 +2577,8 @@ class MultiIndex(Index):
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
-
-        return indexer
+        else:
+            return super()._raise_if_missing(key, indexer, axis_name)
 
     def _get_partial_string_timestamp_match_key(self, key):
         """
