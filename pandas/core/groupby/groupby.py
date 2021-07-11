@@ -2674,7 +2674,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Examples
         --------
-         df = pd.DataFrame(
+        >>> df = pd.DataFrame(
         ...     {
         ...         "group": ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"],
         ...         "value": [2, 4, 2, 3, 5, 1, 2, 4, 1, 5],
