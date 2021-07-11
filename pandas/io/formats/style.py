@@ -2922,13 +2922,13 @@ def _bar(
             else:
                 start, end = z_frac, (x - left) / (right - left)
 
-        if height < 1:
+        ret = css_bar(start * width, end * width, color)
+        if height < 1 and "background: linear-gradient(" in ret:
             return (
-                css_bar(start * width, end * width, color)
-                + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
             )
         else:
-            return css_bar(start * width, end * width, color)
+            return ret
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin
