@@ -76,15 +76,11 @@ from pandas.core.internals.array_manager import (
     ArrayManager,
     SingleArrayManager,
 )
-from pandas.core.internals.blocks import (
-    ensure_block_shape,
-    new_block,
-)
 from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
+    create_block_manager_from_array,
     create_block_manager_from_arrays,
-    create_block_manager_from_blocks,
 )
 
 if TYPE_CHECKING:
@@ -340,42 +336,29 @@ def ndarray_to_mgr(
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
-    values = values.T
+    array = values.T
 
     # if we don't have a dtype specified, then try to convert objects
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
-    if dtype is None and is_object_dtype(values.dtype):
-
-        if values.ndim == 2 and values.shape[0] != 1:
+    if dtype is None and is_object_dtype(array.dtype):
+        if array.ndim == 2 and array.shape[0] != 1:
             # transpose and separate blocks
-
-            dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
+            maybe_datetime = [
+                maybe_infer_to_datetimelike(instance) for instance in array
+            ]
             # don't convert (and copy) the objects if no type inference occurs
             if any(
-                not is_dtype_equal(instance.dtype, values.dtype)
-                for instance in dtlike_vals
+                not is_dtype_equal(instance.dtype, array.dtype)
+                for instance in maybe_datetime
             ):
-                dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
-                block_values = [
-                    new_block(dvals_list[n], placement=n, ndim=2)
-                    for n in range(len(dvals_list))
-                ]
-            else:
-                nb = new_block(values, placement=slice(len(columns)), ndim=2)
-                block_values = [nb]
+                return create_block_manager_from_arrays(
+                    maybe_datetime, columns, [columns, index]
+                )
         else:
-            datelike_vals = maybe_infer_to_datetimelike(values)
-            nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
-            block_values = [nb]
-    else:
-        nb = new_block(values, placement=slice(len(columns)), ndim=2)
-        block_values = [nb]
+            array = maybe_infer_to_datetimelike(array)
 
-    if len(columns) == 0:
-        block_values = []
-
-    return create_block_manager_from_blocks(block_values, [columns, index])
+    return create_block_manager_from_array(array, [columns, index])
 
 
 def _check_values_indices_shape_match(
