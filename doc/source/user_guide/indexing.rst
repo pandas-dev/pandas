@@ -867,7 +867,17 @@ Boolean indexing
 .. _indexing.boolean:
 
 Another common operation is the use of boolean vectors to filter the data.
-The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
+The operators are: ``|`` for ``or``,  ``^`` for ``bitwise or``, ``&`` for ``and``, and ``~`` for ``not``. 
+
+Below is a table containing available boolean vectors.
+
+| Boolean Vector | Description   |
+| -------------- | ------------- |
+| ``|``          | ``or``        |
+| ``^``          | ``bitwise or``|
+| ``&``          | ``and```      |
+| ``~``          | ``not``       |
+
 These **must** be grouped by using parentheses, since by default Python will
 evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
 ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
@@ -881,6 +891,7 @@ Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
    s
    s[s > 0]
    s[(s < -1) | (s > 0.5)]
+   s[(s < -1) ^ (s > 0.5)]
    s[~(s < 0)]
 
 You may select rows from a DataFrame using a boolean vector the same length as
