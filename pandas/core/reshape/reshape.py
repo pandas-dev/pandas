@@ -1061,7 +1061,87 @@ def from_dummies(
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> Series | DataFrame:
     """
-    soon
+    Create a categorical `Series` or `DataFrame` from a `DataFrame` of dummy
+    variables.
+
+    Inverts the operation performed by 'get_dummies'.
+
+    Parameters
+    ----------
+    data : `DataFrame`
+        Data which contains dummy-coded variables.
+    to_series : bool, default False
+        Converts the input data to a categorical `Series`, converts the input data
+        to a categorical `DataFrame` if False.
+    prefix_sep : str, list of str, or dict of str, default '_'
+        Separator/deliminator used in the column names of the dummy categories.
+        Pass a list if multiple prefix separators are used in the columns names.
+        Alternatively, pass a dictionary to map prefix separators to prefixes if
+        multiple and/ mixed separators are used in the column names.
+    columns : None or list of str, default 'None'
+        The columns which to convert from dummy-encoding and return as categorical
+        `DataFrame`.
+        If `columns` is None then all dummy columns are converted and appended
+        to the non-dummy columns.
+    dropped_fist : None, str, list of str, or dict of str, default None
+        The implied value the dummy takes when all values are zero.
+        Can be a a single value for all variables, a list with a number of values
+        equal to the dummy variables, or a dict directly mapping the dropped value
+        to a prefix of a variable.
+
+    Returns
+    -------
+    `Series` or `DataFrame`
+        Categorical data decoded from the dummy input-data.
+
+    See Also
+    --------
+    get_dummies : Convert `Series` or `DataFrame` to dummy codes.
+
+    Examples
+    --------
+    >>> d = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
+                          "c": [0, 0, 1, 0]})
+
+    >>> pd.from_dummies(s, to_series=True)
+    0  a
+    1  b
+    2  c
+    3  a
+
+    >>> d = pd.DataFrame({"C": [1, 2, 3], "col1_a": [1, 0, 1],
+                          "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
+                          "col2_b": [1, 0, 0], "col2_c": [0, 0, 1]})
+
+
+    >>> pd.from_dummies(d)
+       C   col1    col2
+    0  1     a       b
+    1  2     b       a
+    2  3     a       c
+
+    >>> d = pd.DataFrame({"C": [1, 2, 3], "col1_a": [1, 0, 0],
+                        "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
+                        "col2_b": [1, 0, 0], "col2_c": [0, 0, 0]})
+
+
+    >>> pd.from_dummies(d, dropped_first=["d", "e"])
+       C   col1    col2
+    0  1     a       b
+    1  2     b       a
+    2  3     d       e
+
+
+    >>> d = pd.DataFrame({"col1_a-a": [1, 0, 1], "col1_b-b": [0, 1, 0],
+                          "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
+                          "col2-c_c": [0, 0, 1]})
+
+
+    >>> pd.from_dummies(d, prefix_sep={"col1": "_", "col2": "-"})
+       col1  col2
+    0  a-a   b-b
+    1  b-b   a-a
+    2  a-a   c-c
     """
     from pandas.core.reshape.concat import concat
 
