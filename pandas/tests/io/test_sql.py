@@ -328,7 +328,12 @@ class PandasSQLTest:
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
-        self._get_exec().execute(SQL_STRINGS["create_view"][self.flavor])
+        if isinstance(self._get_exec(), sqlite3.Cursor):
+            self._get_exec().execute(SQL_STRINGS["create_view"][self.flavor])
+        else:
+            with self._get_exec().connect() as conn:
+                with conn.begin():
+                    conn.execute(SQL_STRINGS["create_view"][self.flavor])
 
     def _check_iris_loaded_frame(self, iris_frame):
         pytype = iris_frame.dtypes[0].type
@@ -447,7 +452,12 @@ class PandasSQLTest:
 
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
-        self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
+        if isinstance(self._get_exec(), sqlite3.Cursor):
+            self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
+        else:
+            with self._get_exec().connect() as conn:
+                with conn.begin():
+                    conn.execute(SQL_STRINGS["create_test_types"][self.flavor])
         ins = SQL_STRINGS["insert_test_types"][self.flavor]
         data = [
             {
@@ -475,11 +485,18 @@ class PandasSQLTest:
                 "BoolColWithNull": None,
             },
         ]
-
-        for d in data:
-            self._get_exec().execute(
-                ins["query"], [d[field] for field in ins["fields"]]
-            )
+        if isinstance(self._get_exec(), sqlite3.Cursor):
+            for d in data:
+                self._get_exec().execute(
+                    ins["query"], [d[field] for field in ins["fields"]]
+                )
+        else:
+            with self._get_exec().connect() as conn:
+                with conn.begin():
+                    for d in data:
+                        conn.execute(
+                            ins["query"], [d[field] for field in ins["fields"]]
+                        )
 
         self._load_types_test_data(data)
 
