@@ -31,5 +31,4 @@ class TestAsArray:
         # GH#26247 np.ravel() fails on list of DataFrames with column names
         x = np.zeros((10, 3))
         df = [DataFrame(batch.reshape(1, 3), columns=["1", "2", "3"]) for batch in x]
-        result = np.ravel(df)
-        np.testing.assert_array_equal(result, np.zeros(30))
+        np.testing.assert_array_equal(np.ravel(df), np.zeros(30))
