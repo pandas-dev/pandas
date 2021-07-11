@@ -67,7 +67,6 @@ try:
     from sqlalchemy.orm import session as sa_session
     import sqlalchemy.schema
     import sqlalchemy.sql.sqltypes as sqltypes
-    from sqlalchemy import text
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
@@ -311,7 +310,7 @@ class PandasSQLTest:
         else:
             with self._get_exec().connect() as conn:
                 with conn.begin():
-                    conn.execute(text(SQL_STRINGS["create_iris"][self.flavor]))
+                    conn.execute(SQL_STRINGS["create_iris"][self.flavor])
 
         with open(iris_csv_file, newline=None) as iris_csv:
             reader = csv.reader(iris_csv)
@@ -325,7 +324,7 @@ class PandasSQLTest:
                 with self._get_exec().connect() as conn:
                     with conn.begin():
                         for row in reader:
-                            conn.execute(text(ins), row)
+                            conn.execute(ins, row)
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
