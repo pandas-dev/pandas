@@ -2637,7 +2637,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def rank(
         self,
         method: str = "average",
@@ -2671,7 +2671,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Returns
         -------
         DataFrame with ranking of values within each group
-
+        %(see_also)s
         Examples
         --------
         >>> df = pd.DataFrame(
