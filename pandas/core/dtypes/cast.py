@@ -59,7 +59,6 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -182,9 +181,7 @@ def maybe_box_native(value: Scalar) -> Scalar:
     -------
     scalar or Series
     """
-    if is_datetime_or_timedelta_dtype(value):
-        value = maybe_box_datetimelike(value)
-    elif is_float(value):
+    if is_float(value):
         # error: Argument 1 to "float" has incompatible type
         # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
         # expected "Union[SupportsFloat, _SupportsIndex, str]"
@@ -196,6 +193,8 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = int(value)  # type: ignore[arg-type]
     elif is_bool(value):
         value = bool(value)
+    elif isinstance(value, (np.datetime64, np.timedelta64)):
+        value = maybe_box_datetimelike(value)
     return value
 
 
