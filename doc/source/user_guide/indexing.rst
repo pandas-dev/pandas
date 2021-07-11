@@ -866,10 +866,7 @@ Boolean indexing
 
 .. _indexing.boolean:
 
-Another common operation is the use of boolean vectors to filter the data.
-The operators are: ``|`` for ``or``,  ``^`` for ``bitwise or``, ``&`` for ``and``, and ``~`` for ``not``. 
-
-Below is a table containing available boolean vectors.
+Another common operation is the use of boolean vectors to filter the data. Below is a table containing available boolean vectors.
 
 | Boolean Vector | Description   |
 | -------------- | ------------- |
