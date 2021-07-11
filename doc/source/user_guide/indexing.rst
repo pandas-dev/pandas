@@ -871,12 +871,15 @@ The operators are: ``|`` for ``or``,  ``^`` for ``bitwise or``, ``&`` for ``and`
 
 Below is a table containing available boolean vectors.
 
-| Boolean Vector | Description   |
-| -------------- | ------------- |
-| ``|``          | ``or``        |
-| ``^``          | ``bitwise or``|
-| ``&``          | ``and```      |
-| ``~``          | ``not``       |
+.. csv-table::
+    :header: "Boolean Vector", "Description"
+    :widths: 30, 30
+    :delim: ;
+
+    ``|``;or
+    ``^``;`bitwise` or
+    ``&``;and
+    ``~``;not
 
 These **must** be grouped by using parentheses, since by default Python will
 evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
