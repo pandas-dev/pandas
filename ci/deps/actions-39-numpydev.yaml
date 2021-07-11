@@ -2,13 +2,13 @@ name: pandas-dev
 channels:
   - defaults
 dependencies:
-  - python=3.8.*
+  - python=3.9
 
   # tools
   - pytest>=6.0
   - pytest-cov
-  - pytest-xdist>=1.21
-  - hypothesis>=3.58.0
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
 
   # pandas dependencies
   - pytz

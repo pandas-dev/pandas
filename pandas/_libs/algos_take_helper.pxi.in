@@ -109,32 +109,33 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     cdef:
         Py_ssize_t i, j, k, n, idx
         {{c_type_out}} fv
+        {{if c_type_in == c_type_out != "object"}}
+        const {{c_type_out}} *v
+        {{c_type_out}} *o
+        {{endif}}
 
     n = len(indexer)
     k = values.shape[1]
 
     fv = fill_value
 
-    IF {{True if c_type_in == c_type_out != "object" else False}}:
-        cdef:
-            const {{c_type_out}} *v
-            {{c_type_out}} *o
+    {{if c_type_in == c_type_out != "object"}}
+    # GH#3130
+    if (values.strides[1] == out.strides[1] and
+        values.strides[1] == sizeof({{c_type_out}}) and
+        sizeof({{c_type_out}}) * n >= 256):
 
-        # GH#3130
-        if (values.strides[1] == out.strides[1] and
-            values.strides[1] == sizeof({{c_type_out}}) and
-            sizeof({{c_type_out}}) * n >= 256):
-
-            for i in range(n):
-                idx = indexer[i]
-                if idx == -1:
-                    for j in range(k):
-                        out[i, j] = fv
-                else:
-                    v = &values[idx, 0]
-                    o = &out[i, 0]
-                    memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
-            return
+        for i in range(n):
+            idx = indexer[i]
+            if idx == -1:
+                for j in range(k):
+                    out[i, j] = fv
+            else:
+                v = &values[idx, 0]
+                o = &out[i, 0]
+                memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
+        return
+    {{endif}}
 
     for i in range(n):
         idx = indexer[i]

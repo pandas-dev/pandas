@@ -549,13 +549,11 @@ class RangeIndex(NumericIndex):
     # Set Operations
 
     def _intersection(self, other: Index, sort=False):
+        # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
             # Int64Index
             return super()._intersection(other, sort=sort)
-
-        if not len(self) or not len(other):
-            return self._simple_new(_empty_range)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range

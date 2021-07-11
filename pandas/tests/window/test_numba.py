@@ -121,6 +121,34 @@ class TestEngine:
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "window,window_kwargs",
+        [
+            ["rolling", {"window": 3, "min_periods": 0}],
+            ["expanding", {}],
+        ],
+    )
+    def test_dont_cache_args(
+        self, window, window_kwargs, nogil, parallel, nopython, method
+    ):
+        # GH 42287
+
+        def add(values, x):
+            return np.sum(values) + x
+
+        df = DataFrame({"value": [0, 0, 0]})
+        result = getattr(df, window)(**window_kwargs).apply(
+            add, raw=True, engine="numba", args=(1,)
+        )
+        expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+        tm.assert_frame_equal(result, expected)
+
+        result = getattr(df, window)(**window_kwargs).apply(
+            add, raw=True, engine="numba", args=(2,)
+        )
+        expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)
+
 
 @td.skip_if_no("numba", "0.46.0")
 class TestEWMMean:
@@ -301,6 +329,20 @@ class TestTableMethod:
             engine_kwargs=engine_kwargs, engine="numba"
         )
         expected = getattr(df.expanding(method="single", axis=axis), method)(
+            engine_kwargs=engine_kwargs, engine="numba"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
+    def test_table_method_ewm(self, data, axis, nogil, parallel, nopython):
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(data)
+
+        result = df.ewm(com=1, method="table", axis=axis).mean(
+            engine_kwargs=engine_kwargs, engine="numba"
+        )
+        expected = df.ewm(com=1, method="single", axis=axis).mean(
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
