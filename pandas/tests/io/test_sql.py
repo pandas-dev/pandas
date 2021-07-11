@@ -25,6 +25,7 @@ from datetime import (
 )
 from io import StringIO
 import sqlite3
+from sqlite3.dbapi2 import Connection
 import warnings
 
 import numpy as np
@@ -66,6 +67,7 @@ try:
     from sqlalchemy.orm import session as sa_session
     import sqlalchemy.schema
     import sqlalchemy.sql.sqltypes as sqltypes
+    from sqlalchemy import text
 
     SQLALCHEMY_INSTALLED = True
 except ImportError:
@@ -288,10 +290,11 @@ class PandasSQLTest:
     """
 
     def _get_exec(self):
-        if hasattr(self.conn, "execute"):
-            return self.conn
-        else:
-            return self.conn.cursor()
+        return (
+            self.conn.cursor()
+            if isinstance(self.conn, sqlite3.Connection)
+            else self.conn
+        )
 
     @pytest.fixture(params=[("io", "data", "csv", "iris.csv")])
     def load_iris_data(self, datapath, request):
@@ -302,15 +305,27 @@ class PandasSQLTest:
             self.setup_connect()
 
         self.drop_table("iris")
-        self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
+
+        if isinstance(self._get_exec(), sqlite3.Connection):
+            self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
+        else:
+            with self._get_exec().connect() as conn:
+                with conn.begin():
+                    conn.execute(text(SQL_STRINGS["create_iris"][self.flavor]))
 
         with open(iris_csv_file, newline=None) as iris_csv:
-            r = csv.reader(iris_csv)
-            next(r)  # skip header row
+            reader = csv.reader(iris_csv)
+            next(reader)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
 
-            for row in r:
-                self._get_exec().execute(ins, row)
+            if isinstance(self._get_exec(), sqlite3.Connection):
+                for row in reader:
+                    self._get_exec().execute(ins, row)
+            else:
+                with self._get_exec().connect() as conn:
+                    with conn.begin():
+                        for row in reader:
+                            conn.execute(text(ins), row)
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
