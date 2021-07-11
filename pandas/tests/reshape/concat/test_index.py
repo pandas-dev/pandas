@@ -289,7 +289,7 @@ class TestMultiIndexConcat:
         ],
     )
     def test_concat_with_various_multiindex_dtypes(self, mi1, mi2):
-        # GH #23478
+        # GitHub #23478
         df1 = DataFrame(np.zeros((1, len(mi1))), columns=mi1)
         df2 = DataFrame(np.zeros((1, len(mi2))), columns=mi2)
 
