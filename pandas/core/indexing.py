@@ -1298,7 +1298,7 @@ class _LocIndexer(_LocationIndexer):
         ax = self.obj._get_axis(axis)
         axis_name = self.obj._get_axis_name(axis)
 
-        keyarr, indexer = ax.get_indexer_strict(key, axis_name)
+        keyarr, indexer = ax._get_indexer_strict(key, axis_name)
 
         return keyarr, indexer
 

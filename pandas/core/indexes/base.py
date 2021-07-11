@@ -5390,7 +5390,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
-    def get_indexer_strict(self, key, axis_name: str) -> np.ndarray:
+    def _get_indexer_strict(self, key, axis_name: str) -> np.ndarray:
         """
         Analogue to get_indexer that raises if any elements are missing.
         """

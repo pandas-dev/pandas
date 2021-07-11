@@ -2542,7 +2542,7 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def get_indexer_strict(self, key, axis_name) -> np.ndarray:
+    def _get_indexer_strict(self, key, axis_name) -> np.ndarray:
 
         keyarr = key
         if not isinstance(keyarr, Index):
@@ -2559,7 +2559,7 @@ class MultiIndex(Index):
                 self._raise_if_missing(key, indexer, axis_name)
             return self[indexer], indexer
 
-        return super().get_indexer_strict(key, axis_name)
+        return super()._get_indexer_strict(key, axis_name)
 
     def _raise_if_missing(self, key, indexer, axis_name: str):
         keyarr = key
@@ -2567,7 +2567,7 @@ class MultiIndex(Index):
             keyarr = com.asarray_tuplesafe(key)
 
         if len(keyarr) and not isinstance(keyarr[0], tuple):
-            # i.e. same condition for special case in MultiIndex.get_indexer_strict
+            # i.e. same condition for special case in MultiIndex._get_indexer_strict
 
             check = self.levels[0].get_indexer(keyarr)
             mask = check == -1
