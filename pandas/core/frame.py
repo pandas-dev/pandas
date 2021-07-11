@@ -3342,8 +3342,8 @@ class DataFrame(NDFrame, OpsMixin):
             values = self.values
 
             new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
-            result = self._constructor(
-                dict(zip(self.index, new_values)), index=self.columns
+            result = type(self)._from_arrays(
+                new_values, index=self.columns, columns=self.index
             )
 
         else:
@@ -6162,9 +6162,9 @@ class DataFrame(NDFrame, OpsMixin):
             return labels.astype("i8", copy=False), len(shape)
 
         if subset is None:
-            # Incompatible types in assignment
-            # (expression has type "Index", variable has type "Sequence[Any]")
-            # (pending on https://github.com/pandas-dev/pandas/issues/28770)
+            # https://github.com/pandas-dev/pandas/issues/28770
+            # Incompatible types in assignment (expression has type "Index", variable
+            # has type "Sequence[Any]")
             subset = self.columns  # type: ignore[assignment]
         elif (
             not np.iterable(subset)
@@ -6242,6 +6242,7 @@ class DataFrame(NDFrame, OpsMixin):
                 keys, orders=ascending, na_position=na_position, key=key
             )
         elif len(by):
+            # len(by) == 1
 
             by = by[0]
             k = self._get_label_or_level_values(by, axis=axis)
