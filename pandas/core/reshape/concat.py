@@ -46,10 +46,7 @@ from pandas.core.internals import concatenate_managers
 if TYPE_CHECKING:
     from typing import Literal
 
-    from pandas._typing import (
-        Axis,
-        FrameOrSeriesUnion,
-    )
+    from pandas._typing import Axis
 
     from pandas import (
         DataFrame,
@@ -137,7 +134,7 @@ def concat(
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool = ...,
-) -> FrameOrSeriesUnion:
+) -> DataFrame | Series:
     ...
 
 
