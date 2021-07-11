@@ -235,7 +235,10 @@ def array_with_unit_to_datetime(
         if issubclass(values.dtype.type, (np.integer, np.float_)):
             result = values.astype("M8[ns]", copy=False)
         else:
-            result, tz = array_to_datetime(values.astype(object), errors=errors)
+            result, tz = array_to_datetime(
+                values.astype(object, copy=False),
+                errors=errors,
+            )
         return result, tz
 
     m, p = precision_from_unit(unit)

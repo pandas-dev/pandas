@@ -11,7 +11,7 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    PY38,
+    PY310,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
@@ -1178,6 +1178,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = s.to_json()
         assert expected == ss.to_json()
 
+    @pytest.mark.skipif(PY310, reason="segfault GH 42130")
     @pytest.mark.parametrize(
         "ts",
         [
@@ -1195,6 +1196,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
+    @pytest.mark.skipif(PY310, reason="segfault GH 42130")
     @pytest.mark.parametrize(
         "tz_range",
         [
@@ -1712,7 +1714,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
 
     @pytest.mark.xfail(
-        is_platform_windows() and PY38,
+        is_platform_windows(),
         reason="localhost connection rejected",
         strict=False,
     )
@@ -1747,3 +1749,23 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json("[true, true, false]", typ="series")
         expected = Series([True, True, False])
         tm.assert_series_equal(result, expected)
+
+    def test_to_json_multiindex_escape(self):
+        # GH 15273
+        df = DataFrame(
+            True,
+            index=pd.date_range("2017-01-20", "2017-01-23"),
+            columns=["foo", "bar"],
+        ).stack()
+        result = df.to_json()
+        expected = (
+            "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-20 00:00:00'), 'bar')\":true,"
+            "\"(Timestamp('2017-01-21 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-21 00:00:00'), 'bar')\":true,"
+            "\"(Timestamp('2017-01-22 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-22 00:00:00'), 'bar')\":true,"
+            "\"(Timestamp('2017-01-23 00:00:00'), 'foo')\":true,"
+            "\"(Timestamp('2017-01-23 00:00:00'), 'bar')\":true}"
+        )
+        assert result == expected

@@ -15,11 +15,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import (
-    Axis,
-    FrameOrSeriesUnion,
+from pandas.util._decorators import (
+    cache_readonly,
+    deprecate_nonkeyword_arguments,
 )
-from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -46,6 +45,11 @@ from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
     from typing import Literal
+
+    from pandas._typing import (
+        Axis,
+        FrameOrSeriesUnion,
+    )
 
     from pandas import (
         DataFrame,
@@ -165,10 +169,11 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> FrameOrSeriesUnion:
+) -> DataFrame | Series:
     ...
 
 
+@deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
     axis: Axis = 0,
@@ -180,7 +185,7 @@ def concat(
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool = True,
-) -> FrameOrSeriesUnion:
+) -> DataFrame | Series:
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -443,8 +448,13 @@ class _Concatenator:
                 clean_keys.append(k)
                 clean_objs.append(v)
             objs = clean_objs
-            name = getattr(keys, "name", None)
-            keys = Index(clean_keys, name=name)
+
+            if isinstance(keys, MultiIndex):
+                # TODO: retain levels?
+                keys = type(keys).from_tuples(clean_keys, names=keys.names)
+            else:
+                name = getattr(keys, "name", None)
+                keys = Index(clean_keys, name=name)
 
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
@@ -535,7 +545,7 @@ class _Concatenator:
                     if self._is_frame and axis == 1:
                         name = 0
                     # mypy needs to know sample is not an NDFrame
-                    sample = cast("FrameOrSeriesUnion", sample)
+                    sample = cast("DataFrame | Series", sample)
                     obj = sample._constructor({name: obj})
 
                 self.objs.append(obj)
@@ -555,8 +565,8 @@ class _Concatenator:
         self.new_axes = self._get_new_axes()
 
     def get_result(self):
-        cons: type[FrameOrSeriesUnion]
-        sample: FrameOrSeriesUnion
+        cons: type[DataFrame | Series]
+        sample: DataFrame | Series
 
         # series only
         if self._is_series:

@@ -294,7 +294,7 @@ class TestDataFrameNonuniqueIndexes:
     def test_dups_across_blocks(self, using_array_manager):
         # dups across blocks
         df_float = DataFrame(np.random.randn(10, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(10, 3), dtype="int64")
+        df_int = DataFrame(np.random.randn(10, 3).astype("int64"))
         df_bool = DataFrame(True, index=df_float.index, columns=df_float.columns)
         df_object = DataFrame("foo", index=df_float.index, columns=df_float.columns)
         df_dt = DataFrame(

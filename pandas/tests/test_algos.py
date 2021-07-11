@@ -9,7 +9,10 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-from pandas.compat import np_array_datetime64_compat
+from pandas.compat import (
+    PY310,
+    np_array_datetime64_compat,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -194,7 +197,7 @@ class TestFactorize:
         # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype="O")
-        rizer = ht.Factorizer(len(key))
+        rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
@@ -783,6 +786,8 @@ class TestUnique:
         expected = np.array([np.nan])
         tm.assert_numpy_array_equal(result, expected)
 
+    # Flaky on Python 3.10 -> Don't make strict
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_first_nan_kept(self):
         # GH 22295
         # create different nans from bit-patterns:
@@ -988,6 +993,8 @@ class TestIsin:
         # different objects -> False
         tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
 
+    # Flaky on Python 3.10 -> Don't make strict
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_different_nans(self):
         # GH 22160
         # all nans are handled as equivalent
@@ -1030,6 +1037,8 @@ class TestIsin:
         result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    # Flaky on Python 3.10 -> Don't make strict
+    @pytest.mark.xfail(PY310, reason="Failing on Python 3.10 GH41940", strict=False)
     def test_different_nan_objects(self):
         # GH 22119
         comps = np.array(["nan", np.nan * 1j, float("nan")], dtype=object)
@@ -1747,7 +1756,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.intp))
+            result = libalgos.rank_1d(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
@@ -1756,14 +1765,15 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self, writable):
+    @pytest.mark.parametrize("dtype", np.typecodes["AllInteger"])
+    def test_basic(self, writable, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        for dtype in np.typecodes["AllInteger"]:
-            data = np.array([1, 100], dtype=dtype)
-            data.setflags(write=writable)
-            s = Series(data)
-            tm.assert_numpy_array_equal(algos.rank(s), exp)
+        data = np.array([1, 100], dtype=dtype)
+        data.setflags(write=writable)
+        ser = Series(data)
+        result = algos.rank(ser)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_uint64_overflow(self):
         exp = np.array([1, 2], dtype=np.float64)

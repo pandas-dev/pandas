@@ -13,6 +13,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -122,7 +123,11 @@ class TestiLocBaseIndependent:
         else:
             values = obj[0].values
 
-        obj.iloc[:2] = box(arr[2:])
+        if frame_or_series is Series:
+            obj.iloc[:2] = box(arr[2:])
+        else:
+            obj.iloc[:2, 0] = box(arr[2:])
+
         expected = frame_or_series(np.array([3, 4, 3, 4], dtype="i8"))
         tm.assert_equal(obj, expected)
 
@@ -591,7 +596,7 @@ class TestiLocBaseIndependent:
         assert result == exp
 
         # out-of-bounds exception
-        msg = "single positional indexer is out-of-bounds"
+        msg = "index 5 is out of bounds for axis 0 with size 4"
         with pytest.raises(IndexError, match=msg):
             df.iloc[10, 5]
 
@@ -796,7 +801,7 @@ class TestiLocBaseIndependent:
         df2 = DataFrame({"A": [0.1] * 1000, "B": [1] * 1000})
         df2 = concat([df2, 2 * df2, 3 * df2])
 
-        with pytest.raises(KeyError, match="with any missing labels"):
+        with pytest.raises(KeyError, match="not in index"):
             df2.loc[idx]
 
     def test_iloc_empty_list_indexer_is_ok(self):
@@ -1110,6 +1115,20 @@ class TestiLocBaseIndependent:
         expected = DataFrame({Interval(1, 2): [2, 3]})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("indexing_func", [list, np.array])
+    @pytest.mark.parametrize("rhs_func", [list, np.array])
+    def test_loc_setitem_boolean_list(self, rhs_func, indexing_func):
+        # GH#20438 testing specifically list key, not arraylike
+        ser = Series([0, 1, 2])
+        ser.iloc[indexing_func([True, False, True])] = rhs_func([5, 10])
+        expected = Series([5, 1, 10])
+        tm.assert_series_equal(ser, expected)
+
+        df = DataFrame({"a": [0, 1, 2]})
+        df.iloc[indexing_func([True, False, True])] = rhs_func([[5], [10]])
+        expected = DataFrame({"a": [5, 1, 10]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestILocErrors:
     # NB: this test should work for _any_ Series we can pass as
@@ -1185,6 +1204,21 @@ class TestILocSetItemDuplicateColumns:
         )
         df.iloc[:, 0] = df.iloc[:, 0].astype(np.float64)
         assert df.dtypes.iloc[2] == np.int64
+
+    @pytest.mark.parametrize(
+        ["dtypes", "init_value", "expected_value"],
+        [("int64", "0", 0), ("float", "1.2", 1.2)],
+    )
+    def test_iloc_setitem_dtypes_duplicate_columns(
+        self, dtypes, init_value, expected_value
+    ):
+        # GH#22035
+        df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
+        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        expected_df = DataFrame(
+            [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
+        )
+        tm.assert_frame_equal(df, expected_df)
 
 
 class TestILocCallable:
@@ -1307,3 +1341,10 @@ class TestILocSeries:
         ser1.iloc[1:3] = ser2.iloc[1:3]
         expected = Series([1, 5, 6])
         tm.assert_series_equal(ser1, expected)
+
+    def test_iloc_nullable_int64_size_1_nan(self):
+        # GH 31861
+        result = DataFrame({"a": ["test"], "b": [np.nan]})
+        result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+        expected = DataFrame({"a": ["test"], "b": array([NA], dtype="Int64")})
+        tm.assert_frame_equal(result, expected)

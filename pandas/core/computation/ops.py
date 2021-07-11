@@ -5,7 +5,6 @@ Operator classes for eval.
 from __future__ import annotations
 
 from datetime import datetime
-from distutils.version import LooseVersion
 from functools import partial
 import operator
 from typing import (
@@ -616,18 +615,8 @@ class MathCall(Op):
 
 class FuncNode:
     def __init__(self, name: str):
-        from pandas.core.computation.check import (
-            NUMEXPR_INSTALLED,
-            NUMEXPR_VERSION,
-        )
-
-        if name not in MATHOPS or (
-            NUMEXPR_INSTALLED
-            and NUMEXPR_VERSION < LooseVersion("2.6.9")
-            and name in ("floor", "ceil")
-        ):
+        if name not in MATHOPS:
             raise ValueError(f'"{name}" is not a supported function')
-
         self.name = name
         self.func = getattr(np, name)
 

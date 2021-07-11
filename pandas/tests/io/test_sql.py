@@ -52,7 +52,9 @@ import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import (
+    SQLAlchemyEngine,
     _gt14,
+    get_engine,
     read_sql_query,
     read_sql_table,
 )
@@ -572,6 +574,23 @@ class PandasSQLTest:
         num_entries = len(self.test_frame1)
         num_rows = self._count_rows("test_frame1")
         assert num_rows == num_entries
+        # Nuke table
+        self.drop_table("test_frame1")
+
+    def _to_sql_with_sql_engine(self, engine="auto", **engine_kwargs):
+        """`to_sql` with the `engine` param"""
+        # mostly copied from this class's `_to_sql()` method
+        self.drop_table("test_frame1")
+
+        self.pandasSQL.to_sql(
+            self.test_frame1, "test_frame1", engine=engine, **engine_kwargs
+        )
+        assert self.pandasSQL.has_table("test_frame1")
+
+        num_entries = len(self.test_frame1)
+        num_rows = self._count_rows("test_frame1")
+        assert num_rows == num_entries
+
         # Nuke table
         self.drop_table("test_frame1")
 
@@ -2052,6 +2071,41 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             df = sql.read_sql_query(sql=sqlalchemy.select([Temporary.spam]), con=conn)
 
         tm.assert_frame_equal(df, expected)
+
+    # -- SQL Engine tests (in the base class for now)
+    def test_invalid_engine(self):
+        msg = "engine must be one of 'auto', 'sqlalchemy'"
+        with pytest.raises(ValueError, match=msg):
+            self._to_sql_with_sql_engine("bad_engine")
+
+    def test_options_sqlalchemy(self):
+        # use the set option
+
+        with pd.option_context("io.sql.engine", "sqlalchemy"):
+            self._to_sql_with_sql_engine()
+
+    def test_options_auto(self):
+        # use the set option
+
+        with pd.option_context("io.sql.engine", "auto"):
+            self._to_sql_with_sql_engine()
+
+    def test_options_get_engine(self):
+        assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+        with pd.option_context("io.sql.engine", "sqlalchemy"):
+            assert isinstance(get_engine("auto"), SQLAlchemyEngine)
+            assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+        with pd.option_context("io.sql.engine", "auto"):
+            assert isinstance(get_engine("auto"), SQLAlchemyEngine)
+            assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+    def test_get_engine_auto_error_message(self):
+        # Expect different error messages from get_engine(engine="auto")
+        # if engines aren't installed vs. are installed but bad version
+        pass
+        # TODO fill this in when we add more engines
 
 
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):

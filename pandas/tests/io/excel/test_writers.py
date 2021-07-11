@@ -474,9 +474,12 @@ class TestExcelWriter:
         float_frame = df.astype(float)
         float_frame.columns = float_frame.columns.astype(float)
         float_frame.index = float_frame.index.astype(float)
-        recons = pd.read_excel(
-            path, sheet_name="test1", convert_float=False, index_col=0
-        )
+        with tm.assert_produces_warning(
+            FutureWarning, match="convert_float is deprecated"
+        ):
+            recons = pd.read_excel(
+                path, sheet_name="test1", convert_float=False, index_col=0
+            )
         tm.assert_frame_equal(recons, float_frame)
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
@@ -1293,7 +1296,12 @@ class TestExcelWriter:
         )
         expected = DataFrame(np.ones((2, 2)), columns=mi)
         expected.to_excel(path)
-        result = pd.read_excel(path, header=[0, 1], index_col=0, convert_float=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="convert_float is deprecated"
+        ):
+            result = pd.read_excel(
+                path, header=[0, 1], index_col=0, convert_float=False
+            )
         # need to convert PeriodIndexes to standard Indexes for assert equal
         expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
@@ -1390,25 +1398,6 @@ class TestExcelWriterEngineTests:
                 check_called(lambda: df.to_excel(filepath))
             with tm.ensure_clean("something.xls") as filepath:
                 check_called(lambda: df.to_excel(filepath, engine="dummy"))
-
-    @pytest.mark.parametrize(
-        "ext",
-        [
-            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
-            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
-            pytest.param(".ods", marks=td.skip_if_no("odf")),
-        ],
-    )
-    def test_kwargs_deprecated(self, ext):
-        # GH 40430
-        msg = re.escape("Use of **kwargs is deprecated")
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with tm.ensure_clean(ext) as path:
-                try:
-                    with ExcelWriter(path, kwarg=1):
-                        pass
-                except TypeError:
-                    pass
 
     @pytest.mark.parametrize(
         "ext",

@@ -28,6 +28,17 @@ from pandas.core import (
     nanops,
     ops,
 )
+from pandas.core.computation import expressions as expr
+
+
+@pytest.fixture(
+    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
+)
+def switch_numexpr_min_elements(request):
+    _MIN_ELEMENTS = expr._MIN_ELEMENTS
+    expr._MIN_ELEMENTS = request.param
+    yield request.param
+    expr._MIN_ELEMENTS = _MIN_ELEMENTS
 
 
 def _permute(obj):
@@ -772,7 +783,9 @@ class TestNamePreservation:
         else:
             # GH#37374 logical ops behaving as set ops deprecated
             warn = FutureWarning if is_rlogical and box is Index else None
-            with tm.assert_produces_warning(warn, check_stacklevel=False):
+            msg = "operating as a set operation is deprecated"
+            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+                # stacklevel is correct for Index op, not reversed op
                 result = op(left, right)
 
         if box is Index and is_rlogical:
@@ -861,7 +874,7 @@ def test_none_comparison(series_with_simple_index):
 
     # bug brought up by #1079
     # changed from TypeError in 0.17.0
-    series[0] = np.nan
+    series.iloc[0] = np.nan
 
     # noinspection PyComparisonWithNone
     result = series == None  # noqa
@@ -897,3 +910,26 @@ def test_none_comparison(series_with_simple_index):
         result = series < None
         assert not result.iat[0]
         assert not result.iat[1]
+
+
+def test_series_varied_multiindex_alignment():
+    # GH 20414
+    s1 = Series(
+        range(8),
+        index=pd.MultiIndex.from_product(
+            [list("ab"), list("xy"), [1, 2]], names=["ab", "xy", "num"]
+        ),
+    )
+    s2 = Series(
+        [1000 * i for i in range(1, 5)],
+        index=pd.MultiIndex.from_product([list("xy"), [1, 2]], names=["xy", "num"]),
+    )
+    result = s1.loc[pd.IndexSlice[["a"], :, :]] + s2
+    expected = Series(
+        [1000, 2001, 3002, 4003],
+        index=pd.MultiIndex.from_tuples(
+            [("a", "x", 1), ("a", "x", 2), ("a", "y", 1), ("a", "y", 2)],
+            names=["ab", "xy", "num"],
+        ),
+    )
+    tm.assert_series_equal(result, expected)
