@@ -237,7 +237,7 @@ class ToDict:
     param_names = ["orient"]
 
     def setup(self, orient):
-        data = np.random.randint(0, 1000, size=(10000, 10))
+        data = np.random.randint(0, 1000, size=(10000, 4))
         self.int_df = DataFrame(data)
         self.datetimelike_df = self.int_df.astype("timedelta64[ns]")
 
