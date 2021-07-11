@@ -306,7 +306,7 @@ class PandasSQLTest:
 
         self.drop_table("iris")
 
-        if isinstance(self._get_exec(), sqlite3.Connection):
+        if isinstance(self._get_exec(), sqlite3.Cursor):
             self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
         else:
             with self._get_exec().connect() as conn:
@@ -318,7 +318,7 @@ class PandasSQLTest:
             next(reader)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
 
-            if isinstance(self._get_exec(), sqlite3.Connection):
+            if isinstance(self._get_exec(), sqlite3.Cursor):
                 for row in reader:
                     self._get_exec().execute(ins, row)
             else:
