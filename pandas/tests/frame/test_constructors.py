@@ -255,12 +255,14 @@ class TestDataFrameConstructors:
 
     @td.skip_array_manager_invalid_test
     def test_1d_object_array_does_not_copy(self):
+        # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array(["a", "b"], dtype="object")
         df = DataFrame(arr)
         assert np.shares_memory(df.values, arr)
 
     @td.skip_array_manager_invalid_test
     def test_2d_object_array_does_not_copy(self):
+        # https://github.com/pandas-dev/pandas/issues/39272
         arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
         df = DataFrame(arr)
         assert np.shares_memory(df.values, arr)
