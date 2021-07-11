@@ -1,7 +1,5 @@
 import numpy as np
 
-from pandas.core.dtypes.common import is_extension_array_dtype
-
 from pandas import (
     Categorical,
     Float64Dtype,
@@ -301,11 +299,10 @@ class IsInLongSeriesLookUpDominates:
 
         self.series = Series(array).astype(dtype)
 
-        if is_extension_array_dtype(dtype):
-            vals_dtype = dtype.type
-        else:
-            vals_dtype = dtype
-        self.values = np.arange(MaxNumber).astype(vals_dtype)
+        if isinstance(dtype, (Int64Dtype, Float64Dtype)):
+            dtype = dtype.type
+
+        self.values = np.arange(MaxNumber).astype(dtype)
 
     def time_isin(self, dtypes, MaxNumber, series_type):
         self.series.isin(self.values)
@@ -334,12 +331,10 @@ class IsInLongSeriesValuesDominate:
         if series_type == "monotone":
             vals = np.arange(N)
 
-        if is_extension_array_dtype(dtype):
-            vals_dtype = dtype.type
-        else:
-            vals_dtype = dtype
+        if isinstance(dtype, (Int64Dtype, Float64Dtype)):
+            dtype = dtype.type
 
-        self.values = vals.astype(vals_dtype)
+        self.values = vals.astype(dtype)
 
         M = 10 ** 6 + 1
         self.series = Series(np.arange(M)).astype(dtype)
