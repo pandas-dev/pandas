@@ -1154,7 +1154,7 @@ def from_dummies(
     if columns is None:
         columns = data.columns
     elif not is_list_like(columns):
-        raise TypeError("Input must be a list-like for parameter 'columns'")
+        raise TypeError("Argument for parameter 'columns' must be list-like")
     # index data with a list of all columns that are dummies
     cat_columns = []
     non_cat_columns = []
@@ -1221,16 +1221,18 @@ def from_dummies(
             if dropped_first:
                 cats.append(dropped_first[prefix])
             else:
-                cats.append("nan")
+                cats.append("from_dummies_nan_placeholer_string")
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
             data_slice = data_to_decode[prefix_slice]
         cat_data[prefix] = data_slice.dot(cats)
 
-    if columns:
-        return DataFrame(cat_data)
-    else:
-        return concat((non_cat_data, DataFrame(cat_data)), axis=1)
+    categorical_df = concat((non_cat_data, DataFrame(cat_data)), axis=1)
+    if dropped_first is None:
+        categorical_df.replace(
+            "from_dummies_nan_placeholer_string", np.nan, inplace=True
+        )
+    return categorical_df
 
 
 def _from_dummies_1d(
@@ -1259,10 +1261,15 @@ def _from_dummies_1d(
         if dropped_first:
             cats.append(dropped_first)
         else:
-            cats.append("nan")
+            cats.append("from_dummies_nan_placeholer_string")
         data = concat((data, assigned == 0), axis=1)
 
-    return data.dot(cats)
+    categorical_series = data.dot(cats)
+    if dropped_first is None:
+        categorical_series.replace(
+            "from_dummies_nan_placeholer_string", np.nan, inplace=True
+        )
+    return categorical_series
 
 
 def _reorder_for_extension_array_stack(

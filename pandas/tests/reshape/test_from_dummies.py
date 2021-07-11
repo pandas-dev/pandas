@@ -53,7 +53,7 @@ def test_from_dummies_to_series_contains_get_dummies_NaN_column():
 
 def test_from_dummies_to_series_contains_unassigned():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
-    expected = Series(["a", "b", "nan"])
+    expected = Series(["a", "b", np.nan])
     result = from_dummies(dummies, to_series=True)
     tm.assert_series_equal(result, expected)
 
@@ -173,7 +173,7 @@ def test_from_dummies_to_df_contains_get_dummies_NaN_column():
 
 def test_from_dummies_to_df_contains_unassigned(dummies_with_unassigned):
     expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "nan"], "col2": ["nan", "a", "c"]}
+        {"C": [1, 2, 3], "col1": ["a", "b", np.nan], "col2": [np.nan, "a", "c"]}
     )
     result = from_dummies(dummies_with_unassigned)
     tm.assert_frame_equal(result, expected)
@@ -238,7 +238,7 @@ def test_from_dummies_to_df_dropped_first_dict_not_complete(dummies_with_unassig
 def test_from_dummies_to_df_wrong_column_type(dummies_basic):
     with pytest.raises(
         TypeError,
-        match=r"Input must be a list-like for parameter 'columns'",
+        match=r"Argument for parameter 'columns' must be list-like",
     ):
         from_dummies(dummies_basic, columns="col1_a")
 
