@@ -2052,6 +2052,7 @@ class Styler(StylerRenderer):
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
+        height: float = 100,
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
@@ -2100,6 +2101,11 @@ class Styler(StylerRenderer):
             Maximum bar value, defining the right hand limit
             of the bar drawing range, higher values are clipped to `vmax`.
             When None (default): the maximum value of the data will be used.
+        height : float, default 100
+            The percentage height of the bar in the cell, centrally aligned, in [0,100].
+
+            .. versionadded:: 1.4.0
+
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
             `"width: 10em;"`
@@ -2131,6 +2137,7 @@ class Styler(StylerRenderer):
             align=align,
             colors=color,
             width=width / 100,
+            height=height / 100,
             vmin=vmin,
             vmax=vmax,
             base_css=props,
@@ -2791,6 +2798,7 @@ def _bar(
     align: str | float | int | Callable,
     colors: list[str],
     width: float,
+    height: float,
     vmin: float | None,
     vmax: float | None,
     base_css: str,
@@ -2808,6 +2816,9 @@ def _bar(
         Two listed colors as string in valid CSS.
     width : float in [0,1]
         The percentage of the cell, measured from left, where drawn bars will reside.
+    height : float in [0,1]
+        The percentage of the cell's height where drawn bars will reside, centrally
+        aligned.
     vmin : float, optional
         Overwrite the minimum value of the window.
     vmax : float, optional
@@ -2873,7 +2884,7 @@ def _bar(
 
         Notes
         -----
-        Uses ``colors`` and ``width`` from outer scope.
+        Uses ``colors``, ``width`` and ``height`` from outer scope.
         """
         if pd.isna(x):
             return base_css
@@ -2911,7 +2922,13 @@ def _bar(
             else:
                 start, end = z_frac, (x - left) / (right - left)
 
-        return css_bar(start * width, end * width, color)
+        if height < 1:
+            return (
+                css_bar(start * width, end * width, color)
+                + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+            )
+        else:
+            return css_bar(start * width, end * width, color)
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin
