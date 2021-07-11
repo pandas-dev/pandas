@@ -107,6 +107,7 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=2,
         )
+        # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
         # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
         rtol = atol = _get_tol_from_less_precise(
@@ -340,6 +341,7 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=2,
         )
+        # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
         # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
         rtol = atol = _get_tol_from_less_precise(
