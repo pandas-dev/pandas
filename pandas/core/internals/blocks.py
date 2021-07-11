@@ -312,17 +312,6 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    def getitem_block_index(self, slicer: slice) -> Block:
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
-
     @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
         """
@@ -1557,6 +1546,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return self.values[slicer]
 
+    @final
+    def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        # error: Invalid index type "Tuple[ellipsis, slice]" for
+        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        new_values = self.values[..., slicer]  # type: ignore[index]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1661,8 +1662,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
 
-    getitem_block_index = final(libinternals.NumpyBlock.getitem_block_index)
-
 
 class NumericBlock(NumpyBlock):
     __slots__ = ()
@@ -1675,7 +1674,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-    getitem_block_index = final(libinternals.NDArrayBackedBlock.getitem_block_index)
 
     @property
     def is_view(self) -> bool:
