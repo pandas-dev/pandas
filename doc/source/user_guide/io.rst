@@ -5699,7 +5699,7 @@ Example of a callable using PostgreSQL `COPY clause
           writer.writerows(data_iter)
           s_buf.seek(0)
 
-          columns = ', '.join('"{}"'.format(k) for k in keys)
+          columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
               table_name = '{}.{}'.format(table.schema, table.name)
           else:

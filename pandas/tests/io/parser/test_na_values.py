@@ -123,7 +123,7 @@ def test_default_na_values(all_parsers):
 
         return buf
 
-    data = StringIO("\n".join(f(i, v) for i, v in enumerate(_NA_VALUES)))
+    data = StringIO("\n".join([f(i, v) for i, v in enumerate(_NA_VALUES)]))
     expected = DataFrame(np.nan, columns=range(nv), index=range(nv))
 
     result = parser.read_csv(data, header=None)

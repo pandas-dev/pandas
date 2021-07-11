@@ -1367,12 +1367,12 @@ class StataReader(StataParser, abc.Iterator):
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
-            invalid_types = ",".join(str(x) for x in typlist)
+            invalid_types = ",".join([str(x) for x in typlist])
             raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
-            invalid_dtypes = ",".join(str(x) for x in typlist)
+            invalid_dtypes = ",".join([str(x) for x in typlist])
             raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
 
         if self.format_version > 108:

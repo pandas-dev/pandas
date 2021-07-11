@@ -35,7 +35,7 @@ def _get_sys_info() -> dict[str, JSONSerializable]:
     language_code, encoding = locale.getlocale()
     return {
         "commit": _get_commit_hash(),
-        "python": ".".join(str(i) for i in sys.version_info),
+        "python": ".".join([str(i) for i in sys.version_info]),
         "python-bits": struct.calcsize("P") * 8,
         "OS": uname_result.system,
         "OS-release": uname_result.release,

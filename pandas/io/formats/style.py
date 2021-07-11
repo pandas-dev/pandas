@@ -2039,7 +2039,7 @@ class Styler(StylerRenderer):
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
 
     def bar(

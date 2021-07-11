@@ -1913,7 +1913,7 @@ class SQLiteTable(SQLTable):
         col_names = ",".join(bracketed_names)
 
         row_wildcards = ",".join([wld] * len(names))
-        wildcards = ",".join(f"({row_wildcards})" for _ in range(num_rows))
+        wildcards = ",".join([f"({row_wildcards})" for _ in range(num_rows)])
         insert_statement = (
             f"INSERT INTO {escape(self.name)} ({col_names}) VALUES {wildcards}"
         )
@@ -1952,7 +1952,7 @@ class SQLiteTable(SQLTable):
                 keys = [self.keys]
             else:
                 keys = self.keys
-            cnames_br = ", ".join(escape(c) for c in keys)
+            cnames_br = ", ".join([escape(c) for c in keys])
             create_tbl_stmts.append(
                 f"CONSTRAINT {self.name}_pk PRIMARY KEY ({cnames_br})"
             )
@@ -1972,7 +1972,7 @@ class SQLiteTable(SQLTable):
         ix_cols = [cname for cname, _, is_index in column_names_and_types if is_index]
         if len(ix_cols):
             cnames = "_".join(ix_cols)
-            cnames_br = ",".join(escape(c) for c in ix_cols)
+            cnames_br = ",".join([escape(c) for c in ix_cols])
             create_stmts.append(
                 "CREATE INDEX "
                 + escape("ix_" + self.name + "_" + cnames)
