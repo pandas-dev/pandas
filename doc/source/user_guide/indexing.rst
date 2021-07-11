@@ -889,6 +889,7 @@ Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
    s[s > 0]
    s[(s < -1) | (s > 0.5)]
    s[(s < -1) ^ (s > 0.5)]
+   s[(s < -1) & (s > 0.5)]
    s[~(s < 0)]
 
 You may select rows from a DataFrame using a boolean vector the same length as
