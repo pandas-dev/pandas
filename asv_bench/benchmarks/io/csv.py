@@ -291,11 +291,8 @@ class ReadCSVFloatPrecision(StringIORewind):
 
     def setup(self, sep, decimal, float_precision):
         floats = [
-            "".join(
-                [
-                    random.choice(string.digits) for _ in range(28)
-                ]
-            ) for _ in range(15)
+            "".join([random.choice(string.digits) for _ in range(28)])
+            for _ in range(15)
         ]
         rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
         data = rows * 5
