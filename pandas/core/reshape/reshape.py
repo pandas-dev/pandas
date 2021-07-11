@@ -1152,21 +1152,19 @@ def from_dummies(
 
     data_to_decode: DataFrame
     if columns is None:
-        # index data with a list of all columns that are dummies
-        cat_columns = []
-        non_cat_columns = []
-        for col in data.columns:
-            if any(ps in col for ps in prefix_sep):
-                cat_columns.append(col)
-            else:
-                non_cat_columns.append(col)
-        data_to_decode = data[cat_columns].astype("boolean")
-        non_cat_data = data[non_cat_columns]
+        columns = data.columns
     elif not is_list_like(columns):
         raise TypeError("Input must be a list-like for parameter 'columns'")
-    else:
-        data_to_decode = data[columns].astype("boolean")
-        non_cat_data = data[[col for col in data.columns if col not in columns]]
+    # index data with a list of all columns that are dummies
+    cat_columns = []
+    non_cat_columns = []
+    for col in columns:
+        if any(ps in col for ps in prefix_sep):
+            cat_columns.append(col)
+        else:
+            non_cat_columns.append(col)
+    data_to_decode = data[cat_columns].astype("boolean")
+    non_cat_data = data[non_cat_columns]
 
     # get separator for each prefix and lists to slice data for each prefix
     if isinstance(prefix_sep, dict):
