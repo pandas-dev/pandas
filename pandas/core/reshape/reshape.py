@@ -1113,7 +1113,6 @@ def from_dummies(
                           "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
                           "col2_b": [1, 0, 0], "col2_c": [0, 0, 1]})
 
-
     >>> pd.from_dummies(d)
        C   col1    col2
     0  1     a       b
@@ -1124,18 +1123,15 @@ def from_dummies(
                         "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
                         "col2_b": [1, 0, 0], "col2_c": [0, 0, 0]})
 
-
     >>> pd.from_dummies(d, dropped_first=["d", "e"])
        C   col1    col2
     0  1     a       b
     1  2     b       a
     2  3     d       e
 
-
     >>> d = pd.DataFrame({"col1_a-a": [1, 0, 1], "col1_b-b": [0, 1, 0],
                           "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
                           "col2-c_c": [0, 0, 1]})
-
 
     >>> pd.from_dummies(d, prefix_sep={"col1": "_", "col2": "-"})
        col1  col2
@@ -1244,7 +1240,10 @@ def _from_dummies_1d(
     dropped_first: None | str = None,
 ) -> Series:
     """
-    soon
+    Helper function for from_dummies.
+
+    Handles the conversion of dummy encoded data to a categorical `Series`.
+    For parameters and usage see: from_dummies.
     """
     from pandas.core.reshape.concat import concat
 
