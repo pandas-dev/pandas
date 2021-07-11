@@ -2542,7 +2542,7 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def _get_indexer_strict(self, key, axis_name) -> np.ndarray:
+    def _get_indexer_strict(self, key, axis_name: str) -> tuple[Index, np.ndarray]:
 
         keyarr = key
         if not isinstance(keyarr, Index):

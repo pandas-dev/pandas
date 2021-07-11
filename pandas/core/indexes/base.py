@@ -5390,7 +5390,7 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
-    def _get_indexer_strict(self, key, axis_name: str) -> np.ndarray:
+    def _get_indexer_strict(self, key, axis_name: str_t) -> tuple[Index, np.ndarray]:
         """
         Analogue to get_indexer that raises if any elements are missing.
         """
@@ -5417,13 +5417,15 @@ class Index(IndexOpsMixin, PandasObject):
             if keyarr.dtype.kind in ["m", "M"]:
                 # DTI/TDI.take can infer a freq in some cases when we dont want one
                 if isinstance(key, list) or (
-                    isinstance(key, type(self)) and key.freq is None
+                    isinstance(key, type(self))
+                    # "Index" has no attribute "freq"
+                    and key.freq is None  # type: ignore[attr-defined]
                 ):
                     keyarr = keyarr._with_freq(None)
 
         return keyarr, indexer
 
-    def _raise_if_missing(self, key, indexer, axis_name: str):
+    def _raise_if_missing(self, key, indexer, axis_name: str_t):
         """
         Check that indexer can be used to return a result.
 
@@ -5457,7 +5459,10 @@ class Index(IndexOpsMixin, PandasObject):
             #  message tests from raising while debugging
             use_interval_msg = is_interval_dtype(self.dtype) or (
                 is_categorical_dtype(self.dtype)
-                and is_interval_dtype(self.categories.dtype)
+                # "Index" has no attribute "categories"  [attr-defined]
+                and is_interval_dtype(
+                    self.categories.dtype  # type: ignore[attr-defined]
+                )
             )
 
             if nmissing == len(indexer):
