@@ -3,7 +3,7 @@
     <div class="container">
         <div class="row">
             <div class="col-md-9">
-                <section class="jumbotron text-center">
+                <section class="h-30 p-5 bg-light border rounded-3 text-center mb-4">
                     <h1>pandas</h1>
                     <p>
                         <strong>pandas</strong> is a fast, powerful, flexible and easy to use open source data analysis and manipulation tool,<br/>
@@ -98,7 +98,7 @@
                 {% endif %}
                 {% if releases[5:] %}
                     <p class="text-center">
-                        <a data-toggle="collapse" href="#show-more-releases" role="button" aria-expanded="false" aria-controls="show-more-releases">Show more</a>
+                        <a data-bs-toggle="collapse" href="#show-more-releases" role="button" aria-expanded="false" aria-controls="show-more-releases">Show more</a>
                     </p>
                     <ul id="show-more-releases" class="collapse">
                         {% for release in releases[5:] %}

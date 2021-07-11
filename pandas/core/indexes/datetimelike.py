@@ -531,15 +531,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
-        intersection specialized to the case with matching dtypes.
+        intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
-        if len(self) == 0:
-            return self.copy()._get_reconciled_name_object(other)
-        if len(other) == 0:
-            return other.copy()._get_reconciled_name_object(self)
 
-        elif not self._can_fast_intersect(other):
+        if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
@@ -548,6 +544,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
+
+        else:
+            return self._fast_intersect(other, sort)
+
+    def _fast_intersect(self, other, sort):
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -626,11 +627,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -680,4 +677,4 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort=sort)._with_freq("infer")
+            return super()._union(other, sort)._with_freq("infer")

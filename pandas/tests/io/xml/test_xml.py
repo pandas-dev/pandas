@@ -10,7 +10,6 @@ from urllib.error import HTTPError
 import numpy as np
 import pytest
 
-from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
 from pandas import DataFrame
@@ -255,10 +254,6 @@ def test_parser_consistency_file(datapath):
 @tm.network
 @pytest.mark.slow
 @td.skip_if_no("lxml")
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_parser_consistency_url(datapath):
     url = (
         "https://data.cityofchicago.org/api/views/"
@@ -423,6 +418,7 @@ def test_url():
     tm.assert_frame_equal(df_url, df_expected)
 
 
+@tm.network
 def test_wrong_url(parser):
     with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
         url = "https://www.w3schools.com/xml/python.xml"

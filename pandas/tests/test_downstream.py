@@ -59,7 +59,11 @@ def test_xarray_cftimeindex_nearest():
     import xarray
 
     times = xarray.cftime_range("0001", periods=2)
-    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    key = cftime.DatetimeGregorian(2000, 1, 1)
+    with tm.assert_produces_warning(
+        FutureWarning, match="deprecated", check_stacklevel=False
+    ):
+        result = times.get_loc(key, method="nearest")
     expected = 1
     assert result == expected
 
