@@ -2,8 +2,6 @@ import numpy as np
 
 from pandas import (
     Categorical,
-    Float64Dtype,
-    Int64Dtype,
     NaT,
     Series,
     date_range,
@@ -271,15 +269,7 @@ class IsInForObjects:
 
 class IsInLongSeriesLookUpDominates:
     params = [
-        [
-            "int64",
-            "int32",
-            "float64",
-            "float32",
-            "object",
-            Int64Dtype(),
-            Float64Dtype(),
-        ],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         [5, 1000],
         ["random_hits", "random_misses", "monotone_hits", "monotone_misses"],
     ]
@@ -299,10 +289,7 @@ class IsInLongSeriesLookUpDominates:
 
         self.series = Series(array).astype(dtype)
 
-        if isinstance(dtype, (Int64Dtype, Float64Dtype)):
-            dtype = dtype.type
-
-        self.values = np.arange(MaxNumber).astype(dtype)
+        self.values = np.arange(MaxNumber).astype(dtype.lower())
 
     def time_isin(self, dtypes, MaxNumber, series_type):
         self.series.isin(self.values)
@@ -310,15 +297,7 @@ class IsInLongSeriesLookUpDominates:
 
 class IsInLongSeriesValuesDominate:
     params = [
-        [
-            "int64",
-            "int32",
-            "float64",
-            "float32",
-            "object",
-            Int64Dtype(),
-            Float64Dtype(),
-        ],
+        ["int64", "int32", "float64", "float32", "object", "Int64", "Float64"],
         ["random", "monotone"],
     ]
     param_names = ["dtype", "series_type"]
@@ -331,11 +310,7 @@ class IsInLongSeriesValuesDominate:
         if series_type == "monotone":
             vals = np.arange(N)
 
-        if isinstance(dtype, (Int64Dtype, Float64Dtype)):
-            dtype = dtype.type
-
-        self.values = vals.astype(dtype)
-
+        self.values = vals.astype(dtype.lower())
         M = 10 ** 6 + 1
         self.series = Series(np.arange(M)).astype(dtype)
 
