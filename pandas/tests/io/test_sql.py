@@ -2649,8 +2649,6 @@ class TestXSQLite(SQLiteMixIn):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
-        cur = self.conn.cursor()
-
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
         for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
