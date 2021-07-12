@@ -147,7 +147,7 @@ class TestHistWithBy(TestPlotBase):
         # GH 15079
         msg = "No group keys passed"
         with pytest.raises(ValueError, match=msg):
-            axes = _check_plot_works(self.hist_df.plot.hist, column=column, by=by)
+            _check_plot_works(self.hist_df.plot.hist, column=column, by=by)
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -347,7 +347,7 @@ class TestBoxWithBy(TestPlotBase):
         # GH 15079
         msg = "No group keys passed"
         with pytest.raises(ValueError, match=msg):
-            axes = _check_plot_works(self.box_df.plot.box, column=column, by=by)
+            _check_plot_works(self.box_df.plot.box, column=column, by=by)
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
