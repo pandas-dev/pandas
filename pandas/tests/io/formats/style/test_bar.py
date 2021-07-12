@@ -319,8 +319,13 @@ def test_colors_mixed(align, exp):
     assert result == {(0, 0): exp[0], (1, 0): exp[1]}
 
 
-def test_bar_bad_align_raises():
+def test_bar_value_error_raises():
     df = DataFrame({"A": [-100, -60, -30, -20]})
+
     msg = "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or"
     with pytest.raises(ValueError, match=msg):
-        df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"]).render()
+        df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"]).to_html()
+
+    msg = r"`width` must be a value in \[0, 100\]"
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(width=200).to_html()

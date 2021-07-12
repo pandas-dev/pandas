@@ -2121,6 +2121,9 @@ class Styler(StylerRenderer):
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
+        if not (0 <= width <= 100):
+            raise ValueError(f"`width` must be a value in [0, 100], got {width}")
+
         if subset is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
