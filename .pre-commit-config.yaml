@@ -53,11 +53,11 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.9.1
+    rev: 5.9.2
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.20.0
+    rev: v2.21.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
