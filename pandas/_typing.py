@@ -21,6 +21,7 @@ from typing import (
     Dict,
     Hashable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -37,10 +38,11 @@ import numpy as np
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
     from typing import (
-        Literal,
         TypedDict,
         final,
     )
+
+    import numpy.typing as npt
 
     from pandas._libs import (
         Period,
@@ -73,6 +75,7 @@ if TYPE_CHECKING:
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset
 else:
+    npt: Any = None
     # typing.final does not exist until py38
     final = lambda x: x
     # typing.TypedDict does not exist until py38
@@ -101,12 +104,6 @@ TimedeltaConvertibleTypes = Union[
 ]
 Timezone = Union[str, tzinfo]
 
-# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
-# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
-# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
-# in, either a DataFrame or a Series is returned.
-FrameOrSeriesUnion = Union["DataFrame", "Series"]
-
 # FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
 # used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
 # Series is passed into a function, a Series is always returned and if a DataFrame is
@@ -122,6 +119,14 @@ Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
 Frequency = Union[str, "DateOffset"]
 Axes = Collection[Any]
+
+RandomState = Union[
+    int,
+    ArrayLike,
+    np.random.Generator,
+    np.random.BitGenerator,
+    np.random.RandomState,
+]
 
 # dtypes
 NpDtype = Union[str, np.dtype]
@@ -193,10 +198,7 @@ ColspaceArgType = Union[
 ]
 
 # Arguments for fillna()
-if TYPE_CHECKING:
-    FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
-else:
-    FillnaOptions = str
+FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
 
 # internals
 Manager = Union[

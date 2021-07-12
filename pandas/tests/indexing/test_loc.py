@@ -1663,6 +1663,18 @@ class TestLocWithMultiIndex:
         with pytest.raises(KeyError, match=r"\['b'\] not in index"):
             df.loc[df["a"] < lt_value, :].loc[["b"], :]
 
+    def test_loc_drops_level(self):
+        # Based on test_series_varied_multiindex_alignment, where
+        #  this used to fail to drop the first level
+        mi = MultiIndex.from_product(
+            [list("ab"), list("xy"), [1, 2]], names=["ab", "xy", "num"]
+        )
+        ser = Series(range(8), index=mi)
+
+        loc_result = ser.loc["a", :, :]
+        expected = ser.index.droplevel(0)[:4]
+        tm.assert_index_equal(loc_result.index, expected)
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow
@@ -1829,6 +1841,23 @@ class TestLocSetitemWithExpansion:
             index=exp_index,
         )
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "dtype", ["Int32", "Int64", "UInt32", "UInt64", "Float32", "Float64"]
+    )
+    def test_loc_setitem_with_expansion_preserves_nullable_int(self, dtype):
+        # GH#42099
+        ser = Series([0, 1, 2, 3], dtype=dtype)
+        df = DataFrame({"data": ser})
+
+        result = DataFrame(index=df.index)
+        result.loc[df.index, "data"] = ser
+
+        tm.assert_frame_equal(result, df)
+
+        result = DataFrame(index=df.index)
+        result.loc[df.index, "data"] = ser._values
+        tm.assert_frame_equal(result, df)
 
 
 class TestLocCallable:

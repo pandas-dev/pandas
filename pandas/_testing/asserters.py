@@ -107,6 +107,7 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=2,
         )
+        # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
         # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
         rtol = atol = _get_tol_from_less_precise(
@@ -314,18 +315,16 @@ def assert_index_equal(
             return
 
         assert_class_equal(left, right, exact=exact, obj=obj)
+        assert_attr_equal("inferred_type", left, right, obj=obj)
 
         # Skip exact dtype checking when `check_categorical` is False
-        if check_categorical:
-            assert_attr_equal("dtype", left, right, obj=obj)
-            if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
+        if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
+            if check_categorical:
+                assert_attr_equal("dtype", left, right, obj=obj)
                 assert_index_equal(left.categories, right.categories, exact=exact)
+            return
 
-        # allow string-like to have different inferred_types
-        if left.inferred_type in ("string"):
-            assert right.inferred_type in ("string")
-        else:
-            assert_attr_equal("inferred_type", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -342,6 +341,7 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=2,
         )
+        # https://github.com/python/mypy/issues/7642
         # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
         # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
         rtol = atol = _get_tol_from_less_precise(
@@ -437,6 +437,8 @@ def assert_class_equal(left, right, exact: bool | str = True, obj="Input"):
     """
     Checks classes are equal.
     """
+    from pandas.core.indexes.numeric import NumericIndex
+
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -446,17 +448,16 @@ def assert_class_equal(left, right, exact: bool | str = True, obj="Input"):
 
         return type(x).__name__
 
+    if type(left) == type(right):
+        return
+
     if exact == "equiv":
-        if type(left) != type(right):
-            # allow equivalence of Int64Index/RangeIndex
-            types = {type(left).__name__, type(right).__name__}
-            if len(types - {"Int64Index", "RangeIndex"}):
-                msg = f"{obj} classes are not equivalent"
-                raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
-    elif exact:
-        if type(left) != type(right):
-            msg = f"{obj} classes are different"
-            raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
+        # accept equivalence of NumericIndex (sub-)classes
+        if isinstance(left, NumericIndex) and isinstance(right, NumericIndex):
+            return
+
+    msg = f"{obj} classes are different"
+    raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
 def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):

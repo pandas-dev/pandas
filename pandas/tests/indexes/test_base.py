@@ -12,6 +12,7 @@ import pytest
 
 from pandas.compat import (
     IS64,
+    PY310,
     np_datetime64_compat,
 )
 from pandas.util._test_decorators import async_mark
@@ -992,7 +993,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -1003,6 +1004,24 @@ class TestIndex(Base):
             and math.isnan(nulls_fixture)
             and math.isnan(nulls_fixture2)
         ):
+            if PY310:
+                if (
+                    # Failing cases are
+                    # np.nan, float('nan')
+                    # float('nan'), np.nan
+                    # float('nan'), float('nan')
+                    # Since only float('nan'), np.nan is float
+                    # Use not np.nan to identify float('nan')
+                    nulls_fixture is np.nan
+                    and nulls_fixture2 is not np.nan
+                    or nulls_fixture is not np.nan
+                ):
+                    request.applymarker(
+                        # This test is flaky :(
+                        pytest.mark.xfail(
+                            reason="Failing on Python 3.10 GH41940", strict=False
+                        )
+                    )
             tm.assert_numpy_array_equal(
                 Index(["a", nulls_fixture]).isin([nulls_fixture2]),
                 np.array([False, True]),

@@ -42,8 +42,12 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
+from pandas.core import algorithms as algos
 import pandas.core.common as com
-from pandas.core.construction import array as pd_array
+from pandas.core.construction import (
+    array as pd_array,
+    extract_array,
+)
 from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
@@ -821,7 +825,15 @@ class _LocationIndexer(NDFrameIndexerBase):
         ax0 = self.obj._get_axis(0)
         # ...but iloc should handle the tuple as simple integer-location
         # instead of checking it as multiindex representation (GH 13797)
-        if isinstance(ax0, MultiIndex) and self.name != "iloc":
+        if (
+            isinstance(ax0, MultiIndex)
+            and self.name != "iloc"
+            and not any(isinstance(x, slice) for x in tup)
+        ):
+            # Note: in all extant test cases, replacing the slice condition with
+            #  `all(is_hashable(x) or com.is_null_slice(x) for x in tup)`
+            #  is equivalent.
+            #  (see the other place where we call _handle_lowerdim_multi_index_axis0)
             with suppress(IndexingError):
                 return self._handle_lowerdim_multi_index_axis0(tup)
 
@@ -870,17 +882,21 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            if isinstance(self.obj, ABCSeries) and any(
-                isinstance(k, tuple) for k in tup
-            ):
-                # GH#35349 Raise if tuple in tuple for series
-                raise ValueError("Too many indices")
-            if self.ndim == 1 or not any(isinstance(x, slice) for x in tup):
+            if all(is_hashable(x) or com.is_null_slice(x) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
                     return self._handle_lowerdim_multi_index_axis0(tup)
+            elif isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in tup
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                # Do this after the all-hashable-or-null-slice check so that
+                #  we are only getting non-hashable tuples, in particular ones
+                #  that themselves contain a slice entry
+                # See test_loc_series_getitem_too_many_dimensions
+                raise ValueError("Too many indices")
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1113,16 +1129,19 @@ class _LocIndexer(_LocationIndexer):
         try:
             # fast path for series or for tup devoid of slices
             return self._get_label(tup, axis=axis)
-        except (TypeError, InvalidIndexError):
+        except TypeError as err:
             # slices are unhashable
-            pass
+            # FIXME: this raises when we have a DatetimeIndex first level and a
+            #  string for the first tup entry
+            #  see test_partial_slicing_with_multiindex
+            raise IndexingError("No label returned") from err
+
         except KeyError as ek:
             # raise KeyError if number of indexers match
             # else IndexingError will be raised
             if self.ndim < len(tup) <= self.obj.index.nlevels:
                 raise ek
-
-        raise IndexingError("No label returned")
+            raise IndexingError("No label returned") from ek
 
     def _getitem_axis(self, key, axis: int):
         key = item_from_zerodim(key)
@@ -1232,9 +1251,7 @@ class _LocIndexer(_LocationIndexer):
             return {"key": key}
 
         if is_nested_tuple(key, labels):
-            if isinstance(self.obj, ABCSeries) and any(
-                isinstance(k, tuple) for k in key
-            ):
+            if self.ndim == 1 and any(isinstance(k, tuple) for k in key):
                 # GH#35349 Raise if tuple in tuple for series
                 raise ValueError("Too many indices")
             return labels.get_locs(key)
@@ -1660,6 +1677,21 @@ class _iLocIndexer(_LocationIndexer):
                         if com.is_null_slice(indexer[0]):
                             # We are setting an entire column
                             self.obj[key] = value
+                            return
+                        elif is_array_like(value):
+                            # GH#42099
+                            arr = extract_array(value, extract_numpy=True)
+                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+                            empty_value = algos.take_nd(arr, taker)
+                            if not isinstance(value, ABCSeries):
+                                # if not Series (in which case we need to align),
+                                #  we can short-circuit
+                                empty_value[indexer[0]] = arr
+                                self.obj[key] = empty_value
+                                return
+
+                            self.obj[key] = empty_value
+
                         else:
                             self.obj[key] = infer_fill_value(value)
 
