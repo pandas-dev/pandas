@@ -7,6 +7,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 
 from pandas._config import get_option
 
@@ -368,7 +369,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
-    ) -> tuple[Index, np.ndarray | None]:
+    ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 

@@ -15,6 +15,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 
 from pandas._libs import (
     NaT,
@@ -807,7 +808,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
+    def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
@@ -848,7 +849,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_between_time(
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day
         (e.g., 9:00-9:30AM).

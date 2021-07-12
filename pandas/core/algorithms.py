@@ -15,6 +15,7 @@ from typing import (
 from warnings import warn
 
 import numpy as np
+import numpy.typing as npt
 
 from pandas._libs import (
     algos,
@@ -528,7 +529,7 @@ def factorize_array(
     size_hint: int | None = None,
     na_value=None,
     mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
 

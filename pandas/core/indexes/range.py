@@ -14,6 +14,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import numpy.typing as npt
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
@@ -395,8 +396,7 @@ class RangeIndex(NumericIndex):
         method: str | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
-        # -> np.ndarray[np.intp]
+    ) -> npt.NDArray[np.intp]:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -502,7 +502,7 @@ class RangeIndex(NumericIndex):
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
+    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -529,7 +529,7 @@ class RangeIndex(NumericIndex):
 
     def factorize(
         self, sort: bool = False, na_sentinel: int | None = -1
-    ) -> tuple[np.ndarray, RangeIndex]:
+    ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:

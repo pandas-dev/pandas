@@ -7,6 +7,7 @@ from typing import (
 )
 
 import numpy as np
+import numpy.typing as npt
 
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
@@ -136,7 +137,7 @@ class _Unstacker:
     def _indexer_and_to_sort(
         self,
     ) -> tuple[
-        np.ndarray,  # np.ndarray[np.intp]
+        npt.NDArray[np.intp],
         list[np.ndarray],  # each has _some_ signed integer dtype
     ]:
         v = self.level

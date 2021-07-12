@@ -11,6 +11,7 @@ from typing import (
 )
 
 import numpy as np
+import numpy.typing as npt
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -1768,9 +1769,8 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: np.ndarray, new_index: Index, axis: int = 0
+    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
 ) -> FrameOrSeries:
-    # indexer: np.ndarray[np.intp]
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
