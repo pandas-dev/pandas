@@ -1760,7 +1760,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace = validate_bool_kwarg(inplace, "inplace")
         ser = self if inplace else self.copy()
         ser.name = name
-        return ser
+        return ser if not inplace else None
 
     @Appender(
         """
