@@ -12,7 +12,6 @@ from typing import (
 )
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import lib
 from pandas._libs.interval import (
@@ -29,6 +28,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (

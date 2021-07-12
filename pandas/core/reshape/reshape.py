@@ -7,11 +7,13 @@ from typing import (
 )
 
 import numpy as np
-import numpy.typing as npt
 
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote

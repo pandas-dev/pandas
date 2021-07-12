@@ -14,11 +14,13 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,

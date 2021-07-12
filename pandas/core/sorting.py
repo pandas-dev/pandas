@@ -11,7 +11,6 @@ from typing import (
 )
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import (
     algos,
@@ -22,6 +21,7 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas._typing import (
     IndexKeyFunc,
     Shape,
+    npt,
 )
 
 from pandas.core.dtypes.common import (
@@ -189,7 +189,7 @@ def get_group_index(labels, shape: Shape, sort: bool, xnull: bool):
 
 def get_compressed_ids(
     labels, sizes: Shape
-) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.int64]]:
     """
     Group_index is offsets into cartesian product of all possible labels. This
     space can be huge, so this function compresses it, by computing offsets

@@ -16,7 +16,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import (
     Timedelta,
@@ -30,6 +29,7 @@ from pandas._typing import (
     FrameOrSeries,
     IndexLabel,
     Suffixes,
+    npt,
 )
 from pandas.errors import MergeError
 from pandas.util._decorators import (

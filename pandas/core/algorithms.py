@@ -15,7 +15,6 @@ from typing import (
 from warnings import warn
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import (
     algos,
@@ -28,6 +27,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import doc
 

@@ -19,7 +19,6 @@ from warnings import (
 )
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._config import get_option
 
@@ -38,6 +37,7 @@ from pandas._typing import (
     Ordered,
     Scalar,
     Shape,
+    npt,
     type_t,
 )
 from pandas.compat.numpy import function as nv

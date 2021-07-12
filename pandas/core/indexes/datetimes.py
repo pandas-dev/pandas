@@ -15,7 +15,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import (
     NaT,
@@ -34,6 +33,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,

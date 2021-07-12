@@ -18,7 +18,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import (
     algos as libalgos,
@@ -46,6 +45,7 @@ from pandas._typing import (
     Shape,
     T,
     final,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (

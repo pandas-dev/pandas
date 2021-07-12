@@ -18,7 +18,6 @@ from typing import (
 )
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._libs import (
     NaT,
@@ -33,6 +32,7 @@ from pandas._typing import (
     FrameOrSeries,
     Shape,
     final,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly

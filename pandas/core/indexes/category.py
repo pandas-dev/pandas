@@ -7,7 +7,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._config import get_option
 
@@ -15,6 +14,7 @@ from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import doc
 
