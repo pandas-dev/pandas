@@ -45,7 +45,7 @@ jobs:
       TEST_ARGS: ${{ matrix.settings[6] }}
     concurrency:
       group: ${{ github.ref }}-${{ matrix.settings[0] }}
-      cancel-in-progress: true
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
     - name: Checkout

@@ -23,7 +23,7 @@ jobs:
 
     concurrency:
       group: ${{ github.ref }}-checks
-      cancel-in-progress: true
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
     - name: Checkout

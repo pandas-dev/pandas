@@ -25,7 +25,7 @@ jobs:
 
     concurrency:
       group: ${{ github.ref }}-dev
-      cancel-in-progress: true
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
     - uses: actions/checkout@v2
