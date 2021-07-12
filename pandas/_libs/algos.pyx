@@ -241,7 +241,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
             indexer[where[label]] = i
             where[label] += 1
 
-    return np.asarray(indexer), np.asarray(counts)
+    return indexer.base, counts.base
 
 
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
