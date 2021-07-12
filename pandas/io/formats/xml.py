@@ -357,9 +357,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             attr_name = f"{self.prefix_uri}{flat_col}"
@@ -384,9 +384,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             elem_name = f"{self.prefix_uri}{flat_col}"
@@ -529,9 +529,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             attr_name = f"{self.prefix_uri}{flat_col}"
@@ -556,9 +556,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             elem_name = f"{self.prefix_uri}{flat_col}"

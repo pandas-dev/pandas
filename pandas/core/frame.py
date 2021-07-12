@@ -2540,8 +2540,7 @@ class DataFrame(NDFrame, OpsMixin):
         |  0 | elk        | dog        |
         +----+------------+------------+
         |  1 | pig        | quetzal    |
-        +----+------------+------------+
-        """,
+        +----+------------+------------+""",
     )
     def to_markdown(
         self,

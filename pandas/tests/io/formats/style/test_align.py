@@ -14,7 +14,7 @@ def bar_grad(a=None, b=None, c=None, d=None):
     return ret + [
         (
             "background",
-            f"linear-gradient(90deg,{','.join(x for x in [a, b, c, d] if x)})",
+            f"linear-gradient(90deg,{','.join([x for x in [a, b, c, d] if x])})",
         )
     ]
 

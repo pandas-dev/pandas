@@ -19,6 +19,8 @@ Fixed regressions
 - Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42338`)
 - Fixed regression in :meth:`DataFrame.agg` dropping values when the DataFrame had an Extension Array dtype, a duplicate index, and ``axis=1`` (:issue:`42380`)
 - Fixed regression in :meth:`DataFrame.isin` and :meth:`Series.isin` raising ``TypeError`` with nullable data containing at least one missing value (:issue:`42405`)
+- Fixed regression in indexing with a ``list`` subclass incorrectly raising ``TypeError`` (:issue:`42433`, :issue:42461`)
+-
 
 .. ---------------------------------------------------------------------------
 
