@@ -20,6 +20,7 @@ class TestRolling:
         self.frame = DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     def test_mutated(self):
+
         msg = r"groupby\(\) got an unexpected keyword argument 'foo'"
         with pytest.raises(TypeError, match=msg):
             self.frame.groupby("A", foo=1)
@@ -48,6 +49,7 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
     def test_getitem_multiple(self):
+
         # GH 13174
         g = self.frame.groupby("A")
         r = g.rolling(2, min_periods=0)
@@ -273,8 +275,8 @@ class TestRolling:
         )
         result = (
             df.groupby("gb")
-                .rolling(6, on="Date", center=True, min_periods=1)
-                .value.mean()
+            .rolling(6, on="Date", center=True, min_periods=1)
+            .value.mean()
         )
         expected = Series(
             [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 7.0, 7.5, 7.5, 7.5],
@@ -305,8 +307,8 @@ class TestRolling:
         window_size = 5
         result = (
             df.groupby("group")
-                .rolling(window_size, center=True, min_periods=min_periods)
-                .mean()
+            .rolling(window_size, center=True, min_periods=min_periods)
+            .mean()
         )
         result = result.reset_index()[["group", "data"]]
 
@@ -315,8 +317,8 @@ class TestRolling:
 
         num_nans = max(0, min_periods - 3)  # For window_size of 5
         nans = [np.nan] * num_nans
-        grp_A_expected = nans + grp_A_mean[num_nans: 10 - num_nans] + nans
-        grp_B_expected = nans + grp_B_mean[num_nans: 10 - num_nans] + nans
+        grp_A_expected = nans + grp_A_mean[num_nans : 10 - num_nans] + nans
+        grp_B_expected = nans + grp_B_mean[num_nans : 10 - num_nans] + nans
 
         expected = DataFrame(
             {"group": ["A"] * 10 + ["B"] * 10, "data": grp_A_expected + grp_B_expected}
@@ -353,7 +355,7 @@ class TestRolling:
         # GH 35557
         class SimpleIndexer(BaseIndexer):
             def get_window_bounds(
-                    self, num_values=0, min_periods=None, center=None, closed=None
+                self, num_values=0, min_periods=None, center=None, closed=None
             ):
                 min_periods = self.window_size if min_periods is None else 0
                 end = np.arange(num_values, dtype=np.int64) + 1
@@ -366,8 +368,8 @@ class TestRolling:
         )
         result = (
             df.groupby(df.index)
-                .rolling(SimpleIndexer(window_size=3), min_periods=1)
-                .sum()
+            .rolling(SimpleIndexer(window_size=3), min_periods=1)
+            .sum()
         )
         expected = df.groupby(df.index).rolling(window=3, min_periods=1).sum()
         tm.assert_frame_equal(result, expected)
@@ -409,8 +411,8 @@ class TestRolling:
 
         result = (
             df.groupby("group")[["column1", "date"]]
-                .rolling("1D", on="date", closed="left")["column1"]
-                .sum()
+            .rolling("1D", on="date", closed="left")["column1"]
+            .sum()
         )
         expected = Series(
             [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
@@ -504,9 +506,9 @@ class TestRolling:
         # GH 36889
         result = (
             DataFrame({"foo": [2, 1], "bar": [2, 1]})
-                .groupby("foo", sort=False)
-                .rolling(1)
-                .min()
+            .groupby("foo", sort=False)
+            .rolling(1)
+            .min()
         )
         expected = DataFrame(
             np.array([[2.0, 2.0], [1.0, 1.0]]),
@@ -529,8 +531,8 @@ class TestRolling:
         )
         result = (
             df.groupby("group")
-                .rolling("3d", on="date", closed="left")["column1"]
-                .count()
+            .rolling("3d", on="date", closed="left")["column1"]
+            .count()
         )
         expected = Series(
             [np.nan, 1.0, 1.0, np.nan, 1.0, 1.0],
@@ -693,13 +695,6 @@ class TestRolling:
         assert not g.mutated
         assert not g.grouper.mutated
 
-    @pytest.mark.parametrize(
-        ("window", "min_periods", "closed", "expected"), [
-            (2, 0, "left", [None, 0.0, 1.0, 1.0, None, 0.0, 1.0, 1.0]),
-            (2, 2, "left", [None, None, 1.0, 1.0, None, None, 1.0, 1.0]),
-            (4, 4, "left", [None, None, None, None, None, None, None, None]),
-            (4, 4, "right", [None, None, None, 5.0, None, None, None, 5.0])
-        ])
     def test_groupby_rolling_var(self, window, min_periods, closed, expected):
         df = DataFrame([1, 2, 3, 4, 5, 6, 7, 8])
         result = df.groupby([1, 2, 1, 2, 1, 2, 1, 2]).rolling(window=window,
@@ -711,6 +706,8 @@ class TestRolling:
                                                      codes=[[0, 0, 0, 0, 1, 1, 1, 1],
                                                             [0, 2, 4, 6, 1, 3, 5, 7]]))
         tm.assert_frame_equal(result, expected_result)
+
+
 
     @pytest.mark.parametrize(
         "columns", [MultiIndex.from_tuples([("A", ""), ("B", "C")]), ["A", "B"]]
@@ -987,9 +984,9 @@ class TestEWM:
         result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = (
             times_frame.groupby("A")
-                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
-                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
-                .reset_index(drop=True)
+            .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+            .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+            .reset_index(drop=True)
         )
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
@@ -999,7 +996,7 @@ class TestEWM:
         result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = (
             times_frame.groupby("A")
-                .ewm(halflife=halflife, times=times_frame["C"].values)
-                .mean()
+            .ewm(halflife=halflife, times=times_frame["C"].values)
+            .mean()
         )
         tm.assert_frame_equal(result, expected)
