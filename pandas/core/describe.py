@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
     Sequence,
     cast,
 )
@@ -21,10 +22,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.tslibs import Timestamp
-from pandas._typing import (
-    FrameOrSeries,
-    Hashable,
-)
+from pandas._typing import FrameOrSeries
 from pandas.util._validators import validate_percentile
 
 from pandas.core.dtypes.common import (

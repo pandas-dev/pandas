@@ -20,7 +20,6 @@ from pandas._libs.tslibs import conversion
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    Optional,
 )
 
 from pandas.core.dtypes.base import _registry as registry
@@ -1406,7 +1405,7 @@ def is_1d_only_ea_obj(obj: Any) -> bool:
     )
 
 
-def is_1d_only_ea_dtype(dtype: Optional[DtypeObj]) -> bool:
+def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     """
     Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
     """
@@ -1471,7 +1470,7 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
         return registry.find(dtype) is not None
 
 
-def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:
+def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
     """
     Check for ExtensionDtype, datetime64 dtype, or timedelta64 dtype.
 
@@ -1715,7 +1714,7 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def validate_all_hashable(*args, error_name: Optional[str] = None) -> None:
+def validate_all_hashable(*args, error_name: str | None = None) -> None:
     """
     Return None if all args are hashable, else raise a TypeError.
 

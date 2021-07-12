@@ -9,10 +9,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._typing import (
-    DtypeObj,
-    Optional,
-)
+from pandas._typing import DtypeObj
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
@@ -233,7 +230,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 def timedelta_range(
     start=None,
     end=None,
-    periods: Optional[int] = None,
+    periods: int | None = None,
     freq=None,
     name=None,
     closed=None,
