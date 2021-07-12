@@ -51,55 +51,6 @@ def df_mix():
     return DataFrame([[-3], [1], [2]])
 
 
-class TestStylerBarAlign:
-    def test_bar_align_mid_nans(self):
-        df = DataFrame({"A": [1, None], "B": [-1, 3]})
-        result = df.style.bar(align="mid", axis=None)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (0, 1): bar_grad(" #d65f5f 25.0%", " transparent 25.0%"),
-            (1, 0): bar_grad(),
-            (1, 1): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
-
-    def test_bar_align_zero_nans(self):
-        df = DataFrame({"A": [1, None], "B": [-1, 2]})
-        result = df.style.bar(align="zero", axis=None)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(
-                " transparent 50.0%",
-                " #d65f5f 50.0%",
-                " #d65f5f 75.0%",
-                " transparent 75.0%",
-            ),
-            (0, 1): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (1, 0): bar_grad(),
-            (1, 1): bar_grad(
-                " transparent 50.0%",
-                " #d65f5f 50.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
-
-
 @pytest.mark.parametrize(
     "align, exp",
     [
@@ -147,13 +98,18 @@ def test_align_negative_cases(df_neg, align, exp):
         ("zero", [bar_to(50), bar_from_to(50, 66.66), bar_from_to(50, 83.33)]),
         ("mean", [bar_to(50), bar_from_to(50, 66.66), bar_from_to(50, 83.33)]),
         (-0.0, [bar_to(50), bar_from_to(50, 66.66), bar_from_to(50, 83.33)]),
-        (np.median, [bar_to(50), no_bar(), bar_from_to(50, 62.5)]),
+        (np.nanmedian, [bar_to(50), no_bar(), bar_from_to(50, 62.5)]),
     ],
 )
-def test_align_mixed_cases(df_mix, align, exp):
+@pytest.mark.parametrize("nans", [True, False])
+def test_align_mixed_cases(df_mix, align, exp, nans):
     # test different align cases for mixed positive and negative values
-    result = df_mix.style.bar(align=align)._compute().ctx
+    # also test no impact of NaNs and no_bar
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
+    if nans:
+        df_mix.loc[3, :] = np.nan
+        expected.update({(3, 0): no_bar()})
+    result = df_mix.style.bar(align=align)._compute().ctx
     assert result == expected
 
 
