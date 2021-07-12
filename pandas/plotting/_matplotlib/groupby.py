@@ -59,13 +59,8 @@ def create_iter_data_given_by(
     # and are used for iteration and as subplots titles.
     if kind == "hist":
         level = 0
-    elif kind == "box":
-        level = 1
     else:
-        raise ValueError(
-            f"create_iter_data_given_by can only be used with "
-            f"kind 'hist' and 'box' plots, but used with '{kind}'"
-        )
+        level = 1
 
     # Select sub-columns based on the value of level of MI, and if `by` is
     # assigned, data must be a MI DataFrame
