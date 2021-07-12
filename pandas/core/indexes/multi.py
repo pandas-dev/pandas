@@ -73,7 +73,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
-from pandas.core.indexers import is_empty_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -2549,14 +2548,9 @@ class MultiIndex(Index):
             keyarr = com.asarray_tuplesafe(keyarr)
 
         if len(keyarr) and not isinstance(keyarr[0], tuple):
-            _, indexer = self.reindex(keyarr, level=0)
+            indexer = self._get_indexer_level_0(keyarr)
 
-            if indexer is None:
-                # exact match
-                indexer = np.arange(len(self), dtype=np.intp)
-
-            else:
-                self._raise_if_missing(key, indexer, axis_name)
+            self._raise_if_missing(key, indexer, axis_name)
             return self[indexer], indexer
 
         return super()._get_indexer_strict(key, axis_name)
@@ -2569,16 +2563,27 @@ class MultiIndex(Index):
         if len(keyarr) and not isinstance(keyarr[0], tuple):
             # i.e. same condition for special case in MultiIndex._get_indexer_strict
 
-            check = self.levels[0].get_indexer(keyarr)
-            mask = check == -1
+            mask = indexer == -1
             if mask.any():
-                raise KeyError(f"{keyarr[mask]} not in index")
-            elif is_empty_indexer(indexer, keyarr):
+                check = self.levels[0].get_indexer(keyarr)
+                cmask = check == -1
+                if cmask.any():
+                    raise KeyError(f"{keyarr[cmask]} not in index")
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
         else:
             return super()._raise_if_missing(key, indexer, axis_name)
+
+    def _get_indexer_level_0(self, target) -> np.ndarray:
+        """
+        Optimized equivalent to `self.get_level_values(0).get_indexer_for(target)`.
+        """
+        lev = self.levels[0]
+        codes = self._codes[0]
+        cat = Categorical.from_codes(codes=codes, categories=lev)
+        ci = Index(cat)
+        return ci.get_indexer_for(target)
 
     def _get_partial_string_timestamp_match_key(self, key):
         """
