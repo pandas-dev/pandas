@@ -165,3 +165,28 @@ class TestIsBoolIndexer:
         # in particular, this should not raise
         arr = np.array(["A", "B", np.nan], dtype=object)
         assert not com.is_bool_indexer(arr)
+
+    def test_list_subclass(self):
+        # GH#42433
+
+        class MyList(list):
+            pass
+
+        val = MyList(["a"])
+
+        assert not com.is_bool_indexer(val)
+
+        val = MyList([True])
+        assert com.is_bool_indexer(val)
+
+    def test_frozenlist(self):
+        # GH#42461
+        data = {"col1": [1, 2], "col2": [3, 4]}
+        df = pd.DataFrame(data=data)
+
+        frozen = df.index.names[1:]
+        assert not com.is_bool_indexer(frozen)
+
+        result = df[frozen]
+        expected = df[[]]
+        tm.assert_frame_equal(result, expected)
