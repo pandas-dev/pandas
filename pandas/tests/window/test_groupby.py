@@ -695,6 +695,13 @@ class TestRolling:
         assert not g.mutated
         assert not g.grouper.mutated
 
+    @pytest.mark.parametrize(
+        ("window", "min_periods", "closed", "expected"), [
+            (2, 0, "left", [None, 0.0, 1.0, 1.0, None, 0.0, 1.0, 1.0]),
+            (2, 2, "left", [None, None, 1.0, 1.0, None, None, 1.0, 1.0]),
+            (4, 4, "left", [None, None, None, None, None, None, None, None]),
+            (4, 4, "right", [None, None, None, 5.0, None, None, None, 5.0])
+        ])
     def test_groupby_rolling_var(self, window, min_periods, closed, expected):
         df = DataFrame([1, 2, 3, 4, 5, 6, 7, 8])
         result = df.groupby([1, 2, 1, 2, 1, 2, 1, 2]).rolling(window=window,
@@ -984,9 +991,9 @@ class TestEWM:
         result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = (
             times_frame.groupby("A")
-            .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
-            .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
-            .reset_index(drop=True)
+                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+                .reset_index(drop=True)
         )
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
@@ -996,7 +1003,7 @@ class TestEWM:
         result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = (
             times_frame.groupby("A")
-            .ewm(halflife=halflife, times=times_frame["C"].values)
-            .mean()
+                .ewm(halflife=halflife, times=times_frame["C"].values)
+                .mean()
         )
         tm.assert_frame_equal(result, expected)
