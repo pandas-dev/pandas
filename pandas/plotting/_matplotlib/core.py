@@ -135,10 +135,10 @@ class MPLPlot:
 
         self.data = data
 
-        # if users assign an empty list or tuple, treat them as None
-        # then no group-by will be conducted.
+        # if users assign an empty list or tuple, raise `ValueError`
+        # similar to current `df.box` and `df.hist` APIs.
         if by in ([], ()):
-            by = None
+            raise ValueError("No group keys passed!")
         self.by = com.maybe_make_list(by)
 
         # Assign the rest of columns into self.columns if by is explicitly defined
