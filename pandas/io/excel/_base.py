@@ -479,6 +479,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         mangle_dupe_cols=True,
         **kwds,
     ):
+
         if convert_float is None:
             convert_float = True
         else:
