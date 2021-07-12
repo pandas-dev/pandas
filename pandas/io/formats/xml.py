@@ -198,8 +198,10 @@ class BaseXMLFormatter:
         if not self.index:
             return
 
-        first_dict = next(iter(self.frame_dicts.values()))
-        indexes: list[str] = [x for x in first_dict.keys() if x not in self.orig_cols]
+        first_key = next(iter(self.frame_dicts))
+        indexes: list[str] = [
+            x for x in self.frame_dicts[first_key].keys() if x not in self.orig_cols
+        ]
 
         if self.attr_cols:
             self.attr_cols = indexes + self.attr_cols
@@ -309,7 +311,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
             if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(d.keys())
+                self.elem_cols = list(self.d.keys())
                 self.build_elems()
 
             else:
@@ -479,7 +481,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
             if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(d.keys())
+                self.elem_cols = list(self.d.keys())
                 self.build_elems()
 
             else:

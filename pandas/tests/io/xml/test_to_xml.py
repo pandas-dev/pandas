@@ -13,7 +13,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
-    RangeIndex,
+    Index,
 )
 import pandas._testing as tm
 
@@ -293,7 +293,10 @@ def test_index_false_rename_row_root(datapath, parser):
         assert output == expected
 
 
-def test_index_false_with_offset_input_index(parser):
+@pytest.mark.parametrize(
+    "offset_index", [list(range(10, 13)), [str(i) for i in range(10, 13)]]
+)
+def test_index_false_with_offset_input_index(parser, offset_index):
     """
     Tests that the output does not contain the `<index>` field when the index of the
     input Dataframe has an offset.
@@ -322,7 +325,7 @@ def test_index_false_with_offset_input_index(parser):
 </data>"""
 
     offset_geom_df = geom_df.copy()
-    offset_geom_df.index = RangeIndex(start=10, stop=13, step=1)
+    offset_geom_df.index = Index(offset_index)
     output = offset_geom_df.to_xml(index=False, parser=parser)
     output = equalize_decl(output)
 
