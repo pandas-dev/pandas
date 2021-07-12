@@ -2336,7 +2336,7 @@ class _TestPostgreSQLAlchemy:
                 writer.writerows(data_iter)
                 s_buf.seek(0)
 
-                columns = ", ".join(f'"{k}"' for k in keys)
+                columns = ", ".join([f'"{k}"' for k in keys])
                 if table.schema:
                     table_name = f"{table.schema}.{table.name}"
                 else:

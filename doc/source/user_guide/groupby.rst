@@ -1106,11 +1106,9 @@ Numba Accelerated Routines
 .. versionadded:: 1.1
 
 If `Numba <https://numba.pydata.org/>`__ is installed as an optional dependency, the ``transform`` and
-``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments. The ``engine_kwargs``
-argument is a dictionary of keyword arguments that will be passed into the
-`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
-These keyword arguments will be applied to the passed function. Currently only ``nogil``, ``nopython``,
-and ``parallel`` are supported, and their default values are set to ``False``, ``True`` and ``False`` respectively.
+``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments.
+See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments
+and performance considerations.
 
 The function signature must start with ``values, index`` **exactly** as the data belonging to each group
 will be passed into ``values``, and the group index will be passed into ``index``.
@@ -1120,52 +1118,6 @@ will be passed into ``values``, and the group index will be passed into ``index`
    When using ``engine='numba'``, there will be no "fall back" behavior internally. The group
    data and group index will be passed as NumPy arrays to the JITed user defined function, and no
    alternative execution attempts will be tried.
-
-.. note::
-
-   In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, the compiled functions are cached,
-   and subsequent calls will be fast. In general, the Numba engine is performant with
-   a larger amount of data points (e.g. 1+ million).
-
-.. code-block:: ipython
-
-   In [1]: N = 10 ** 3
-
-   In [2]: data = {0: [str(i) for i in range(100)] * N, 1: list(range(100)) * N}
-
-   In [3]: df = pd.DataFrame(data, columns=[0, 1])
-
-   In [4]: def f_numba(values, index):
-      ...:     total = 0
-      ...:     for i, value in enumerate(values):
-      ...:         if i % 2:
-      ...:             total += value + 5
-      ...:         else:
-      ...:             total += value * 2
-      ...:     return total
-      ...:
-
-   In [5]: def f_cython(values):
-      ...:     total = 0
-      ...:     for i, value in enumerate(values):
-      ...:         if i % 2:
-      ...:             total += value + 5
-      ...:         else:
-      ...:             total += value * 2
-      ...:     return total
-      ...:
-
-   In [6]: groupby = df.groupby(0)
-   # Run the first time, compilation time will affect performance
-   In [7]: %timeit -r 1 -n 1 groupby.aggregate(f_numba, engine='numba')  # noqa: E225
-   2.14 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
-   # Function is cached and performance will improve
-   In [8]: %timeit groupby.aggregate(f_numba, engine='numba')
-   4.93 ms ± 32.3 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
-
-   In [9]: %timeit groupby.aggregate(f_cython, engine='cython')
-   18.6 ms ± 84.8 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
 
 Other useful features
 ---------------------

@@ -27,7 +27,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import accessor
 from pandas.core.arrays.categorical import (
     Categorical,
     contains,
@@ -63,9 +62,8 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
     ],
     Categorical,
 )
-@accessor.delegate_names(
-    delegate=Categorical,
-    accessors=[
+@inherit_names(
+    [
         "rename_categories",
         "reorder_categories",
         "add_categories",
@@ -75,10 +73,10 @@ _index_doc_kwargs.update({"target_klass": "CategoricalIndex"})
         "as_ordered",
         "as_unordered",
     ],
-    typ="method",
-    overwrite=True,
+    Categorical,
+    wrap=True,
 )
-class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
+class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
     Index based on an underlying :class:`Categorical`.
 
@@ -401,9 +399,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
             indexer = None
             missing = np.array([], dtype=np.intp)
         else:
-            indexer, missing = self.get_indexer_non_unique(np.array(target))
+            indexer, missing = self.get_indexer_non_unique(target)
 
-        if len(self.codes) and indexer is not None:
+        if len(self) and indexer is not None:
             new_target = self.take(indexer)
         else:
             new_target = target
@@ -412,10 +410,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         if len(missing):
             cats = self.categories.get_indexer(target)
 
-            if not isinstance(cats, CategoricalIndex) or (cats == -1).any():
-                # coerce to a regular index here!
-                result = Index(np.array(self), name=self.name)
-                new_target, indexer, _ = result._reindex_non_unique(target)
+            if not isinstance(target, CategoricalIndex) or (cats == -1).any():
+                new_target, indexer, _ = super()._reindex_non_unique(target)
             else:
 
                 codes = new_target.codes.copy()
@@ -428,11 +424,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         # coerce based on the actual values, only on the dtype)
         # unless we had an initial Categorical to begin with
         # in which case we are going to conform to the passed Categorical
-        new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
             cat = Categorical(new_target, dtype=target.dtype)
             new_target = type(self)._simple_new(cat, name=self.name)
         else:
+            # e.g. test_reindex_with_categoricalindex, test_reindex_duplicate_target
+            new_target = np.asarray(new_target)
             new_target = Index(new_target, name=self.name)
 
         return new_target, indexer
@@ -562,13 +559,3 @@ class CategoricalIndex(NDArrayBackedExtensionIndex, accessor.PandasDelegate):
         else:
             cat = self._data._from_backing_data(codes)
             return type(self)._simple_new(cat, name=name)
-
-    def _delegate_method(self, name: str, *args, **kwargs):
-        """method delegation to the ._values"""
-        method = getattr(self._values, name)
-        if "inplace" in kwargs:
-            raise ValueError("cannot use inplace with CategoricalIndex")
-        res = method(*args, **kwargs)
-        if is_scalar(res):
-            return res
-        return CategoricalIndex(res, name=self.name)
