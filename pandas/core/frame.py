@@ -68,6 +68,8 @@ from pandas._typing import (
     Scalar,
     StorageOptions,
     Suffixes,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
     npt,
 )
@@ -208,11 +210,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-
-    from pandas._typing import (
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
-    )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler

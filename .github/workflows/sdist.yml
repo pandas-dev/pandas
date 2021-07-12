@@ -23,6 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.8", "3.9"]
+    concurrency:
+      group: ${{github.ref}}-${{matrix.python-version}}-sdist
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     steps:
     - uses: actions/checkout@v2
