@@ -8,6 +8,7 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Literal,
     Union,
     cast,
 )
@@ -25,7 +26,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
-    FrameOrSeriesUnion,
     Scalar,
 )
 from pandas.util._decorators import doc
@@ -80,7 +80,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import (
         Categorical,
@@ -1008,7 +1007,6 @@ def rank(
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
-            labels=np.zeros(len(values), dtype=np.intp),
             is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
@@ -1189,13 +1187,10 @@ def quantile(x, q, interpolation_method="fraction"):
 
     if is_scalar(q):
         return _get_score(q)
-    else:
-        q = np.asarray(q, np.float64)
-        result = [_get_score(x) for x in q]
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "List[Any]")
-        result = np.array(result, dtype=np.float64)  # type: ignore[assignment]
-        return result
+
+    q = np.asarray(q, np.float64)
+    result = [_get_score(x) for x in q]
+    return np.array(result, dtype=np.float64)
 
 
 # --------------- #
@@ -1212,7 +1207,7 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> FrameOrSeriesUnion:
+    def compute(self, method: str) -> DataFrame | Series:
         raise NotImplementedError
 
     def nlargest(self):

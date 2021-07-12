@@ -29,7 +29,8 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :meth:`Series.sample`, :meth:`DataFrame.sample`, and :meth:`.GroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
+- :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -68,7 +69,19 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------+
 | Package         | Minimum Version | Required | Changed |
 +=================+=================+==========+=========+
-|                 |                 |    X     |    X    |
+| numpy           | 1.18.5          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| pytz            | 2020.1          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| python-dateutil | 2.8.1           |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.3.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.7.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pytest (dev)    | 6.0             |          |         |
++-----------------+-----------------+----------+---------+
+| mypy (dev)      | 0.910           |          |    X    |
 +-----------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
@@ -78,7 +91,45 @@ Optional libraries below the lowest tested version may still work, but are not c
 +-----------------+-----------------+---------+
 | Package         | Minimum Version | Changed |
 +=================+=================+=========+
-|                 |                 |    X    |
+| beautifulsoup4  | 4.8.2           |    X    |
++-----------------+-----------------+---------+
+| fastparquet     | 0.4.0           |         |
++-----------------+-----------------+---------+
+| fsspec          | 0.7.4           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.6.0           |         |
++-----------------+-----------------+---------+
+| lxml            | 4.5.0           |    X    |
++-----------------+-----------------+---------+
+| matplotlib      | 3.3.2           |    X    |
++-----------------+-----------------+---------+
+| numba           | 0.50.1          |    X    |
++-----------------+-----------------+---------+
+| openpyxl        | 3.0.2           |    X    |
++-----------------+-----------------+---------+
+| pyarrow         | 0.17.0          |         |
++-----------------+-----------------+---------+
+| pymysql         | 0.10.1          |    X    |
++-----------------+-----------------+---------+
+| pytables        | 3.6.1           |    X    |
++-----------------+-----------------+---------+
+| s3fs            | 0.4.0           |         |
++-----------------+-----------------+---------+
+| scipy           | 1.4.1           |    X    |
++-----------------+-----------------+---------+
+| sqlalchemy      | 1.3.11          |    X    |
++-----------------+-----------------+---------+
+| tabulate        | 0.8.7           |         |
++-----------------+-----------------+---------+
+| xarray          | 0.15.1          |    X    |
++-----------------+-----------------+---------+
+| xlrd            | 2.0.1           |    X    |
++-----------------+-----------------+---------+
+| xlsxwriter      | 1.2.2           |    X    |
++-----------------+-----------------+---------+
+| xlwt            | 1.3.0           |         |
++-----------------+-----------------+---------+
+| pandas-gbq      | 0.14.0          |    X    |
 +-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -87,7 +138,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
+- :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -97,6 +148,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
+- Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
+- Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -105,7 +158,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -122,7 +175,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
 -
 
 Timedelta
@@ -158,7 +211,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 -
 
 Missing
@@ -173,6 +226,7 @@ MultiIndex
 
 I/O
 ^^^
+- Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
 -
 -
 
@@ -188,7 +242,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.rolling.apply`, :meth:`DataFrame.rolling.apply`, :meth:`Series.expanding.apply` and :meth:`DataFrame.expanding.apply` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`42287`)
 -
 
 Reshaping

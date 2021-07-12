@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    Literal,
     Sequence,
     Union,
     cast,
@@ -39,7 +40,6 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     FillnaOptions,
-    FrameOrSeriesUnion,
     IndexKeyFunc,
     SingleManager,
     StorageOptions,
@@ -141,7 +141,6 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         TimedeltaConvertibleTypes,
@@ -305,7 +304,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hasnans = property(  # type: ignore[assignment]
         base.IndexOpsMixin.hasnans.func, doc=base.IndexOpsMixin.hasnans.__doc__
     )
-    __hash__ = generic.NDFrame.__hash__
     _mgr: SingleManager
     div: Callable[[Series, Any], Series]
     rdiv: Callable[[Series, Any], Series]
@@ -1068,6 +1066,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         except (KeyError, ValueError):
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
+                if not self.index._should_fallback_to_positional:
+                    # GH#33469
+                    warnings.warn(
+                        "Treating integers as positional in Series.__setitem__ "
+                        "with a Float64Index is deprecated. In a future version, "
+                        "`series[an_int] = val` will insert a new key into the "
+                        "Series. Use `series.iloc[an_int] = val` to treat the "
+                        "key as positional.",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
                 self._mgr.setitem(key, value, inplace=True)
             else:
                 # GH#12862 adding a new key to the Series
@@ -3021,7 +3030,7 @@ Keep all original rows and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         return super().compare(
             other=other,
             align_axis=align_axis,
@@ -3864,6 +3873,65 @@ Keep all original rows and also all original values
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        extra_params=dedent(
+            """copy : bool, default True
+            Whether to copy underlying data."""
+        ),
+        examples=dedent(
+            """Examples
+        --------
+        >>> s = pd.Series(
+        ...     ["A", "B", "A", "C"],
+        ...     index=[
+        ...         ["Final exam", "Final exam", "Coursework", "Coursework"],
+        ...         ["History", "Geography", "History", "Geography"],
+        ...         ["January", "February", "March", "April"],
+        ...     ],
+        ... )
+        >>> s
+        Final exam  History     January      A
+                    Geography   February     B
+        Coursework  History     March        A
+                    Geography   April        C
+        dtype: object
+
+        In the following example, we will swap the levels of the indices.
+        Here, we will swap the levels column-wise, but levels can be swapped row-wise
+        in a similar manner. Note that column-wise is the default behaviour.
+        By not supplying any arguments for i and j, we swap the last and second to
+        last indices.
+
+        >>> s.swaplevel()
+        Final exam  January     History         A
+                    February    Geography       B
+        Coursework  March       History         A
+                    April       Geography       C
+        dtype: object
+
+        By supplying one argument, we can choose which index to swap the last
+        index with. We can for example swap the first index with the last one as
+        follows.
+
+        >>> s.swaplevel(0)
+        January     History     Final exam      A
+        February    Geography   Final exam      B
+        March       History     Coursework      A
+        April       Geography   Coursework      C
+        dtype: object
+
+        We can also define explicitly which indices we want to swap by supplying values
+        for both i and j. Here, we for example swap the first and second indices.
+
+        >>> s.swaplevel(0, 1)
+        History     Final exam  January         A
+        Geography   Final exam  February        B
+        History     Coursework  March           A
+        Geography   Coursework  April           C
+        dtype: object"""
+        ),
+    )
     def swaplevel(self, i=-2, j=-1, copy=True) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
@@ -3872,15 +3940,16 @@ Keep all original rows and also all original values
 
         Parameters
         ----------
-        i, j : int, str
-            Level of the indices to be swapped. Can pass level name as string.
-        copy : bool, default True
-            Whether to copy underlying data.
+        i, j : int or str
+            Levels of the indices to be swapped. Can pass level name as string.
+        {extra_params}
 
         Returns
         -------
-        Series
-            Series with levels swapped in MultiIndex.
+        {klass}
+            {klass} with levels swapped in MultiIndex.
+
+        {examples}
         """
         assert isinstance(self.index, MultiIndex)
         new_index = self.index.swaplevel(i, j)
@@ -4177,7 +4246,7 @@ Keep all original rows and also all original values
     )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
         result = SeriesApply(
@@ -4191,7 +4260,7 @@ Keep all original rows and also all original values
         convert_dtype: bool = True,
         args: tuple[Any, ...] = (),
         **kwargs,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Invoke function on values of Series.
 
@@ -5016,9 +5085,9 @@ Keep all original rows and also all original values
         4    False
         dtype: bool
 
-        With `inclusive` set to ``False`` boundary values are excluded:
+        With `inclusive` set to ``"neither"`` boundary values are excluded:
 
-        >>> s.between(1, 4, inclusive=False)
+        >>> s.between(1, 4, inclusive="neither")
         0     True
         1    False
         2    False
