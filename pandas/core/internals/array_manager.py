@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
     TypeVar,
 )
 
@@ -19,7 +20,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    Hashable,
 )
 from pandas.util._validators import validate_bool_kwarg
 
