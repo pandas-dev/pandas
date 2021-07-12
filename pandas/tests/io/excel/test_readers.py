@@ -1278,6 +1278,13 @@ class TestReaders:
         ):
             pd.read_excel("chartsheet" + read_ext, sheet_name=1)
 
+    def test_dtype_dict(self, read_ext):
+        filename = "test_common_headers" + read_ext
+        dtype_dict = {"a": str, "b": str, "c": str}
+        dtype_dict_copy = dtype_dict.copy()
+        pd.read_excel(filename, dtype=dtype_dict)
+        assert dtype_dict == dtype_dict_copy, "dtype dict changed"
+
 
 class TestExcelFileRead:
     @pytest.fixture(autouse=True)
