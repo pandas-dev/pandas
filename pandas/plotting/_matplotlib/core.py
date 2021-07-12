@@ -714,7 +714,7 @@ class MPLPlot:
         if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com.any_not_none(*name):
-                name = ",".join(pprint_thing(x) for x in name)
+                name = ",".join([pprint_thing(x) for x in name])
             else:
                 name = None
         else:
