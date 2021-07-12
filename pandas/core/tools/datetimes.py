@@ -763,7 +763,7 @@ def to_datetime(
         Return type depends on input:
 
         - list-like:
-            - DatetimeIndex, if timezone naive or aware with the same timezone
+            - DatetimeIndex, if timezone naive or aware with constant time offset
             - Index of object dtype, if timezone aware with mixed time offsets
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
