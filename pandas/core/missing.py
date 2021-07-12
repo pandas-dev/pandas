@@ -117,7 +117,10 @@ def clean_fill_method(method, allow_nearest: bool = False):
         valid_methods.append("nearest")
         expecting = "pad (ffill), backfill (bfill) or nearest"
     if method not in valid_methods:
-        raise ValueError(f"Invalid fill method. Expecting {expecting}. Got {method}")
+        raise ValueError(
+            f"Invalid fill method. Expecting {expecting}. Got {method}."
+            " Are you trying to interpolate an integer column?"
+        )
     return method
 
 
