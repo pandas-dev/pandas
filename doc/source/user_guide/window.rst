@@ -262,26 +262,24 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
 .. code-block:: ipython
 
    In [2]: from pandas.api.indexers import BaseIndexer
-   ...:
-   ...: class CustomIndexer(BaseIndexer):
-   ...:
-   ...:    def get_window_bounds(self, num_values, min_periods, center, closed):
-   ...:        start = np.empty(num_values, dtype=np.int64)
-   ...:        end = np.empty(num_values, dtype=np.int64)
-   ...:        for i in range(num_values):
-   ...:            if self.use_expanding[i]:
-   ...:                start[i] = 0
-   ...:                end[i] = i + 1
-   ...:            else:
-   ...:                start[i] = i
-   ...:                end[i] = i + self.window_size
-   ...:        return start, end
-   ...:
 
-   In [3]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+   In [3]: class CustomIndexer(BaseIndexer):
+      ...:     def get_window_bounds(self, num_values, min_periods, center, closed):
+      ...:         start = np.empty(num_values, dtype=np.int64)
+      ...:         end = np.empty(num_values, dtype=np.int64)
+      ...:         for i in range(num_values):
+      ...:             if self.use_expanding[i]:
+      ...:                 start[i] = 0
+      ...:                 end[i] = i + 1
+      ...:             else:
+      ...:                 start[i] = i
+      ...:                 end[i] = i + self.window_size
+      ...:         return start, end
 
-   In [4]: df.rolling(indexer).sum()
-   Out[4]:
+   In [4]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+
+   In [5]: df.rolling(indexer).sum()
+   Out[5]:
        values
    0     0.0
    1     1.0
@@ -365,45 +363,21 @@ Numba engine
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
 if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying
 ``engine='numba'`` and ``engine_kwargs`` arguments (``raw`` must also be set to ``True``).
+See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments and performance considerations.
+
 Numba will be applied in potentially two routines:
 
 #. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
-.. versionadded:: 1.3.0
-
-``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
-
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
 `numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
-and the apply for loop over each window. Currently only ``nogil``, ``nopython``, and ``parallel`` are supported,
-and their default values are set to ``False``, ``True`` and ``False`` respectively.
+and the apply for loop over each window.
 
-.. note::
+.. versionadded:: 1.3.0
 
-   In terms of performance, **the first time a function is run using the Numba engine will be slow**
-   as Numba will have some function compilation overhead. However, the compiled functions are cached,
-   and subsequent calls will be fast. In general, the Numba engine is performant with
-   a larger amount of data points (e.g. 1+ million).
-
-.. code-block:: ipython
-
-   In [1]: data = pd.Series(range(1_000_000))
-
-   In [2]: roll = data.rolling(10)
-
-   In [3]: def f(x):
-      ...:     return np.sum(x) + 5
-   # Run the first time, compilation time will affect performance
-   In [4]: %timeit -r 1 -n 1 roll.apply(f, engine='numba', raw=True)  # noqa: E225, E999
-   1.23 s ± 0 ns per loop (mean ± std. dev. of 1 run, 1 loop each)
-   # Function is cached and performance will improve
-   In [5]: %timeit roll.apply(f, engine='numba', raw=True)
-   188 ms ± 1.93 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-
-   In [6]: %timeit roll.apply(f, engine='cython', raw=True)
-   3.92 s ± 59 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 
 .. _window.cov_corr:
 
