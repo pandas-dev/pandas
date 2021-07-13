@@ -2046,16 +2046,19 @@ class Styler(StylerRenderer):
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
+        *,
         color="#d65f5f",
         width: float = 100,
+        height: float = 100,
         align: str | float | int | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
         props: str = "width: 10em;",
-        height: float = 100,
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
+
+        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -2075,6 +2078,10 @@ class Styler(StylerRenderer):
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
+        height : float, default 100
+            The percentage height of the bar in the cell, centrally aligned, in [0,100].
+
+            .. versionadded:: 1.4.0
         align : str, int, float, callable, default 'mid'
             How to align the bars within the cells relative to a width adjusted center.
             If string must be one of:
@@ -2101,11 +2108,6 @@ class Styler(StylerRenderer):
             Maximum bar value, defining the right hand limit
             of the bar drawing range, higher values are clipped to `vmax`.
             When None (default): the maximum value of the data will be used.
-        height : float, default 100
-            The percentage height of the bar in the cell, centrally aligned, in [0,100].
-
-            .. versionadded:: 1.4.0
-
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
             `"width: 10em;"`
