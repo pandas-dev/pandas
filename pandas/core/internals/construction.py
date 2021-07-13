@@ -348,13 +348,11 @@ def ndarray_to_mgr(
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values.dtype):
-        dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
+        obj_columns = [x for x in values]
+        maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
         # don't convert (and copy) the objects if no type inference occurs
-        if any(
-            not is_dtype_equal(instance.dtype, values.dtype)
-            for instance in dtlike_vals
-        ):
-            dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
+        if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
+            dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
                 new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
