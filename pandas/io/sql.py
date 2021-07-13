@@ -89,8 +89,12 @@ def _gt14() -> bool:
     return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
-def _convert_params(sql, params):
+def _convert_params(sql, params, using_sqlite=False):
     """Convert SQL and params args to DBAPI2.0 compliant format."""
+    if isinstance(sql, str) and not using_sqlite:
+        from sqlalchemy import text
+
+        sql = text(sql)
     args = [sql]
     if params is not None:
         if hasattr(params, "keys"):  # test if params is a mapping
@@ -202,11 +206,15 @@ def execute(sql, con, cur=None, params=None):
     -------
     Results Iterable
     """
+    import sqlite3
+
     if cur is None:
         pandas_sql = pandasSQL_builder(con)
     else:
         pandas_sql = pandasSQL_builder(cur, is_cursor=True)
-    args = _convert_params(sql, params)
+    args = _convert_params(
+        sql, params, using_sqlite=isinstance(con, sqlite3.Connection)
+    )
     return pandas_sql.execute(*args)
 
 
@@ -1421,7 +1429,7 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execution_options().execute(*args, **kwargs)
+        return self.connectable.connect().execute(*args, **kwargs)
 
     def read_table(
         self,
@@ -2112,7 +2120,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
     ):
 
-        args = _convert_params(sql, params)
+        args = _convert_params(sql, params, using_sqlite=True)
         cursor = self.execute(*args)
         columns = [col_desc[0] for col_desc in cursor.description]
 
