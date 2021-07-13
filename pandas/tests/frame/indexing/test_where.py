@@ -745,3 +745,29 @@ def test_where_bool_comparison():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_none_nan_coerce():
+    # GH 15613
+    expected = DataFrame(
+        {
+            "A": [Timestamp("20130101"), pd.NaT, Timestamp("20130103")],
+            "B": [1, 2, np.nan],
+        }
+    )
+    result = expected.where(expected.notnull(), None)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_non_keyword_deprecation():
+    # GH 41485
+    s = DataFrame(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        "DataFrame.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.where(s > 1, 10, False)
+    expected = DataFrame([10, 10, 2, 3, 4])
+    tm.assert_frame_equal(expected, result)

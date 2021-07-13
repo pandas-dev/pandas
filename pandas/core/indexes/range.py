@@ -173,7 +173,7 @@ class RangeIndex(NumericIndex):
 
     @cache_readonly
     def _constructor(self) -> type[Int64Index]:
-        """ return the class to use for construction """
+        """return the class to use for construction"""
         return Int64Index
 
     @cache_readonly
@@ -197,7 +197,7 @@ class RangeIndex(NumericIndex):
         return res
 
     def _get_data_as_items(self):
-        """ return a list of tuples of start, stop, step """
+        """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
@@ -350,7 +350,7 @@ class RangeIndex(NumericIndex):
 
     @property
     def is_unique(self) -> bool:
-        """ return if the index has unique values """
+        """return if the index has unique values"""
         return True
 
     @cache_readonly
@@ -385,6 +385,7 @@ class RangeIndex(NumericIndex):
                     return self._range.index(new_key)
                 except ValueError as err:
                     raise KeyError(key) from err
+            self._check_indexing_error(key)
             raise KeyError(key)
         return super().get_loc(key, method=method, tolerance=tolerance)
 
@@ -407,10 +408,6 @@ class RangeIndex(NumericIndex):
             # GH 28678: work on reversed range for simplicity
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
-
-        if not is_signed_integer_dtype(target):
-            # checks/conversions/roundings are delegated to general method
-            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         target_array = np.asarray(target)
         locs = target_array - start
@@ -552,13 +549,11 @@ class RangeIndex(NumericIndex):
     # Set Operations
 
     def _intersection(self, other: Index, sort=False):
+        # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
             # Int64Index
             return super()._intersection(other, sort=sort)
-
-        if not len(self) or not len(other):
-            return self._simple_new(_empty_range)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range
@@ -602,11 +597,6 @@ class RangeIndex(NumericIndex):
     def _min_fitting_element(self, lower_limit: int) -> int:
         """Returns the smallest element greater than or equal to the limit"""
         no_steps = -(-(lower_limit - self.start) // abs(self.step))
-        return self.start + abs(self.step) * no_steps
-
-    def _max_fitting_element(self, upper_limit: int) -> int:
-        """Returns the largest element smaller than or equal to the limit"""
-        no_steps = (upper_limit - self.start) // abs(self.step)
         return self.start + abs(self.step) * no_steps
 
     def _extended_gcd(self, a: int, b: int) -> tuple[int, int, int]:

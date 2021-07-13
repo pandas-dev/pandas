@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -97,3 +99,27 @@ def test_option_xls_writer_deprecated(ext):
         check_stacklevel=False,
     ):
         options.io.excel.xls.writer = "xlwt"
+
+
+@pytest.mark.parametrize("write_only", [True, False])
+def test_kwargs(ext, write_only):
+    # GH 42286
+    # xlwt doesn't utilize kwargs, only test that supplying a kwarg works
+    kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        msg = re.escape("Use of **kwargs is deprecated")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+                # xlwt won't allow us to close without writing something
+                DataFrame().to_excel(writer)
+
+
+@pytest.mark.parametrize("write_only", [True, False])
+def test_engine_kwargs(ext, write_only):
+    # GH 42286
+    # xlwt doesn't utilize kwargs, only test that supplying a engine_kwarg works
+    engine_kwargs = {"write_only": write_only}
+    with tm.ensure_clean(ext) as f:
+        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+            # xlwt won't allow us to close without writing something
+            DataFrame().to_excel(writer)

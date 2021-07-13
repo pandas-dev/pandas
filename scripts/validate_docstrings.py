@@ -13,49 +13,37 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
+from __future__ import annotations
+
 import argparse
 import doctest
-import glob
 import importlib
+import io
 import json
-import os
+import pathlib
 import subprocess
 import sys
 import tempfile
-from typing import (
-    List,
-    Optional,
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy
+from numpydoc.validate import (
+    Docstring,
+    validate,
 )
 
-try:
-    from io import StringIO
-except ImportError:
-    from cStringIO import StringIO
+import pandas
 
-# Template backend makes matplotlib to not plot anything. This is useful
-# to avoid that plot windows are open from the doctests while running the
-# script. Setting here before matplotlib is loaded.
-# We don't warn for the number of open plots, as none is actually being opened
-os.environ["MPLBACKEND"] = "Template"
-import matplotlib  # isort:skip
-
-matplotlib.rc("figure", max_open_warning=10000)
-
-import numpy  # isort:skip
-
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-sys.path.insert(0, os.path.join(BASE_PATH))
-import pandas  # isort:skip
-
-sys.path.insert(1, os.path.join(BASE_PATH, "doc", "sphinxext"))
-from numpydoc.validate import validate, Docstring  # isort:skip
+# With template backend, matplotlib plots nothing
+matplotlib.use("template")
 
 
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
     "GL04": "Private classes ({mentioned_private_classes}) should not be "
     "mentioned in public docstrings",
+    "GL05": "Use 'array-like' rather than 'array_like' in docstrings.",
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX02": "Examples do not pass tests:\n{doctest_log}",
@@ -158,7 +146,7 @@ class PandasDocstring(Docstring):
         context = {"np": numpy, "pd": pandas}
         error_msgs = ""
         for test in finder.find(self.raw_doc, self.name, globs=context):
-            f = StringIO()
+            f = io.StringIO()
             runner.run(test, out=f.write)
             error_msgs += f.getvalue()
         return error_msgs
@@ -197,6 +185,9 @@ class PandasDocstring(Docstring):
         for error_message in error_messages:
             error_count, error_code, message = error_message.split(maxsplit=2)
             yield error_code, message, int(error_count)
+
+    def non_hyphenated_array_like(self):
+        return "array_like" in self.raw_doc
 
 
 def pandas_validate(func_name: str):
@@ -258,6 +249,10 @@ def pandas_validate(func_name: str):
                     pandas_error("EX04", imported_library=wrong_import)
                 )
 
+    if doc.non_hyphenated_array_like():
+        result["errors"].append(pandas_error("GL05"))
+
+    plt.close("all")
     return result
 
 
@@ -283,13 +278,14 @@ def validate_all(prefix, ignore_deprecated=False):
     result = {}
     seen = {}
 
-    api_doc_fnames = os.path.join(BASE_PATH, "doc", "source", "reference", "*.rst")
+    base_path = pathlib.Path(__file__).parent.parent
+    api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     api_items = []
-    for api_doc_fname in glob.glob(api_doc_fnames):
+    for api_doc_fname in api_doc_fnames.glob("*.rst"):
         with open(api_doc_fname) as f:
             api_items += list(get_api_items(f))
 
-    for func_name, func_obj, section, subsection in api_items:
+    for func_name, _, section, subsection in api_items:
         if prefix and not func_name.startswith(prefix):
             continue
         doc_info = pandas_validate(func_name)
@@ -315,7 +311,7 @@ def validate_all(prefix, ignore_deprecated=False):
 
 def print_validate_all_results(
     prefix: str,
-    errors: Optional[List[str]],
+    errors: list[str] | None,
     output_format: str,
     ignore_deprecated: bool,
 ):
