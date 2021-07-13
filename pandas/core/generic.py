@@ -8514,11 +8514,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         (left, right) : ({klass}, type of other)
             Aligned objects.
+        """
 
+        method = missing.clean_fill_method(method)
+        """
         Examples
         --------
-        >>> df1 = pd.DataFrame([[1,2,3,4], [6,7,8,9]], columns=['D', 'B', 'E', 'A'], index=[1,2])
-        >>> df2 = pd.DataFrame([[10,20,30,40], [60,70,80,90], [600,700,800,900]], columns=['A', 'B', 'C', 'D'], index=[2,3,4])
+        >>> df1 = pd.DataFrame([[1,2,3,4], [6,7,8,9]],
+                                 columns=['D', 'B', 'E', 'A'], index=[1,2])
+        >>> df2 = pd.DataFrame([[10,20,30,40], [60,70,80,90], [600,700,800,900]],
+                                 columns=['A', 'B', 'C', 'D'], index=[2,3,4])
 
         >>> a1, a2 = df1.align(df2, join='outer', axis=1)
         >>> a1
@@ -8539,6 +8544,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             D   B   A
         2  40  20  10
         """
+        
         if broadcast_axis == 1 and self.ndim != other.ndim:
             if isinstance(self, ABCSeries):
                 # this means other is a DataFrame, and we need to broadcast
