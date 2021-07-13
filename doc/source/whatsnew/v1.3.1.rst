@@ -29,6 +29,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.transpose` dropping values when the DataFrame had an Extension Array dtype and a duplicate index (:issue:`42380`)
+- Fixed bug in :meth:`DataFrame.to_xml` raising ``KeyError`` when called with ``index=False`` and an offset index (:issue:`42458`)
 -
 
 .. ---------------------------------------------------------------------------
