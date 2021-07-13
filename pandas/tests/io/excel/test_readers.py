@@ -1284,7 +1284,7 @@ class TestReaders:
         filename = "test_common_headers" + read_ext
         dtype_dict = {"a": str, "b": str, "c": str}
         dtype_dict_copy = dtype_dict.copy()
-        read = pd.read_excel(filename, dtype=dtype_dict)
+        result = pd.read_excel(filename, dtype=dtype_dict)
         expected = DataFrame(
             {
                 "a": ["1", "2", "3"],
@@ -1294,7 +1294,7 @@ class TestReaders:
             }
         )
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
-        tm.assert_frame_equal(read, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestExcelFileRead:

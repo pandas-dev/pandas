@@ -358,10 +358,6 @@ def read_excel(
     mangle_dupe_cols=True,
     storage_options: StorageOptions = None,
 ):
-    kwargs = locals().copy()
-    for each in kwargs:
-        if isinstance(locals()[each], dict):
-            kwargs[each] = locals()[each].copy()
 
     should_close = False
     if not isinstance(io, ExcelFile):
@@ -373,9 +369,32 @@ def read_excel(
             "an ExcelFile - ExcelFile already has the engine set"
         )
 
-    del kwargs["io"], kwargs["engine"], kwargs["storage_options"]
     try:
-        data = io.parse(**kwargs)
+        data = io.parse(
+            sheet_name=sheet_name,
+            header=header,
+            names=names,
+            index_col=index_col,
+            usecols=usecols,
+            squeeze=squeeze,
+            dtype=dtype,
+            converters=converters,
+            true_values=true_values,
+            false_values=false_values,
+            skiprows=skiprows,
+            nrows=nrows,
+            na_values=na_values,
+            keep_default_na=keep_default_na,
+            na_filter=na_filter,
+            verbose=verbose,
+            parse_dates=parse_dates,
+            date_parser=date_parser,
+            thousands=thousands,
+            comment=comment,
+            skipfooter=skipfooter,
+            convert_float=convert_float,
+            mangle_dupe_cols=mangle_dupe_cols,
+        )
     finally:
         # make sure to close opened file handles
         if should_close:

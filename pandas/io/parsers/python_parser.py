@@ -81,7 +81,10 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        self.dtype = kwds["dtype"]
+        if isinstance(kwds["dtype"], dict):
+            self.dtype = kwds["dtype"].copy()
+        else:
+            self.dtype = kwds["dtype"]
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
