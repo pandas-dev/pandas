@@ -9,10 +9,12 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import PY38
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
@@ -291,6 +293,45 @@ def test_index_false_rename_row_root(datapath, parser):
         assert output == expected
 
 
+@pytest.mark.parametrize(
+    "offset_index", [list(range(10, 13)), [str(i) for i in range(10, 13)]]
+)
+def test_index_false_with_offset_input_index(parser, offset_index):
+    """
+    Tests that the output does not contain the `<index>` field when the index of the
+    input Dataframe has an offset.
+
+    This is a regression test for issue #42458.
+    """
+
+    expected = """\
+<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <shape>square</shape>
+    <degrees>360</degrees>
+    <sides>4.0</sides>
+  </row>
+  <row>
+    <shape>circle</shape>
+    <degrees>360</degrees>
+    <sides/>
+  </row>
+  <row>
+    <shape>triangle</shape>
+    <degrees>180</degrees>
+    <sides>3.0</sides>
+  </row>
+</data>"""
+
+    offset_geom_df = geom_df.copy()
+    offset_geom_df.index = Index(offset_index)
+    output = offset_geom_df.to_xml(index=False, parser=parser)
+    output = equalize_decl(output)
+
+    assert output == expected
+
+
 # NA_REP
 
 na_expected = """\
@@ -364,10 +405,6 @@ def test_na_empty_elem_option(datapath, parser):
 # ATTR_COLS
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py 3.8"),
-)
 def test_attrs_cols_nan_output(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -383,10 +420,6 @@ def test_attrs_cols_nan_output(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_attrs_cols_prefix(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -541,10 +574,6 @@ def test_hierarchical_columns(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_hierarchical_attrs_columns(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
@@ -614,10 +643,6 @@ def test_multi_index(datapath, parser):
     assert output == expected
 
 
-@pytest.mark.skipif(
-    not PY38,
-    reason=("etree alpha ordered attributes < py3.8"),
-)
 def test_multi_index_attrs_cols(datapath, parser):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>

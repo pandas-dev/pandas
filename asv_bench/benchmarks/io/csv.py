@@ -291,7 +291,8 @@ class ReadCSVFloatPrecision(StringIORewind):
 
     def setup(self, sep, decimal, float_precision):
         floats = [
-            "".join(random.choice(string.digits) for _ in range(28)) for _ in range(15)
+            "".join([random.choice(string.digits) for _ in range(28)])
+            for _ in range(15)
         ]
         rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
         data = rows * 5
@@ -395,7 +396,7 @@ class ReadCSVCachedParseDates(StringIORewind):
     param_names = ["do_cache", "engine"]
 
     def setup(self, do_cache, engine):
-        data = ("\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n") * 10
+        data = ("\n".join([f"10/{year}" for year in range(2000, 2100)]) + "\n") * 10
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_cached(self, do_cache, engine):
