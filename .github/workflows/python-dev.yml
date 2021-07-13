@@ -57,7 +57,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        pytest -m "not slow and not network and not clipboard" pandas
+        coverage run -m pytest -m "not slow and not network and not clipboard" pandas
       # GH 41935
       continue-on-error: true
 
