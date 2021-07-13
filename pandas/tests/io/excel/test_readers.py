@@ -1278,12 +1278,23 @@ class TestReaders:
         ):
             pd.read_excel("chartsheet" + read_ext, sheet_name=1)
 
-    def test_dtype_dict(self, read_ext):
+    def test_dtype_dict_unchanged_with_duplicate_columns(self, read_ext):
+        # GH 42462
+
         filename = "test_common_headers" + read_ext
         dtype_dict = {"a": str, "b": str, "c": str}
         dtype_dict_copy = dtype_dict.copy()
-        pd.read_excel(filename, dtype=dtype_dict)
+        read = pd.read_excel(filename, dtype=dtype_dict)
+        expected = DataFrame(
+            {
+                "a": ["1", "2", "3"],
+                "a.1": ["1", "2", "3"],
+                "b": ["b1", "b2", "b3"],
+                "c": ["c1", "c2", "c3"],
+            }
+        )
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
+        tm.assert_frame_equal(read, expected)
 
 
 class TestExcelFileRead:
