@@ -205,6 +205,8 @@ def execute(sql, con, params=None):
     -------
     Results Iterable
     """
+    import sqlite3
+
     pandas_sql = pandasSQL_builder(con)
     args = _convert_params(
         sql, params, using_sqlite=isinstance(con, sqlite3.Connection)

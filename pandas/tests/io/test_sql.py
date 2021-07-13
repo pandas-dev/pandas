@@ -25,7 +25,6 @@ from datetime import (
 )
 from io import StringIO
 import sqlite3
-from sqlite3.dbapi2 import Connection
 import warnings
 
 import numpy as np
@@ -305,35 +304,19 @@ class PandasSQLTest:
 
         self.drop_table("iris")
 
-        if isinstance(self._get_exec(), sqlite3.Cursor):
-            self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
-        else:
-            with self._get_exec().connect() as conn:
-                with conn.begin():
-                    conn.execute(SQL_STRINGS["create_iris"][self.flavor])
+        self._get_exec().execute(SQL_STRINGS["create_iris"][self.flavor])
 
         with open(iris_csv_file, newline=None) as iris_csv:
-            reader = csv.reader(iris_csv)
-            next(reader)  # skip header row
+            r = csv.reader(iris_csv)
+            next(r)  # skip header row
             ins = SQL_STRINGS["insert_iris"][self.flavor]
 
-            if isinstance(self._get_exec(), sqlite3.Cursor):
-                for row in reader:
-                    self._get_exec().execute(ins, row)
-            else:
-                with self._get_exec().connect() as conn:
-                    with conn.begin():
-                        for row in reader:
-                            conn.execute(ins, row)
+            for row in r:
+                self._get_exec().execute(ins, row)
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
-        if isinstance(self._get_exec(), sqlite3.Cursor):
-            self._get_exec().execute(SQL_STRINGS["create_view"][self.flavor])
-        else:
-            with self._get_exec().connect() as conn:
-                with conn.begin():
-                    conn.execute(SQL_STRINGS["create_view"][self.flavor])
+        self._get_exec().execute(SQL_STRINGS["create_view"][self.flavor])
 
     def _check_iris_loaded_frame(self, iris_frame):
         pytype = iris_frame.dtypes[0].type
@@ -452,12 +435,7 @@ class PandasSQLTest:
 
     def _load_raw_sql(self):
         self.drop_table("types_test_data")
-        if isinstance(self._get_exec(), sqlite3.Cursor):
-            self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
-        else:
-            with self._get_exec().connect() as conn:
-                with conn.begin():
-                    conn.execute(SQL_STRINGS["create_test_types"][self.flavor])
+        self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
         ins = SQL_STRINGS["insert_test_types"][self.flavor]
         data = [
             {
@@ -485,18 +463,10 @@ class PandasSQLTest:
                 "BoolColWithNull": None,
             },
         ]
-        if isinstance(self._get_exec(), sqlite3.Cursor):
-            for d in data:
-                self._get_exec().execute(
-                    ins["query"], [d[field] for field in ins["fields"]]
-                )
-        else:
-            with self._get_exec().connect() as conn:
-                with conn.begin():
-                    for d in data:
-                        conn.execute(
-                            ins["query"], [d[field] for field in ins["fields"]]
-                        )
+        for d in data:
+            self._get_exec().execute(
+                ins["query"], [d[field] for field in ins["fields"]]
+            )
 
         self._load_types_test_data(data)
 
