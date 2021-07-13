@@ -36,156 +36,19 @@ def bar_from_to(x, y, color="#d65f5f"):
     )
 
 
-class TestStylerBarAlign:
-    def test_bar_align_mid_vmin(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmin=-6)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " transparent 60.0%",
-                " #d65f5f 60.0%",
-                " #d65f5f 70.0%",
-                " transparent 70.0%",
-            ),
-            (0, 1): bar_grad(
-                " transparent 40.0%",
-                " #d65f5f 40.0%",
-                " #d65f5f 60.0%",
-                " transparent 60.0%",
-            ),
-            (1, 1): bar_grad(
-                " transparent 60.0%",
-                " #d65f5f 60.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
+@pytest.fixture
+def df_pos():
+    return DataFrame([[1], [2], [3]])
 
-    def test_bar_align_mid_vmax(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmax=8)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " transparent 20.0%",
-                " #d65f5f 20.0%",
-                " #d65f5f 30.0%",
-                " transparent 30.0%",
-            ),
-            (0, 1): bar_grad(
-                " #d65f5f 20.0%",
-                " transparent 20.0%",
-            ),
-            (1, 1): bar_grad(
-                " transparent 20.0%",
-                " #d65f5f 20.0%",
-                " #d65f5f 60.0%",
-                " transparent 60.0%",
-            ),
-        }
-        assert result == expected
 
-    def test_bar_align_mid_vmin_vmax_wide(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmin=-3, vmax=7)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " transparent 30.0%",
-                " #d65f5f 30.0%",
-                " #d65f5f 40.0%",
-                " transparent 40.0%",
-            ),
-            (0, 1): bar_grad(
-                " transparent 10.0%",
-                " #d65f5f 10.0%",
-                " #d65f5f 30.0%",
-                " transparent 30.0%",
-            ),
-            (1, 1): bar_grad(
-                " transparent 30.0%",
-                " #d65f5f 30.0%",
-                " #d65f5f 70.0%",
-                " transparent 70.0%",
-            ),
-        }
-        assert result == expected
+@pytest.fixture
+def df_neg():
+    return DataFrame([[-1], [-2], [-3]])
 
-    def test_bar_align_mid_vmin_vmax_clipping(self):
-        df = DataFrame({"A": [0, 1], "B": [-2, 4]})
-        result = df.style.bar(align="mid", axis=None, vmin=-1, vmax=3)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(),
-            (1, 0): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (0, 1): bar_grad(" #d65f5f 25.0%", " transparent 25.0%"),
-            (1, 1): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
 
-    def test_bar_align_mid_nans(self):
-        df = DataFrame({"A": [1, None], "B": [-1, 3]})
-        result = df.style.bar(align="mid", axis=None)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (0, 1): bar_grad(" #d65f5f 25.0%", " transparent 25.0%"),
-            (1, 0): bar_grad(),
-            (1, 1): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
-
-    def test_bar_align_zero_nans(self):
-        df = DataFrame({"A": [1, None], "B": [-1, 2]})
-        result = df.style.bar(align="zero", axis=None)._compute().ctx
-        expected = {
-            (0, 0): bar_grad(
-                " transparent 50.0%",
-                " #d65f5f 50.0%",
-                " #d65f5f 75.0%",
-                " transparent 75.0%",
-            ),
-            (0, 1): bar_grad(
-                " transparent 25.0%",
-                " #d65f5f 25.0%",
-                " #d65f5f 50.0%",
-                " transparent 50.0%",
-            ),
-            (1, 0): bar_grad(),
-            (1, 1): bar_grad(
-                " transparent 50.0%",
-                " #d65f5f 50.0%",
-                " #d65f5f 100.0%",
-                " transparent 100.0%",
-            ),
-        }
-        assert result == expected
-
-    def test_bar_bad_align_raises(self):
-        df = DataFrame({"A": [-100, -60, -30, -20]})
-        msg = "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or"
-        with pytest.raises(ValueError, match=msg):
-            df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"]).render()
+@pytest.fixture
+def df_mix():
+    return DataFrame([[-3], [1], [2]])
 
 
 @pytest.mark.parametrize(
@@ -200,10 +63,9 @@ class TestStylerBarAlign:
         (np.median, [bar_to(50), no_bar(), bar_from_to(50, 100)]),
     ],
 )
-def test_align_positive_cases(align, exp):
+def test_align_positive_cases(df_pos, align, exp):
     # test different align cases for all positive values
-    data = DataFrame([[1], [2], [3]])
-    result = data.style.bar(align=align)._compute().ctx
+    result = df_pos.style.bar(align=align)._compute().ctx
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
     assert result == expected
 
@@ -220,10 +82,9 @@ def test_align_positive_cases(align, exp):
         (np.median, [bar_from_to(50, 100), no_bar(), bar_to(50)]),
     ],
 )
-def test_align_negative_cases(align, exp):
+def test_align_negative_cases(df_neg, align, exp):
     # test different align cases for all negative values
-    data = DataFrame([[-1], [-2], [-3]])
-    result = data.style.bar(align=align)._compute().ctx
+    result = df_neg.style.bar(align=align)._compute().ctx
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
     assert result == expected
 
@@ -237,14 +98,18 @@ def test_align_negative_cases(align, exp):
         ("zero", [bar_to(50), bar_from_to(50, 66.66), bar_from_to(50, 83.33)]),
         ("mean", [bar_to(50), bar_from_to(50, 66.66), bar_from_to(50, 83.33)]),
         (-0.0, [bar_to(50), bar_from_to(50, 66.66), bar_from_to(50, 83.33)]),
-        (np.median, [bar_to(50), no_bar(), bar_from_to(50, 62.5)]),
+        (np.nanmedian, [bar_to(50), no_bar(), bar_from_to(50, 62.5)]),
     ],
 )
-def test_align_mixed_cases(align, exp):
+@pytest.mark.parametrize("nans", [True, False])
+def test_align_mixed_cases(df_mix, align, exp, nans):
     # test different align cases for mixed positive and negative values
-    data = DataFrame([[-3], [1], [2]])
-    result = data.style.bar(align=align)._compute().ctx
+    # also test no impact of NaNs and no_bar
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
+    if nans:
+        df_mix.loc[3, :] = np.nan
+        expected.update({(3, 0): no_bar()})
+    result = df_mix.style.bar(align=align)._compute().ctx
     assert result == expected
 
 
@@ -321,6 +186,72 @@ def test_align_axis(align, exp, axis):
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "values, vmin, vmax",
+    [
+        ("positive", 1.5, 2.5),
+        ("negative", -2.5, -1.5),
+        ("mixed", -2.5, 1.5),
+    ],
+)
+@pytest.mark.parametrize("nullify", [None, "vmin", "vmax"])  # test min/max separately
+@pytest.mark.parametrize("align", ["left", "right", "zero", "mid"])
+def test_vmin_vmax_clipping(df_pos, df_neg, df_mix, values, vmin, vmax, nullify, align):
+    # test that clipping occurs if any vmin > data_values or vmax < data_values
+    if align == "mid":  # mid acts as left or right in each case
+        if values == "positive":
+            align = "left"
+        elif values == "negative":
+            align = "right"
+    df = {"positive": df_pos, "negative": df_neg, "mixed": df_mix}[values]
+    vmin = None if nullify == "vmin" else vmin
+    vmax = None if nullify == "vmax" else vmax
+
+    clip_df = df.where(df <= (vmax if vmax else 999), other=vmax)
+    clip_df = clip_df.where(clip_df >= (vmin if vmin else -999), other=vmin)
+
+    result = (
+        df.style.bar(align=align, vmin=vmin, vmax=vmax, color=["red", "green"])
+        ._compute()
+        .ctx
+    )
+    expected = clip_df.style.bar(align=align, color=["red", "green"])._compute().ctx
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "values, vmin, vmax",
+    [
+        ("positive", 0.5, 4.5),
+        ("negative", -4.5, -0.5),
+        ("mixed", -4.5, 4.5),
+    ],
+)
+@pytest.mark.parametrize("nullify", [None, "vmin", "vmax"])  # test min/max separately
+@pytest.mark.parametrize("align", ["left", "right", "zero", "mid"])
+def test_vmin_vmax_widening(df_pos, df_neg, df_mix, values, vmin, vmax, nullify, align):
+    # test that widening occurs if any vmax > data_values or vmin < data_values
+    if align == "mid":  # mid acts as left or right in each case
+        if values == "positive":
+            align = "left"
+        elif values == "negative":
+            align = "right"
+    df = {"positive": df_pos, "negative": df_neg, "mixed": df_mix}[values]
+    vmin = None if nullify == "vmin" else vmin
+    vmax = None if nullify == "vmax" else vmax
+
+    expand_df = df.copy()
+    expand_df.loc[3, :], expand_df.loc[4, :] = vmin, vmax
+
+    result = (
+        df.style.bar(align=align, vmin=vmin, vmax=vmax, color=["red", "green"])
+        ._compute()
+        .ctx
+    )
+    expected = expand_df.style.bar(align=align, color=["red", "green"])._compute().ctx
+    assert result.items() <= expected.items()
+
+
 def test_numerics():
     # test data is pre-selected for numeric values
     data = DataFrame([[1, "a"], [2, "b"]])
@@ -342,3 +273,10 @@ def test_colors_mixed(align, exp):
     data = DataFrame([[-1], [3]])
     result = data.style.bar(align=align, color=["red", "green"])._compute().ctx
     assert result == {(0, 0): exp[0], (1, 0): exp[1]}
+
+
+def test_bar_bad_align_raises():
+    df = DataFrame({"A": [-100, -60, -30, -20]})
+    msg = "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or"
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(align="poorly", color=["#d65f5f", "#5fba7d"]).render()
