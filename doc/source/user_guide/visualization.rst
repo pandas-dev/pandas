@@ -333,7 +333,6 @@ In addition, the ``by`` keyword can also be specified in :meth:`DataFrame.plot.h
            "c": np.random.randn(1000),
            "d": np.random.randn(1000) - 1,
        },
-       columns=["a", "b", "c", "d"],
    )
 
    @savefig grouped_hist_by.png
