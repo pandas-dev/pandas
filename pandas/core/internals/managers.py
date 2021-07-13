@@ -1791,26 +1791,6 @@ def create_block_manager_from_arrays(
     return mgr
 
 
-def create_block_manager_from_array(
-    array,
-    axes: list[Index],
-    consolidate: bool = True,
-) -> BlockManager:
-    assert isinstance(axes, list)
-    assert all(isinstance(x, Index) for x in axes)
-
-    array = _extract_array(array)
-
-    try:
-        block = new_block(values=array, placement=slice(0, len(axes[0])), ndim=2)
-        mgr = BlockManager([block], axes)
-    except ValueError as e:
-        raise construction_error(array.shape[0], array.shape[1:], axes, e)
-    if consolidate:
-        mgr._consolidate_inplace()
-    return mgr
-
-
 def construction_error(
     tot_items: int,
     block_shape: Shape,
