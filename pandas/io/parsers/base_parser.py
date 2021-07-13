@@ -351,7 +351,7 @@ class ParserBase:
         # level, then our header was too long.
         for n in range(len(columns[0])):
             if all(ensure_str(col[n]) in self.unnamed_cols for col in columns):
-                header = ",".join(str(x) for x in self.header)
+                header = ",".join([str(x) for x in self.header])
                 raise ParserError(
                     f"Passed header=[{header}] are too many rows "
                     "for this multi_index of columns"
@@ -1138,7 +1138,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
         else:
             colnames.append(c)
 
-    new_name = "_".join(str(x) for x in colnames)
+    new_name = "_".join([str(x) for x in colnames])
     to_parse = [data_dict[c] for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)
