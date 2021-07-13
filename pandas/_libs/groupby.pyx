@@ -1176,7 +1176,9 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    const intp_t[:] labels,
                    Py_ssize_t min_count=-1,
                    bint is_datetimelike=False,
-                   bint compute_max=True):
+                   bint compute_max=True,
+                   uint8_t[:, ::1] mask=None,
+                   uint8_t[:, ::1] mask_out=None):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
 
@@ -1197,6 +1199,12 @@ cdef group_min_max(groupby_t[:, ::1] out,
         True if `values` contains datetime-like entries.
     compute_max : bint, default True
         True to compute group-wise max, False to compute min
+    mask : ndarray[bool, ndim=2], optional
+        If not None, indices represent missing values,
+        otherwise the mask will not be used
+    mask_out : ndarray[bool, ndim=2], optional
+        If not None, these specify locations in the output that are NA.
+        Modified in-place.
 
     Notes
     -----
@@ -1209,6 +1217,8 @@ cdef group_min_max(groupby_t[:, ::1] out,
         ndarray[groupby_t, ndim=2] group_min_or_max
         bint runtime_error = False
         int64_t[:, ::1] nobs
+        bint uses_mask = mask is not None
+        bint isna_entry
 
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
@@ -1243,7 +1253,12 @@ cdef group_min_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not _treat_as_na(val, is_datetimelike):
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     if compute_max:
                         if val > group_min_or_max[lab, j]:
@@ -1259,7 +1274,10 @@ cdef group_min_max(groupby_t[:, ::1] out,
                         runtime_error = True
                         break
                     else:
-                        out[i, j] = nan_val
+                        if uses_mask:
+                            mask_out[i, j] = True
+                        else:
+                            out[i, j] = nan_val
                 else:
                     out[i, j] = group_min_or_max[i, j]
 
@@ -1276,7 +1294,9 @@ def group_max(groupby_t[:, ::1] out,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
               Py_ssize_t min_count=-1,
-              bint is_datetimelike=False) -> None:
+              bint is_datetimelike=False,
+              uint8_t[:, ::1] mask=None,
+              uint8_t[:, ::1] mask_out=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
         out,
@@ -1286,6 +1306,8 @@ def group_max(groupby_t[:, ::1] out,
         min_count=min_count,
         is_datetimelike=is_datetimelike,
         compute_max=True,
+        mask=mask,
+        mask_out=mask_out,
     )
 
 
@@ -1296,7 +1318,9 @@ def group_min(groupby_t[:, ::1] out,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[:] labels,
               Py_ssize_t min_count=-1,
-              bint is_datetimelike=False) -> None:
+              bint is_datetimelike=False,
+              uint8_t[:, ::1] mask=None,
+              uint8_t[:, ::1] mask_out=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
         out,
@@ -1306,6 +1330,8 @@ def group_min(groupby_t[:, ::1] out,
         min_count=min_count,
         is_datetimelike=is_datetimelike,
         compute_max=False,
+        mask=mask,
+        mask_out=mask_out,
     )
 
 

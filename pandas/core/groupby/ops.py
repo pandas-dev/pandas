@@ -142,7 +142,7 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax"}
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -408,6 +408,7 @@ class WrappedCythonOp:
 
         # Copy to ensure input and result masks don't end up shared
         mask = values._mask.copy()
+        mask_out = np.zeros(ngroups, dtype=bool)
         arr = values._data
 
         res_values = self._cython_op_ndim_compat(
@@ -416,13 +417,18 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=mask,
+            mask_out=mask_out,
             **kwargs,
         )
+
         dtype = self._get_result_dtype(orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
-        return cls(res_values.astype(dtype.type, copy=False), mask)
+        if self.kind != "aggregate":
+            return cls(res_values.astype(dtype.type, copy=False), mask)
+        else:
+            return cls(res_values.astype(dtype.type, copy=False), mask_out)
 
     @final
     def _cython_op_ndim_compat(
@@ -432,7 +438,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
+        mask: np.ndarray | None = None,
+        mask_out: np.ndarray | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -440,12 +447,15 @@ class WrappedCythonOp:
             values2d = values[None, :]
             if mask is not None:
                 mask = mask[None, :]
+            if mask_out is not None:
+                mask_out = mask_out[None, :]
             res = self._call_cython_op(
                 values2d,
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
                 mask=mask,
+                mask_out=mask_out,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -460,6 +470,7 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=mask,
+            mask_out=mask_out,
             **kwargs,
         )
 
@@ -472,6 +483,7 @@ class WrappedCythonOp:
         ngroups: int,
         comp_ids: np.ndarray,
         mask: np.ndarray | None,
+        mask_out: np.ndarray | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -497,6 +509,8 @@ class WrappedCythonOp:
         values = values.T
         if mask is not None:
             mask = mask.T
+            if mask_out is not None:
+                mask_out = mask_out.T
 
         out_shape = self._get_output_shape(ngroups, values)
         func, values = self.get_cython_func_and_vals(values, is_numeric)
@@ -512,6 +526,8 @@ class WrappedCythonOp:
                     values,
                     comp_ids,
                     min_count,
+                    mask=mask,
+                    mask_out=mask_out,
                     is_datetimelike=is_datetimelike,
                 )
             else:
