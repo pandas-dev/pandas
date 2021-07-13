@@ -301,3 +301,7 @@ def test_bar_value_error_raises():
     msg = r"`width` must be a value in \[0, 100\]"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(width=200).to_html()
+
+    msg = r"`height` must be a value in \[0, 100\]"
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(height=200).to_html()
