@@ -57,7 +57,7 @@ def create_valid_python_identifier(name: str) -> str:
         }
     )
 
-    name = "".join(special_characters_replacements.get(char, char) for char in name)
+    name = "".join([special_characters_replacements.get(char, char) for char in name])
     name = "BACKTICK_QUOTED_STRING_" + name
 
     if not name.isidentifier():

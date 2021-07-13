@@ -17,10 +17,16 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
+from pandas.core.frame import DataFrame
+
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
+)
+from pandas.plotting._matplotlib.groupby import (
+    create_iter_data_given_by,
+    reformat_hist_y_given_by,
 )
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
@@ -43,18 +49,29 @@ class HistPlot(LinePlot):
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
-        if is_integer(self.bins):
-            # create common bin edge
-            values = self.data._convert(datetime=True)._get_numeric_data()
-            values = np.ravel(values)
-            values = values[~isna(values)]
 
-            _, self.bins = np.histogram(
-                values, bins=self.bins, range=self.kwds.get("range", None)
-            )
+        # calculate bin number separately in different subplots
+        # where subplots are created based on by argument
+        if is_integer(self.bins):
+            if self.by is not None:
+                grouped = self.data.groupby(self.by)[self.columns]
+                self.bins = [self._calculate_bins(group) for key, group in grouped]
+            else:
+                self.bins = self._calculate_bins(self.data)
 
         if is_list_like(self.bottom):
             self.bottom = np.array(self.bottom)
+
+    def _calculate_bins(self, data: DataFrame) -> np.ndarray:
+        """Calculate bins given data"""
+        values = data._convert(datetime=True)._get_numeric_data()
+        values = np.ravel(values)
+        values = values[~isna(values)]
+
+        hist, bins = np.histogram(
+            values, bins=self.bins, range=self.kwds.get("range", None)
+        )
+        return bins
 
     @classmethod
     def _plot(
@@ -70,7 +87,6 @@ class HistPlot(LinePlot):
     ):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(bins) - 1)
-        y = y[~isna(y)]
 
         base = np.zeros(len(bins) - 1)
         bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds["label"])
@@ -83,7 +99,14 @@ class HistPlot(LinePlot):
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
-        for i, (label, y) in enumerate(self._iter_data()):
+        # Re-create iterated data if `by` is assigned by users
+        data = (
+            create_iter_data_given_by(self.data, self._kind)
+            if self.by is not None
+            else self.data
+        )
+
+        for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
@@ -98,6 +121,15 @@ class HistPlot(LinePlot):
 
             kwds = self._make_plot_keywords(kwds, y)
 
+            # the bins is multi-dimension array now and each plot need only 1-d and
+            # when by is applied, label should be columns that are grouped
+            if self.by is not None:
+                kwds["bins"] = kwds["bins"][i]
+                kwds["label"] = self.columns
+                kwds.pop("color")
+
+            y = reformat_hist_y_given_by(y, self.by)
+
             # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
             # and each sub-array (10,) will be called in each iteration. If users only
             # provide 1D array, we assume the same weights is used for all iterations
@@ -106,6 +138,11 @@ class HistPlot(LinePlot):
                 kwds["weights"] = weights[:, i]
 
             artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
+
+            # when by is applied, show title for subplots to know which group it is
+            if self.by is not None:
+                ax.set_title(pprint_thing(label))
+
             self._append_legend_handles_labels(artists[0], label)
 
     def _make_plot_keywords(self, kwds, y):
