@@ -73,7 +73,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
-from pandas.core.indexers import is_empty_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -2559,23 +2558,28 @@ class MultiIndex(Index):
 
         # are we indexing a specific level
         if len(keyarr) and not isinstance(keyarr[0], tuple):
-            _, indexer = self.reindex(keyarr, level=0)
-
-            # take all
-            if indexer is None:
-                indexer = np.arange(len(self), dtype=np.intp)
-                return indexer
-
-            check = self.levels[0].get_indexer(keyarr)
-            mask = check == -1
+            indexer = self._get_indexer_level_0(keyarr)
+            mask = indexer == -1
             if mask.any():
-                raise KeyError(f"{keyarr[mask]} not in index")
-            elif is_empty_indexer(indexer, keyarr):
+                check = self.levels[0].get_indexer(keyarr)
+                cmask = check == -1
+                if cmask.any():
+                    raise KeyError(f"{keyarr[cmask]} not in index")
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
 
         return indexer
+
+    def _get_indexer_level_0(self, target) -> np.ndarray:
+        """
+        Optimized equivalent to `self.get_level_values(0).get_indexer_for(target)`.
+        """
+        lev = self.levels[0]
+        codes = self._codes[0]
+        cat = Categorical.from_codes(codes=codes, categories=lev)
+        ci = Index(cat)
+        return ci.get_indexer_for(target)
 
     def _get_partial_string_timestamp_match_key(self, key):
         """
@@ -2988,6 +2992,7 @@ class MultiIndex(Index):
         if isinstance(key, tuple) and level == 0:
 
             try:
+                # Check if this tuple is a single key in our first level
                 if key in self.levels[0]:
                     indexer = self._get_level_indexer(key, level=level)
                     new_index = maybe_mi_droplevels(indexer, [0])
@@ -3021,19 +3026,29 @@ class MultiIndex(Index):
                 indexer = None
                 for i, k in enumerate(key):
                     if not isinstance(k, slice):
-                        k = self._get_level_indexer(k, level=i)
-                        if isinstance(k, slice):
-                            # everything
-                            if k.start == 0 and k.stop == len(self):
-                                k = slice(None, None)
-                        else:
-                            k_index = k
+                        loc_level = self._get_level_indexer(k, level=i)
+                        if isinstance(loc_level, slice):
+                            if com.is_null_slice(loc_level) or com.is_full_slice(
+                                loc_level, len(self)
+                            ):
+                                # everything
+                                continue
+                            else:
+                                # e.g. test_xs_IndexSlice_argument_not_implemented
+                                k_index = np.zeros(len(self), dtype=bool)
+                                k_index[loc_level] = True
 
-                    if isinstance(k, slice):
-                        if k == slice(None, None):
-                            continue
                         else:
-                            raise TypeError(key)
+                            k_index = loc_level
+
+                    elif com.is_null_slice(k):
+                        # taking everything, does not affect `indexer` below
+                        continue
+
+                    else:
+                        # FIXME: this message can be inaccurate, e.g.
+                        #  test_series_varied_multiindex_alignment
+                        raise TypeError(f"Expected label or tuple of labels, got {key}")
 
                     if indexer is None:
                         indexer = k_index
