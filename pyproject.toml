@@ -5,16 +5,24 @@ requires = [
     "setuptools>=38.6.0",
     "wheel",
     "Cython>=0.29.21,<3",  # Note: sync with setup.py
-    "numpy==1.17.3; python_version=='3.7'",
-    "numpy==1.18.3; python_version=='3.8'",
-    "numpy; python_version>='3.9'",
+    # Numpy requirements for different OS/architectures
+    # Copied from https://github.com/scipy/scipy/blob/master/pyproject.toml (which is also licensed under BSD)
+    "numpy==1.17.3; python_version=='3.7' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_machine!='aarch64'",
+    "numpy==1.18.3; python_version=='3.8' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_machine!='aarch64'",
+    "numpy==1.19.3; python_version>='3.9' and (platform_machine!='arm64' or platform_system!='Darwin') and platform_machine!='aarch64'",
+    # Aarch64(Python 3.9 requirements are the same as AMD64)
+    "numpy==1.19.2; python_version=='3.7' and platform_machine=='aarch64'",
+    "numpy==1.19.2; python_version=='3.8' and platform_machine=='aarch64'",
+    # Darwin Arm64
+    "numpy>=1.20.0; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Darwin'",
+    "numpy>=1.20.0; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Darwin'"
 ]
 # uncomment to enable pep517 after versioneer problem is fixed.
 # https://github.com/python-versioneer/python-versioneer/issues/193
 # build-backend = "setuptools.build_meta"
 
 [tool.black]
-target-version = ['py37', 'py38', 'py39']
+target-version = ['py38', 'py39']
 exclude = '''
 (
     asv_bench/env
