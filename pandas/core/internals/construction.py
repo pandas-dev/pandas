@@ -348,7 +348,7 @@ def ndarray_to_mgr(
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values.dtype):
-        obj_columns = [x for x in values]
+        obj_columns = list(values)
         maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
         # don't convert (and copy) the objects if no type inference occurs
         if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
