@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.7.1 and above, 3.8, and 3.9.
+Officially Python 3.8, and 3.9.
 
 Installing pandas
 -----------------
@@ -221,9 +221,9 @@ Dependencies
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.17.3
-`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.7.3
-`pytz <https://pypi.org/project/pytz/>`__                        2017.3
+`NumPy <https://numpy.org>`__                                    1.18.5
+`python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
+`pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -233,11 +233,11 @@ Recommended dependencies
 
 * `numexpr <https://github.com/pydata/numexpr>`__: for accelerating certain numerical operations.
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
-  If installed, must be Version 2.7.0 or higher.
+  If installed, must be Version 2.7.1 or higher.
 
 * `bottleneck <https://github.com/pydata/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
-  must be Version 1.2.1 or higher.
+  must be Version 1.3.1 or higher.
 
 .. note::
 
@@ -262,9 +262,8 @@ Visualization
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-setuptools                38.6.0             Utils for entry points of plotting backend
-matplotlib                2.2.3              Plotting library
-Jinja2                    2.10               Conditional formatting with DataFrame.style
+matplotlib                3.3.2              Plotting library
+Jinja2                    2.11               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== =============================================================
 
@@ -274,10 +273,10 @@ Computation
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SciPy                     1.12.0             Miscellaneous statistical functions
-numba                     0.46.0             Alternative execution engine for rolling operations
+SciPy                     1.14.1             Miscellaneous statistical functions
+numba                     0.50.1             Alternative execution engine for rolling operations
                                              (see :ref:`Enhancing Performance <enhancingperf.numba>`)
-xarray                    0.12.3             pandas-like API for N-dimensional data
+xarray                    0.15.1             pandas-like API for N-dimensional data
 ========================= ================== =============================================================
 
 Excel files
@@ -286,10 +285,10 @@ Excel files
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-xlrd                      1.2.0              Reading Excel
+xlrd                      2.0.1              Reading Excel
 xlwt                      1.3.0              Writing Excel
-xlsxwriter                1.0.2              Writing Excel
-openpyxl                  3.0.0              Reading / writing for xlsx files
+xlsxwriter                1.2.2              Writing Excel
+openpyxl                  3.0.2              Reading / writing for xlsx files
 pyxlsb                    1.0.6              Reading for xlsb files
 ========================= ================== =============================================================
 
@@ -299,9 +298,9 @@ HTML
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-BeautifulSoup4            4.6.0              HTML parser for read_html
-html5lib                  1.0.1              HTML parser for read_html
-lxml                      4.3.0              HTML parser for read_html
+BeautifulSoup4            4.8.2              HTML parser for read_html
+html5lib                  1.1                HTML parser for read_html
+lxml                      4.5.0              HTML parser for read_html
 ========================= ================== =============================================================
 
 One of the following combinations of libraries is needed to use the
@@ -334,7 +333,7 @@ XML
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-lxml                      4.3.0              XML parser for read_xml and tree builder for to_xml
+lxml                      4.5.0              XML parser for read_xml and tree builder for to_xml
 ========================= ================== =============================================================
 
 SQL databases
@@ -343,9 +342,9 @@ SQL databases
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-SQLAlchemy                1.3.0              SQL support for databases other than sqlite
-psycopg2                  2.7                PostgreSQL engine for sqlalchemy
-pymysql                   0.8.1              MySQL engine for sqlalchemy
+SQLAlchemy                1.3.11              SQL support for databases other than sqlite
+psycopg2                  2.8.4               PostgreSQL engine for sqlalchemy
+pymysql                   0.10.1              MySQL engine for sqlalchemy
 ========================= ================== =============================================================
 
 Other data sources
@@ -354,8 +353,8 @@ Other data sources
 ========================= ================== =============================================================
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
-PyTables                  3.5.1              HDF5-based reading / writing
-blosc                     1.17.0             Compression for HDF5
+PyTables                  3.6.1              HDF5-based reading / writing
+blosc                     1.20.1             Compression for HDF5
 zlib                                         Compression for HDF5
 fastparquet               0.4.0              Parquet reading / writing
 pyarrow                   0.17.0             Parquet, ORC, and feather reading / writing
@@ -385,7 +384,7 @@ Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 fsspec                    0.7.4              Handling files aside from simple local and HTTP
 gcsfs                     0.6.0              Google Cloud Storage access
-pandas-gbq                0.12.0             Google Big Query access
+pandas-gbq                0.14.0             Google Big Query access
 s3fs                      0.4.0              Amazon S3 access
 ========================= ================== =============================================================
 
