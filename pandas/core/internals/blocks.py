@@ -886,7 +886,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        indexer : tuple, list-like, array-like, slice
+        indexer : tuple, list-like, array-like, slice, int
             The subset of self.values to set
         value : object
             The value being set
@@ -1450,7 +1450,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         Parameters
         ----------
-        indexer : tuple, list-like, array-like, slice
+        indexer : tuple, list-like, array-like, slice, int
             The subset of self.values to set
         value : object
             The value being set

@@ -6129,7 +6129,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        labels : array-like
+        labels : array-like or scalar
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 

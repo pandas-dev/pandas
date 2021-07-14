@@ -1137,7 +1137,7 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        value : array-like
+        value : array-like or scalar
             Values to insert into `self`.
         side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.

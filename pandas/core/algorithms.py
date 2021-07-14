@@ -531,7 +531,7 @@ def factorize_array(
     mask: np.ndarray | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
-    Factorize an array-like to codes and uniques.
+    Factorize a numpy array to codes and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
 
@@ -910,7 +910,7 @@ def duplicated(
 
     Parameters
     ----------
-    values : ndarray-like
+    values : nd.array, ExtensionArray or Series
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
@@ -1412,8 +1412,8 @@ def take(
 
     Parameters
     ----------
-    arr : sequence
-        Non array-likes (sequences without a dtype) are coerced
+    arr : array-like or scalar value
+        Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.
@@ -1523,11 +1523,11 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 
     Parameters
     ----------
-    arr: array-like
+    arr: np.ndarray, ExtensionArray, Series
         Input array. If `sorter` is None, then it must be sorted in
         ascending order, otherwise `sorter` must be an array of indices
         that sort it.
-    value : array-like
+    value : array-like or scalar
         Values to insert into `arr`.
     side : {'left', 'right'}, optional
         If 'left', the index of the first suitable location found is given.

@@ -826,8 +826,8 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array-like
-            Values to insert into `self`.
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
