@@ -334,22 +334,6 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
     return result.view(np.bool_)
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def has_NA(ndarray[object, ndim=1] arr) -> bool:
-    """
-    Return True if NA present in arr, False otherwise
-    """
-    cdef:
-        Py_ssize_t i
-
-    for i in range(len(arr)):
-        if arr[i] is C_NA:
-            return True
-
-    return False
-
-
 def isposinf_scalar(val: object) -> bool:
     return util.is_float_object(val) and val == INF
 

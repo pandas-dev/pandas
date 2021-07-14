@@ -409,8 +409,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = isin(self._data, values_arr)
 
         if self._hasna:
-            values_have_NA = is_object_dtype(values_arr.dtype) and libmissing.has_NA(
-                values_arr
+            values_have_NA = is_object_dtype(values_arr.dtype) and any(
+                val is self.dtype.na_value for val in values_arr
             )
 
             # For now, NA does not propagate so set result according to presence of NA,
