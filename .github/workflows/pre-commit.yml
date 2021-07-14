@@ -3,7 +3,9 @@ name: pre-commit
 on:
   pull_request:
   push:
-    branches: [master]
+    branches:
+      - master
+      - 1.3.x
 
 jobs:
   pre-commit:
