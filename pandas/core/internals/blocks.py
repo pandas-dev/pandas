@@ -281,7 +281,7 @@ class Block(PandasObject):
             result = f"{name}: {len(self)} dtype: {self.dtype}"
         else:
 
-            shape = " x ".join(str(s) for s in self.shape)
+            shape = " x ".join([str(s) for s in self.shape])
             result = f"{name}: {self.mgr_locs.indexer}, {shape}, dtype: {self.dtype}"
 
         return result

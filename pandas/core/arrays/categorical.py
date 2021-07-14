@@ -41,6 +41,7 @@ from pandas._typing import (
     PositionalIndexerTuple,
     Scalar,
     Shape,
+    npt,
     type_t,
 )
 from pandas.compat.numpy import function as nv
@@ -2063,7 +2064,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         codes = self.categories.get_indexer(rvalue)
         return codes.astype(self._ndarray.dtype, copy=False)
 
-    def _reverse_indexer(self) -> dict[Hashable, np.ndarray]:
+    def _reverse_indexer(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """
         Compute the inverse of a categorical, returning
         a dict of categories -> indexers.
