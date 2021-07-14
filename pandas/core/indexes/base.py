@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -43,7 +44,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Shape,
-    final,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -305,8 +306,7 @@ class Index(IndexOpsMixin, PandasObject):
     #  given the dtypes of the passed arguments
 
     @final
-    def _left_indexer_unique(self: _IndexT, other: _IndexT) -> np.ndarray:
-        # -> np.ndarray[np.intp]
+    def _left_indexer_unique(self: _IndexT, other: _IndexT) -> npt.NDArray[np.intp]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
@@ -315,7 +315,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _left_indexer(
         self: _IndexT, other: _IndexT
-    ) -> tuple[ArrayLike, np.ndarray, np.ndarray]:
+    ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
@@ -326,7 +326,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _inner_indexer(
         self: _IndexT, other: _IndexT
-    ) -> tuple[ArrayLike, np.ndarray, np.ndarray]:
+    ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
@@ -337,7 +337,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _outer_indexer(
         self: _IndexT, other: _IndexT
-    ) -> tuple[ArrayLike, np.ndarray, np.ndarray]:
+    ) -> tuple[ArrayLike, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
@@ -3459,8 +3459,7 @@ class Index(IndexOpsMixin, PandasObject):
         method: str_t | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
-        # returned ndarray is np.intp
+    ) -> npt.NDArray[np.intp]:
         method = missing.clean_reindex_fill_method(method)
         target = self._maybe_cast_listlike_indexer(target)
 
@@ -3831,7 +3830,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
-    ) -> tuple[Index, np.ndarray | None]:
+    ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values.
 
@@ -3907,7 +3906,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _reindex_non_unique(
         self, target: Index
-    ) -> tuple[Index, np.ndarray, np.ndarray | None]:
+    ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp] | None]:
         """
         Create a new index with target's values (move/add/delete values as
         necessary) use with non-unique Index and a possibly non-unique target.
@@ -4195,8 +4194,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _join_non_unique(
         self, other: Index, how: str_t = "left"
-    ) -> tuple[Index, np.ndarray, np.ndarray]:
-        # returned ndarrays are np.intp
+    ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         from pandas.core.reshape.merge import get_join_indexers
 
         # We only get here if dtypes match
@@ -4224,8 +4222,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _join_level(
         self, other: Index, level, how: str_t = "left", keep_order: bool = True
-    ) -> tuple[MultiIndex, np.ndarray | None, np.ndarray | None]:
-        # Any returned ndarrays are np.intp
+    ) -> tuple[MultiIndex, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         """
         The join method *only* affects the level of the resulting
         MultiIndex. Otherwise it just exactly aligns the Index data to the
@@ -4237,7 +4234,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas.core.indexes.multi import MultiIndex
 
-        def _get_leaf_sorter(labels: list[np.ndarray]) -> np.ndarray:
+        def _get_leaf_sorter(labels: list[np.ndarray]) -> npt.NDArray[np.intp]:
             """
             Returns sorter for the inner most level while preserving the
             order of higher levels.
@@ -4989,7 +4986,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self[loc]
 
-    def asof_locs(self, where: Index, mask: np.ndarray) -> np.ndarray:
+    def asof_locs(self, where: Index, mask: np.ndarray) -> npt.NDArray[np.intp]:
         """
         Return the locations (indices) of labels in the index.
 
@@ -5180,7 +5177,7 @@ class Index(IndexOpsMixin, PandasObject):
             f"TimedeltaIndex; Got type {type(self).__name__}"
         )
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
+    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
         Return the integer indices that would sort the index.
 
@@ -5331,8 +5328,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
+    def get_indexer_non_unique(
+        self, target
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         target = ensure_index(target)
         target = self._maybe_cast_listlike_indexer(target)
 
@@ -5362,7 +5360,7 @@ class Index(IndexOpsMixin, PandasObject):
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
     @final
-    def get_indexer_for(self, target) -> np.ndarray:
+    def get_indexer_for(self, target) -> npt.NDArray[np.intp]:
         """
         Guaranteed return of an indexer even when non-unique.
 
@@ -5382,28 +5380,25 @@ class Index(IndexOpsMixin, PandasObject):
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[True] = ...
-    ) -> np.ndarray:
-        # returned ndarray is np.intp
+    ) -> npt.NDArray[np.intp]:
         ...
 
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[False]
-    ) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         ...
 
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: bool = True
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
-        # any returned ndarrays are np.intp
+    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         ...
 
     @final
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: bool = True
-    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+    ) -> npt.NDArray[np.intp] | tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """
         Called from get_indexer or get_indexer_non_unique when the target
         is of a non-comparable dtype.
@@ -6123,7 +6118,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        labels : array-like
+        labels : array-like or scalar
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and existing labels are dropped.
 

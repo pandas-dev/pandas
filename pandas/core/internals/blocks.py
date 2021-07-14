@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     Sequence,
     cast,
+    final,
 )
 import warnings
 
@@ -28,7 +29,6 @@ from pandas._typing import (
     DtypeObj,
     F,
     Shape,
-    final,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -311,17 +311,6 @@ class Block(PandasObject):
             raise ValueError("Only same dim slicing is allowed")
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
-
-    def getitem_block_index(self, slicer: slice) -> Block:
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
@@ -897,7 +886,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        indexer : tuple, list-like, array-like, slice
+        indexer : tuple, list-like, array-like, slice, int
             The subset of self.values to set
         value : object
             The value being set
@@ -1461,7 +1450,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         Parameters
         ----------
-        indexer : tuple, list-like, array-like, slice
+        indexer : tuple, list-like, array-like, slice, int
             The subset of self.values to set
         value : object
             The value being set
@@ -1556,6 +1545,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 )
 
         return self.values[slicer]
+
+    @final
+    def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        # error: Invalid index type "Tuple[ellipsis, slice]" for
+        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        new_values = self.values[..., slicer]  # type: ignore[index]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
@@ -1661,8 +1662,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
 
-    getitem_block_index = libinternals.NumpyBlock.getitem_block_index
-
 
 class NumericBlock(NumpyBlock):
     __slots__ = ()
@@ -1675,7 +1674,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-    getitem_block_index = libinternals.NDArrayBackedBlock.getitem_block_index
 
     @property
     def is_view(self) -> bool:
