@@ -22,6 +22,7 @@ Fixed regressions
 - Performance regression in :class:`DataFrame` in reduction operations requiring casting such as :meth:`DataFrame.mean` on integer data (:issue:`38592`)
 - Performance regression in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when ``orient`` argument one of "records", "dict", or "split" (:issue:`42352`)
 - Fixed regression in indexing with a ``list`` subclass incorrectly raising ``TypeError`` (:issue:`42433`, :issue:`42461`)
+- Fixed regression in :meth:`DataFrame.isin` and :meth:`Series.isin` raising ``TypeError`` with nullable data containing at least one missing value (:issue:`42405`)
 -
 
 .. ---------------------------------------------------------------------------
