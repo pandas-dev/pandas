@@ -1,5 +1,4 @@
 from datetime import datetime
-from itertools import chain
 import warnings
 
 import numpy as np
@@ -50,6 +49,17 @@ def test_apply_axis1_with_ea():
     # GH#36785
     expected = DataFrame({"A": [Timestamp("2013-01-01", tz="UTC")]})
     result = expected.apply(lambda x: x, axis=1)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [(1, None), (1, CategoricalDtype([1])), (Timestamp("2013-01-01", tz="UTC"), None)],
+)
+def test_agg_axis1_duplicate_index(data, dtype):
+    # GH 42380
+    expected = DataFrame([[data], [data]], index=["a", "a"], dtype=dtype)
+    result = expected.agg(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -145,32 +155,6 @@ def test_apply_standard_nonunique():
     tm.assert_series_equal(result, expected)
 
     result = df.T.apply(lambda s: s[0], axis=0)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("func", ["sum", "mean", "min", "max", "std"])
-@pytest.mark.parametrize(
-    "args,kwds",
-    [
-        pytest.param([], {}, id="no_args_or_kwds"),
-        pytest.param([1], {}, id="axis_from_args"),
-        pytest.param([], {"axis": 1}, id="axis_from_kwds"),
-        pytest.param([], {"numeric_only": True}, id="optional_kwds"),
-        pytest.param([1, None], {"numeric_only": True}, id="args_and_kwds"),
-    ],
-)
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
-    if len(args) > 1 and how == "agg":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=TypeError,
-                reason="agg/apply signature mismatch - agg passes 2nd "
-                "argument to func",
-            )
-        )
-    result = getattr(float_frame, how)(func, *args, **kwds)
-    expected = getattr(float_frame, func)(*args, **kwds)
     tm.assert_series_equal(result, expected)
 
 
@@ -1301,76 +1285,6 @@ def test_agg_listlike_result():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "df, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            DataFrame(),
-            [
-                ("sum", Series(dtype="float64")),
-                ("max", Series(dtype="float64")),
-                ("min", Series(dtype="float64")),
-                ("all", Series(dtype=bool)),
-                ("any", Series(dtype=bool)),
-                ("mean", Series(dtype="float64")),
-                ("prod", Series(dtype="float64")),
-                ("std", Series(dtype="float64")),
-                ("var", Series(dtype="float64")),
-                ("median", Series(dtype="float64")),
-            ],
-        ),
-        tm.get_cython_table_params(
-            DataFrame([[np.nan, 1], [1, 2]]),
-            [
-                ("sum", Series([1.0, 3])),
-                ("max", Series([1.0, 2])),
-                ("min", Series([1.0, 1])),
-                ("all", Series([True, True])),
-                ("any", Series([True, True])),
-                ("mean", Series([1, 1.5])),
-                ("prod", Series([1.0, 2])),
-                ("std", Series([np.nan, 0.707107])),
-                ("var", Series([np.nan, 0.5])),
-                ("median", Series([1, 1.5])),
-            ],
-        ),
-    ),
-)
-def test_agg_cython_table(df, func, expected, axis):
-    # GH 21224
-    # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
-    result = df.agg(func, axis=axis)
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "df, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            DataFrame(), [("cumprod", DataFrame()), ("cumsum", DataFrame())]
-        ),
-        tm.get_cython_table_params(
-            DataFrame([[np.nan, 1], [1, 2]]),
-            [
-                ("cumprod", DataFrame([[np.nan, 1], [1, 2]])),
-                ("cumsum", DataFrame([[np.nan, 1], [1, 3]])),
-            ],
-        ),
-    ),
-)
-def test_agg_cython_table_transform(df, func, expected, axis):
-    # GH 21224
-    # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    if axis == "columns" or axis == 1:
-        # operating blockwise doesn't let us preserve dtypes
-        expected = expected.astype("float64")
-
-    result = df.agg(func, axis=axis)
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize(
     "args, kwargs",
@@ -1496,31 +1410,6 @@ def test_apply_raw_returns_string():
     df = DataFrame({"A": ["aa", "bbb"]})
     result = df.apply(lambda x: x[0], axis=1, raw=True)
     expected = Series(["aa", "bbb"])
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "op", ["abs", "ceil", "cos", "cumsum", "exp", "log", "sqrt", "square"]
-)
-@pytest.mark.parametrize("how", ["transform", "apply"])
-def test_apply_np_transformer(float_frame, op, how):
-    # GH 39116
-    result = getattr(float_frame, how)(op)
-    expected = getattr(np, op)(float_frame)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("op", ["mean", "median", "std", "var"])
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_np_reducer(float_frame, op, how):
-    # GH 39116
-    float_frame = DataFrame({"a": [1, 2], "b": [3, 4]})
-    result = getattr(float_frame, how)(op)
-    # pandas ddof defaults to 1, numpy to 0
-    kwargs = {"ddof": 1} if op in ("std", "var") else {}
-    expected = Series(
-        getattr(np, op)(float_frame, axis=0, **kwargs), index=float_frame.columns
-    )
     tm.assert_series_equal(result, expected)
 
 

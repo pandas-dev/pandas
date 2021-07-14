@@ -20,6 +20,55 @@ from pandas.core.indexing import IndexingError
 
 
 class TestSlicing:
+    def test_return_type_doesnt_depend_on_monotonicity(self):
+        # GH#24892 we get Series back regardless of whether our DTI is monotonic
+        dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
+        ser = Series(range(3), index=dti)
+
+        # non-monotonic index
+        ser2 = Series(range(3), index=[dti[1], dti[0], dti[2]])
+
+        # key with resolution strictly lower than "min"
+        key = "2015-5-14 00"
+
+        # monotonic increasing index
+        result = ser.loc[key]
+        expected = ser.iloc[1:]
+        tm.assert_series_equal(result, expected)
+
+        # monotonic decreasing index
+        result = ser.iloc[::-1].loc[key]
+        expected = ser.iloc[::-1][:-1]
+        tm.assert_series_equal(result, expected)
+
+        # non-monotonic index
+        result2 = ser2.loc[key]
+        expected2 = ser2.iloc[::2]
+        tm.assert_series_equal(result2, expected2)
+
+    def test_return_type_doesnt_depend_on_monotonicity_higher_reso(self):
+        # GH#24892 we get Series back regardless of whether our DTI is monotonic
+        dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
+        ser = Series(range(3), index=dti)
+
+        # non-monotonic index
+        ser2 = Series(range(3), index=[dti[1], dti[0], dti[2]])
+
+        # key with resolution strictly *higher) than "min"
+        key = "2015-5-14 00:00:00"
+
+        # monotonic increasing index
+        result = ser.loc[key]
+        assert result == 1
+
+        # monotonic decreasing index
+        result = ser.iloc[::-1].loc[key]
+        assert result == 1
+
+        # non-monotonic index
+        result2 = ser2.loc[key]
+        assert result2 == 0
+
     def test_monotone_DTI_indexing_bug(self):
         # GH 19362
         # Testing accessing the first element in a monotonic descending
@@ -38,9 +87,19 @@ class TestSlicing:
         expected = DataFrame({0: list(range(5)), "date": date_index})
         tm.assert_frame_equal(df, expected)
 
-        df = DataFrame({"A": [1, 2, 3]}, index=date_range("20170101", periods=3)[::-1])
-        expected = DataFrame({"A": 1}, index=date_range("20170103", periods=1)[::-1])
-        tm.assert_frame_equal(df.loc["2017-01-03"], expected)
+        # We get a slice because df.index's resolution is hourly and we
+        #  are slicing with a daily-resolution string.  If both were daily,
+        #  we would get a single item back
+        dti = date_range("20170101 01:00:00", periods=3)
+        df = DataFrame({"A": [1, 2, 3]}, index=dti[::-1])
+
+        expected = DataFrame({"A": 1}, index=dti[-1:][::-1])
+        result = df.loc["2017-01-03"]
+        tm.assert_frame_equal(result, expected)
+
+        result2 = df.iloc[::-1].loc["2017-01-03"]
+        expected2 = expected.iloc[::-1]
+        tm.assert_frame_equal(result2, expected2)
 
     def test_slice_year(self):
         dti = date_range(freq="B", start=datetime(2005, 1, 1), periods=500)
@@ -284,22 +343,23 @@ class TestSlicing:
         with pytest.raises(IndexingError, match=msg):
             df_multi.loc[("2013-06-19", "ACCT1", "ABC")]
 
+    def test_partial_slicing_with_multiindex_series(self):
         # GH 4294
         # partial slice on a series mi
-        s = DataFrame(
+        ser = DataFrame(
             np.random.rand(1000, 1000), index=date_range("2000-1-1", periods=1000)
         ).stack()
 
-        s2 = s[:-1].copy()
+        s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]
         result = s2[Timestamp("2000-1-4")]
         tm.assert_series_equal(result, expected)
 
-        result = s[Timestamp("2000-1-4")]
-        expected = s["2000-1-4"]
+        result = ser[Timestamp("2000-1-4")]
+        expected = ser["2000-1-4"]
         tm.assert_series_equal(result, expected)
 
-        df2 = DataFrame(s)
+        df2 = DataFrame(ser)
         expected = df2.xs("2000-1-4")
         result = df2.loc[Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
