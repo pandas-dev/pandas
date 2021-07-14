@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - 1.3.x
 
 jobs:
   pre-commit:
