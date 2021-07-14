@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Hashable,
     Literal,
+    final,
     no_type_check,
 )
 
@@ -27,7 +28,6 @@ from pandas._typing import (
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
-    final,
     npt,
 )
 from pandas.compat.numpy import function as nv

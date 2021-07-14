@@ -12,6 +12,7 @@ from typing import (
     Iterable,
     Sequence,
     cast,
+    final,
 )
 import warnings
 
@@ -26,7 +27,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     FilePathOrBuffer,
-    final,
 )
 from pandas.errors import (
     ParserError,

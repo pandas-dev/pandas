@@ -4,12 +4,14 @@ inherit from this class.
 """
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import (
+    TypeVar,
+    final,
+)
 
 from pandas._typing import (
     DtypeObj,
     Shape,
-    final,
 )
 from pandas.errors import AbstractMethodError
 
