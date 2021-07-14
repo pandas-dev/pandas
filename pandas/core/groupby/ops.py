@@ -32,6 +32,7 @@ from pandas._typing import (
     FrameOrSeries,
     Shape,
     final,
+    npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
@@ -637,7 +638,7 @@ class BaseGrouper:
         sort: bool = True,
         group_keys: bool = True,
         mutated: bool = False,
-        indexer: np.ndarray | None = None,
+        indexer: npt.NDArray[np.intp] | None = None,
         dropna: bool = True,
     ):
         assert isinstance(axis, Index), axis
@@ -1228,7 +1229,13 @@ def _is_indexed_like(obj, axes, axis: int) -> bool:
 
 
 class DataSplitter(Generic[FrameOrSeries]):
-    def __init__(self, data: FrameOrSeries, labels, ngroups: int, axis: int = 0):
+    def __init__(
+        self,
+        data: FrameOrSeries,
+        labels: npt.NDArray[np.intp],
+        ngroups: int,
+        axis: int = 0,
+    ):
         self.data = data
         self.labels = ensure_platform_int(labels)  # _should_ already be np.intp
         self.ngroups = ngroups
