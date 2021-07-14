@@ -1280,11 +1280,10 @@ cdef class TextReader:
                 # generate extra (bogus) headers if there are more columns than headers
                 if j >= len(self.header[0]):
                     return j
+                elif self.has_mi_columns:
+                    return tuple(header_row[j] for header_row in self.header)
                 else:
-                    if self.has_mi_columns:
-                        return tuple(header_row[j] for header_row in self.header)
-                    else:
-                        return self.header[0][j]
+                    return self.header[0][j]
             else:
                 return None
 

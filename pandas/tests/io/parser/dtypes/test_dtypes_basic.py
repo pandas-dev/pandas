@@ -260,6 +260,7 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
 
 
 def test_dtype_multi_index(all_parsers):
+    # GH 42446
     parser = all_parsers
     data = "A,B,B\nX,Y,Z\n1,2,3"
 

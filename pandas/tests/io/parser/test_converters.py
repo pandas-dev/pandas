@@ -164,6 +164,7 @@ def test_converter_index_col_bug(all_parsers):
 
 
 def test_converter_multi_index(all_parsers):
+    # GH 42446
     parser = all_parsers
     data = "A,B,B\nX,Y,Z\n1,2,3"
 
