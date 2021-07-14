@@ -92,8 +92,6 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
-
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
