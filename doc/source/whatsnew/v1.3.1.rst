@@ -15,11 +15,13 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Pandas could not be built on PyPy (:issue:`42355`)
-- :class:`DataFrame` constructed with with an older version of pandas could not be unpickled (:issue:`42345`)
-- Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42338`)
+- :class:`DataFrame` constructed with an older version of pandas could not be unpickled (:issue:`42345`)
+- Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42248`)
 - Fixed regression in :meth:`DataFrame.agg` dropping values when the DataFrame had an Extension Array dtype, a duplicate index, and ``axis=1`` (:issue:`42380`)
+- Fixed regression in :meth:`DataFrame.astype` changing the order of noncontiguous data (:issue:`42396`)
+- Performance regression in :class:`DataFrame` in reduction operations requiring casting such as :meth:`DataFrame.mean` on integer data (:issue:`38592`)
 - Performance regression in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when ``orient`` argument one of "records", "dict", or "split" (:issue:`42352`)
-- Fixed regression in indexing with a ``list`` subclass incorrectly raising ``TypeError`` (:issue:`42433`, :issue:42461`)
+- Fixed regression in indexing with a ``list`` subclass incorrectly raising ``TypeError`` (:issue:`42433`, :issue:`42461`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -29,6 +31,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.transpose` dropping values when the DataFrame had an Extension Array dtype and a duplicate index (:issue:`42380`)
+- Fixed bug in :meth:`DataFrame.to_xml` raising ``KeyError`` when called with ``index=False`` and an offset index (:issue:`42458`)
 -
 
 .. ---------------------------------------------------------------------------
