@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -44,7 +45,6 @@ from pandas._typing import (
     F,
     Shape,
     T,
-    final,
     npt,
 )
 from pandas.compat.numpy import function as nv

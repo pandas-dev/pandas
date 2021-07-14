@@ -13,6 +13,7 @@ from typing import (
     Literal,
     TypeVar,
     cast,
+    final,
 )
 
 import numpy as np
@@ -24,7 +25,6 @@ from pandas._typing import (
     FrameOrSeries,
     IndexLabel,
     Shape,
-    final,
     npt,
 )
 from pandas.compat import PYPY
