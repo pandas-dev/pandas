@@ -889,8 +889,11 @@ class SQLTable(PandasObject):
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
         """
+        from sqlalchemy import insert
+
         data = [dict(zip(keys, row)) for row in data_iter]
-        conn.execute(self.table.insert(data))
+        insert_stmt = insert(self.table).values(data)
+        conn.execute(insert_stmt)
 
     def insert_data(self):
         if self.index is not None:
@@ -1401,8 +1404,9 @@ class SQLDatabase(PandasSQL):
         arguments in the MetaData object.
 
     """
+    from sqlalchemy import Engine
 
-    def __init__(self, engine, schema: str | None = None, meta=None):
+    def __init__(self, engine: Engine, schema: str | None = None, meta=None):
         self.connectable = engine
         if not meta:
             from sqlalchemy.schema import MetaData
