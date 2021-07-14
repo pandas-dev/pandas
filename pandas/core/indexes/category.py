@@ -14,6 +14,7 @@ from pandas._libs import index as libindex
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import doc
 
@@ -368,7 +369,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def reindex(
         self, target, method=None, level=None, limit=None, tolerance=None
-    ) -> tuple[Index, np.ndarray | None]:
+    ) -> tuple[Index, npt.NDArray[np.intp] | None]:
         """
         Create index with target's values (move/add/delete values as necessary)
 

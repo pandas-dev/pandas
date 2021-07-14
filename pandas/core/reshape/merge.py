@@ -29,6 +29,7 @@ from pandas._typing import (
     FrameOrSeries,
     IndexLabel,
     Suffixes,
+    npt,
 )
 from pandas.errors import MergeError
 from pandas.util._decorators import (
@@ -1003,7 +1004,7 @@ class _MergeOperation:
         self,
         index: Index,
         other_index: Index,
-        indexer: np.ndarray,
+        indexer: npt.NDArray[np.intp],
         how: str = "left",
     ) -> Index:
         """
@@ -1448,7 +1449,7 @@ class _MergeOperation:
 
 def get_join_indexers(
     left_keys, right_keys, sort: bool = False, how: str = "inner", **kwargs
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """
 
     Parameters
@@ -1507,9 +1508,9 @@ def restore_dropped_levels_multijoin(
     right: MultiIndex,
     dropped_level_names,
     join_index: Index,
-    lindexer: np.ndarray,
-    rindexer: np.ndarray,
-) -> tuple[list[Index], np.ndarray, list[Hashable]]:
+    lindexer: npt.NDArray[np.intp],
+    rindexer: npt.NDArray[np.intp],
+) -> tuple[list[Index], npt.NDArray[np.intp], list[Hashable]]:
     """
     *this is an internal non-public method*
 
@@ -1539,7 +1540,7 @@ def restore_dropped_levels_multijoin(
     -------
     levels : list of Index
         levels of combined multiindexes
-    labels : intp array
+    labels : np.ndarray[np.intp]
         labels of combined multiindexes
     names : List[Hashable]
         names of combined multiindex levels
@@ -2055,7 +2056,7 @@ def _left_join_on_index(
 
 def _factorize_keys(
     lk: ArrayLike, rk: ArrayLike, sort: bool = True, how: str = "inner"
-) -> tuple[np.ndarray, np.ndarray, int]:
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
     """
     Encode left and right keys as enumerated types.
 

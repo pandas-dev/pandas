@@ -10,7 +10,10 @@ import numpy as np
 
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -136,7 +139,7 @@ class _Unstacker:
     def _indexer_and_to_sort(
         self,
     ) -> tuple[
-        np.ndarray,  # np.ndarray[np.intp]
+        npt.NDArray[np.intp],
         list[np.ndarray],  # each has _some_ signed integer dtype
     ]:
         v = self.level

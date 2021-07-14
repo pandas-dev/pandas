@@ -27,6 +27,7 @@ from pandas._typing import (
     ArrayLike,
     DtypeObj,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import doc
 
@@ -528,7 +529,7 @@ def factorize_array(
     size_hint: int | None = None,
     na_value=None,
     mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize an array-like to codes and uniques.
 
