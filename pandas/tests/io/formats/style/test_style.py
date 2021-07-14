@@ -52,6 +52,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
+    mi_styler.applymap_header(lambda x: "color: white;", axis=0)
+    mi_styler.applymap_header(lambda x: "color: black;", axis=1)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
@@ -198,7 +200,14 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
     if render:
         styler.to_html()
 
-    excl = ["na_rep", "precision", "uuid", "cellstyle_map"]  # deprecated or special var
+    excl = [
+        "na_rep",  # deprecated
+        "precision",  # deprecated
+        "uuid",  # special
+        "cellstyle_map",  # render time vars..
+        "cellstyle_map_columns",
+        "cellstyle_map_index",
+    ]
     if not deepcopy:  # check memory locations are equal for all included attributes
         for attr in [a for a in styler.__dict__ if (not callable(a) and a not in excl)]:
             assert id(getattr(s2, attr)) == id(getattr(styler, attr))
@@ -245,6 +254,8 @@ def test_clear(mi_styler_comp):
         "uuid_len",
         "cell_ids",
         "cellstyle_map",  # execution time only
+        "cellstyle_map_columns",  # execution time only
+        "cellstyle_map_index",  # execution time only
         "precision",  # deprecated
         "na_rep",  # deprecated
     ]

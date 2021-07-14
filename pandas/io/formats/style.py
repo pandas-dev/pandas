@@ -1029,6 +1029,8 @@ class Styler(StylerRenderer):
             "hidden_rows",
             "hidden_columns",
             "ctx",
+            "ctx_index",
+            "ctx_columns",
             "cell_context",
             "_todo",
             "table_styles",
