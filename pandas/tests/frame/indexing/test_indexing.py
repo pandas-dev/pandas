@@ -1283,7 +1283,7 @@ def test_object_casting_indexing_wraps_datetimelike(using_array_manager):
     assert isinstance(val, pd.Timedelta)
 
 
-msg1 = "Cannot setitem on a Categorical with a new category, set the categories first"
+msg1 = r"Cannot setitem on a Categorical with a new category( \(.*\))?, set the"
 msg2 = "Cannot set a Categorical with another, without identical categories"
 
 
@@ -1348,7 +1348,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_multi_row)
 
         df = orig.copy()
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key, :] = [["c", 2], ["c", 2]]
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc, tm.at, tm.iat])
@@ -1367,7 +1367,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_single_cats_value)
 
         # "c" is not among the categories for df["cat"]
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = "c"
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
@@ -1401,7 +1401,7 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_single_row)
 
         # "c" is not among the categories for df["cat"]
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key, :] = ["c", 2]
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.iloc])
@@ -1423,14 +1423,14 @@ class TestLocILocDataFrameCategorical:
 
         # categories do not match df["cat"]'s, but "b" is among them
         semi_compat = Categorical(list("bb"), categories=list("abc"))
-        with pytest.raises(ValueError, match=msg2):
+        with pytest.raises(TypeError, match=msg2):
             # different categories but holdable values
             #  -> not sure if this should fail or pass
             indexer(df)[key] = semi_compat
 
         # categories do not match df["cat"]'s, and "c" is not among them
         incompat = Categorical(list("cc"), categories=list("abc"))
-        with pytest.raises(ValueError, match=msg2):
+        with pytest.raises(TypeError, match=msg2):
             # different values
             indexer(df)[key] = incompat
 
@@ -1450,5 +1450,5 @@ class TestLocILocDataFrameCategorical:
         tm.assert_frame_equal(df, exp_parts_cats_col)
 
         # "c" not part of the categories
-        with pytest.raises(ValueError, match=msg1):
+        with pytest.raises(TypeError, match=msg1):
             indexer(df)[key] = ["c", "c"]
