@@ -72,7 +72,9 @@ def test_partial_string_timestamp_multiindex(df):
 
     # partial string match on date and hour, from middle
     result = df.loc["2016-01-02 12"]
-    expected = df.iloc[9:12]
+    # hourly resolution, same as index.levels[0], so we are _not_ slicing on
+    #  that level, so that level gets dropped
+    expected = df.iloc[9:12].droplevel(0)
     tm.assert_frame_equal(result, expected)
 
     # partial string match on secondary index
@@ -81,11 +83,14 @@ def test_partial_string_timestamp_multiindex(df):
     tm.assert_frame_equal(result, expected)
 
     # tuple selector with partial string match on date
+    # "2016-01-01" has daily resolution, so _is_ a slice on the first level.
     result = df.loc[("2016-01-01", "a"), :]
     expected = df.iloc[[0, 3]]
+    expected = df.iloc[[0, 3]].droplevel(1)
     tm.assert_frame_equal(result, expected)
 
-    # Slicing date on first level should break (of course)
+    # Slicing date on first level should break (of course) bc the DTI is the
+    #  second level on df_swap
     with pytest.raises(KeyError, match="'2016-01-01'"):
         df_swap.loc["2016-01-01"]
 
