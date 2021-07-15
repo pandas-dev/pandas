@@ -7,9 +7,11 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -26,10 +28,6 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
-)
-from pandas._typing import (
-    Callable,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (

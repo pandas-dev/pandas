@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - master
-      - 1.2.x
       - 1.3.x
     paths-ignore:
       - "doc/**"
@@ -32,7 +31,7 @@ jobs:
 
     concurrency:
       group: ${{ github.ref }}-${{ matrix.ENV_FILE }}
-      cancel-in-progress: true
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     services:
       mysql:
