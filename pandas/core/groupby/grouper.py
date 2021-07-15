@@ -4,7 +4,10 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import Hashable
+from typing import (
+    Hashable,
+    final,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +15,6 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    final,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly

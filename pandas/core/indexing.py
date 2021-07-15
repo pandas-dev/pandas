@@ -1129,12 +1129,6 @@ class _LocIndexer(_LocationIndexer):
         try:
             # fast path for series or for tup devoid of slices
             return self._get_label(tup, axis=axis)
-        except TypeError as err:
-            # slices are unhashable
-            # FIXME: this raises when we have a DatetimeIndex first level and a
-            #  string for the first tup entry
-            #  see test_partial_slicing_with_multiindex
-            raise IndexingError("No label returned") from err
 
         except KeyError as ek:
             # raise KeyError if number of indexers match
@@ -1149,7 +1143,6 @@ class _LocIndexer(_LocationIndexer):
             key = list(key)
 
         labels = self.obj._get_axis(axis)
-        key = labels._get_partial_string_timestamp_match_key(key)
 
         if isinstance(key, slice):
             self._validate_key(key, axis)
