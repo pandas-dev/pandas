@@ -174,7 +174,11 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in setting dtype-incompatible values into a :class:`Categorical` (or ``Series`` or ``DataFrame`` backed by ``Categorical``) raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Categorical.searchsorted` when passing a dtype-incompatible value raising ``KeyError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Series.where` with ``CategoricalDtype`` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Categorical.fillna` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Categorical.fillna` with a tuple-like category raising ``ValueError`` instead of ``TypeError`` when filling with a non-category tuple (:issue:`41919`)
 -
 
 Datetimelike
