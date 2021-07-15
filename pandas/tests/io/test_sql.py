@@ -2314,8 +2314,7 @@ class _TestPostgreSQLAlchemy:
         # because of transactional schemas
         if isinstance(self.conn, sqlalchemy.engine.Engine):
             engine2 = self.connect()
-            meta = sqlalchemy.MetaData(engine2, schema="other")
-            pdsql = sql.SQLDatabase(engine2, meta=meta)
+            pdsql = sql.SQLDatabase(engine2, schema="other")
             pdsql.to_sql(df, "test_schema_other2", index=False)
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="replace")
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="append")

@@ -1350,7 +1350,9 @@ class SQLDatabase(PandasSQL):
 
     """
 
-    def __init__(self, engine, schema: str | None = None, table_name=None):
+    def __init__(
+        self, engine, schema: str | None = None, table_name: str | None = None
+    ):
         self.connectable = engine
 
         from sqlalchemy.schema import MetaData
