@@ -178,12 +178,18 @@ def test_aggregate_categorical_lost_index(func: str):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_min_nullable():
-    # GH#41743
-    ts = 1618556707013635762
+@pytest.mark.parametrize("dtype", ["Int64", "Int32", "Float64", "Float32", "boolean"])
+def test_groupby_min_nullable(dtype):
+    if dtype == "Int64":
+        # GH#41743 avoid precision loss
+        ts = 1618556707013635762
+    elif dtype == "boolean":
+        ts = 0
+    else:
+        ts = 4.0
 
     df = DataFrame({"id": [2, 2], "ts": [ts, ts + 1]})
-    df["ts"] = df["ts"].astype("Int64")
+    df["ts"] = df["ts"].astype(dtype)
 
     gb = df.groupby("id")
 
@@ -196,7 +202,7 @@ def test_groupby_min_nullable():
     tm.assert_frame_equal(res_max, expected_max)
 
     result2 = gb.min(min_count=3)
-    expected2 = DataFrame({"ts": [pd.NA]}, index=expected.index, dtype="Int64")
+    expected2 = DataFrame({"ts": [pd.NA]}, index=expected.index, dtype=dtype)
     tm.assert_frame_equal(result2, expected2)
 
     res_max2 = gb.max(min_count=3)
@@ -204,7 +210,7 @@ def test_groupby_min_nullable():
 
     # Case with NA values
     df2 = DataFrame({"id": [2, 2, 2], "ts": [ts, pd.NA, ts + 1]})
-    df2["ts"] = df2["ts"].astype("Int64")
+    df2["ts"] = df2["ts"].astype(dtype)
     gb2 = df2.groupby("id")
 
     result3 = gb2.min()
