@@ -73,7 +73,6 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays import Categorical
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
-from pandas.core.indexers import is_empty_indexer
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -2559,52 +2558,28 @@ class MultiIndex(Index):
 
         # are we indexing a specific level
         if len(keyarr) and not isinstance(keyarr[0], tuple):
-            _, indexer = self.reindex(keyarr, level=0)
-
-            # take all
-            if indexer is None:
-                indexer = np.arange(len(self), dtype=np.intp)
-                return indexer
-
-            check = self.levels[0].get_indexer(keyarr)
-            mask = check == -1
+            indexer = self._get_indexer_level_0(keyarr)
+            mask = indexer == -1
             if mask.any():
-                raise KeyError(f"{keyarr[mask]} not in index")
-            elif is_empty_indexer(indexer, keyarr):
+                check = self.levels[0].get_indexer(keyarr)
+                cmask = check == -1
+                if cmask.any():
+                    raise KeyError(f"{keyarr[cmask]} not in index")
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
 
         return indexer
 
-    def _get_partial_string_timestamp_match_key(self, key):
+    def _get_indexer_level_0(self, target) -> np.ndarray:
         """
-        Translate any partial string timestamp matches in key, returning the
-        new key.
-
-        Only relevant for MultiIndex.
+        Optimized equivalent to `self.get_level_values(0).get_indexer_for(target)`.
         """
-        # GH#10331
-        if isinstance(key, str) and self.levels[0]._supports_partial_string_indexing:
-            # Convert key '2016-01-01' to
-            # ('2016-01-01'[, slice(None, None, None)]+)
-            key = (key,) + (slice(None),) * (len(self.levels) - 1)
-
-        if isinstance(key, tuple):
-            # Convert (..., '2016-01-01', ...) in tuple to
-            # (..., slice('2016-01-01', '2016-01-01', None), ...)
-            new_key = []
-            for i, component in enumerate(key):
-                if (
-                    isinstance(component, str)
-                    and self.levels[i]._supports_partial_string_indexing
-                ):
-                    new_key.append(slice(component, component, None))
-                else:
-                    new_key.append(component)
-            key = tuple(new_key)
-
-        return key
+        lev = self.levels[0]
+        codes = self._codes[0]
+        cat = Categorical.from_codes(codes=codes, categories=lev)
+        ci = Index(cat)
+        return ci.get_indexer_for(target)
 
     def get_slice_bound(
         self, label: Hashable | Sequence[Hashable], side: str, kind: str | None = None
@@ -3009,6 +2984,10 @@ class MultiIndex(Index):
                         return (self._engine.get_loc(key), None)
                     except KeyError as err:
                         raise KeyError(key) from err
+                    except TypeError:
+                        # e.g. partial string indexing
+                        #  test_partial_string_timestamp_multiindex
+                        pass
 
                 # partial selection
                 indexer = self.get_loc(key)
@@ -3020,7 +2999,19 @@ class MultiIndex(Index):
 
                     # TODO: in some cases we still need to drop some levels,
                     #  e.g. test_multiindex_perf_warn
-                    ilevels = []
+                    # test_partial_string_timestamp_multiindex
+                    ilevels = [
+                        i
+                        for i in range(len(key))
+                        if (
+                            not isinstance(key[i], str)
+                            or not self.levels[i]._supports_partial_string_indexing
+                        )
+                        and key[i] != slice(None, None)
+                    ]
+                    if len(ilevels) == self.nlevels:
+                        # TODO: why?
+                        ilevels = []
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
 
             else:
@@ -3061,6 +3052,16 @@ class MultiIndex(Index):
                 return indexer, maybe_mi_droplevels(indexer, ilevels)
         else:
             indexer = self._get_level_indexer(key, level=level)
+            if (
+                isinstance(key, str)
+                and self.levels[level]._supports_partial_string_indexing
+            ):
+                # check to see if we did an exact lookup vs sliced
+                check = self.levels[level].get_loc(key)
+                if not is_integer(check):
+                    # e.g. test_partial_string_timestamp_multiindex
+                    return indexer, self[indexer]
+
             return indexer, maybe_mi_droplevels(indexer, [level])
 
     def _get_level_indexer(
@@ -3161,18 +3162,20 @@ class MultiIndex(Index):
                 if isinstance(idx, slice):
                     # test_get_loc_partial_timestamp_multiindex
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
-                else:
-                    locs = np.array(level_codes == idx, dtype=bool, copy=False)
+                    return locs
+
+                locs = np.array(level_codes == idx, dtype=bool, copy=False)
+
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)
                 return locs
 
             if isinstance(idx, slice):
-                # test_get_loc_partial_timestamp_multiindex
-                locs = (level_codes >= idx.start) & (level_codes < idx.stop)
-                locs = lib.maybe_booleans_to_slice(locs)
-                return locs
+                # e.g. test_partial_string_timestamp_multiindex
+                start = level_codes.searchsorted(idx.start, side="left")
+                # NB: "left" here bc of slice semantics
+                end = level_codes.searchsorted(idx.stop, side="left")
             else:
                 start = level_codes.searchsorted(idx, side="left")
                 end = level_codes.searchsorted(idx, side="right")
@@ -3275,6 +3278,18 @@ class MultiIndex(Index):
                         )
                     except KeyError:
                         # ignore not founds; see discussion in GH#39424
+                        warnings.warn(
+                            "The behavior of indexing on a MultiIndex with a nested "
+                            "sequence of labels is deprecated and will change in a "
+                            "future version. `series.loc[label, sequence]` will "
+                            "raise if any members of 'sequence' or not present in "
+                            "the index's second level. To retain the old behavior, "
+                            "use `series.index.isin(sequence, level=1)`",
+                            # TODO: how to opt in to the future behavior?
+                            # TODO: how to handle IntervalIndex level? (no test cases)
+                            FutureWarning,
+                            stacklevel=7,
+                        )
                         continue
                     else:
                         idxrs = _convert_to_indexer(item_lvl_indexer)

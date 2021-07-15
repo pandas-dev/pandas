@@ -49,10 +49,10 @@ def test_deep_skip_rows(all_parsers):
     # see gh-4382
     parser = all_parsers
     data = "a,b,c\n" + "\n".join(
-        ",".join([str(i), str(i + 1), str(i + 2)]) for i in range(10)
+        [",".join([str(i), str(i + 1), str(i + 2)]) for i in range(10)]
     )
     condensed_data = "a,b,c\n" + "\n".join(
-        ",".join([str(i), str(i + 1), str(i + 2)]) for i in [0, 1, 2, 3, 4, 6, 8, 9]
+        [",".join([str(i), str(i + 1), str(i + 2)]) for i in [0, 1, 2, 3, 4, 6, 8, 9]]
     )
 
     result = parser.read_csv(StringIO(data), skiprows=[6, 8])
