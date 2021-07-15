@@ -44,7 +44,6 @@ from pandas._typing import (
     DtypeObj,
     F,
     Shape,
-    T,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -3718,16 +3717,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
-
-    def _get_partial_string_timestamp_match_key(self, key: T) -> T:
-        """
-        Translate any partial string timestamp matches in key, returning the
-        new key.
-
-        Only relevant for MultiIndex.
-        """
-        # GH#10331
-        return key
 
     @final
     def _validate_positional_slice(self, key: slice) -> None:
