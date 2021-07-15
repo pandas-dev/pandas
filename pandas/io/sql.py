@@ -58,8 +58,6 @@ class DatabaseError(IOError):
 # -----------------------------------------------------------------------------
 # -- Helper functions
 
-_SQLALCHEMY_INSTALLED: bool | None = None
-
 
 def _gt14() -> bool:
     """
@@ -720,7 +718,7 @@ def has_table(table_name: str, con, schema: str | None = None):
 table_exists = has_table
 
 
-def pandasSQL_builder(con, schema: str | None = None, table_name=None):
+def pandasSQL_builder(con, schema: str | None = None, table_name: str | None = None):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
