@@ -1271,6 +1271,8 @@ class PlotAccessor(PandasObject):
         You can also generate groupings if you specify the `by` parameter (which
         can take a column name, or a list or tuple of column names):
 
+        .. versionchanged:: 1.4.0
+
         .. plot::
             :context: close-figs
 
