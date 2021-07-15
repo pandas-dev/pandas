@@ -391,7 +391,6 @@ something different for each of the columns. Thus, using ``[]`` similar to
 getting a column from a DataFrame, you can do:
 
 .. ipython:: python
-   :suppress:
 
    df = pd.DataFrame(
        {
@@ -402,7 +401,7 @@ getting a column from a DataFrame, you can do:
        }
    )
 
-.. ipython:: python
+   df
 
    grouped = df.groupby(["A"])
    grouped_C = grouped["C"]
