@@ -1886,14 +1886,21 @@ class Index(IndexOpsMixin, PandasObject):
             new_names.pop(i)
 
         if len(new_levels) == 1:
+            lev = new_levels[0]
 
-            # set nan if needed
-            mask = new_codes[0] == -1
-            result = new_levels[0].take(new_codes[0])
-            if mask.any():
-                result = result.putmask(mask, np.nan)
+            if len(lev) == 0:
+                # If lev is empty, lev.take will fail GH#42055
+                res_values = algos.take(lev._values, new_codes[0], allow_fill=True)
+                result = type(lev)._simple_new(res_values, name=new_names[0])
+            else:
+                # set nan if needed
+                mask = new_codes[0] == -1
+                result = new_levels[0].take(new_codes[0])
+                if mask.any():
+                    result = result.putmask(mask, np.nan)
 
-            result._name = new_names[0]
+                result._name = new_names[0]
+
             return result
         else:
             from pandas.core.indexes.multi import MultiIndex
