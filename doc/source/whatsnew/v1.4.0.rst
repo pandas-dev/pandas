@@ -233,7 +233,7 @@ MultiIndex
 I/O
 ^^^
 - Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
--
+- Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
 -
 
 Period
