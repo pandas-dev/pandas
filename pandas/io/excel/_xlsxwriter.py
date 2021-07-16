@@ -208,7 +208,8 @@ class XlsxWriter(ExcelWriter):
         return self.book.close()
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
+        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None,
+        autofilter=False
     ):
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -223,6 +224,9 @@ class XlsxWriter(ExcelWriter):
 
         if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
+
+        max_row = 0
+        max_col = 0
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
@@ -248,3 +252,11 @@ class XlsxWriter(ExcelWriter):
                 )
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
+
+            if startrow + cell.row > max_row:
+                max_row = startrow + cell.row
+            if startcol + cell.col > max_col:
+                max_col = startcol + cell.col
+
+        if autofilter:
+            wks.autofilter(0, 0, max_row, max_col)

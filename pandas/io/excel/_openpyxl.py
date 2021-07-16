@@ -417,7 +417,8 @@ class OpenpyxlWriter(ExcelWriter):
         return Protection(**protection_dict)
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
+        self, cells, sheet_name=None, startrow=0, startcol=0,
+        freeze_panes=None, autofilter=False
     ):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -453,6 +454,9 @@ class OpenpyxlWriter(ExcelWriter):
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
+
+        max_row = 0
+        max_col = 0
 
         for cell in cells:
             xcell = wks.cell(
@@ -500,6 +504,15 @@ class OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+            if startrow + cell.row > max_row:
+                max_row = startrow + cell.row
+            if startcol + cell.col > max_col:
+                max_col = startcol + cell.col
+
+        if autofilter:
+            from openpyxl.utils import get_column_letter
+            wks.auto_filter.ref = "A1:" + get_column_letter(max_col + 1) + str(max_row)
 
 
 class OpenpyxlReader(BaseExcelReader):

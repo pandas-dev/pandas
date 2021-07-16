@@ -786,6 +786,7 @@ class ExcelFormatter:
         startrow=0,
         startcol=0,
         freeze_panes=None,
+        autofilter=False,
         engine=None,
         storage_options: StorageOptions = None,
     ):
@@ -801,6 +802,9 @@ class ExcelFormatter:
         freeze_panes : tuple of integer (length 2), default None
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen
+        autofilter : bool, default False
+            Specifies whether filters should be added to the columns in the
+            spreadsheet.
         engine : string, default None
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``,
@@ -843,6 +847,7 @@ class ExcelFormatter:
                 startrow=startrow,
                 startcol=startcol,
                 freeze_panes=freeze_panes,
+                autofilter=autofilter,
             )
         finally:
             # make sure to close opened file handles

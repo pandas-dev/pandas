@@ -2145,6 +2145,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inf_rep="inf",
         verbose=True,
         freeze_panes=None,
+        autofilter=False,
         storage_options: StorageOptions = None,
     ) -> None:
         """
@@ -2210,6 +2211,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freeze_panes : tuple of int (length 2), optional
             Specifies the one-based bottommost row and rightmost column that
             is to be frozen.
+        autofilter : bool, default False
+            Specifies whether filters should be added to the columns in the
+            spreadsheet.
         {storage_options}
 
             .. versionadded:: 1.2.0
@@ -2286,6 +2290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             startrow=startrow,
             startcol=startcol,
             freeze_panes=freeze_panes,
+            autofilter=autofilter,
             engine=engine,
             storage_options=storage_options,
         )

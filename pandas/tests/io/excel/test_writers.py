@@ -1270,6 +1270,13 @@ class TestExcelWriter:
         result = pd.read_excel(path, index_col=0)
         tm.assert_frame_equal(result, expected)
 
+    def test_autofilter(self, path):
+        expected = DataFrame([[1, 2], [3, 4]], columns=["col1", "col2"])
+        expected.to_excel(path, "Sheet1", autofilter=True)
+
+        result = pd.read_excel(path, index_col=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_path_path_lib(self, engine, ext):
         df = tm.makeDataFrame()
         writer = partial(df.to_excel, engine=engine)

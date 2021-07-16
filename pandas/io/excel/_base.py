@@ -871,7 +871,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None
+        self, cells, sheet_name=None, startrow=0, startcol=0,
+        freeze_panes=None, autofilter=None
     ):
         """
         Write given formatted cells into Excel an excel sheet
