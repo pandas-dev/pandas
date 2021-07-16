@@ -14,6 +14,7 @@ from typing import (
     Hashable,
     Iterator,
     Sequence,
+    final,
     overload,
 )
 
@@ -31,7 +32,6 @@ from pandas._typing import (
     F,
     FrameOrSeries,
     Shape,
-    final,
     npt,
 )
 from pandas.errors import AbstractMethodError
