@@ -123,7 +123,7 @@ def test_default_na_values(all_parsers):
 
         return buf
 
-    data = StringIO("\n".join(f(i, v) for i, v in enumerate(_NA_VALUES)))
+    data = StringIO("\n".join([f(i, v) for i, v in enumerate(_NA_VALUES)]))
     expected = DataFrame(np.nan, columns=range(nv), index=range(nv))
 
     result = parser.read_csv(data, header=None)
@@ -567,6 +567,26 @@ foo,,bar
             "col3": ["654", "898"],
         },
         index=[1, 3],
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_nan_multi_index(all_parsers):
+    # GH 42446
+    parser = all_parsers
+    data = "A,B,B\nX,Y,Z\n1,2,inf"
+
+    result = parser.read_csv(
+        StringIO(data), header=list(range(2)), na_values={("B", "Z"): "inf"}
+    )
+
+    expected = DataFrame(
+        {
+            ("A", "X"): [1],
+            ("B", "Y"): [2],
+            ("B", "Z"): [np.nan],
+        }
     )
 
     tm.assert_frame_equal(result, expected)
