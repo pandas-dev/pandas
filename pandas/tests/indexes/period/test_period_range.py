@@ -1,10 +1,25 @@
+import numpy as np
 import pytest
 
-from pandas import NaT, Period, PeriodIndex, date_range, period_range
+from pandas import (
+    NaT,
+    Period,
+    PeriodIndex,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
 class TestPeriodRange:
+    def test_required_arguments(self):
+        msg = (
+            "Of the three parameters: start, end, and periods, exactly two "
+            "must be specified"
+        )
+        with pytest.raises(ValueError, match=msg):
+            period_range("2011-1-1", "2012-1-1", "B")
+
     @pytest.mark.parametrize("freq", ["D", "W", "M", "Q", "A"])
     def test_construction_from_string(self, freq):
         # non-empty
@@ -50,6 +65,13 @@ class TestPeriodRange:
         ).to_period()
         result = period_range(start=start, end=end, freq="Q", name="foo")
         tm.assert_index_equal(result, expected)
+
+        # test for issue # 21793
+        start, end = Period("2017Q1", freq="Q"), Period("2018Q1", freq="Q")
+        idx = period_range(start=start, end=end, freq="Q", name="foo")
+        result = idx == idx.values
+        expected = np.array([True, True, True, True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
         # empty
         expected = PeriodIndex([], freq="W", name="foo")

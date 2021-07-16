@@ -26,7 +26,7 @@ class TestDataFrameValidate:
     @pytest.mark.parametrize("inplace", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, dataframe, func, inplace):
         msg = 'For argument "inplace" expected type bool'
-        kwargs = dict(inplace=inplace)
+        kwargs = {"inplace": inplace}
 
         if func == "query":
             kwargs["expr"] = "a > b"

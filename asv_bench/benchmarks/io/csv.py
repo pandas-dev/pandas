@@ -1,12 +1,24 @@
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import random
 import string
 
 import numpy as np
 
-from pandas import Categorical, DataFrame, date_range, read_csv, to_datetime
+from pandas import (
+    Categorical,
+    DataFrame,
+    date_range,
+    read_csv,
+    to_datetime,
+)
 
-from ..pandas_vb_common import BaseIO, tm
+from ..pandas_vb_common import (
+    BaseIO,
+    tm,
+)
 
 
 class ToCSV(BaseIO):
@@ -74,6 +86,54 @@ class ToCSVDatetimeBig(BaseIO):
 
     def time_frame(self, obs):
         self.data.to_csv(self.fname)
+
+
+class ToCSVIndexes(BaseIO):
+
+    fname = "__test__.csv"
+
+    @staticmethod
+    def _create_df(rows, cols):
+        index_cols = {
+            "index1": np.random.randint(0, rows, rows),
+            "index2": np.full(rows, 1, dtype=int),
+            "index3": np.full(rows, 1, dtype=int),
+        }
+        data_cols = {
+            f"col{i}": np.random.uniform(0, 100000.0, rows) for i in range(cols)
+        }
+        df = DataFrame({**index_cols, **data_cols})
+        return df
+
+    def setup(self):
+        ROWS = 100000
+        COLS = 5
+        # For tests using .head(), create an initial dataframe with this many times
+        # more rows
+        HEAD_ROW_MULTIPLIER = 10
+
+        self.df_standard_index = self._create_df(ROWS, COLS)
+
+        self.df_custom_index_then_head = (
+            self._create_df(ROWS * HEAD_ROW_MULTIPLIER, COLS)
+            .set_index(["index1", "index2", "index3"])
+            .head(ROWS)
+        )
+
+        self.df_head_then_custom_index = (
+            self._create_df(ROWS * HEAD_ROW_MULTIPLIER, COLS)
+            .head(ROWS)
+            .set_index(["index1", "index2", "index3"])
+        )
+
+    def time_standard_index(self):
+        self.df_standard_index.to_csv(self.fname)
+
+    def time_multiindex(self):
+        self.df_head_then_custom_index.to_csv(self.fname)
+
+    def time_head_of_multiindex(self):
+        self.df_custom_index_then_head.to_csv(self.fname)
 
 
 class StringIORewind:
@@ -146,10 +206,10 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 class ReadCSVSkipRows(BaseIO):
 
     fname = "__test__.csv"
-    params = [None, 10000]
-    param_names = ["skiprows"]
+    params = ([None, 10000], ["c", "python"])
+    param_names = ["skiprows", "engine"]
 
-    def setup(self, skiprows):
+    def setup(self, skiprows, engine):
         N = 20000
         index = tm.makeStringIndex(N)
         df = DataFrame(
@@ -164,8 +224,8 @@ class ReadCSVSkipRows(BaseIO):
         )
         df.to_csv(self.fname)
 
-    def time_skipprows(self, skiprows):
-        read_csv(self.fname, skiprows=skiprows)
+    def time_skipprows(self, skiprows, engine):
+        read_csv(self.fname, skiprows=skiprows, engine=engine)
 
 
 class ReadUint64Integers(StringIORewind):
@@ -192,10 +252,10 @@ class ReadUint64Integers(StringIORewind):
 class ReadCSVThousands(BaseIO):
 
     fname = "__test__.csv"
-    params = ([",", "|"], [None, ","])
-    param_names = ["sep", "thousands"]
+    params = ([",", "|"], [None, ","], ["c", "python"])
+    param_names = ["sep", "thousands", "engine"]
 
-    def setup(self, sep, thousands):
+    def setup(self, sep, thousands, engine):
         N = 10000
         K = 8
         data = np.random.randn(N, K) * np.random.randint(100, 10000, (N, K))
@@ -206,16 +266,19 @@ class ReadCSVThousands(BaseIO):
             df = df.applymap(lambda x: fmt.format(x))
         df.to_csv(self.fname, sep=sep)
 
-    def time_thousands(self, sep, thousands):
-        read_csv(self.fname, sep=sep, thousands=thousands)
+    def time_thousands(self, sep, thousands, engine):
+        read_csv(self.fname, sep=sep, thousands=thousands, engine=engine)
 
 
 class ReadCSVComment(StringIORewind):
-    def setup(self):
+    params = ["c", "python"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
         data = ["A,B,C"] + (["1,2,3 # comment"] * 100000)
         self.StringIO_input = StringIO("\n".join(data))
 
-    def time_comment(self):
+    def time_comment(self, engine):
         read_csv(
             self.data(self.StringIO_input), comment="#", header=None, names=list("abc")
         )
@@ -228,7 +291,8 @@ class ReadCSVFloatPrecision(StringIORewind):
 
     def setup(self, sep, decimal, float_precision):
         floats = [
-            "".join(random.choice(string.digits) for _ in range(28)) for _ in range(15)
+            "".join([random.choice(string.digits) for _ in range(28)])
+            for _ in range(15)
         ]
         rows = sep.join([f"0{decimal}" + "{}"] * 3) + "\n"
         data = rows * 5
@@ -255,25 +319,47 @@ class ReadCSVFloatPrecision(StringIORewind):
         )
 
 
+class ReadCSVEngine(StringIORewind):
+    params = ["c", "python"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
+        data = ["A,B,C,D,E"] + (["1,2,3,4,5"] * 100000)
+        self.StringIO_input = StringIO("\n".join(data))
+        # simulate reading from file
+        self.BytesIO_input = BytesIO(self.StringIO_input.read().encode("utf-8"))
+
+    def time_read_stringcsv(self, engine):
+        read_csv(self.data(self.StringIO_input), engine=engine)
+
+    def time_read_bytescsv(self, engine):
+        read_csv(self.data(self.BytesIO_input), engine=engine)
+
+
 class ReadCSVCategorical(BaseIO):
 
     fname = "__test__.csv"
+    params = ["c", "python"]
+    param_names = ["engine"]
 
-    def setup(self):
+    def setup(self, engine):
         N = 100000
         group1 = ["aaaaaaaa", "bbbbbbb", "cccccccc", "dddddddd", "eeeeeeee"]
         df = DataFrame(np.random.choice(group1, (N, 3)), columns=list("abc"))
         df.to_csv(self.fname, index=False)
 
-    def time_convert_post(self):
-        read_csv(self.fname).apply(Categorical)
+    def time_convert_post(self, engine):
+        read_csv(self.fname, engine=engine).apply(Categorical)
 
-    def time_convert_direct(self):
-        read_csv(self.fname, dtype="category")
+    def time_convert_direct(self, engine):
+        read_csv(self.fname, engine=engine, dtype="category")
 
 
 class ReadCSVParseDates(StringIORewind):
-    def setup(self):
+    params = ["c", "python"]
+    param_names = ["engine"]
+
+    def setup(self, engine):
         data = """{},19:00:00,18:56:00,0.8100,2.8100,7.2000,0.0000,280.0000\n
                   {},20:00:00,19:56:00,0.0100,2.2100,7.2000,0.0000,260.0000\n
                   {},21:00:00,20:56:00,-0.5900,2.2100,5.7000,0.0000,280.0000\n
@@ -284,18 +370,20 @@ class ReadCSVParseDates(StringIORewind):
         data = data.format(*two_cols)
         self.StringIO_input = StringIO(data)
 
-    def time_multiple_date(self):
+    def time_multiple_date(self, engine):
         read_csv(
             self.data(self.StringIO_input),
+            engine=engine,
             sep=",",
             header=None,
             names=list(string.digits[:9]),
             parse_dates=[[1, 2], [1, 3]],
         )
 
-    def time_baseline(self):
+    def time_baseline(self, engine):
         read_csv(
             self.data(self.StringIO_input),
+            engine=engine,
             sep=",",
             header=None,
             parse_dates=[1],
@@ -304,17 +392,18 @@ class ReadCSVParseDates(StringIORewind):
 
 
 class ReadCSVCachedParseDates(StringIORewind):
-    params = ([True, False],)
-    param_names = ["do_cache"]
+    params = ([True, False], ["c", "python"])
+    param_names = ["do_cache", "engine"]
 
-    def setup(self, do_cache):
-        data = ("\n".join(f"10/{year}" for year in range(2000, 2100)) + "\n") * 10
+    def setup(self, do_cache, engine):
+        data = ("\n".join([f"10/{year}" for year in range(2000, 2100)]) + "\n") * 10
         self.StringIO_input = StringIO(data)
 
-    def time_read_csv_cached(self, do_cache):
+    def time_read_csv_cached(self, do_cache, engine):
         try:
             read_csv(
                 self.data(self.StringIO_input),
+                engine=engine,
                 header=None,
                 parse_dates=[0],
                 cache_dates=do_cache,
@@ -329,37 +418,40 @@ class ReadCSVMemoryGrowth(BaseIO):
     chunksize = 20
     num_rows = 1000
     fname = "__test__.csv"
+    params = ["c", "python"]
+    param_names = ["engine"]
 
-    def setup(self):
+    def setup(self, engine):
         with open(self.fname, "w") as f:
             for i in range(self.num_rows):
                 f.write(f"{i}\n")
 
-    def mem_parser_chunks(self):
+    def mem_parser_chunks(self, engine):
         # see gh-24805.
-        result = read_csv(self.fname, chunksize=self.chunksize)
+        result = read_csv(self.fname, chunksize=self.chunksize, engine=engine)
 
         for _ in result:
             pass
 
 
 class ReadCSVParseSpecialDate(StringIORewind):
-    params = (["mY", "mdY", "hm"],)
-    param_names = ["value"]
+    params = (["mY", "mdY", "hm"], ["c", "python"])
+    param_names = ["value", "engine"]
     objects = {
         "mY": "01-2019\n10-2019\n02/2000\n",
         "mdY": "12/02/2010\n",
         "hm": "21:34\n",
     }
 
-    def setup(self, value):
+    def setup(self, value, engine):
         count_elem = 10000
         data = self.objects[value] * count_elem
         self.StringIO_input = StringIO(data)
 
-    def time_read_special_date(self, value):
+    def time_read_special_date(self, value, engine):
         read_csv(
             self.data(self.StringIO_input),
+            engine=engine,
             sep=",",
             header=None,
             names=["Date"],

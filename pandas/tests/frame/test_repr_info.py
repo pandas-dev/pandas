@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from io import StringIO
 import warnings
 
@@ -8,7 +11,11 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
+    MultiIndex,
+    NaT,
+    PeriodIndex,
     Series,
+    Timestamp,
     date_range,
     option_context,
     period_range,
@@ -19,6 +26,96 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameReprInfoEtc:
+    def test_repr_bytes_61_lines(self, using_array_manager):
+        # GH#12857
+        lets = list("ACDEFGHIJKLMNOP")
+        slen = 50
+        nseqs = 1000
+        words = [[np.random.choice(lets) for x in range(slen)] for _ in range(nseqs)]
+        df = DataFrame(words).astype("U1")
+        # TODO(Arraymanager) astype("U1") actually gives this dtype instead of object
+        if not using_array_manager:
+            assert (df.dtypes == object).all()
+
+        # smoke tests; at one point this raised with 61 but not 60
+        repr(df)
+        repr(df.iloc[:60, :])
+        repr(df.iloc[:61, :])
+
+    def test_repr_unicode_level_names(self, frame_or_series):
+        index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
+
+        obj = DataFrame(np.random.randn(2, 4), index=index)
+        if frame_or_series is Series:
+            obj = obj[0]
+        repr(obj)
+
+    def test_assign_index_sequences(self):
+        # GH#2200
+        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}).set_index(
+            ["a", "b"]
+        )
+        index = list(df.index)
+        index[0] = ("faz", "boo")
+        df.index = index
+        repr(df)
+
+        # this travels an improper code path
+        index[0] = ["faz", "boo"]
+        df.index = index
+        repr(df)
+
+    def test_repr_with_mi_nat(self, float_string_frame):
+        df = DataFrame({"X": [1, 2]}, index=[[NaT, Timestamp("20130101")], ["a", "b"]])
+        result = repr(df)
+        expected = "              X\nNaT        a  1\n2013-01-01 b  2"
+        assert result == expected
+
+    def test_multiindex_na_repr(self):
+        # only an issue with long columns
+        df3 = DataFrame(
+            {
+                "A" * 30: {("A", "A0006000", "nuit"): "A0006000"},
+                "B" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "C" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "D" * 30: {("A", "A0006000", "nuit"): np.nan},
+                "E" * 30: {("A", "A0006000", "nuit"): "A"},
+                "F" * 30: {("A", "A0006000", "nuit"): np.nan},
+            }
+        )
+
+        idf = df3.set_index(["A" * 30, "C" * 30])
+        repr(idf)
+
+    def test_repr_name_coincide(self):
+        index = MultiIndex.from_tuples(
+            [("a", 0, "foo"), ("b", 1, "bar")], names=["a", "b", "c"]
+        )
+
+        df = DataFrame({"value": [0, 1]}, index=index)
+
+        lines = repr(df).split("\n")
+        assert lines[2].startswith("a 0 foo")
+
+    def test_repr_to_string(
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        multiindex_dataframe_random_data,
+    ):
+        ymd = multiindex_year_month_day_dataframe_random_data
+        frame = multiindex_dataframe_random_data
+
+        repr(frame)
+        repr(ymd)
+        repr(frame.T)
+        repr(ymd.T)
+
+        buf = StringIO()
+        frame.to_string(buf=buf)
+        ymd.to_string(buf=buf)
+        frame.T.to_string(buf=buf)
+        ymd.T.to_string(buf=buf)
+
     def test_repr_empty(self):
         # empty
         repr(DataFrame())
@@ -218,3 +315,18 @@ class TestDataFrameReprInfoEtc:
         df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="A-DEC")})
         # it works!
         repr(df)
+
+    def test_frame_to_string_with_periodindex(self):
+        index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
+        frame = DataFrame(np.random.randn(3, 4), index=index)
+
+        # it works!
+        frame.to_string()
+
+    def test_datetime64tz_slice_non_truncate(self):
+        # GH 30263
+        df = DataFrame({"x": date_range("2019", periods=10, tz="UTC")})
+        expected = repr(df)
+        df = df.iloc[:, :5]
+        result = repr(df)
+        assert result == expected

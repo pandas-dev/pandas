@@ -6,6 +6,7 @@ These are used for:
 - .names (FrozenList)
 
 """
+from __future__ import annotations
 
 from typing import Any
 
@@ -24,7 +25,7 @@ class FrozenList(PandasObject, list):
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 
-    def union(self, other) -> "FrozenList":
+    def union(self, other) -> FrozenList:
         """
         Returns a FrozenList with other concatenated to the end of self.
 
@@ -42,7 +43,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(super().__add__(other))
 
-    def difference(self, other) -> "FrozenList":
+    def difference(self, other) -> FrozenList:
         """
         Returns a FrozenList with elements from other removed from self.
 
@@ -103,5 +104,7 @@ class FrozenList(PandasObject, list):
     def __repr__(self) -> str:
         return f"{type(self).__name__}({str(self)})"
 
-    __setitem__ = __setslice__ = __delitem__ = __delslice__ = _disabled
-    pop = append = extend = remove = sort = insert = _disabled
+    __setitem__ = __setslice__ = _disabled  # type: ignore[assignment]
+    __delitem__ = __delslice__ = _disabled  # type: ignore[assignment]
+    pop = append = extend = _disabled  # type: ignore[assignment]
+    remove = sort = insert = _disabled  # type: ignore[assignment]

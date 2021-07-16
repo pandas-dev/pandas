@@ -1,4 +1,4 @@
-.PHONY : develop build clean clean_pyc doc lint-diff black
+.PHONY : develop build clean clean_pyc doc lint-diff black test-scripts
 
 all: develop
 
@@ -9,7 +9,7 @@ clean_pyc:
 	-find . -name '*.py[co]' -exec rm {} \;
 
 build: clean_pyc
-	python setup.py build_ext --inplace
+	python setup.py build_ext
 
 lint-diff:
 	git diff upstream/master --name-only -- "*.py" | xargs flake8
@@ -25,3 +25,6 @@ doc:
 	cd doc; \
 	python make.py clean; \
 	python make.py html
+
+test-scripts:
+	pytest scripts

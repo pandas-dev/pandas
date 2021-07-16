@@ -6,13 +6,20 @@ arguments when parsing.
 """
 
 import csv
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import pytest
 
 from pandas.errors import ParserError
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -49,7 +56,7 @@ def test_invalid_skipfooter_negative(python_parser_only):
         parser.read_csv(StringIO(data), skipfooter=-1)
 
 
-@pytest.mark.parametrize("kwargs", [dict(sep=None), dict(delimiter="|")])
+@pytest.mark.parametrize("kwargs", [{"sep": None}, {"delimiter": "|"}])
 def test_sniff_delimiter(python_parser_only, kwargs):
     data = """index|A|B|C
 foo|1|2|3
@@ -122,7 +129,7 @@ def test_single_line(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("kwargs", [dict(skipfooter=2), dict(nrows=3)])
+@pytest.mark.parametrize("kwargs", [{"skipfooter": 2}, {"nrows": 3}])
 def test_skipfooter(python_parser_only, kwargs):
     # see gh-6607
     data = """A,B,C
@@ -213,10 +220,10 @@ def test_skipfooter_with_decimal(python_parser_only, add_footer):
     if add_footer:
         # The stray footer line should not mess with the
         # casting of the first two lines if we skip it.
-        kwargs = dict(skipfooter=1)
+        kwargs = {"skipfooter": 1}
         data += "\nFooter"
     else:
-        kwargs = dict()
+        kwargs = {}
 
     result = parser.read_csv(StringIO(data), names=["a"], decimal="#", **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -245,23 +252,19 @@ def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
 @pytest.mark.parametrize("quoting", [csv.QUOTE_MINIMAL, csv.QUOTE_NONE])
 def test_multi_char_sep_quotes(python_parser_only, quoting):
     # see gh-13374
-    kwargs = dict(sep=",,")
+    kwargs = {"sep": ",,"}
     parser = python_parser_only
 
     data = 'a,,b\n1,,a\n2,,"2,,b"'
-    msg = "ignored when a multi-char delimiter is used"
-
-    def fail_read():
-        with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
     if quoting == csv.QUOTE_NONE:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "Expected 2 fields in line 3, saw 3"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
     else:
-        fail_read()
+        msg = "ignored when a multi-char delimiter is used"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
 
 def test_none_delimiter(python_parser_only, capsys):
@@ -273,9 +276,7 @@ def test_none_delimiter(python_parser_only, capsys):
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
     # not expect any errors to occur.
-    result = parser.read_csv(
-        StringIO(data), header=0, sep=None, warn_bad_lines=True, error_bad_lines=False
-    )
+    result = parser.read_csv(StringIO(data), header=0, sep=None, on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
 
     captured = capsys.readouterr()
@@ -286,20 +287,15 @@ def test_none_delimiter(python_parser_only, capsys):
 @pytest.mark.parametrize("skipfooter", [0, 1])
 def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
     # see gh-13879 and gh-15910
-    msg = "parsing errors in the skipped footer rows"
     parser = python_parser_only
-
-    def fail_read():
+    if skipfooter:
+        msg = "parsing errors in the skipped footer rows"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), skipfooter=skipfooter)
-
-    if skipfooter:
-        fail_read()
     else:
-        # We expect no match, so there should be an assertion
-        # error out of the inner context manager.
-        with pytest.raises(AssertionError):
-            fail_read()
+        msg = "unexpected end of data|expected after"
+        with pytest.raises(ParserError, match=msg):
+            parser.read_csv(StringIO(data), skipfooter=skipfooter)
 
 
 def test_malformed_skipfooter(python_parser_only):

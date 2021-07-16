@@ -52,8 +52,8 @@ Here's a quick example:
   .. ipython:: python
 
     np.random.seed(123)
-    df = pd.DataFrame(np.random.randn(10, 5), columns=list('abcde'))
-    html = df.style.background_gradient(cmap='viridis', low=.5)
+    df = pd.DataFrame(np.random.randn(10, 5), columns=list("abcde"))
+    html = df.style.background_gradient(cmap="viridis", low=0.5)
 
 We can render the HTML to get the following table.
 
@@ -80,14 +80,14 @@ Enhancements
 
   .. ipython:: python
 
-     df = pd.DataFrame({'A': ['foo'] * 1000})  # noqa: F821
-     df['B'] = df['A'].astype('category')
+     df = pd.DataFrame({"A": ["foo"] * 1000})  # noqa: F821
+     df["B"] = df["A"].astype("category")
 
      # shows the '+' as we have object dtypes
      df.info()
 
      # we have an accurate memory assessment (but can be expensive to compute this)
-     df.info(memory_usage='deep')
+     df.info(memory_usage="deep")
 
 - ``Index`` now has a ``fillna`` method (:issue:`10089`)
 
@@ -99,11 +99,11 @@ Enhancements
 
   .. ipython:: python
 
-     s = pd.Series(list('aabb')).astype('category')
+     s = pd.Series(list("aabb")).astype("category")
      s
      s.str.contains("a")
 
-     date = pd.Series(pd.date_range('1/1/2015', periods=5)).astype('category')
+     date = pd.Series(pd.date_range("1/1/2015", periods=5)).astype("category")
      date
      date.dt.day
 

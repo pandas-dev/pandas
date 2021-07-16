@@ -8,6 +8,7 @@ from typing import Pattern
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import ArrayLike
 
 is_bool = lib.is_bool
 
@@ -50,25 +51,26 @@ def is_number(obj) -> bool:
 
     Examples
     --------
-    >>> pd.api.types.is_number(1)
+    >>> from pandas.api.types import is_number
+    >>> is_number(1)
     True
-    >>> pd.api.types.is_number(7.15)
+    >>> is_number(7.15)
     True
 
     Booleans are valid because they are int subclass.
 
-    >>> pd.api.types.is_number(False)
+    >>> is_number(False)
     True
 
-    >>> pd.api.types.is_number("foo")
+    >>> is_number("foo")
     False
-    >>> pd.api.types.is_number("5")
+    >>> is_number("5")
     False
     """
     return isinstance(obj, (Number, np.number))
 
 
-def _iterable_not_string(obj) -> bool:
+def iterable_not_string(obj) -> bool:
     """
     Check if the object is an iterable but not a string.
 
@@ -83,11 +85,11 @@ def _iterable_not_string(obj) -> bool:
 
     Examples
     --------
-    >>> _iterable_not_string([1, 2, 3])
+    >>> iterable_not_string([1, 2, 3])
     True
-    >>> _iterable_not_string("foo")
+    >>> iterable_not_string("foo")
     False
-    >>> _iterable_not_string(1)
+    >>> iterable_not_string(1)
     False
     """
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
@@ -125,10 +127,7 @@ def is_file_like(obj) -> bool:
     if not (hasattr(obj, "read") or hasattr(obj, "write")):
         return False
 
-    if not hasattr(obj, "__iter__"):
-        return False
-
-    return True
+    return bool(hasattr(obj, "__iter__"))
 
 
 def is_re(obj) -> bool:
@@ -422,3 +421,31 @@ def is_dataclass(item):
         return is_dataclass(item) and not isinstance(item, type)
     except ImportError:
         return False
+
+
+def is_inferred_bool_dtype(arr: ArrayLike) -> bool:
+    """
+    Check if this is a ndarray[bool] or an ndarray[object] of bool objects.
+
+    Parameters
+    ----------
+    arr : np.ndarray or ExtensionArray
+
+    Returns
+    -------
+    bool
+
+    Notes
+    -----
+    This does not include the special treatment is_bool_dtype uses for
+    Categorical.
+    """
+    if not isinstance(arr, np.ndarray):
+        return False
+
+    dtype = arr.dtype
+    if dtype == np.dtype(bool):
+        return True
+    elif dtype == np.dtype("object"):
+        return lib.is_bool_array(arr.ravel("K"))
+    return False

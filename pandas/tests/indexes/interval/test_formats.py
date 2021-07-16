@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, IntervalIndex, Series, Timedelta, Timestamp
+from pandas import (
+    DataFrame,
+    Float64Index,
+    Interval,
+    IntervalIndex,
+    Series,
+    Timedelta,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -35,6 +43,25 @@ class TestIntervalIndexRendering:
         index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
         obj = constructor(list("abc"), index=index)
         result = repr(obj)
+        assert result == expected
+
+    def test_repr_floats(self):
+        # GH 32553
+
+        markers = Series(
+            ["foo", "bar"],
+            index=IntervalIndex(
+                [
+                    Interval(left, right)
+                    for left, right in zip(
+                        Float64Index([329.973, 345.137], dtype="float64"),
+                        Float64Index([345.137, 360.191], dtype="float64"),
+                    )
+                ]
+            ),
+        )
+        result = str(markers)
+        expected = "(329.973, 345.137]    foo\n(345.137, 360.191]    bar\ndtype: object"
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -73,6 +100,6 @@ class TestIntervalIndexRendering:
     def test_to_native_types(self, tuples, closed, expected_data):
         # GH 28210
         index = IntervalIndex.from_tuples(tuples, closed=closed)
-        result = index.to_native_types()
+        result = index._format_native_types()
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)

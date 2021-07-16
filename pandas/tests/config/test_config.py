@@ -112,8 +112,8 @@ class TestConfig:
 
         # if no doc is specified we get a default message
         # saying "description not available"
-        assert "vailable" in self.cf.describe_option("f", _print_desc=False)
-        assert "vailable" in self.cf.describe_option("g.h", _print_desc=False)
+        assert "available" in self.cf.describe_option("f", _print_desc=False)
+        assert "available" in self.cf.describe_option("g.h", _print_desc=False)
         assert "precated" in self.cf.describe_option("g.h", _print_desc=False)
         assert "k" in self.cf.describe_option("g.h", _print_desc=False)
 
@@ -409,6 +409,13 @@ class TestConfig:
 
         self.cf.set_option("a", 17)
         eq(17)
+
+        # Test that option_context can be used as a decorator too (#34253).
+        @self.cf.option_context("a", 123)
+        def f():
+            eq(123)
+
+        f()
 
     def test_attribute_access(self):
         holder = []

@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import numpy as np
 import pytest
 
@@ -82,7 +97,10 @@ class TestDatetimeDtype(BaseDatetimeTests, base.BaseDtypeTests):
 
 
 class TestConstructors(BaseDatetimeTests, base.BaseConstructorsTests):
-    pass
+    def test_series_constructor(self, data):
+        # Series construction drops any .freq attr
+        data = data._with_freq(None)
+        super().test_series_constructor(data)
 
 
 class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
@@ -111,6 +129,15 @@ class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        if all_arithmetic_operators in self.implements:
+            df = pd.DataFrame({"A": data})
+            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
+        else:
+            # ... but not the rest.
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         if all_arithmetic_operators in self.implements:
             s = pd.Series(data)
@@ -133,9 +160,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
         else:
             # ... but not the rest.
             super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_error(self, data, all_arithmetic_operators):
-        pass
 
     def test_divmod_series_array(self):
         # GH 23287
@@ -169,38 +193,6 @@ class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
         # drops the tz.
         super().test_concat_mixed_dtypes(data)
 
-    @pytest.mark.parametrize("obj", ["series", "frame"])
-    def test_unstack(self, obj):
-        # GH-13287: can't use base test, since building the expected fails.
-        data = DatetimeArray._from_sequence(
-            ["2000", "2001", "2002", "2003"], tz="US/Central"
-        )
-        index = pd.MultiIndex.from_product(([["A", "B"], ["a", "b"]]), names=["a", "b"])
-
-        if obj == "series":
-            ser = pd.Series(data, index=index)
-            expected = pd.DataFrame(
-                {"A": data.take([0, 1]), "B": data.take([2, 3])},
-                index=pd.Index(["a", "b"], name="b"),
-            )
-            expected.columns.name = "a"
-
-        else:
-            ser = pd.DataFrame({"A": data, "B": data}, index=index)
-            expected = pd.DataFrame(
-                {
-                    ("A", "A"): data.take([0, 1]),
-                    ("A", "B"): data.take([2, 3]),
-                    ("B", "A"): data.take([0, 1]),
-                    ("B", "B"): data.take([2, 3]),
-                },
-                index=pd.Index(["a", "b"], name="b"),
-            )
-            expected.columns.names = [None, "a"]
-
-        result = ser.unstack(0)
-        self.assert_equal(result, expected)
-
 
 class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):
     pass
@@ -211,4 +203,8 @@ class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
 
 
 class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
+    pass
+
+
+class Test2DCompat(BaseDatetimeTests, base.Dim2CompatTests):
     pass

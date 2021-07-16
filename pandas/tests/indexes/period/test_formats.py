@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import PeriodIndex
+from pandas import (
+    PeriodIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -12,35 +15,29 @@ def test_to_native_types():
     # First, with no arguments.
     expected = np.array(["2017-01-01", "2017-01-02", "2017-01-03"], dtype="=U10")
 
-    result = index.to_native_types()
+    result = index._format_native_types()
     tm.assert_numpy_array_equal(result, expected)
 
     # No NaN values, so na_rep has no effect
-    result = index.to_native_types(na_rep="pandas")
-    tm.assert_numpy_array_equal(result, expected)
-
-    # Make sure slicing works
-    expected = np.array(["2017-01-01", "2017-01-03"], dtype="=U10")
-
-    result = index.to_native_types([0, 2])
+    result = index._format_native_types(na_rep="pandas")
     tm.assert_numpy_array_equal(result, expected)
 
     # Make sure date formatting works
     expected = np.array(["01-2017-01", "01-2017-02", "01-2017-03"], dtype="=U10")
 
-    result = index.to_native_types(date_format="%m-%Y-%d")
+    result = index._format_native_types(date_format="%m-%Y-%d")
     tm.assert_numpy_array_equal(result, expected)
 
     # NULL object handling should work
     index = PeriodIndex(["2017-01-01", pd.NaT, "2017-01-03"], freq="D")
     expected = np.array(["2017-01-01", "NaT", "2017-01-03"], dtype=object)
 
-    result = index.to_native_types()
+    result = index._format_native_types()
     tm.assert_numpy_array_equal(result, expected)
 
     expected = np.array(["2017-01-01", "pandas", "2017-01-03"], dtype=object)
 
-    result = index.to_native_types(na_rep="pandas")
+    result = index._format_native_types(na_rep="pandas")
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -65,40 +62,31 @@ class TestPeriodIndexRendering:
         idx9 = pd.period_range("2013Q1", periods=3, freq="Q")
         idx10 = PeriodIndex(["2011-01-01", "2011-02-01"], freq="3D")
 
-        exp1 = "PeriodIndex([], dtype='period[D]', freq='D')"
+        exp1 = "PeriodIndex([], dtype='period[D]')"
 
-        exp2 = "PeriodIndex(['2011-01-01'], dtype='period[D]', freq='D')"
+        exp2 = "PeriodIndex(['2011-01-01'], dtype='period[D]')"
 
-        exp3 = "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]', freq='D')"
+        exp3 = "PeriodIndex(['2011-01-01', '2011-01-02'], dtype='period[D]')"
 
         exp4 = (
             "PeriodIndex(['2011-01-01', '2011-01-02', '2011-01-03'], "
-            "dtype='period[D]', freq='D')"
+            "dtype='period[D]')"
         )
 
-        exp5 = (
-            "PeriodIndex(['2011', '2012', '2013'], dtype='period[A-DEC]', "
-            "freq='A-DEC')"
-        )
+        exp5 = "PeriodIndex(['2011', '2012', '2013'], dtype='period[A-DEC]')"
 
         exp6 = (
             "PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], "
-            "dtype='period[H]', freq='H')"
+            "dtype='period[H]')"
         )
 
-        exp7 = "PeriodIndex(['2013Q1'], dtype='period[Q-DEC]', freq='Q-DEC')"
+        exp7 = "PeriodIndex(['2013Q1'], dtype='period[Q-DEC]')"
 
-        exp8 = "PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]', freq='Q-DEC')"
+        exp8 = "PeriodIndex(['2013Q1', '2013Q2'], dtype='period[Q-DEC]')"
 
-        exp9 = (
-            "PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], "
-            "dtype='period[Q-DEC]', freq='Q-DEC')"
-        )
+        exp9 = "PeriodIndex(['2013Q1', '2013Q2', '2013Q3'], dtype='period[Q-DEC]')"
 
-        exp10 = (
-            "PeriodIndex(['2011-01-01', '2011-02-01'], "
-            "dtype='period[3D]', freq='3D')"
-        )
+        exp10 = "PeriodIndex(['2011-01-01', '2011-02-01'], dtype='period[3D]')"
 
         for idx, expected in zip(
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9, idx10],
@@ -160,7 +148,7 @@ dtype: period[Q-DEC]"""
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
             [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9],
         ):
-            result = repr(pd.Series(idx))
+            result = repr(Series(idx))
             assert result == expected
 
     def test_summary(self):

@@ -2,7 +2,7 @@ import pytest
 
 from pandas.errors import AbstractMethodError
 
-import pandas as pd  # noqa
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -18,6 +18,7 @@ import pandas as pd  # noqa
         "ParserWarning",
         "MergeError",
         "OptionError",
+        "NumbaUtilError",
     ],
 )
 def test_exception_importable(exc):

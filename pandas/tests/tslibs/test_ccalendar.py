@@ -1,9 +1,18 @@
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import ccalendar
+
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -48,3 +57,15 @@ def test_dt_correct_iso_8601_year_week_and_day(input_date_tuple, expected_iso_tu
     expected_from_date_isocalendar = date(*input_date_tuple).isocalendar()
     assert result == expected_from_date_isocalendar
     assert result == expected_iso_tuple
+
+
+@given(
+    st.datetimes(
+        min_value=pd.Timestamp.min.to_pydatetime(warn=False),
+        max_value=pd.Timestamp.max.to_pydatetime(warn=False),
+    )
+)
+def test_isocalendar(dt):
+    expected = dt.isocalendar()
+    result = ccalendar.get_iso_calendar(dt.year, dt.month, dt.day)
+    assert result == expected

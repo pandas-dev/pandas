@@ -1,8 +1,18 @@
+from __future__ import annotations
+
+from typing import (
+    Any,
+    MutableMapping,
+)
+
 from pandas.compat._optional import import_optional_dependency
 
-from pandas.core.dtypes.common import is_integer, is_list_like
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
 
-_writers = {}
+_writers: MutableMapping[str, str] = {}
 
 
 def register_writer(klass):
@@ -21,27 +31,46 @@ def register_writer(klass):
     _writers[engine_name] = klass
 
 
-def _get_default_writer(ext):
+def get_default_engine(ext, mode="reader"):
     """
-    Return the default writer for the given extension.
+    Return the default reader/writer for the given extension.
 
     Parameters
     ----------
     ext : str
         The excel file extension for which to get the default engine.
+    mode : str {'reader', 'writer'}
+        Whether to get the default engine for reading or writing.
+        Either 'reader' or 'writer'
 
     Returns
     -------
     str
         The default engine for the extension.
     """
-    _default_writers = {"xlsx": "openpyxl", "xlsm": "openpyxl", "xls": "xlwt"}
-    xlsxwriter = import_optional_dependency(
-        "xlsxwriter", raise_on_missing=False, on_version="warn"
-    )
-    if xlsxwriter:
-        _default_writers["xlsx"] = "xlsxwriter"
-    return _default_writers[ext]
+    _default_readers = {
+        "xlsx": "openpyxl",
+        "xlsm": "openpyxl",
+        "xlsb": "pyxlsb",
+        "xls": "xlrd",
+        "ods": "odf",
+    }
+    _default_writers = {
+        "xlsx": "openpyxl",
+        "xlsm": "openpyxl",
+        "xlsb": "pyxlsb",
+        "xls": "xlwt",
+        "ods": "odf",
+    }
+    assert mode in ["reader", "writer"]
+    if mode == "writer":
+        # Prefer xlsxwriter over openpyxl if installed
+        xlsxwriter = import_optional_dependency("xlsxwriter", errors="warn")
+        if xlsxwriter:
+            _default_writers["xlsx"] = "xlsxwriter"
+        return _default_writers[ext]
+    else:
+        return _default_readers[ext]
 
 
 def get_writer(engine_name):
@@ -51,7 +80,7 @@ def get_writer(engine_name):
         raise ValueError(f"No Excel writer '{engine_name}'") from err
 
 
-def _excel2num(x):
+def _excel2num(x: str) -> int:
     """
     Convert Excel column name like 'AB' to 0-based column index.
 
@@ -83,7 +112,7 @@ def _excel2num(x):
     return index - 1
 
 
-def _range2cols(areas):
+def _range2cols(areas: str) -> list[int]:
     """
     Convert comma separated list of column names and ranges to indices.
 
@@ -104,19 +133,19 @@ def _range2cols(areas):
     >>> _range2cols('A,C,Z:AB')
     [0, 2, 25, 26, 27]
     """
-    cols = []
+    cols: list[int] = []
 
     for rng in areas.split(","):
         if ":" in rng:
-            rng = rng.split(":")
-            cols.extend(range(_excel2num(rng[0]), _excel2num(rng[1]) + 1))
+            rngs = rng.split(":")
+            cols.extend(range(_excel2num(rngs[0]), _excel2num(rngs[1]) + 1))
         else:
             cols.append(_excel2num(rng))
 
     return cols
 
 
-def _maybe_convert_usecols(usecols):
+def maybe_convert_usecols(usecols):
     """
     Convert `usecols` into a compatible format for parsing in `parsers.py`.
 
@@ -145,7 +174,7 @@ def _maybe_convert_usecols(usecols):
     return usecols
 
 
-def _validate_freeze_panes(freeze_panes):
+def validate_freeze_panes(freeze_panes):
     if freeze_panes is not None:
         if len(freeze_panes) == 2 and all(
             isinstance(item, int) for item in freeze_panes
@@ -162,15 +191,7 @@ def _validate_freeze_panes(freeze_panes):
     return False
 
 
-def _trim_excel_header(row):
-    # trim header row so auto-index inference works
-    # xlrd uses '' , openpyxl None
-    while len(row) > 0 and (row[0] == "" or row[0] is None):
-        row = row[1:]
-    return row
-
-
-def _fill_mi_header(row, control_row):
+def fill_mi_header(row, control_row):
     """
     Forward fill blank entries in row but only inside the same parent index.
 
@@ -203,7 +224,7 @@ def _fill_mi_header(row, control_row):
     return row, control_row
 
 
-def _pop_header_name(row, index_col):
+def pop_header_name(row, index_col):
     """
     Pop the header name for MultiIndex parsing.
 
@@ -228,3 +249,30 @@ def _pop_header_name(row, index_col):
     header_name = None if header_name == "" else header_name
 
     return header_name, row[:i] + [""] + row[i + 1 :]
+
+
+def combine_kwargs(engine_kwargs: dict[str, Any] | None, kwargs: dict) -> dict:
+    """
+    Used to combine two sources of kwargs for the backend engine.
+
+    Use of kwargs is deprecated, this function is solely for use in 1.3 and should
+    be removed in 1.4/2.0. Also _base.ExcelWriter.__new__ ensures either engine_kwargs
+    or kwargs must be None or empty respectively.
+
+    Parameters
+    ----------
+    engine_kwargs: dict
+        kwargs to be passed through to the engine.
+    kwargs: dict
+        kwargs to be psased through to the engine (deprecated)
+
+    Returns
+    -------
+    engine_kwargs combined with kwargs
+    """
+    if engine_kwargs is None:
+        result = {}
+    else:
+        result = engine_kwargs.copy()
+    result.update(kwargs)
+    return result

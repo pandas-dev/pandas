@@ -61,7 +61,7 @@ New features
 Categoricals in Series/DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`~pandas.Categorical` can now be included in `Series` and `DataFrames` and gained new
+:class:`~pandas.Categorical` can now be included in ``Series`` and ``DataFrames`` and gained new
 methods to manipulate. Thanks to Jan Schulz for much of this API/implementation. (:issue:`3943`, :issue:`5313`, :issue:`5314`,
 :issue:`7444`, :issue:`7839`, :issue:`7848`, :issue:`7864`, :issue:`7914`, :issue:`7768`, :issue:`8006`, :issue:`3678`,
 :issue:`8075`, :issue:`8076`, :issue:`8143`, :issue:`8453`, :issue:`8518`).
@@ -405,7 +405,7 @@ Rolling/expanding moments improvements
 
 - :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
-  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <stats.moments.normalization>` for further details. (:issue:`7618`)
+  calculated without weighting (i.e. 'boxcar'). See :ref:`the note on normalization <window.weighted>` for further details. (:issue:`7618`)
 
   .. ipython:: python
 
@@ -490,7 +490,7 @@ Rolling/expanding moments improvements
   now have an optional ``adjust`` argument, just like :func:`ewma` does,
   affecting how the weights are calculated.
   The default value of ``adjust`` is ``True``, which is backwards-compatible.
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7911`)
+  See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7911`)
 
 - :func:`ewma`, :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
   now have an optional ``ignore_na`` argument.
@@ -595,7 +595,7 @@ Rolling/expanding moments improvements
      3    1.425439
      dtype: float64
 
-  See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7912`)
+  See :ref:`Exponentially weighted moment functions <window.exponentially_weighted>` for details. (:issue:`7912`)
 
 
 .. _whatsnew_0150.sql:
@@ -808,7 +808,7 @@ Other notable API changes:
 
 .. _whatsnew_0150.blanklines:
 
-- Made both the C-based and Python engines for `read_csv` and `read_table` ignore empty lines in input as well as
+- Made both the C-based and Python engines for ``read_csv`` and ``read_table`` ignore empty lines in input as well as
   white space-filled lines, as long as ``sep`` is not white space. This is an API change
   that can be controlled by the keyword parameter ``skip_blank_lines``.  See :ref:`the docs <io.skiplines>` (:issue:`4466`)
 
@@ -830,7 +830,7 @@ Other notable API changes:
 
   Previously this would have yielded a column of ``datetime64`` dtype, but without timezone info.
 
-  The behaviour of assigning a column to an existing dataframe as `df['a'] = i`
+  The behaviour of assigning a column to an existing dataframe as ``df['a'] = i``
   remains unchanged (this already returned an  ``object`` column with a timezone).
 
 - When passing multiple levels to :meth:`~pandas.DataFrame.stack()`, it will now raise a ``ValueError`` when the
@@ -894,7 +894,7 @@ a transparent change with only very limited API implications (:issue:`5080`, :is
 - you may need to unpickle pandas version < 0.15.0 pickles using ``pd.read_pickle`` rather than ``pickle.load``. See :ref:`pickle docs <io.pickle>`
 - when plotting with a ``PeriodIndex``, the matplotlib internal axes will now be arrays of ``Period`` rather than a ``PeriodIndex`` (this is similar to how a ``DatetimeIndex`` passes arrays of ``datetimes`` now)
 - MultiIndexes will now raise similarly to other pandas objects w.r.t. truth testing, see :ref:`here <gotchas.truth>` (:issue:`7897`).
-- When plotting a DatetimeIndex directly with matplotlib's `plot` function,
+- When plotting a DatetimeIndex directly with matplotlib's ``plot`` function,
   the axis labels will no longer be formatted as dates but as integers (the
   internal representation of a ``datetime64``). **UPDATE** This is fixed
   in 0.15.1, see :ref:`here <whatsnew_0151.datetime64_plotting>`.

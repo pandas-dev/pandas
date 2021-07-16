@@ -2,12 +2,12 @@ import io
 import textwrap
 
 import pytest
-import validate_docstrings
+
+from .. import validate_docstrings
 
 
 class BadDocstrings:
-    """Everything here has a bad docstring
-    """
+    """Everything here has a bad docstring"""
 
     def private_classes(self):
         """
@@ -79,6 +79,12 @@ class BadDocstrings:
         Examples
         --------
         >>> df = pd.DataFrame(np.ones((3,3)),columns=('a','b', 'c'))
+        """
+        pass
+
+    def write_array_like_with_hyphen_not_underscore(self):
+        """
+        In docstrings, use array-like over array_like
         """
         pass
 
@@ -163,12 +169,19 @@ class TestValidator:
             (
                 "BadDocstrings",
                 "indentation_is_not_a_multiple_of_four",
-                ("flake8 error: E111 indentation is not a multiple of four",),
+                # with flake8 3.9.0, the message ends with four spaces,
+                #  whereas in earlier versions, it ended with "four"
+                ("flake8 error: E111 indentation is not a multiple of 4",),
             ),
             (
                 "BadDocstrings",
                 "missing_whitespace_after_comma",
                 ("flake8 error: E231 missing whitespace after ',' (3 times)",),
+            ),
+            (
+                "BadDocstrings",
+                "write_array_like_with_hyphen_not_underscore",
+                ("Use 'array-like' rather than 'array_like' in docstrings",),
             ),
         ],
     )
@@ -177,7 +190,7 @@ class TestValidator:
             self._import_path(klass=klass, func=func)
         )
         for msg in msgs:
-            assert msg in " ".join(err[1] for err in result["errors"])
+            assert msg in " ".join([err[1] for err in result["errors"]])
 
     def test_validate_all_ignore_deprecated(self, monkeypatch):
         monkeypatch.setattr(

@@ -25,25 +25,25 @@ The next example gives an idea of what a docstring looks like:
         """
         Add up two integer numbers.
 
-        This function simply wraps the `+` operator, and does not
+        This function simply wraps the ``+`` operator, and does not
         do anything interesting, except for illustrating what
         the docstring of a very simple function looks like.
 
         Parameters
         ----------
         num1 : int
-            First number to add
+            First number to add.
         num2 : int
-            Second number to add
+            Second number to add.
 
         Returns
         -------
         int
-            The sum of `num1` and `num2`
+            The sum of ``num1`` and ``num2``.
 
         See Also
         --------
-        subtract : Subtract one integer from another
+        subtract : Subtract one integer from another.
 
         Examples
         --------
@@ -63,14 +63,14 @@ The first conventions every Python docstring should follow are defined in
 `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`_.
 
 As PEP-257 is quite broad, other more specific standards also exist. In the
-case of pandas, the numpy docstring convention is followed. These conventions are
+case of pandas, the NumPy docstring convention is followed. These conventions are
 explained in this document:
 
 * `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
   (which is based in the original `Guide to NumPy/SciPy documentation
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
-numpydoc is a Sphinx extension to support the numpy docstring convention.
+numpydoc is a Sphinx extension to support the NumPy docstring convention.
 
 The standard uses reStructuredText (reST). reStructuredText is a markup
 language that allows encoding styles in plain text files. Documentation
@@ -126,9 +126,9 @@ backticks. The following are considered inline code:
 
     def add_values(arr):
         """
-        Add the values in `arr`.
+        Add the values in ``arr``.
 
-        This is equivalent to Python `sum` of :meth:`pandas.Series.sum`.
+        This is equivalent to Python ``sum`` of :meth:`pandas.Series.sum`.
 
         Some sections are omitted here for simplicity.
         """
@@ -144,13 +144,13 @@ backticks. The following are considered inline code:
 
         With several mistakes in the docstring.
 
-        It has a blank like after the signature `def func():`.
+        It has a blank like after the signature ``def func():``.
 
         The text 'Some function' should go in the line after the
         opening quotes of the docstring, not in the same line.
 
         There is a blank line between the docstring and the first line
-        of code `foo = 1`.
+        of code ``foo = 1``.
 
         The closing quotes should be in the next line, not in this one."""
 
@@ -269,11 +269,11 @@ after, and not between the line with the word "Parameters" and the one with
 the hyphens.
 
 After the title, each parameter in the signature must be documented, including
-`*args` and `**kwargs`, but not `self`.
+``*args`` and ``**kwargs``, but not ``self``.
 
 The parameters are defined by their name, followed by a space, a colon, another
 space, and the type (or types). Note that the space between the name and the
-colon is important. Types are not defined for `*args` and `**kwargs`, but must
+colon is important. Types are not defined for ``*args`` and ``**kwargs``, but must
 be defined for all other parameters. After the parameter definition, it is
 required to have a line with the parameter description, which is indented, and
 can have multiple lines. The description must start with a capital letter, and
@@ -285,13 +285,13 @@ comma at the end of the type. The exact form of the type in this case will be
 argument means, which can be added after a comma "int, default -1, meaning all
 cpus".
 
-In cases where the default value is `None`, meaning that the value will not be
-used. Instead of "str, default None", it is preferred to write "str, optional".
-When `None` is a value being used, we will keep the form "str, default None".
-For example, in `df.to_csv(compression=None)`, `None` is not a value being used,
+In cases where the default value is ``None``, meaning that the value will not be
+used. Instead of ``"str, default None"``, it is preferred to write ``"str, optional"``.
+When ``None`` is a value being used, we will keep the form "str, default None".
+For example, in ``df.to_csv(compression=None)``, ``None`` is not a value being used,
 but means that compression is optional, and no compression is being used if not
-provided. In this case we will use `str, optional`. Only in cases like
-`func(value=None)` and `None` is being used in the same way as `0` or `foo`
+provided. In this case we will use ``"str, optional"``. Only in cases like
+``func(value=None)`` and ``None`` is being used in the same way as ``0`` or ``foo``
 would be used, then we will specify "str, int or None, default None".
 
 **Good:**
@@ -331,13 +331,13 @@ would be used, then we will specify "str, int or None, default None".
             specified kind.
 
             Note the blank line between the parameters title and the first
-            parameter. Also, note that after the name of the parameter `kind`
+            parameter. Also, note that after the name of the parameter ``kind``
             and before the colon, a space is missing.
 
             Also, note that the parameter descriptions do not start with a
             capital letter, and do not finish with a dot.
 
-            Finally, the `**kwargs` parameter is missing.
+            Finally, the ``**kwargs`` parameter is missing.
 
             Parameters
             ----------
@@ -361,9 +361,9 @@ boolean, etc):
 * str
 * bool
 
-For complex types, define the subtypes. For `dict` and `tuple`, as more than
+For complex types, define the subtypes. For ``dict`` and ``tuple``, as more than
 one type is present, we use the brackets to help read the type (curly brackets
-for `dict` and normal brackets for `tuple`):
+for ``dict`` and normal brackets for ``tuple``):
 
 * list of int
 * dict of {str : int}
@@ -401,7 +401,7 @@ DataFrame:
 * pandas.Categorical
 * pandas.arrays.SparseArray
 
-If the exact type is not relevant, but must be compatible with a numpy
+If the exact type is not relevant, but must be compatible with a NumPy
 array, array-like can be specified. If Any type that can be iterated is
 accepted, iterable can be used:
 
@@ -512,8 +512,8 @@ This section is used to let users know about pandas functionality
 related to the one being documented. In rare cases, if no related methods
 or functions can be found at all, this section can be skipped.
 
-An obvious example would be the `head()` and `tail()` methods. As `tail()` does
-the equivalent as `head()` but at the end of the `Series` or `DataFrame`
+An obvious example would be the ``head()`` and ``tail()`` methods. As ``tail()`` does
+the equivalent as ``head()`` but at the end of the ``Series`` or ``DataFrame``
 instead of at the beginning, it is good to let the users know about it.
 
 To give an intuition on what can be considered related, here there are some
@@ -608,8 +608,8 @@ Examples in docstrings, besides illustrating the usage of the function or
 method, must be valid Python code, that returns the given output in a
 deterministic way, and that can be copied and run by users.
 
-Examples are presented as a session in the Python terminal. `>>>` is used to
-present code. `...` is used for code continuing from the previous line.
+Examples are presented as a session in the Python terminal. ``>>>`` is used to
+present code. ``...`` is used for code continuing from the previous line.
 Output is presented immediately after the last line of code generating the
 output (no blank lines in between). Comments describing the examples can
 be added with blank lines before and after them.
@@ -664,7 +664,7 @@ A simple example could be:
             4   Falcon
             dtype: object
 
-            With the `n` parameter, we can change the number of returned rows:
+            With the ``n`` parameter, we can change the number of returned rows:
 
             >>> s.head(n=3)
             0   Ant
@@ -742,7 +742,7 @@ positional arguments ``head(3)``.
 
         def fillna(self, value):
             """
-            Replace missing values by `value`.
+            Replace missing values by ``value``.
 
             Examples
             --------
@@ -771,7 +771,7 @@ positional arguments ``head(3)``.
 
         def contains(self, pattern, case_sensitive=True, na=numpy.nan):
             """
-            Return whether each value contains `pattern`.
+            Return whether each value contains ``pattern``.
 
             In this case, we are illustrating how to use sections, even
             if the example is simple enough and does not require them.
@@ -788,8 +788,8 @@ positional arguments ``head(3)``.
 
             **Case sensitivity**
 
-            With `case_sensitive` set to `False` we can match `a` with both
-            `a` and `A`:
+            With ``case_sensitive`` set to ``False`` we can match ``a`` with both
+            ``a`` and ``A``:
 
             >>> s.contains(pattern='a', case_sensitive=False)
             0     True
@@ -800,7 +800,7 @@ positional arguments ``head(3)``.
 
             **Missing values**
 
-            We can fill missing values in the output using the `na` parameter:
+            We can fill missing values in the output using the ``na`` parameter:
 
             >>> s.contains(pattern='a', na=False)
             0    False
@@ -819,14 +819,14 @@ positional arguments ``head(3)``.
         """
         A sample DataFrame method.
 
-        Do not import numpy and pandas.
+        Do not import NumPy and pandas.
 
         Try to use meaningful data, when it makes the example easier
         to understand.
 
-        Try to avoid positional arguments like in `df.method(1)`. They
+        Try to avoid positional arguments like in ``df.method(1)``. They
         can be all right if previously defined with a meaningful name,
-        like in `present_value(interest_rate)`, but avoid them otherwise.
+        like in ``present_value(interest_rate)``, but avoid them otherwise.
 
         When presenting the behavior with different parameters, do not place
         all the calls one next to the other. Instead, add a short sentence
@@ -854,7 +854,7 @@ Tips for getting your examples pass the doctests
 Getting the examples pass the doctests in the validation script can sometimes
 be tricky. Here are some attention points:
 
-* Import all needed libraries (except for pandas and numpy, those are already
+* Import all needed libraries (except for pandas and NumPy, those are already
   imported as ``import pandas as pd`` and ``import numpy as np``) and define
   all variables you use in the example.
 
@@ -914,7 +914,7 @@ plot will be generated automatically when building the documentation.
     class Series:
         def plot(self):
             """
-            Generate a plot with the `Series` data.
+            Generate a plot with the ``Series`` data.
 
             Examples
             --------

@@ -3,7 +3,6 @@ Tests for ndarray-like method on the base Index class
 """
 import pytest
 
-import pandas as pd
 from pandas import Index
 import pandas._testing as tm
 
@@ -11,8 +10,8 @@ import pandas._testing as tm
 class TestReshape:
     def test_repeat(self):
         repeats = 2
-        index = pd.Index([1, 2, 3])
-        expected = pd.Index([1, 1, 2, 2, 3, 3])
+        index = Index([1, 2, 3])
+        expected = Index([1, 1, 2, 2, 3, 3])
 
         result = index.repeat(repeats)
         tm.assert_index_equal(result, expected)

@@ -5,7 +5,14 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series, array, concat, merge
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+    array,
+    concat,
+    merge,
+)
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
@@ -269,12 +276,24 @@ class TestMerge:
         for k, lval in ldict.items():
             rval = rdict.get(k, [np.nan])
             for lv, rv in product(lval, rval):
-                vals.append(k + tuple([lv, rv]))
+                vals.append(
+                    k
+                    + (
+                        lv,
+                        rv,
+                    )
+                )
 
         for k, rval in rdict.items():
             if k not in ldict:
                 for rv in rval:
-                    vals.append(k + tuple([np.nan, rv]))
+                    vals.append(
+                        k
+                        + (
+                            np.nan,
+                            rv,
+                        )
+                    )
 
         def align(df):
             df = df.sort_values(df.columns.tolist())
@@ -297,7 +316,7 @@ class TestMerge:
             "outer": np.ones(len(out), dtype="bool"),
         }
 
-        for how in "left", "right", "outer", "inner":
+        for how in ["left", "right", "outer", "inner"]:
             mask = jmask[how]
             frame = align(out[mask].copy())
             assert mask.all() ^ mask.any() or how == "outer"
@@ -452,3 +471,10 @@ class TestSafeSort:
         expected_codes = np.array([0, 2, na_sentinel, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)
         tm.assert_numpy_array_equal(codes, expected_codes)
+
+
+def test_mixed_str_nan():
+    values = np.array(["b", np.nan, "a", "b"], dtype=object)
+    result = safe_sort(values)
+    expected = np.array([np.nan, "a", "b", "b"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)

@@ -17,6 +17,7 @@ You can get/set options directly as attributes of the top-level ``options`` attr
 .. ipython:: python
 
    import pandas as pd
+
    pd.options.display.max_rows
    pd.options.display.max_rows = 999
    pd.options.display.max_rows
@@ -30,7 +31,7 @@ namespace:
 * :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
-**Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
+**Note:** Developers can check out `pandas/core/config_init.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config_init.py>`_ for more information.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
 and so passing in a substring will work - as long as it is unambiguous:
@@ -77,9 +78,9 @@ are available from the pandas namespace.  To change an option, call
 
 .. ipython:: python
 
-   pd.get_option('mode.sim_interactive')
-   pd.set_option('mode.sim_interactive', True)
-   pd.get_option('mode.sim_interactive')
+   pd.get_option("mode.sim_interactive")
+   pd.set_option("mode.sim_interactive", True)
+   pd.get_option("mode.sim_interactive")
 
 **Note:** The option 'mode.sim_interactive' is mostly used for debugging purposes.
 
@@ -109,7 +110,7 @@ It's also possible to reset multiple options at once (using a regex):
 
 ``option_context`` context manager has been exposed through
 the top-level API, allowing you to execute code with given option values. Option values
-are restored automatically when you exit the `with` block:
+are restored automatically when you exit the ``with`` block:
 
 .. ipython:: python
 
@@ -123,20 +124,21 @@ are restored automatically when you exit the `with` block:
 Setting startup options in Python/IPython environment
 -----------------------------------------------------
 
-Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default ipython profile can be found at:
+Using startup scripts for the Python/IPython environment to import pandas and set options makes working with pandas more efficient.  To do this, create a .py or .ipy script in the startup directory of the desired profile.  An example where the startup folder is in a default IPython profile can be found at:
 
 .. code-block:: none
 
   $IPYTHONDIR/profile_default/startup
 
-More information can be found in the `ipython documentation
+More information can be found in the `IPython documentation
 <https://ipython.org/ipython-doc/stable/interactive/tutorial.html#startup-files>`__.  An example startup script for pandas is displayed below:
 
 .. code-block:: python
 
   import pandas as pd
-  pd.set_option('display.max_rows', 999)
-  pd.set_option('precision', 5)
+
+  pd.set_option("display.max_rows", 999)
+  pd.set_option("precision", 5)
 
 .. _options.frequently_used:
 
@@ -151,27 +153,27 @@ lines are replaced by an ellipsis.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(7, 2))
-   pd.set_option('max_rows', 7)
+   pd.set_option("max_rows", 7)
    df
-   pd.set_option('max_rows', 5)
+   pd.set_option("max_rows", 5)
    df
-   pd.reset_option('max_rows')
+   pd.reset_option("max_rows")
 
 Once the ``display.max_rows`` is exceeded, the ``display.min_rows`` options
 determines how many rows are shown in the truncated repr.
 
 .. ipython:: python
 
-   pd.set_option('max_rows', 8)
-   pd.set_option('min_rows', 4)
+   pd.set_option("max_rows", 8)
+   pd.set_option("min_rows", 4)
    # below max_rows -> all rows shown
    df = pd.DataFrame(np.random.randn(7, 2))
    df
    # above max_rows -> only min_rows (4) rows shown
    df = pd.DataFrame(np.random.randn(9, 2))
    df
-   pd.reset_option('max_rows')
-   pd.reset_option('min_rows')
+   pd.reset_option("max_rows")
+   pd.reset_option("min_rows")
 
 ``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
@@ -179,11 +181,11 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(5, 10))
-   pd.set_option('expand_frame_repr', True)
+   pd.set_option("expand_frame_repr", True)
    df
-   pd.set_option('expand_frame_repr', False)
+   pd.set_option("expand_frame_repr", False)
    df
-   pd.reset_option('expand_frame_repr')
+   pd.reset_option("expand_frame_repr")
 
 ``display.large_repr`` lets you select whether to display dataframes that exceed
 ``max_columns`` or ``max_rows`` as a truncated frame, or as a summary.
@@ -191,26 +193,32 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 10))
-   pd.set_option('max_rows', 5)
-   pd.set_option('large_repr', 'truncate')
+   pd.set_option("max_rows", 5)
+   pd.set_option("large_repr", "truncate")
    df
-   pd.set_option('large_repr', 'info')
+   pd.set_option("large_repr", "info")
    df
-   pd.reset_option('large_repr')
-   pd.reset_option('max_rows')
+   pd.reset_option("large_repr")
+   pd.reset_option("max_rows")
 
 ``display.max_colwidth`` sets the maximum width of columns.  Cells
 of this length or longer will be truncated with an ellipsis.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.array([['foo', 'bar', 'bim', 'uncomfortably long string'],
-                               ['horse', 'cow', 'banana', 'apple']]))
-   pd.set_option('max_colwidth', 40)
+   df = pd.DataFrame(
+       np.array(
+           [
+               ["foo", "bar", "bim", "uncomfortably long string"],
+               ["horse", "cow", "banana", "apple"],
+           ]
+       )
+   )
+   pd.set_option("max_colwidth", 40)
    df
-   pd.set_option('max_colwidth', 6)
+   pd.set_option("max_colwidth", 6)
    df
-   pd.reset_option('max_colwidth')
+   pd.reset_option("max_colwidth")
 
 ``display.max_info_columns`` sets a threshold for when by-column info
 will be given.
@@ -218,11 +226,11 @@ will be given.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 10))
-   pd.set_option('max_info_columns', 11)
+   pd.set_option("max_info_columns", 11)
    df.info()
-   pd.set_option('max_info_columns', 5)
+   pd.set_option("max_info_columns", 5)
    df.info()
-   pd.reset_option('max_info_columns')
+   pd.reset_option("max_info_columns")
 
 ``display.max_info_rows``: ``df.info()`` will usually show null-counts for each column.
 For large frames this can be quite slow. ``max_info_rows`` and ``max_info_cols``
@@ -233,11 +241,11 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
 
    df = pd.DataFrame(np.random.choice([0, 1, np.nan], size=(10, 10)))
    df
-   pd.set_option('max_info_rows', 11)
+   pd.set_option("max_info_rows", 11)
    df.info()
-   pd.set_option('max_info_rows', 5)
+   pd.set_option("max_info_rows", 5)
    df.info()
-   pd.reset_option('max_info_rows')
+   pd.reset_option("max_info_rows")
 
 ``display.precision`` sets the output display precision in terms of decimal places.
 This is only a suggestion.
@@ -245,9 +253,9 @@ This is only a suggestion.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(5, 5))
-   pd.set_option('precision', 7)
+   pd.set_option("precision", 7)
    df
-   pd.set_option('precision', 4)
+   pd.set_option("precision", 4)
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
@@ -257,26 +265,27 @@ precision at which the number is stored.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(6, 6))
-   pd.set_option('chop_threshold', 0)
+   pd.set_option("chop_threshold", 0)
    df
-   pd.set_option('chop_threshold', .5)
+   pd.set_option("chop_threshold", 0.5)
    df
-   pd.reset_option('chop_threshold')
+   pd.reset_option("chop_threshold")
 
 ``display.colheader_justify`` controls the justification of the headers.
 The options are 'right', and 'left'.
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.array([np.random.randn(6),
-                               np.random.randint(1, 9, 6) * .1,
-                               np.zeros(6)]).T,
-                     columns=['A', 'B', 'C'], dtype='float')
-   pd.set_option('colheader_justify', 'right')
+   df = pd.DataFrame(
+       np.array([np.random.randn(6), np.random.randint(1, 9, 6) * 0.1, np.zeros(6)]).T,
+       columns=["A", "B", "C"],
+       dtype="float",
+   )
+   pd.set_option("colheader_justify", "right")
    df
-   pd.set_option('colheader_justify', 'left')
+   pd.set_option("colheader_justify", "left")
    df
-   pd.reset_option('colheader_justify')
+   pd.reset_option("colheader_justify")
 
 
 
@@ -306,10 +315,10 @@ display.encoding                        UTF-8        Defaults to the detected en
                                                      meant to be displayed on the console.
 display.expand_frame_repr               True         Whether to print out the full DataFrame
                                                      repr for wide DataFrames across
-                                                     multiple lines, `max_columns` is
+                                                     multiple lines, ``max_columns`` is
                                                      still respected, but the output will
                                                      wrap-around across multiple "pages"
-                                                     if its width exceeds `display.width`.
+                                                     if its width exceeds ``display.width``.
 display.float_format                    None         The callable should accept a floating
                                                      point number and return a string with
                                                      the desired format of the number.
@@ -323,7 +332,7 @@ display.large_repr                      truncate     For DataFrames exceeding ma
                                                      (the behaviour in earlier versions of pandas).
                                                      allowable settings, ['truncate', 'info']
 display.latex.repr                      False        Whether to produce a latex DataFrame
-                                                     representation for jupyter frontends
+                                                     representation for Jupyter frontends
                                                      that support it.
 display.latex.escape                    True         Escapes special characters in DataFrames, when
                                                      using the to_latex method.
@@ -371,11 +380,11 @@ display.max_rows                        60           This sets the maximum numbe
                                                      fully or just a truncated or summary repr.
                                                      'None' value means unlimited.
 display.min_rows                        10           The numbers of rows to show in a truncated
-                                                     repr (when `max_rows` is exceeded). Ignored
-                                                     when `max_rows` is set to None or 0. When set
-                                                     to None, follows the value of `max_rows`.
+                                                     repr (when ``max_rows`` is exceeded). Ignored
+                                                     when ``max_rows`` is set to None or 0. When set
+                                                     to None, follows the value of ``max_rows``.
 display.max_seq_items                   100          when pretty-printing a long sequence,
-                                                     no more then `max_seq_items` will
+                                                     no more then ``max_seq_items`` will
                                                      be printed. If items are omitted,
                                                      they will be denoted by the addition
                                                      of "..." to the resulting string.
@@ -404,7 +413,7 @@ display.show_dimensions                 truncate     Whether to print out dimens
                                                      frame is truncated (e.g. not display
                                                      all rows and/or columns)
 display.width                           80           Width of the display in characters.
-                                                     In case python/IPython is running in
+                                                     In case Python/IPython is running in
                                                      a terminal this can be set to None
                                                      and pandas will correctly auto-detect
                                                      the width. Note that the IPython notebook,
@@ -423,6 +432,16 @@ display.html.use_mathjax                True         When True, Jupyter notebook
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
+
+                                                     .. deprecated:: 1.2.0
+
+                                                        As `xlwt <https://pypi.org/project/xlwt/>`__
+                                                        package is no longer maintained, the ``xlwt``
+                                                        engine will be removed in a future version of
+                                                        pandas. Since this is the only engine in pandas
+                                                        that supports writing to ``.xls`` files,
+                                                        this option will also be removed.
+
 io.excel.xlsm.writer                    openpyxl     The default Excel writer engine for
                                                      'xlsm' files. Available options:
                                                      'openpyxl' (the default).
@@ -437,6 +456,10 @@ io.hdf.dropna_table                     True         drop ALL nan rows when appe
 io.parquet.engine                       None         The engine to use as a default for
                                                      parquet reading and writing. If None
                                                      then try 'pyarrow' and 'fastparquet'
+io.sql.engine                           None         The engine to use as a default for
+                                                     sql reading and writing, with SQLAlchemy
+                                                     as a higher level interface. If None
+                                                     then try 'sqlalchemy'
 mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``:
                                                      'raise', 'warn', or None. Raise an
                                                      exception, warn, or no action if
@@ -459,6 +482,13 @@ plotting.backend                        matplotlib   Change the plotting backend
                                                      like Bokeh, Altair, etc.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
+styler.sparse.index                     True         "Sparsify" MultiIndex display for rows
+                                                     in Styler output (don't display repeated
+                                                     elements in outer levels within groups).
+styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
+                                                     in Styler output.
+styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
+                                                     trimming either rows, columns or both to fit.
 ======================================= ============ ==================================
 
 
@@ -481,9 +511,9 @@ For instance:
    import numpy as np
 
    pd.set_eng_float_format(accuracy=3, use_eng_prefix=True)
-   s = pd.Series(np.random.randn(5), index=['a', 'b', 'c', 'd', 'e'])
-   s / 1.e3
-   s / 1.e6
+   s = pd.Series(np.random.randn(5), index=["a", "b", "c", "d", "e"])
+   s / 1.0e3
+   s / 1.0e6
 
 .. ipython:: python
    :suppress:
@@ -510,7 +540,7 @@ If a DataFrame or Series contains these characters, the default output mode may 
 
 .. ipython:: python
 
-   df = pd.DataFrame({'国籍': ['UK', '日本'], '名前': ['Alice', 'しのぶ']})
+   df = pd.DataFrame({"国籍": ["UK", "日本"], "名前": ["Alice", "しのぶ"]})
    df
 
 .. image:: ../_static/option_unicode01.png
@@ -521,7 +551,7 @@ times than the standard ``len`` function.
 
 .. ipython:: python
 
-   pd.set_option('display.unicode.east_asian_width', True)
+   pd.set_option("display.unicode.east_asian_width", True)
    df
 
 .. image:: ../_static/option_unicode02.png
@@ -533,7 +563,7 @@ By default, an "Ambiguous" character's width, such as "¡" (inverted exclamation
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': ['xxx', '¡¡'], 'b': ['yyy', '¡¡']})
+   df = pd.DataFrame({"a": ["xxx", "¡¡"], "b": ["yyy", "¡¡"]})
    df
 
 .. image:: ../_static/option_unicode03.png
@@ -545,7 +575,7 @@ However, setting this option incorrectly for your terminal will cause these char
 
 .. ipython:: python
 
-   pd.set_option('display.unicode.ambiguous_as_wide', True)
+   pd.set_option("display.unicode.ambiguous_as_wide", True)
    df
 
 .. image:: ../_static/option_unicode04.png
@@ -553,8 +583,8 @@ However, setting this option incorrectly for your terminal will cause these char
 .. ipython:: python
    :suppress:
 
-   pd.set_option('display.unicode.east_asian_width', False)
-   pd.set_option('display.unicode.ambiguous_as_wide', False)
+   pd.set_option("display.unicode.east_asian_width", False)
+   pd.set_option("display.unicode.ambiguous_as_wide", False)
 
 .. _options.table_schema:
 
@@ -567,7 +597,7 @@ by default. False by default, this can be enabled globally with the
 
 .. ipython:: python
 
-  pd.set_option('display.html.table_schema', True)
+  pd.set_option("display.html.table_schema", True)
 
 Only ``'display.max_rows'`` are serialized and published.
 
@@ -575,4 +605,4 @@ Only ``'display.max_rows'`` are serialized and published.
 .. ipython:: python
     :suppress:
 
-    pd.reset_option('display.html.table_schema')
+    pd.reset_option("display.html.table_schema")

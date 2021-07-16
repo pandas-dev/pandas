@@ -1,7 +1,10 @@
 import numpy as np
+import pytest
 
-import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (
+    Index,
+    MultiIndex,
+)
 
 
 def test_is_monotonic_increasing():
@@ -161,7 +164,7 @@ def test_is_monotonic_decreasing():
 
 
 def test_is_strictly_monotonic_increasing():
-    idx = pd.MultiIndex(
+    idx = MultiIndex(
         levels=[["bar", "baz"], ["mom", "next"]], codes=[[0, 0, 1, 1], [0, 0, 0, 1]]
     )
     assert idx.is_monotonic_increasing is True
@@ -169,8 +172,19 @@ def test_is_strictly_monotonic_increasing():
 
 
 def test_is_strictly_monotonic_decreasing():
-    idx = pd.MultiIndex(
+    idx = MultiIndex(
         levels=[["baz", "bar"], ["next", "mom"]], codes=[[0, 0, 1, 1], [0, 0, 0, 1]]
     )
     assert idx.is_monotonic_decreasing is True
     assert idx._is_strictly_monotonic_decreasing is False
+
+
+@pytest.mark.parametrize("attr", ["is_monotonic_increasing", "is_monotonic_decreasing"])
+@pytest.mark.parametrize(
+    "values",
+    [[(np.nan,), (1,), (2,)], [(1,), (np.nan,), (2,)], [(1,), (2,), (np.nan,)]],
+)
+def test_is_monotonic_with_nans(values, attr):
+    # GH: 37220
+    idx = MultiIndex.from_tuples(values, names=["test"])
+    assert getattr(idx, attr) is False

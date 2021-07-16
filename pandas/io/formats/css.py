@@ -1,6 +1,7 @@
 """
 Utilities for interpreting CSS from Stylers for formatting non-HTML outputs.
 """
+from __future__ import annotations
 
 import re
 import warnings
@@ -11,8 +12,6 @@ class CSSWarning(UserWarning):
     This CSS syntax cannot currently be parsed.
     """
 
-    pass
-
 
 def _side_expander(prop_fmt: str):
     def expand(self, prop, value: str):
@@ -20,9 +19,7 @@ def _side_expander(prop_fmt: str):
         try:
             mapping = self.SIDE_SHORTHANDS[len(tokens)]
         except KeyError:
-            warnings.warn(
-                f'Could not expand "{prop}: {value}"', CSSWarning,
-            )
+            warnings.warn(f'Could not expand "{prop}: {value}"', CSSWarning)
             return
         for key, idx in zip(self.SIDES, mapping):
             yield prop_fmt.format(key), tokens[idx]
@@ -34,100 +31,6 @@ class CSSResolver:
     """
     A callable for parsing and resolving CSS to atomic properties.
     """
-
-    def __call__(self, declarations_str, inherited=None):
-        """
-        The given declarations to atomic properties.
-
-        Parameters
-        ----------
-        declarations_str : str
-            A list of CSS declarations
-        inherited : dict, optional
-            Atomic properties indicating the inherited style context in which
-            declarations_str is to be resolved. ``inherited`` should already
-            be resolved, i.e. valid output of this method.
-
-        Returns
-        -------
-        dict
-            Atomic CSS 2.2 properties.
-
-        Examples
-        --------
-        >>> resolve = CSSResolver()
-        >>> inherited = {'font-family': 'serif', 'font-weight': 'bold'}
-        >>> out = resolve('''
-        ...               border-color: BLUE RED;
-        ...               font-size: 1em;
-        ...               font-size: 2em;
-        ...               font-weight: normal;
-        ...               font-weight: inherit;
-        ...               ''', inherited)
-        >>> sorted(out.items())  # doctest: +NORMALIZE_WHITESPACE
-        [('border-bottom-color', 'blue'),
-         ('border-left-color', 'red'),
-         ('border-right-color', 'red'),
-         ('border-top-color', 'blue'),
-         ('font-family', 'serif'),
-         ('font-size', '24pt'),
-         ('font-weight', 'bold')]
-        """
-        props = dict(self.atomize(self.parse(declarations_str)))
-        if inherited is None:
-            inherited = {}
-
-        # 1. resolve inherited, initial
-        for prop, val in inherited.items():
-            if prop not in props:
-                props[prop] = val
-
-        for prop, val in list(props.items()):
-            if val == "inherit":
-                val = inherited.get(prop, "initial")
-            if val == "initial":
-                val = None
-
-            if val is None:
-                # we do not define a complete initial stylesheet
-                del props[prop]
-            else:
-                props[prop] = val
-
-        # 2. resolve relative font size
-        if props.get("font-size"):
-            if "font-size" in inherited:
-                em_pt = inherited["font-size"]
-                assert em_pt[-2:] == "pt"
-                em_pt = float(em_pt[:-2])
-            else:
-                em_pt = None
-            props["font-size"] = self.size_to_pt(
-                props["font-size"], em_pt, conversions=self.FONT_SIZE_RATIOS
-            )
-
-            font_size = float(props["font-size"][:-2])
-        else:
-            font_size = None
-
-        # 3. TODO: resolve other font-relative units
-        for side in self.SIDES:
-            prop = f"border-{side}-width"
-            if prop in props:
-                props[prop] = self.size_to_pt(
-                    props[prop], em_pt=font_size, conversions=self.BORDER_WIDTH_RATIOS
-                )
-            for prop in [
-                f"margin-{side}",
-                f"padding-{side}",
-            ]:
-                if prop in props:
-                    # TODO: support %
-                    props[prop] = self.size_to_pt(
-                        props[prop], em_pt=font_size, conversions=self.MARGIN_RATIOS
-                    )
-
-        return props
 
     UNIT_RATIOS = {
         "rem": ("pt", 12),
@@ -173,15 +76,143 @@ class CSSResolver:
         }
     )
 
+    SIDE_SHORTHANDS = {
+        1: [0, 0, 0, 0],
+        2: [0, 1, 0, 1],
+        3: [0, 1, 2, 1],
+        4: [0, 1, 2, 3],
+    }
+
+    SIDES = ("top", "right", "bottom", "left")
+
+    def __call__(
+        self,
+        declarations_str: str,
+        inherited: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        """
+        The given declarations to atomic properties.
+
+        Parameters
+        ----------
+        declarations_str : str
+            A list of CSS declarations
+        inherited : dict, optional
+            Atomic properties indicating the inherited style context in which
+            declarations_str is to be resolved. ``inherited`` should already
+            be resolved, i.e. valid output of this method.
+
+        Returns
+        -------
+        dict
+            Atomic CSS 2.2 properties.
+
+        Examples
+        --------
+        >>> resolve = CSSResolver()
+        >>> inherited = {'font-family': 'serif', 'font-weight': 'bold'}
+        >>> out = resolve('''
+        ...               border-color: BLUE RED;
+        ...               font-size: 1em;
+        ...               font-size: 2em;
+        ...               font-weight: normal;
+        ...               font-weight: inherit;
+        ...               ''', inherited)
+        >>> sorted(out.items())  # doctest: +NORMALIZE_WHITESPACE
+        [('border-bottom-color', 'blue'),
+         ('border-left-color', 'red'),
+         ('border-right-color', 'red'),
+         ('border-top-color', 'blue'),
+         ('font-family', 'serif'),
+         ('font-size', '24pt'),
+         ('font-weight', 'bold')]
+        """
+        props = dict(self.atomize(self.parse(declarations_str)))
+        if inherited is None:
+            inherited = {}
+
+        props = self._update_initial(props, inherited)
+        props = self._update_font_size(props, inherited)
+        return self._update_other_units(props)
+
+    def _update_initial(
+        self,
+        props: dict[str, str],
+        inherited: dict[str, str],
+    ) -> dict[str, str]:
+        # 1. resolve inherited, initial
+        for prop, val in inherited.items():
+            if prop not in props:
+                props[prop] = val
+
+        new_props = props.copy()
+        for prop, val in props.items():
+            if val == "inherit":
+                val = inherited.get(prop, "initial")
+
+            if val in ("initial", None):
+                # we do not define a complete initial stylesheet
+                del new_props[prop]
+            else:
+                new_props[prop] = val
+        return new_props
+
+    def _update_font_size(
+        self,
+        props: dict[str, str],
+        inherited: dict[str, str],
+    ) -> dict[str, str]:
+        # 2. resolve relative font size
+        if props.get("font-size"):
+            props["font-size"] = self.size_to_pt(
+                props["font-size"],
+                self._get_font_size(inherited),
+                conversions=self.FONT_SIZE_RATIOS,
+            )
+        return props
+
+    def _get_font_size(self, props: dict[str, str]) -> float | None:
+        if props.get("font-size"):
+            font_size_string = props["font-size"]
+            return self._get_float_font_size_from_pt(font_size_string)
+        return None
+
+    def _get_float_font_size_from_pt(self, font_size_string: str) -> float:
+        assert font_size_string.endswith("pt")
+        return float(font_size_string.rstrip("pt"))
+
+    def _update_other_units(self, props: dict[str, str]) -> dict[str, str]:
+        font_size = self._get_font_size(props)
+        # 3. TODO: resolve other font-relative units
+        for side in self.SIDES:
+            prop = f"border-{side}-width"
+            if prop in props:
+                props[prop] = self.size_to_pt(
+                    props[prop],
+                    em_pt=font_size,
+                    conversions=self.BORDER_WIDTH_RATIOS,
+                )
+
+            for prop in [f"margin-{side}", f"padding-{side}"]:
+                if prop in props:
+                    # TODO: support %
+                    props[prop] = self.size_to_pt(
+                        props[prop],
+                        em_pt=font_size,
+                        conversions=self.MARGIN_RATIOS,
+                    )
+        return props
+
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
             warnings.warn(f"Unhandled size: {repr(in_val)}", CSSWarning)
             return self.size_to_pt("1!!default", conversions=conversions)
 
-        try:
-            val, unit = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val).groups()
-        except AttributeError:
+        match = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val)
+        if match is None:
             return _error()
+
+        val, unit = match.groups()
         if val == "":
             # hack for 'large' etc.
             val = 1
@@ -223,14 +254,6 @@ class CSSResolver:
             else:
                 for prop, value in expand(prop, value):
                     yield prop, value
-
-    SIDE_SHORTHANDS = {
-        1: [0, 0, 0, 0],
-        2: [0, 1, 0, 1],
-        3: [0, 1, 2, 1],
-        4: [0, 1, 2, 3],
-    }
-    SIDES = ("top", "right", "bottom", "left")
 
     expand_border_color = _side_expander("border-{:s}-color")
     expand_border_style = _side_expander("border-{:s}-style")

@@ -1,0 +1,41 @@
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+
+  # tools
+  - cython>=0.29.21
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+
+  # pandas dependencies
+  - beautifulsoup4
+  - bottleneck
+  - fsspec>=0.8.0, <2021.6.0
+  - gcsfs
+  - html5lib
+  - jinja2
+  - lxml
+  - matplotlib
+  - moto>=1.3.14
+  - flask
+  - numexpr
+  - numpy
+  - openpyxl
+  - pyarrow
+  - pytables
+  - python-dateutil
+  - pytz
+  - s3fs>=0.4.2
+  - scipy
+  - sqlalchemy
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  - pyreadstat
+  - pip
+  - pip:
+    - pyxlsb

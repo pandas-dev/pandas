@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import subprocess
 import sys
-from typing import List
 
 import pytest
 
 import pandas as pd
-from pandas import api, compat
+from pandas import api
 import pandas._testing as tm
 
 
@@ -46,7 +47,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_modules: List[str] = ["np", "datetime"]
+    deprecated_modules: list[str] = ["np", "datetime"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -61,6 +62,7 @@ class TestPDApi(Base):
         "ExcelFile",
         "ExcelWriter",
         "Float64Index",
+        "Flags",
         "Grouper",
         "HDFStore",
         "Index",
@@ -91,22 +93,19 @@ class TestPDApi(Base):
         "UInt16Dtype",
         "UInt32Dtype",
         "UInt64Dtype",
+        "Float32Dtype",
+        "Float64Dtype",
         "NamedAgg",
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: List[str] = []
+    deprecated_classes: list[str] = []
 
     # these should be deprecated in the future
-    deprecated_classes_in_future: List[str] = ["SparseArray"]
-
-    if not compat.PY37:
-        classes.extend(["Panel", "SparseSeries", "SparseDataFrame"])
-        # deprecated_modules.extend(["np", "datetime"])
-        # deprecated_classes_in_future.extend(["SparseArray"])
+    deprecated_classes_in_future: list[str] = ["SparseArray"]
 
     # external modules exposed in pandas namespace
-    modules: List[str] = []
+    modules: list[str] = []
 
     # top-level functions
     funcs = [
@@ -161,6 +160,7 @@ class TestPDApi(Base):
         "read_gbq",
         "read_hdf",
         "read_html",
+        "read_xml",
         "read_json",
         "read_pickle",
         "read_sas",
@@ -182,10 +182,10 @@ class TestPDApi(Base):
     funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
 
     # top-level to deprecate in the future
-    deprecated_funcs_in_future: List[str] = []
+    deprecated_funcs_in_future: list[str] = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs: List[str] = []
+    deprecated_funcs: list[str] = []
 
     # private modules in pandas namespace
     private_modules = [
@@ -193,11 +193,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p14",
-        "_np_version_under1p15",
-        "_np_version_under1p16",
-        "_np_version_under1p17",
-        "_np_version_under1p18",
         "_is_numpy_dev",
         "_testing",
         "_tslib",
@@ -219,15 +214,7 @@ class TestPDApi(Base):
             + self.funcs_to
             + self.private_modules
         )
-        if not compat.PY37:
-            checkthese.extend(
-                self.deprecated_modules
-                + self.deprecated_classes
-                + self.deprecated_classes_in_future
-                + self.deprecated_funcs_in_future
-                + self.deprecated_funcs
-            )
-        self.check(pd, checkthese, self.ignored)
+        self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
 
     def test_depr(self):
         deprecated_list = (
@@ -239,14 +226,7 @@ class TestPDApi(Base):
         )
         for depr in deprecated_list:
             with tm.assert_produces_warning(FutureWarning):
-                deprecated = getattr(pd, depr)
-                if not compat.PY37:
-                    if depr == "datetime":
-                        deprecated.__getattr__(dir(pd.datetime.datetime)[-1])
-                    elif depr == "SparseArray":
-                        deprecated([])
-                    else:
-                        deprecated.__getattr__(dir(deprecated)[-1])
+                _ = getattr(pd, depr)
 
 
 def test_datetime():
@@ -255,9 +235,9 @@ def test_datetime():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
-        assert datetime(2015, 1, 2, 0, 0) == pd.datetime(2015, 1, 2, 0, 0)
+        assert datetime(2015, 1, 2, 0, 0) == datetime(2015, 1, 2, 0, 0)
 
-        assert isinstance(pd.datetime(2015, 1, 2, 0, 0), pd.datetime)
+        assert isinstance(datetime(2015, 1, 2, 0, 0), datetime)
 
 
 def test_sparsearray():
@@ -269,8 +249,9 @@ def test_sparsearray():
 
 
 def test_np():
-    import numpy as np
     import warnings
+
+    import numpy as np
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", FutureWarning)
@@ -293,7 +274,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
+        from pandas import testing  # noqa: PDF015
 
         self.check(testing, self.funcs)
 

@@ -6,8 +6,11 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
-
-from .array import JSONArray, JSONDtype, make_data
+from pandas.tests.extension.json.array import (
+    JSONArray,
+    JSONDtype,
+    make_data,
+)
 
 
 @pytest.fixture
@@ -143,12 +146,34 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
         with pytest.raises(AssertionError, match=msg):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
+    @pytest.mark.xfail(
+        reason="comparison method not implemented for JSONArray (GH-37867)"
+    )
+    def test_contains(self, data):
+        # GH-37867
+        super().test_contains(data)
+
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     @pytest.mark.skip(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
         pass
+
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_no_data_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="RecursionError, GH-33900")
+    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+        # RecursionError: maximum recursion depth exceeded in comparison
+        super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+
+    @pytest.mark.xfail(reason="collection as scalar, GH-33901")
+    def test_series_constructor_scalar_with_index(self, data, dtype):
+        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
+        super().test_series_constructor_scalar_with_index(data, dtype)
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
@@ -194,6 +219,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         pass
 
     @unhashable
+    def test_value_counts_with_normalize(self, data):
+        pass
+
+    @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
@@ -205,12 +234,16 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_argsort_missing(data_missing_for_sorting)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values(self, data_for_sorting, ascending):
-        super().test_sort_values(data_for_sorting, ascending)
+    def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
+        super().test_sort_values(data_for_sorting, ascending, sort_by_key)
 
     @pytest.mark.parametrize("ascending", [True, False])
-    def test_sort_values_missing(self, data_missing_for_sorting, ascending):
-        super().test_sort_values_missing(data_missing_for_sorting, ascending)
+    def test_sort_values_missing(
+        self, data_missing_for_sorting, ascending, sort_by_key
+    ):
+        super().test_sort_values_missing(
+            data_missing_for_sorting, ascending, sort_by_key
+        )
 
     @pytest.mark.skip(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
@@ -238,6 +271,10 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.skip(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
+
+    @pytest.mark.skip(reason="Can't compare dicts.")
+    def test_equals(self, data, na_value, as_series):
+        pass
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -279,10 +316,17 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
+    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    def test_groupby_agg_extension(self, data_for_grouping):
+        super().test_groupby_agg_extension(data_for_grouping)
+
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
-    def test_error(self, data, all_arithmetic_operators):
-        pass
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if len(data[0]) != 1:
+            mark = pytest.mark.xfail(reason="raises in coercing to Series")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_add_series_with_extension_array(self, data):
         ser = pd.Series(data)

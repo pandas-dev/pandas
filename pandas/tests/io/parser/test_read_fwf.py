@@ -5,16 +5,27 @@ engine is set to 'python-fwf' internally.
 """
 
 from datetime import datetime
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, DatetimeIndex
+from pandas.errors import EmptyDataError
+
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+)
 import pandas._testing as tm
 
-from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
+from pandas.io.parsers import (
+    read_csv,
+    read_fwf,
+)
 
 
 def test_basic():
@@ -173,9 +184,7 @@ A   B     C            D            E
 
 
 def test_bytes_io_input():
-    result = read_fwf(
-        BytesIO("שלום\nשלום".encode("utf8")), widths=[2, 2], encoding="utf8"
-    )
+    result = read_fwf(BytesIO("שלום\nשלום".encode()), widths=[2, 2], encoding="utf8")
     expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
     tm.assert_frame_equal(result, expected)
 
@@ -341,6 +350,51 @@ def test_fwf_comment(comment):
     tm.assert_almost_equal(result, expected)
 
 
+def test_fwf_skip_blank_lines():
+    data = """
+
+A         B            C            D
+
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+
+
+201162    502.953953   173.237159   12468.3
+
+"""
+    result = read_fwf(StringIO(data), skip_blank_lines=True)
+    expected = DataFrame(
+        [
+            [201158, 360.242940, 149.910199, 11950.7],
+            [201159, 444.953632, 166.985655, 11788.4],
+            [201162, 502.953953, 173.237159, 12468.3],
+        ],
+        columns=["A", "B", "C", "D"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    data = """\
+A         B            C            D
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+
+
+201162    502.953953   173.237159   12468.3
+"""
+    result = read_fwf(StringIO(data), skip_blank_lines=False)
+    expected = DataFrame(
+        [
+            [201158, 360.242940, 149.910199, 11950.7],
+            [201159, 444.953632, 166.985655, 11788.4],
+            [np.nan, np.nan, np.nan, np.nan],
+            [np.nan, np.nan, np.nan, np.nan],
+            [201162, 502.953953, 173.237159, 12468.3],
+        ],
+        columns=["A", "B", "C", "D"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("thousands", [",", "#", "~"])
 def test_fwf_thousands(thousands):
     data = """\
@@ -492,7 +546,7 @@ def test_variable_width_unicode():
         "\r\n"
     )
     encoding = "utf8"
-    kwargs = dict(header=None, encoding=encoding)
+    kwargs = {"header": None, "encoding": encoding}
 
     expected = read_fwf(
         BytesIO(data.encode(encoding)), colspecs=[(0, 4), (5, 9)], **kwargs
@@ -501,7 +555,7 @@ def test_variable_width_unicode():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", [dict(), {"a": "float64", "b": str, "c": "int32"}])
+@pytest.mark.parametrize("dtype", [{}, {"a": "float64", "b": str, "c": "int32"}])
 def test_dtype(dtype):
     data = """ a    b    c
 1    2    3.2
@@ -510,7 +564,7 @@ def test_dtype(dtype):
     colspecs = [(0, 5), (5, 10), (10, None)]
     result = read_fwf(StringIO(data), colspecs=colspecs, dtype=dtype)
 
-    expected = pd.DataFrame(
+    expected = DataFrame(
         {"a": [1, 3], "b": [2, 4], "c": [3.2, 5.2]}, columns=["a", "b", "c"]
     )
 
@@ -594,7 +648,7 @@ cc\tdd """
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("infer", [True, False, None])
+@pytest.mark.parametrize("infer", [True, False])
 def test_fwf_compression(compression_only, infer):
     data = """1111111111
     2222222222
@@ -603,7 +657,7 @@ def test_fwf_compression(compression_only, infer):
     compression = compression_only
     extension = "gz" if compression == "gzip" else compression
 
-    kwargs = dict(widths=[5, 5], names=["one", "two"])
+    kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
 
     data = bytes(data, encoding="utf-8")
@@ -616,3 +670,43 @@ def test_fwf_compression(compression_only, infer):
 
         result = read_fwf(path, **kwargs)
         tm.assert_frame_equal(result, expected)
+
+
+def test_binary_mode():
+    """
+    read_fwf supports opening files in binary mode.
+
+    GH 18035.
+    """
+    data = """aas aas aas
+bba bab b a"""
+    df_reference = DataFrame(
+        [["bba", "bab", "b a"]], columns=["aas", "aas.1", "aas.2"], index=[0]
+    )
+    with tm.ensure_clean() as path:
+        Path(path).write_text(data)
+        with open(path, "rb") as file:
+            df = read_fwf(file)
+            file.seek(0)
+            tm.assert_frame_equal(df, df_reference)
+
+
+@pytest.mark.parametrize("memory_map", [True, False])
+def test_encoding_mmap(memory_map):
+    """
+    encoding should be working, even when using a memory-mapped file.
+
+    GH 23254.
+    """
+    encoding = "iso8859_1"
+    data = BytesIO(" 1 A Ä 2\n".encode(encoding))
+    df = read_fwf(
+        data,
+        header=None,
+        widths=[2, 2, 2, 2],
+        encoding=encoding,
+        memory_map=memory_map,
+    )
+    data.seek(0)
+    df_reference = DataFrame([[1, "A", "Ä", 2]])
+    tm.assert_frame_equal(df, df_reference)

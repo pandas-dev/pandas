@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from pandas._libs.interval import IntervalTree
+from pandas.compat import IS64
 
-from pandas import compat
 import pandas._testing as tm
 
 
@@ -14,9 +14,7 @@ def skipif_32bit(param):
     Skip parameters in a parametrize on 32bit systems. Specifically used
     here to skip leaf_size parameters related to GH 23440.
     """
-    marks = pytest.mark.skipif(
-        compat.is_platform_32bit(), reason="GH 23440: int type mismatch on 32bit"
-    )
+    marks = pytest.mark.skipif(not IS64, reason="GH 23440: int type mismatch on 32bit")
     return pytest.param(param, marks=marks)
 
 
@@ -181,7 +179,7 @@ class TestIntervalTree:
         tree = IntervalTree(left, right, closed=closed)
         assert tree.is_overlapping is False
 
-    @pytest.mark.skipif(compat.is_platform_32bit(), reason="GH 23440")
+    @pytest.mark.skipif(not IS64, reason="GH 23440")
     def test_construction_overflow(self):
         # GH 25485
         left, right = np.arange(101, dtype="int64"), [np.iinfo(np.int64).max] * 101

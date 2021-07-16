@@ -1,7 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import Float64Index, Int64Index, Series, UInt64Index
+from pandas import (
+    Float64Index,
+    Index,
+    Int64Index,
+    RangeIndex,
+    Series,
+    Timestamp,
+    UInt64Index,
+)
 import pandas._testing as tm
 
 
@@ -13,6 +21,64 @@ def index_large():
 
 
 class TestGetLoc:
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    def test_get_loc(self, method):
+        index = Index([0, 1, 2])
+        warn = None if method is None else FutureWarning
+
+        with tm.assert_produces_warning(warn, match="deprecated"):
+            assert index.get_loc(1, method=method) == 1
+
+        if method:
+            with tm.assert_produces_warning(warn, match="deprecated"):
+                assert index.get_loc(1, method=method, tolerance=0) == 1
+
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc_raises_bad_label(self, method):
+        index = Index([0, 1, 2])
+        if method:
+            msg = "not supported between"
+        else:
+            msg = "invalid key"
+
+        with pytest.raises(TypeError, match=msg):
+            index.get_loc([1, 2], method=method)
+
+    @pytest.mark.parametrize(
+        "method,loc", [("pad", 1), ("backfill", 2), ("nearest", 1)]
+    )
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc_tolerance(self, method, loc):
+        index = Index([0, 1, 2])
+        assert index.get_loc(1.1, method) == loc
+        assert index.get_loc(1.1, method, tolerance=1) == loc
+
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_loc_outside_tolerance_raises(self, method):
+        index = Index([0, 1, 2])
+        with pytest.raises(KeyError, match="1.1"):
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                index.get_loc(1.1, method, tolerance=0.05)
+
+    def test_get_loc_bad_tolerance_raises(self):
+        index = Index([0, 1, 2])
+        with pytest.raises(ValueError, match="must be numeric"):
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                index.get_loc(1.1, "nearest", tolerance="invalid")
+
+    def test_get_loc_tolerance_no_method_raises(self):
+        index = Index([0, 1, 2])
+        with pytest.raises(ValueError, match="tolerance .* valid if"):
+            index.get_loc(1.1, tolerance=1)
+
+    def test_get_loc_raises_missized_tolerance(self):
+        index = Index([0, 1, 2])
+        with pytest.raises(ValueError, match="tolerance size must match"):
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                index.get_loc(1.1, "nearest", tolerance=[1, 1])
+
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc_float64(self):
         idx = Float64Index([0.0, 1.0, 2.0])
         for method in [None, "pad", "backfill", "nearest"]:
@@ -54,13 +120,10 @@ class TestGetLoc:
         idx = Float64Index([np.nan, 1, np.nan])
         assert idx.get_loc(1) == 1
 
-        # FIXME: dont leave commented-out
         # representable by slice [0:2:2]
-        # pytest.raises(KeyError, idx.slice_locs, np.nan)
-        sliced = idx.slice_locs(np.nan)
-        assert isinstance(sliced, tuple)
-        assert sliced == (0, 3)
-
+        msg = "'Cannot get left slice bound for non-unique label: nan'"
+        with pytest.raises(KeyError, match=msg):
+            idx.slice_locs(np.nan)
         # not representable by slice
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         assert idx.get_loc(1) == 1
@@ -80,8 +143,173 @@ class TestGetLoc:
             # listlike/non-hashable raises TypeError
             idx.get_loc([np.nan])
 
+    @pytest.mark.parametrize("vals", [[1], [1.0], [Timestamp("2019-12-31")], ["test"]])
+    @pytest.mark.parametrize("method", ["nearest", "pad", "backfill"])
+    def test_get_loc_float_index_nan_with_method(self, vals, method):
+        # GH#39382
+        idx = Index(vals)
+        with pytest.raises(KeyError, match="nan"):
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+                idx.get_loc(np.nan, method=method)
+
 
 class TestGetIndexer:
+    def test_get_indexer(self):
+        index1 = Index([1, 2, 3, 4, 5])
+        index2 = Index([2, 4, 6])
+
+        r1 = index1.get_indexer(index2)
+        e1 = np.array([1, 3, -1], dtype=np.intp)
+        tm.assert_almost_equal(r1, e1)
+
+    @pytest.mark.parametrize("reverse", [True, False])
+    @pytest.mark.parametrize(
+        "expected,method",
+        [
+            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "pad"),
+            (np.array([-1, 0, 0, 1, 1], dtype=np.intp), "ffill"),
+            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "backfill"),
+            (np.array([0, 0, 1, 1, 2], dtype=np.intp), "bfill"),
+        ],
+    )
+    def test_get_indexer_methods(self, reverse, expected, method):
+        index1 = Index([1, 2, 3, 4, 5])
+        index2 = Index([2, 4, 6])
+
+        if reverse:
+            index1 = index1[::-1]
+            expected = expected[::-1]
+
+        result = index2.get_indexer(index1, method=method)
+        tm.assert_almost_equal(result, expected)
+
+    def test_get_indexer_invalid(self):
+        # GH10411
+        index = Index(np.arange(10))
+
+        with pytest.raises(ValueError, match="tolerance argument"):
+            index.get_indexer([1, 0], tolerance=1)
+
+        with pytest.raises(ValueError, match="limit argument"):
+            index.get_indexer([1, 0], limit=1)
+
+    @pytest.mark.parametrize(
+        "method, tolerance, indexer, expected",
+        [
+            ("pad", None, [0, 5, 9], [0, 5, 9]),
+            ("backfill", None, [0, 5, 9], [0, 5, 9]),
+            ("nearest", None, [0, 5, 9], [0, 5, 9]),
+            ("pad", 0, [0, 5, 9], [0, 5, 9]),
+            ("backfill", 0, [0, 5, 9], [0, 5, 9]),
+            ("nearest", 0, [0, 5, 9], [0, 5, 9]),
+            ("pad", None, [0.2, 1.8, 8.5], [0, 1, 8]),
+            ("backfill", None, [0.2, 1.8, 8.5], [1, 2, 9]),
+            ("nearest", None, [0.2, 1.8, 8.5], [0, 2, 9]),
+            ("pad", 1, [0.2, 1.8, 8.5], [0, 1, 8]),
+            ("backfill", 1, [0.2, 1.8, 8.5], [1, 2, 9]),
+            ("nearest", 1, [0.2, 1.8, 8.5], [0, 2, 9]),
+            ("pad", 0.2, [0.2, 1.8, 8.5], [0, -1, -1]),
+            ("backfill", 0.2, [0.2, 1.8, 8.5], [-1, 2, -1]),
+            ("nearest", 0.2, [0.2, 1.8, 8.5], [0, 2, -1]),
+        ],
+    )
+    def test_get_indexer_nearest(self, method, tolerance, indexer, expected):
+        index = Index(np.arange(10))
+
+        actual = index.get_indexer(indexer, method=method, tolerance=tolerance)
+        tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
+
+    @pytest.mark.parametrize("listtype", [list, tuple, Series, np.array])
+    @pytest.mark.parametrize(
+        "tolerance, expected",
+        list(
+            zip(
+                [[0.3, 0.3, 0.1], [0.2, 0.1, 0.1], [0.1, 0.5, 0.5]],
+                [[0, 2, -1], [0, -1, -1], [-1, 2, 9]],
+            )
+        ),
+    )
+    def test_get_indexer_nearest_listlike_tolerance(
+        self, tolerance, expected, listtype
+    ):
+        index = Index(np.arange(10))
+
+        actual = index.get_indexer(
+            [0.2, 1.8, 8.5], method="nearest", tolerance=listtype(tolerance)
+        )
+        tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
+
+    def test_get_indexer_nearest_error(self):
+        index = Index(np.arange(10))
+        with pytest.raises(ValueError, match="limit argument"):
+            index.get_indexer([1, 0], method="nearest", limit=1)
+
+        with pytest.raises(ValueError, match="tolerance size must match"):
+            index.get_indexer([1, 0], method="nearest", tolerance=[1, 2, 3])
+
+    @pytest.mark.parametrize(
+        "method,expected",
+        [("pad", [8, 7, 0]), ("backfill", [9, 8, 1]), ("nearest", [9, 7, 0])],
+    )
+    def test_get_indexer_nearest_decreasing(self, method, expected):
+        index = Index(np.arange(10))[::-1]
+
+        actual = index.get_indexer([0, 5, 9], method=method)
+        tm.assert_numpy_array_equal(actual, np.array([9, 4, 0], dtype=np.intp))
+
+        actual = index.get_indexer([0.2, 1.8, 8.5], method=method)
+        tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
+
+    @pytest.mark.parametrize(
+        "idx_class", [Int64Index, RangeIndex, Float64Index, UInt64Index]
+    )
+    @pytest.mark.parametrize("method", ["get_indexer", "get_indexer_non_unique"])
+    def test_get_indexer_numeric_index_boolean_target(self, method, idx_class):
+        # GH 16877
+
+        numeric_index = idx_class(RangeIndex(4))
+        other = Index([True, False, True])
+
+        result = getattr(numeric_index, method)(other)
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        if method == "get_indexer":
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            missing = np.arange(3, dtype=np.intp)
+            tm.assert_numpy_array_equal(result[0], expected)
+            tm.assert_numpy_array_equal(result[1], missing)
+
+    @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
+    def test_get_indexer_with_method_numeric_vs_bool(self, method):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        with pytest.raises(TypeError, match="Cannot compare"):
+            left.get_indexer(right, method=method)
+
+        with pytest.raises(TypeError, match="Cannot compare"):
+            right.get_indexer(left, method=method)
+
+    def test_get_indexer_numeric_vs_bool(self):
+        left = Index([1, 2, 3])
+        right = Index([True, False])
+
+        res = left.get_indexer(right)
+        expected = -1 * np.ones(len(right), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = right.get_indexer(left)
+        expected = -1 * np.ones(len(left), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = left.get_indexer_non_unique(right)[0]
+        expected = -1 * np.ones(len(right), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = right.get_indexer_non_unique(left)[0]
+        expected = -1 * np.ones(len(left), dtype=np.intp)
+        tm.assert_numpy_array_equal(res, expected)
+
     def test_get_indexer_float64(self):
         idx = Float64Index([0.0, 1.0, 2.0])
         tm.assert_numpy_array_equal(
@@ -159,6 +387,19 @@ class TestWhere:
         result = index.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
+    def test_where_uin64(self):
+        idx = UInt64Index([0, 6, 2])
+        mask = np.array([False, True, False])
+        other = np.array([1], dtype=np.int64)
+
+        expected = UInt64Index([1, 6, 1])
+
+        result = idx.where(mask, other)
+        tm.assert_index_equal(result, expected)
+
+        result = idx.putmask(~mask, other)
+        tm.assert_index_equal(result, expected)
+
 
 class TestTake:
     @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
@@ -228,6 +469,12 @@ class TestTake:
 
 
 class TestContains:
+    @pytest.mark.parametrize("klass", [Float64Index, Int64Index, UInt64Index])
+    def test_contains_none(self, klass):
+        # GH#35788 should return False, not raise TypeError
+        index = klass([0, 1, 2, 3, 4])
+        assert None not in index
+
     def test_contains_float64_nans(self):
         index = Float64Index([1.0, 2.0, np.nan])
         assert np.nan in index
@@ -235,3 +482,76 @@ class TestContains:
     def test_contains_float64_not_nans(self):
         index = Float64Index([1.0, 2.0, np.nan])
         assert 1.0 in index
+
+
+class TestSliceLocs:
+    @pytest.mark.parametrize("dtype", [int, float])
+    def test_slice_locs(self, dtype):
+        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
+        n = len(index)
+
+        assert index.slice_locs(start=2) == (2, n)
+        assert index.slice_locs(start=3) == (3, n)
+        assert index.slice_locs(3, 8) == (3, 6)
+        assert index.slice_locs(5, 10) == (3, n)
+        assert index.slice_locs(end=8) == (0, 6)
+        assert index.slice_locs(end=9) == (0, 7)
+
+        # reversed
+        index2 = index[::-1]
+        assert index2.slice_locs(8, 2) == (2, 6)
+        assert index2.slice_locs(7, 3) == (2, 5)
+
+    @pytest.mark.parametrize("dtype", [int, float])
+    def test_slice_locs_float_locs(self, dtype):
+        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
+        n = len(index)
+        assert index.slice_locs(5.0, 10.0) == (3, n)
+        assert index.slice_locs(4.5, 10.5) == (3, 8)
+
+        index2 = index[::-1]
+        assert index2.slice_locs(8.5, 1.5) == (2, 6)
+        assert index2.slice_locs(10.5, -1) == (0, n)
+
+    @pytest.mark.parametrize("dtype", [int, float])
+    def test_slice_locs_dup_numeric(self, dtype):
+        index = Index(np.array([10, 12, 12, 14], dtype=dtype))
+        assert index.slice_locs(12, 12) == (1, 3)
+        assert index.slice_locs(11, 13) == (1, 3)
+
+        index2 = index[::-1]
+        assert index2.slice_locs(12, 12) == (1, 3)
+        assert index2.slice_locs(13, 11) == (1, 3)
+
+    def test_slice_locs_na(self):
+        index = Index([np.nan, 1, 2])
+        assert index.slice_locs(1) == (1, 3)
+        assert index.slice_locs(np.nan) == (0, 3)
+
+        index = Index([0, np.nan, np.nan, 1, 2])
+        assert index.slice_locs(np.nan) == (1, 5)
+
+    def test_slice_locs_na_raises(self):
+        index = Index([np.nan, 1, 2])
+        with pytest.raises(KeyError, match=""):
+            index.slice_locs(start=1.5)
+
+        with pytest.raises(KeyError, match=""):
+            index.slice_locs(end=1.5)
+
+
+class TestGetSliceBounds:
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
+    def test_get_slice_bounds_within(self, kind, side, expected):
+        index = Index(range(6))
+        result = index.get_slice_bound(4, kind=kind, side=side)
+        assert result == expected
+
+    @pytest.mark.parametrize("kind", ["getitem", "loc", None])
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
+    def test_get_slice_bounds_outside(self, kind, side, expected, bound):
+        index = Index(range(6))
+        result = index.get_slice_bound(bound, kind=kind, side=side)
+        assert result == expected

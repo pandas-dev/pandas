@@ -1,11 +1,35 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
 class TestDataFramePctChange:
+    @pytest.mark.parametrize(
+        "periods,fill_method,limit,exp",
+        [
+            (1, "ffill", None, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, 0]),
+            (1, "ffill", 1, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, np.nan]),
+            (1, "bfill", None, [np.nan, 0, 0, 1, 1, 1.5, np.nan, np.nan]),
+            (1, "bfill", 1, [np.nan, np.nan, 0, 1, 1, 1.5, np.nan, np.nan]),
+            (-1, "ffill", None, [np.nan, np.nan, -0.5, -0.5, -0.6, 0, 0, np.nan]),
+            (-1, "ffill", 1, [np.nan, np.nan, -0.5, -0.5, -0.6, 0, np.nan, np.nan]),
+            (-1, "bfill", None, [0, 0, -0.5, -0.5, -0.6, np.nan, np.nan, np.nan]),
+            (-1, "bfill", 1, [np.nan, 0, -0.5, -0.5, -0.6, np.nan, np.nan, np.nan]),
+        ],
+    )
+    @pytest.mark.parametrize("klass", [DataFrame, Series])
+    def test_pct_change_with_nas(self, periods, fill_method, limit, exp, klass):
+        vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+        obj = klass(vals)
+
+        res = obj.pct_change(periods=periods, fill_method=fill_method, limit=limit)
+        tm.assert_equal(res, klass(exp))
+
     def test_pct_change_numeric(self):
         # GH#11150
         pnl = DataFrame(

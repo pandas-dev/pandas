@@ -53,6 +53,32 @@ need to implement certain operations expected by pandas users (for example
 the algorithm used in, ``Series.str.upper``). That work may be done outside of
 pandas.
 
+Consistent missing value handling
+---------------------------------
+
+Currently, pandas handles missing data differently for different data types. We
+use different types to indicate that a value is missing (``np.nan`` for
+floating-point data, ``np.nan`` or ``None`` for object-dtype data -- typically
+strings or booleans -- with missing values, and ``pd.NaT`` for datetimelike
+data). Integer data cannot store missing data or are cast to float. In addition,
+pandas 1.0 introduced a new missing value sentinel, ``pd.NA``, which is being
+used for the experimental nullable integer, boolean, and string data types.
+
+These different missing values have different behaviors in user-facing
+operations. Specifically, we introduced different semantics for the nullable
+data types for certain operations (e.g. propagating in comparison operations
+instead of comparing as False).
+
+Long term, we want to introduce consistent missing data handling for all data
+types. This includes consistent behavior in all operations (indexing, arithmetic
+operations, comparisons, etc.). There has been discussion of eventually making
+the new semantics the default.
+
+This has been discussed at
+`github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and
+linked issues), and described in more detail in this
+`design doc <https://hackmd.io/@jorisvandenbossche/Sk0wMeAmB>`__.
+
 Apache Arrow interoperability
 -----------------------------
 
@@ -115,20 +141,6 @@ ways for users to apply their own Numba-jitted functions where pandas accepts us
 and in groupby and window contexts). This will improve the performance of
 user-defined-functions in these operations by staying within compiled code.
 
-
-Documentation improvements
---------------------------
-
-We'd like to improve the content, structure, and presentation of the pandas documentation.
-Some specific goals include
-
-* Overhaul the HTML theme with a modern, responsive design (:issue:`15556`)
-* Improve the "Getting Started" documentation, designing and writing learning paths
-  for users different backgrounds (e.g. brand new to programming, familiar with
-  other languages like R, already familiar with Python).
-* Improve the overall organization of the documentation and specific subsections
-  of the documentation to make navigation and finding content easier.
-
 Performance monitoring
 ----------------------
 
@@ -177,3 +189,20 @@ should be notified of the proposal.
 When there's agreement that an implementation
 would be welcome, the roadmap should be updated to include the summary and a
 link to the discussion issue.
+
+Completed items
+---------------
+
+This section records now completed items from the pandas roadmap.
+
+Documentation improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We improved the pandas documentation
+
+* The pandas community worked with others to build the `pydata-sphinx-theme`_,
+  which is now used for https://pandas.pydata.org/docs/ (:issue:`15556`).
+* :ref:`getting_started` contains a number of resources intended for new
+  pandas users coming from a variety of backgrounds (:issue:`26831`).
+
+.. _pydata-sphinx-theme: https://github.com/pandas-dev/pydata-sphinx-theme

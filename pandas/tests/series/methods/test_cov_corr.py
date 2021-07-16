@@ -1,10 +1,15 @@
+import math
+
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import Series, isna
+from pandas import (
+    Series,
+    isna,
+)
 import pandas._testing as tm
 
 
@@ -35,6 +40,19 @@ class TestSeriesCov:
         ts1 = datetime_series[:15].reindex(datetime_series.index)
         ts2 = datetime_series[5:].reindex(datetime_series.index)
         assert isna(ts1.cov(ts2, min_periods=12))
+
+    @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
+    def test_cov_ddof(self, test_ddof):
+        # GH#34611
+        np_array1 = np.random.rand(10)
+        np_array2 = np.random.rand(10)
+
+        s1 = Series(np_array1)
+        s2 = Series(np_array2)
+
+        result = s1.cov(s2, ddof=test_ddof)
+        expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]
+        assert math.isclose(expected, result)
 
 
 class TestSeriesCorr:
@@ -120,8 +138,8 @@ class TestSeriesCorr:
 
     def test_corr_invalid_method(self):
         # GH PR #22298
-        s1 = pd.Series(np.random.randn(10))
-        s2 = pd.Series(np.random.randn(10))
+        s1 = Series(np.random.randn(10))
+        s2 = Series(np.random.randn(10))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")

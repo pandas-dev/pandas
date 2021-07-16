@@ -3,7 +3,11 @@ import pytest
 import pytz
 
 import pandas as pd
-from pandas import Series, date_range, period_range
+from pandas import (
+    Series,
+    date_range,
+    period_range,
+)
 import pandas._testing as tm
 
 
@@ -124,8 +128,8 @@ def test_align_multiindex():
         [range(2), range(3), range(2)], names=("a", "b", "c")
     )
     idx = pd.Index(range(2), name="b")
-    s1 = pd.Series(np.arange(12, dtype="int64"), index=midx)
-    s2 = pd.Series(np.arange(2, dtype="int64"), index=idx)
+    s1 = Series(np.arange(12, dtype="int64"), index=midx)
+    s2 = Series(np.arange(2, dtype="int64"), index=idx)
 
     # these must be the same results (but flipped)
     res1l, res1r = s1.align(s2, join="left")
@@ -134,7 +138,7 @@ def test_align_multiindex():
     expl = s1
     tm.assert_series_equal(expl, res1l)
     tm.assert_series_equal(expl, res2r)
-    expr = pd.Series([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
+    expr = Series([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
     tm.assert_series_equal(expr, res1r)
     tm.assert_series_equal(expr, res2l)
 
@@ -144,10 +148,10 @@ def test_align_multiindex():
     exp_idx = pd.MultiIndex.from_product(
         [range(2), range(2), range(2)], names=("a", "b", "c")
     )
-    expl = pd.Series([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
+    expl = Series([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
     tm.assert_series_equal(expl, res1l)
     tm.assert_series_equal(expl, res2r)
-    expr = pd.Series([0, 0, 1, 1] * 2, index=exp_idx)
+    expr = Series([0, 0, 1, 1] * 2, index=exp_idx)
     tm.assert_series_equal(expr, res1r)
     tm.assert_series_equal(expr, res2l)
 
@@ -155,7 +159,7 @@ def test_align_multiindex():
 @pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill", None])
 def test_align_with_dataframe_method(method):
     # GH31788
-    ser = pd.Series(range(3), index=range(3))
+    ser = Series(range(3), index=range(3))
     df = pd.DataFrame(0.0, index=range(3), columns=range(3))
 
     result_ser, result_df = ser.align(df, method=method)

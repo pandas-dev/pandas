@@ -1,0 +1,101 @@
+name: Posix
+
+on:
+  push:
+    branches:
+      - master
+      - 1.3.x
+  pull_request:
+    branches:
+      - master
+      - 1.3.x
+    paths-ignore:
+      - "doc/**"
+
+env:
+  PYTEST_WORKERS: "auto"
+  PANDAS_CI: 1
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      matrix:
+        settings: [
+          [actions-38-minimum_versions.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
+          [actions-38-locale_slow.yaml, "slow", "language-pack-it xsel", "it_IT.utf8", "it_IT.utf8", "", ""],
+          [actions-38.yaml, "not slow and not network and not clipboard", "", "", "", "", ""],
+          [actions-38-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-38-locale.yaml, "not slow and not network", "language-pack-zh-hans xsel", "zh_CN.utf8", "zh_CN.utf8", "", ""],
+          [actions-39-slow.yaml, "slow", "", "", "", "", ""],
+          [actions-39-numpydev.yaml, "not slow and not network", "xsel", "", "", "deprecate", "-W error"],
+          [actions-39.yaml, "not slow and not network and not clipboard", "", "", "", "", ""]
+        ]
+      fail-fast: false
+    env:
+      COVERAGE: true
+      ENV_FILE: ci/deps/${{ matrix.settings[0] }}
+      PATTERN: ${{ matrix.settings[1] }}
+      EXTRA_APT: ${{ matrix.settings[2] }}
+      LANG: ${{ matrix.settings[3] }}
+      LC_ALL: ${{ matrix.settings[4] }}
+      PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
+      TEST_ARGS: ${{ matrix.settings[6] }}
+    concurrency:
+      group: ${{ github.ref }}-${{ matrix.settings[0] }}
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Cache conda
+      uses: actions/cache@v2
+      env:
+        CACHE_NUMBER: 0
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+          hashFiles('${{ env.ENV_FILE }}') }}
+
+    - name: Extra installs
+      run: sudo apt-get update && sudo apt-get install -y libc6-dev-i386 ${{ env.EXTRA_APT }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: pandas-dev
+        channel-priority: flexible
+        environment-file: ${{ env.ENV_FILE }}
+        use-only-tar-bz2: true
+
+    - name: Build Pandas
+      uses: ./.github/actions/build_pandas
+
+    - name: Test
+      run: ci/run_tests.sh
+      if: always()
+
+    - name: Build Version
+      run: pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+
+    - name: Publish test results
+      uses: actions/upload-artifact@master
+      with:
+        name: Test results
+        path: test-data.xml
+      if: failure()
+
+    - name: Print skipped tests
+      run: python ci/print_skipped.py
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        flags: unittests
+        name: codecov-pandas
+        fail_ci_if_error: false

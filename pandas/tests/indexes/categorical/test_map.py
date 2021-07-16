@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import CategoricalIndex, Index
+from pandas import (
+    CategoricalIndex,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -25,16 +29,16 @@ class TestMap:
         tm.assert_index_equal(result, expected)
 
     def test_map(self):
-        ci = pd.CategoricalIndex(list("ABABC"), categories=list("CBA"), ordered=True)
+        ci = CategoricalIndex(list("ABABC"), categories=list("CBA"), ordered=True)
         result = ci.map(lambda x: x.lower())
-        exp = pd.CategoricalIndex(list("ababc"), categories=list("cba"), ordered=True)
+        exp = CategoricalIndex(list("ababc"), categories=list("cba"), ordered=True)
         tm.assert_index_equal(result, exp)
 
-        ci = pd.CategoricalIndex(
+        ci = CategoricalIndex(
             list("ABABC"), categories=list("BAC"), ordered=False, name="XXX"
         )
         result = ci.map(lambda x: x.lower())
-        exp = pd.CategoricalIndex(
+        exp = CategoricalIndex(
             list("ababc"), categories=list("bac"), ordered=False, name="XXX"
         )
         tm.assert_index_equal(result, exp)
@@ -45,18 +49,18 @@ class TestMap:
         )
 
         # change categories dtype
-        ci = pd.CategoricalIndex(list("ABABC"), categories=list("BAC"), ordered=False)
+        ci = CategoricalIndex(list("ABABC"), categories=list("BAC"), ordered=False)
 
         def f(x):
             return {"A": 10, "B": 20, "C": 30}.get(x)
 
         result = ci.map(f)
-        exp = pd.CategoricalIndex(
+        exp = CategoricalIndex(
             [10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False
         )
         tm.assert_index_equal(result, exp)
 
-        result = ci.map(pd.Series([10, 20, 30], index=["A", "B", "C"]))
+        result = ci.map(Series([10, 20, 30], index=["A", "B", "C"]))
         tm.assert_index_equal(result, exp)
 
         result = ci.map({"A": 10, "B": 20, "C": 30})
@@ -64,13 +68,13 @@ class TestMap:
 
     def test_map_with_categorical_series(self):
         # GH 12756
-        a = pd.Index([1, 2, 3, 4])
-        b = pd.Series(["even", "odd", "even", "odd"], dtype="category")
-        c = pd.Series(["even", "odd", "even", "odd"])
+        a = Index([1, 2, 3, 4])
+        b = Series(["even", "odd", "even", "odd"], dtype="category")
+        c = Series(["even", "odd", "even", "odd"])
 
         exp = CategoricalIndex(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(b), exp)
-        exp = pd.Index(["odd", "even", "odd", np.nan])
+        exp = Index(["odd", "even", "odd", np.nan])
         tm.assert_index_equal(a.map(c), exp)
 
     @pytest.mark.parametrize(
@@ -80,8 +84,8 @@ class TestMap:
             ([1, 2, np.nan], pd.isna),
             ([1, 1, np.nan], {1: False}),
             ([1, 2, np.nan], {1: False, 2: False}),
-            ([1, 1, np.nan], pd.Series([False, False])),
-            ([1, 2, np.nan], pd.Series([False, False, False])),
+            ([1, 1, np.nan], Series([False, False])),
+            ([1, 2, np.nan], Series([False, False, False])),
         ),
     )
     def test_map_with_nan(self, data, f):  # GH 24241
@@ -91,5 +95,21 @@ class TestMap:
             expected = pd.Categorical([False, False, np.nan])
             tm.assert_categorical_equal(result, expected)
         else:
-            expected = pd.Index([False, False, np.nan])
+            expected = Index([False, False, np.nan])
             tm.assert_index_equal(result, expected)
+
+    def test_map_with_dict_or_series(self):
+        orig_values = ["a", "B", 1, "a"]
+        new_values = ["one", 2, 3.0, "one"]
+        cur_index = CategoricalIndex(orig_values, name="XXX")
+        expected = CategoricalIndex(new_values, name="XXX", categories=[3.0, 2, "one"])
+
+        mapper = Series(new_values[:-1], index=orig_values[:-1])
+        result = cur_index.map(mapper)
+        # Order of categories in result can be different
+        tm.assert_index_equal(result, expected)
+
+        mapper = {o: n for o, n in zip(orig_values[:-1], new_values[:-1])}
+        result = cur_index.map(mapper)
+        # Order of categories in result can be different
+        tm.assert_index_equal(result, expected)

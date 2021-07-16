@@ -3,11 +3,20 @@ import random
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.errors import (
+    PerformanceWarning,
+    UnsortedIndexError,
+)
 
-import pandas as pd
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    RangeIndex,
+)
 import pandas._testing as tm
+from pandas.core.indexes.frozen import FrozenList
 
 
 def test_sortlevel(idx):
@@ -94,11 +103,11 @@ def test_numpy_argsort(idx):
 
 def test_unsortedindex():
     # GH 11897
-    mi = pd.MultiIndex.from_tuples(
+    mi = MultiIndex.from_tuples(
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    df = pd.DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
+    df = DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
 
     # GH 16734: not sorted, but no real slicing
     result = df.loc(axis=0)["z", "a"]
@@ -119,7 +128,7 @@ def test_unsortedindex():
 
 
 def test_unsortedindex_doc_examples():
-    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
+    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
         {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
     )
@@ -132,27 +141,25 @@ def test_unsortedindex_doc_examples():
     with pytest.raises(UnsortedIndexError, match=msg):
         dfm.loc[(0, "y"):(1, "z")]
 
-    assert not dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 1
+    assert not dfm.index._is_lexsorted()
+    assert dfm.index._lexsort_depth == 1
 
     # sort it
     dfm = dfm.sort_index()
     dfm.loc[(1, "z")]
     dfm.loc[(0, "y"):(1, "z")]
 
-    assert dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 2
+    assert dfm.index._is_lexsorted()
+    assert dfm.index._lexsort_depth == 2
 
 
 def test_reconstruct_sort():
 
     # starts off lexsorted & monotonic
     mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
-    assert mi.is_lexsorted()
     assert mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert recons.is_lexsorted()
     assert recons.is_monotonic
     assert mi is recons
 
@@ -160,15 +167,13 @@ def test_reconstruct_sort():
     assert Index(mi.values).equals(Index(recons.values))
 
     # cannot convert to lexsorted
-    mi = pd.MultiIndex.from_tuples(
+    mi = MultiIndex.from_tuples(
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_lexsorted()
     assert not recons.is_monotonic
 
     assert mi.equals(recons)
@@ -180,11 +185,9 @@ def test_reconstruct_sort():
         codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
         names=["col1", "col2"],
     )
-    assert not mi.is_lexsorted()
     assert not mi.is_monotonic
 
     recons = mi._sort_levels_monotonic()
-    assert not recons.is_lexsorted()
     assert not recons.is_monotonic
 
     assert mi.equals(recons)
@@ -236,11 +239,11 @@ def test_remove_unused_levels_large(first_type, second_type):
 
     size = 1 << 16
     df = DataFrame(
-        dict(
-            first=rng.randint(0, 1 << 13, size).astype(first_type),
-            second=rng.randint(0, 1 << 10, size).astype(second_type),
-            third=rng.rand(size),
-        )
+        {
+            "first": rng.randint(0, 1 << 13, size).astype(first_type),
+            "second": rng.randint(0, 1 << 10, size).astype(second_type),
+            "third": rng.rand(size),
+        }
     )
     df = df.groupby(["first", "second"]).sum()
     df = df[df.third < 0.1]
@@ -260,9 +263,7 @@ def test_remove_unused_levels_large(first_type, second_type):
 )
 def test_remove_unused_nan(level0, level1):
     # GH 18417
-    mi = pd.MultiIndex(
-        levels=[level0, level1], codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]]
-    )
+    mi = MultiIndex(levels=[level0, level1], codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
 
     result = mi.remove_unused_levels()
     tm.assert_index_equal(result, mi)
@@ -274,3 +275,13 @@ def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_remove_unused_levels_with_nan():
+    # GH 37510
+    idx = Index([(1, np.nan), (3, 4)]).rename(["id1", "id2"])
+    idx = idx.set_levels(["a", np.nan], level="id1")
+    idx = idx.remove_unused_levels()
+    result = idx.levels
+    expected = FrozenList([["a", np.nan], [4]])
+    assert str(result) == str(expected)

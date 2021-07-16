@@ -1,5 +1,10 @@
 """ Google BigQuery support """
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -20,20 +25,19 @@ def _try_import():
 
 def read_gbq(
     query: str,
-    project_id: Optional[str] = None,
-    index_col: Optional[str] = None,
-    col_order: Optional[List[str]] = None,
+    project_id: str | None = None,
+    index_col: str | None = None,
+    col_order: list[str] | None = None,
     reauth: bool = False,
     auth_local_webserver: bool = False,
-    dialect: Optional[str] = None,
-    location: Optional[str] = None,
-    configuration: Optional[Dict[str, Any]] = None,
+    dialect: str | None = None,
+    location: str | None = None,
+    configuration: dict[str, Any] | None = None,
     credentials=None,
-    use_bqstorage_api: Optional[bool] = None,
-    private_key=None,
-    verbose=None,
-    progress_bar_type: Optional[str] = None,
-) -> "DataFrame":
+    use_bqstorage_api: bool | None = None,
+    max_results: int | None = None,
+    progress_bar_type: str | None = None,
+) -> DataFrame:
     """
     Load data from Google BigQuery.
 
@@ -83,8 +87,6 @@ def read_gbq(
             compliant with the SQL 2011 standard. For more information
             see `BigQuery Standard SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
-
-        .. versionchanged:: 0.24.0
     location : str, optional
         Location where the query job should run. See the `BigQuery locations
         documentation
@@ -108,8 +110,6 @@ def read_gbq(
         :class:`google.oauth2.service_account.Credentials` directly.
 
         *New in version 0.8.0 of pandas-gbq*.
-
-        .. versionadded:: 0.24.0
     use_bqstorage_api : bool, default False
         Use the `BigQuery Storage API
         <https://cloud.google.com/bigquery/docs/reference/storage/>`__ to
@@ -125,6 +125,13 @@ def read_gbq(
         ``fastavro`` packages.
 
         .. versionadded:: 0.25.0
+    max_results : int, optional
+        If set, limit the maximum number of rows to fetch from the query
+        results.
+
+        *New in version 0.12.0 of pandas-gbq*.
+
+        .. versionadded:: 1.1.0
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
@@ -144,7 +151,7 @@ def read_gbq(
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
 
-        Note that his feature requires version 0.12.0 or later of the
+        Note that this feature requires version 0.12.0 or later of the
         ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
         different than ``pandas-gbq``, here the default is ``None``.
 
@@ -162,14 +169,15 @@ def read_gbq(
     """
     pandas_gbq = _try_import()
 
-    kwargs: Dict[str, Union[str, bool]] = {}
+    kwargs: dict[str, str | bool | int | None] = {}
 
     # START: new kwargs.  Don't populate unless explicitly set.
     if use_bqstorage_api is not None:
         kwargs["use_bqstorage_api"] = use_bqstorage_api
+    if max_results is not None:
+        kwargs["max_results"] = max_results
 
-    if progress_bar_type is not None:
-        kwargs["progress_bar_type"] = progress_bar_type
+    kwargs["progress_bar_type"] = progress_bar_type
     # END: new kwargs
 
     return pandas_gbq.read_gbq(
@@ -188,19 +196,17 @@ def read_gbq(
 
 
 def to_gbq(
-    dataframe: "DataFrame",
+    dataframe: DataFrame,
     destination_table: str,
-    project_id: Optional[str] = None,
-    chunksize: Optional[int] = None,
+    project_id: str | None = None,
+    chunksize: int | None = None,
     reauth: bool = False,
     if_exists: str = "fail",
     auth_local_webserver: bool = False,
-    table_schema: Optional[List[Dict[str, str]]] = None,
-    location: Optional[str] = None,
+    table_schema: list[dict[str, str]] | None = None,
+    location: str | None = None,
     progress_bar: bool = True,
     credentials=None,
-    verbose=None,
-    private_key=None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
@@ -215,6 +221,4 @@ def to_gbq(
         location=location,
         progress_bar=progress_bar,
         credentials=credentials,
-        verbose=verbose,
-        private_key=private_key,
     )

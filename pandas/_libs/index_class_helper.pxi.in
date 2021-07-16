@@ -10,21 +10,21 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 {{py:
 
-# name, dtype, hashtable_name
-dtypes = [('Float64', 'float64', 'Float64'),
-          ('Float32', 'float32', 'Float64'),
-          ('Int64', 'int64', 'Int64'),
-          ('Int32', 'int32', 'Int64'),
-          ('Int16', 'int16', 'Int64'),
-          ('Int8', 'int8', 'Int64'),
-          ('UInt64', 'uint64', 'UInt64'),
-          ('UInt32', 'uint32', 'UInt64'),
-          ('UInt16', 'uint16', 'UInt64'),
-          ('UInt8', 'uint8', 'UInt64'),
+# name, dtype
+dtypes = [('Float64', 'float64'),
+          ('Float32', 'float32'),
+          ('Int64', 'int64'),
+          ('Int32', 'int32'),
+          ('Int16', 'int16'),
+          ('Int8', 'int8'),
+          ('UInt64', 'uint64'),
+          ('UInt32', 'uint32'),
+          ('UInt16', 'uint16'),
+          ('UInt8', 'uint8'),
           ]
 }}
 
-{{for name, dtype, hashtable_name in dtypes}}
+{{for name, dtype in dtypes}}
 
 
 cdef class {{name}}Engine(IndexEngine):
@@ -32,20 +32,23 @@ cdef class {{name}}Engine(IndexEngine):
     #  returns an ndarray with dtype {{dtype}}_t
 
     cdef _make_hash_table(self, Py_ssize_t n):
-        return _hash.{{hashtable_name}}HashTable(n)
+        return _hash.{{name}}HashTable(n)
 
-    {{if name not in {'Float64', 'Float32'} }}
     cdef _check_type(self, object val):
+    {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
+            raise KeyError(val)
+    {{else}}
+        if util.is_bool_object(val):
+            # avoid casting to True -> 1.0
             raise KeyError(val)
     {{endif}}
 
-    cdef void _call_map_locations(self, values):
-        # self.mapping is of type {{hashtable_name}}HashTable,
-        # so convert dtype of values
-        self.mapping.map_locations(algos.ensure_{{hashtable_name.lower()}}(values))
+    cdef void _call_map_locations(self, ndarray[{{dtype}}_t] values):
+        self.mapping.map_locations(values)
 
     cdef _maybe_get_bool_indexer(self, object val):
+        # Returns ndarray[bool] or int
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
             ndarray[intp_t, ndim=1] found
@@ -59,7 +62,14 @@ cdef class {{name}}Engine(IndexEngine):
             with warnings.catch_warnings():
                 # e.g. if values is float64 and `val` is a str, suppress warning
                 warnings.filterwarnings("ignore", category=FutureWarning)
+                {{if name in {'Float64', 'Float32'} }}
+                if util.is_nan(val):
+                    indexer = np.isnan(values)
+                else:
+                    indexer = values == val
+                {{else}}
                 indexer = values == val
+                {{endif}}
         except TypeError:
             # if the equality above returns a bool, cython will raise TypeError
             #  when trying to cast it to ndarray

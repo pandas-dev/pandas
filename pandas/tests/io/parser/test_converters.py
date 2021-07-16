@@ -9,7 +9,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -57,7 +60,7 @@ def test_converters_no_implicit_conv(all_parsers):
 
 def test_converters_euro_decimal_format(all_parsers):
     # see gh-583
-    converters = dict()
+    converters = {}
     parser = all_parsers
 
     data = """Id;Number1;Number2;Text1;Text2;Number3
@@ -158,3 +161,29 @@ def test_converter_index_col_bug(all_parsers):
 
     xp = DataFrame({"B": [2, 4]}, index=Index([1, 3], name="A"))
     tm.assert_frame_equal(rs, xp)
+
+
+def test_converter_multi_index(all_parsers):
+    # GH 42446
+    parser = all_parsers
+    data = "A,B,B\nX,Y,Z\n1,2,3"
+
+    result = parser.read_csv(
+        StringIO(data),
+        header=list(range(2)),
+        converters={
+            ("A", "X"): np.int32,
+            ("B", "Y"): np.int32,
+            ("B", "Z"): np.float32,
+        },
+    )
+
+    expected = DataFrame(
+        {
+            ("A", "X"): np.int32([1]),
+            ("B", "Y"): np.int32([2]),
+            ("B", "Z"): np.float32([3]),
+        }
+    )
+
+    tm.assert_frame_equal(result, expected)

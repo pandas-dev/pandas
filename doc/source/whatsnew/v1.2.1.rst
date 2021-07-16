@@ -1,0 +1,153 @@
+.. _whatsnew_121:
+
+What's new in 1.2.1 (January 20, 2021)
+--------------------------------------
+
+These are the changes in pandas 1.2.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_121.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`~DataFrame.to_csv` that created corrupted zip files when there were more rows than ``chunksize`` (:issue:`38714`)
+- Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamReaderWriter`` in binary mode instead of in text mode (:issue:`39247`)
+- Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
+- Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
+- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occurred (:issue:`39202`)
+- Fixed regression in ``DataFrame.__setitem__`` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
+- Fixed regression in setting with :meth:`DataFrame.loc`  raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
+- Fixed regression in setting with :meth:`DataFrame.loc` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
+- Fixed regression in :meth:`~DataFrame.groupby()` with :class:`Categorical` grouping column not showing unused categories for ``grouped.indices`` (:issue:`38642`)
+- Fixed regression in :meth:`.GroupBy.sem` where the presence of non-numeric columns would cause an error instead of being dropped (:issue:`38774`)
+- Fixed regression in :meth:`.DataFrameGroupBy.diff` raising for ``int8`` and ``int16`` columns (:issue:`39050`)
+- Fixed regression in :meth:`DataFrame.groupby` when aggregating an ``ExtensionDType`` that could fail for non-numeric values (:issue:`38980`)
+- Fixed regression in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` modifying the object inplace (:issue:`38908`)
+- Fixed regression in :meth:`DataFrame.any` and :meth:`DataFrame.all` not returning a result for tz-aware ``datetime64`` columns (:issue:`38723`)
+- Fixed regression in :meth:`DataFrame.apply` with ``axis=1`` using str accessor in apply function (:issue:`38979`)
+- Fixed regression in :meth:`DataFrame.replace` raising ``ValueError`` when :class:`DataFrame` has dtype ``bytes`` (:issue:`38900`)
+- Fixed regression in :meth:`Series.fillna` that raised ``RecursionError`` with ``datetime64[ns, UTC]`` dtype (:issue:`38851`)
+- Fixed regression in comparisons between ``NaT`` and ``datetime.date`` objects incorrectly returning ``True`` (:issue:`39151`)
+- Fixed regression in calling NumPy :func:`~numpy.ufunc.accumulate` ufuncs on DataFrames, e.g. ``np.maximum.accumulate(df)`` (:issue:`39259`)
+- Fixed regression in repr of float-like strings of an ``object`` dtype having trailing 0's truncated after the decimal (:issue:`38708`)
+- Fixed regression that raised ``AttributeError`` with PyArrow versions [0.16.0, 1.0.0) (:issue:`38801`)
+- Fixed regression in :func:`pandas.testing.assert_frame_equal` raising ``TypeError`` with ``check_like=True`` when :class:`Index` or columns have mixed dtype (:issue:`39168`)
+
+We have reverted a commit that resulted in several plotting related regressions in pandas 1.2.0 (:issue:`38969`, :issue:`38736`, :issue:`38865`, :issue:`38947` and :issue:`39126`).
+As a result, bugs reported as fixed in pandas 1.2.0 related to inconsistent tick labeling in bar plots are again present (:issue:`26186` and :issue:`11465`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_121.ufunc_deprecation:
+
+Calling NumPy ufuncs on non-aligned DataFrames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before pandas 1.2.0, calling a NumPy ufunc on non-aligned DataFrames (or
+DataFrame / Series combination) would ignore the indices, only match
+the inputs by shape, and use the index/columns of the first DataFrame for
+the result:
+
+.. code-block:: ipython
+
+    In [1]: df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[0, 1])
+    In [2]: df2 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
+    In [3]: df1
+    Out[3]:
+       a  b
+    0  1  3
+    1  2  4
+    In [4]: df2
+    Out[4]:
+       a  b
+    1  1  3
+    2  2  4
+
+    In [5]: np.add(df1, df2)
+    Out[5]:
+       a  b
+    0  2  6
+    1  4  8
+
+This contrasts with how other pandas operations work, which first align
+the inputs:
+
+.. code-block:: ipython
+
+    In [6]: df1 + df2
+    Out[6]:
+         a    b
+    0  NaN  NaN
+    1  3.0  7.0
+    2  NaN  NaN
+
+In pandas 1.2.0, we refactored how NumPy ufuncs are called on DataFrames, and
+this started to align the inputs first (:issue:`39184`), as happens in other
+pandas operations and as it happens for ufuncs called on Series objects.
+
+For pandas 1.2.1, we restored the previous behaviour to avoid a breaking
+change, but the above example of ``np.add(df1, df2)`` with non-aligned inputs
+will now to raise a warning, and a future pandas 2.0 release will start
+aligning the inputs first (:issue:`39184`). Calling a NumPy ufunc on Series
+objects (eg ``np.add(s1, s2)``) already aligns and continues to do so.
+
+To avoid the warning and keep the current behaviour of ignoring the indices,
+convert one of the arguments to a NumPy array:
+
+.. code-block:: ipython
+
+    In [7]: np.add(df1, np.asarray(df2))
+    Out[7]:
+       a  b
+    0  2  6
+    1  4  8
+
+To obtain the future behaviour and silence the warning, you can align manually
+before passing the arguments to the ufunc:
+
+.. code-block:: ipython
+
+    In [8]: df1, df2 = df1.align(df2)
+    In [9]: np.add(df1, df2)
+    Out[9]:
+         a    b
+    0  NaN  NaN
+    1  3.0  7.0
+    2  NaN  NaN
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_121.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+- Bug in :meth:`read_csv` with ``float_precision="high"`` caused segfault or wrong parsing of long exponent strings. This resulted in a regression in some cases as the default for ``float_precision`` was changed in pandas 1.2.0 (:issue:`38753`)
+- Bug in :func:`read_csv` not closing an opened file handle when a ``csv.Error`` or ``UnicodeDecodeError`` occurred while initializing (:issue:`39024`)
+- Bug in :func:`pandas.testing.assert_index_equal` raising ``TypeError`` with ``check_order=False`` when :class:`Index` has mixed dtype (:issue:`39168`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_121.other:
+
+Other
+~~~~~
+
+- The deprecated attributes ``_AXIS_NAMES`` and ``_AXIS_NUMBERS`` of :class:`DataFrame` and :class:`Series` will no longer show up in ``dir`` or ``inspect.getmembers`` calls (:issue:`38740`)
+- Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
+- Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
+- Fixed build failure on MacOS 11 in Python 3.9.1 (:issue:`38766`)
+- Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 what's new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_121.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.2.0..v1.2.1

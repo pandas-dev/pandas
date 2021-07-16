@@ -6,13 +6,19 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    to_offset,
+)
+from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
 import pandas as pd
-from pandas import DatetimeIndex, Timestamp, date_range
+from pandas import (
+    DatetimeIndex,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
-
-from pandas.tseries.frequencies import to_offset
 
 
 class TestDatetimeIndexOps:
@@ -39,9 +45,9 @@ class TestDatetimeIndexOps:
         "field",
         [
             "dayofweek",
+            "day_of_week",
             "dayofyear",
-            "week",
-            "weekofyear",
+            "day_of_year",
             "quarter",
             "days_in_month",
             "is_month_start",
@@ -56,15 +62,35 @@ class TestDatetimeIndexOps:
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
         expected = getattr(idx, field)[-1]
-        result = getattr(Timestamp(idx[-1]), field)
+
+        warn = FutureWarning if field.startswith("is_") else None
+        with tm.assert_produces_warning(
+            warn, match="Timestamp.freq is deprecated", check_stacklevel=False
+        ):
+            result = getattr(Timestamp(idx[-1]), field)
+        assert result == expected
+
+    def test_dti_timestamp_isocalendar_fields(self):
+        idx = tm.makeDateIndex(100)
+        expected = tuple(idx.isocalendar().iloc[-1].to_list())
+        result = idx[-1].isocalendar()
         assert result == expected
 
     def test_dti_timestamp_freq_fields(self):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
 
-        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
-        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
+        msg = "The 'freq' argument in Timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ts = Timestamp(idx[-1], idx.freq)
+
+        msg2 = "Timestamp.freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            assert idx.freq == ts.freq
+
+        msg3 = "Timestamp.freqstr is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg3):
+            assert idx.freqstr == ts.freqstr
 
     # ----------------------------------------------------------------
     # DatetimeIndex.round
@@ -104,11 +130,11 @@ class TestDatetimeIndexOps:
 
         expected_rng = DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 00:00:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 01:00:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 02:00:00", tz=tz, freq="30T"),
-                Timestamp("2016-01-01 02:00:00", tz=tz, freq="30T"),
+                Timestamp("2016-01-01 00:00:00", tz=tz),
+                Timestamp("2016-01-01 00:00:00", tz=tz),
+                Timestamp("2016-01-01 01:00:00", tz=tz),
+                Timestamp("2016-01-01 02:00:00", tz=tz),
+                Timestamp("2016-01-01 02:00:00", tz=tz),
             ]
         )
         expected_elt = expected_rng[1]
@@ -116,7 +142,7 @@ class TestDatetimeIndexOps:
         tm.assert_index_equal(rng.round(freq="H"), expected_rng)
         assert elt.round(freq="H") == expected_elt
 
-        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
+        msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
             rng.round(freq="foo")
         with pytest.raises(ValueError, match=msg):
@@ -158,11 +184,11 @@ class TestDatetimeIndexOps:
 
         expected_rng = DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz, freq="2T"),
-                Timestamp("2016-01-01 00:02:00", tz=tz, freq="2T"),
-                Timestamp("2016-01-01 00:04:00", tz=tz, freq="2T"),
-                Timestamp("2016-01-01 00:06:00", tz=tz, freq="2T"),
-                Timestamp("2016-01-01 00:08:00", tz=tz, freq="2T"),
+                Timestamp("2016-01-01 00:00:00", tz=tz),
+                Timestamp("2016-01-01 00:02:00", tz=tz),
+                Timestamp("2016-01-01 00:04:00", tz=tz),
+                Timestamp("2016-01-01 00:06:00", tz=tz),
+                Timestamp("2016-01-01 00:08:00", tz=tz),
             ]
         )
 

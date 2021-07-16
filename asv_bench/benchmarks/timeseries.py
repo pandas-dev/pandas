@@ -3,7 +3,13 @@ from datetime import timedelta
 import dateutil
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, period_range, to_datetime
+from pandas import (
+    DataFrame,
+    Series,
+    date_range,
+    period_range,
+    timedelta_range,
+)
 
 from pandas.tseries.frequencies import infer_freq
 
@@ -90,12 +96,12 @@ class ResetIndex:
         idx = date_range(start="1/1/2000", periods=1000, freq="H", tz=tz)
         self.df = DataFrame(np.random.randn(1000, 2), index=idx)
 
-    def time_reest_datetimeindex(self, tz):
+    def time_reset_datetimeindex(self, tz):
         self.df.reset_index()
 
 
 class InferFreq:
-
+    # This depends mostly on code in _libs/, tseries/, and core.algos.unique
     params = [None, "D", "B"]
     param_names = ["freq"]
 
@@ -121,12 +127,15 @@ class TimeDatetimeConverter:
 
 class Iteration:
 
-    params = [date_range, period_range]
+    params = [date_range, period_range, timedelta_range]
     param_names = ["time_index"]
 
     def setup(self, time_index):
         N = 10 ** 6
-        self.idx = time_index(start="20140101", freq="T", periods=N)
+        if time_index is timedelta_range:
+            self.idx = time_index(start=0, freq="T", periods=N)
+        else:
+            self.idx = time_index(start="20140101", freq="T", periods=N)
         self.exit = 10000
 
     def time_iter(self, time_index):
@@ -261,135 +270,6 @@ class Lookup:
     def time_lookup_and_cleanup(self):
         self.ts[self.lookup_val]
         self.ts.index._cleanup()
-
-
-class ToDatetimeYYYYMMDD:
-    def setup(self):
-        rng = date_range(start="1/1/2000", periods=10000, freq="D")
-        self.stringsD = Series(rng.strftime("%Y%m%d"))
-
-    def time_format_YYYYMMDD(self):
-        to_datetime(self.stringsD, format="%Y%m%d")
-
-
-class ToDatetimeCacheSmallCount:
-
-    params = ([True, False], [50, 500, 5000, 100000])
-    param_names = ["cache", "count"]
-
-    def setup(self, cache, count):
-        rng = date_range(start="1/1/1971", periods=count)
-        self.unique_date_strings = rng.strftime("%Y-%m-%d").tolist()
-
-    def time_unique_date_strings(self, cache, count):
-        to_datetime(self.unique_date_strings, cache=cache)
-
-
-class ToDatetimeISO8601:
-    def setup(self):
-        rng = date_range(start="1/1/2000", periods=20000, freq="H")
-        self.strings = rng.strftime("%Y-%m-%d %H:%M:%S").tolist()
-        self.strings_nosep = rng.strftime("%Y%m%d %H:%M:%S").tolist()
-        self.strings_tz_space = [
-            x.strftime("%Y-%m-%d %H:%M:%S") + " -0800" for x in rng
-        ]
-
-    def time_iso8601(self):
-        to_datetime(self.strings)
-
-    def time_iso8601_nosep(self):
-        to_datetime(self.strings_nosep)
-
-    def time_iso8601_format(self):
-        to_datetime(self.strings, format="%Y-%m-%d %H:%M:%S")
-
-    def time_iso8601_format_no_sep(self):
-        to_datetime(self.strings_nosep, format="%Y%m%d %H:%M:%S")
-
-    def time_iso8601_tz_spaceformat(self):
-        to_datetime(self.strings_tz_space)
-
-
-class ToDatetimeNONISO8601:
-    def setup(self):
-        N = 10000
-        half = int(N / 2)
-        ts_string_1 = "March 1, 2018 12:00:00+0400"
-        ts_string_2 = "March 1, 2018 12:00:00+0500"
-        self.same_offset = [ts_string_1] * N
-        self.diff_offset = [ts_string_1] * half + [ts_string_2] * half
-
-    def time_same_offset(self):
-        to_datetime(self.same_offset)
-
-    def time_different_offset(self):
-        to_datetime(self.diff_offset)
-
-
-class ToDatetimeFormatQuarters:
-    def setup(self):
-        self.s = Series(["2Q2005", "2Q05", "2005Q1", "05Q1"] * 10000)
-
-    def time_infer_quarter(self):
-        to_datetime(self.s)
-
-
-class ToDatetimeFormat:
-    def setup(self):
-        N = 100000
-        self.s = Series(["19MAY11", "19MAY11:00:00:00"] * N)
-        self.s2 = self.s.str.replace(":\\S+$", "")
-
-        self.same_offset = ["10/11/2018 00:00:00.045-07:00"] * N
-        self.diff_offset = [
-            f"10/11/2018 00:00:00.045-0{offset}:00" for offset in range(10)
-        ] * int(N / 10)
-
-    def time_exact(self):
-        to_datetime(self.s2, format="%d%b%y")
-
-    def time_no_exact(self):
-        to_datetime(self.s, format="%d%b%y", exact=False)
-
-    def time_same_offset(self):
-        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
-
-    def time_different_offset(self):
-        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z")
-
-    def time_same_offset_to_utc(self):
-        to_datetime(self.same_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
-
-    def time_different_offset_to_utc(self):
-        to_datetime(self.diff_offset, format="%m/%d/%Y %H:%M:%S.%f%z", utc=True)
-
-
-class ToDatetimeCache:
-
-    params = [True, False]
-    param_names = ["cache"]
-
-    def setup(self, cache):
-        N = 10000
-        self.unique_numeric_seconds = list(range(N))
-        self.dup_numeric_seconds = [1000] * N
-        self.dup_string_dates = ["2000-02-11"] * N
-        self.dup_string_with_tz = ["2000-02-11 15:00:00-0800"] * N
-
-    def time_unique_seconds_and_unit(self, cache):
-        to_datetime(self.unique_numeric_seconds, unit="s", cache=cache)
-
-    def time_dup_seconds_and_unit(self, cache):
-        to_datetime(self.dup_numeric_seconds, unit="s", cache=cache)
-
-    def time_dup_string_dates(self, cache):
-        to_datetime(self.dup_string_dates, cache=cache)
-
-    def time_dup_string_dates_and_format(self, cache):
-        to_datetime(self.dup_string_dates, format="%Y-%m-%d", cache=cache)
-
-    def time_dup_string_tzoffset_dates(self, cache):
-        to_datetime(self.dup_string_with_tz, cache=cache)
 
 
 class DatetimeAccessor:

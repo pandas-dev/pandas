@@ -1,14 +1,19 @@
 from textwrap import dedent
 
 import numpy as np
-from numpy.random import randint
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, get_option, read_clipboard
+from pandas import (
+    DataFrame,
+    get_option,
+    read_clipboard,
+)
 import pandas._testing as tm
 
-from pandas.io.clipboard import clipboard_get, clipboard_set
+from pandas.io.clipboard import (
+    clipboard_get,
+    clipboard_set,
+)
 
 
 def build_kwargs(sep, excel):
@@ -38,11 +43,11 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return pd.DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
+        return DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return pd.DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
+        return DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
     elif data_type == "utf16":
-        return pd.DataFrame(
+        return DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
@@ -54,14 +59,14 @@ def df(request):
         return tm.makeCustomDataframe(
             max_rows + 1,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
             r_idx_names=[None],
         )
     elif data_type == "nonascii":
-        return pd.DataFrame({"en": "in English".split(), "es": "en español".split()})
+        return DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
         _cw = get_option("display.max_colwidth") + 1
         return tm.makeCustomDataframe(
@@ -95,7 +100,7 @@ def df(request):
         return tm.makeCustomDataframe(
             5,
             3,
-            data_gen_f=lambda *args: randint(2),
+            data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -200,7 +205,7 @@ class TestClipboard:
 
     def test_read_clipboard_infer_excel(self, request, mock_clipboard):
         # gh-19010: avoid warnings
-        clip_kwargs = dict(engine="python")
+        clip_kwargs = {"engine": "python"}
 
         text = dedent(
             """
@@ -210,7 +215,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        df = pd.read_clipboard(**clip_kwargs)
+        df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
         assert df.iloc[1][1] == "Harry Carney"
@@ -224,7 +229,7 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        res = pd.read_clipboard(**clip_kwargs)
+        res = read_clipboard(**clip_kwargs)
 
         text = dedent(
             """
@@ -234,16 +239,65 @@ class TestClipboard:
             """.strip()
         )
         mock_clipboard[request.node.name] = text
-        exp = pd.read_clipboard(**clip_kwargs)
+        exp = read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
+    def test_infer_excel_with_nulls(self, request, mock_clipboard):
+        # GH41108
+        text = "col1\tcol2\n1\tred\n\tblue\n2\tgreen"
+
+        mock_clipboard[request.node.name] = text
+        df = read_clipboard()
+        df_expected = DataFrame(
+            data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]}
+        )
+
+        # excel data is parsed correctly
+        tm.assert_frame_equal(df, df_expected)
+
+    @pytest.mark.parametrize(
+        "multiindex",
+        [
+            (  # Can't use `dedent` here as it will remove the leading `\t`
+                "\n".join(
+                    [
+                        "\t\t\tcol1\tcol2",
+                        "A\t0\tTrue\t1\tred",
+                        "A\t1\tTrue\t\tblue",
+                        "B\t0\tFalse\t2\tgreen",
+                    ]
+                ),
+                [["A", "A", "B"], [0, 1, 0], [True, True, False]],
+            ),
+            (
+                "\n".join(
+                    ["\t\tcol1\tcol2", "A\t0\t1\tred", "A\t1\t\tblue", "B\t0\t2\tgreen"]
+                ),
+                [["A", "A", "B"], [0, 1, 0]],
+            ),
+        ],
+    )
+    def test_infer_excel_with_multiindex(self, request, mock_clipboard, multiindex):
+        # GH41108
+
+        mock_clipboard[request.node.name] = multiindex[0]
+        df = read_clipboard()
+        df_expected = DataFrame(
+            data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
+            index=multiindex[1],
+        )
+
+        # excel data is parsed correctly
+        tm.assert_frame_equal(df, df_expected)
+
     def test_invalid_encoding(self, df):
+        msg = "clipboard only supports utf-8 encoding"
         # test case for testing invalid encoding
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
-        with pytest.raises(NotImplementedError):
-            pd.read_clipboard(encoding="ascii")
+        with pytest.raises(NotImplementedError, match=msg):
+            read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("enc", ["UTF-8", "utf-8", "utf8"])
     def test_round_trip_valid_encodings(self, enc, df):

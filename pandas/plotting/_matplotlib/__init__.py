@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Dict, Type
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from pandas.plotting._matplotlib.boxplot import (
     BoxPlot,
@@ -6,7 +8,10 @@ from pandas.plotting._matplotlib.boxplot import (
     boxplot_frame,
     boxplot_frame_groupby,
 )
-from pandas.plotting._matplotlib.converter import deregister, register
+from pandas.plotting._matplotlib.converter import (
+    deregister,
+    register,
+)
 from pandas.plotting._matplotlib.core import (
     AreaPlot,
     BarhPlot,
@@ -16,7 +21,12 @@ from pandas.plotting._matplotlib.core import (
     PiePlot,
     ScatterPlot,
 )
-from pandas.plotting._matplotlib.hist import HistPlot, KdePlot, hist_frame, hist_series
+from pandas.plotting._matplotlib.hist import (
+    HistPlot,
+    KdePlot,
+    hist_frame,
+    hist_series,
+)
 from pandas.plotting._matplotlib.misc import (
     andrews_curves,
     autocorrelation_plot,
@@ -29,9 +39,9 @@ from pandas.plotting._matplotlib.misc import (
 from pandas.plotting._matplotlib.tools import table
 
 if TYPE_CHECKING:
-    from pandas.plotting._matplotlib.core import MPLPlot  # noqa: F401
+    from pandas.plotting._matplotlib.core import MPLPlot
 
-PLOT_CLASSES: Dict[str, Type["MPLPlot"]] = {
+PLOT_CLASSES: dict[str, type[MPLPlot]] = {
     "line": LinePlot,
     "bar": BarPlot,
     "barh": BarhPlot,

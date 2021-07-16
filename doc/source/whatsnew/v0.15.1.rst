@@ -23,7 +23,7 @@ API changes
 
   .. ipython:: python
 
-     s = pd.Series(pd.date_range('20130101', periods=5, freq='D'))
+     s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
      s.iloc[2] = np.nan
      s
 
@@ -52,8 +52,7 @@ API changes
   .. ipython:: python
 
      np.random.seed(2718281)
-     df = pd.DataFrame(np.random.randint(0, 100, (10, 2)),
-                       columns=['jim', 'joe'])
+     df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
      df.head()
 
      ts = pd.Series(5 * np.random.randint(0, 3, 10))
@@ -80,9 +79,9 @@ API changes
 
   .. ipython:: python
 
-     df = pd.DataFrame({'jim': range(5), 'joe': range(5, 10)})
+     df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
      df
-     gr = df.groupby(df['jim'] < 2)
+     gr = df.groupby(df["jim"] < 2)
 
   previous behavior (excludes 1st column from output):
 
@@ -106,7 +105,7 @@ API changes
 
   .. ipython:: python
 
-    s = pd.Series(['a', 'b', 'c', 'd'], [4, 3, 2, 1])
+    s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
     s
 
   previous behavior:
@@ -208,6 +207,7 @@ Enhancements
   .. ipython:: python
 
      from collections import deque
+
      df1 = pd.DataFrame([1, 2, 3])
      df2 = pd.DataFrame([4, 5, 6])
 
@@ -228,8 +228,9 @@ Enhancements
 
   .. ipython:: python
 
-     dfi = pd.DataFrame(1, index=pd.MultiIndex.from_product([['a'],
-                        range(1000)]), columns=['A'])
+     dfi = pd.DataFrame(
+         1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
+     )
 
   previous behavior:
 
@@ -249,7 +250,7 @@ Enhancements
 
      dfi.memory_usage(index=True)
 
-- Added Index properties `is_monotonic_increasing` and `is_monotonic_decreasing` (:issue:`8680`).
+- Added Index properties ``is_monotonic_increasing`` and ``is_monotonic_decreasing`` (:issue:`8680`).
 
 - Added option to select columns when importing Stata files (:issue:`7935`)
 
@@ -305,7 +306,7 @@ Bug fixes
 - Fixed a bug where plotting a column ``y`` and specifying a label would mutate the index name of the original DataFrame (:issue:`8494`)
 - Fix regression in plotting of a DatetimeIndex directly with matplotlib (:issue:`8614`).
 - Bug in ``date_range`` where partially-specified dates would incorporate current date (:issue:`6961`)
-- Bug in Setting by indexer to a scalar value with a mixed-dtype `Panel4d` was failing (:issue:`8702`)
+- Bug in Setting by indexer to a scalar value with a mixed-dtype ``Panel4d`` was failing (:issue:`8702`)
 - Bug where ``DataReader``'s would fail if one of the symbols passed was invalid.  Now returns data for valid symbols and np.nan for invalid (:issue:`8494`)
 - Bug in ``get_quote_yahoo`` that wouldn't allow non-float return values (:issue:`5229`).
 

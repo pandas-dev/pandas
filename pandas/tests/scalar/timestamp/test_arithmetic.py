@@ -1,15 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
 
-from pandas.errors import OutOfBoundsDatetime
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    Timedelta,
+    Timestamp,
+    offsets,
+    to_offset,
+)
 
-from pandas import Timedelta, Timestamp
 import pandas._testing as tm
-
-from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
 
 
 class TestTimestampArithmetic:
@@ -31,36 +36,39 @@ class TestTimestampArithmetic:
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         # ends up multiplying really large numbers which overflow
 
-        stamp = Timestamp("2017-01-13 00:00:00", freq="D")
+        stamp = Timestamp("2017-01-13 00:00:00")
         offset_overflow = 20169940 * offsets.Day(1)
         msg = (
             "the add operation between "
             r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
             "will overflow"
         )
+        lmsg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
         # xref https://github.com/pandas-dev/pandas/issues/14080
         # used to crash, so check for proper overflow exception
 
         stamp = Timestamp("2000/1/1")
-        offset_overflow = to_offset("D") * 100 ** 25
+        offset_overflow = to_offset("D") * 100 ** 5
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp + offset_overflow
 
         with pytest.raises(OverflowError, match=msg):
             offset_overflow + stamp
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OverflowError, match=lmsg):
             stamp - offset_overflow
 
     def test_overflow_timestamp_raises(self):
@@ -108,7 +116,9 @@ class TestTimestampArithmetic:
         td = timedelta(seconds=1)
         # build a timestamp with a frequency, since then it supports
         # addition/subtraction of integers
-        ts = Timestamp(dt, freq="D")
+        with tm.assert_produces_warning(FutureWarning, match="The 'freq' argument"):
+            # freq deprecated
+            ts = Timestamp(dt, freq="D")
 
         msg = "Addition/subtraction of integers"
         with pytest.raises(TypeError, match=msg):
@@ -140,6 +150,8 @@ class TestTimestampArithmetic:
             ("M", None, np.timedelta64(1, "M")),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Timestamp.freq is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:The 'freq' argument:FutureWarning")
     def test_addition_subtraction_preserve_frequency(self, freq, td, td64):
         ts = Timestamp("2014-03-05 00:00:00", freq=freq)
         original_freq = ts.freq
@@ -181,8 +193,8 @@ class TestTimestampArithmetic:
     @pytest.mark.parametrize(
         "ts",
         [
-            Timestamp("1776-07-04", freq="D"),
-            Timestamp("1776-07-04", tz="UTC", freq="D"),
+            Timestamp("1776-07-04"),
+            Timestamp("1776-07-04", tz="UTC"),
         ],
     )
     @pytest.mark.parametrize(
@@ -208,7 +220,7 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
-    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray(self, shape):
         # GH#33296
         ts = Timestamp("2020-04-04 15:45")
@@ -232,7 +244,7 @@ class TestTimestampArithmetic:
         with pytest.raises(TypeError, match=msg):
             other - ts
 
-    @pytest.mark.parametrize("shape", [(6,), (2, 3,)])
+    @pytest.mark.parametrize("shape", [(6,), (2, 3)])
     def test_addsub_m8ndarray_tzaware(self, shape):
         # GH#33296
         ts = Timestamp("2020-04-04 15:45", tz="US/Pacific")

@@ -1,5 +1,7 @@
 import pytest
 
+from pandas._libs.tslibs.offsets import MonthOffset
+
 import pandas.tseries.offsets as offsets
 
 
@@ -15,7 +17,7 @@ def offset_types(request):
     params=[
         getattr(offsets, o)
         for o in offsets.__all__
-        if issubclass(getattr(offsets, o), offsets.MonthOffset) and o != "MonthOffset"
+        if issubclass(getattr(offsets, o), MonthOffset) and o != "MonthOffset"
     ]
 )
 def month_classes(request):

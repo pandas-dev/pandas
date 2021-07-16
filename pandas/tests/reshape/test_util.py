@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import Index, date_range
+from pandas import (
+    Index,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.reshape.util import cartesian_product
 
@@ -19,7 +22,7 @@ class TestCartesianProduct:
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
         x = date_range("2000-01-01", periods=2)
-        result1, result2 = [Index(y).day for y in cartesian_product([x, x])]
+        result1, result2 = (Index(y).day for y in cartesian_product([x, x]))
         expected1 = Index([1, 1, 2, 2])
         expected2 = Index([1, 2, 1, 2])
         tm.assert_index_equal(result1, expected1)
@@ -65,3 +68,13 @@ class TestCartesianProduct:
 
         with pytest.raises(TypeError, match=msg):
             cartesian_product(X=X)
+
+    def test_exceed_product_space(self):
+        # GH31355: raise useful error when produce space is too large
+        msg = "Product space too large to allocate arrays!"
+
+        with pytest.raises(ValueError, match=msg):
+            dims = [np.arange(0, 22, dtype=np.int16) for i in range(12)] + [
+                (np.arange(15128, dtype=np.int16)),
+            ]
+            cartesian_product(X=dims)

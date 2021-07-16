@@ -9,7 +9,11 @@ import pytest
 
 from pandas._libs.parsers import STR_NA_VALUES
 
-from pandas import DataFrame, Index, MultiIndex
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 import pandas._testing as tm
 
 
@@ -119,7 +123,7 @@ def test_default_na_values(all_parsers):
 
         return buf
 
-    data = StringIO("\n".join(f(i, v) for i, v in enumerate(_NA_VALUES)))
+    data = StringIO("\n".join([f(i, v) for i, v in enumerate(_NA_VALUES)]))
     expected = DataFrame(np.nan, columns=range(nv), index=range(nv))
 
     result = parser.read_csv(data, header=None)
@@ -214,7 +218,7 @@ a,b,c,d
     "kwargs,expected",
     [
         (
-            dict(),
+            {},
             DataFrame(
                 {
                     "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
@@ -224,7 +228,7 @@ a,b,c,d
             ),
         ),
         (
-            dict(na_values={"A": [], "C": []}, keep_default_na=False),
+            {"na_values": {"A": [], "C": []}, "keep_default_na": False},
             DataFrame(
                 {
                     "A": ["a", "b", "", "d", "e", "nan", "g"],
@@ -234,7 +238,7 @@ a,b,c,d
             ),
         ),
         (
-            dict(na_values=["a"], keep_default_na=False),
+            {"na_values": ["a"], "keep_default_na": False},
             DataFrame(
                 {
                     "A": [np.nan, "b", "", "d", "e", "nan", "g"],
@@ -244,7 +248,7 @@ a,b,c,d
             ),
         ),
         (
-            dict(na_values={"A": [], "C": []}),
+            {"na_values": {"A": [], "C": []}},
             DataFrame(
                 {
                     "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
@@ -445,11 +449,11 @@ def test_na_values_dict_col_index(all_parsers):
     [
         (
             str(2 ** 63) + "\n" + str(2 ** 63 + 1),
-            dict(na_values=[2 ** 63]),
+            {"na_values": [2 ** 63]},
             DataFrame([str(2 ** 63), str(2 ** 63 + 1)]),
         ),
-        (str(2 ** 63) + ",1" + "\n,2", dict(), DataFrame([[str(2 ** 63), 1], ["", 2]])),
-        (str(2 ** 63) + "\n1", dict(na_values=[2 ** 63]), DataFrame([np.nan, 1])),
+        (str(2 ** 63) + ",1" + "\n,2", {}, DataFrame([[str(2 ** 63), 1], ["", 2]])),
+        (str(2 ** 63) + "\n1", {"na_values": [2 ** 63]}, DataFrame([np.nan, 1])),
     ],
 )
 def test_na_values_uint64(all_parsers, data, kwargs, expected):
@@ -563,6 +567,26 @@ foo,,bar
             "col3": ["654", "898"],
         },
         index=[1, 3],
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_nan_multi_index(all_parsers):
+    # GH 42446
+    parser = all_parsers
+    data = "A,B,B\nX,Y,Z\n1,2,inf"
+
+    result = parser.read_csv(
+        StringIO(data), header=list(range(2)), na_values={("B", "Z"): "inf"}
+    )
+
+    expected = DataFrame(
+        {
+            ("A", "X"): [1],
+            ("B", "Y"): [2],
+            ("B", "Z"): [np.nan],
+        }
     )
 
     tm.assert_frame_equal(result, expected)

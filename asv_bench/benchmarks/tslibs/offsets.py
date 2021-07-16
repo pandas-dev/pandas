@@ -9,7 +9,7 @@ import numpy as np
 from pandas import offsets
 
 try:
-    import pandas.tseries.holiday  # noqa
+    import pandas.tseries.holiday
 except ImportError:
     pass
 

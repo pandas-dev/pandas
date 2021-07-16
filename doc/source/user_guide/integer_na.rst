@@ -8,8 +8,6 @@
 Nullable integer data type
 **************************
 
-.. versionadded:: 0.24.0
-
 .. note::
 
    IntegerArray is currently experimental. Its API or implementation may
@@ -30,7 +28,7 @@ numbers.
 Construction
 ------------
 
-Pandas can represent integer data with possibly missing values using
+pandas can represent integer data with possibly missing values using
 :class:`arrays.IntegerArray`. This is an :ref:`extension types <extending.extension-types>`
 implemented within pandas.
 
@@ -112,16 +110,16 @@ dtype if needed.
    s.iloc[1:3]
 
    # operate with other dtypes
-   s + s.iloc[1:3].astype('Int8')
+   s + s.iloc[1:3].astype("Int8")
 
    # coerce when needed
    s + 0.01
 
-These dtypes can operate as part of of ``DataFrame``.
+These dtypes can operate as part of ``DataFrame``.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
+   df = pd.DataFrame({"A": s, "B": [1, 1, 3], "C": list("aab")})
    df
    df.dtypes
 
@@ -130,15 +128,15 @@ These dtypes can be merged & reshaped & casted.
 
 .. ipython:: python
 
-   pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
-   df['A'].astype(float)
+   pd.concat([df[["A"]], df[["B", "C"]]], axis=1).dtypes
+   df["A"].astype(float)
 
 Reduction and groupby operations such as 'sum' work as well.
 
 .. ipython:: python
 
    df.sum()
-   df.groupby('B').A.sum()
+   df.groupby("B").A.sum()
 
 Scalar NA Value
 ---------------

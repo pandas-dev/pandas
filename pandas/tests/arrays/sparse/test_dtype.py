@@ -14,8 +14,8 @@ from pandas.core.arrays.sparse import SparseDtype
         ("float", np.nan),
         ("bool", False),
         ("object", np.nan),
-        ("datetime64[ns]", pd.NaT),
-        ("timedelta64[ns]", pd.NaT),
+        ("datetime64[ns]", np.datetime64("NaT", "ns")),
+        ("timedelta64[ns]", np.timedelta64("NaT", "ns")),
     ],
 )
 def test_inferred_dtype(dtype, fill_value):
@@ -196,3 +196,14 @@ def test_update_dtype(original, dtype, expected):
 def test_update_dtype_raises(original, dtype, expected_error_msg):
     with pytest.raises(ValueError, match=expected_error_msg):
         original.update_dtype(dtype)
+
+
+def test_repr():
+    # GH-34352
+    result = str(SparseDtype("int64", fill_value=0))
+    expected = "Sparse[int64, 0]"
+    assert result == expected
+
+    result = str(SparseDtype(object, fill_value="0"))
+    expected = "Sparse[object, '0']"
+    assert result == expected

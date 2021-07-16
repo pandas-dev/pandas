@@ -1,36 +1,43 @@
 """
 Engine classes for :func:`~pandas.eval`
 """
+from __future__ import annotations
 
 import abc
-from typing import Dict, Type
 
-from pandas.core.computation.align import align_terms, reconstruct_object
-from pandas.core.computation.ops import _mathops, _reductions
+from pandas.core.computation.align import (
+    align_terms,
+    reconstruct_object,
+)
+from pandas.core.computation.expr import Expr
+from pandas.core.computation.ops import (
+    MATHOPS,
+    REDUCTIONS,
+)
 
 import pandas.io.formats.printing as printing
 
-_ne_builtins = frozenset(_mathops + _reductions)
+_ne_builtins = frozenset(MATHOPS + REDUCTIONS)
 
 
 class NumExprClobberingError(NameError):
     pass
 
 
-def _check_ne_builtin_clash(expr):
+def _check_ne_builtin_clash(expr: Expr) -> None:
     """
     Attempt to prevent foot-shooting in a helpful way.
 
     Parameters
     ----------
-    terms : Term
+    expr : Expr
         Terms can contain
     """
     names = expr.names
     overlap = names & _ne_builtins
 
     if overlap:
-        s = ", ".join(repr(x) for x in overlap)
+        s = ", ".join([repr(x) for x in overlap])
         raise NumExprClobberingError(
             f'Variables in expression "{expr}" overlap with builtins: ({s})'
         )
@@ -130,7 +137,7 @@ class PythonEngine(AbstractEngine):
         pass
 
 
-_engines: Dict[str, Type[AbstractEngine]] = {
+ENGINES: dict[str, type[AbstractEngine]] = {
     "numexpr": NumExprEngine,
     "python": PythonEngine,
 }

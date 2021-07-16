@@ -3,7 +3,10 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.indexes.api import (
+    Index,
+    MultiIndex,
+)
 from pandas.core.series import Series
 
 
@@ -31,7 +34,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     nonnull_labels = ss.dropna()
 
     def get_indexers(levels):
-        """ Return sparse coords and dense labels for subset levels """
+        """Return sparse coords and dense labels for subset levels"""
         # TODO: how to do this better? cleanly slice nonnull_labels given the
         # coord
         values_ilabels = [tuple(x[i] for i in levels) for x in nonnull_labels.index]
@@ -55,7 +58,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
             return {k: i for i, k in enumerate(labels)}
 
         def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
-            ilabels = list(zip(*[index._get_level_values(i) for i in subset]))
+            ilabels = list(zip(*(index._get_level_values(i) for i in subset)))
             labels_to_i = _get_label_to_i_dict(ilabels, sort_labels=sort_labels)
             labels_to_i = Series(labels_to_i)
             if len(subset) > 1:
@@ -85,7 +88,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     return values, i_coord, j_coord, i_labels, j_labels
 
 
-def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
+def sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
     Convert a sparse Series to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
@@ -113,7 +116,7 @@ def _sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=F
     return sparse_matrix, rows, columns
 
 
-def _coo_to_sparse_series(A, dense_index: bool = False):
+def coo_to_sparse_series(A, dense_index: bool = False):
     """
     Convert a scipy.sparse.coo_matrix to a SparseSeries.
 

@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, CategoricalIndex, Series
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -21,16 +25,16 @@ class TestSeriesValueCounts:
         exp_idx = pd.DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"]
         )
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
-        ser = pd.Series(values, name="xxx")
+        ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         # check DatetimeIndex outputs the same result
         idx = pd.DatetimeIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
-        exp = pd.Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
+        exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
         tm.assert_series_equal(ser.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
@@ -48,14 +52,14 @@ class TestSeriesValueCounts:
             ["2011-01-01 09:00", "2011-01-01 11:00", "2011-01-01 10:00"],
             tz="US/Eastern",
         )
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
-        ser = pd.Series(values, name="xxx")
+        ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         idx = pd.DatetimeIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
-        exp = pd.Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
+        exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
         tm.assert_series_equal(ser.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
@@ -70,51 +74,51 @@ class TestSeriesValueCounts:
         ]
 
         exp_idx = pd.PeriodIndex(["2011-01", "2011-03", "2011-02"], freq="M")
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
-        ser = pd.Series(values, name="xxx")
+        ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         # check DatetimeIndex outputs the same result
         idx = pd.PeriodIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
-        exp = pd.Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
+        exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
         tm.assert_series_equal(ser.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_ordered(self):
         # most dtypes are tested in tests/base
-        values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=True)
+        values = Categorical([1, 2, 3, 1, 1, 3], ordered=True)
 
-        exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp_idx = CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=True)
+        exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
-        ser = pd.Series(values, name="xxx")
+        ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         # check CategoricalIndex outputs the same result
-        idx = pd.CategoricalIndex(values, name="xxx")
+        idx = CategoricalIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
-        exp = pd.Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
+        exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
         tm.assert_series_equal(ser.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
     def test_value_counts_categorical_not_ordered(self):
-        values = pd.Categorical([1, 2, 3, 1, 1, 3], ordered=False)
+        values = Categorical([1, 2, 3, 1, 1, 3], ordered=False)
 
-        exp_idx = pd.CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=False)
-        exp = pd.Series([3, 2, 1], index=exp_idx, name="xxx")
+        exp_idx = CategoricalIndex([1, 3, 2], categories=[1, 2, 3], ordered=False)
+        exp = Series([3, 2, 1], index=exp_idx, name="xxx")
 
-        ser = pd.Series(values, name="xxx")
+        ser = Series(values, name="xxx")
         tm.assert_series_equal(ser.value_counts(), exp)
         # check CategoricalIndex outputs the same result
-        idx = pd.CategoricalIndex(values, name="xxx")
+        idx = CategoricalIndex(values, name="xxx")
         tm.assert_series_equal(idx.value_counts(), exp)
 
         # normalize
-        exp = pd.Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
+        exp = Series(np.array([3.0, 2.0, 1]) / 6.0, index=exp_idx, name="xxx")
         tm.assert_series_equal(ser.value_counts(normalize=True), exp)
         tm.assert_series_equal(idx.value_counts(normalize=True), exp)
 
@@ -183,19 +187,19 @@ class TestSeriesValueCounts:
         "ser, dropna, exp",
         [
             (
-                pd.Series([False, True, True, pd.NA]),
+                Series([False, True, True, pd.NA]),
                 False,
-                pd.Series([2, 1, 1], index=[True, False, pd.NA]),
+                Series([2, 1, 1], index=[True, False, pd.NA]),
             ),
             (
-                pd.Series([False, True, True, pd.NA]),
+                Series([False, True, True, pd.NA]),
                 True,
-                pd.Series([2, 1], index=[True, False]),
+                Series([2, 1], index=[True, False]),
             ),
             (
-                pd.Series(range(3), index=[True, False, np.nan]).index,
+                Series(range(3), index=[True, False, np.nan]).index,
                 False,
-                pd.Series([1, 1, 1], index=[True, False, pd.NA]),
+                Series([1, 1, 1], index=[True, False, np.nan]),
             ),
         ],
     )

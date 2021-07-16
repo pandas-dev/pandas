@@ -2,8 +2,8 @@ import numpy as np
 
 try:
     from pandas._libs.tslibs.parsing import (
-        _concat_date_cols,
         _does_string_look_like_datetime,
+        concat_date_cols,
     )
 except ImportError:
     # Avoid whole benchmark suite import failure on asv (currently 0.4)
@@ -39,4 +39,4 @@ class ConcatDateCols:
             )
 
     def time_check_concat(self, value, dim):
-        _concat_date_cols(self.object)
+        concat_date_cols(self.object)

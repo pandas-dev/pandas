@@ -3,7 +3,13 @@ import pytest
 
 from pandas._libs.tslibs import IncompatibleFrequency
 
-from pandas import NaT, Period, PeriodIndex, Series, array
+from pandas import (
+    NaT,
+    Period,
+    PeriodIndex,
+    Series,
+    array,
+)
 import pandas._testing as tm
 
 
@@ -21,7 +27,7 @@ class TestSearchsorted:
         p2 = Period("2014-01-04", freq=freq)
         assert pidx.searchsorted(p2) == 3
 
-        assert pidx.searchsorted(NaT) == 0
+        assert pidx.searchsorted(NaT) == 5
 
         msg = "Input has different freq=H from PeriodArray"
         with pytest.raises(IncompatibleFrequency, match=msg):
@@ -55,7 +61,7 @@ class TestSearchsorted:
         msg = "|".join(
             [
                 "searchsorted requires compatible dtype or scalar",
-                "Unexpected type for 'value'",
+                "value should be a 'Period', 'NaT', or array of those. Got",
             ]
         )
         with pytest.raises(TypeError, match=msg):

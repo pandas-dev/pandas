@@ -3,7 +3,14 @@ import itertools
 
 import numpy as np
 
-from pandas import DataFrame, Float64Index, MultiIndex, Series, UInt64Index, date_range
+from pandas import (
+    DataFrame,
+    Float64Index,
+    MultiIndex,
+    Series,
+    UInt64Index,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -19,7 +26,7 @@ def _axify(obj, key, axis):
 
 
 class Base:
-    """ indexing comprehensive base class """
+    """indexing comprehensive base class"""
 
     _kinds = {"series", "frame"}
     _typs = {
@@ -94,7 +101,7 @@ class Base:
 
         # form agglomerates
         for kind in self._kinds:
-            d = dict()
+            d = {}
             for typ in self._typs:
                 d[typ] = getattr(self, f"{kind}_{typ}")
 
@@ -113,7 +120,7 @@ class Base:
         return itertools.product(*axes)
 
     def get_value(self, name, f, i, values=False):
-        """ return the value for the location i """
+        """return the value for the location i"""
         # check against values
         if values:
             return f.values[i]
@@ -129,9 +136,9 @@ class Base:
         if f is None:
             return
         axes = f.axes
-        indicies = itertools.product(*axes)
+        indices = itertools.product(*axes)
 
-        for i in indicies:
+        for i in indices:
             result = getattr(f, func)[i]
 
             # check against values
@@ -144,11 +151,9 @@ class Base:
 
             tm.assert_almost_equal(result, expected)
 
-    def check_result(
-        self, method, key, typs=None, axes=None, fails=None,
-    ):
+    def check_result(self, method, key, typs=None, axes=None, fails=None):
         def _eq(axis, obj, key):
-            """ compare equal for these 2 keys """
+            """compare equal for these 2 keys"""
             axified = _axify(obj, key, axis)
             try:
                 getattr(obj, method).__getitem__(axified)

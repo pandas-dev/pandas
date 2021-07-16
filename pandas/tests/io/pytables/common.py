@@ -16,7 +16,7 @@ tables.parameters.MAX_THREADS = 1
 def safe_remove(path):
     if path is not None:
         try:
-            os.remove(path)
+            os.remove(path)  # noqa: PDF008
         except OSError:
             pass
 
@@ -25,12 +25,12 @@ def safe_close(store):
     try:
         if store is not None:
             store.close()
-    except IOError:
+    except OSError:
         pass
 
 
 def create_tempfile(path):
-    """ create an unopened named temporary file """
+    """create an unopened named temporary file"""
     return os.path.join(tempfile.gettempdir(), path)
 
 
