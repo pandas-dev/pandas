@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# importing abstract base class, inpecting live objects.
 import abc
 import inspect
 from typing import (
@@ -12,8 +13,11 @@ from typing import (
     List,
     cast,
 )
+
+# importing warning which allow warn programmers about changes in language or library features 
 import warnings
 
+# importing numpy allow us to do in memory analysis whicj optimize speed
 import numpy as np
 
 from pandas._config import option_context
@@ -48,6 +52,7 @@ from pandas.core.base import (
     SelectionMixin,
     SpecificationError,
 )
+
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
