@@ -47,10 +47,6 @@ from pandas.core.tools.datetimes import to_datetime
 from pandas.util.version import Version
 
 
-class SQLAlchemyRequired(ImportError):
-    pass
-
-
 class DatabaseError(IOError):
     pass
 
@@ -283,7 +279,14 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-    pandas_sql = pandasSQL_builder(con, schema=schema, table_name=table_name)
+    from sqlalchemy.exc import InvalidRequestError
+
+    pandas_sql = pandasSQL_builder(con, schema=schema)
+    try:
+        pandas_sql.meta.reflect(only=[table_name], views=True)
+    except InvalidRequestError as err:
+        raise ValueError(f"Table {table_name} not found") from err
+
     table = pandas_sql.read_table(
         table_name,
         index_col=index_col,
@@ -718,7 +721,7 @@ def has_table(table_name: str, con, schema: str | None = None):
 table_exists = has_table
 
 
-def pandasSQL_builder(con, schema: str | None = None, table_name: str | None = None):
+def pandasSQL_builder(con, schema: str | None = None):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
@@ -735,7 +738,7 @@ def pandasSQL_builder(con, schema: str | None = None, table_name: str | None = N
         con = sqlalchemy.create_engine(con)
 
     if isinstance(con, sqlalchemy.engine.Connectable):
-        return SQLDatabase(con, schema=schema, table_name=table_name)
+        return SQLDatabase(con, schema=schema)
 
 
 class SQLTable(PandasObject):
@@ -1341,28 +1344,14 @@ class SQLDatabase(PandasSQL):
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    meta : SQLAlchemy MetaData object, default None
-        If provided, this MetaData object is used instead of a newly
-        created. This allows to specify database flavor specific
-        arguments in the MetaData object.
 
     """
 
-    def __init__(
-        self, engine, schema: str | None = None, table_name: str | None = None
-    ):
-        self.connectable = engine
-
+    def __init__(self, engine, schema: str | None = None):
         from sqlalchemy.schema import MetaData
 
+        self.connectable = engine
         self.meta = MetaData(self.connectable, schema=schema)
-        if table_name is not None:
-            from sqlalchemy.exc import InvalidRequestError
-
-            try:
-                self.meta.reflect(only=[table_name], views=True)
-            except InvalidRequestError as err:
-                raise ValueError(f"Table {table_name} not found") from err
 
     @contextmanager
     def run_transaction(self):
