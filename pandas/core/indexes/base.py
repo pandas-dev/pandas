@@ -3884,6 +3884,7 @@ class Index(IndexOpsMixin, PandasObject):
                 indexer = None
             else:
                 if not self.is_unique:
+                    # GH#42568
                     warnings.warn(
                         "reindexing with a non-unique Index is deprecated and "
                         "will raise in a future version",

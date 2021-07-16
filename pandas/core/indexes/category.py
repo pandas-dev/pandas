@@ -402,6 +402,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         else:
             indexer, missing = self.get_indexer_non_unique(target)
             if not self.is_unique:
+                # GH#42568
                 warnings.warn(
                     "reindexing with a non-unique Index is deprecated and will "
                     "raise in a future version",
