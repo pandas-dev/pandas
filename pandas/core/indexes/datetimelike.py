@@ -7,9 +7,11 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -26,10 +28,6 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
-)
-from pandas._typing import (
-    Callable,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -64,7 +62,6 @@ from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
 )
-from pandas.core.indexes.numeric import Int64Index
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
@@ -532,15 +529,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
-        intersection specialized to the case with matching dtypes.
+        intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
-        if len(self) == 0:
-            return self.copy()._get_reconciled_name_object(other)
-        if len(other) == 0:
-            return other.copy()._get_reconciled_name_object(self)
 
-        elif not self._can_fast_intersect(other):
+        if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
@@ -549,6 +542,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
+
+        else:
+            return self._fast_intersect(other, sort)
+
+    def _fast_intersect(self, other, sort):
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -627,11 +625,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -681,8 +675,4 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            i8self = Int64Index._simple_new(self.asi8)
-            i8other = Int64Index._simple_new(other.asi8)
-            i8result = i8self._union(i8other, sort=sort)
-            result = type(self)(i8result, dtype=self.dtype, freq="infer")
-            return result
+            return super()._union(other, sort)._with_freq("infer")

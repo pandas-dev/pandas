@@ -4,7 +4,10 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import Hashable
+from typing import (
+    Hashable,
+    final,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +15,6 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    final,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
@@ -490,7 +492,7 @@ class Grouping:
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, ilevel)
+            ) = index._get_grouper_for_level(mapper, level=ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes

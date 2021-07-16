@@ -7,6 +7,7 @@ from typing import (
     Any,
     Dict,
     Hashable,
+    Iterable,
     Iterator,
     List,
     cast,
@@ -25,7 +26,6 @@ from pandas._typing import (
     AggObjType,
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
 )
 from pandas.util._decorators import cache_readonly
 
@@ -137,10 +137,10 @@ class Apply(metaclass=abc.ABCMeta):
         self.f: AggFuncType = f
 
     @abc.abstractmethod
-    def apply(self) -> FrameOrSeriesUnion:
+    def apply(self) -> DataFrame | Series:
         pass
 
-    def agg(self) -> FrameOrSeriesUnion | None:
+    def agg(self) -> DataFrame | Series | None:
         """
         Provide an implementation for the aggregators.
 
@@ -171,7 +171,7 @@ class Apply(metaclass=abc.ABCMeta):
         # caller can react
         return None
 
-    def transform(self) -> FrameOrSeriesUnion:
+    def transform(self) -> DataFrame | Series:
         """
         Transform a DataFrame or Series.
 
@@ -252,7 +252,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         func = self.normalize_dictlike_arg("transform", obj, func)
 
-        results: dict[Hashable, FrameOrSeriesUnion] = {}
+        results: dict[Hashable, DataFrame | Series] = {}
         failed_names = []
         all_type_errors = True
         for name, how in func.items():
@@ -283,7 +283,7 @@ class Apply(metaclass=abc.ABCMeta):
             )
         return concat(results, axis=1)
 
-    def transform_str_or_callable(self, func) -> FrameOrSeriesUnion:
+    def transform_str_or_callable(self, func) -> DataFrame | Series:
         """
         Compute transform in the case of a string or callable func
         """
@@ -305,7 +305,7 @@ class Apply(metaclass=abc.ABCMeta):
         except Exception:
             return func(obj, *args, **kwargs)
 
-    def agg_list_like(self) -> FrameOrSeriesUnion:
+    def agg_list_like(self) -> DataFrame | Series:
         """
         Compute aggregation in the case of a list-like argument.
 
@@ -402,7 +402,7 @@ class Apply(metaclass=abc.ABCMeta):
             )
             return concatenated.reindex(full_ordered_index, copy=False)
 
-    def agg_dict_like(self) -> FrameOrSeriesUnion:
+    def agg_dict_like(self) -> DataFrame | Series:
         """
         Compute aggregation in the case of a dict-like argument.
 
@@ -444,6 +444,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # combine results
         if all(is_ndframe):
+            keys_to_use: Iterable[Hashable]
             keys_to_use = [k for k in keys if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
             keys_to_use = keys_to_use if keys_to_use != [] else keys
@@ -451,9 +452,7 @@ class Apply(metaclass=abc.ABCMeta):
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
                 ktu._set_names(selected_obj.columns.names)
-                # Incompatible types in assignment (expression has type "Index",
-                # variable has type "List[Hashable]")
-                keys_to_use = ktu  # type: ignore[assignment]
+                keys_to_use = ktu
 
             axis = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
@@ -481,7 +480,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def apply_str(self) -> FrameOrSeriesUnion:
+    def apply_str(self) -> DataFrame | Series:
         """
         Compute apply in case of a string.
 
@@ -506,7 +505,7 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(f"Operation {f} does not support axis=1")
         return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
 
-    def apply_multiple(self) -> FrameOrSeriesUnion:
+    def apply_multiple(self) -> DataFrame | Series:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -518,7 +517,7 @@ class Apply(metaclass=abc.ABCMeta):
         return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
 
     def normalize_dictlike_arg(
-        self, how: str, obj: FrameOrSeriesUnion, func: AggFuncTypeDict
+        self, how: str, obj: DataFrame | Series, func: AggFuncTypeDict
     ) -> AggFuncTypeDict:
         """
         Handler for dict-like argument.
@@ -631,7 +630,7 @@ class FrameApply(NDFrameApply):
     @abc.abstractmethod
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         pass
 
     # ---------------------------------------------------------------
@@ -652,7 +651,7 @@ class FrameApply(NDFrameApply):
     def dtypes(self) -> Series:
         return self.obj.dtypes
 
-    def apply(self) -> FrameOrSeriesUnion:
+    def apply(self) -> DataFrame | Series:
         """compute the results"""
         # dispatch to agg
         if is_list_like(self.f):
@@ -826,7 +825,7 @@ class FrameApply(NDFrameApply):
 
         return results, res_index
 
-    def wrap_results(self, results: ResType, res_index: Index) -> FrameOrSeriesUnion:
+    def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
         from pandas import Series
 
         # see if we can infer the results
@@ -849,7 +848,7 @@ class FrameApply(NDFrameApply):
 
         return result
 
-    def apply_str(self) -> FrameOrSeriesUnion:
+    def apply_str(self) -> DataFrame | Series:
         # Caller is responsible for checking isinstance(self.f, str)
         # TODO: GH#39993 - Avoid special-casing by replacing with lambda
         if self.f == "size":
@@ -880,7 +879,7 @@ class FrameRowApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """return the results for the rows"""
 
         if self.result_type == "reduce":
@@ -963,9 +962,9 @@ class FrameColumnApply(FrameApply):
 
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """return the results for the columns"""
-        result: FrameOrSeriesUnion
+        result: DataFrame | Series
 
         # we have requested to expand
         if self.result_type == "expand":
@@ -1019,7 +1018,7 @@ class SeriesApply(NDFrameApply):
             kwargs=kwargs,
         )
 
-    def apply(self) -> FrameOrSeriesUnion:
+    def apply(self) -> DataFrame | Series:
         obj = self.obj
 
         if len(obj) == 0:
@@ -1070,7 +1069,7 @@ class SeriesApply(NDFrameApply):
             obj, method="apply"
         )
 
-    def apply_standard(self) -> FrameOrSeriesUnion:
+    def apply_standard(self) -> DataFrame | Series:
         f = self.f
         obj = self.obj
 
