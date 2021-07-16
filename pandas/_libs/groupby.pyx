@@ -1295,7 +1295,7 @@ def group_max(groupby_t[:, ::1] out,
               const intp_t[:] labels,
               Py_ssize_t min_count=-1,
               bint is_datetimelike=False,
-              uint8_t[:, ::1] mask=None,
+              const uint8_t[:, ::1] mask=None,
               uint8_t[:, ::1] mask_out=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
@@ -1319,7 +1319,7 @@ def group_min(groupby_t[:, ::1] out,
               const intp_t[:] labels,
               Py_ssize_t min_count=-1,
               bint is_datetimelike=False,
-              uint8_t[:, ::1] mask=None,
+              const uint8_t[:, ::1] mask=None,
               uint8_t[:, ::1] mask_out=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(

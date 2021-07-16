@@ -179,7 +179,7 @@ def test_aggregate_categorical_lost_index(func: str):
 
 
 @pytest.mark.parametrize("dtype", ["Int64", "Int32", "Float64", "Float32", "boolean"])
-def test_groupby_min_nullable(dtype):
+def test_groupby_min_max_nullable(dtype):
     if dtype == "Int64":
         # GH#41743 avoid precision loss
         ts = 1618556707013635762
