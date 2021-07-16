@@ -19,6 +19,7 @@ from typing import (
     Sequence,
     cast,
     overload,
+    TYPE_CHECKING,
 )
 import warnings
 
@@ -731,14 +732,18 @@ def pandasSQL_builder(con, schema: str | None = None):
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
 
-    msg = "sqlalchemy is not installed"
-    sqlalchemy = import_optional_dependency("sqlalchemy", extra=msg)
+    sqlalchemy = import_optional_dependency("sqlalchemy")
 
     if isinstance(con, str):
         con = sqlalchemy.create_engine(con)
 
     if isinstance(con, sqlalchemy.engine.Connectable):
         return SQLDatabase(con, schema=schema)
+
+    raise ValueError(
+        "pandas only support SQLAlchemy connectable(engine/connection) or"
+        "database string URI or sqlite3 DBAPI2 connection"
+    )
 
 
 class SQLTable(PandasObject):
