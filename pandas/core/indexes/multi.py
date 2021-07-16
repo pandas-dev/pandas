@@ -3164,10 +3164,12 @@ class MultiIndex(Index):
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
                 if isinstance(idx, slice):
+                    # test_get_loc_partial_timestamp_multiindex
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
                     return locs
 
                 locs = np.array(level_codes == idx, dtype=bool, copy=False)
+
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)

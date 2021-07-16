@@ -745,6 +745,19 @@ def test_get_loc_datetime_index():
     assert mi.get_loc("2001-01") == slice(0, 31, None)
     assert index.get_loc("2001-01") == slice(0, 31, None)
 
+    loc = mi[::2].get_loc("2001-01")
+    expected = index[::2].get_loc("2001-01")
+    assert loc == expected
+
+    loc = mi.repeat(2).get_loc("2001-01")
+    expected = index.repeat(2).get_loc("2001-01")
+    assert loc == expected
+
+    loc = mi.append(mi).get_loc("2001-01")
+    expected = index.append(index).get_loc("2001-01")
+    # TODO: standardize return type for MultiIndex.get_loc
+    tm.assert_numpy_array_equal(loc.nonzero()[0], expected)
+
 
 def test_loc_setitem_indexer_differently_ordered():
     # GH#34603
