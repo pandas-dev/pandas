@@ -13,7 +13,6 @@ from pandas._libs import (
     Timestamp,
 )
 from pandas._libs.lib import infer_dtype
-from pandas._typing import AnyArrayLike
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -45,7 +44,7 @@ import pandas.core.nanops as nanops
 
 
 def cut(
-    x: AnyArrayLike,
+    x,
     bins,
     right: bool = True,
     labels=None,
@@ -384,7 +383,7 @@ def qcut(
 
 
 def _bins_to_cuts(
-    x: AnyArrayLike,
+    x,
     bins: np.ndarray,
     right: bool = True,
     labels=None,
@@ -394,9 +393,6 @@ def _bins_to_cuts(
     duplicates: str = "raise",
     ordered: bool = True,
 ):
-    """
-    Allots bins to each item in `x`
-    """
     if not ordered and labels is None:
         raise ValueError("'labels' must be provided if 'ordered = False'")
 
