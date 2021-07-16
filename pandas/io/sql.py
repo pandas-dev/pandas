@@ -19,7 +19,6 @@ from typing import (
     Sequence,
     cast,
     overload,
-    TYPE_CHECKING,
 )
 import warnings
 
