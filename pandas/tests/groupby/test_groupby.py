@@ -1770,13 +1770,9 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         isinstance(values, Categorical)
         and not isinstance(columns, list)
         and op in ["sum", "prod"]
-        and method != "apply"
     ):
         # handled below GH#41291
         pass
-    elif isinstance(values, Categorical) and len(keys) == 1 and method == "apply":
-        mark = pytest.mark.xfail(raises=TypeError, match="'str' object is not callable")
-        request.node.add_marker(mark)
     elif (
         isinstance(values, Categorical)
         and len(keys) == 1
@@ -1808,21 +1804,16 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         isinstance(values, Categorical)
         and len(keys) == 2
         and op in ["min", "max", "sum"]
-        and method != "apply"
     ):
         mark = pytest.mark.xfail(
             raises=AssertionError, match="(DataFrame|Series) are different"
         )
         request.node.add_marker(mark)
-    elif (
-        isinstance(values, pd.core.arrays.BooleanArray)
-        and op in ["sum", "prod"]
-        and method != "apply"
-    ):
+    elif isinstance(values, pd.core.arrays.BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
         override_dtype = "Int64"
 
-    if isinstance(values[0], bool) and op in ("prod", "sum") and method != "apply":
+    if isinstance(values[0], bool) and op in ("prod", "sum"):
         # sum/product of bools is an integer
         override_dtype = "int64"
 
@@ -1846,66 +1837,62 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         # i.e. SeriesGroupBy
         if op in ["prod", "sum"]:
             # ops that require more than just ordered-ness
-            if method != "apply":
-                # FIXME: apply goes through different code path
-                if df.dtypes[0].kind == "M":
-                    # GH#41291
-                    # datetime64 -> prod and sum are invalid
-                    msg = "datetime64 type does not support"
-                    with pytest.raises(TypeError, match=msg):
-                        get_result()
+            if df.dtypes[0].kind == "M":
+                # GH#41291
+                # datetime64 -> prod and sum are invalid
+                msg = "datetime64 type does not support"
+                with pytest.raises(TypeError, match=msg):
+                    get_result()
 
-                    return
-                elif isinstance(values, Categorical):
-                    # GH#41291
-                    msg = "category type does not support"
-                    with pytest.raises(TypeError, match=msg):
-                        get_result()
+                return
+            elif isinstance(values, Categorical):
+                # GH#41291
+                msg = "category type does not support"
+                with pytest.raises(TypeError, match=msg):
+                    get_result()
 
-                    return
+                return
     else:
         # ie. DataFrameGroupBy
         if op in ["prod", "sum"]:
             # ops that require more than just ordered-ness
-            if method != "apply":
-                # FIXME: apply goes through different code path
-                if df.dtypes[0].kind == "M":
-                    # GH#41291
-                    # datetime64 -> prod and sum are invalid
-                    result = get_result()
+            if df.dtypes[0].kind == "M":
+                # GH#41291
+                # datetime64 -> prod and sum are invalid
+                result = get_result()
 
-                    # with numeric_only=True, these are dropped, and we get
-                    # an empty DataFrame back
-                    expected = df.set_index(keys)[[]]
-                    tm.assert_equal(result, expected)
-                    return
+                # with numeric_only=True, these are dropped, and we get
+                # an empty DataFrame back
+                expected = df.set_index(keys)[[]]
+                tm.assert_equal(result, expected)
+                return
 
-                elif isinstance(values, Categorical):
-                    # GH#41291
-                    # Categorical doesn't implement sum or prod
-                    result = get_result()
+            elif isinstance(values, Categorical):
+                # GH#41291
+                # Categorical doesn't implement sum or prod
+                result = get_result()
 
-                    # with numeric_only=True, these are dropped, and we get
-                    # an empty DataFrame back
-                    expected = df.set_index(keys)[[]]
-                    if len(keys) != 1 and op == "prod":
-                        # TODO: why just prod and not sum?
-                        # Categorical is special without 'observed=True'
-                        lev = Categorical([0], dtype=values.dtype)
-                        mi = MultiIndex.from_product([lev, lev], names=["A", "B"])
-                        expected = DataFrame([], columns=[], index=mi)
+                # with numeric_only=True, these are dropped, and we get
+                # an empty DataFrame back
+                expected = df.set_index(keys)[[]]
+                if len(keys) != 1 and op == "prod":
+                    # TODO: why just prod and not sum?
+                    # Categorical is special without 'observed=True'
+                    lev = Categorical([0], dtype=values.dtype)
+                    mi = MultiIndex.from_product([lev, lev], names=["A", "B"])
+                    expected = DataFrame([], columns=[], index=mi)
 
-                    tm.assert_equal(result, expected)
-                    return
+                tm.assert_equal(result, expected)
+                return
 
-                elif df.dtypes[0] == object:
-                    # FIXME: the test is actually wrong here, xref #41341
-                    result = get_result()
-                    # In this case we have list-of-list, will raise TypeError,
-                    # and subsequently be dropped as nuisance columns
-                    expected = df.set_index(keys)[[]]
-                    tm.assert_equal(result, expected)
-                    return
+            elif df.dtypes[0] == object:
+                # FIXME: the test is actually wrong here, xref #41341
+                result = get_result()
+                # In this case we have list-of-list, will raise TypeError,
+                # and subsequently be dropped as nuisance columns
+                expected = df.set_index(keys)[[]]
+                tm.assert_equal(result, expected)
+                return
 
     result = get_result()
     expected = df.set_index(keys)[columns]
