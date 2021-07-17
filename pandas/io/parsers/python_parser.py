@@ -25,7 +25,6 @@ from pandas.errors import (
 )
 
 from pandas.core.dtypes.common import is_integer
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -81,10 +80,7 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        if isinstance(kwds["dtype"], dict):
-            self.dtype = kwds["dtype"].copy()
-        else:
-            self.dtype = kwds["dtype"]
+        self.dtype = kwds["dtype"]
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -420,7 +416,6 @@ class PythonParser(ParserBase):
                     counts: DefaultDict = defaultdict(int)
 
                     for i, col in enumerate(this_columns):
-                        old_col = col
                         cur_count = counts[col]
 
                         if cur_count > 0:
@@ -428,13 +423,6 @@ class PythonParser(ParserBase):
                                 counts[col] = cur_count + 1
                                 col = f"{col}.{cur_count}"
                                 cur_count = counts[col]
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
 
                         this_columns[i] = col
                         counts[col] = cur_count + 1

@@ -576,8 +576,11 @@ class TestReaders:
     def test_dtype_mangle_dup_cols(self, read_ext, dtypes, exp_value):
         # GH#35211
         basename = "df_mangle_dup_col_dtypes"
-        result = pd.read_excel(basename + read_ext, dtype={"a": str, **dtypes})
+        dtype_dict = {"a": str, **dtypes}
+        dtype_dict_copy = dtype_dict.copy()
+        result = pd.read_excel(basename + read_ext, dtype=dtype_dict)
         expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+        assert dtype_dict == dtype_dict_copy, "dtype dict changed"  # GH 42462
         tm.assert_frame_equal(result, expected)
 
     def test_reader_spaces(self, read_ext):
@@ -1277,24 +1280,6 @@ class TestReaders:
             ValueError, match="Worksheet index 1 is invalid, 1 worksheets found"
         ):
             pd.read_excel("chartsheet" + read_ext, sheet_name=1)
-
-    def test_dtype_dict_unchanged_with_duplicate_columns(self, read_ext):
-        # GH 42462
-
-        filename = "test_common_headers" + read_ext
-        dtype_dict = {"a": str, "b": str, "c": str}
-        dtype_dict_copy = dtype_dict.copy()
-        result = pd.read_excel(filename, dtype=dtype_dict)
-        expected = DataFrame(
-            {
-                "a": ["1", "2", "3"],
-                "a.1": ["1", "2", "3"],
-                "b": ["b1", "b2", "b3"],
-                "c": ["c1", "c2", "c3"],
-            }
-        )
-        assert dtype_dict == dtype_dict_copy, "dtype dict changed"
-        tm.assert_frame_equal(result, expected)
 
 
 class TestExcelFileRead:
