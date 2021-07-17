@@ -156,6 +156,7 @@ Deprecations
 - Deprecated treating ``numpy.datetime64`` objects as UTC times when passed to the :class:`Timestamp` constructor along with a timezone. In a future version, these will be treated as wall-times. To retain the old behavior, use ``Timestamp(dt64).tz_localize("UTC").tz_convert(tz)`` (:issue:`24559`)
 - Deprecated ignoring missing labels when indexing with a sequence of labels on a level of a MultiIndex (:issue:`42351`)
 - Creating an empty Series without a dtype will now raise a more visible ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`30017`)
+
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_140.performance:
