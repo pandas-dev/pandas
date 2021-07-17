@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterable,
+    Literal,
     Mapping,
     cast,
     overload,
@@ -44,8 +45,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
-    from typing import Literal
-
     from pandas._typing import Axis
 
     from pandas import (
