@@ -719,6 +719,116 @@ To choose another dtype, use the ``dtype`` argument:
     pd.get_dummies(df, dtype=bool).dtypes
 
 
+To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``
+(a categorical ``Series``), for example ``k`` columns of a ``DataFrame`` containing
+1s and 0s can derive a ``DataFrame`` (a ``Series``) which has ``k`` distinct values
+:func:`~pandas.from_dummies`:
+
+.. ipython:: python
+
+   d = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+
+   pd.from_dummies(d)
+
+The ``k`` distinct values can also be represented be a ``dropped_first`` which
+means that no vale assigned implies a the value of the dropped value:
+
+.. ipython:: python
+
+   d = pd.DataFrame({"prefix_a": [0, 1, 0]})
+
+   pd.from_dummies(d, dropped_first="b")
+
+The function is the inverse of :func:`pandas.get_dummies <pandas.reshape.get_dummies>`.
+
+
+
+
+################################################################################
+This function is often used along with discretization functions like ``cut``:
+
+.. ipython:: python
+
+   values = np.random.randn(10)
+   values
+
+   bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
+
+   pd.get_dummies(pd.cut(values, bins))
+
+See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
+
+:func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
+variables (categorical in the statistical sense, those with ``object`` or
+``categorical`` dtype) are encoded as dummy variables.
+
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": ["a", "b", "a"], "B": ["c", "c", "b"], "C": [1, 2, 3]})
+    pd.get_dummies(df)
+
+All non-object columns are included untouched in the output. You can control
+the columns that are encoded with the ``columns`` keyword.
+
+.. ipython:: python
+
+    pd.get_dummies(df, columns=["A"])
+
+Notice that the ``B`` column is still included in the output, it just hasn't
+been encoded. You can drop ``B`` before calling ``get_dummies`` if you don't
+want to include it in the output.
+
+As with the ``Series`` version, you can pass values for the ``prefix`` and
+``prefix_sep``. By default the column name is used as the prefix, and '_' as
+the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
+
+* string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
+  to be encoded.
+* list: Must be the same length as the number of columns being encoded.
+* dict: Mapping column name to prefix.
+
+.. ipython:: python
+
+    simple = pd.get_dummies(df, prefix="new_prefix")
+    simple
+    from_list = pd.get_dummies(df, prefix=["from_A", "from_B"])
+    from_list
+    from_dict = pd.get_dummies(df, prefix={"B": "from_B", "A": "from_A"})
+    from_dict
+
+Sometimes it will be useful to only keep k-1 levels of a categorical
+variable to avoid collinearity when feeding the result to statistical models.
+You can switch to this mode by turn on ``drop_first``.
+
+.. ipython:: python
+
+    s = pd.Series(list("abcaa"))
+
+    pd.get_dummies(s)
+
+    pd.get_dummies(s, drop_first=True)
+
+When a column contains only one level, it will be omitted in the result.
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": list("aaaaa"), "B": list("ababc")})
+
+    pd.get_dummies(df)
+
+    pd.get_dummies(df, drop_first=True)
+
+By default new columns will have ``np.uint8`` dtype.
+To choose another dtype, use the ``dtype`` argument:
+
+.. ipython:: python
+
+    df = pd.DataFrame({"A": list("abc"), "B": [1.1, 2.2, 3.3]})
+
+    pd.get_dummies(df, dtype=bool).dtypes
+################################################################################
+
 .. _reshaping.factorize:
 
 Factorizing values
