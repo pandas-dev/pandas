@@ -33,7 +33,6 @@ jobs:
 
     - script: |
         call activate pandas-dev
-        conda list
         python setup.py build_ext -q -j 4
         python -m pip install -e . --no-build-isolation --no-use-pep517
       displayName: Build pandas
