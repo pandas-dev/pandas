@@ -19,7 +19,7 @@ jobs:
         # PYTEST_WORKERS: 2  # GH-42236
 
   steps:
-    - script: |
+    - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
       displayName: Add conda to PATH
 
