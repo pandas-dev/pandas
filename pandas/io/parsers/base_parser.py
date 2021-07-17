@@ -532,7 +532,11 @@ class ParserBase:
             conv_f = None if converters is None else converters.get(c, None)
             if isinstance(dtypes, dict):
                 cast_type = dtypes.get(c, None)
-                if cast_type is None and c.split(".")[-1].isnumeric:
+                if (
+                    cast_type is None
+                    and isinstance(c, str)
+                    and c.split(".")[-1].isnumeric()
+                ):
                     orig_c = ".".join(c.split(".")[:-1])
                     cast_type = dtypes.get(orig_c, None)
             else:
