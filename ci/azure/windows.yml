@@ -40,7 +40,7 @@ jobs:
 
     - script: |
         call activate pandas-dev
-        ci/run_tests.sh
+        sh ci/run_tests.sh
       displayName: Test
 
     - script: |
