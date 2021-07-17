@@ -1372,7 +1372,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        with pytest.raises(ImportError, match="sqlalchemy"):
+        with pytest.raises(ImportError, match="SQLAlchemy"):
             sql.read_sql("SELECT * FROM iris", conn)
 
     def test_read_sql_delegate(self):
