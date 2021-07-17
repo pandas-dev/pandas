@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from contextlib import contextmanager
 import itertools
 from typing import (
     Any,
@@ -147,6 +148,7 @@ class BaseBlockManager(DataManager):
     ndim: int
     _known_consolidated: bool
     _is_consolidated: bool
+    _frozen: bool = False
 
     def __init__(self, blocks, axes, verify_integrity=True):
         raise NotImplementedError
@@ -213,6 +215,7 @@ class BaseBlockManager(DataManager):
 
     def set_axis(self, axis: int, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
+        assert not self._frozen
         self._validate_set_axis(axis, new_labels)
         self.axes[axis] = new_labels
 
@@ -352,9 +355,11 @@ class BaseBlockManager(DataManager):
         )
 
     def setitem(self: T, indexer, value) -> T:
+        assert not self._frozen
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
+        assert not self._frozen
 
         if align:
             align_keys = ["new", "mask"]
@@ -403,6 +408,9 @@ class BaseBlockManager(DataManager):
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
     def fillna(self: T, value, limit, inplace: bool, downcast) -> T:
+        if inplace:
+            assert not self._frozen
+
         return self.apply(
             "fillna", value=value, limit=limit, inplace=inplace, downcast=downcast
         )
@@ -430,6 +438,7 @@ class BaseBlockManager(DataManager):
 
     def replace(self: T, to_replace, value, inplace: bool, regex: bool) -> T:
         assert np.ndim(value) == 0, value
+        assert not self._frozen
         return self.apply(
             "replace", to_replace=to_replace, value=value, inplace=inplace, regex=regex
         )
@@ -443,6 +452,7 @@ class BaseBlockManager(DataManager):
     ) -> T:
         """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
+        assert not self._frozen
 
         bm = self.apply(
             "_replace_list",
@@ -617,6 +627,7 @@ class BaseBlockManager(DataManager):
         return bm
 
     def _consolidate_inplace(self) -> None:
+        assert not self._frozen
         if not self.is_consolidated():
             self.blocks = tuple(_consolidate(self.blocks))
             self._is_consolidated = True
@@ -867,6 +878,26 @@ class BaseBlockManager(DataManager):
             consolidate=False,
         )
 
+    @contextmanager
+    def freeze(self):
+        arrays = self.arrays
+        statuses = [
+            x.flags.writeable if isinstance(x, np.ndarray) else None for x in arrays
+        ]
+        try:
+            self._frozen = True
+            for arr in arrays:
+                if isinstance(arr, np.ndarray):
+                    arr.flags.writeable = False
+
+            yield
+        finally:
+            self._frozen = False
+            # Restore original write-ability
+            for arr, status in zip(arrays, statuses):
+                if status is not None:
+                    arr.flags.writeable = status
+
 
 class BlockManager(libinternals.BlockManager, BaseBlockManager):
     """
@@ -1021,6 +1052,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
+        assert not self._frozen
+
         value = extract_array(value, extract_numpy=True)
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
@@ -1148,6 +1181,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         item : hashable
         value : np.ndarray or ExtensionArray
         """
+        assert not self._frozen
+
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
@@ -1195,6 +1230,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Delete selected locations, returning a new BlockManager.
         """
+        assert not self._frozen
+
         is_deleted = np.zeros(self.shape[0], dtype=np.bool_)
         is_deleted[indexer] = True
         taker = (~is_deleted).nonzero()[0]
@@ -1710,6 +1747,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
         Ensures that self.blocks doesn't become empty.
         """
+        assert not self._frozen
+
         self._block.delete(indexer)
         self.axes[0] = self.axes[0].delete(indexer)
         return self

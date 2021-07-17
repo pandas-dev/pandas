@@ -1011,7 +1011,8 @@ class BaseGrouper:
         obj = obj.take(indexer)
         ids = ids.take(indexer)
         sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
-        result, _ = sgrouper.get_result()
+        with obj._mgr.freeze():
+            result, _ = sgrouper.get_result()
         return result
 
     @final
@@ -1209,7 +1210,8 @@ class BinGrouper(BaseGrouper):
         #  - ngroups != 0
         #  - len(self.bins) > 0
         sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
-        result, _ = sbg.get_result()
+        with obj._mgr.freeze():
+            result, _ = sbg.get_result()
         return result
 
 
@@ -1292,7 +1294,8 @@ class FrameSplitter(DataSplitter):
     def fast_apply(self, f: F, sdata: FrameOrSeries, names):
         # must return keys::list, values::list, mutated::bool
         starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
+        with sdata._mgr.freeze():
+            return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
 
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # Fastpath equivalent to:
