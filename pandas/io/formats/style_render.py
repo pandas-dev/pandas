@@ -21,10 +21,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import (
-    FrameOrSeriesUnion,
-    TypedDict,
-)
+from pandas._typing import TypedDict
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -67,11 +64,13 @@ class StylerRenderer:
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
+    template_html_table = env.get_template("html_table.tpl")
+    template_html_style = env.get_template("html_style.tpl")
     template_latex = env.get_template("latex.tpl")
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         uuid: str | None = None,
         uuid_len: int = 5,
         table_styles: CSSStyles | None = None,
@@ -120,7 +119,11 @@ class StylerRenderer:
         # TODO: namespace all the pandas keys
         d = self._translate(sparse_index, sparse_columns)
         d.update(kwargs)
-        return self.template_html.render(**d)
+        return self.template_html.render(
+            **d,
+            html_table_tpl=self.template_html_table,
+            html_style_tpl=self.template_html_style,
+        )
 
     def _render_latex(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
@@ -1171,7 +1174,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: FrameOrSeriesUnion, uuid: str, d: dict):
+    def _translate(self, styler_data: DataFrame | Series, uuid: str, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 

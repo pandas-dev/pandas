@@ -8,14 +8,11 @@ import operator
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Literal,
     Union,
     cast,
 )
-from warnings import (
-    catch_warnings,
-    simplefilter,
-    warn,
-)
+from warnings import warn
 
 import numpy as np
 
@@ -29,8 +26,8 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
-    FrameOrSeriesUnion,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import doc
 
@@ -84,7 +81,6 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import (
         Categorical,
@@ -140,7 +136,11 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
             return np.asarray(values).view("uint8"), values.dtype
         else:
             # i.e. all-bool Categorical, BooleanArray
-            return np.asarray(values).astype("uint8", copy=False), values.dtype
+            try:
+                return np.asarray(values).astype("uint8", copy=False), values.dtype
+            except TypeError:
+                # GH#42107 we have pd.NAs present
+                return np.asarray(values), values.dtype
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values), values.dtype
@@ -155,12 +155,10 @@ def _ensure_data(values: ArrayLike) -> tuple[np.ndarray, DtypeObj]:
         return np.asarray(values), values.dtype
 
     elif is_complex_dtype(values.dtype):
-        # ignore the fact that we are casting to float
-        # which discards complex parts
-        with catch_warnings():
-            simplefilter("ignore", np.ComplexWarning)
-            values = ensure_float64(values)
-        return values, np.dtype("float64")
+        # Incompatible return value type (got "Tuple[Union[Any, ExtensionArray,
+        # ndarray[Any, Any]], Union[Any, ExtensionDtype]]", expected
+        # "Tuple[ndarray[Any, Any], Union[dtype[Any], ExtensionDtype]]")
+        return values, values.dtype  # type: ignore[return-value]
 
     # datetimelike
     elif needs_i8_conversion(values.dtype):
@@ -242,6 +240,8 @@ def _ensure_arraylike(values) -> ArrayLike:
 
 
 _hashtables = {
+    "complex128": htable.Complex128HashTable,
+    "complex64": htable.Complex64HashTable,
     "float64": htable.Float64HashTable,
     "float32": htable.Float32HashTable,
     "uint64": htable.UInt64HashTable,
@@ -529,9 +529,9 @@ def factorize_array(
     size_hint: int | None = None,
     na_value=None,
     mask: np.ndarray | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
-    Factorize an array-like to codes and uniques.
+    Factorize a numpy array to codes and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
 
@@ -910,7 +910,7 @@ def duplicated(
 
     Parameters
     ----------
-    values : ndarray-like
+    values : nd.array, ExtensionArray or Series
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
@@ -1008,7 +1008,6 @@ def rank(
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
-            labels=np.zeros(len(values), dtype=np.intp),
             is_datetimelike=is_datetimelike,
             ties_method=method,
             ascending=ascending,
@@ -1189,13 +1188,10 @@ def quantile(x, q, interpolation_method="fraction"):
 
     if is_scalar(q):
         return _get_score(q)
-    else:
-        q = np.asarray(q, np.float64)
-        result = [_get_score(x) for x in q]
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "List[Any]")
-        result = np.array(result, dtype=np.float64)  # type: ignore[assignment]
-        return result
+
+    q = np.asarray(q, np.float64)
+    result = [_get_score(x) for x in q]
+    return np.array(result, dtype=np.float64)
 
 
 # --------------- #
@@ -1212,7 +1208,7 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> FrameOrSeriesUnion:
+    def compute(self, method: str) -> DataFrame | Series:
         raise NotImplementedError
 
     def nlargest(self):
@@ -1416,8 +1412,8 @@ def take(
 
     Parameters
     ----------
-    arr : sequence
-        Non array-likes (sequences without a dtype) are coerced
+    arr : array-like or scalar value
+        Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.
@@ -1527,11 +1523,11 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 
     Parameters
     ----------
-    arr: array-like
+    arr: np.ndarray, ExtensionArray, Series
         Input array. If `sorter` is None, then it must be sorted in
         ascending order, otherwise `sorter` must be an array of indices
         that sort it.
-    value : array-like
+    value : array-like or scalar
         Values to insert into `arr`.
     side : {'left', 'right'}, optional
         If 'left', the index of the first suitable location found is given.
