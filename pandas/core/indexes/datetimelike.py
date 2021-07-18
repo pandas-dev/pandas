@@ -7,9 +7,11 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -26,10 +28,6 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
-)
-from pandas._typing import (
-    Callable,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -506,6 +504,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     _is_monotonic_decreasing = Index.is_monotonic_decreasing
     _is_unique = Index.is_unique
 
+    _join_precedence = 10
+
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
@@ -529,15 +529,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
-        intersection specialized to the case with matching dtypes.
+        intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
-        if len(self) == 0:
-            return self.copy()._get_reconciled_name_object(other)
-        if len(other) == 0:
-            return other.copy()._get_reconciled_name_object(self)
 
-        elif not self._can_fast_intersect(other):
+        if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
@@ -546,6 +542,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
+
+        else:
+            return self._fast_intersect(other, sort)
+
+    def _fast_intersect(self, other, sort):
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -624,11 +625,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -678,39 +675,4 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort=sort)._with_freq("infer")
-
-    # --------------------------------------------------------------------
-    # Join Methods
-    _join_precedence = 10
-
-    def join(
-        self,
-        other,
-        how: str = "left",
-        level=None,
-        return_indexers: bool = False,
-        sort: bool = False,
-    ):
-        """
-        See Index.join
-        """
-        pself, pother = self._maybe_promote(other)
-        if pself is not self or pother is not other:
-            return pself.join(
-                pother, how=how, level=level, return_indexers=return_indexers, sort=sort
-            )
-
-        self._maybe_utc_convert(other)  # raises if we dont have tzawareness compat
-        return Index.join(
-            self,
-            other,
-            how=how,
-            level=level,
-            return_indexers=return_indexers,
-            sort=sort,
-        )
-
-    def _maybe_utc_convert(self: _T, other: Index) -> tuple[_T, Index]:
-        # Overridden by DatetimeIndex
-        return self, other
+            return super()._union(other, sort)._with_freq("infer")

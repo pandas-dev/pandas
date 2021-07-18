@@ -26,6 +26,7 @@ from pandas._typing import (
 
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
+    dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
@@ -59,7 +60,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.construction import (
-    create_series_with_explicit_dtype,
     ensure_wrapped_if_datetimelike,
     extract_array,
     range_to_ndarray,
@@ -67,7 +67,9 @@ from pandas.core.construction import (
 )
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
+    TimedeltaIndex,
     ensure_index,
     get_objs_combined_axis,
     union_indexes,
@@ -346,22 +348,17 @@ def ndarray_to_mgr(
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values.dtype):
-
-        if values.ndim == 2 and values.shape[0] != 1:
-            # transpose and separate blocks
-
-            dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
-            dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
-
-            # TODO: What about re-joining object columns?
+        obj_columns = list(values)
+        maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
+        # don't convert (and copy) the objects if no type inference occurs
+        if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
+            dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
                 new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
             ]
-
         else:
-            datelike_vals = maybe_infer_to_datetimelike(values)
-            nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
+            nb = new_block(values, placement=slice(len(columns)), ndim=2)
             block_values = [nb]
     else:
         nb = new_block(values, placement=slice(len(columns)), ndim=2)
@@ -556,6 +553,7 @@ def _prep_ndarray(values, copy: bool = True) -> np.ndarray:
 
 
 def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
+    oindex = None
     homogenized = []
 
     for val in data:
@@ -570,9 +568,18 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
             val = val._values
         else:
             if isinstance(val, dict):
-                # see test_constructor_subclass_dict
-                #  test_constructor_dict_datetime64_index
-                val = create_series_with_explicit_dtype(val, index=index)._values
+                # GH#41785 this _should_ be equivalent to (but faster than)
+                #  val = create_series_with_explicit_dtype(val, index=index)._values
+                if oindex is None:
+                    oindex = index.astype("O")
+
+                if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+                    # see test_constructor_dict_datetime64_index
+                    val = dict_compat(val)
+                else:
+                    # see test_constructor_subclass_dict
+                    val = dict(val)
+                val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
             val = sanitize_array(
                 val, index, dtype=dtype, copy=False, raise_cast_failure=False
