@@ -108,7 +108,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.inference import is_dict_like
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -688,13 +687,6 @@ cdef class TextReader:
                                 counts[name] = count + 1
                                 name = f'{name}.{count}'
                                 count = counts.get(name, 0)
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_name) is not None
-                                and self.dtype.get(name) is None
-                            ):
-                                self.dtype.update({name: self.dtype.get(old_name)})
 
                     if old_name == '':
                         unnamed_cols.add(name)
