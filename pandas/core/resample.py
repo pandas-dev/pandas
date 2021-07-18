@@ -287,7 +287,7 @@ class Resampler(BaseGroupBy, PandasObject):
     Examples
     --------
     >>> s = pd.Series([1, 2, 3, 4, 5],
-    ...               index=pd.date_range('20130101', periods=5,freq='s'))
+    ...               index=pd.date_range('20130101', periods=5, freq='s'))
     >>> s
     2013-01-01 00:00:00    1
     2013-01-01 00:00:01    2
@@ -304,14 +304,14 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:04    5
     Freq: 2S, dtype: int64
 
-    >>> r.agg(['sum','mean','max'])
+    >>> r.agg(['sum', 'mean', 'max'])
                          sum  mean  max
     2013-01-01 00:00:00    3   1.5    2
     2013-01-01 00:00:02    7   3.5    4
     2013-01-01 00:00:04    5   5.0    5
 
-    >>> r.agg({'result' : lambda x: x.mean() / x.std(),
-    ...        'total' : np.sum})
+    >>> r.agg({'result': lambda x: x.mean() / x.std(),
+    ...        'total': np.sum})
                            result  total
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
