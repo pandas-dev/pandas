@@ -981,6 +981,10 @@ cdef class TextReader:
                         col_dtype = self.dtype[name]
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
+                    else:
+                        if isinstance(name, str) and name.split(".")[-1].isnumeric():
+                            orig_name = ".".join(name.split(".")[:-1])
+                            col_dtype = self.dtype.get(orig_name, None)
                 else:
                     if self.dtype.names:
                         # structured array
