@@ -389,11 +389,8 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         int64_t nobs = 0
         bint no_nans
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
-        const int64_t[:] labels_n, labels_nobs
 
     N, K = (<object>mat).shape
-    # For compatibility when calling rank_1d
-    labels_n = np.zeros(N, dtype=np.int64)
 
     # Handle the edge case where we know all results will be nan
     # to keep conditional logic inside loop simpler
@@ -412,7 +409,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
     maskedx = np.empty(N, dtype=np.float64)
     maskedy = np.empty(N, dtype=np.float64)
     for i in range(K):
-        ranked_mat[:, i] = rank_1d(mat[:, i], labels=labels_n)
+        ranked_mat[:, i] = rank_1d(mat[:, i])
 
     with nogil:
         for xi in range(K):
@@ -451,11 +448,8 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                             with gil:
                                 # We need to slice back to nobs because rank_1d will
                                 # require arrays of nobs length
-                                labels_nobs = np.zeros(nobs, dtype=np.int64)
-                                rankedx = rank_1d(np.array(maskedx)[:nobs],
-                                                  labels=labels_nobs)
-                                rankedy = rank_1d(np.array(maskedy)[:nobs],
-                                                  labels=labels_nobs)
+                                rankedx = rank_1d(np.asarray(maskedx)[:nobs])
+                                rankedy = rank_1d(np.asarray(maskedy)[:nobs])
                             for i in range(nobs):
                                 maskedx[i] = rankedx[i]
                                 maskedy[i] = rankedy[i]
@@ -518,7 +512,6 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
         int64_t total_discordant = 0
         float64_t kendall_tau
         int64_t n_obs
-        const intp_t[:] labels_n
 
     N, K = (<object>mat).shape
 
@@ -526,11 +519,9 @@ def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarra
     mask = np.isfinite(mat)
 
     ranked_mat = np.empty((N, K), dtype=np.float64)
-    # For compatibility when calling rank_1d
-    labels_n = np.zeros(N, dtype=np.intp)
 
     for i in range(K):
-        ranked_mat[:, i] = rank_1d(mat[:, i], labels_n)
+        ranked_mat[:, i] = rank_1d(mat[:, i])
 
     for xi in range(K):
         sorted_idxs = ranked_mat[:, xi].argsort()
@@ -961,7 +952,7 @@ cdef rank_t get_rank_nan_fill_val(bint rank_nans_highest, rank_t[:] _=None):
 @cython.boundscheck(False)
 def rank_1d(
     ndarray[rank_t, ndim=1] values,
-    const intp_t[:] labels,
+    const intp_t[:] labels=None,
     bint is_datetimelike=False,
     ties_method="average",
     bint ascending=True,
@@ -974,10 +965,10 @@ def rank_1d(
     Parameters
     ----------
     values : array of rank_t values to be ranked
-    labels : np.ndarray[np.intp]
+    labels : np.ndarray[np.intp] or None
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`. If not called
-        from a groupby operation, will be an array of 0's
+        from a groupby operation, will be None.
     is_datetimelike : bool, default False
         True if `values` contains datetime-like entries.
     ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
@@ -1017,14 +1008,15 @@ def rank_1d(
     keep_na = na_option == 'keep'
 
     N = len(values)
-    # TODO Cython 3.0: cast won't be necessary (#2992)
-    assert <Py_ssize_t>len(labels) == N
+    if labels is not None:
+        # TODO Cython 3.0: cast won't be necessary (#2992)
+        assert <Py_ssize_t>len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N, dtype=np.int64)
 
-    # If all 0 labels, can short-circuit later label
+    # If we don't care about labels, can short-circuit later label
     # comparisons
-    check_labels = np.any(labels)
+    check_labels = labels is not None
 
     # For cases where a mask is not possible, we can avoid mask checks
     check_mask = not (rank_t is uint64_t or (rank_t is int64_t and not is_datetimelike))
@@ -1055,9 +1047,12 @@ def rank_1d(
     nans_rank_highest = ascending ^ (na_option == 'top')
     nan_fill_val = get_rank_nan_fill_val[rank_t](nans_rank_highest)
     if nans_rank_highest:
-        order = (masked_vals, mask, labels)
+        order = [masked_vals, mask]
     else:
-        order = (masked_vals, ~(np.asarray(mask)), labels)
+        order = [masked_vals, ~(np.asarray(mask))]
+
+    if check_labels:
+        order.append(labels)
 
     np.putmask(masked_vals, mask, nan_fill_val)
     # putmask doesn't accept a memoryview, so we assign as a separate step
@@ -1076,16 +1071,15 @@ def rank_1d(
         rank_sorted_1d(
             out,
             grp_sizes,
-            labels,
             lexsort_indexer,
             masked_vals_memview,
             mask,
-            tiebreak,
-            check_mask,
-            check_labels,
-            keep_na,
-            pct,
-            N,
+            check_mask=check_mask,
+            N=N,
+            tiebreak=tiebreak,
+            keep_na=keep_na,
+            pct=pct,
+            labels=labels,
         )
 
     return np.asarray(out)
@@ -1096,17 +1090,18 @@ def rank_1d(
 cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
-    const intp_t[:] labels,
     const intp_t[:] sort_indexer,
     # Can make const with cython3 (https://github.com/cython/cython/issues/3222)
     rank_t[:] masked_vals,
     const uint8_t[:] mask,
-    TiebreakEnumType tiebreak,
     bint check_mask,
-    bint check_labels,
-    bint keep_na,
-    bint pct,
     Py_ssize_t N,
+    TiebreakEnumType tiebreak=TIEBREAK_AVERAGE,
+    bint keep_na=True,
+    bint pct=False,
+    # https://github.com/cython/cython/issues/1630, only trailing arguments can
+    # currently be omitted for cdef functions, which is why we keep this at the end
+    const intp_t[:] labels=None,
 ) nogil:
     """
     See rank_1d.__doc__. Handles only actual ranking, so sorting and masking should
@@ -1117,34 +1112,35 @@ cdef void rank_sorted_1d(
     out : float64_t[::1]
         Array to store computed ranks
     grp_sizes : int64_t[::1]
-        Array to store group counts, only used if pct=True
-    labels : See rank_1d.__doc__
+        Array to store group counts, only used if pct=True. Should only be None
+        if labels is None.
     sort_indexer : intp_t[:]
         Array of indices which sorts masked_vals
     masked_vals : rank_t[:]
         The values input to rank_1d, with missing values replaced by fill values
     mask : uint8_t[:]
-        Array where entries are True if the value is missing, False otherwise
-    tiebreak : TiebreakEnumType
-        See rank_1d.__doc__ for the different modes
+        Array where entries are True if the value is missing, False otherwise.
     check_mask : bool
         If False, assumes the mask is all False to skip mask indexing
-    check_labels : bool
-        If False, assumes all labels are the same to skip group handling logic
-    keep_na : bool
-        Whether or not to keep nulls
-    pct : bool
-        Compute percentage rank of data within each group
     N : Py_ssize_t
         The number of elements to rank. Note: it is not always true that
         N == len(out) or N == len(masked_vals) (see `nancorr_spearman` usage for why)
+    tiebreak : TiebreakEnumType, default TIEBREAK_AVERAGE
+        See rank_1d.__doc__ for the different modes
+    keep_na : bool, default True
+        Whether or not to keep nulls
+    pct : bool, default False
+        Compute percentage rank of data within each group
+    labels : See rank_1d.__doc__, default None. None implies all labels are the same.
     """
 
     cdef:
         Py_ssize_t i, j, dups=0, sum_ranks=0,
         Py_ssize_t grp_start=0, grp_vals_seen=1, grp_na_count=0
-        bint at_end, next_val_diff, group_changed
+        bint at_end, next_val_diff, group_changed, check_labels
         int64_t grp_size
+
+    check_labels = labels is not None
 
     # Loop over the length of the value array
     # each incremental i value can be looked up in the lexsort_indexer
@@ -1374,8 +1370,7 @@ def rank_2d(
     cdef:
         Py_ssize_t k, n, col
         float64_t[::1, :] out  # Column-major so columns are contiguous
-        int64_t[::1, :] grp_sizes
-        const intp_t[:] labels
+        int64_t[::1] grp_sizes
         ndarray[rank_t, ndim=2] values
         rank_t[:, :] masked_vals
         intp_t[:, :] sort_indexer
@@ -1426,8 +1421,7 @@ def rank_2d(
 
     n, k = (<object>values).shape
     out = np.empty((n, k), dtype='f8', order='F')
-    grp_sizes = np.ones((n, k), dtype='i8', order='F')
-    labels = np.zeros(n, dtype=np.intp)
+    grp_sizes = np.ones(n, dtype=np.int64)
 
     # lexsort is slower, so only use if we need to worry about the mask
     if check_mask:
@@ -1445,17 +1439,15 @@ def rank_2d(
         for col in range(k):
             rank_sorted_1d(
                 out[:, col],
-                grp_sizes[:, col],
-                labels,
+                grp_sizes,
                 sort_indexer[:, col],
                 masked_vals[:, col],
                 mask[:, col],
-                tiebreak,
-                check_mask,
-                False,
-                keep_na,
-                pct,
-                n,
+                check_mask=check_mask,
+                N=n,
+                tiebreak=tiebreak,
+                keep_na=keep_na,
+                pct=pct,
             )
 
     if axis == 1:

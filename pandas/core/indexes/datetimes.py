@@ -33,6 +33,7 @@ from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -405,7 +406,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
             this, other = this._maybe_utc_convert(other)
 
-            if this._can_fast_union(other):
+            if len(self) and len(other) and this._can_fast_union(other):
+                # union already has fastpath handling for empty cases
                 this = this._fast_union(other)
             else:
                 this = Index.union(this, other)
@@ -567,21 +569,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        valid_resos = {
-            "year",
-            "month",
-            "quarter",
-            "day",
-            "hour",
-            "minute",
-            "second",
-            "millisecond",
-            "microsecond",
-        }
-        if reso.attrname not in valid_resos:
-            raise KeyError
-
         grp = reso.freq_group
         per = Period(parsed, freq=grp.value)
         start, end = per.start_time, per.end_time
@@ -590,37 +577,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # If an incoming date string contained a UTC offset, need to localize
         # the parsed date to this offset first before aligning with the index's
         # timezone
+        start = start.tz_localize(parsed.tzinfo)
+        end = end.tz_localize(parsed.tzinfo)
+
         if parsed.tzinfo is not None:
             if self.tz is None:
                 raise ValueError(
                     "The index must be timezone aware when indexing "
                     "with a date string with a UTC offset"
                 )
-            start = start.tz_localize(parsed.tzinfo).tz_convert(self.tz)
-            end = end.tz_localize(parsed.tzinfo).tz_convert(self.tz)
-        elif self.tz is not None:
-            start = start.tz_localize(self.tz)
-            end = end.tz_localize(self.tz)
+        start = self._maybe_cast_for_get_loc(start)
+        end = self._maybe_cast_for_get_loc(end)
         return start, end
 
     def _can_partial_date_slice(self, reso: Resolution) -> bool:
-        assert isinstance(reso, Resolution), (type(reso), reso)
-        if (
-            self.is_monotonic
-            and reso.attrname in ["day", "hour", "minute", "second"]
-            and self._resolution_obj >= reso
-        ):
-            # These resolution/monotonicity validations came from GH3931,
-            # GH3452 and GH2369.
-
-            # See also GH14826
-            return False
-
-        if reso.attrname == "microsecond":
-            # _partial_date_slice doesn't allow microsecond resolution, but
-            # _parsed_string_to_bounds allows it.
-            return False
-        return True
+        # History of conversation GH#3452, GH#3931, GH#2369, GH#14826
+        return reso > self._resolution_obj
 
     def _deprecate_mismatched_indexing(self, key) -> None:
         # GH#36148
@@ -836,7 +808,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # sure we can't have ambiguous indexing
         return "datetime64"
 
-    def indexer_at_time(self, time, asof: bool = False) -> np.ndarray:
+    def indexer_at_time(self, time, asof: bool = False) -> npt.NDArray[np.intp]:
         """
         Return index locations of values at particular time of day
         (e.g. 9:30AM).
@@ -877,7 +849,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     def indexer_between_time(
         self, start_time, end_time, include_start: bool = True, include_end: bool = True
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day
         (e.g., 9:00-9:30AM).

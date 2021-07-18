@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
 from pandas._typing import (
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import (
@@ -37,6 +38,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import rewrite_exception
 
 from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
     find_common_type,
     infer_dtype_from_scalar,
     maybe_box_datetimelike,
@@ -60,6 +62,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
+from pandas.core.algorithms import unique
 from pandas.core.arrays.interval import (
     IntervalArray,
     _interval_shared_docs,
@@ -642,13 +645,9 @@ class IntervalIndex(ExtensionIndex):
         method: str | None = None,
         limit: int | None = None,
         tolerance: Any | None = None,
-    ) -> np.ndarray:
-        # returned ndarray is np.intp
+    ) -> npt.NDArray[np.intp]:
 
         if isinstance(target, IntervalIndex):
-            if not self._should_compare(target):
-                return self._get_indexer_non_comparable(target, method, unique=True)
-
             # non-overlapping -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
@@ -656,26 +655,30 @@ class IntervalIndex(ExtensionIndex):
             right_indexer = self.right.get_indexer(target.right)
             indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
 
-        elif not is_object_dtype(target):
+        elif not is_object_dtype(target.dtype):
             # homogeneous scalar index: use IntervalTree
+            # we should always have self._should_partial_index(target) here
             target = self._maybe_convert_i8(target)
             indexer = self._engine.get_indexer(target.values)
         else:
             # heterogeneous scalar index: defer elementwise to get_loc
+            # we should always have self._should_partial_index(target) here
             return self._get_indexer_pointwise(target)[0]
 
         return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
+    def get_indexer_non_unique(
+        self, target: Index
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         target = ensure_index(target)
 
-        if isinstance(target, IntervalIndex) and not self._should_compare(target):
-            # different closed or incompatible subtype -> no matches
+        if not self._should_compare(target) and not self._should_partial_index(target):
+            # e.g. IntervalIndex with different closed or incompatible subtype
+            #  -> no matches
             return self._get_indexer_non_comparable(target, None, unique=False)
 
-        elif is_object_dtype(target.dtype) or isinstance(target, IntervalIndex):
+        elif is_object_dtype(target.dtype) or not self._should_partial_index(target):
             # target might contain intervals: defer elementwise to get_loc
             return self._get_indexer_pointwise(target)
 
@@ -687,8 +690,9 @@ class IntervalIndex(ExtensionIndex):
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
 
-    def _get_indexer_pointwise(self, target: Index) -> tuple[np.ndarray, np.ndarray]:
-        # both returned ndarrays are np.intp
+    def _get_indexer_pointwise(
+        self, target: Index
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """
         pointwise implementation for get_indexer and get_indexer_non_unique.
         """
@@ -787,6 +791,80 @@ class IntervalIndex(ExtensionIndex):
         return self._data._format_data() + "," + self._format_space()
 
     # --------------------------------------------------------------------
+    # Set Operations
+
+    def _intersection(self, other, sort):
+        """
+        intersection specialized to the case with matching dtypes.
+        """
+        # For IntervalIndex we also know other.closed == self.closed
+        if self.left.is_unique and self.right.is_unique:
+            taken = self._intersection_unique(other)
+        elif other.left.is_unique and other.right.is_unique and self.isna().sum() <= 1:
+            # Swap other/self if other is unique and self does not have
+            # multiple NaNs
+            taken = other._intersection_unique(self)
+        else:
+            # duplicates
+            taken = self._intersection_non_unique(other)
+
+        if sort is None:
+            taken = taken.sort_values()
+
+        return taken
+
+    def _intersection_unique(self, other: IntervalIndex) -> IntervalIndex:
+        """
+        Used when the IntervalIndex does not have any common endpoint,
+        no matter left or right.
+        Return the intersection with another IntervalIndex.
+        Parameters
+        ----------
+        other : IntervalIndex
+        Returns
+        -------
+        IntervalIndex
+        """
+        # Note: this is much more performant than super()._intersection(other)
+        lindexer = self.left.get_indexer(other.left)
+        rindexer = self.right.get_indexer(other.right)
+
+        match = (lindexer == rindexer) & (lindexer != -1)
+        indexer = lindexer.take(match.nonzero()[0])
+        indexer = unique(indexer)
+
+        return self.take(indexer)
+
+    def _intersection_non_unique(self, other: IntervalIndex) -> IntervalIndex:
+        """
+        Used when the IntervalIndex does have some common endpoints,
+        on either sides.
+        Return the intersection with another IntervalIndex.
+
+        Parameters
+        ----------
+        other : IntervalIndex
+
+        Returns
+        -------
+        IntervalIndex
+        """
+        # Note: this is about 3.25x faster than super()._intersection(other)
+        #  in IntervalIndexMethod.time_intersection_both_duplicate(1000)
+        mask = np.zeros(len(self), dtype=bool)
+
+        if self.hasnans and other.hasnans:
+            first_nan_loc = np.arange(len(self))[self.isna()][0]
+            mask[first_nan_loc] = True
+
+        other_tups = set(zip(other.left, other.right))
+        for i, tup in enumerate(zip(self.left, self.right)):
+            if tup in other_tups:
+                mask[i] = True
+
+        return self[mask]
+
+    # --------------------------------------------------------------------
 
     @property
     def _is_all_dates(self) -> bool:
@@ -795,6 +873,19 @@ class IntervalIndex(ExtensionIndex):
         as the check is done on the Interval itself
         """
         return False
+
+    def _get_join_target(self) -> np.ndarray:
+        # constructing tuples is much faster than constructing Intervals
+        tups = list(zip(self.left, self.right))
+        target = construct_1d_object_array_from_listlike(tups)
+        return target
+
+    def _from_join_target(self, result):
+        left, right = list(zip(*result))
+        arr = type(self._data).from_arrays(
+            left, right, dtype=self.dtype, closed=self.closed
+        )
+        return type(self)._simple_new(arr, name=self.name)
 
     # TODO: arithmetic operations
 

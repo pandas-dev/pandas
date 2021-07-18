@@ -338,19 +338,20 @@ maps labels to their new names along the default axis, is allowed to be passed b
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df = pd.DataFrame([[1]])
-   >>> df.rename({0: 1}, {0: 2})
+   In [1]: df = pd.DataFrame([[1]])
+   In [2]: df.rename({0: 1}, {0: 2})
+   Out[2]:
    FutureWarning: ...Use named arguments to resolve ambiguity...
       2
    1  1
 
 *pandas 1.0.0*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df.rename({0: 1}, {0: 2})
+   In [3]: df.rename({0: 1}, {0: 2})
    Traceback (most recent call last):
    ...
    TypeError: rename() takes from 1 to 2 positional arguments but 3 were given
@@ -359,26 +360,28 @@ Note that errors will now be raised when conflicting or potentially ambiguous ar
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df.rename({0: 1}, index={0: 2})
+   In [4]: df.rename({0: 1}, index={0: 2})
+   Out[4]:
       0
    1  1
 
-   >>> df.rename(mapper={0: 1}, index={0: 2})
+   In [5]: df.rename(mapper={0: 1}, index={0: 2})
+   Out[5]:
       0
    2  1
 
 *pandas 1.0.0*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df.rename({0: 1}, index={0: 2})
+   In [6]: df.rename({0: 1}, index={0: 2})
    Traceback (most recent call last):
    ...
    TypeError: Cannot specify both 'mapper' and any of 'index' or 'columns'
 
-   >>> df.rename(mapper={0: 1}, index={0: 2})
+   In [7]: df.rename(mapper={0: 1}, index={0: 2})
    Traceback (most recent call last):
    ...
    TypeError: Cannot specify both 'mapper' and any of 'index' or 'columns'
@@ -405,12 +408,12 @@ Extended verbose info output for :class:`~pandas.DataFrame`
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df = pd.DataFrame({"int_col": [1, 2, 3],
+   In [1]: df = pd.DataFrame({"int_col": [1, 2, 3],
    ...                    "text_col": ["a", "b", "c"],
    ...                    "float_col": [0.0, 0.1, 0.2]})
-   >>> df.info(verbose=True)
+   In [2]: df.info(verbose=True)
    <class 'pandas.core.frame.DataFrame'>
    RangeIndex: 3 entries, 0 to 2
    Data columns (total 3 columns):
@@ -440,14 +443,16 @@ Extended verbose info output for :class:`~pandas.DataFrame`
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> pd.array(["a", None])
+   In [1]: pd.array(["a", None])
+   Out[1]:
    <PandasArray>
    ['a', None]
    Length: 2, dtype: object
 
-   >>> pd.array([1, None])
+   In [2]: pd.array([1, None])
+   Out[2]:
    <PandasArray>
    [1, None]
    Length: 2, dtype: object
@@ -470,15 +475,17 @@ As a reminder, you can specify the ``dtype`` to disable all inference.
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> a = pd.array([1, 2, None], dtype="Int64")
-   >>> a
+   In [1]: a = pd.array([1, 2, None], dtype="Int64")
+   In [2]: a
+   Out[2]:
    <IntegerArray>
    [1, 2, NaN]
    Length: 3, dtype: Int64
 
-   >>> a[2]
+   In [3]: a[2]
+   Out[3]:
    nan
 
 *pandas 1.0.0*
@@ -499,9 +506,10 @@ will now raise.
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-    >>> np.asarray(a, dtype="float")
+    In [1]: np.asarray(a, dtype="float")
+    Out[1]:
     array([ 1.,  2., nan])
 
 *pandas 1.0.0*
@@ -525,9 +533,10 @@ will now be ``pd.NA`` instead of ``np.nan`` in presence of missing values
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-    >>> pd.Series(a).sum(skipna=False)
+    In [1]: pd.Series(a).sum(skipna=False)
+    Out[1]:
     nan
 
 *pandas 1.0.0*
@@ -543,9 +552,10 @@ integer dtype for the values.
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
+   In [1]: pd.Series([2, 1, 1, None], dtype="Int64").value_counts().dtype
+   Out[1]:
    dtype('int64')
 
 *pandas 1.0.0*
@@ -565,15 +575,17 @@ Comparison operations on a :class:`arrays.IntegerArray` now returns a
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> a = pd.array([1, 2, None], dtype="Int64")
-   >>> a
+   In [1]: a = pd.array([1, 2, None], dtype="Int64")
+   In [2]: a
+   Out[2]:
    <IntegerArray>
    [1, 2, NaN]
    Length: 3, dtype: Int64
 
-   >>> a > 1
+   In [3]: a > 1
+   Out[3]:
    array([False,  True, False])
 
 *pandas 1.0.0*
@@ -640,9 +652,10 @@ scalar values in the result are instances of the extension dtype's scalar type.
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df.resample("2D").agg(lambda x: 'a').A.dtype
+   In [1]> df.resample("2D").agg(lambda x: 'a').A.dtype
+   Out[1]:
    CategoricalDtype(categories=['a', 'b'], ordered=False)
 
 *pandas 1.0.0*
@@ -657,9 +670,10 @@ depending on how the results are cast back to the original dtype.
 
 *pandas 0.25.x*
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> df.resample("2D").agg(lambda x: 'c')
+   In [1] df.resample("2D").agg(lambda x: 'c')
+   Out[1]:
 
         A
    0  NaN
@@ -871,10 +885,10 @@ matplotlib directly rather than :meth:`~DataFrame.plot`.
 
 To use pandas formatters with a matplotlib plot, specify
 
-.. code-block:: python
+.. code-block:: ipython
 
-   >>> import pandas as pd
-   >>> pd.options.plotting.matplotlib.register_converters = True
+   In [1]: import pandas as pd
+   In [2]: pd.options.plotting.matplotlib.register_converters = True
 
 Note that plots created by :meth:`DataFrame.plot` and :meth:`Series.plot` *do* register the converters
 automatically. The only behavior change is when plotting a date-like object via ``matplotlib.pyplot.plot``
