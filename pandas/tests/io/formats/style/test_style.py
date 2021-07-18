@@ -627,10 +627,27 @@ class TestStyler:
     def test_applymap_subset_multiindex(self, slice_):
         # GH 19861
         # edited for GH 33562
+        warn = None
+        msg = "indexing on a MultiIndex with a nested sequence of labels"
+        if (
+            isinstance(slice_[-1], tuple)
+            and isinstance(slice_[-1][-1], list)
+            and "C" in slice_[-1][-1]
+        ):
+            warn = FutureWarning
+        elif (
+            isinstance(slice_[0], tuple)
+            and isinstance(slice_[0][1], list)
+            and 3 in slice_[0][1]
+        ):
+            warn = FutureWarning
+
         idx = MultiIndex.from_product([["a", "b"], [1, 2]])
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
-        df.style.applymap(lambda x: "color: red;", subset=slice_).render()
+
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            df.style.applymap(lambda x: "color: red;", subset=slice_).render()
 
     def test_applymap_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
@@ -1438,6 +1455,19 @@ class TestStyler:
         idxs = MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
-        expected = df.loc[slice_]
-        result = df.loc[non_reducing_slice(slice_)]
+        msg = "indexing on a MultiIndex with a nested sequence of labels"
+        warn = None
+        for lvl in [0, 1]:
+            key = slice_[lvl]
+            if isinstance(key, tuple):
+                for subkey in key:
+                    if isinstance(subkey, list) and "-" in subkey:
+                        # not present in the index level, ignored, will raise in future
+                        warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = df.loc[slice_]
+
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
