@@ -43,6 +43,8 @@ from pandas._typing import (
     IndexKeyFunc,
     SingleManager,
     StorageOptions,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
     npt,
 )
@@ -141,11 +143,6 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-
-    from pandas._typing import (
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
-    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy

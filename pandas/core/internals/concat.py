@@ -592,6 +592,9 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
         # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
         all(
             is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            # GH#42092 we only want the dtype_equal check for non-numeric blocks
+            #  (for now, may change but that would need a deprecation)
+            or ju.block.dtype.kind in ["b", "i", "u"]
             for ju in join_units
         )
         and
