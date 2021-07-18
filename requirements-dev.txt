@@ -79,7 +79,7 @@ tabulate>=0.8.3
 natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
 numpydoc < 1.2
-pandas-dev-flaker==0.2.0
+pandas-dev-flaker==0.3.0
 types-python-dateutil
 types-PyMySQL
 types-pytz
