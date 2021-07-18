@@ -1007,7 +1007,8 @@ def test_agg_transform(axis, float_frame):
         tm.assert_frame_equal(result, expected)
 
         # list-like
-        result = float_frame.apply([np.sqrt], axis=axis)
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
         if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
@@ -1018,7 +1019,8 @@ def test_agg_transform(axis, float_frame):
         # multiple items in list
         # these are in the order as if we are applying both
         # functions per series and then concatting
-        result = float_frame.apply([np.abs, np.sqrt], axis=axis)
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = float_frame.apply([np.abs, np.sqrt], axis=axis)
         expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
         if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product(
@@ -1217,24 +1219,31 @@ def test_non_callable_aggregates(how):
     df = DataFrame(
         {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
     )
+    if how == "apply":
+        klass, msg = FutureWarning, "used aggregate"
+    else:
+        klass, msg = None, None
 
     # Function aggregate
-    result = getattr(df, how)({"A": "count"})
+    with tm.assert_produces_warning(klass, match=msg):
+        result = getattr(df, how)({"A": "count"})
     expected = Series({"A": 2})
 
     tm.assert_series_equal(result, expected)
 
     # Non-function aggregate
-    result = getattr(df, how)({"A": "size"})
+    with tm.assert_produces_warning(klass, match=msg):
+        result = getattr(df, how)({"A": "size"})
     expected = Series({"A": 3})
 
     tm.assert_series_equal(result, expected)
 
     # Mix function and non-function aggs
-    result1 = getattr(df, how)(["count", "size"])
-    result2 = getattr(df, how)(
-        {"A": ["count", "size"], "B": ["count", "size"], "C": ["count", "size"]}
-    )
+    with tm.assert_produces_warning(klass, match=msg):
+        result1 = getattr(df, how)(["count", "size"])
+        result2 = getattr(df, how)(
+            {"A": ["count", "size"], "B": ["count", "size"], "C": ["count", "size"]}
+        )
     expected = DataFrame(
         {
             "A": {"count": 2, "size": 3},
@@ -1397,7 +1406,8 @@ def test_apply_empty_list_reduce():
 def test_apply_no_suffix_index():
     # GH36189
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
-    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+        result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = DataFrame(
         {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
     )

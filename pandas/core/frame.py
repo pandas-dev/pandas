@@ -8527,6 +8527,10 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        return self._aggregate(func, axis, *args, **kwargs)
+
+    def _aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        """Method for internal calls to aggregate."""
         from pandas.core.apply import frame_apply
 
         axis = self._get_axis_number(axis)
@@ -8713,6 +8717,27 @@ NaN 12.3   33.0
         1  1  2
         2  1  2
         """
+        result = self._apply(func, axis, raw, result_type, args, **kwargs)
+        if is_list_like(func):
+            warnings.warn(
+                "pandas internally used aggregate() to compute part of the result. "
+                "In a future version, apply() will be used internally instead, "
+                "possibly resulting in a different behavior.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        return result
+
+    def _apply(
+        self,
+        func: AggFuncType,
+        axis: Axis = 0,
+        raw: bool = False,
+        result_type=None,
+        args=(),
+        **kwargs,
+    ):
+        """For internal calls to apply to avoid deprecation warnings."""
         from pandas.core.apply import frame_apply
 
         op = frame_apply(
