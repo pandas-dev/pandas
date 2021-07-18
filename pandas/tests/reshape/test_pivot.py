@@ -2127,7 +2127,7 @@ class TestPivotTable:
         tm.assert_frame_equal(table, expected)
 
     def test_pivot_table_sort_false(self):
-        # GH#39143
+        # GH #39143
         df = DataFrame(
             {
                 "a": ["d1", "d4", "d3"],
