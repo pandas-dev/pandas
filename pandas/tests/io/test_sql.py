@@ -807,9 +807,10 @@ class PandasSQLTest:
             ValueError, match="on_conflict can only be used with 'append' operations"
         ):
             # Insert new dataframe
-            self.pandasSQL.to_sql(
+            sql.to_sql(
                 self.pkey_table_frame,
-                "pkey_table",
+                "some_table",
+                con=self.conn,
                 if_exists=if_exists,
                 on_conflict=on_conflict,
                 index=False,
