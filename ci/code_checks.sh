@@ -15,10 +15,9 @@
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
-#   $ ./ci/code_checks.sh typing        # run static type analysis
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|typing]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings"]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -157,17 +156,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=GL03,GL04,GL05,GL06,GL07,GL09,GL10,SS02,SS04,SS05,PR03,PR04,PR05,PR10,EX04,RT01,RT04,RT05,SA02,SA03
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-fi
-
-### TYPING ###
-if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
-
-    echo "mypy --version"
-    mypy --version
-
-    MSG='Performing static analysis using mypy' ; echo $MSG
-    mypy pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
 exit $RET

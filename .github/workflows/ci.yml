@@ -68,10 +68,6 @@ jobs:
       run: ci/code_checks.sh docstrings
       if: always()
 
-    - name: Typing validation
-      run: ci/code_checks.sh typing
-      if: always()
-
     - name: Testing docstring validation script
       run: pytest scripts
       if: always()

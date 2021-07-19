@@ -3,6 +3,10 @@ exclude: ^LICENSES/|\.(html|csv|svg)$
 ci:
     autofix_prs: false
 repos:
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.910
+    hooks:
+    -   id: mypy
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.0
     hooks:
