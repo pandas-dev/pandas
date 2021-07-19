@@ -1673,12 +1673,7 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                if (
-                    dtype != np.dtype(object)  # type: ignore[type-var]
-                    and dtype != self.dtyplist[i]
-                ):
+                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))
