@@ -770,38 +770,6 @@ separator is assumed to be a '_', however ``prefix_sep`` can be specified in
     from_dict = pd.get_dummies(df, prefix_sep={"prefix1": "-", "prefix2": "_"})
     from_dict
 
-####################s###########################################################
-Sometimes it will be useful to only keep k-1 levels of a categorical
-variable to avoid collinearity when feeding the result to statistical models.
-You can switch to this mode by turn on ``drop_first``.
-
-.. ipython:: python
-
-    s = pd.Series(list("abcaa"))
-
-    pd.get_dummies(s)
-
-    pd.get_dummies(s, drop_first=True)
-
-When a column contains only one level, it will be omitted in the result.
-
-.. ipython:: python
-
-    df = pd.DataFrame({"A": list("aaaaa"), "B": list("ababc")})
-
-    pd.get_dummies(df)
-
-    pd.get_dummies(df, drop_first=True)
-
-By default new columns will have ``np.uint8`` dtype.
-To choose another dtype, use the ``dtype`` argument:
-
-.. ipython:: python
-
-    df = pd.DataFrame({"A": list("abc"), "B": [1.1, 2.2, 3.3]})
-
-    pd.get_dummies(df, dtype=bool).dtypes
-################################################################################
 
 .. _reshaping.factorize:
 
