@@ -16,6 +16,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import Axis
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
@@ -45,8 +46,6 @@ import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
-    from pandas._typing import Axis
-
     from pandas import (
         DataFrame,
         Series,
