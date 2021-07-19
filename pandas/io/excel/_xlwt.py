@@ -66,8 +66,13 @@ class XlwtWriter(ExcelWriter):
             self.book.save(self.handles.handle)
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0,
-        freeze_panes=None, autofilter=False,
+        self,
+        cells,
+        sheet_name=None,
+        startrow=0,
+        startcol=0,
+        freeze_panes=None,
+        autofilter=False,
     ):
 
         sheet_name = self._get_sheet_name(sheet_name)

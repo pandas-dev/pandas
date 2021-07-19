@@ -417,8 +417,13 @@ class OpenpyxlWriter(ExcelWriter):
         return Protection(**protection_dict)
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0,
-        freeze_panes=None, autofilter=False
+        self,
+        cells,
+        sheet_name=None,
+        startrow=0,
+        startcol=0,
+        freeze_panes=None,
+        autofilter=False,
     ):
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -512,6 +517,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         if autofilter:
             from openpyxl.utils import get_column_letter
+
             wks.auto_filter.ref = "A1:" + get_column_letter(max_col + 1) + str(max_row)
 
 

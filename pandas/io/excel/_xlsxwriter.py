@@ -208,8 +208,13 @@ class XlsxWriter(ExcelWriter):
         return self.book.close()
 
     def write_cells(
-        self, cells, sheet_name=None, startrow=0, startcol=0, freeze_panes=None,
-        autofilter=False
+        self,
+        cells,
+        sheet_name=None,
+        startrow=0,
+        startcol=0,
+        freeze_panes=None,
+        autofilter=False,
     ):
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
