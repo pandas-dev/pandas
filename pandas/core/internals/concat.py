@@ -123,12 +123,16 @@ def concat_arrays(to_concat: list) -> ArrayLike:
     # ignore the all-NA proxies to determine the resulting dtype
     to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
 
-    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+    dtypes = {x.dtype for x in to_concat_no_proxy}
+    single_dtype = len(dtypes) == 1
 
-    if not single_dtype:
-        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
-    else:
+    if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
+    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+        # GH#42092
+        target_dtype = np.find_common_type(list(dtypes), [])
+    else:
+        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
     if target_dtype.kind in ["m", "M"]:
         # for datetimelike use DatetimeArray/TimedeltaArray concatenation
