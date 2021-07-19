@@ -99,7 +99,7 @@ XML
    read_xml
    DataFrame.to_xml
 
-Latex
+LaTeX
 ~~~~~
 .. autosummary::
    :toctree: api/
