@@ -741,62 +741,36 @@ means that no vale assigned implies a the value of the dropped value:
 
 The function is the inverse of :func:`pandas.get_dummies <pandas.reshape.get_dummies>`.
 
-
-
-
-################################################################################
-This function is often used along with discretization functions like ``cut``:
+All non-dummy columns are included untouched in the output. You can control
+which columns are included in the output with the ``columns`` argument.
 
 .. ipython:: python
 
-   values = np.random.randn(10)
-   values
+    pd.get_dummies(df, columns=["C", "prefix_A", "prefix_B"])
 
-   bins = [0, 0.2, 0.4, 0.6, 0.8, 1]
+You can pass values for for the ``prefix_sep`` argument depending on how many or
+nested prefix separators are used in the column names. By default the prefix
+separator is assumed to be a '_', however ``prefix_sep`` can be specified in
+3 ways:
 
-   pd.get_dummies(pd.cut(values, bins))
-
-See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
-
-:func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
-variables (categorical in the statistical sense, those with ``object`` or
-``categorical`` dtype) are encoded as dummy variables.
-
-
-.. ipython:: python
-
-    df = pd.DataFrame({"A": ["a", "b", "a"], "B": ["c", "c", "b"], "C": [1, 2, 3]})
-    pd.get_dummies(df)
-
-All non-object columns are included untouched in the output. You can control
-the columns that are encoded with the ``columns`` keyword.
+* string: Use the same value for ``prefix_sep`` for each column
+  to be dencoded.
+* list: Variables will be decoded by the first instance of prefix separator passed
+  the list that is encountered in the column name.
+* dict: Directly map prefix separators to prefixes. Can be used in case mixed
+  separators are used within the variable name and to separate the variable from
+  the prefix.
 
 .. ipython:: python
 
-    pd.get_dummies(df, columns=["A"])
-
-Notice that the ``B`` column is still included in the output, it just hasn't
-been encoded. You can drop ``B`` before calling ``get_dummies`` if you don't
-want to include it in the output.
-
-As with the ``Series`` version, you can pass values for the ``prefix`` and
-``prefix_sep``. By default the column name is used as the prefix, and '_' as
-the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
-
-* string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
-  to be encoded.
-* list: Must be the same length as the number of columns being encoded.
-* dict: Mapping column name to prefix.
-
-.. ipython:: python
-
-    simple = pd.get_dummies(df, prefix="new_prefix")
+    simple = pd.get_dummies(df, prefix_sep="-")
     simple
-    from_list = pd.get_dummies(df, prefix=["from_A", "from_B"])
+    from_list = pd.get_dummies(df, prefix_sep=["_", "-"])
     from_list
-    from_dict = pd.get_dummies(df, prefix={"B": "from_B", "A": "from_A"})
+    from_dict = pd.get_dummies(df, prefix_sep={"prefix1": "-", "prefix2": "_"})
     from_dict
 
+####################s###########################################################
 Sometimes it will be useful to only keep k-1 levels of a categorical
 variable to avoid collinearity when feeding the result to statistical models.
 You can switch to this mode by turn on ``drop_first``.
