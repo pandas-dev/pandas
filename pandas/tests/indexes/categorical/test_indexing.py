@@ -198,6 +198,13 @@ class TestGetLoc:
         expected = np.array([False, True, False, True], dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_loc_nan(self):
+        # GH#41933
+        ci = CategoricalIndex(["A", "B", np.nan])
+        res = ci.get_loc(np.nan)
+
+        assert res == 2
+
 
 class TestGetIndexer:
     def test_get_indexer_base(self):
@@ -315,7 +322,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # Test the Categorical method directly
             ci._data.where(mask, 2)
 

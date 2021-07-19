@@ -106,7 +106,8 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
+            # GH#41775 OverflowError e.g. if we are uint64 and val is -1
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):

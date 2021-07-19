@@ -18,16 +18,14 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import (
-    FilePathOrBuffer,
-    Union,
-)
+from pandas._typing import FilePathOrBuffer
 from pandas.errors import (
     EmptyDataError,
     ParserError,
 )
 
 from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -42,7 +40,7 @@ _BOM = "\ufeff"
 
 
 class PythonParser(ParserBase):
-    def __init__(self, f: Union[FilePathOrBuffer, list], **kwds):
+    def __init__(self, f: FilePathOrBuffer | list, **kwds):
         """
         Workhorse function for processing nested list into DataFrame
         """
@@ -295,6 +293,8 @@ class PythonParser(ParserBase):
             offset = len(self.index_col)  # type: ignore[has-type]
 
         len_alldata = len(alldata)
+        self._check_data_length(names, alldata)
+
         return {
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
@@ -427,6 +427,7 @@ class PythonParser(ParserBase):
                                 cur_count = counts[col]
                             if (
                                 self.dtype is not None
+                                and is_dict_like(self.dtype)
                                 and self.dtype.get(old_col) is not None
                                 and self.dtype.get(col) is None
                             ):
@@ -1158,7 +1159,7 @@ class FixedWidthReader(abc.Iterator):
 
     def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = "".join(fr"\{x}" for x in self.delimiter)
+        delimiters = "".join([fr"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:

@@ -1,0 +1,296 @@
+.. _whatsnew_140:
+
+What's new in 1.4.0 (??)
+------------------------
+
+These are the changes in pandas 1.4.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_140.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+.. _whatsnew_140.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_140.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+- Add support for assigning values to ``by`` argument in :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box` (:issue:`15079`)
+- :meth:`Series.sample`, :meth:`DataFrame.sample`, and :meth:`.GroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
+-  Additional options added to :meth:`.Styler.bar` to control alignment and display, with keyword only arguments (:issue:`26070`, :issue:`36419`)
+- :meth:`Styler.bar` now validates the input argument ``width`` and ``height`` (:issue:`42511`)
+- :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_140.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+| numpy           | 1.18.5          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| pytz            | 2020.1          |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| python-dateutil | 2.8.1           |    X     |    X    |
++-----------------+-----------------+----------+---------+
+| bottleneck      | 1.3.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| numexpr         | 2.7.1           |          |    X    |
++-----------------+-----------------+----------+---------+
+| pytest (dev)    | 6.0             |          |         |
++-----------------+-----------------+----------+---------+
+| mypy (dev)      | 0.910           |          |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+| beautifulsoup4  | 4.8.2           |    X    |
++-----------------+-----------------+---------+
+| fastparquet     | 0.4.0           |         |
++-----------------+-----------------+---------+
+| fsspec          | 0.7.4           |         |
++-----------------+-----------------+---------+
+| gcsfs           | 0.6.0           |         |
++-----------------+-----------------+---------+
+| lxml            | 4.5.0           |    X    |
++-----------------+-----------------+---------+
+| matplotlib      | 3.3.2           |    X    |
++-----------------+-----------------+---------+
+| numba           | 0.50.1          |    X    |
++-----------------+-----------------+---------+
+| openpyxl        | 3.0.2           |    X    |
++-----------------+-----------------+---------+
+| pyarrow         | 0.17.0          |         |
++-----------------+-----------------+---------+
+| pymysql         | 0.10.1          |    X    |
++-----------------+-----------------+---------+
+| pytables        | 3.6.1           |    X    |
++-----------------+-----------------+---------+
+| s3fs            | 0.4.0           |         |
++-----------------+-----------------+---------+
+| scipy           | 1.4.1           |    X    |
++-----------------+-----------------+---------+
+| sqlalchemy      | 1.3.11          |    X    |
++-----------------+-----------------+---------+
+| tabulate        | 0.8.7           |         |
++-----------------+-----------------+---------+
+| xarray          | 0.15.1          |    X    |
++-----------------+-----------------+---------+
+| xlrd            | 2.0.1           |    X    |
++-----------------+-----------------+---------+
+| xlsxwriter      | 1.2.2           |    X    |
++-----------------+-----------------+---------+
+| xlwt            | 1.3.0           |         |
++-----------------+-----------------+---------+
+| pandas-gbq      | 0.14.0          |    X    |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_140.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+- :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+- Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
+- Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
+- Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)
+- Deprecated treating ``numpy.datetime64`` objects as UTC times when passed to the :class:`Timestamp` constructor along with a timezone. In a future version, these will be treated as wall-times. To retain the old behavior, use ``Timestamp(dt64).tz_localize("UTC").tz_convert(tz)`` (:issue:`24559`)
+- Deprecated ignoring missing labels when indexing with a sequence of labels on a level of a MultiIndex (:issue:`42351`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
+- Performance improvement in :meth:`.GroupBy.transform` for user-defined functions (:issue:`41598`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+- Bug in setting dtype-incompatible values into a :class:`Categorical` (or ``Series`` or ``DataFrame`` backed by ``Categorical``) raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Categorical.searchsorted` when passing a dtype-incompatible value raising ``KeyError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Series.where` with ``CategoricalDtype`` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Categorical.fillna` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
+- Bug in :meth:`Categorical.fillna` with a tuple-like category raising ``ValueError`` instead of ``TypeError`` when filling with a non-category tuple (:issue:`41919`)
+-
+
+Datetimelike
+^^^^^^^^^^^^
+- Bug in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
+- Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+-
+
+Timedelta
+^^^^^^^^^
+-
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+- Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
+- Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
+-
+
+Conversion
+^^^^^^^^^^
+- Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+-
+-
+
+Indexing
+^^^^^^^^
+- Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` when the object's Index has a length greater than one but only one unique value (:issue:`42365`)
+- Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
+- Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
+- Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+- Bug in :meth:`MultiIndex.get_loc` where the first level is a :class:`DatetimeIndex` and a string key is passed (:issue:`42465`)
+- Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
+-
+
+I/O
+^^^
+- Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
+- Bug in :func:`json_normalize` where ``errors=ignore`` could fail to ignore missing values of ``meta`` when ``record_path`` has a length greater than one (:issue:`41876`)
+- Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+- Fixed bug in :meth:`SeriesGroupBy.apply` where passing an unrecognized string argument failed to raise ``TypeError`` when the underlying ``Series`` is empty (:issue:`42021`)
+- Bug in :meth:`Series.rolling.apply`, :meth:`DataFrame.rolling.apply`, :meth:`Series.expanding.apply` and :meth:`DataFrame.expanding.apply` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`42287`)
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+-
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_140.contributors:
+
+Contributors
+~~~~~~~~~~~~

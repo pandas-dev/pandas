@@ -1,18 +1,13 @@
 """
 Module contains tools for processing files into DataFrames or other objects
 """
+from __future__ import annotations
+
 from collections import abc
 import csv
 import sys
 from textwrap import fill
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Type,
-)
+from typing import Any
 import warnings
 
 import numpy as np
@@ -24,7 +19,6 @@ from pandas._typing import (
     DtypeArg,
     FilePathOrBuffer,
     StorageOptions,
-    Union,
 )
 from pandas.errors import (
     AbstractMethodError,
@@ -308,7 +302,7 @@ encoding : str, optional
        ``open()``. Otherwise, ``errors="strict"`` is passed to ``open()``.
        This behavior was previously only the case for ``engine="python"``.
 
-    .. versionchanged:: 1.3
+    .. versionchanged:: 1.3.0
 
        ``encoding_errors`` is a new argument. ``encoding`` has no longer an
        influence on how encoding errors are handled.
@@ -317,7 +311,7 @@ encoding_errors : str, optional, default "strict"
     How encoding errors are treated. `List of possible values
     <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
-    .. versionadded:: 1.3
+    .. versionadded:: 1.3.0
 
 dialect : str or csv.Dialect, optional
     If provided, this parameter will override values (default or not) for the
@@ -331,14 +325,14 @@ error_bad_lines : bool, default ``None``
     If False, then these "bad lines" will be dropped from the DataFrame that is
     returned.
 
-    .. deprecated:: 1.3
+    .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
 warn_bad_lines : bool, default ``None``
     If error_bad_lines is False, and warn_bad_lines is True, a warning for each
     "bad line" will be output.
 
-    .. deprecated:: 1.3
+    .. deprecated:: 1.3.0
        The ``on_bad_lines`` parameter should be used instead to specify behavior upon
        encountering a bad line instead.
 on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
@@ -349,7 +343,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
         - 'warn', raise a warning when a bad line is encountered and skip that line.
         - 'skip', skip bad lines without raising or warning when they are encountered.
 
-    .. versionadded:: 1.3
+    .. versionadded:: 1.3.0
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -413,8 +407,8 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
-_deprecated_defaults: Dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
-_deprecated_args: Set[str] = {"error_bad_lines", "warn_bad_lines"}
+_deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
+_deprecated_args: set[str] = {"error_bad_lines", "warn_bad_lines"}
 
 
 def validate_integer(name, val, min_val=0):
@@ -518,7 +512,7 @@ def read_csv(
     prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -554,7 +548,7 @@ def read_csv(
     escapechar=None,
     comment=None,
     encoding=None,
-    encoding_errors: Optional[str] = "strict",
+    encoding_errors: str | None = "strict",
     dialect=None,
     # Error Handling
     error_bad_lines=None,
@@ -616,7 +610,7 @@ def read_table(
     prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
-    dtype: Optional[DtypeArg] = None,
+    dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
     true_values=None,
@@ -659,7 +653,7 @@ def read_table(
     # TODO (2.0): set on_bad_lines to "error".
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
-    encoding_errors: Optional[str] = "strict",
+    encoding_errors: str | None = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
@@ -731,8 +725,6 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-
-        .. versionadded:: 0.24.0
     **kwds : optional
         Optional keyword arguments can be passed to ``TextFileReader``.
 
@@ -825,7 +817,7 @@ class TextFileReader(abc.Iterator):
         kwds = self.orig_options
 
         options = {}
-        default: Optional[object]
+        default: object | None
 
         for argname, default in parser_defaults.items():
             value = kwds.get(argname, default)
@@ -1035,7 +1027,7 @@ class TextFileReader(abc.Iterator):
             raise
 
     def _make_engine(self, engine="c"):
-        mapping: Dict[str, Type[ParserBase]] = {
+        mapping: dict[str, type[ParserBase]] = {
             "c": CParserWrapper,
             "python": PythonParser,
             "python-fwf": FixedWidthFieldParser,
@@ -1149,7 +1141,7 @@ def TextParser(*args, **kwds):
 
 
 def _clean_na_values(na_values, keep_default_na=True):
-    na_fvalues: Union[Set, Dict]
+    na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
@@ -1199,8 +1191,8 @@ def _floatify_na_values(na_values):
 
 
 def _stringify_na_values(na_values):
-    """ return a stringified and numeric for these values """
-    result: List[Union[int, str, float]] = []
+    """return a stringified and numeric for these values"""
+    result: list[int | str | float] = []
     for x in na_values:
         result.append(str(x))
         result.append(x)
@@ -1224,17 +1216,17 @@ def _stringify_na_values(na_values):
 
 
 def _refine_defaults_read(
-    dialect: Union[str, csv.Dialect],
-    delimiter: Union[str, object],
+    dialect: str | csv.Dialect,
+    delimiter: str | object,
     delim_whitespace: bool,
     engine: str,
-    sep: Union[str, object],
-    error_bad_lines: Optional[bool],
-    warn_bad_lines: Optional[bool],
-    on_bad_lines: Optional[str],
-    names: Union[Optional[ArrayLike], object],
-    prefix: Union[Optional[str], object],
-    defaults: Dict[str, Any],
+    sep: str | object,
+    error_bad_lines: bool | None,
+    warn_bad_lines: bool | None,
+    on_bad_lines: str | None,
+    names: ArrayLike | None | object,
+    prefix: str | None | object,
+    defaults: dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
 
@@ -1289,7 +1281,7 @@ def _refine_defaults_read(
     """
     # fix types for sep, delimiter to Union(str, Any)
     delim_default = defaults["delimiter"]
-    kwds: Dict[str, Any] = {}
+    kwds: dict[str, Any] = {}
     # gh-23761
     #
     # When a dialect is passed, it overrides any of the overlapping
@@ -1383,7 +1375,7 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: Dict[str, Any]) -> Optional[csv.Dialect]:
+def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
     """
     Extract concrete csv dialect instance.
 
@@ -1429,8 +1421,8 @@ def _validate_dialect(dialect: csv.Dialect) -> None:
 
 def _merge_with_dialect_properties(
     dialect: csv.Dialect,
-    defaults: Dict[str, Any],
-) -> Dict[str, Any]:
+    defaults: dict[str, Any],
+) -> dict[str, Any]:
     """
     Merge default kwargs in TextFileReader with dialect parameters.
 
@@ -1479,7 +1471,7 @@ def _merge_with_dialect_properties(
     return kwds
 
 
-def _validate_skipfooter(kwds: Dict[str, Any]) -> None:
+def _validate_skipfooter(kwds: dict[str, Any]) -> None:
     """
     Check whether skipfooter is compatible with other kwargs in TextFileReader.
 

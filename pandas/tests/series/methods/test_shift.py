@@ -169,7 +169,7 @@ class TestShift:
         tm.assert_equal(res, expected)
 
         # check for incorrect fill_value
-        msg = "'fill_value=f' is not present in this Categorical's categories"
+        msg = r"Cannot setitem on a Categorical with a new category \(f\)"
         with pytest.raises(TypeError, match=msg):
             ts.shift(1, fill_value="f")
 

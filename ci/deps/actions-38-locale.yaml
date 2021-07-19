@@ -2,15 +2,15 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.8.*
+  - python=3.8
 
   # tools
   - cython>=0.29.21
   - pytest>=6.0
   - pytest-cov
-  - pytest-xdist>=1.21
+  - pytest-xdist>=1.31
   - pytest-asyncio>=0.12.0
-  - hypothesis>=3.58.0
+  - hypothesis>=5.5.3
 
   # pandas dependencies
   - beautifulsoup4
@@ -31,7 +31,7 @@ dependencies:
   - pytz
   - scipy
   - xarray
-  - xlrd<2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - moto

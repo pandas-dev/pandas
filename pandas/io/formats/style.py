@@ -23,7 +23,6 @@ from pandas._typing import (
     Axis,
     FilePathOrBuffer,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
 )
@@ -31,7 +30,10 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
 import pandas as pd
-from pandas import RangeIndex
+from pandas import (
+    IndexSlice,
+    RangeIndex,
+)
 from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
@@ -87,8 +89,8 @@ class Styler(StylerRenderer):
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
         A unique identifier to avoid CSS collisions; generated automatically.
-    caption : str, default None
-        Caption to attach to the table.
+    caption : str, tuple, default None
+        String caption to attach to the table. Tuple only used for LaTeX dual captions.
     table_attributes : str, default None
         Items that show up in the opening ``<table>`` tag
         in addition to automatic (by default) id.
@@ -126,7 +128,7 @@ class Styler(StylerRenderer):
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
         LaTeX-safe sequences.
 
-        ... versionadded:: 1.3.0
+        .. versionadded:: 1.3.0
 
     Attributes
     ----------
@@ -171,11 +173,11 @@ class Styler(StylerRenderer):
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         table_attributes: str | None = None,
         cell_ids: bool = True,
         na_rep: str | None = None,
@@ -419,13 +421,14 @@ class Styler(StylerRenderer):
         position_float: str | None = None,
         hrules: bool = False,
         label: str | None = None,
-        caption: str | None = None,
+        caption: str | tuple | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
         encoding: str | None = None,
+        convert_css: bool = False,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -460,8 +463,10 @@ class Styler(StylerRenderer):
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
-        caption : str, optional
-            The LaTeX table caption included as: \\caption{<caption>}.
+        caption : str, tuple, optional
+            If string, the LaTeX table caption included as: \\caption{<caption>}.
+            If tuple, i.e ("full caption", "short caption"), the caption included
+            as: \\caption[<caption[1]>]{<caption[0]>}.
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -480,6 +485,10 @@ class Styler(StylerRenderer):
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         encoding : str, default "utf-8"
             Character encoding setting.
+        convert_css : bool, default False
+            Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
+            conversion table is dropped. A style can be forced by adding option
+            `--latex`. See notes.
 
         Returns
         -------
@@ -659,7 +668,48 @@ class Styler(StylerRenderer):
          & ix2 & \$3 & 4.400 & CATS \\
         L1 & ix3 & \$2 & 6.600 & COWS \\
         \end{tabular}
+
+        **CSS Conversion**
+
+        This method can convert a Styler constructured with HTML-CSS to LaTeX using
+        the following limited conversions.
+
+        ================== ==================== ============= ==========================
+        CSS Attribute      CSS value            LaTeX Command LaTeX Options
+        ================== ==================== ============= ==========================
+        font-weight        | bold               | bfseries
+                           | bolder             | bfseries
+        font-style         | italic             | itshape
+                           | oblique            | slshape
+        background-color   | red                cellcolor     | {red}--lwrap
+                           | #fe01ea                          | [HTML]{FE01EA}--lwrap
+                           | #f0e                             | [HTML]{FF00EE}--lwrap
+                           | rgb(128,255,0)                   | [rgb]{0.5,1,0}--lwrap
+                           | rgba(128,0,0,0.5)                | [rgb]{0.5,0,0}--lwrap
+                           | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}--lwrap
+        color              | red                color         | {red}
+                           | #fe01ea                          | [HTML]{FE01EA}
+                           | #f0e                             | [HTML]{FF00EE}
+                           | rgb(128,255,0)                   | [rgb]{0.5,1,0}
+                           | rgba(128,0,0,0.5)                | [rgb]{0.5,0,0}
+                           | rgb(25%,255,50%)                 | [rgb]{0.25,1,0.5}
+        ================== ==================== ============= ==========================
+
+        It is also possible to add user-defined LaTeX only styles to a HTML-CSS Styler
+        using the ``--latex`` flag, and to add LaTeX parsing options that the
+        converter will detect within a CSS-comment.
+
+        >>> df = pd.DataFrame([[1]])
+        >>> df.style.set_properties(
+        ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
+        ... ).to_latex(convert_css=True)
+        \begin{tabular}{lr}
+        {} & {0} \\
+        0 & {\bfseries}{\Huge{1}} \\
+        \end{tabular}
         """
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+
         table_selectors = (
             [style["selector"] for style in self.table_styles]
             if self.table_styles is not None
@@ -668,7 +718,7 @@ class Styler(StylerRenderer):
 
         if column_format is not None:
             # add more recent setting to table_styles
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
@@ -680,19 +730,19 @@ class Styler(StylerRenderer):
             self.data.columns = RangeIndex(stop=len(self.data.columns))
             numeric_cols = self.data._get_numeric_data().columns.to_list()
             self.data.columns = _original_columns
-            column_format = "" if self.hidden_index else "l" * self.data.index.nlevels
+            column_format = "" if self.hide_index_ else "l" * self.data.index.nlevels
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
                     column_format += (
                         ("r" if not siunitx else "S") if ci in numeric_cols else "l"
                     )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
 
         if position:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position", "props": f":{position}"}],
                 overwrite=False,
             )
@@ -704,13 +754,13 @@ class Styler(StylerRenderer):
                     f"'raggedright', 'raggedleft', 'centering', "
                     f"got: '{position_float}'"
                 )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
             )
 
         if hrules:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [
                     {"selector": "toprule", "props": ":toprule"},
                     {"selector": "midrule", "props": ":midrule"},
@@ -720,24 +770,25 @@ class Styler(StylerRenderer):
             )
 
         if label:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
                 overwrite=False,
             )
 
         if caption:
-            self.set_caption(caption)
+            obj.set_caption(caption)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
 
-        latex = self._render_latex(
+        latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            convert_css=convert_css,
         )
 
         return save_to_buffer(latex, buf=buf, encoding=encoding)
@@ -761,13 +812,13 @@ class Styler(StylerRenderer):
         ----------
         buf : str, Path, or StringIO-like, optional, default None
             Buffer to write to. If ``None``, the output is returned as a string.
-        table_uuid: str, optional
+        table_uuid : str, optional
             Id attribute assigned to the <table> HTML element in the format:
 
             ``<table id="T_<table_uuid>" ..>``
 
             If not given uses Styler's initially assigned value.
-        table_attributes: str, optional
+        table_attributes : str, optional
             Attributes to assign within the `<table>` HTML element in the format:
 
             ``<table .. <table_attributes> >``
@@ -914,39 +965,60 @@ class Styler(StylerRenderer):
                 self.ctx[(i, j)].extend(css_list)
 
     def _copy(self, deepcopy: bool = False) -> Styler:
+        """
+        Copies a Styler, allowing for deepcopy or shallow copy
+
+        Copying a Styler aims to recreate a new Styler object which contains the same
+        data and styles as the original.
+
+        Data dependent attributes [copied and NOT exported]:
+          - formatting (._display_funcs)
+          - hidden index values or column values (.hidden_rows, .hidden_columns)
+          - tooltips
+          - cell_context (cell css classes)
+          - ctx (cell css styles)
+          - caption
+
+        Non-data dependent attributes [copied and exported]:
+          - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
+          - table_attributes
+          - table_styles
+          - applied styles (_todo)
+
+        """
+        # GH 40675
         styler = Styler(
-            self.data,
-            precision=self.precision,
-            caption=self.caption,
-            table_attributes=self.table_attributes,
-            cell_ids=self.cell_ids,
-            na_rep=self.na_rep,
+            self.data,  # populates attributes 'data', 'columns', 'index' as shallow
+            uuid_len=self.uuid_len,
         )
+        shallow = [  # simple string or boolean immutables
+            "hide_index_",
+            "hide_columns_",
+            "table_attributes",
+            "cell_ids",
+            "caption",
+        ]
+        deep = [  # nested lists or dicts
+            "_display_funcs",
+            "hidden_rows",
+            "hidden_columns",
+            "ctx",
+            "cell_context",
+            "_todo",
+            "table_styles",
+            "tooltips",
+        ]
 
-        styler.uuid = self.uuid
-        styler.hidden_index = self.hidden_index
+        for attr in shallow:
+            setattr(styler, attr, getattr(self, attr))
 
-        if deepcopy:
-            styler.ctx = copy.deepcopy(self.ctx)
-            styler._todo = copy.deepcopy(self._todo)
-            styler.table_styles = copy.deepcopy(self.table_styles)
-            styler.hidden_columns = copy.copy(self.hidden_columns)
-            styler.cell_context = copy.deepcopy(self.cell_context)
-            styler.tooltips = copy.deepcopy(self.tooltips)
-        else:
-            styler.ctx = self.ctx
-            styler._todo = self._todo
-            styler.table_styles = self.table_styles
-            styler.hidden_columns = self.hidden_columns
-            styler.cell_context = self.cell_context
-            styler.tooltips = self.tooltips
+        for attr in deep:
+            val = getattr(self, attr)
+            setattr(styler, attr, copy.deepcopy(val) if deepcopy else val)
 
         return styler
 
     def __copy__(self) -> Styler:
-        """
-        Deep copy by default.
-        """
         return self._copy(deepcopy=False)
 
     def __deepcopy__(self, memo) -> Styler:
@@ -958,15 +1030,14 @@ class Styler(StylerRenderer):
 
         Returns None.
         """
-        self.ctx.clear()
-        self.tooltips = None
-        self.cell_context.clear()
-        self._todo.clear()
-
-        self.hidden_index = False
-        self.hidden_columns = []
-        # self.format and self.table_styles may be dependent on user
-        # input in self.__init__()
+        # create default GH 40675
+        clean_copy = Styler(self.data, uuid=self.uuid)
+        clean_attrs = [a for a in clean_copy.__dict__ if not callable(a)]
+        self_attrs = [a for a in self.__dict__ if not callable(a)]  # maybe more attrs
+        for attr in clean_attrs:
+            setattr(self, attr, getattr(clean_copy, attr))
+        for attr in set(self_attrs).difference(clean_attrs):
+            delattr(self, attr)
 
     def _apply(
         self,
@@ -1094,7 +1165,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         func = partial(func, **kwargs)  # applymap doesn't take kwargs?
         if subset is None:
-            subset = pd.IndexSlice[:]
+            subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
         result = self.data.loc[subset].applymap(func)
         self._update_ctx(result)
@@ -1204,12 +1275,14 @@ class Styler(StylerRenderer):
         recommend using instead.
 
         The example:
+
         >>> df = pd.DataFrame([[1, 2], [3, 4]])
         >>> def cond(v, limit=4):
         ...     return v > 1 and v != limit
         >>> df.style.where(cond, value='color:green;', other='color:red;')
 
         should be refactored to:
+
         >>> def style_func(v, value, other, limit=4):
         ...     cond = v > 1 and v != limit
         ...     return value if cond else other
@@ -1344,19 +1417,87 @@ class Styler(StylerRenderer):
         self.uuid = uuid
         return self
 
-    def set_caption(self, caption: str) -> Styler:
+    def set_caption(self, caption: str | tuple) -> Styler:
         """
         Set the text added to a ``<caption>`` HTML element.
 
         Parameters
         ----------
-        caption : str
+        caption : str, tuple
+            For HTML output either the string input is used or the first element of the
+            tuple. For LaTeX the string input provides a caption and the additional
+            tuple input allows for full captions and short captions, in that order.
 
         Returns
         -------
         self : Styler
         """
         self.caption = caption
+        return self
+
+    def set_sticky(
+        self,
+        axis: Axis = 0,
+        pixel_size: int | None = None,
+        levels: list[int] | None = None,
+    ) -> Styler:
+        """
+        Add CSS to permanently display the index or column headers in a scrolling frame.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            Whether to make the index or column headers sticky.
+        pixel_size : int, optional
+            Required to configure the width of index cells or the height of column
+            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+        levels : list of int
+            If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
+            stick all levels.
+
+        Returns
+        -------
+        self : Styler
+        """
+        if axis in [0, "index"]:
+            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            pixel_size = 75 if not pixel_size else pixel_size
+        elif axis in [1, "columns"]:
+            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            pixel_size = 25 if not pixel_size else pixel_size
+        else:
+            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+
+        if not isinstance(obj, pd.MultiIndex):
+            return self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th",
+                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                    }
+                ],
+                overwrite=False,
+            )
+        else:
+            range_idx = list(range(obj.nlevels))
+
+        levels = sorted(levels) if levels else range_idx
+        for i, level in enumerate(levels):
+            self.set_table_styles(
+                [
+                    {
+                        "selector": f"{tag} th.level{level}",
+                        "props": f"position: sticky; "
+                        f"{pos}: {i * pixel_size}px; "
+                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
+                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
+                        f"background-color: white;",
+                    }
+                ],
+                overwrite=False,
+            )
+
         return self
 
     def set_table_styles(
@@ -1504,37 +1645,169 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self) -> Styler:
+    def hide_index(self, subset: Subset | None = None) -> Styler:
         """
-        Hide any indices from rendering.
+        Hide the entire index, or specific keys in the index from rendering.
 
-        Returns
-        -------
-        self : Styler
-        """
-        self.hidden_index = True
-        return self
+        This method has dual functionality:
 
-    def hide_columns(self, subset: Subset) -> Styler:
-        """
-        Hide columns from rendering.
+          - if ``subset`` is ``None`` then the entire index will be hidden whilst
+            displaying all data-rows.
+          - if a ``subset`` is given then those specific rows will be hidden whilst the
+            index itself remains visible.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
-        subset : label, array-like, IndexSlice
-            A valid 1d input or single key along the appropriate axis within
-            `DataFrame.loc[]`, to limit ``data`` to *before* applying the function.
+        subset : label, array-like, IndexSlice, optional
+            A valid 1d input or single key along the index axis within
+            `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
+            the function.
 
         Returns
         -------
         self : Styler
+
+        See Also
+        --------
+        Styler.hide_columns: Hide the entire column headers row, or specific columns.
+
+        Examples
+        --------
+        Simple application hiding specific rows:
+
+        >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
+        >>> df.style.hide_index(["a", "b"])
+             0    1
+        c    5    6
+
+        Hide the index and retain the data values:
+
+        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
+        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df.style.format("{:.1f}").hide_index()
+                         x                    y
+           a      b      c      a      b      c
+         0.1    0.0    0.4    1.3    0.6   -1.4
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+         1.4   -0.8    1.6   -0.2   -0.4   -0.3
+         0.4    1.0   -0.2   -0.8   -1.2    1.1
+        -0.6    1.2    1.8    1.9    0.3    0.3
+         0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hide specific rows but retain the index:
+
+        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+                                 x                    y
+                   a      b      c      a      b      c
+        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
+        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Hide specific rows and the index:
+
+        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+        ...     .hide_index()
+                         x                    y
+           a      b      c      a      b      c
+         0.7    1.0    1.3    1.5   -0.0   -0.2
+        -0.6    1.2    1.8    1.9    0.3    0.3
         """
-        subset = non_reducing_slice(subset)
-        hidden_df = self.data.loc[subset]
-        hcols = self.columns.get_indexer_for(hidden_df.columns)
-        # error: Incompatible types in assignment (expression has type
-        # "ndarray", variable has type "Sequence[int]")
-        self.hidden_columns = hcols  # type: ignore[assignment]
+        if subset is None:
+            self.hide_index_ = True
+        else:
+            subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
+            subset = non_reducing_slice(subset_)
+            hide = self.data.loc[subset]
+            hrows = self.index.get_indexer_for(hide.index)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_rows = hrows  # type: ignore[assignment]
+        return self
+
+    def hide_columns(self, subset: Subset | None = None) -> Styler:
+        """
+        Hide the column headers or specific keys in the columns from rendering.
+
+        This method has dual functionality:
+
+          - if ``subset`` is ``None`` then the entire column headers row will be hidden
+            whilst the data-values remain visible.
+          - if a ``subset`` is given then those specific columns, including the
+            data-values will be hidden, whilst the column headers row remains visible.
+
+        .. versionchanged:: 1.3.0
+
+        Parameters
+        ----------
+        subset : label, array-like, IndexSlice, optional
+            A valid 1d input or single key along the columns axis within
+            `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
+            the function.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.hide_index: Hide the entire index, or specific keys in the index.
+
+        Examples
+        --------
+        Simple application hiding specific columns:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
+        >>> df.style.hide_columns(["a", "b"])
+             c
+        0    3
+        1    6
+
+        Hide column headers and retain the data values:
+
+        >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
+        >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
+        >>> df.style.format("{:.1f}").hide_columns()
+        x   d    0.1    0.0    0.4    1.3    0.6   -1.4
+            e    0.7    1.0    1.3    1.5   -0.0   -0.2
+            f    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   d    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            e   -0.6    1.2    1.8    1.9    0.3    0.3
+            f    0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hide specific columns but retain the column headers:
+
+        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+                   x      y
+                   b      b
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+
+        Hide specific columns and the column headers:
+
+        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+        ...     .hide_columns()
+        x   a    0.0    0.6
+            b    1.0   -0.0
+            c   -0.8   -0.4
+        y   a    1.0   -1.2
+            b    1.2    0.3
+            c    0.5    2.2
+        """
+        if subset is None:
+            self.hide_columns_ = True
+        else:
+            subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
+            subset = non_reducing_slice(subset_)
+            hide = self.data.loc[subset]
+            hcols = self.columns.get_indexer_for(hide.columns)
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_columns = hcols  # type: ignore[assignment]
         return self
 
     # -----------------------------------------------------------------------
@@ -1592,9 +1865,6 @@ class Styler(StylerRenderer):
             Luminance threshold for determining text color in [0, 1]. Facilitates text
             visibility across varying background colors. All text is dark if 0, and
             light if 1, defaults to 0.408.
-
-            .. versionadded:: 0.24.0
-
         vmin : float, optional
             Minimum data value that corresponds to colormap minimum value.
             If not specified the minimum value of the data (or gmap) will be used.
@@ -1769,81 +2039,26 @@ class Styler(StylerRenderer):
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
-
-    @staticmethod
-    def _bar(
-        s,
-        align: str,
-        colors: list[str],
-        width: float = 100,
-        vmin: float | None = None,
-        vmax: float | None = None,
-    ):
-        """
-        Draw bar chart in dataframe cells.
-        """
-        # Get input value range.
-        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
-        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
-        if align == "mid":
-            smin = min(0, smin)
-            smax = max(0, smax)
-        elif align == "zero":
-            # For "zero" mode, we want the range to be symmetrical around zero.
-            smax = max(abs(smin), abs(smax))
-            smin = -smax
-        # Transform to percent-range of linear-gradient
-        normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
-        zero = -width * smin / (smax - smin + 1e-12)
-
-        def css_bar(start: float, end: float, color: str) -> str:
-            """
-            Generate CSS code to draw a bar from start to end.
-            """
-            css = "width: 10em; height: 80%;"
-            if end > start:
-                css += "background: linear-gradient(90deg,"
-                if start > 0:
-                    css += f" transparent {start:.1f}%, {color} {start:.1f}%, "
-                e = min(end, width)
-                css += f"{color} {e:.1f}%, transparent {e:.1f}%)"
-            return css
-
-        def css(x):
-            if pd.isna(x):
-                return ""
-
-            # avoid deprecated indexing `colors[x > zero]`
-            color = colors[1] if x > zero else colors[0]
-
-            if align == "left":
-                return css_bar(0, x, color)
-            else:
-                return css_bar(min(x, zero), max(x, zero), color)
-
-        if s.ndim == 1:
-            return [css(x) for x in normed]
-        else:
-            return DataFrame(
-                [[css(x) for x in row] for row in normed],
-                index=s.index,
-                columns=s.columns,
-            )
 
     def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
+        *,
         color="#d65f5f",
         width: float = 100,
-        align: str = "left",
+        height: float = 100,
+        align: str | float | int | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
+        props: str = "width: 10em;",
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
+
+        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -1861,37 +2076,48 @@ class Styler(StylerRenderer):
             first element is the color_negative and the second is the
             color_positive (eg: ['#d65f5f', '#5fba7d']).
         width : float, default 100
-            A number between 0 or 100. The largest value will cover `width`
-            percent of the cell's width.
-        align : {'left', 'zero',' mid'}, default 'left'
-            How to align the bars with the cells.
+            The percentage of the cell, measured from the left, in which to draw the
+            bars, in [0, 100].
+        height : float, default 100
+            The percentage height of the bar in the cell, centrally aligned, in [0,100].
 
-            - 'left' : the min value starts at the left of the cell.
+            .. versionadded:: 1.4.0
+        align : str, int, float, callable, default 'mid'
+            How to align the bars within the cells relative to a width adjusted center.
+            If string must be one of:
+
+            - 'left' : bars are drawn rightwards from the minimum data value.
+            - 'right' : bars are drawn leftwards from the maximum data value.
             - 'zero' : a value of zero is located at the center of the cell.
-            - 'mid' : the center of the cell is at (max-min)/2, or
-              if values are all negative (positive) the zero is aligned
-              at the right (left) of the cell.
+            - 'mid' : a value of (max-min)/2 is located at the center of the cell,
+              or if all values are negative (positive) the zero is
+              aligned at the right (left) of the cell.
+            - 'mean' : the mean value of the data is located at the center of the cell.
+
+            If a float or integer is given this will indicate the center of the cell.
+
+            If a callable should take a 1d or 2d array and return a scalar.
+
+            .. versionchanged:: 1.4.0
+
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
             When None (default): the minimum value of the data will be used.
-
-            .. versionadded:: 0.24.0
-
         vmax : float, optional
             Maximum bar value, defining the right hand limit
             of the bar drawing range, higher values are clipped to `vmax`.
             When None (default): the maximum value of the data will be used.
+        props : str, optional
+            The base CSS of the cell that is extended to add the bar chart. Defaults to
+            `"width: 10em;"`
 
-            .. versionadded:: 0.24.0
+            .. versionadded:: 1.4.0
 
         Returns
         -------
         self : Styler
         """
-        if align not in ("left", "zero", "mid"):
-            raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
-
         if not (is_list_like(color)):
             color = [color, color]
         elif len(color) == 1:
@@ -1903,18 +2129,25 @@ class Styler(StylerRenderer):
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
+        if not (0 <= width <= 100):
+            raise ValueError(f"`width` must be a value in [0, 100], got {width}")
+        elif not (0 <= height <= 100):
+            raise ValueError(f"`height` must be a value in [0, 100], got {height}")
+
         if subset is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
-            self._bar,
+            _bar,
             subset=subset,
             axis=axis,
             align=align,
             colors=color,
-            width=width,
+            width=width / 100,
+            height=height / 100,
             vmin=vmin,
             vmax=vmax,
+            base_css=props,
         )
 
         return self
@@ -2285,23 +2518,35 @@ class Styler(StylerRenderer):
         )
 
     @classmethod
-    def from_custom_template(cls, searchpath, name):
+    def from_custom_template(
+        cls, searchpath, html_table: str | None = None, html_style: str | None = None
+    ):
         """
         Factory function for creating a subclass of ``Styler``.
 
-        Uses a custom template and Jinja environment.
+        Uses custom templates and Jinja environment.
+
+        .. versionchanged:: 1.3.0
 
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
-        name : str
-            Name of your custom template to use for rendering.
+        html_table : str
+            Name of your custom template to replace the html_table template.
+
+            .. versionadded:: 1.3.0
+
+        html_style : str
+            Name of your custom template to replace the html_style template.
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env`` and ``template`` class attributes set.
+            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            ``template_html_style`` class attributes set.
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
@@ -2310,15 +2555,16 @@ class Styler(StylerRenderer):
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type:ignore[valid-type,misc]
             env = jinja2.Environment(loader=loader)
-            template_html = env.get_template(name)
+            if html_table:
+                template_html_table = env.get_template(html_table)
+            if html_style:
+                template_html_style = env.get_template(html_style)
 
         return MyStyler
 
     def pipe(self, func: Callable, *args, **kwargs):
         """
         Apply ``func(self, *args, **kwargs)``, and return the result.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -2552,3 +2798,176 @@ def _highlight_between(
         else np.full(data.shape, True, dtype=bool)
     )
     return np.where(g_left & l_right, props, "")
+
+
+def _bar(
+    data: FrameOrSeries,
+    align: str | float | int | Callable,
+    colors: list[str],
+    width: float,
+    height: float,
+    vmin: float | None,
+    vmax: float | None,
+    base_css: str,
+):
+    """
+    Draw bar chart in data cells using HTML CSS linear gradient.
+
+    Parameters
+    ----------
+    data : Series or DataFrame
+        Underling subset of Styler data on which operations are performed.
+    align : str in {"left", "right", "mid", "zero", "mean"}, int, float, callable
+        Method for how bars are structured or scalar value of centre point.
+    colors : list-like of str
+        Two listed colors as string in valid CSS.
+    width : float in [0,1]
+        The percentage of the cell, measured from left, where drawn bars will reside.
+    height : float in [0,1]
+        The percentage of the cell's height where drawn bars will reside, centrally
+        aligned.
+    vmin : float, optional
+        Overwrite the minimum value of the window.
+    vmax : float, optional
+        Overwrite the maximum value of the window.
+    base_css : str
+        Additional CSS that is included in the cell before bars are drawn.
+    """
+
+    def css_bar(start: float, end: float, color: str) -> str:
+        """
+        Generate CSS code to draw a bar from start to end in a table cell.
+
+        Uses linear-gradient.
+
+        Parameters
+        ----------
+        start : float
+            Relative positional start of bar coloring in [0,1]
+        end : float
+            Relative positional end of the bar coloring in [0,1]
+        color : str
+            CSS valid color to apply.
+
+        Returns
+        -------
+        str : The CSS applicable to the cell.
+
+        Notes
+        -----
+        Uses ``base_css`` from outer scope.
+        """
+        cell_css = base_css
+        if end > start:
+            cell_css += "background: linear-gradient(90deg,"
+            if start > 0:
+                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
+            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+        return cell_css
+
+    def css_calc(x, left: float, right: float, align: str):
+        """
+        Return the correct CSS for bar placement based on calculated values.
+
+        Parameters
+        ----------
+        x : float
+            Value which determines the bar placement.
+        left : float
+            Value marking the left side of calculation, usually minimum of data.
+        right : float
+            Value marking the right side of the calculation, usually maximum of data
+            (left < right).
+        align : {"left", "right", "zero", "mid"}
+            How the bars will be positioned.
+            "left", "right", "zero" can be used with any values for ``left``, ``right``.
+            "mid" can only be used where ``left <= 0`` and ``right >= 0``.
+            "zero" is used to specify a center when all values ``x``, ``left``,
+            ``right`` are translated, e.g. by say a mean or median.
+
+        Returns
+        -------
+        str : Resultant CSS with linear gradient.
+
+        Notes
+        -----
+        Uses ``colors``, ``width`` and ``height`` from outer scope.
+        """
+        if pd.isna(x):
+            return base_css
+
+        color = colors[0] if x < 0 else colors[1]
+        x = left if x < left else x
+        x = right if x > right else x  # trim data if outside of the window
+
+        start: float = 0
+        end: float = 1
+
+        if align == "left":
+            # all proportions are measured from the left side between left and right
+            end = (x - left) / (right - left)
+
+        elif align == "right":
+            # all proportions are measured from the right side between left and right
+            start = (x - left) / (right - left)
+
+        else:
+            z_frac: float = 0.5  # location of zero based on the left-right range
+            if align == "zero":
+                # all proportions are measured from the center at zero
+                limit: float = max(abs(left), abs(right))
+                left, right = -limit, limit
+            elif align == "mid":
+                # bars drawn from zero either leftwards or rightwards with center at mid
+                mid: float = (left + right) / 2
+                z_frac = (
+                    -mid / (right - left) + 0.5 if mid < 0 else -left / (right - left)
+                )
+
+            if x < 0:
+                start, end = (x - left) / (right - left), z_frac
+            else:
+                start, end = z_frac, (x - left) / (right - left)
+
+        ret = css_bar(start * width, end * width, color)
+        if height < 1 and "background: linear-gradient(" in ret:
+            return (
+                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+            )
+        else:
+            return ret
+
+    values = data.to_numpy()
+    left = np.nanmin(values) if vmin is None else vmin
+    right = np.nanmax(values) if vmax is None else vmax
+    z: float = 0  # adjustment to translate data
+
+    if align == "mid":
+        if left >= 0:  # "mid" is documented to act as "left" if all values positive
+            align, left = "left", 0 if vmin is None else vmin
+        elif right <= 0:  # "mid" is documented to act as "right" if all values negative
+            align, right = "right", 0 if vmax is None else vmax
+    elif align == "mean":
+        z, align = np.nanmean(values), "zero"
+    elif callable(align):
+        z, align = align(values), "zero"
+    elif isinstance(align, (float, int)):
+        z, align = float(align), "zero"
+    elif not (align == "left" or align == "right" or align == "zero"):
+        raise ValueError(
+            "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or be a "
+            "value defining the center line or a callable that returns a float"
+        )
+
+    assert isinstance(align, str)  # mypy: should now be in [left, right, mid, zero]
+    if data.ndim == 1:
+        return [css_calc(x - z, left - z, right - z, align) for x in values]
+    else:
+        return DataFrame(
+            [
+                [css_calc(x - z, left - z, right - z, align) for x in row]
+                for row in values
+            ],
+            index=data.index,
+            columns=data.columns,
+        )

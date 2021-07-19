@@ -2,13 +2,13 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.7.*
+  - python=3.8
 
   # tools
   - cython>=0.29.21
   - pytest>=6.0
-  - pytest-xdist>=1.21
-  - hypothesis>=3.58.0
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
   - pytest-cov>=2.10.1  # this is only needed in the coverage build, ref: GH 35737
 
   # pandas dependencies
@@ -16,7 +16,7 @@ dependencies:
   - botocore>=1.11
   - dask
   - fastparquet>=0.4.0
-  - fsspec>=0.7.4
+  - fsspec>=0.7.4, <2021.6.0
   - gcsfs>=0.6.0
   - geopandas
   - html5lib
@@ -25,11 +25,10 @@ dependencies:
   - flask
   - nomkl
   - numexpr
-  - numpy=1.17.*
+  - numpy=1.18
   - odfpy
   - openpyxl
   - pandas-gbq
-  - google-cloud-bigquery>=1.27.2 # GH 36436
   - psycopg2
   - pyarrow>=0.17.0
   - pymysql
@@ -43,7 +42,7 @@ dependencies:
   - sqlalchemy
   - statsmodels
   - xarray
-  - xlrd<2.0
+  - xlrd
   - xlsxwriter
   - xlwt
   - pip

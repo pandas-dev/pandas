@@ -17,10 +17,7 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas._typing import (
-    Dtype,
-    FrameOrSeriesUnion,
-)
+from pandas._typing import Dtype
 from pandas.util._decorators import doc
 
 from pandas.core.indexes.api import Index
@@ -29,7 +26,10 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from pandas.core.frame import DataFrame
+    from pandas.core.frame import (
+        DataFrame,
+        Series,
+    )
 
 
 frame_max_cols_sub = dedent(
@@ -292,7 +292,7 @@ class BaseInfo(ABC):
         values.
     """
 
-    data: FrameOrSeriesUnion
+    data: DataFrame | Series
     memory_usage: bool | str
 
     @property
@@ -559,7 +559,7 @@ class TableBuilderAbstract(ABC):
         """Product in a form of list of lines (strings)."""
 
     @property
-    def data(self) -> FrameOrSeriesUnion:
+    def data(self) -> DataFrame | Series:
         return self.info.data
 
     @property

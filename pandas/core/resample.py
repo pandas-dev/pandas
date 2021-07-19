@@ -4,9 +4,10 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Hashable,
+    Literal,
+    final,
     no_type_check,
 )
 
@@ -27,13 +28,14 @@ from pandas._typing import (
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
-    final,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 
@@ -86,9 +88,6 @@ from pandas.tseries.offsets import (
     Nano,
     Tick,
 )
-
-if TYPE_CHECKING:
-    from typing import Literal
 
 _shared_docs_kwargs: dict[str, str] = {}
 
@@ -832,6 +831,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample(method, limit=limit)
 
+    @deprecate_nonkeyword_arguments(version=None, allowed_args=["self", "method"])
     @doc(NDFrame.interpolate, **_shared_docs_kwargs)
     def interpolate(
         self,
@@ -950,8 +950,6 @@ class Resampler(BaseGroupBy, PandasObject):
     def quantile(self, q=0.5, **kwargs):
         """
         Return value at the given quantile.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1771,9 +1769,8 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: np.ndarray, new_index: Index, axis: int = 0
+    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
 ) -> FrameOrSeries:
-    # indexer: np.ndarray[np.intp]
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
