@@ -934,7 +934,7 @@ class SQLTable(PandasObject):
         tuple of DataFrame, DataFrame
             DataFrame of rows with duplicate pkey, DataFrame of rows with new pkey
         """
-        from pandas.core.indexex.multi import MultiIndex
+        from pandas.core.indexes.multi import MultiIndex
 
         in_db = _wrap_result(data=keys_in_db, columns=primary_keys)
         # Get temporary dataframe so as not to delete values from main df
@@ -1840,6 +1840,7 @@ class SQLDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
+        on_conflict=None,
         index=True,
         index_label=None,
         schema=None,
@@ -1875,6 +1876,7 @@ class SQLDatabase(PandasSQL):
             frame=frame,
             index=index,
             if_exists=if_exists,
+            on_conflict=on_conflict,
             index_label=index_label,
             schema=schema,
             dtype=dtype,
@@ -1996,6 +1998,7 @@ class SQLDatabase(PandasSQL):
             frame=frame,
             name=name,
             if_exists=if_exists,
+            on_conflict=on_conflict,
             index=index,
             index_label=index_label,
             schema=schema,
