@@ -74,22 +74,6 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
-    axis: Literal[1, "columns"],
-    join: str = ...,
-    ignore_index: bool = ...,
-    keys=...,
-    levels=...,
-    names=...,
-    verify_integrity: bool = ...,
-    sort: bool = ...,
-    copy: bool = ...,
-) -> DataFrame:
-    ...
-
-
-@overload
-def concat(
     objs: Iterable[Series] | Mapping[Hashable, Series],
     axis: Literal[0, "index"] = ...,
     join: str = ...,
@@ -101,22 +85,6 @@ def concat(
     sort: bool = ...,
     copy: bool = ...,
 ) -> Series:
-    ...
-
-
-@overload
-def concat(
-    objs: Iterable[Series] | Mapping[Hashable, Series],
-    axis: Literal[1, "columns"],
-    join: str = ...,
-    ignore_index: bool = ...,
-    keys=...,
-    levels=...,
-    names=...,
-    verify_integrity: bool = ...,
-    sort: bool = ...,
-    copy: bool = ...,
-) -> DataFrame:
     ...
 
 
