@@ -18,6 +18,7 @@ from typing import (
     Mapping,
     Sequence,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -54,7 +55,6 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
-    final,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
