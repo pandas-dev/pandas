@@ -7,6 +7,7 @@ from typing import (
     Callable,
     Hashable,
     Literal,
+    final,
     no_type_check,
 )
 
@@ -27,7 +28,7 @@ from pandas._typing import (
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
-    final,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -1768,9 +1769,8 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: np.ndarray, new_index: Index, axis: int = 0
+    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
 ) -> FrameOrSeries:
-    # indexer: np.ndarray[np.intp]
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)

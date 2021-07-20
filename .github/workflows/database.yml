@@ -31,7 +31,7 @@ jobs:
 
     concurrency:
       group: ${{ github.ref }}-${{ matrix.ENV_FILE }}
-      cancel-in-progress: true
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
     services:
       mysql:
