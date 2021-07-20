@@ -261,22 +261,22 @@ def test_clear(mi_styler_comp):
 
 
 def test_hide_raises(mi_styler):
-    msg = "`subset` and `level` cannot be passed simultaneously"
+    msg = "`subset` and `levels` cannot be passed simultaneously"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(subset="something", level="something else")
+        mi_styler.hide_index(subset="something", levels="something else")
 
-    msg = "`level` must be of type `int`, `str` or list of such"
+    msg = "`levels` must be of type `int`, `str` or list of such"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(level=("bad", "type"))
+        mi_styler.hide_index(levels=("bad", "type"))
 
 
-@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
-def test_hide_level(mi_styler, level):
+@pytest.mark.parametrize("levels", [1, "one", [1], ["one"]])
+def test_hide_level(mi_styler, levels):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
-    ctx = mi_styler.hide_index(level=level)._translate(True, True)
+    ctx = mi_styler.hide_index(levels=levels)._translate(False, True)
     assert ctx["body"][0][0]["is_visible"]
     assert not ctx["body"][0][1]["is_visible"]
-    assert ctx["body"][1] == "f"
+    assert ctx["body"][1][0]["is_visible"]
     assert not ctx["body"][1][1]["is_visible"]
 
 
@@ -1264,9 +1264,10 @@ class TestStyler:
         # hide second column and index
         ctx = df.style.hide_columns([("b", 1)]).hide_index()._translate(True, True)
         assert not ctx["body"][0][0]["is_visible"]  # index
-        assert ctx["head"][0][2]["is_visible"]  # b
-        assert ctx["head"][1][2]["is_visible"]  # 0
-        assert not ctx["head"][1][3]["is_visible"]  # 1
+        assert len(ctx["head"][0]) == 3
+        assert ctx["head"][0][1]["is_visible"]  # b
+        assert ctx["head"][1][1]["is_visible"]  # 0
+        assert not ctx["head"][1][2]["is_visible"]  # 1
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
         assert ctx["body"][1][2]["display_value"] == 3

@@ -305,6 +305,7 @@ class StylerRenderer:
         # 1) column headers
         if not self.hide_columns_:
             for r in range(self.data.columns.nlevels):
+                # number of index blanks is governed by number of hidden index levels
                 index_blanks = [_element("th", blank_class, blank_value, True)] * (
                     self.index.nlevels - sum(self.hide_index_) - 1
                 )
