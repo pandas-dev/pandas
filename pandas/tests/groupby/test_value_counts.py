@@ -143,6 +143,25 @@ def test_series_groupby_value_counts_empty():
     tm.assert_series_equal(result, expected)
 
 
+def test_series_groupby_value_counts_one_row():
+    # GH42618
+    df = DataFrame([[1, 2]], columns=["A", "B"])
+    dfg = df.groupby("A")
+
+    result = dfg["B"].value_counts()
+    expected = df.value_counts()
+
+    tm.assert_series_equal(result, expected, check_names=False)
+
+    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"])
+    dfg = df.groupby(["A", "B"])
+
+    result = dfg["C"].value_counts()
+    expected = df.value_counts()
+
+    tm.assert_series_equal(result, expected, check_names=False)
+
+
 def test_series_groupby_value_counts_on_categorical():
     # GH38672
 
