@@ -682,7 +682,7 @@ def test_names_option_wrong_type(datapath, parser):
 
     with pytest.raises(TypeError, match=("is not a valid type for names")):
         read_xml(
-            filename, names="Col1, Col2, Col3", parser=parser  # type: ignore[arg-type]
+            filename, names="Col1, Col2, Col3", parser=parser
         )
 
 

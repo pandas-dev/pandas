@@ -166,7 +166,7 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     mypy --version
 
     MSG='Performing static analysis using mypy' ; echo $MSG
-    mypy pandas
+    mypy
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
