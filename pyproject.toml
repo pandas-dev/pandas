@@ -71,7 +71,6 @@ markers = [
 [tool.mypy]
 files = "pandas"
 platform = "linux-64"
-namespace_packages = true
 ignore_missing_imports = true
 no_implicit_optional = true
 check_untyped_defs = true
