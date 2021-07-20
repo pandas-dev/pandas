@@ -170,3 +170,13 @@ class TestDataFrameConcat:
         # it works
         result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
         assert list(result.columns) == [("t1", "value"), ("t2", "value")]
+
+    def test_concat_bool_with_int(self):
+        # GH#42092 we may want to change this to return object, but that
+        #  would need a deprecation
+        df1 = DataFrame(Series([True, False, True, True], dtype="bool"))
+        df2 = DataFrame(Series([1, 0, 1], dtype="int64"))
+
+        result = concat([df1, df2])
+        expected = concat([df1.astype("int64"), df2])
+        tm.assert_frame_equal(result, expected)
