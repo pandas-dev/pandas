@@ -2046,8 +2046,10 @@ class Styler(StylerRenderer):
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
+        *,
         color="#d65f5f",
         width: float = 100,
+        height: float = 100,
         align: str | float | int | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
@@ -2055,6 +2057,8 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
+
+        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -2074,6 +2078,10 @@ class Styler(StylerRenderer):
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
+        height : float, default 100
+            The percentage height of the bar in the cell, centrally aligned, in [0,100].
+
+            .. versionadded:: 1.4.0
         align : str, int, float, callable, default 'mid'
             How to align the bars within the cells relative to a width adjusted center.
             If string must be one of:
@@ -2121,6 +2129,11 @@ class Styler(StylerRenderer):
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
+        if not (0 <= width <= 100):
+            raise ValueError(f"`width` must be a value in [0, 100], got {width}")
+        elif not (0 <= height <= 100):
+            raise ValueError(f"`height` must be a value in [0, 100], got {height}")
+
         if subset is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
@@ -2131,6 +2144,7 @@ class Styler(StylerRenderer):
             align=align,
             colors=color,
             width=width / 100,
+            height=height / 100,
             vmin=vmin,
             vmax=vmax,
             base_css=props,
@@ -2791,6 +2805,7 @@ def _bar(
     align: str | float | int | Callable,
     colors: list[str],
     width: float,
+    height: float,
     vmin: float | None,
     vmax: float | None,
     base_css: str,
@@ -2808,6 +2823,9 @@ def _bar(
         Two listed colors as string in valid CSS.
     width : float in [0,1]
         The percentage of the cell, measured from left, where drawn bars will reside.
+    height : float in [0,1]
+        The percentage of the cell's height where drawn bars will reside, centrally
+        aligned.
     vmin : float, optional
         Overwrite the minimum value of the window.
     vmax : float, optional
@@ -2873,7 +2891,7 @@ def _bar(
 
         Notes
         -----
-        Uses ``colors`` and ``width`` from outer scope.
+        Uses ``colors``, ``width`` and ``height`` from outer scope.
         """
         if pd.isna(x):
             return base_css
@@ -2911,7 +2929,13 @@ def _bar(
             else:
                 start, end = z_frac, (x - left) / (right - left)
 
-        return css_bar(start * width, end * width, color)
+        ret = css_bar(start * width, end * width, color)
+        if height < 1 and "background: linear-gradient(" in ret:
+            return (
+                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+            )
+        else:
+            return ret
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin

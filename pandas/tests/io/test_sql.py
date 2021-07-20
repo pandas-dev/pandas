@@ -2615,9 +2615,9 @@ def format_query(sql, *args):
     return sql % tuple(processed_args)
 
 
-def tquery(query, con=None, cur=None):
+def tquery(query, con=None):
     """Replace removed sql.tquery function"""
-    res = sql.execute(query, con=con, cur=cur).fetchall()
+    res = sql.execute(query, con=con).fetchall()
     if res is None:
         return None
     else:
@@ -2649,12 +2649,10 @@ class TestXSQLite(SQLiteMixIn):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
-        cur = self.conn.cursor()
-
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
+        for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, con=self.conn)
 
         self.conn.commit()
 
@@ -2912,9 +2910,9 @@ class TestXMySQL(MySQLMixIn):
         cur.execute(drop_sql)
         cur.execute(create_sql)
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
+        for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, con=self.conn)
 
         self.conn.commit()
 
