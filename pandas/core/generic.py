@@ -18,6 +18,7 @@ from typing import (
     Mapping,
     Sequence,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -54,7 +55,6 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
-    final,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -3765,18 +3765,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self._consolidate_inplace()
 
         if isinstance(index, MultiIndex):
-            try:
-                loc, new_index = index._get_loc_level(key, level=0)
-            except TypeError as err:
-                raise TypeError(
-                    f"Expected label or tuple of labels, got {key}"
-                ) from err
-            else:
-                if not drop_level:
-                    if lib.is_integer(loc):
-                        new_index = index[loc : loc + 1]
-                    else:
-                        new_index = index[loc]
+            loc, new_index = index._get_loc_level(key, level=0)
+            if not drop_level:
+                if lib.is_integer(loc):
+                    new_index = index[loc : loc + 1]
+                else:
+                    new_index = index[loc]
         else:
             loc = index.get_loc(key)
 
@@ -9388,7 +9382,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if before is not None and after is not None and before > after:
             raise ValueError(f"Truncate: {after} must be after {before}")
 
-        if len(ax) > 1 and ax.is_monotonic_decreasing:
+        if len(ax) > 1 and ax.is_monotonic_decreasing and ax.nunique() > 1:
             before, after = after, before
 
         slicer = [slice(None, None)] * self._AXIS_LEN
@@ -10505,6 +10499,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            notes="",
         )
         def sem(
             self,
@@ -10526,6 +10521,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            notes="",
         )
         def var(
             self,
@@ -10548,6 +10544,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             name1=name1,
             name2=name2,
             axis_descr=axis_descr,
+            notes=_std_notes,
         )
         def std(
             self,
@@ -10986,7 +10983,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 def _doc_params(cls):
     """Return a tuple of the doc params."""
     axis_descr = (
-        f"{{{', '.join(f'{a} ({i})' for i, a in enumerate(cls._AXIS_ORDERS))}}}"
+        f"{{{', '.join([f'{a} ({i})' for i, a in enumerate(cls._AXIS_ORDERS)])}}}"
     )
     name = cls._constructor_sliced.__name__ if cls._AXIS_LEN > 1 else "scalar"
     name2 = cls.__name__
@@ -11040,12 +11037,16 @@ numeric_only : bool, default None
 
 Returns
 -------
-{name1} or {name2} (if level specified)
+{name1} or {name2} (if level specified) \
+{notes}
+"""
+
+_std_notes = """
 
 Notes
 -----
 To have the same behaviour as `numpy.std`, use `ddof=0` (instead of the
-default `ddof=1`)\n"""
+default `ddof=1`)"""
 
 _bool_doc = """
 {desc}

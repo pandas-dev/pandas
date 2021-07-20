@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -56,11 +55,8 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     Index,
-    IntervalIndex,
     MultiIndex,
-    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -882,17 +878,21 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but lets be explicit about it
                 raise ValueError("Too many indices")
-            if isinstance(self.obj, ABCSeries) and any(
-                isinstance(k, tuple) for k in tup
-            ):
-                # GH#35349 Raise if tuple in tuple for series
-                raise ValueError("Too many indices")
             if all(is_hashable(x) or com.is_null_slice(x) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
                 with suppress(IndexingError):
                     return self._handle_lowerdim_multi_index_axis0(tup)
+            elif isinstance(self.obj, ABCSeries) and any(
+                isinstance(k, tuple) for k in tup
+            ):
+                # GH#35349 Raise if tuple in tuple for series
+                # Do this after the all-hashable-or-null-slice check so that
+                #  we are only getting non-hashable tuples, in particular ones
+                #  that themselves contain a slice entry
+                # See test_loc_series_getitem_too_many_dimensions
+                raise ValueError("Too many indices")
 
             # this is a series with a multi-index specified a tuple of
             # selectors
@@ -1125,9 +1125,6 @@ class _LocIndexer(_LocationIndexer):
         try:
             # fast path for series or for tup devoid of slices
             return self._get_label(tup, axis=axis)
-        except TypeError as err:
-            # slices are unhashable
-            raise IndexingError("No label returned") from err
 
         except KeyError as ek:
             # raise KeyError if number of indexers match
@@ -1142,7 +1139,6 @@ class _LocIndexer(_LocationIndexer):
             key = list(key)
 
         labels = self.obj._get_axis(axis)
-        key = labels._get_partial_string_timestamp_match_key(key)
 
         if isinstance(key, slice):
             self._validate_key(key, axis)
@@ -1293,93 +1289,11 @@ class _LocIndexer(_LocationIndexer):
             Indexer for the return object, -1 denotes keys not found.
         """
         ax = self.obj._get_axis(axis)
+        axis_name = self.obj._get_axis_name(axis)
 
-        keyarr = key
-        if not isinstance(keyarr, Index):
-            keyarr = com.asarray_tuplesafe(keyarr)
-
-        if isinstance(ax, MultiIndex):
-            # get_indexer expects a MultiIndex or sequence of tuples, but
-            #  we may be doing partial-indexing, so need an extra check
-
-            # Have the index compute an indexer or return None
-            # if it cannot handle:
-            indexer = ax._convert_listlike_indexer(keyarr)
-            # We only act on all found values:
-            if indexer is not None and (indexer != -1).all():
-                # _validate_read_indexer is a no-op if no -1s, so skip
-                return ax[indexer], indexer
-
-        if ax._index_as_unique:
-            indexer = ax.get_indexer_for(keyarr)
-            keyarr = ax.reindex(keyarr)[0]
-        else:
-            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
-
-        self._validate_read_indexer(keyarr, indexer, axis)
-
-        if needs_i8_conversion(ax.dtype) or isinstance(
-            ax, (IntervalIndex, CategoricalIndex)
-        ):
-            # For CategoricalIndex take instead of reindex to preserve dtype.
-            #  For IntervalIndex this is to map integers to the Intervals they match to.
-            keyarr = ax.take(indexer)
-            if keyarr.dtype.kind in ["m", "M"]:
-                # DTI/TDI.take can infer a freq in some cases when we dont want one
-                if isinstance(key, list) or (
-                    isinstance(key, type(ax)) and key.freq is None
-                ):
-                    keyarr = keyarr._with_freq(None)
+        keyarr, indexer = ax._get_indexer_strict(key, axis_name)
 
         return keyarr, indexer
-
-    def _validate_read_indexer(self, key, indexer, axis: int):
-        """
-        Check that indexer can be used to return a result.
-
-        e.g. at least one element was found,
-        unless the list of keys was actually empty.
-
-        Parameters
-        ----------
-        key : list-like
-            Targeted labels (only used to show correct error message).
-        indexer: array-like of booleans
-            Indices corresponding to the key,
-            (with -1 indicating not found).
-        axis : int
-            Dimension on which the indexing is being made.
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found.
-        """
-        if len(key) == 0:
-            return
-
-        # Count missing values:
-        missing_mask = indexer < 0
-        missing = (missing_mask).sum()
-
-        if missing:
-            ax = self.obj._get_axis(axis)
-
-            # TODO: remove special-case; this is just to keep exception
-            #  message tests from raising while debugging
-            use_interval_msg = isinstance(ax, IntervalIndex) or (
-                isinstance(ax, CategoricalIndex)
-                and isinstance(ax.categories, IntervalIndex)
-            )
-
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                if use_interval_msg:
-                    key = list(key)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
-            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
-            raise KeyError(f"{not_found} not in index")
 
 
 @doc(IndexingMixin.iloc)
