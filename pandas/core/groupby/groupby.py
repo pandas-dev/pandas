@@ -1242,7 +1242,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
                 )
+        elif isinstance(func, str):
+            if hasattr(self, func):
+                res = getattr(self, func)
+                if callable(res):
+                    return res()
+                return res
+
+            else:
+                raise TypeError(f"apply func should be callable, not '{func}'")
         else:
+
             f = func
 
         # ignore SettingWithCopy here in case the user mutates

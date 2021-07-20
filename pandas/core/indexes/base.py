@@ -5384,6 +5384,89 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _get_indexer_strict(self, key, axis_name: str_t) -> tuple[Index, np.ndarray]:
+        """
+        Analogue to get_indexer that raises if any elements are missing.
+        """
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
+
+        if self._index_as_unique:
+            indexer = self.get_indexer_for(keyarr)
+            keyarr = self.reindex(keyarr)[0]
+        else:
+            keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)
+
+        self._raise_if_missing(keyarr, indexer, axis_name)
+
+        if (
+            needs_i8_conversion(self.dtype)
+            or is_categorical_dtype(self.dtype)
+            or is_interval_dtype(self.dtype)
+        ):
+            # For CategoricalIndex take instead of reindex to preserve dtype.
+            #  For IntervalIndex this is to map integers to the Intervals they match to.
+            keyarr = self.take(indexer)
+            if keyarr.dtype.kind in ["m", "M"]:
+                # DTI/TDI.take can infer a freq in some cases when we dont want one
+                if isinstance(key, list) or (
+                    isinstance(key, type(self))
+                    # "Index" has no attribute "freq"
+                    and key.freq is None  # type: ignore[attr-defined]
+                ):
+                    keyarr = keyarr._with_freq(None)
+
+        return keyarr, indexer
+
+    def _raise_if_missing(self, key, indexer, axis_name: str_t):
+        """
+        Check that indexer can be used to return a result.
+
+        e.g. at least one element was found,
+        unless the list of keys was actually empty.
+
+        Parameters
+        ----------
+        key : list-like
+            Targeted labels (only used to show correct error message).
+        indexer: array-like of booleans
+            Indices corresponding to the key,
+            (with -1 indicating not found).
+        axis_name : str
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested but none was found.
+        """
+        if len(key) == 0:
+            return
+
+        # Count missing values
+        missing_mask = indexer < 0
+        nmissing = missing_mask.sum()
+
+        if nmissing:
+
+            # TODO: remove special-case; this is just to keep exception
+            #  message tests from raising while debugging
+            use_interval_msg = is_interval_dtype(self.dtype) or (
+                is_categorical_dtype(self.dtype)
+                # "Index" has no attribute "categories"  [attr-defined]
+                and is_interval_dtype(
+                    self.categories.dtype  # type: ignore[attr-defined]
+                )
+            )
+
+            if nmissing == len(indexer):
+                if use_interval_msg:
+                    key = list(key)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
+            raise KeyError(f"{not_found} not in index")
+
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[True] = ...
