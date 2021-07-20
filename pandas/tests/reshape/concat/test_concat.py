@@ -653,3 +653,14 @@ def test_concat_posargs_deprecation():
         result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_series_copy_false():
+    # GH 42501
+    first_position_value = 1
+    first_series = Series([first_position_value, 2], dtype=np.int64)
+
+    df = concat([first_series, Series([3, 4], dtype=np.int64)], axis=1, copy=False)
+
+    df.iloc[0, 0] = first_position_value + 1
+    assert first_series.iloc[0] != first_position_value
