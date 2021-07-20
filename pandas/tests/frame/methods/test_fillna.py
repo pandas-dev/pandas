@@ -173,7 +173,7 @@ class TestFillNA:
         tm.assert_frame_equal(res, df_exp_fill)
 
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             df.fillna(value={"cats": 4, "vals": "c"})
 
         res = df.fillna(method="pad")

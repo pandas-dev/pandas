@@ -777,8 +777,8 @@ value is included in the ``categories``:
     df
     try:
         df.iloc[2:4, :] = [["c", 3], ["c", 3]]
-    except ValueError as e:
-        print("ValueError:", str(e))
+    except TypeError as e:
+        print("TypeError:", str(e))
 
 Setting values by assigning categorical data will also check that the ``categories`` match:
 
@@ -788,8 +788,8 @@ Setting values by assigning categorical data will also check that the ``categori
     df
     try:
         df.loc["j":"k", "cats"] = pd.Categorical(["b", "b"], categories=["a", "b", "c"])
-    except ValueError as e:
-        print("ValueError:", str(e))
+    except TypeError as e:
+        print("TypeError:", str(e))
 
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
