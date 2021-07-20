@@ -400,7 +400,7 @@ pandas uses `mypy <http://mypy-lang.org>`_ to statically analyze the code base a
 
 .. code-block:: shell
 
-   mypy
+   mypy pandas
 
 .. _contributing.ci:
 

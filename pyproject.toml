@@ -69,7 +69,6 @@ markers = [
 ]
 
 [tool.mypy]
-files = "pandas"
 platform = "linux-64"
 ignore_missing_imports = true
 no_implicit_optional = true
