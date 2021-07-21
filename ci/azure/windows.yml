@@ -29,7 +29,7 @@ jobs:
       displayName: Use cached Anaconda environment
       inputs:
         key: 'conda | "$(Agent.OS)" | "$(ENV_FILE)"'
-        restoreKeys: | 
+        restoreKeys: |
           python | "$(Agent.OS)"
           python
         path: $(CONDA_CACHE_DIR)
