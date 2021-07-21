@@ -142,7 +142,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :meth:`Index.get_indexer_for` no longer accepts keyword arguments (other than 'target'); in the past these would be silently ignored if the index was not unique (:issue:`42310`)
--
+- :class:`StringArray` now accepts nan-likes (``None``, ``np.nan``) for the ``values`` parameter in its constructor in addition to strings and :attr:`pandas.NA`. (:issue:`40839`)
 
 .. ---------------------------------------------------------------------------
 
