@@ -25,9 +25,20 @@ jobs:
         conda update --quiet --yes conda
       displayName: Update conda
 
+    - task: Cache@2
+      displayName: Use cached Anaconda environment
+      inputs:
+        key: 'conda | "$(Agent.OS)" | environment.yml'
+        restoreKeys: | 
+          python | "$(Agent.OS)"
+          python
+        path: $(CONDA_CACHE_DIR)
+        cacheHitVar: CONDA_CACHE_RESTORED
+
     - script: |
         conda env create -q --file $(ENV_FILE)
       displayName: Create Anaconda environment
+      condition: eq(variables.CONDA_CACHE_RESTORED, 'false')
 
     - script: |
         call activate pandas-dev

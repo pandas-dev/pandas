@@ -17,6 +17,7 @@ pr:
 
 variables:
   PYTEST_WORKERS: auto
+  CONDA_CACHE_DIR: $(Pipeline.Workspace)/.condarc
 
 jobs:
 # Mac and Linux use the same template
