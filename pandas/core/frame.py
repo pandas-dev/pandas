@@ -4280,6 +4280,8 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
                     converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                elif dtype == "float":
+                    converted_dtypes.extend([np.float64, np.float32])
                 else:
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Union[dtype[Any], ExtensionDtype]"; expected
