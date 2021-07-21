@@ -615,6 +615,8 @@ def _extract_index(data) -> Index:
             elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
                 have_raw_arrays = True
                 raw_lengths.append(len(val))
+            elif isinstance(val, np.ndarray) and getattr(val, "ndim", 1) > 1:
+                raise ValueError("Data must be 1-dimensional")
 
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
