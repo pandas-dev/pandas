@@ -1486,14 +1486,16 @@ class Styler(StylerRenderer):
             if axis == 1:
                 # stick the first <tr> of <head> and, if index names, the second <tr>
                 # if self._hide_columns then no <thead><tr> here will exist: no conflict
-                styles = [
+                styles: CSSStyles = [
                     {
                         "selector": "thead tr:first-child",
                         "props": props + "top:0px; z-index:2;",
                     }
                 ]
                 if not self.index.names[0] is None:
-                    styles[0]["props"] += f"height:{pixel_size}px;"
+                    styles[0]["props"] = (
+                        props + f"top:0px; z-index:2; height:{pixel_size}px;"
+                    )
                     styles.append(
                         {
                             "selector": "thead tr:nth-child(2)",
@@ -1756,9 +1758,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hrows = self.index.get_indexer_for(hide.index)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_rows = hrows  # type: ignore[assignment]
+            self.hidden_rows = hrows
         return self
 
     def hide_columns(self, subset: Subset | None = None) -> Styler:
@@ -1841,9 +1841,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hcols = self.columns.get_indexer_for(hide.columns)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_columns = hcols  # type: ignore[assignment]
+            self.hidden_columns = hcols
         return self
 
     # -----------------------------------------------------------------------
