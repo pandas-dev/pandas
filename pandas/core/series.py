@@ -1234,7 +1234,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if ref is None:
                 del self._cacher
             else:
-                if len(self) == len(ref):
+                if len(self) == len(ref) and self.name in ref.columns:  # GH#42530
                     # otherwise, either self or ref has swapped in new arrays
                     ref._maybe_cache_changed(cacher[0], self)
                 else:
