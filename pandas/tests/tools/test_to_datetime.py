@@ -957,18 +957,40 @@ class TestToDatetime:
         expected = Timestamp("20130101 00:00:00")
         assert result == expected
 
-    def test_convert_object_to_datetime_with_cache(self):
+    @pytest.mark.parametrize(
+        "datetimelikes,expected_values",
+        (
+            (
+                (None, np.nan) + (NaT,) * start_caching_at,
+                (NaT,) * (start_caching_at + 2),
+            ),
+            (
+                (None, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
+                (NaT, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
+            ),
+            (
+                (None,)
+                + (NaT,) * start_caching_at
+                + ("2012 July 26", Timestamp("2012-07-26")),
+                (NaT,) * (start_caching_at + 1)
+                + (Timestamp("2012-07-26"), Timestamp("2012-07-26")),
+            ),
+        ),
+    )
+    def test_convert_object_to_datetime_with_cache(
+        self, datetimelikes, expected_values
+    ):
         # GH#39882
         ser = Series(
-            [None] + [NaT] * start_caching_at + [Timestamp("2012-07-26")],
+            datetimelikes,
             dtype="object",
         )
-        result = to_datetime(ser, errors="coerce")
-        expected = Series(
-            [NaT] * (start_caching_at + 1) + [Timestamp("2012-07-26")],
+        result_series = to_datetime(ser, errors="coerce")
+        expected_series = Series(
+            expected_values,
             dtype="datetime64[ns]",
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result_series, expected_series)
 
     @pytest.mark.parametrize(
         "date, format",

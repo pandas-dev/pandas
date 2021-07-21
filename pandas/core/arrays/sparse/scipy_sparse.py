@@ -58,7 +58,7 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
             return {k: i for i, k in enumerate(labels)}
 
         def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
-            ilabels = list(zip(*[index._get_level_values(i) for i in subset]))
+            ilabels = list(zip(*(index._get_level_values(i) for i in subset)))
             labels_to_i = _get_label_to_i_dict(ilabels, sort_labels=sort_labels)
             labels_to_i = Series(labels_to_i)
             if len(subset) > 1:

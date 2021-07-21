@@ -1,0 +1,55 @@
+.. _whatsnew_131:
+
+What's new in 1.3.1 (July ??, 2021)
+-----------------------------------
+
+These are the changes in pandas 1.3.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_131.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Pandas could not be built on PyPy (:issue:`42355`)
+- :class:`DataFrame` constructed with an older version of pandas could not be unpickled (:issue:`42345`)
+- Performance regression in constructing a :class:`DataFrame` from a dictionary of dictionaries (:issue:`42248`)
+- Fixed regression in :meth:`DataFrame.agg` dropping values when the DataFrame had an Extension Array dtype, a duplicate index, and ``axis=1`` (:issue:`42380`)
+- Fixed regression in :meth:`DataFrame.astype` changing the order of noncontiguous data (:issue:`42396`)
+- Performance regression in :class:`DataFrame` in reduction operations requiring casting such as :meth:`DataFrame.mean` on integer data (:issue:`38592`)
+- Performance regression in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` when ``orient`` argument one of "records", "dict", or "split" (:issue:`42352`)
+- Fixed regression in indexing with a ``list`` subclass incorrectly raising ``TypeError`` (:issue:`42433`, :issue:`42461`)
+- Fixed regression in :meth:`DataFrame.isin` and :meth:`Series.isin` raising ``TypeError`` with nullable data containing at least one missing value (:issue:`42405`)
+- Regression in :func:`concat` between objects with bool dtype and integer dtype casting to object instead of to integer (:issue:`42092`)
+- Bug in :class:`Series` constructor not accepting a ``dask.Array`` (:issue:`38645`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_131.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug in :meth:`DataFrame.transpose` dropping values when the DataFrame had an Extension Array dtype and a duplicate index (:issue:`42380`)
+- Fixed bug in :meth:`DataFrame.to_xml` raising ``KeyError`` when called with ``index=False`` and an offset index (:issue:`42458`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_131.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_131.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.0..v1.3.1|HEAD

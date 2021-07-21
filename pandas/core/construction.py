@@ -560,8 +560,11 @@ def sanitize_array(
             raise TypeError(f"'{type(data).__name__}' type is unordered")
 
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
-        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
-        data = list(data)
+        if hasattr(data, "__array__"):
+            # e.g. dask array GH#38645
+            data = np.asarray(data)
+        else:
+            data = list(data)
 
         if dtype is not None or len(data) == 0:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
