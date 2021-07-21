@@ -67,3 +67,38 @@ markers = [
   "arm_slow: mark a test as slow for arm64 architecture",
   "arraymanager: mark a test to run with ArrayManager enabled",
 ]
+
+[tool.mypy]
+platform = "linux-64"
+ignore_missing_imports = true
+no_implicit_optional = true
+check_untyped_defs = true
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+  "pandas.tests.*",
+  "pandas._version",
+  "pandas.io.clipboard",
+]
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+  "pandas.tests.apply.test_series_apply",
+  "pandas.tests.arithmetic.conftest",
+  "pandas.tests.arrays.sparse.test_combine_concat",
+  "pandas.tests.dtypes.test_common",
+  "pandas.tests.frame.methods.test_to_records",
+  "pandas.tests.groupby.test_rank",
+  "pandas.tests.groupby.transform.test_transform",
+  "pandas.tests.indexes.interval.test_interval",
+  "pandas.tests.indexing.test_categorical",
+  "pandas.tests.io.excel.test_writers",
+  "pandas.tests.reductions.test_reductions",
+  "pandas.tests.test_expressions",
+]
+ignore_errors = true

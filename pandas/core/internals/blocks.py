@@ -1628,6 +1628,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
+            if isinstance(result, Categorical):
+                # TODO: don't special-case
+                raise
+
             result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
