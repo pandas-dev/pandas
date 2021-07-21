@@ -2534,12 +2534,10 @@ def test_empty_string_datetime_coerce__unit():
 
 def test_to_datetime_monotonic_increasing_index():
     # GH28238
-    # Create date range of 1000 hour periods
     times = date_range(datetime.now(), periods=1000, freq="h")
-    # Random sort
     times = times.to_frame(index=False, name="DT").sample(1000)
-    # Divide index integers by 1000
     times.index = times.index.to_series().astype(float) / 1000
-    # Convert to datetime
-    result = to_datetime(times.iloc[:, 0])
-    assert result.values.dtype == np.dtype("datetime64[ns]")
+    converted = to_datetime(times.iloc[:, 0])
+    expected = np.ravel(times.values)
+    result = np.ravel(converted.values)
+    tm.assert_equal(result, expected)
