@@ -37,8 +37,6 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from typing import TypedDict
-
     import numpy.typing as npt
 
     from pandas._libs import (
@@ -73,8 +71,6 @@ if TYPE_CHECKING:
     from pandas.tseries.offsets import DateOffset
 else:
     npt: Any = None
-    # typing.TypedDict does not exist until py38
-    TypedDict = dict
 
 
 # array-like
