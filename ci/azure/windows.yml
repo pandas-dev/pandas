@@ -11,12 +11,10 @@ jobs:
       py38_np18:
         ENV_FILE: ci\\deps\\azure-windows-38.yaml
         PATTERN: "not slow and not network"
-        # PYTEST_WORKERS: 2  # GH-42236
 
       py39:
         ENV_FILE: ci\\deps\\azure-windows-39.yaml
         PATTERN: "not slow and not network and not high_memory"
-        # PYTEST_WORKERS: 2  # GH-42236
 
   steps:
     - powershell: |
@@ -33,7 +31,7 @@ jobs:
 
     - script: |
         call activate pandas-dev
-        python setup.py build_ext -q -j 4
+        python setup.py build_ext -q -j 2
         python -m pip install -e . --no-build-isolation --no-use-pep517
       displayName: Build pandas
 
