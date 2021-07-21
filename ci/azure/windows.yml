@@ -2,9 +2,6 @@ parameters:
   name: ''
   vmImage: ''
 
-variables:
-  CONDA_CACHE_DIR: $(Pipeline.Workspace)\\.condarc
-
 jobs:
 - job: ${{ parameters.name }}
   pool:
