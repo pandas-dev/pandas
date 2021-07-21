@@ -1740,7 +1740,7 @@ Starting in version 0.25, pandas can be extended with third-party plotting backe
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib.
 
-This can be done by passsing 'backend.module' as the argument ``backend`` in ``plot``
+This can be done by passing 'backend.module' as the argument ``backend`` in ``plot``
 function. For example:
 
 .. code-block:: python
