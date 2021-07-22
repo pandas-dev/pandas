@@ -14,7 +14,7 @@ Nullable Boolean data type
 
 .. note::
 
-   IntegerArray is currently experimental. Its API or implementation may
+   BooleanArray is currently experimental. Its API or implementation may
    change without warning.
 
 .. versionadded:: 1.0.0
