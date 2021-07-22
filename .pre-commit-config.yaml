@@ -7,6 +7,7 @@ repos:
     rev: v0.910
     hooks:
     -   id: mypy
+        language: conda
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.0
     hooks:
