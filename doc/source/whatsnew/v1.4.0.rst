@@ -183,7 +183,6 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-- Bug in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
 -
 
