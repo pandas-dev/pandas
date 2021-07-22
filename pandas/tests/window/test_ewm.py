@@ -181,3 +181,14 @@ def test_ewma_times_adjust_false_raises():
         Series(range(1)).ewm(
             0.1, adjust=False, times=date_range("2000", freq="D", periods=1)
         )
+
+
+@pytest.mark.parametrize("func", ["mean", "std", "var"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float16, np.float64, float, "float"])
+def test_float_dtype_ewma(dtype, func):
+    # GH#42452
+    df = DataFrame(np.random.rand(20, 3), dtype=dtype)
+    e = df.ewm(alpha=0.5, axis=1)
+    result = getattr(e, func)().shape
+    expected = (20, 3)
+    assert result == expected, f"Shape of ewm {func} must match dataframe"
