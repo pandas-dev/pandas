@@ -2768,24 +2768,15 @@ class TestLocSeries:
             [[Timedelta(6, unit="s"), "foo"]], columns=["time", "value"], index=[1]
         )
         tm.assert_frame_equal(result, expected)
-    
 
     def test_loc_set_multiple_items_in_multiple_new_columns(self):
         # GH 25594
-        df = DataFrame(index=[1, 2], columns = ['a'])
-        df.loc[1, ['b', 'c']] = [6, 7]
+        df = DataFrame(index=[1, 2], columns=["a"])
+        df.loc[1, ["b", "c"]] = [6, 7]
         result = df.copy()
-        
-        expected = DataFrame(index = [1, 2], columns = ['a', 'b', 'c'])
-        
-        expected.loc[1, 'b'] = 6
-        expected.loc[1, 'c'] = 7
-        tm.assert_frame_equal(result, expected, check_dtype = False)
-    
-        
-        
 
-        
-        
-         
-    
+        expected = DataFrame(index=[1, 2], columns=["a", "b", "c"])
+        expected.loc[1, "b"] = 6
+        expected.loc[1, "c"] = 7
+
+        tm.assert_frame_equal(result, expected, check_dtype=False)
