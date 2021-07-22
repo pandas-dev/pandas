@@ -890,6 +890,8 @@ class _MMapWrapper(abc.Iterator):
 # Wrapper that wraps a StringIO buffer and reads bytes from it
 # Created for compat with pyarrow read_csv
 class BytesIOWrapper(io.BytesIO):
+    buffer: StringIO | TextIOBase | None
+
     def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8"):
         self.buffer = buffer
         self.encoding = encoding
@@ -903,10 +905,11 @@ class BytesIOWrapper(io.BytesIO):
         return getattr(self.buffer, attr)
 
     def read(self, n: int | None = -1) -> bytes:
+        assert self.buffer is not None
         bytestring = self.buffer.read(n).encode(self.encoding)
         # When n=-1/n greater than remaining bytes: Read entire file/rest of file
         combined_bytestring = self.overflow + bytestring
-        if n == -1 or n >= len(combined_bytestring):
+        if n is None or n < 0 or n >= len(combined_bytestring):
             self.overflow = b""
             return combined_bytestring
         else:
