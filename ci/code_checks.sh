@@ -107,44 +107,20 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Doctests for individual files' ; echo $MSG
-    pytest -q --doctest-modules \
-      pandas/core/accessor.py \
-      pandas/core/aggregation.py \
-      pandas/core/algorithms.py \
-      pandas/core/base.py \
-      pandas/core/construction.py \
-      pandas/core/frame.py \
-      pandas/core/generic.py \
-      pandas/core/indexers.py \
-      pandas/core/nanops.py \
-      pandas/core/series.py \
-      pandas/io/sql.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests for directories' ; echo $MSG
-    pytest -q --doctest-modules \
+    MSG='Doctests' ; echo $MSG
+    python -m pytest --doctest-modules \
       pandas/_libs/ \
       pandas/api/ \
       pandas/arrays/ \
       pandas/compat/ \
-      pandas/core/array_algos/ \
-      pandas/core/arrays/ \
-      pandas/core/computation/ \
-      pandas/core/dtypes/ \
-      pandas/core/groupby/ \
-      pandas/core/indexes/ \
-      pandas/core/ops/ \
-      pandas/core/reshape/ \
-      pandas/core/strings/ \
-      pandas/core/tools/ \
-      pandas/core/window/ \
+      pandas/core \
       pandas/errors/ \
       pandas/io/clipboard/ \
       pandas/io/json/ \
       pandas/io/excel/ \
       pandas/io/parsers/ \
       pandas/io/sas/ \
+      pandas/io/sql.py \
       pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
