@@ -904,7 +904,7 @@ def value_counts_arraylike(values, dropna: bool):
 
 
 def duplicated(
-    values: ExtensionArray | np.ndarray | Series,
+    values: np.ndarray | ExtensionArray | Series,
     keep: Literal["first", "last", False] = "first",
 ) -> np.ndarray:
     """
