@@ -184,12 +184,9 @@ class TestDataFrameSetItem:
         data = [Period("2003-12", "D")]
         result = DataFrame([])
         result["a"] = data
-        result_dtype = result["a"].dtype
 
         expected = DataFrame({"a": data})
-        expected_dtype = PeriodDtype(freq="D")
 
-        assert result_dtype == expected_dtype
         tm.assert_frame_equal(result, expected)
 
     def test_setitem_dict_preserves_dtypes(self):
