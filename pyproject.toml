@@ -70,6 +70,7 @@ markers = [
 
 [tool.mypy]
 platform = "linux-64"
+files = "pandas"
 ignore_missing_imports = true
 no_implicit_optional = true
 check_untyped_defs = true
