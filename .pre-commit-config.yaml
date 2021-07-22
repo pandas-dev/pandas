@@ -7,7 +7,6 @@ repos:
     rev: v0.910
     hooks:
     -   id: mypy
-        language: conda
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.0
     hooks:
@@ -87,6 +86,11 @@ repos:
             - pandas-dev-flaker==0.2.0
 -   repo: local
     hooks:
+    -   id: mypy
+        name: mypy
+        description: Performing static analysis using Mypy
+        language: conda
+        entry: mypy
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files
