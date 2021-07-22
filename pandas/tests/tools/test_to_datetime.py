@@ -2532,12 +2532,12 @@ def test_empty_string_datetime_coerce__unit():
     tm.assert_index_equal(expected, result)
 
 
-def test_to_datetime_monotonic_increasing_index():
+@pytest.mark.parametrize("cache", [True, False])
+def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
-    times = date_range(datetime.now(), periods=1000, freq="h")
-    times = times.to_frame(index=False, name="DT").sample(1000)
+    times = date_range(pd.Timestamp("2002"), periods=3, freq="h")
+    times = times.to_frame(index=False, name="DT").sample()
     times.index = times.index.to_series().astype(float) / 1000
-    converted = to_datetime(times.iloc[:, 0])
-    expected = np.ravel(times.values)
-    result = np.ravel(converted.values)
-    tm.assert_equal(result, expected)
+    result = to_datetime(times.iloc[:, 0], cache=cache)
+    expected = times.iloc[:, 0]
+    tm.assert_series_equal(result, expected)
