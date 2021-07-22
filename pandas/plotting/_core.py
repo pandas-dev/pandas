@@ -1306,8 +1306,8 @@ class PlotAccessor(PandasObject):
 
         Examples
         --------
-        When we draw a dice 6000 times, we expect to get each value around 1000
-        times. But when we draw two dices and sum the result, the distribution
+        When we roll a die 6000 times, we expect to get each value around 1000
+        times. But when we roll two dice and sum the result, the distribution
         is going to be quite different. A histogram illustrates those
         distributions.
 
