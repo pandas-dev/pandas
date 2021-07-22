@@ -6788,7 +6788,37 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+        
+        Examples
+        --------
+        >>> data={'class':['Mammals','Mammals','Reptiles','Reptiles','Amphibians','Amphibians'],
+         'diet':['Omnivore','Carnivore','Carnivore','Herbivore','Omnivore','Herbivore'],
+         'species':['Humans','Dogs','Snakes','Iguanas','Frogs','Aquatic Salamanders']
+         }
+
+        >>> df=pd.DataFrame(data,columns=['class','diet','species'])
+
+        >>> df.set_index(['class','diet'],drop=True,inplace=True)
+
+        >>> df.reorder_levels(["diet", "class"])
+             diet	   class	  species
+            Omnivore   Mammals	    Humans
+            Carnivore  Mammals	    Dogs
+                       Reptiles	    Snakes
+            Herbivore  Reptiles	    Iguanas
+            Omnivore   Amphibians	Frogs
+            Herbivore	Amphibians	Aquatic Salamanders
+
+        >>> df.reorder_levels(["class","diet"])
+              class	    diet	    species
+            Mammals	    Omnivore	Humans
+                        Carnivore	Dogs
+            Reptiles	Carnivore	Snakes
+                        Herbivore	Iguanas
+            Amphibians	Omnivore	Frogs
+                        Herbivore	Aquatic Salamanders
         """
+        
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
