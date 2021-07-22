@@ -1866,6 +1866,16 @@ def test_invalid_engine():
 
 
 @td.skip_if_no_ne
+def test_numexpr_option_respected():
+    # GH 32556
+    from pandas.core.computation.eval import _check_engine
+
+    with pd.option_context("compute.use_numexpr", False):
+        result = _check_engine(None)
+        assert result == "python"
+
+
+@td.skip_if_no_ne
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
