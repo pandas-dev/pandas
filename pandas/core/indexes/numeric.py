@@ -80,22 +80,21 @@ _num_index_shared_docs[
 
 
 class NumericIndex(Index):
-    """
-    Provide numeric type operations.
-
-    This is an abstract class.
-    """
-
     _index_descr_args = {
         "klass": "NumericIndex",
         "ltype": "integer or float",
         "dtype": "inferred",
         "extra": "",
     }
-    _values: np.ndarray
-    _default_dtype: np.dtype
-    _dtype_validation_metadata: tuple[Callable[..., bool], str]
+    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
+    _typ = "numericindex"
+    _values: np.ndarray
+    _default_dtype: np.dtype | None = None
+    _dtype_validation_metadata: tuple[Callable[..., bool], str] = (
+        is_numeric_dtype,
+        "numeric type",
+    )
     _is_numeric_dtype = True
     _can_hold_strings = False
 
