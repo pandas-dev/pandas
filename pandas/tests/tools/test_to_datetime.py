@@ -2535,8 +2535,8 @@ def test_empty_string_datetime_coerce__unit():
 @pytest.mark.parametrize("cache", [True, False])
 def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
-    times = Series([Timestamp("2002"), Timestamp("2012"), Timestamp("2020")])
-    times = times.to_frame(name="DT").sample(3)
+    times = pd.date_range(pd.Timestamp("1980"), periods=50, freq="YS")
+    times = times.to_frame(index=False, name="DT").sample(50)
     times.index = times.index.to_series().astype(float) / 1000
     result = to_datetime(times.iloc[:, 0], cache=cache)
     expected = times.iloc[:, 0]
