@@ -1758,7 +1758,9 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hrows = self.index.get_indexer_for(hide.index)
-            self.hidden_rows = hrows
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray", variable has type "Sequence[int]")
+            self.hidden_rows = hrows  # type: ignore[assignment]
         return self
 
     def hide_columns(self, subset: Subset | None = None) -> Styler:
