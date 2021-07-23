@@ -179,6 +179,16 @@ class TestDataFrameSetItem:
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
 
+    def test_setitem_period_preserves_dtype(self):
+        # GH: 26861
+        data = [Period("2003-12", "D")]
+        result = DataFrame([])
+        result["a"] = data
+
+        expected = DataFrame({"a": data})
+
+        tm.assert_frame_equal(result, expected)
+
     def test_setitem_dict_preserves_dtypes(self):
         # https://github.com/pandas-dev/pandas/issues/34573
         expected = DataFrame(
