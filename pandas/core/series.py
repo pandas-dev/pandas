@@ -354,10 +354,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "The default dtype for empty Series will be 'object' instead "
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
-                    DeprecationWarning,
+                    FutureWarning,
                     stacklevel=2,
                 )
-                # uncomment the line below when removing the DeprecationWarning
+                # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
 
             if index is not None:
