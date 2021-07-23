@@ -1,4 +1,7 @@
+import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
@@ -41,3 +44,20 @@ class TestCopy:
         # copy objects
         copy = float_string_frame.copy()
         assert copy._mgr is not float_string_frame._mgr
+
+    @td.skip_array_manager_invalid_test
+    def test_copy_consolidates(self):
+        # GH#42477
+        df = DataFrame(
+            {
+                "a": np.random.randint(0, 100, size=55),
+                "b": np.random.randint(0, 100, size=55),
+            }
+        )
+
+        for i in range(0, 10):
+            df.loc[:, f"n_{i}"] = np.random.randint(0, 100, size=55)
+
+        assert len(df._mgr.blocks) == 11
+        result = df.copy()
+        assert len(result._mgr.blocks) == 1
