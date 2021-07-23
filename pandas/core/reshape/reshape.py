@@ -399,7 +399,8 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
             return result
 
-        dummy = data.copy()
+        # GH#42579 deep=False to avoid consolidating
+        dummy = data.copy(deep=False)
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
