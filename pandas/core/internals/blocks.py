@@ -25,7 +25,6 @@ from pandas._libs import (
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
     F,
     Shape,
@@ -52,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sparse,
     is_string_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -100,6 +98,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 import pandas.core.computation.expressions as expressions
@@ -326,7 +325,7 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    @property
+    @cache_readonly
     def shape(self) -> Shape:
         return self.values.shape
 
@@ -1842,7 +1841,7 @@ class CategoricalBlock(ExtensionBlock):
 # Constructor Helpers
 
 
-def maybe_coerce_values(values) -> ArrayLike:
+def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     """
     Input validation for values passed to __init__. Ensure that
     any datetime64/timedelta64 dtypes are in nanoseconds.  Ensure
@@ -1874,7 +1873,7 @@ def maybe_coerce_values(values) -> ArrayLike:
     return values
 
 
-def get_block_type(values, dtype: Dtype | None = None):
+def get_block_type(values: ArrayLike, dtype: DtypeObj | None = None):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -1889,13 +1888,14 @@ def get_block_type(values, dtype: Dtype | None = None):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    dtype = cast(np.dtype, pandas_dtype(dtype) if dtype else values.dtype)
+    if dtype is None:
+        dtype = values.dtype
     vtype = dtype.type
     kind = dtype.kind
 
     cls: type[Block]
 
-    if is_sparse(dtype):
+    if isinstance(dtype, SparseDtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
