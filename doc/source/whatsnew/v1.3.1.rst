@@ -26,6 +26,7 @@ Fixed regressions
 - Regression in :func:`concat` between objects with bool dtype and integer dtype casting to object instead of to integer (:issue:`42092`)
 - Bug in :class:`Series` constructor not accepting a ``dask.Array`` (:issue:`38645`)
 - Fixed regression for ``SettingWithCopyWarning`` displaying incorrect stacklevel (:issue:`42570`)
+- Fixed regression for :func:`merge_asof` raising ``KeyError`` when one of the ``by`` columns is in the index (:issue:`34488`)
 - Fixed regression in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
 
 
