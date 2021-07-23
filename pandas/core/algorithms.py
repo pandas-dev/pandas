@@ -90,7 +90,6 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays import (
         DatetimeArray,
-        ExtensionArray,
         TimedeltaArray,
     )
 
@@ -904,7 +903,7 @@ def value_counts_arraylike(values, dropna: bool):
 
 
 def duplicated(
-    values: np.ndarray | ExtensionArray | Series,
+    values: AnyArrayLike,
     keep: Literal["first", "last", False] = "first",
 ) -> np.ndarray:
     """
@@ -912,7 +911,7 @@ def duplicated(
 
     Parameters
     ----------
-    values : nd.array, ExtensionArray or Series
+    values : nd.array, ExtensionArray, Series or Index
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
