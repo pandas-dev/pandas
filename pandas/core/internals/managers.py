@@ -594,6 +594,9 @@ class BaseBlockManager(DataManager):
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
+
+        if deep:
+            res._consolidate_inplace()
         return res
 
     def consolidate(self: T) -> T:
