@@ -713,24 +713,26 @@ def get_handle(
 
     # Convert BytesIO or file objects passed with an encoding
     is_wrapped = False
-    if is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
-        # Use our custom BytesIOWrapper
-        # when reading text to bytes, otherwise use TextIOWrapper
-        if ioargs.mode == "rb" and isinstance(handle, TextIOBase):
-            handle = BytesIOWrapper(
-                handle,
-                encoding=ioargs.encoding,
-            )
-        else:
-            handle = TextIOWrapper(
-                # error: Argument 1 to "TextIOWrapper" has incompatible type
-                # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]"; # noqa: E501
-                # expected "IO[bytes]"
-                handle,  # type: ignore[arg-type]
-                encoding=ioargs.encoding,
-                errors=errors,
-                newline="",
-            )
+    if ioargs.mode == "rb" and isinstance(handle, TextIOBase):
+        handle = BytesIOWrapper(
+            handle,
+            encoding=ioargs.encoding,
+        )
+        handles.append(handle)
+        # Handle is always provided by caller since
+        # they are trying to read bytes from string
+        # buffer
+        is_wrapped = True
+    elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
+        handle = TextIOWrapper(
+            # error: Argument 1 to "TextIOWrapper" has incompatible type
+            # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
+            # expected "IO[bytes]"
+            handle,  # type: ignore[arg-type]
+            encoding=ioargs.encoding,
+            errors=errors,
+            newline="",
+        )
         handles.append(handle)
         # only marked as wrapped when the caller provided a handle
         is_wrapped = not (
