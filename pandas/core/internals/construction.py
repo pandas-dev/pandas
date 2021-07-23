@@ -712,13 +712,14 @@ def dataclasses_to_dicts(data):
 
     Examples
     --------
+    >>> from dataclasses import dataclass
     >>> @dataclass
-    >>> class Point:
+    ... class Point:
     ...     x: int
     ...     y: int
 
-    >>> dataclasses_to_dicts([Point(1,2), Point(2,3)])
-    [{"x":1,"y":2},{"x":2,"y":3}]
+    >>> dataclasses_to_dicts([Point(1, 2), Point(2, 3)])
+    [{'x': 1, 'y': 2}, {'x': 2, 'y': 3}]
 
     """
     from dataclasses import asdict
