@@ -224,7 +224,8 @@ Indexing
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 - Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)
--
+- Bug in :meth:`Dataframe.sort_values` when passing a ascending-incompatible value, failed to raise ``ValueError`` (:issue:`41634`)
+
 
 Missing
 ^^^^^^^

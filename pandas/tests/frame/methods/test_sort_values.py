@@ -868,3 +868,25 @@ class TestSortValuesLevelAsStr:
             result = df.sort_values("a", 0)
         expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_validate_ascending(self):
+        # GH41634
+        df = DataFrame({"D": [23, 7, 21]})
+        indexer = df["D"].argsort().values
+        r_indexer = indexer[::-1]
+
+        msg = 'For argument "ascending" expected type bool, received type str.'
+        with pytest.raises(ValueError, match=msg):
+            df.sort_values(by="D", ascending="False")
+
+        expected_df = df.loc[df.index[r_indexer]]
+        sorted_df = df.sort_values(by="D", ascending=False)
+        tm.assert_frame_equal(sorted_df, expected_df)
+
+        expected_df = df.loc[df.index[r_indexer]]
+        sorted_df = df.sort_values(by="D", ascending=0)
+        tm.assert_frame_equal(sorted_df, expected_df)
+
+        expected_df = df.loc[df.index[indexer]]
+        sorted_df = df.sort_values(by="D", ascending=1)
+        tm.assert_frame_equal(sorted_df, expected_df)
