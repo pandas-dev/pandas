@@ -24,6 +24,10 @@ Fixed regressions
 - Fixed regression in indexing with a ``list`` subclass incorrectly raising ``TypeError`` (:issue:`42433`, :issue:`42461`)
 - Fixed regression in :meth:`DataFrame.isin` and :meth:`Series.isin` raising ``TypeError`` with nullable data containing at least one missing value (:issue:`42405`)
 - Regression in :func:`concat` between objects with bool dtype and integer dtype casting to object instead of to integer (:issue:`42092`)
+- Bug in :class:`Series` constructor not accepting a ``dask.Array`` (:issue:`38645`)
+- Fixed regression for ``SettingWithCopyWarning`` displaying incorrect stacklevel (:issue:`42570`)
+- Fixed regression in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
+
 
 .. ---------------------------------------------------------------------------
 
@@ -34,6 +38,7 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.transpose` dropping values when the DataFrame had an Extension Array dtype and a duplicate index (:issue:`42380`)
 - Fixed bug in :meth:`DataFrame.to_xml` raising ``KeyError`` when called with ``index=False`` and an offset index (:issue:`42458`)
 - Fixed bug in :meth:`.Styler.set_sticky` not handling index names correctly for single index columns case (:issue:`42537`)
+- Fixed bug in :meth:`DataFrame.copy` failing to consolidate blocks in the result (:issue:`42579`)
 
 .. ---------------------------------------------------------------------------
 
