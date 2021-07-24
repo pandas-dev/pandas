@@ -1450,7 +1450,8 @@ class Styler(StylerRenderer):
             Whether to make the index or column headers sticky.
         pixel_size : int, optional
             Required to configure the width of index cells or the height of column
-            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+            header cells when sticking a MultiIndex (or with a named Index).
+            Defaults to 75 and 25 respectively.
         levels : list of int
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
@@ -1458,6 +1459,16 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method uses the CSS 'position: sticky;' property to display. It is
+        designed to work with visible axes, therefore both:
+
+          - `styler.set_sticky(axis="index").hide_index()`
+          - `styler.set_sticky(axis="columns").hide_columns()`
+
+        may produce strange behaviour due to CSS controls with missing elements.
         """
         if axis in [0, "index"]:
             axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
@@ -1469,15 +1480,42 @@ class Styler(StylerRenderer):
             raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
 
         if not isinstance(obj, pd.MultiIndex):
-            return self.set_table_styles(
-                [
+            # handling MultiIndexes requires different CSS
+            props = "position:sticky; background-color:white;"
+
+            if axis == 1:
+                # stick the first <tr> of <head> and, if index names, the second <tr>
+                # if self._hide_columns then no <thead><tr> here will exist: no conflict
+                styles: CSSStyles = [
                     {
-                        "selector": f"{tag} th",
-                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                        "selector": "thead tr:first-child",
+                        "props": props + "top:0px; z-index:2;",
                     }
-                ],
-                overwrite=False,
-            )
+                ]
+                if not self.index.names[0] is None:
+                    styles[0]["props"] = (
+                        props + f"top:0px; z-index:2; height:{pixel_size}px;"
+                    )
+                    styles.append(
+                        {
+                            "selector": "thead tr:nth-child(2)",
+                            "props": props
+                            + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
+                        }
+                    )
+            else:
+                # stick the first <th> of each <tr> in both <thead> and <tbody>
+                # if self._hide_index then no <th> will exist in <tbody>: no conflict
+                # but <th> will exist in <thead>: conflict with initial element
+                styles = [
+                    {
+                        "selector": "tr th:first-child",
+                        "props": props + "left:0px; z-index:1;",
+                    }
+                ]
+
+            return self.set_table_styles(styles, overwrite=False)
+
         else:
             range_idx = list(range(obj.nlevels))
 
