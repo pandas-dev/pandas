@@ -359,8 +359,9 @@ class Index(IndexOpsMixin, PandasObject):
     _is_numeric_dtype: bool = False
     _can_hold_na: bool = True
     _can_hold_strings: bool = True
+
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
-    # UInt64Index or RangeIndex
+    # UInt64Index or RangeIndex. Needed for backwards compat. Remove in pandas 2.0.
     _is_numeric_index: bool = False
 
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine

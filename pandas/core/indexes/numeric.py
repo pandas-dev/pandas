@@ -205,7 +205,11 @@ class NumericIndex(Index):
 
         dtype = pandas_dtype(dtype)
         assert isinstance(dtype, np.dtype)
-        return dtype
+
+        if cls._is_numeric_index:  # NumericIndex
+            return dtype
+        else:  # Int64Index, UInt64Index etc.
+            return cls._default_dtype
 
     def __contains__(self, key) -> bool:
         """
@@ -354,16 +358,6 @@ class IntegerIndex(NumericIndex):
 
     _is_numeric_index: bool = False
 
-    @classmethod
-    @doc(NumericIndex._ensure_dtype)
-    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
-        if dtype is None:
-            return cls._default_dtype
-        dtype = pandas_dtype(dtype)
-        assert isinstance(dtype, np.dtype)
-
-        return cls._default_dtype
-
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
@@ -429,13 +423,3 @@ class Float64Index(NumericIndex):
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
     _is_numeric_index: bool = False
-
-    @classmethod
-    @doc(NumericIndex._ensure_dtype)
-    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
-        if dtype is None:
-            return cls._default_dtype
-        dtype = pandas_dtype(dtype)
-        assert isinstance(dtype, np.dtype)
-
-        return cls._default_dtype
