@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
     TypeVar,
 )
 
@@ -19,7 +20,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    Hashable,
 )
 from pandas.util._validators import validate_bool_kwarg
 
@@ -474,7 +474,11 @@ class BaseArrayManager(DataManager):
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
         arrays = [self.arrays[i] for i in indices]
         # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="intp")]]
+        # Note: using Index.take ensures we can retain e.g. DatetimeIndex.freq,
+        #  see test_describe_datetime_columns
+        taker = np.array(indices, dtype="intp")
+        new_cols = self._axes[1].take(taker)
+        new_axes = [self._axes[0], new_cols]
         return type(self)(arrays, new_axes, verify_integrity=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
@@ -820,9 +824,7 @@ class ArrayManager(BaseArrayManager):
             assert isinstance(value, (np.ndarray, ExtensionArray))
             assert value.ndim == 1
             assert len(value) == len(self._axes[0])
-            # error: Invalid index type "Union[int, slice, ndarray]" for
-            # "List[Union[ndarray, ExtensionArray]]"; expected type "int"
-            self.arrays[loc] = value  # type: ignore[index]
+            self.arrays[loc] = value
             return
 
         # multiple columns -> convert slice or array to integer indices

@@ -148,3 +148,13 @@ class TestDataFrameTruncate:
             expected = expected["col"]
 
         tm.assert_equal(result, expected)
+
+    def test_truncate_index_only_one_unique_value(self, frame_or_series):
+        # GH 42365
+        obj = Series(0, index=date_range("2021-06-30", "2021-06-30")).repeat(5)
+        if frame_or_series is DataFrame:
+            obj = obj.to_frame(name="a")
+
+        truncated = obj.truncate("2021-06-28", "2021-07-01")
+
+        tm.assert_equal(truncated, obj)

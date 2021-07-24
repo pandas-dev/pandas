@@ -80,22 +80,21 @@ _num_index_shared_docs[
 
 
 class NumericIndex(Index):
-    """
-    Provide numeric type operations.
-
-    This is an abstract class.
-    """
-
     _index_descr_args = {
         "klass": "NumericIndex",
         "ltype": "integer or float",
         "dtype": "inferred",
         "extra": "",
     }
-    _values: np.ndarray
-    _default_dtype: np.dtype
-    _dtype_validation_metadata: tuple[Callable[..., bool], str]
+    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
 
+    _typ = "numericindex"
+    _values: np.ndarray
+    _default_dtype: np.dtype | None = None
+    _dtype_validation_metadata: tuple[Callable[..., bool], str] = (
+        is_numeric_dtype,
+        "numeric type",
+    )
     _is_numeric_dtype = True
     _can_hold_strings = False
 
@@ -153,7 +152,12 @@ class NumericIndex(Index):
             if not isinstance(data, (ABCSeries, list, tuple)):
                 data = list(data)
 
+            orig = data
             data = np.asarray(data, dtype=dtype)
+            if dtype is None and data.dtype.kind == "f":
+                if cls is UInt64Index and (data >= 0).all():
+                    # https://github.com/numpy/numpy/issues/19146
+                    data = np.asarray(orig, dtype=np.uint64)
 
         if issubclass(data.dtype.type, str):
             cls._string_data_error(data)
