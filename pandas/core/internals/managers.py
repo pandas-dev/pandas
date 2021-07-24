@@ -711,6 +711,7 @@ class BaseBlockManager(DataManager):
         only_slice : bool, default False
             If True, we always return views on existing arrays, never copies.
             This is used when called from ops.blockwise.operate_blockwise.
+            Ignored; TODO: remove argument.
 
         Returns
         -------
@@ -736,7 +737,7 @@ class BaseBlockManager(DataManager):
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
 
-                if not allow_fill and only_slice:
+                if not allow_fill:
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
                     blocks = [
@@ -773,8 +774,7 @@ class BaseBlockManager(DataManager):
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
         blocks = []
-        group = not only_slice
-        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
+        for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=False):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
@@ -800,24 +800,31 @@ class BaseBlockManager(DataManager):
                     #  we may try to only slice
                     taker = blklocs[mgr_locs.indexer]
                     max_len = max(len(mgr_locs), taker.max() + 1)
-                    if only_slice:
-                        taker = lib.maybe_indices_to_slice(taker, max_len)
+                    taker = lib.maybe_indices_to_slice(taker, max_len)
 
                     if isinstance(taker, slice):
+                        bp = libinternals.BlockPlacement(taker)
+                        bps = bp.to_slices()
+                        assert len(bps) == 1  # just checking
                         nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
                         blocks.append(nb)
-                    elif only_slice:
+                    else:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
-                        for i, ml in zip(taker, mgr_locs):
-                            slc = slice(i, i + 1)
-                            bp = BlockPlacement(ml)
-                            nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
+                        bp = libinternals.BlockPlacement(taker)
+                        bps = bp.to_slices()
+                        left, right = 0, 0
+
+                        for sub in bps:
+                            right += len(sub)
+                            new_locs = mgr_locs[left:right]
+                            # we have isinstance(sub.indexer, slice)
+                            nb = blk.getitem_block_columns(
+                                sub.indexer, new_mgr_locs=new_locs
+                            )
                             # We have np.shares_memory(nb.values, blk.values)
                             blocks.append(nb)
-                    else:
-                        nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
-                        blocks.append(nb)
+                            left += len(sub)
 
         return blocks
 

@@ -374,12 +374,11 @@ class TestXSWithMultiIndex:
             expected = DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-        # with mixed dataframe, modifying the parent doesn't modify result
-        # TODO the "split" path behaves differently here as with single block
+        # with mixed dataframe, we still get a view on the parent
         df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         df.iloc[0, 0] = 2
-        expected = DataFrame({"a": [1]})
+        expected = DataFrame({"a": [2]})
         tm.assert_frame_equal(result, expected)
 
     def test_xs_list_indexer_droplevel_false(self):
