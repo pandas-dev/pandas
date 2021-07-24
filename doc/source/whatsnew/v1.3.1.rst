@@ -28,7 +28,7 @@ Fixed regressions
 - Fixed regression for ``SettingWithCopyWarning`` displaying incorrect stacklevel (:issue:`42570`)
 - Fixed regression for :func:`merge_asof` raising ``KeyError`` when one of the ``by`` columns is in the index (:issue:`34488`)
 - Fixed regression in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
-
+- Fixed regression in :meth:`SeriesGroupBy.value_counts` that resulted in an ``IndexError`` when called on a Series with one row (:issue:`42618`)
 
 .. ---------------------------------------------------------------------------
 
