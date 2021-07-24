@@ -674,7 +674,8 @@ class Index(IndexOpsMixin, PandasObject):
         out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
         if self._is_multi:
             # test_format_duplicate_labels_message_multi
-            out.index = type(self).from_tuples(out.index)
+            # error: "Type[Index]" has no attribute "from_tuples"  [attr-defined]
+            out.index = type(self).from_tuples(out.index)  # type: ignore[attr-defined]
 
         if self.nlevels == 1:
             out = out.rename_axis("label")
