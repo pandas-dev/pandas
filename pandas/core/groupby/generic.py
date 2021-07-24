@@ -759,7 +759,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # new values are where sorted labels change
         lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
         inc = np.r_[True, lchanges]
-        if not len(lchanges):
+        if not len(val):
             inc = lchanges
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
