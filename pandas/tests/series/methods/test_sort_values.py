@@ -216,14 +216,17 @@ class TestSeriesSortValues:
             ser.sort_values(ascending="False")
 
         sorted_ser = ser.sort_values(ascending=False)
-        tm.assert_numpy_array_equal(sorted_ser.values, expected)
+        result = sorted_ser.values
+        tm.assert_numpy_array_equal(result, expected)
 
         sorted_ser = ser.sort_values(ascending=0)
-        tm.assert_numpy_array_equal(sorted_ser.values, expected)
+        result = sorted_ser.values
+        tm.assert_numpy_array_equal(result, expected)
 
         expected = expected[::-1]
         sorted_ser = ser.sort_values(ascending=1)
-        tm.assert_numpy_array_equal(sorted_ser.values, expected)
+        result = sorted_ser.values
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestSeriesSortingKey:
