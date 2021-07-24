@@ -184,8 +184,7 @@ def test_ewma_times_adjust_false_raises():
 
 
 @pytest.mark.parametrize("func", ["mean", "std", "var"])
-@pytest.mark.parametrize("dtype", [np.float32, np.float16, np.float64, float, "float"])
-def test_float_dtype_ewma(dtype, func):
+def test_float_dtype_ewma(func, float_dtype):
     # GH#42452
     expected_mean = DataFrame(
         {
@@ -203,7 +202,9 @@ def test_float_dtype_ewma(dtype, func):
         }
     )
     expected_var = expected_std ** 2
-    df = DataFrame({0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=dtype)
+    df = DataFrame(
+        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_dtype
+    )
     e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()
     expected = {
