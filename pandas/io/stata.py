@@ -162,13 +162,13 @@ Examples
 --------
 Read a Stata dta file:
 
->>> df = pd.read_stata('filename.dta') # doctest: +SKIP
+>>> df = pd.read_stata('docs_example_files/read_stata_example.dta') 
 
 Read a Stata dta file in 10,000 line chunks:
 
->>> itr = pd.read_stata('filename.dta', chunksize=10000) # doctest: +SKIP
->>> for chunk in itr: # doctest: +SKIP
-...     do_something(chunk)
+>>> itr = pd.read_stata('docs_examples/read_stata_example.dta', chunksize=10000) 
+>>> for chunk in itr: 
+>>>     pass # do_something(chunk)
 """
 
 _read_method_doc = f"""\
