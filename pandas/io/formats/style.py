@@ -537,15 +537,16 @@ class Styler(StylerRenderer):
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
         >>> s.render() #doctest: +ELLIPSIS
-        '<style type="text/css">\n#..._row1_col1 {\n  background-color: red;\n  
-        font-weight: bold;\n}\n</style>\n<table id="...">\n  <thead>\n    <tr>\n      
-        <th class="blank level0" >&nbsp;</th>\n      <th class="col_heading level0 col0" >0</th>
-        \n      <th class="col_heading level0 col1" >1</th>\n    </tr>\n  </thead>\n  <tbody>\n    
-        <tr>\n      <th id="..._level0_row0" class="row_heading level0 row0" >0</th>\n      
-        <td id="..._row0_col0" class="data row0 col0" >1</td>\n      <td id="..._row0_col1" 
-        class="data row0 col1" >2</td>\n    </tr>\n    <tr>\n      <th id="..._level0_row1" 
-        class="row_heading level0 row1" >1</th>\n      <td id="..._row1_col0" 
-        class="data row1 col0" >3</td>\n      <td id="..._row1_col1" 
+        '<style type="text/css">\n#..._row1_col1 {\n  background-color: red;\n
+        font-weight: bold;\n}\n</style>\n<table id="...">\n  <thead>\n    <tr>\n
+        <th class="blank level0" >&nbsp;</th>\n      <th class="col_heading
+        level0 col0" >0</th>\n      <th class="col_heading level0 col1" >1</th>\n
+        </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th id="..._level0_row0"
+        class="row_heading level0 row0" >0</th>\n      <td id="..._row0_col0"
+        class="data row0 col0" >1</td>\n      <td id="..._row0_col1" class="data
+        row0 col1" >2</td>\n    </tr>\n    <tr>\n      <th id="..._level0_row1"
+        class="row_heading level0 row1" >1</th>\n      <td id="..._row1_col0"
+        class="data row1 col0" >3</td>\n      <td id="..._row1_col1"
         class="data row1 col1" >4</td>\n    </tr>\n  </tbody>\n</table>\n'
 
         The equivalent using LaTeX only commands is the following:
