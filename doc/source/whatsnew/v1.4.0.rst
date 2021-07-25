@@ -43,7 +43,8 @@ Other enhancements
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
-- Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
+-
+- These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
 
@@ -263,8 +264,13 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+<<<<<<< HEAD
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 -Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
+=======
+- Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
+-
+>>>>>>> corrected whatsnew
 
 Sparse
 ^^^^^^
