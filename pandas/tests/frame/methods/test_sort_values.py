@@ -879,14 +879,14 @@ class TestSortValuesLevelAsStr:
         with pytest.raises(ValueError, match=msg):
             df.sort_values(by="D", ascending="False")
 
-        expected_df = df.loc[df.index[r_indexer]]
-        sorted_df = df.sort_values(by="D", ascending=False)
-        tm.assert_frame_equal(sorted_df, expected_df)
+        expected = df.loc[df.index[r_indexer]]
+        result = df.sort_values(by="D", ascending=False)
+        tm.assert_frame_equal(result, expected)
 
-        expected_df = df.loc[df.index[r_indexer]]
-        sorted_df = df.sort_values(by="D", ascending=0)
-        tm.assert_frame_equal(sorted_df, expected_df)
+        expected = df.loc[df.index[r_indexer]]
+        result = df.sort_values(by="D", ascending=0)
+        tm.assert_frame_equal(result, expected)
 
-        expected_df = df.loc[df.index[indexer]]
-        sorted_df = df.sort_values(by="D", ascending=1)
-        tm.assert_frame_equal(sorted_df, expected_df)
+        expected = df.loc[df.index[indexer]]
+        result = df.sort_values(by="D", ascending=1)
+        tm.assert_frame_equal(result, expected)
