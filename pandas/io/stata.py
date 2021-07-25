@@ -160,15 +160,23 @@ DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
+
+Creating a dummy stata for this example
+>>>df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+...                              'parrot'],
+...                   'speed': [350, 18, 361, 15]})
+>>>df.to_stata('animals.dta') 
 Read a Stata dta file:
 
->>> df = pd.read_stata('docs_example_files/read_stata_example.dta')
+>>> df = pd.read_stata('animals.dta')
 
-Read a Stata dta file in 10,000 line chunks:
-
->>> itr = pd.read_stata('docs_examples/read_stata_example.dta', chunksize=10000)
+Read a Stata dta file in 10,000 line chunks: 
+>>> itr = pd.read_stata('animals.dta', chunksize=10000)
 >>> for chunk in itr:
 ...     pass # do_something(chunk)
+
+>>> import os
+>>> os.remove("./filename.dta")
 """
 
 _read_method_doc = f"""\
