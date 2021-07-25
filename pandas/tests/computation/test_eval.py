@@ -1866,13 +1866,17 @@ def test_invalid_engine():
 
 
 @td.skip_if_no_ne
-def test_numexpr_option_respected():
+@pytest.mark.parametrize("use_numexpr", [True, False])
+def test_numexpr_option_respected(use_numexpr):
     # GH 32556
     from pandas.core.computation.eval import _check_engine
 
-    with pd.option_context("compute.use_numexpr", False):
+    with pd.option_context("compute.use_numexpr", use_numexpr):
         result = _check_engine(None)
-        assert result == "python"
+        if use_numexpr:
+            assert result == "numexpr"
+        else:
+            assert result == "python"
 
 
 @td.skip_if_no_ne
