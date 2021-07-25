@@ -4,6 +4,8 @@ Quantilization functions and related stuff
 from typing import (
     Any,
     Callable,
+    Literal,
+    Union,
 )
 
 import numpy as np
@@ -417,7 +419,7 @@ def _bins_to_cuts(
         else:
             bins = unique_bins
 
-    side = "left" if right else "right"
+    side: Union[Literal["left"], Literal["right"]] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
