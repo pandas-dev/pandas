@@ -122,23 +122,27 @@ def test_series_groupby_value_counts_with_grouper():
     tm.assert_series_equal(result, expected)
 
 
-def test_series_groupby_value_counts_empty():
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_empty(columns):
     # GH39172
-    df = DataFrame(columns=["A", "B"])
-    dfg = df.groupby("A")
+    df = DataFrame(columns=columns)
+    dfg = df.groupby(columns[:-1])
 
-    result = dfg["B"].value_counts()
-    expected = Series([], name="B", dtype=result.dtype)
-    expected.index = MultiIndex.from_arrays([[]] * 2, names=["A", "B"])
+    result = dfg[columns[-1]].value_counts()
+    expected = Series([], name=columns[-1], dtype=result.dtype)
+    expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
 
     tm.assert_series_equal(result, expected)
 
-    df = DataFrame(columns=["A", "B", "C"])
-    dfg = df.groupby(["A", "B"])
 
-    result = dfg["C"].value_counts()
-    expected = Series([], name="C", dtype=result.dtype)
-    expected.index = MultiIndex.from_arrays([[]] * 3, names=["A", "B", "C"])
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_one_row(columns):
+    # GH42618
+    df = DataFrame(data=[range(len(columns))], columns=columns)
+    dfg = df.groupby(columns[:-1])
+
+    result = dfg[columns[-1]].value_counts()
+    expected = df.value_counts().rename(columns[-1])
 
     tm.assert_series_equal(result, expected)
 

@@ -73,7 +73,7 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             target[mask] = other[mask]
 
     @pytest.mark.parametrize(
@@ -89,7 +89,7 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         target = Categorical(["a", "b"], categories=["a", "b"], ordered=True)
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             target[mask] = other[mask]
 
     def test_setitem_tuple(self):
@@ -260,7 +260,7 @@ class TestCategoricalIndexing:
     def test_where_new_category_raises(self):
         ser = Series(Categorical(["a", "b", "c"]))
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ser.where([True, False, True], "d")
 
     def test_where_ordered_differs_rasies(self):
@@ -270,7 +270,7 @@ class TestCategoricalIndexing:
         other = Categorical(
             ["b", "c", "a"], categories=["a", "c", "b", "d"], ordered=True
         )
-        with pytest.raises(ValueError, match="without identical categories"):
+        with pytest.raises(TypeError, match="without identical categories"):
             ser.where([True, False, True], other)
 
 

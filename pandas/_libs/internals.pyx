@@ -517,7 +517,6 @@ cdef class NumpyBlock(SharedBlock):
         #  set placement and ndim
         self.values = values
 
-    # @final  # not useful in cython, but we _would_ annotate with @final
     cpdef NumpyBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
@@ -540,7 +539,6 @@ cdef class NDArrayBackedBlock(SharedBlock):
         #  set placement and ndim
         self.values = values
 
-    # @final  # not useful in cython, but we _would_ annotate with @final
     cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
@@ -569,7 +567,12 @@ cdef class BlockManager:
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
 
-    def __cinit__(self, blocks, axes, verify_integrity=True):
+    def __cinit__(self, blocks=None, axes=None, verify_integrity=True):
+        # None as defaults for unpickling GH#42345
+        if blocks is None:
+            # This adds 1-2 microseconds to DataFrame(np.array([]))
+            return
+
         if isinstance(blocks, list):
             # Backward compat for e.g. pyarrow
             blocks = tuple(blocks)
@@ -580,12 +583,8 @@ cdef class BlockManager:
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blknos = None  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blklocs = None  # type: ignore[assignment]
+        self._blknos = None
+        self._blklocs = None
 
     # -------------------------------------------------------------------
     # Pickle
