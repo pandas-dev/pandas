@@ -1450,7 +1450,8 @@ class Styler(StylerRenderer):
             Whether to make the index or column headers sticky.
         pixel_size : int, optional
             Required to configure the width of index cells or the height of column
-            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+            header cells when sticking a MultiIndex (or with a named Index).
+            Defaults to 75 and 25 respectively.
         levels : list of int
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
@@ -1458,6 +1459,16 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method uses the CSS 'position: sticky;' property to display. It is
+        designed to work with visible axes, therefore both:
+
+          - `styler.set_sticky(axis="index").hide_index()`
+          - `styler.set_sticky(axis="columns").hide_columns()`
+
+        may produce strange behaviour due to CSS controls with missing elements.
         """
         if axis in [0, "index"]:
             axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
@@ -1469,15 +1480,42 @@ class Styler(StylerRenderer):
             raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
 
         if not isinstance(obj, pd.MultiIndex):
-            return self.set_table_styles(
-                [
+            # handling MultiIndexes requires different CSS
+            props = "position:sticky; background-color:white;"
+
+            if axis == 1:
+                # stick the first <tr> of <head> and, if index names, the second <tr>
+                # if self._hide_columns then no <thead><tr> here will exist: no conflict
+                styles: CSSStyles = [
                     {
-                        "selector": f"{tag} th",
-                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                        "selector": "thead tr:first-child",
+                        "props": props + "top:0px; z-index:2;",
                     }
-                ],
-                overwrite=False,
-            )
+                ]
+                if not self.index.names[0] is None:
+                    styles[0]["props"] = (
+                        props + f"top:0px; z-index:2; height:{pixel_size}px;"
+                    )
+                    styles.append(
+                        {
+                            "selector": "thead tr:nth-child(2)",
+                            "props": props
+                            + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
+                        }
+                    )
+            else:
+                # stick the first <th> of each <tr> in both <thead> and <tbody>
+                # if self._hide_index then no <th> will exist in <tbody>: no conflict
+                # but <th> will exist in <thead>: conflict with initial element
+                styles = [
+                    {
+                        "selector": "tr th:first-child",
+                        "props": props + "left:0px; z-index:1;",
+                    }
+                ]
+
+            return self.set_table_styles(styles, overwrite=False)
+
         else:
             range_idx = list(range(obj.nlevels))
 
@@ -2039,15 +2077,17 @@ class Styler(StylerRenderer):
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
 
     def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
+        *,
         color="#d65f5f",
         width: float = 100,
+        height: float = 100,
         align: str | float | int | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
@@ -2055,6 +2095,8 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
+
+        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -2074,6 +2116,10 @@ class Styler(StylerRenderer):
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
+        height : float, default 100
+            The percentage height of the bar in the cell, centrally aligned, in [0,100].
+
+            .. versionadded:: 1.4.0
         align : str, int, float, callable, default 'mid'
             How to align the bars within the cells relative to a width adjusted center.
             If string must be one of:
@@ -2121,6 +2167,11 @@ class Styler(StylerRenderer):
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
+        if not (0 <= width <= 100):
+            raise ValueError(f"`width` must be a value in [0, 100], got {width}")
+        elif not (0 <= height <= 100):
+            raise ValueError(f"`height` must be a value in [0, 100], got {height}")
+
         if subset is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
@@ -2131,6 +2182,7 @@ class Styler(StylerRenderer):
             align=align,
             colors=color,
             width=width / 100,
+            height=height / 100,
             vmin=vmin,
             vmax=vmax,
             base_css=props,
@@ -2791,6 +2843,7 @@ def _bar(
     align: str | float | int | Callable,
     colors: list[str],
     width: float,
+    height: float,
     vmin: float | None,
     vmax: float | None,
     base_css: str,
@@ -2808,6 +2861,9 @@ def _bar(
         Two listed colors as string in valid CSS.
     width : float in [0,1]
         The percentage of the cell, measured from left, where drawn bars will reside.
+    height : float in [0,1]
+        The percentage of the cell's height where drawn bars will reside, centrally
+        aligned.
     vmin : float, optional
         Overwrite the minimum value of the window.
     vmax : float, optional
@@ -2873,7 +2929,7 @@ def _bar(
 
         Notes
         -----
-        Uses ``colors`` and ``width`` from outer scope.
+        Uses ``colors``, ``width`` and ``height`` from outer scope.
         """
         if pd.isna(x):
             return base_css
@@ -2911,7 +2967,13 @@ def _bar(
             else:
                 start, end = z_frac, (x - left) / (right - left)
 
-        return css_bar(start * width, end * width, color)
+        ret = css_bar(start * width, end * width, color)
+        if height < 1 and "background: linear-gradient(" in ret:
+            return (
+                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+            )
+        else:
+            return ret
 
     values = data.to_numpy()
     left = np.nanmin(values) if vmin is None else vmin

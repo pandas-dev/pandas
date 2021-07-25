@@ -190,7 +190,7 @@ class TestValidator:
             self._import_path(klass=klass, func=func)
         )
         for msg in msgs:
-            assert msg in " ".join(err[1] for err in result["errors"])
+            assert msg in " ".join([err[1] for err in result["errors"]])
 
     def test_validate_all_ignore_deprecated(self, monkeypatch):
         monkeypatch.setattr(
