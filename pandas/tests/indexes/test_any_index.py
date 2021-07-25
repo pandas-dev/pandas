@@ -51,7 +51,7 @@ def test_mutability(index):
 def test_map_identity_mapping(index):
     # GH#12766
     result = index.map(lambda x: x)
-    if index._is_numeric_index:
+    if index._is_backward_compat_public_numeric_index:
         if is_float_dtype(index.dtype):
             expected = index.astype(np.float64)
         elif index.dtype == np.uint64:

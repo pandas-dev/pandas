@@ -97,7 +97,7 @@ class NumericIndex(Index):
     )
     _is_numeric_dtype = True
     _can_hold_strings = False
-    _is_numeric_index: bool = True
+    _is_backward_compat_public_numeric_index: bool = True
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -206,9 +206,11 @@ class NumericIndex(Index):
         dtype = pandas_dtype(dtype)
         assert isinstance(dtype, np.dtype)
 
-        if cls._is_numeric_index:  # NumericIndex
+        if cls._is_backward_compat_public_numeric_index:
+            # dtype for NumericIndex
             return dtype
-        else:  # Int64Index, UInt64Index etc.
+        else:
+            # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
             return cls._default_dtype
 
     def __contains__(self, key) -> bool:
@@ -244,7 +246,7 @@ class NumericIndex(Index):
                     return Int64Index(arr, name=self.name)
                 else:
                     return NumericIndex(arr, name=self.name, dtype=dtype)
-        elif self._is_numeric_index:
+        elif self._is_backward_compat_public_numeric_index:
             if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
                 return self._constructor(self, dtype=dtype, copy=copy)
 
@@ -356,7 +358,7 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
-    _is_numeric_index: bool = False
+    _is_backward_compat_public_numeric_index: bool = False
 
     @property
     def asi8(self) -> np.ndarray:
@@ -422,4 +424,4 @@ class Float64Index(NumericIndex):
     _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
-    _is_numeric_index: bool = False
+    _is_backward_compat_public_numeric_index: bool = False

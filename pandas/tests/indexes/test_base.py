@@ -714,7 +714,7 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
-        elif index._is_numeric_index:
+        elif index._is_backward_compat_public_numeric_index:
             if is_float_dtype(index.dtype):
                 exp_dtype = np.float64
             else:

@@ -362,7 +362,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
     # UInt64Index or RangeIndex. Needed for backwards compat. Remove in pandas 2.0.
-    _is_numeric_index: bool = False
+    _is_backward_compat_public_numeric_index: bool = False
 
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
@@ -441,7 +441,11 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
-        elif isinstance(data, Index) and data._is_numeric_index and dtype is None:
+        elif (
+            isinstance(data, Index)
+            and data._is_backward_compat_public_numeric_index
+            and dtype is None
+        ):
             return data._constructor(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
@@ -5726,7 +5730,9 @@ class Index(IndexOpsMixin, PandasObject):
             # empty
             attributes["dtype"] = self.dtype
 
-        if self._is_numeric_index and is_numeric_dtype(new_values.dtype):
+        if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
+            new_values.dtype
+        ):
             return self._constructor(new_values, **attributes)
 
         return Index(new_values, **attributes)
