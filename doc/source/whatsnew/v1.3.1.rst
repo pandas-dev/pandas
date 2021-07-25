@@ -48,4 +48,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.3.0..v1.3.1|HEAD
+.. contributors:: v1.3.0..v1.3.1
