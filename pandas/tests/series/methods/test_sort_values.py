@@ -206,25 +206,24 @@ class TestSeriesSortValues:
         expected = Series([3, 2, 1, 1], ["c", "b", "first", "second"])
         tm.assert_series_equal(result, expected)
 
-    def test_sort_values_validate_ascending(self):
+    def test_sort_values_validate_ascending_for_value_error(self):
         # GH41634
         ser = Series([23, 7, 21])
-        expected = np.sort(ser.values)[::-1]
 
         msg = 'For argument "ascending" expected type bool, received type str.'
         with pytest.raises(ValueError, match=msg):
             ser.sort_values(ascending="False")
 
-        sorted_ser = ser.sort_values(ascending=False)
-        result = sorted_ser.values
-        tm.assert_numpy_array_equal(result, expected)
+    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
+    def test_sort_values_validate_ascending_functional(self, ascending):
+        # GH41634
+        ser = Series([23, 7, 21])
+        expected = np.sort(ser.values)
 
-        sorted_ser = ser.sort_values(ascending=0)
-        result = sorted_ser.values
-        tm.assert_numpy_array_equal(result, expected)
+        sorted_ser = ser.sort_values(ascending=ascending)
+        if not ascending:
+            expected = expected[::-1]
 
-        expected = expected[::-1]
-        sorted_ser = ser.sort_values(ascending=1)
         result = sorted_ser.values
         tm.assert_numpy_array_equal(result, expected)
 
