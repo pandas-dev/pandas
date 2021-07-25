@@ -183,33 +183,49 @@ def test_ewma_times_adjust_false_raises():
         )
 
 
-@pytest.mark.parametrize("func", ["mean", "std", "var"])
-def test_float_dtype_ewma(func, float_dtype):
+@pytest.mark.parametrize(
+    "func, expected",
+    [
+        [
+            "mean",
+            DataFrame(
+                {
+                    0: range(5),
+                    1: range(4, 9),
+                    2: [7.428571, 9, 10.571429, 12.142857, 13.714286],
+                },
+                dtype=float,
+            ),
+        ],
+        [
+            "std",
+            DataFrame(
+                {
+                    0: [np.nan] * 5,
+                    1: [4.242641] * 5,
+                    2: [4.6291, 5.196152, 5.781745, 6.380775, 6.989788],
+                }
+            ),
+        ],
+        [
+            "var",
+            DataFrame(
+                {
+                    0: [np.nan] * 5,
+                    1: [18.0] * 5,
+                    2: [21.428571, 27, 33.428571, 40.714286, 48.857143],
+                }
+            ),
+        ],
+    ],
+)
+def test_float_dtype_ewma(func, expected, float_dtype):
     # GH#42452
-    expected_mean = DataFrame(
-        {
-            0: range(5),
-            1: range(4, 9),
-            2: [7.428571, 9, 10.571429, 12.142857, 13.714286],
-        },
-        dtype=float,
-    )
-    expected_std = DataFrame(
-        {
-            0: [np.nan] * 5,
-            1: [4.242641] * 5,
-            2: [4.6291, 5.196152, 5.781745, 6.380775, 6.989788],
-        }
-    )
-    expected_var = expected_std ** 2
+
     df = DataFrame(
         {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_dtype
     )
     e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()
-    expected = {
-        "expected_var": expected_var,
-        "expected_mean": expected_mean,
-        "expected_std": expected_std,
-    }
-    tm.assert_frame_equal(result, expected[f"expected_{func}"])
+
+    tm.assert_frame_equal(result, expected)
