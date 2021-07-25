@@ -331,14 +331,14 @@ def ndarray_to_mgr(
         if dtype is None and is_object_dtype(values.dtype):
             arrays = [
                 ensure_wrapped_if_datetimelike(
-                    maybe_infer_to_datetimelike(values[:, i].copy())
+                    maybe_infer_to_datetimelike(values[:, i])
                 )
                 for i in range(values.shape[1])
             ]
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
-            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+            arrays = [values[:, i] for i in range(values.shape[1])]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
