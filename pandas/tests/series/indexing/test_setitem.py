@@ -954,9 +954,9 @@ def test_setitem_with_bool_indexer():
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     result = df.pop("b")
     result[[True, False, False]] = 9
-    expected = Series(data=[9, 5, 6], index=range(3), name="b")
+    expected = Series(data=[9, 5, 6], name="b")
     tm.assert_series_equal(result, expected)
 
     df["a"][[True, False, False]] = 10
-    expected_df = DataFrame({"a": [10, 2, 3]})
-    tm.assert_frame_equal(df, expected_df)
+    expected = DataFrame({"a": [10, 2, 3]})
+    tm.assert_frame_equal(df, expected)
