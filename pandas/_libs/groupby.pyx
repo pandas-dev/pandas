@@ -922,9 +922,7 @@ def group_last(rank_t[:, ::1] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    # TODO(cython 3.0):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
@@ -1016,9 +1014,7 @@ def group_nth(rank_t[:, ::1] out,
         ndarray[int64_t, ndim=2] nobs
         bint runtime_error = False
 
-    # TODO(cython 3.0):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
@@ -1210,9 +1206,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
         bint runtime_error = False
         int64_t[:, ::1] nobs
 
-    # TODO(cython 3.0):
-    # Instead of `labels.shape[0]` use `len(labels)`
-    if not len(values) == labels.shape[0]:
+    if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
 
     min_count = max(min_count, 1)
