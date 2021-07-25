@@ -30,7 +30,10 @@ fi
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
-PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+if [[ "$PANDAS_DATA_MANAGER" != "array" ]]; then
+    # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
+    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile $TEST_ARGS $COVERAGE pandas"
 
-echo $PYTEST_AM_CMD
-sh -c "$PYTEST_AM_CMD"
+    echo $PYTEST_AM_CMD
+    sh -c "$PYTEST_AM_CMD"
+fi
