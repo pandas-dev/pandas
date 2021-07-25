@@ -1380,19 +1380,23 @@ cdef cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K
         groupby_t val, mval, na_val
-        uint8_t[::1] seen_na
+        uint8_t[:, ::1] seen_na
         intp_t lab
+        bint na_possible
 
     if groupby_t is float64_t or groupby_t is float32_t:
         na_val = NaN
+        na_possible = True
     elif is_datetimelike:
         na_val = NPY_NAT
+        na_possible = True
     # Will never be used, just to avoid uninitialized warning
     else:
         na_val = 0
+        na_possible = False
 
-    N, K = (<object>values).shape
-    seen_na = np.zeros((<object>accum).shape[0], dtype=np.uint8)
+    if na_possible:
+        seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
 
     N, K = (<object>values).shape
     with nogil:
@@ -1401,7 +1405,7 @@ cdef cummin_max(groupby_t[:, ::1] out,
             if lab < 0:
                 continue
             for j in range(K):
-                if not skipna and seen_na[lab]:
+                if not skipna and na_possible and seen_na[lab, j]:
                     out[i, j] = na_val
                 else:
                     val = values[i, j]
@@ -1415,7 +1419,7 @@ cdef cummin_max(groupby_t[:, ::1] out,
                                 accum[lab, j] = mval = val
                         out[i, j] = mval
                     else:
-                        seen_na[lab] = 1
+                        seen_na[lab, j] = 1
                         out[i, j] = val
 
 
@@ -1435,18 +1439,18 @@ cdef masked_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K
         groupby_t val, mval
-        uint8_t[::1] seen_na
+        uint8_t[:, ::1] seen_na
         intp_t lab
 
     N, K = (<object>values).shape
-    seen_na = np.zeros((<object>accum).shape[0], dtype=np.uint8)
+    seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
     with nogil:
         for i in range(N):
             lab = labels[i]
             if lab < 0:
                 continue
             for j in range(K):
-                if not skipna and seen_na[lab]:
+                if not skipna and seen_na[lab, j]:
                     mask[i, j] = 1
                 else:
                     if not mask[i, j]:
@@ -1460,7 +1464,7 @@ cdef masked_cummin_max(groupby_t[:, ::1] out,
                                 accum[lab, j] = mval = val
                         out[i, j] = mval
                     else:
-                        seen_na[lab] = 1
+                        seen_na[lab, j] = 1
 
 
 @cython.boundscheck(False)
