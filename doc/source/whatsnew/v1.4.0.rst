@@ -43,8 +43,8 @@ Other enhancements
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
--
-- These are bug fixes that might have notable behavior changes.
+
+These are bug fixes that might have notable behavior changes.
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
 
