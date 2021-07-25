@@ -331,14 +331,14 @@ def ndarray_to_mgr(
         if dtype is None and is_object_dtype(values.dtype):
             arrays = [
                 ensure_wrapped_if_datetimelike(
-                    maybe_infer_to_datetimelike(values[:, i].copy())
+                    maybe_infer_to_datetimelike(values[:, i])
                 )
                 for i in range(values.shape[1])
             ]
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
-            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+            arrays = [values[:, i] for i in range(values.shape[1])]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
@@ -348,22 +348,17 @@ def ndarray_to_mgr(
     # on the entire block; this is to convert if we have datetimelike's
     # embedded in an object type
     if dtype is None and is_object_dtype(values.dtype):
-
-        if values.ndim == 2 and values.shape[0] != 1:
-            # transpose and separate blocks
-
-            dtlike_vals = [maybe_infer_to_datetimelike(row) for row in values]
-            dvals_list = [ensure_block_shape(dval, 2) for dval in dtlike_vals]
-
-            # TODO: What about re-joining object columns?
+        obj_columns = list(values)
+        maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
+        # don't convert (and copy) the objects if no type inference occurs
+        if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
+            dvals_list = [ensure_block_shape(dval, 2) for dval in maybe_datetime]
             block_values = [
                 new_block(dvals_list[n], placement=n, ndim=2)
                 for n in range(len(dvals_list))
             ]
-
         else:
-            datelike_vals = maybe_infer_to_datetimelike(values)
-            nb = new_block(datelike_vals, placement=slice(len(columns)), ndim=2)
+            nb = new_block(values, placement=slice(len(columns)), ndim=2)
             block_values = [nb]
     else:
         nb = new_block(values, placement=slice(len(columns)), ndim=2)
@@ -717,13 +712,14 @@ def dataclasses_to_dicts(data):
 
     Examples
     --------
+    >>> from dataclasses import dataclass
     >>> @dataclass
-    >>> class Point:
+    ... class Point:
     ...     x: int
     ...     y: int
 
-    >>> dataclasses_to_dicts([Point(1,2), Point(2,3)])
-    [{"x":1,"y":2},{"x":2,"y":3}]
+    >>> dataclasses_to_dicts([Point(1, 2), Point(2, 3)])
+    [{'x': 1, 'y': 2}, {'x': 2, 'y': 3}]
 
     """
     from dataclasses import asdict
