@@ -885,6 +885,7 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].group_arraylike
 
+        # result_index is MultiIndex
         return self.result_index._values
 
     @cache_readonly
@@ -903,12 +904,12 @@ class BaseGrouper:
         # Note: only called from _insert_inaxis_grouper_inplace, which
         #  is only called for BaseGrouper, never for BinGrouper
         if len(self.groupings) == 1:
-            return [self.groupings[0].result_index]
+            return [self.groupings[0].group_arraylike]
 
         name_list = []
         for ping, codes in zip(self.groupings, self.reconstructed_codes):
             codes = ensure_platform_int(codes)
-            levels = ping.result_index.take(codes)
+            levels = ping.group_arraylike.take(codes)
 
             name_list.append(levels)
 

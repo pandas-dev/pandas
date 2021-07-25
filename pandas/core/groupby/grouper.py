@@ -619,11 +619,20 @@ class Grouping:
         Analogous to result_index, but holding an ArrayLike to ensure
         we can can retain ExtensionDtypes.
         """
+        if self._group_index is not None:
+            # _group_index is set in __init__ for MultiIndex cases
+            return self._group_index._values
+
+        elif self._all_grouper is not None:
+            # retain dtype for categories, including unobserved ones
+            return self.result_index._values
+
         return self._codes_and_uniques[1]
 
     @cache_readonly
     def result_index(self) -> Index:
-        # TODO: what's the difference between result_index vs group_index?
+        # result_index retains dtype for categories, including unobserved ones,
+        #  which group_index does not
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
@@ -635,7 +644,8 @@ class Grouping:
         if self._group_index is not None:
             # _group_index is set in __init__ for MultiIndex cases
             return self._group_index
-        uniques = self.group_arraylike
+
+        uniques = self._codes_and_uniques[1]
         return Index(uniques, name=self.name)
 
     @cache_readonly
