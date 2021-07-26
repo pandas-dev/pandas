@@ -457,3 +457,16 @@ class TestFromRecords:
         b = a[:0]
         df2 = DataFrame.from_records(b, index="id")
         tm.assert_frame_equal(df2, df.iloc[:0])
+
+    def test_from_records_empty2(self):
+        # GH#42456
+        dtype = [("prop", int)]
+        shape = (0, len(dtype))
+        arr = np.empty(shape, dtype=dtype)
+
+        result = DataFrame.from_records(arr)
+        expected = DataFrame({"prop": np.array([], dtype=int)})
+        tm.assert_frame_equal(result, expected)
+
+        alt = DataFrame(arr)
+        tm.assert_frame_equal(alt, expected)
