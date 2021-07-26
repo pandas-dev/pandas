@@ -1952,7 +1952,7 @@ class EngFormatter:
         self.accuracy = accuracy
         self.use_eng_prefix = use_eng_prefix
 
-    def __call__(self, num: int | float) -> str:
+    def __call__(self, num: int | float) -> int:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
@@ -1983,6 +1983,9 @@ class EngFormatter:
             return "inf"
 
         sign = 1
+        if dnum == 0:
+            formatted = 0
+            return formatted
 
         if dnum < 0:  # pragma: no cover
             sign = -1
