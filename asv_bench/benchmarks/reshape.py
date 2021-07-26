@@ -102,6 +102,7 @@ class Unstack:
         columns = np.arange(n)
         if dtype == "int":
             values = np.arange(m * m * n).reshape(m * m, n)
+            self.df = DataFrame(values, index, columns)
         else:
             # the category branch is ~20x slower than int. So we
             # cut down the size a bit. Now it's only ~3x slower.
@@ -111,7 +112,10 @@ class Unstack:
             values = np.take(list(string.ascii_letters), indices)
             values = [pd.Categorical(v) for v in values.T]
 
-        self.df = DataFrame({i: cat for i, cat in enumerate(values)}, index, columns)
+            self.df = DataFrame(
+                {i: cat for i, cat in enumerate(values)}, index, columns
+            )
+
         self.df2 = self.df.iloc[:-1]
 
     def time_full_product(self, dtype):
