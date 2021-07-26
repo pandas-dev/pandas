@@ -4,9 +4,10 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Hashable,
+    Literal,
+    final,
     no_type_check,
 )
 
@@ -27,7 +28,7 @@ from pandas._typing import (
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
-    final,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -87,9 +88,6 @@ from pandas.tseries.offsets import (
     Nano,
     Tick,
 )
-
-if TYPE_CHECKING:
-    from typing import Literal
 
 _shared_docs_kwargs: dict[str, str] = {}
 
@@ -288,8 +286,9 @@ class Resampler(BaseGroupBy, PandasObject):
         """
     Examples
     --------
-    >>> s = pd.Series([1,2,3,4,5],
-                      index=pd.date_range('20130101', periods=5,freq='s'))
+    >>> s = pd.Series([1, 2, 3, 4, 5],
+    ...               index=pd.date_range('20130101', periods=5, freq='s'))
+    >>> s
     2013-01-01 00:00:00    1
     2013-01-01 00:00:01    2
     2013-01-01 00:00:02    3
@@ -298,8 +297,6 @@ class Resampler(BaseGroupBy, PandasObject):
     Freq: S, dtype: int64
 
     >>> r = s.resample('2s')
-    DatetimeIndexResampler [freq=<2 * Seconds>, axis=0, closed=left,
-                            label=left, convention=start]
 
     >>> r.agg(np.sum)
     2013-01-01 00:00:00    3
@@ -307,18 +304,18 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:04    5
     Freq: 2S, dtype: int64
 
-    >>> r.agg(['sum','mean','max'])
+    >>> r.agg(['sum', 'mean', 'max'])
                          sum  mean  max
     2013-01-01 00:00:00    3   1.5    2
     2013-01-01 00:00:02    7   3.5    4
     2013-01-01 00:00:04    5   5.0    5
 
-    >>> r.agg({'result' : lambda x: x.mean() / x.std(),
-               'total' : np.sum})
-                         total    result
-    2013-01-01 00:00:00      3  2.121320
-    2013-01-01 00:00:02      7  4.949747
-    2013-01-01 00:00:04      5       NaN
+    >>> r.agg({'result': lambda x: x.mean() / x.std(),
+    ...        'total': np.sum})
+                           result  total
+    2013-01-01 00:00:00  2.121320      3
+    2013-01-01 00:00:02  4.949747      7
+    2013-01-01 00:00:04       NaN      5
     """
     )
 
@@ -359,7 +356,20 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
+        >>> s = pd.Series([1, 2],
+        ...               index=pd.date_range('20180101',
+        ...                                   periods=2,
+        ...                                   freq='1h'))
+        >>> s
+        2018-01-01 00:00:00    1
+        2018-01-01 01:00:00    2
+        Freq: H, dtype: int64
+
+        >>> resampled = s.resample('15min')
         >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
+        2018-01-01 00:00:00   NaN
+        2018-01-01 01:00:00   NaN
+        Freq: H, dtype: float64
         """
         return self._selected_obj.groupby(self.groupby).transform(arg, *args, **kwargs)
 
@@ -1771,9 +1781,8 @@ class TimeGrouper(Grouper):
 
 
 def _take_new_index(
-    obj: FrameOrSeries, indexer: np.ndarray, new_index: Index, axis: int = 0
+    obj: FrameOrSeries, indexer: npt.NDArray[np.intp], new_index: Index, axis: int = 0
 ) -> FrameOrSeries:
-    # indexer: np.ndarray[np.intp]
 
     if isinstance(obj, ABCSeries):
         new_values = algos.take_nd(obj._values, indexer)
