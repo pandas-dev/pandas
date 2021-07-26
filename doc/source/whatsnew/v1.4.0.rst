@@ -225,7 +225,6 @@ Indexing
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 - Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)
-- Bug in updating values of :class:`pandas.Series` using boolean index, created by using :meth:`pandas.DataFrame.pop` (:issue:`42530`)
 
 Missing
 ^^^^^^^
