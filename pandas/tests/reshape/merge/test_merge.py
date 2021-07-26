@@ -625,7 +625,8 @@ class TestMerge:
             ],
         }
         df = DataFrame.from_dict(d)
-        var3 = df.var3.unique()
+        with tm.assert_produces_warning(FutureWarning, match="DatetimeArray"):
+            var3 = df.var3.unique()
         var3.sort()
         new = DataFrame.from_dict({"var3": var3, "var8": np.random.random(7)})
 
@@ -633,7 +634,10 @@ class TestMerge:
         exp = merge(df, new, on="var3", sort=False)
         tm.assert_frame_equal(result, exp)
 
-        assert (df.var3.unique() == result.var3.unique()).all()
+        with tm.assert_produces_warning(FutureWarning, match="DatetimeArray"):
+            res = df.var3.unique()
+            expected = result.var3.unique()
+        assert (res == expected).all()
 
     @pytest.mark.parametrize(
         ("sort", "values"), [(False, [1, 1, 0, 1, 1]), (True, [0, 1, 1, 1, 1])]

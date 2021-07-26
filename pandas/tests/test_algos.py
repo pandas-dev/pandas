@@ -534,7 +534,13 @@ class TestUnique:
             data = [1, 2, 2]
             uniques = [1, 2]
 
-        result = Series(data, dtype=any_numpy_dtype).unique()
+        warn = None
+        if np.dtype(any_numpy_dtype).kind in ["m", "M"]:
+            warn = FutureWarning
+
+        ser = Series(data, dtype=any_numpy_dtype)
+        with tm.assert_produces_warning(warn, match="DatetimeArray|TimedeltaArray"):
+            result = ser.unique()
         expected = np.array(uniques, dtype=any_numpy_dtype)
 
         tm.assert_numpy_array_equal(result, expected)

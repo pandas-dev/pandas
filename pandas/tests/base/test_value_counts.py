@@ -193,6 +193,7 @@ def test_value_counts_bins(index_or_series):
 
 def test_value_counts_datetime64(index_or_series):
     klass = index_or_series
+    warn = None if klass is Index else FutureWarning
 
     # GH 3002, datetime64[ns]
     # don't test names though
@@ -223,12 +224,15 @@ def test_value_counts_datetime64(index_or_series):
         ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
         dtype="datetime64[ns]",
     )
+    with tm.assert_produces_warning(warn, match="DatetimeArray"):
+        unq = s.unique()
     if isinstance(s, Index):
-        tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
+        tm.assert_index_equal(unq, DatetimeIndex(expected))
     else:
-        tm.assert_numpy_array_equal(s.unique(), expected)
+        tm.assert_numpy_array_equal(unq, expected)
 
-    assert s.nunique() == 3
+    with tm.assert_produces_warning(warn, match="DatetimeArray"):
+        assert s.nunique() == 3
 
     # with NaT
     s = df["dt"].copy()
@@ -243,7 +247,9 @@ def test_value_counts_datetime64(index_or_series):
     tm.assert_series_equal(result, expected_s)
 
     assert s.dtype == "datetime64[ns]"
-    unique = s.unique()
+    warn = None if isinstance(s, DatetimeIndex) else FutureWarning
+    with tm.assert_produces_warning(warn, match="DatetimeArray"):
+        unique = s.unique()
     assert unique.dtype == "datetime64[ns]"
 
     # numpy_array_equal cannot compare pd.NaT
@@ -254,8 +260,9 @@ def test_value_counts_datetime64(index_or_series):
         tm.assert_numpy_array_equal(unique[:3], expected)
         assert pd.isna(unique[3])
 
-    assert s.nunique() == 3
-    assert s.nunique(dropna=False) == 4
+    with tm.assert_produces_warning(warn, match="DatetimeArray"):
+        assert s.nunique() == 3
+        assert s.nunique(dropna=False) == 4
 
     # timedelta64[ns]
     td = df.dt - df.dt + timedelta(1)
@@ -269,7 +276,9 @@ def test_value_counts_datetime64(index_or_series):
     if isinstance(td, Index):
         tm.assert_index_equal(td.unique(), expected)
     else:
-        tm.assert_numpy_array_equal(td.unique(), expected.values)
+        with tm.assert_produces_warning(FutureWarning, match="TimedeltaArray"):
+            res = td.unique()
+        tm.assert_numpy_array_equal(res, expected.values)
 
     td2 = timedelta(1) + (df.dt - df.dt)
     td2 = klass(td2, name="dt")

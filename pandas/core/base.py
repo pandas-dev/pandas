@@ -15,6 +15,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -34,6 +35,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -977,6 +979,14 @@ class IndexOpsMixin(OpsMixin):
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
+
+                    warnings.warn(
+                        f"Series.unique behavior with {self.dtype} dtype is "
+                        "deprecated. In a future version this will return a "
+                        f"{type(self._values)} instead of a np.ndarray",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     result = np.asarray(result)
         else:
             result = unique1d(values)

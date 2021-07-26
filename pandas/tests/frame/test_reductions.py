@@ -70,7 +70,9 @@ def assert_stat_op_calc(
     f = getattr(frame, opname)
 
     if check_dates:
-        expected_warning = FutureWarning if opname in ["mean", "median"] else None
+        expected_warning = (
+            FutureWarning if opname in ["mean", "median", "nunique"] else None
+        )
         df = DataFrame({"b": date_range("1/1/2001", periods=2)})
         with tm.assert_produces_warning(expected_warning):
             result = getattr(df, opname)()
