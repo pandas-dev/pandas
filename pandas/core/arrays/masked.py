@@ -417,7 +417,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # see https://github.com/pandas-dev/pandas/pull/38379 for some discussion
             result[self._mask] = values_have_NA
 
-        mask = np.zeros_like(self, dtype=bool)
+        mask = np.zeros(self._data.shape, dtype=bool)
         return BooleanArray(result, mask, copy=False)
 
     def copy(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
