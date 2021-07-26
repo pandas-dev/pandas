@@ -18,6 +18,7 @@ from typing import (
     Mapping,
     Sequence,
     cast,
+    final,
     overload,
 )
 import warnings
@@ -54,7 +55,6 @@ from pandas._typing import (
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
     ValueKeyFunc,
-    final,
     npt,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -2988,7 +2988,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         DataFrame.to_csv : Write a DataFrame to a comma-separated values
             (csv) file.
-        read_clipboard : Read text from clipboard and pass to read_table.
+        read_clipboard : Read text from clipboard and pass to read_csv.
 
         Notes
         -----
@@ -2996,7 +2996,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
           - Linux : `xclip`, or `xsel` (with `PyQt4` modules)
           - Windows : none
-          - OS X : none
+          - macOS : none
 
         Examples
         --------
