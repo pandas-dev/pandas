@@ -1334,9 +1334,9 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
-    '\multicol{3}{c}{text}'
+    '\\multicolumn{3}{c}{text}'
     """
     if "attributes" in cell:
         attrs = cell["attributes"]
