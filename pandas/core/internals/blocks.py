@@ -312,17 +312,6 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    def getitem_block_index(self, slicer: slice) -> Block:
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        # error: No overload variant of "__getitem__" of "ExtensionArray" matches
-        # argument type "Tuple[int, slice]"
-        new_values = self.values[..., slicer]  # type: ignore[call-overload]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
-
     @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
         """
@@ -1564,9 +1553,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         Assumes self.ndim == 2
         """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
+        # error: No overload variant of "__getitem__" of "ExtensionArray" matches
+        # argument type "Tuple[ellipsis, slice]"
+        new_values = self.values[..., slicer]  # type: ignore[call-overload]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     def fillna(
