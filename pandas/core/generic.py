@@ -1932,18 +1932,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return key in self._info_axis
 
     @property
-    @doc(**_shared_doc_kwargs)
     def empty(self) -> bool_t:
         """
-        Indicator whether {klass} is empty.
+        Indicator whether Series or DataFrame is empty.
 
-        True if {klass} is entirely empty (no items), meaning any of the
+        True if Series or DataFrame is entirely empty (no items), meaning any of the
         axes are of length 0.
 
         Returns
         -------
         bool
-            If {klass} is empty, return True, if not return False.
+            If Series or DataFrame is empty, return True, if not return False.
 
         See Also
         --------
@@ -1953,25 +1952,34 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        If {klass} contains only NaNs, it is still not considered empty. See
+        If Series or DataFrame contains only NaNs, it is still not considered empty. See
         the example below.
 
         Examples
         --------
-        An example of an actual empty {klass}. Notice the index is empty:
+        An example of an actual empty Series or DataFrame. Notice the index is empty:
 
-        >>> df_empty = pd.{klass}({'A' : []})
-        >>> df_empty
-        Empty {klass}
+        >>> df_empty = pd.DataFrame({'A' : []})
+        >>> print(df_empty)
+        Empty DataFrame
         Columns: [A]
         Index: []
         >>> df_empty.empty
         True
+        >>> df_empty = pd.Series({'A' : []})
+        >>> df_empty
+        A    []
+        dtype: object
+        >>> df_empty.empty
+        False
+        >>> df_empty = pd.Series()
+        >>> df_empty.empty
+        True
 
-        If we only have NaNs in our {klass}, it is not considered empty! We
-        will need to drop the NaNs to make the {klass} empty:
+        If we only have NaNs in our Series or DataFrame, it is not considered empty! We
+        will need to drop the NaNs to make the Series or DataFrame empty:
 
-        >>> df = pd.{klass}({'A' : [np.nan]})
+        >>> df = pd.DataFrame({'A' : [np.nan]})
         >>> df
             A
         0 NaN
@@ -1979,6 +1987,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         False
         >>> df.dropna().empty
         True
+        >>> df = pd.Series({'A' : [np.nan]})
+        >>> df
+        A    [nan]
+        dtype: object
+        >>> df.empty
+        False
         """
         return any(len(self._get_axis(a)) == 0 for a in self._AXIS_ORDERS)
 
