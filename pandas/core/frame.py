@@ -3745,7 +3745,7 @@ class DataFrame(NDFrame, OpsMixin):
         # try to set first as we want an invalid
         # value exception to occur first
         if len(self):
-            self._check_setitem_copy(stacklevel=5)
+            self._check_setitem_copy()
 
     def _iset_item(self, loc: int, value) -> None:
         arraylike = self._sanitize_column(value)
