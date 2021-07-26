@@ -658,16 +658,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if isinstance(key, range):
             return list(key)
 
-        try:
-            return self._convert_to_indexer(key, axis=0, is_setter=True)
-        except TypeError as e:
-
-            # invalid indexer type vs 'other' indexing errors
-            if "cannot do" in str(e):
-                raise
-            elif "unhashable type" in str(e):
-                raise
-            raise IndexingError(key) from e
+        return self._convert_to_indexer(key, axis=0, is_setter=True)
 
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
         """
@@ -1209,7 +1200,7 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        if is_scalar(key) or isinstance(labels, MultiIndex):
+        if is_scalar(key) or (isinstance(labels, MultiIndex) and is_hashable(key)):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
@@ -1224,8 +1215,6 @@ class _LocIndexer(_LocationIndexer):
                 # GH35015, using datetime as column indices raises exception
                 if not isinstance(labels, MultiIndex):
                     raise
-            except TypeError:
-                pass
             except ValueError:
                 if not is_int_positional:
                     raise
