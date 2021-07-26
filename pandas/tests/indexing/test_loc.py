@@ -1663,6 +1663,18 @@ class TestLocWithMultiIndex:
         with pytest.raises(KeyError, match=r"\['b'\] not in index"):
             df.loc[df["a"] < lt_value, :].loc[["b"], :]
 
+    def test_loc_multiindex_null_slice_na_level(self):
+        # GH#42055
+        lev1 = np.array([np.nan, np.nan])
+        lev2 = ["bar", "baz"]
+        mi = MultiIndex.from_arrays([lev1, lev2])
+        ser = Series([0, 1], index=mi)
+        result = ser.loc[:, "bar"]
+
+        # TODO: should we have name="bar"?
+        expected = Series([0], index=[np.nan])
+        tm.assert_series_equal(result, expected)
+
     def test_loc_drops_level(self):
         # Based on test_series_varied_multiindex_alignment, where
         #  this used to fail to drop the first level

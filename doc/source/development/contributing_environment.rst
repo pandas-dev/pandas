@@ -72,7 +72,7 @@ These packages will automatically be installed by using the ``pandas``
 
 **Windows**
 
-You will need `Build Tools for Visual Studio 2017
+You will need `Build Tools for Visual Studio 2019
 <https://visualstudio.microsoft.com/downloads/>`_.
 
 .. warning::
