@@ -1255,7 +1255,7 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def _unstack(self, unstacker, fill_value, new_placement):
+    def _unstack(self, unstacker, fill_value, new_placement, allow_fill: bool):
         """
         Return a list of unstacked blocks of self
 
@@ -1264,6 +1264,7 @@ class Block(PandasObject):
         unstacker : reshape._Unstacker
         fill_value : int
             Only used in ExtensionBlock._unstack
+        allow_fill : bool
 
         Returns
         -------
@@ -1638,7 +1639,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return [self.make_block_same_class(result)]
 
-    def _unstack(self, unstacker, fill_value, new_placement):
+    def _unstack(self, unstacker, fill_value, new_placement, allow_fill: bool):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
@@ -1655,7 +1656,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         blocks = [
             # TODO: could cast to object depending on fill_value?
             self.make_block_same_class(
-                self.values.take(indices, allow_fill=True, fill_value=fill_value),
+                self.values.take(indices, allow_fill=allow_fill, fill_value=fill_value),
                 BlockPlacement(place),
             )
             for indices, place in zip(new_values.T, new_placement)

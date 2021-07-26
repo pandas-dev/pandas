@@ -646,8 +646,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, MultiIndex) and self.name != "iloc":
-            with suppress(TypeError, KeyError, InvalidIndexError):
+        if isinstance(ax, MultiIndex) and self.name != "iloc" and is_hashable(key):
+            with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 return ax.get_loc(key)
 

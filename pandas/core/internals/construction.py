@@ -331,14 +331,14 @@ def ndarray_to_mgr(
         if dtype is None and is_object_dtype(values.dtype):
             arrays = [
                 ensure_wrapped_if_datetimelike(
-                    maybe_infer_to_datetimelike(values[:, i].copy())
+                    maybe_infer_to_datetimelike(values[:, i])
                 )
                 for i in range(values.shape[1])
             ]
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
-            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+            arrays = [values[:, i] for i in range(values.shape[1])]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
@@ -712,13 +712,14 @@ def dataclasses_to_dicts(data):
 
     Examples
     --------
+    >>> from dataclasses import dataclass
     >>> @dataclass
-    >>> class Point:
+    ... class Point:
     ...     x: int
     ...     y: int
 
-    >>> dataclasses_to_dicts([Point(1,2), Point(2,3)])
-    [{"x":1,"y":2},{"x":2,"y":3}]
+    >>> dataclasses_to_dicts([Point(1, 2), Point(2, 3)])
+    [{'x': 1, 'y': 2}, {'x': 2, 'y': 3}]
 
     """
     from dataclasses import asdict
