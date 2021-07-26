@@ -1368,6 +1368,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
+        allow_fill = not unstacker.mask.all()
+
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
 
@@ -1377,7 +1379,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_placement = new_columns.get_indexer(new_items)
 
             blocks, mask = blk._unstack(
-                unstacker, fill_value, new_placement=new_placement
+                unstacker,
+                fill_value,
+                new_placement=new_placement,
+                allow_fill=allow_fill,
             )
 
             new_blocks.extend(blocks)
