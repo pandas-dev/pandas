@@ -40,17 +40,6 @@ Bug fixes
 - Fixed bug in :meth:`DataFrame.to_xml` raising ``KeyError`` when called with ``index=False`` and an offset index (:issue:`42458`)
 - Fixed bug in :meth:`.Styler.set_sticky` not handling index names correctly for single index columns case (:issue:`42537`)
 - Fixed bug in :meth:`DataFrame.copy` failing to consolidate blocks in the result (:issue:`42579`)
--
-
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_131.other:
-
-Other
-~~~~~
--
--
->>>>>>> BUG: Issue with pd.cut on Series with duplicate index
 
 .. ---------------------------------------------------------------------------
 
