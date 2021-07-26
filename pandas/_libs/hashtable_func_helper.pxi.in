@@ -31,7 +31,7 @@ dtypes = [('Complex128', 'complex128', 'complex128',
 @cython.wraparound(False)
 @cython.boundscheck(False)
 {{if dtype == 'object'}}
-cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, navalue=np.NaN):
+cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna):
 {{else}}
 cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
 {{endif}}
@@ -63,9 +63,6 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna):
         val = values[i]
         is_null = checknull(val)
         if not is_null or not dropna:
-            # all nas become the same representative:
-            if is_null:
-                val = navalue
             k = kh_get_{{ttype}}(table, <PyObject*>val)
             if k != table.n_buckets:
                 table.vals[k] += 1
