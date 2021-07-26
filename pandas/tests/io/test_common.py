@@ -142,13 +142,14 @@ bar2,12,13,14,15
 1,2,3
 ©,®,®
 Look,a snake,🐍"""
-        with icom.get_handle(StringIO(data), "rb") as handles:
+        with icom.get_handle(StringIO(data), "rb", is_text=False) as handles:
             result = b""
+            chunksize = 5
             while True:
-                chunk = handles.handle.read(5)
+                chunk = handles.handle.read(chunksize)
                 # Make sure each chunk is correct amount of bytes
-                assert len(chunk) <= 5
-                if len(chunk) < 5:
+                assert len(chunk) <= chunksize
+                if len(chunk) < chunksize:
                     # Can be less amount of bytes, but only at EOF
                     # which happens when read returns empty
                     assert len(handles.handle.read()) == 0
@@ -171,7 +172,7 @@ Look,a snake,🐍"""
             {"a": ["1", "©", "Look"], "b": ["2", "®", "a snake"], "c": ["3", "®", "🐍"]}
         )
         s = StringIO(data)
-        with icom.get_handle(s, "rb") as handles:
+        with icom.get_handle(s, "rb", is_text=False) as handles:
             df = csv.read_csv(handles.handle).to_pandas()
             tm.assert_frame_equal(df, expected)
             assert not s.closed

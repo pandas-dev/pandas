@@ -713,7 +713,7 @@ def get_handle(
 
     # Convert BytesIO or file objects passed with an encoding
     is_wrapped = False
-    if ioargs.mode == "rb" and isinstance(handle, TextIOBase):
+    if not is_text and ioargs.mode == "rb" and isinstance(handle, TextIOBase):
         handle = BytesIOWrapper(
             handle,
             encoding=ioargs.encoding,
