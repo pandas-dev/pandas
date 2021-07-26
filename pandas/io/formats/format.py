@@ -1958,7 +1958,7 @@ class EngFormatter:
         representing the power of 1000 of the original number. Some examples:
         >>> format_eng = EngFormatter()
         >>> format_eng(0)       # for self.accuracy = 0
-        ' 0'
+        '0'
 
         >>> format_eng(1000000) # for self.accuracy = 1,
                                 #     self.use_eng_prefix = True
