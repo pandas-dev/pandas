@@ -191,9 +191,6 @@ Creating a Python environment (pip)
 If you aren't using conda for your development environment, follow these instructions.
 You'll need to have at least the :ref:`minimum Python version <install.version>` that pandas supports.
 You also need to have ``setuptools`` 51.0.0 or later to build pandas.
-In your development environment, use the ``pip`` to upgrade ``setuptools``.
-
-      pip install --upgrade setuptools
 
 **Unix**/**macOS with virtualenv**
 
