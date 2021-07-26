@@ -84,6 +84,12 @@ def min_periods(request):
     return request.param
 
 
+@pytest.fixture(params=["single", "table"])
+def method(request):
+    """method keyword in rolling/expanding/ewm constructor"""
+    return request.param
+
+
 @pytest.fixture(params=[True, False])
 def parallel(request):
     """parallel keyword argument for numba.jit"""

@@ -42,6 +42,18 @@ ol ol, ol ul, ul ol, ul ul {
 a.navbar-brand img {
     height: 3rem;
 }
+a:link:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: none;
+}
+a:visited:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: none;
+}
+a:hover:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: underline;
+}
+a:active:not(.btn):not(.dropdown-item):not(.nav-link) {
+text-decoration: underline;
+}
 div.card {
     margin: 0 0 .2em .2em !important;
 }
