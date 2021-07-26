@@ -72,7 +72,7 @@ s3fs>=0.4.0
 fsspec>=0.7.4, <2021.6.0
 gcsfs>=0.6.0
 sqlalchemy
-xarray
+xarray<0.19
 cftime
 pyreadstat
 tabulate>=0.8.3

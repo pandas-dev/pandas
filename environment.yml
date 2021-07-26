@@ -108,7 +108,7 @@ dependencies:
   - fsspec>=0.7.4, <2021.6.0  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
-  - xarray  # DataFrame.to_xarray
+  - xarray<0.19  # DataFrame.to_xarray
   - cftime  # Needed for downstream xarray.CFTimeIndex test
   - pyreadstat  # pandas.read_spss
   - tabulate>=0.8.3  # DataFrame.to_markdown
