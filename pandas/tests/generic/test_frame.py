@@ -101,7 +101,7 @@ class TestDataFrame(Generic):
                 ],
             }
         )
-        df2 = pd.DataFrame(
+        df2 = DataFrame(
             data={"A": ["String 3"], "B": [Timestamp("2019-06-11 12:00:00")]}
         )
         # Change Columns A and B to df2.values wherever Column A is NaN
