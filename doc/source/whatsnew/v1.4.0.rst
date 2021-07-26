@@ -166,6 +166,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :meth:`.GroupBy.sample`, especially when ``weights`` argument provided (:issue:`34483`)
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions (:issue:`41598`)
+- Performance improvement in constructing :class:`DataFrame` objects (:issue:`42631`)
 
 .. ---------------------------------------------------------------------------
 
