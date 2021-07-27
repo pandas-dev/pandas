@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     Sequence,
     cast,
+    final,
 )
 import warnings
 
@@ -24,11 +25,9 @@ from pandas._libs import (
 from pandas._libs.internals import BlockPlacement
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
     F,
     Shape,
-    final,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -52,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_sparse,
     is_string_dtype,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -100,6 +98,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 import pandas.core.computation.expressions as expressions
@@ -312,17 +311,6 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
-    def getitem_block_index(self, slicer: slice) -> Block:
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
-
     @final
     def getitem_block_columns(self, slicer, new_mgr_locs: BlockPlacement) -> Block:
         """
@@ -337,6 +325,8 @@ class Block(PandasObject):
 
         return type(self)(new_values, new_mgr_locs, self.ndim)
 
+    # NB: this cannot be made cache_readonly because in libreduction we pin
+    #  new .values that can have different shape GH#42631
     @property
     def shape(self) -> Shape:
         return self.values.shape
@@ -897,7 +887,7 @@ class Block(PandasObject):
 
         Parameters
         ----------
-        indexer : tuple, list-like, array-like, slice
+        indexer : tuple, list-like, array-like, slice, int
             The subset of self.values to set
         value : object
             The value being set
@@ -1266,7 +1256,7 @@ class Block(PandasObject):
 
         return result_blocks
 
-    def _unstack(self, unstacker, fill_value, new_placement):
+    def _unstack(self, unstacker, fill_value, new_placement, allow_fill: bool):
         """
         Return a list of unstacked blocks of self
 
@@ -1275,6 +1265,7 @@ class Block(PandasObject):
         unstacker : reshape._Unstacker
         fill_value : int
             Only used in ExtensionBlock._unstack
+        allow_fill : bool
 
         Returns
         -------
@@ -1461,7 +1452,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         Parameters
         ----------
-        indexer : tuple, list-like, array-like, slice
+        indexer : tuple, list-like, array-like, slice, int
             The subset of self.values to set
         value : object
             The value being set
@@ -1557,6 +1548,18 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
         return self.values[slicer]
 
+    @final
+    def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        # error: Invalid index type "Tuple[ellipsis, slice]" for
+        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
+        new_values = self.values[..., slicer]  # type: ignore[index]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
     ) -> list[Block]:
@@ -1627,13 +1630,17 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             # NotImplementedError for class not implementing `__setitem__`
             # TypeError for SparseArray, which implements just to raise
             # a TypeError
+            if isinstance(result, Categorical):
+                # TODO: don't special-case
+                raise
+
             result = type(self.values)._from_sequence(
                 np.where(cond, self.values, other), dtype=dtype
             )
 
         return [self.make_block_same_class(result)]
 
-    def _unstack(self, unstacker, fill_value, new_placement):
+    def _unstack(self, unstacker, fill_value, new_placement, allow_fill: bool):
         # ExtensionArray-safe unstack.
         # We override ObjectBlock._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
@@ -1650,7 +1657,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         blocks = [
             # TODO: could cast to object depending on fill_value?
             self.make_block_same_class(
-                self.values.take(indices, allow_fill=True, fill_value=fill_value),
+                self.values.take(indices, allow_fill=allow_fill, fill_value=fill_value),
                 BlockPlacement(place),
             )
             for indices, place in zip(new_values.T, new_placement)
@@ -1660,8 +1667,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
-
-    getitem_block_index = libinternals.NumpyBlock.getitem_block_index
 
 
 class NumericBlock(NumpyBlock):
@@ -1675,7 +1680,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-    getitem_block_index = libinternals.NDArrayBackedBlock.getitem_block_index
 
     @property
     def is_view(self) -> bool:
@@ -1840,7 +1844,7 @@ class CategoricalBlock(ExtensionBlock):
 # Constructor Helpers
 
 
-def maybe_coerce_values(values) -> ArrayLike:
+def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     """
     Input validation for values passed to __init__. Ensure that
     any datetime64/timedelta64 dtypes are in nanoseconds.  Ensure
@@ -1872,7 +1876,7 @@ def maybe_coerce_values(values) -> ArrayLike:
     return values
 
 
-def get_block_type(values, dtype: Dtype | None = None):
+def get_block_type(values, dtype: DtypeObj | None = None):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
@@ -1887,13 +1891,15 @@ def get_block_type(values, dtype: Dtype | None = None):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    dtype = cast(np.dtype, pandas_dtype(dtype) if dtype else values.dtype)
+    if dtype is None:
+        dtype = values.dtype
+
     vtype = dtype.type
     kind = dtype.kind
 
     cls: type[Block]
 
-    if is_sparse(dtype):
+    if isinstance(dtype, SparseDtype):
         # Need this first(ish) so that Sparse[datetime] is sparse
         cls = ExtensionBlock
     elif isinstance(dtype, CategoricalDtype):
