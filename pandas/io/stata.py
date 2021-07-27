@@ -171,12 +171,15 @@ Read a Stata dta file:
 >>> df = pd.read_stata('animals.dta')
 
 Read a Stata dta file in 10,000 line chunks: 
->>> itr = pd.read_stata('animals.dta', chunksize=10000)
+>>> filename_df = pd.DataFrame(np.random.randint(0,10, size=(10,000,1)))
+>>> filename_df.to_stata('filename.dta)
+>>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
 ...     pass # do_something(chunk)
 
 >>> import os
 >>> os.remove("./filename.dta")
+>>> os.remove("./animals.dta")
 """
 
 _read_method_doc = f"""\
