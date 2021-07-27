@@ -2775,7 +2775,12 @@ class TestLocSeries:
         df.loc[1, ["b", "c"]] = [6, 7]
 
         expected = DataFrame(
-            {"a": [np.nan, np.nan], "b": [6, np.nan], "c": [7, np.nan]}, index=[1, 2]
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [6, np.nan],
+                "c": [7, np.nan],
+            },
+            index=[1, 2],
         )
 
-        tm.assert_frame_equal(df, expected, check_dtype=False)
+        tm.assert_frame_equal(df, expected)
