@@ -790,8 +790,8 @@ class TestMisc:
         # GH 32431
         df = Series([1, "{1,2}", 1, None])
         vc = df.value_counts(dropna=False)
-        result1 = vc.loc[np.nan]
-        result2 = vc[np.nan]
+        result1 = vc.loc[None]
+        result2 = vc[None]
 
         expected = 1
         assert result1 == expected
