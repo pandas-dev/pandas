@@ -268,6 +268,30 @@ class TestDataFrameDrop:
         with pytest.raises(KeyError, match="not found in axis"):
             DataFrame(index=index).drop(drop_labels)
 
+    def test_drop_empty_listlike_non_unique_datetime_index(self):
+        # GH#27994
+        data = {
+            "column_a": [5, 10, 15, 20, 25],
+            "column_b": ["one", "two", "three", "four", "five"],
+        }
+        index = [
+            Timestamp("2021-01-01"),
+            Timestamp("2021-01-01"),
+            Timestamp("2021-01-01"),
+            Timestamp("2021-01-01"),
+            Timestamp("2021-01-01"),
+        ]
+        df = DataFrame(data, index=index)
+
+        # Passing empty list or index should return the same DataFrame.
+        empty_list = []
+        empty_datetime_index = df[df["column_a"] > 100].index
+
+        for empty_listlike in [empty_list, empty_datetime_index]:
+            dropped = df.drop(empty_listlike)
+            expected = df
+            tm.assert_frame_equal(dropped, expected)
+
     def test_mixed_depth_drop(self):
         arrays = [
             ["a", "top", "top", "routine1", "routine1", "routine2"],
