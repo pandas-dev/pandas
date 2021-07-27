@@ -162,18 +162,18 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>>df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+>>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
 ...                              'parrot'],
 ...                   'speed': [350, 18, 361, 15]})
->>>df.to_stata('animals.dta')
+>>> df.to_stata('animals.dta')
 Read a Stata dta file:
 
 >>> df = pd.read_stata('animals.dta')
 
 Read a Stata dta file in 10,000 line chunks:
->>>values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
->>>df = pd.DataFrame(values, columns=["i"])
->>>df.to_stata('filename.dta')
+>>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
+>>> df = pd.DataFrame(values, columns=["i"])
+>>> df.to_stata('filename.dta')
 
 >>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
