@@ -1961,11 +1961,9 @@ class EngFormatter:
         ' 0'
         >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix = True )
         >>> format_eng(1000000)
-
         ' 1.0M'
         >>> format_eng = EngFormatter(accuracy=2, use_eng_prefix = False)
         >>> format_eng("-1e-6")
-
         '-1.00E-06'
 
         @param num: the value to represent
