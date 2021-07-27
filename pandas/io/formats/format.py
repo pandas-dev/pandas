@@ -1955,8 +1955,8 @@ class EngFormatter:
     def __call__(self, num: int | float) -> str:
         """
         Formats a number in engineering notation, appending a letter
-        representing the power of 10 of the original number. Some examples:
-        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix = True)
+        representing the power of 1000 of the original number. Some examples:
+        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix=True)
         >>> format_eng(0)
         ' 0'
         >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix = True )
