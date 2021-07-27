@@ -276,16 +276,13 @@ class TestDataFrameDrop:
             "column_a": [5, 10],
             "column_b": ["one", "two"]
         }
-        index = [
-            Timestamp("2021-01-01"),
-            Timestamp("2021-01-01")
-        ]
+        index = [Timestamp("2021-01-01"), Timestamp("2021-01-01")]
         df = DataFrame(data, index=index)
 
         # Passing empty list-like should return the same DataFrame.
         expected = df.copy()
-        dropped = df.drop(empty_listlike)
-        tm.assert_frame_equal(dropped, expected)
+        result = df.drop(empty_listlike)
+        tm.assert_frame_equal(result, expected)
 
     def test_mixed_depth_drop(self):
         arrays = [
