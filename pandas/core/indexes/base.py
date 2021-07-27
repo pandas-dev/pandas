@@ -5514,16 +5514,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if method is not None:
             other = unpack_nested_dtype(target)
-            if self._is_multi ^ other._is_multi:
-                kind = other.dtype.type if self._is_multi else self.dtype.type
-                raise TypeError(
-                    f"'<' not supported between instances of {kind} and 'tuple'"
-                )
-            elif self._is_multi and other._is_multi:
-                assert self.nlevels != other.nlevels
-                # Python allows comparison between tuples of different lengths,
-                #  but for our purposes such a comparison is not meaningful.
-                raise TypeError("'<' not supported between tuples of different lengths")
             raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
@@ -5653,14 +5643,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         other = unpack_nested_dtype(other)
         dtype = other.dtype
-        if other._is_multi:
-            if not self._is_multi:
-                # other contains only tuples so unless we are object-dtype,
-                #  there can never be any matches
-                return self._is_comparable_dtype(dtype)
-            return self.nlevels == other.nlevels
-            # TODO: we can get more specific requiring levels are comparable?
-
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:

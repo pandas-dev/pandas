@@ -757,6 +757,14 @@ def to_arrays(
                 # i.e. numpy structured array
                 columns = ensure_index(data.dtype.names)
                 arrays = [data[name] for name in columns]
+
+                if len(data) == 0:
+                    # GH#42456 the indexing above results in list of 2D ndarrays
+                    # TODO: is that an issue with numpy?
+                    for i, arr in enumerate(arrays):
+                        if arr.ndim == 2:
+                            arrays[i] = arr[:, 0]
+
                 return arrays, columns
         return [], ensure_index([])
 
