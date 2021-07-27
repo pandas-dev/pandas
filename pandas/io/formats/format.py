@@ -1971,6 +1971,12 @@ class EngFormatter:
                    a numeric value (as per decimal.Decimal constructor)
 
         @return: engineering formatted string
+
+        @param num: the value to represent
+        @type num: either a numeric value or a string that can be converted to
+                   a numeric value (as per decimal.Decimal constructor)
+
+        @return: engineering formatted string
         """
         dnum = decimal.Decimal(str(num))
 
