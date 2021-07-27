@@ -146,10 +146,22 @@ class ValueCounts:
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
-        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
 
     def time_value_counts(self, N, dtype):
         self.s.value_counts()
+
+
+class ValueCountsObjectDropNAFalse:
+
+    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    param_names = ["N"]
+
+    def setup(self, N):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+
+    def time_value_counts(self, N):
+        self.s.value_counts(dropna=False)
 
 
 class Mode:
@@ -162,6 +174,18 @@ class Mode:
 
     def time_mode(self, N, dtype):
         self.s.mode()
+
+
+class ModeObjectDropNAFalse:
+
+    params = [10 ** 3, 10 ** 4, 10 ** 5]
+    param_names = ["N"]
+
+    def setup(self, N):
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+
+    def time_mode(self, N):
+        self.s.mode(dropna=False)
 
 
 class Dir:
