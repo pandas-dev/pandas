@@ -178,7 +178,7 @@ Read a Stata dta file in 10,000 line chunks:
 >>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
 ...         # Operate on a single chunk
-...chunk.mean()
+...    chunk.mean()
 
 >>> import os
 >>> os.remove("./filename.dta")
