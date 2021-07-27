@@ -166,6 +166,7 @@ Creating a dummy stata for this example
 ...                              'parrot'],
 ...                   'speed': [350, 18, 361, 15]}})
 >>> df.to_stata('animals.dta')
+
 Read a Stata dta file:
 
 >>> df = pd.read_stata('animals.dta')
