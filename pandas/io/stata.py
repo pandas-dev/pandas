@@ -165,12 +165,12 @@ Creating a dummy stata for this example
 >>>df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
 ...                              'parrot'],
 ...                   'speed': [350, 18, 361, 15]})
->>>df.to_stata('animals.dta') 
+>>>df.to_stata('animals.dta')
 Read a Stata dta file:
 
 >>> df = pd.read_stata('animals.dta')
 
-Read a Stata dta file in 10,000 line chunks: 
+Read a Stata dta file in 10,000 line chunks:
 >>> filename_df = pd.DataFrame(np.random.randint(0,10, size=(10,000,1)))
 >>> filename_df.to_stata('filename.dta)
 >>> itr = pd.read_stata('filename.dta', chunksize=10000)
