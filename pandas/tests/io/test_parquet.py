@@ -326,7 +326,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-@pytest.mark.xfail(Version(fastparquet.__version__) > Version(0.7.0),
+@pytest.mark.xfail(Version(fastparquet.__version__) > Version("0.7.0"),
                    reason="Cross compat between pyarrow/fastparquet"
                           "broken. Issue has been reported, is"
                           "apparently a pyarrow bug"
