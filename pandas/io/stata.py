@@ -162,9 +162,9 @@ Examples
 --------
 
 Creating a dummy stata for this example
->>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon',
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
 ...                              'parrot'],
-...                   'speed': [350, 18, 361, 15]})
+...                   'speed': [350, 18, 361, 15]}})
 >>> df.to_stata('animals.dta')
 Read a Stata dta file:
 
