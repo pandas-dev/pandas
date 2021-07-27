@@ -272,10 +272,7 @@ class TestDataFrameDrop:
     @pytest.mark.parametrize("empty_listlike", [[], DatetimeIndex([])])
     def test_drop_empty_listlike_non_unique_datetime_index(self, empty_listlike):
         # GH#27994
-        data = {
-            "column_a": [5, 10],
-            "column_b": ["one", "two"]
-        }
+        data = {"column_a": [5, 10], "column_b": ["one", "two"]}
         index = [Timestamp("2021-01-01"), Timestamp("2021-01-01")]
         df = DataFrame(data, index=index)
 
