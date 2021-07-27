@@ -1955,17 +1955,17 @@ class EngFormatter:
     def __call__(self, num: int | float) -> str:
         """
         Formats a number in engineering notation, appending a letter
-        representing the power of 1000 of the original number. Some examples:
-        >>> format_eng = EngFormatter()
-        >>> format_eng(0)       # for self.accuracy = 0
+        representing the power of 10 of the original number. Some examples:
+        >>> format_eng = EngFormatter(0)
+        >>> format_eng(0)
         ' 0'
+        >>> format_eng = EngFormatter(1, True )
+        >>> format_eng(1000000)
 
-        >>> format_eng(1000000) # for self.accuracy = 1,
-                                #     self.use_eng_prefix = True
         ' 1.0M'
+        >>> format_eng = EngFormatter(2, False)
+        >>> format_eng("-1e-6")
 
-        >>> format_eng("-1e-6") # for self.accuracy = 2
-                                #     self.use_eng_prefix = False
         '-1.00E-06'
 
         @param num: the value to represent
@@ -1983,9 +1983,6 @@ class EngFormatter:
             return "inf"
 
         sign = 1
-        if dnum == 0:
-            formatted = ' 0'
-            return formatted
 
         if dnum < 0:  # pragma: no cover
             sign = -1
