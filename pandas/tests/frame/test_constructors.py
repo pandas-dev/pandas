@@ -2539,7 +2539,7 @@ class TestDataFrameConstructors:
         ],
     )
     def test_error_from_2darray(self, col_a, col_b):
-        msg = "Data must be 1-dimensional"
+        msg = "Per-column arrays must each be 1-dimensional"
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": col_a, "b": col_b})
 
