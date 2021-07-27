@@ -219,6 +219,20 @@ def test_datetimelike_centered_selections(
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
+@pytest.mark.parametrize("closed", ["right", "both", "left", "neither"])
+def test_datetimelike_centered_offset_covers_all(
+    closed):
+    # GH 42753
+
+    window = '3s'
+    index=[Timestamp("20130101 09:00:01"), Timestamp("20130101 09:00:02")]
+    df = DataFrame({"x": 1}, index=index)
+
+    result = df.rolling(window, closed=closed, center=True).sum()
+
+    expected = DataFrame({"x": [2.0, 2.0]}, index=index)
+
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 def test_even_number_window_alignment():
     # see discussion in GH 38780
