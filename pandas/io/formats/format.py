@@ -1956,7 +1956,7 @@ class EngFormatter:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 10 of the original number. Some examples:
-        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix = False)
+        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix = True)
         >>> format_eng(0)
         ' 0'
         >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix = True )
