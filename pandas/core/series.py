@@ -1214,7 +1214,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
+                self._check_setitem_copy(t="referent", force=True)
             return True
         return super()._check_is_chained_assignment_possible()
 
@@ -1233,14 +1233,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # a copy
             if ref is None:
                 del self._cacher
+            elif len(self) == len(ref) and self.name in ref.columns:
+                # GH#42530 self.name must be in ref.columns
+                # to ensure column still in dataframe
+                # otherwise, either self or ref has swapped in new arrays
+                ref._maybe_cache_changed(cacher[0], self)
             else:
-                if len(self) == len(ref):
-                    # otherwise, either self or ref has swapped in new arrays
-                    ref._maybe_cache_changed(cacher[0], self)
-                else:
-                    # GH#33675 we have swapped in a new array, so parent
-                    #  reference to self is now invalid
-                    ref._item_cache.pop(cacher[0], None)
+                # GH#33675 we have swapped in a new array, so parent
+                #  reference to self is now invalid
+                ref._item_cache.pop(cacher[0], None)
 
         super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
 
