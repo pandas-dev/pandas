@@ -2773,10 +2773,7 @@ class TestLocSeries:
         # GH 25594
         df = DataFrame(index=[1, 2], columns=["a"])
         df.loc[1, ["b", "c"]] = [6, 7]
-        result = df.copy()
 
-        expected = DataFrame(index=[1, 2], columns=["a", "b", "c"])
-        expected.loc[1, "b"] = 6
-        expected.loc[1, "c"] = 7
+        expected = DataFrame({"a": [np.nan, np.nan], "b": [6, np.nan], "c": [7, np.nan]}, index = [1, 2])
 
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(df, expected, check_dtype=False)
