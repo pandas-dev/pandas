@@ -171,7 +171,7 @@ Read a Stata dta file:
 >>> df = pd.read_stata('animals.dta')
 
 Read a Stata dta file in 10,000 line chunks:
->>>values = np.random.randint(0,10, size=(20_000,1), dtype="uint8")
+>>>values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
 >>>df = pd.DataFrame(values, columns=["i"])
 >>>df.to_stata('filename.dta')
 
