@@ -1982,10 +1982,6 @@ class EngFormatter:
 
         sign = 1
 
-        if dnum == 0:
-            formatted =  " 0"
-            return formatted
-
         if dnum < 0:  # pragma: no cover
             sign = -1
             dnum = -dnum
