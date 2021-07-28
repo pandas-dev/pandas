@@ -1251,7 +1251,7 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
 
     Examples
     --------
-    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')]},
     ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
     ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
     >>> _parse_latex_table_styles(table_styles, selector='bar')
@@ -1334,9 +1334,9 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
-    '\multicol{3}{c}{text}'
+    '\\multicolumn{3}{c}{text}'
     """
     if "attributes" in cell:
         attrs = cell["attributes"]
