@@ -93,6 +93,10 @@ class TestDataFrameSelectReindex:
         result = df.reindex(columns=cols, copy=True)
         assert not np.shares_memory(result[0]._values, df[0]._values)
 
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        assert not np.shares_memory(result2[0]._values, df[0]._values)
+
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
