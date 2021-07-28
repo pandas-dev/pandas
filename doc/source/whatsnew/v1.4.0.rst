@@ -262,7 +262,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Improved error message when creating a :class:`DataFrame` column from a multi-dimensional :class:`numpy.ndarray` (:issue:`42463`)
 -
 
 Sparse
