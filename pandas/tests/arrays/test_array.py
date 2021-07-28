@@ -327,7 +327,8 @@ def test_ellipsis_index():
             return super().__getitem__(item)
 
     df = pd.DataFrame(
-        {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))})
+        {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))}
+    )
     _ = df.iloc[:1]
 
     # String comparison because there's no native way to compare slices.
