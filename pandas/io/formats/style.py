@@ -2756,6 +2756,8 @@ class Styler(StylerRenderer):
         ...    .pipe(format_conversion)
         ...    .set_caption("Results with minimum conversion highlighted."))
         ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe.png
         """
         return com.pipe(self, func, *args, **kwargs)
 
