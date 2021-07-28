@@ -16,8 +16,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
@@ -33,9 +31,6 @@ from pandas.core.internals import (
     managers,
 )
 from pandas.tests.extension import base
-
-# TODO(ArrayManager) PandasArray
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 def _extract_array_patched(obj):
@@ -364,26 +359,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
         super().test_setitem_sequence_broadcasts(data, box_in_series)
-
-    @skip_nested
-    def test_setitem_loc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_multiple_homogoneous(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
 
     @skip_nested
     @pytest.mark.parametrize("setter", ["loc", None])
