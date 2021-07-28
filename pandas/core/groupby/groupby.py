@@ -18,17 +18,18 @@ import inspect
 from textwrap import dedent
 import types
 from typing import (
-    TYPE_CHECKING,
     Callable,
     Hashable,
     Iterable,
     Iterator,
     List,
+    Literal,
     Mapping,
     Sequence,
     TypeVar,
     Union,
     cast,
+    final,
 )
 import warnings
 
@@ -49,7 +50,6 @@ from pandas._typing import (
     RandomState,
     Scalar,
     T,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -108,9 +108,6 @@ from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     maybe_use_numba,
 )
-
-if TYPE_CHECKING:
-    from typing import Literal
 
 _common_see_also = """
         See Also
@@ -1245,7 +1242,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 raise ValueError(
                     "func must be a callable if args or kwargs are supplied"
                 )
+        elif isinstance(func, str):
+            if hasattr(self, func):
+                res = getattr(self, func)
+                if callable(res):
+                    return res()
+                return res
+
+            else:
+                raise TypeError(f"apply func should be callable, not '{func}'")
         else:
+
             f = func
 
         # ignore SettingWithCopy here in case the user mutates
@@ -2640,7 +2647,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def rank(
         self,
         method: str = "average",
@@ -2674,6 +2681,41 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Returns
         -------
         DataFrame with ranking of values within each group
+        %(see_also)s
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "group": ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"],
+        ...         "value": [2, 4, 2, 3, 5, 1, 2, 4, 1, 5],
+        ...     }
+        ... )
+        >>> df
+          group  value
+        0     a      2
+        1     a      4
+        2     a      2
+        3     a      3
+        4     a      5
+        5     b      1
+        6     b      2
+        7     b      4
+        8     b      1
+        9     b      5
+        >>> for method in ['average', 'min', 'max', 'dense', 'first']:
+        ...     df[f'{method}_rank'] = df.groupby('group')['value'].rank(method)
+        >>> df
+          group  value  average_rank  min_rank  max_rank  dense_rank  first_rank
+        0     a      2           1.5       1.0       2.0         1.0         1.0
+        1     a      4           4.0       4.0       4.0         3.0         4.0
+        2     a      2           1.5       1.0       2.0         1.0         2.0
+        3     a      3           3.0       3.0       3.0         2.0         3.0
+        4     a      5           5.0       5.0       5.0         4.0         5.0
+        5     b      1           1.5       1.0       2.0         1.0         1.0
+        6     b      2           3.0       3.0       3.0         2.0         3.0
+        7     b      4           4.0       4.0       4.0         3.0         4.0
+        8     b      1           1.5       1.0       2.0         1.0         2.0
+        9     b      5           5.0       5.0       5.0         4.0         5.0
         """
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
@@ -2855,16 +2897,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         ids, _, ngroups = grouper.group_info
         output: dict[base.OutputKey, np.ndarray] = {}
+
         base_func = getattr(libgroupby, how)
+        base_func = partial(base_func, labels=ids)
+        if needs_ngroups:
+            base_func = partial(base_func, ngroups=ngroups)
+        if min_count is not None:
+            base_func = partial(base_func, min_count=min_count)
 
-        error_msg = ""
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            values = obj._values
-
-            if numeric_only and not is_numeric_dtype(values.dtype):
-                continue
-
+        def blk_func(values: ArrayLike) -> ArrayLike:
             if aggregate:
                 result_sz = ngroups
             else:
@@ -2873,54 +2914,31 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             result = np.zeros(result_sz, dtype=cython_dtype)
             if needs_2d:
                 result = result.reshape((-1, 1))
-            func = partial(base_func, result)
+            func = partial(base_func, out=result)
 
             inferences = None
 
             if needs_counts:
                 counts = np.zeros(self.ngroups, dtype=np.int64)
-                func = partial(func, counts)
+                func = partial(func, counts=counts)
 
             if needs_values:
                 vals = values
                 if pre_processing:
-                    try:
-                        vals, inferences = pre_processing(vals)
-                    except TypeError as err:
-                        error_msg = str(err)
-                        howstr = how.replace("group_", "")
-                        warnings.warn(
-                            "Dropping invalid columns in "
-                            f"{type(self).__name__}.{howstr} is deprecated. "
-                            "In a future version, a TypeError will be raised. "
-                            f"Before calling .{howstr}, select only columns which "
-                            "should be valid for the function.",
-                            FutureWarning,
-                            stacklevel=3,
-                        )
-                        continue
+                    vals, inferences = pre_processing(vals)
+
                 vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
-                func = partial(func, vals)
-
-            func = partial(func, ids)
-
-            if min_count is not None:
-                func = partial(func, min_count)
+                func = partial(func, values=vals)
 
             if needs_mask:
                 mask = isna(values).view(np.uint8)
-                func = partial(func, mask)
-
-            if needs_ngroups:
-                func = partial(func, ngroups)
+                func = partial(func, mask=mask)
 
             if needs_nullable:
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
-                if post_processing:
-                    post_processing = partial(post_processing, nullable=is_nullable)
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -2931,9 +2949,38 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = algorithms.take_nd(values, result)
 
             if post_processing:
-                result = post_processing(result, inferences)
+                pp_kwargs = {}
+                if needs_nullable:
+                    pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
 
-            key = base.OutputKey(label=name, position=idx)
+                result = post_processing(result, inferences, **pp_kwargs)
+
+            return result
+
+        error_msg = ""
+        for idx, obj in enumerate(self._iterate_slices()):
+            values = obj._values
+
+            if numeric_only and not is_numeric_dtype(values.dtype):
+                continue
+
+            try:
+                result = blk_func(values)
+            except TypeError as err:
+                error_msg = str(err)
+                howstr = how.replace("group_", "")
+                warnings.warn(
+                    "Dropping invalid columns in "
+                    f"{type(self).__name__}.{howstr} is deprecated. "
+                    "In a future version, a TypeError will be raised. "
+                    f"Before calling .{howstr}, select only columns which "
+                    "should be valid for the function.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+                continue
+
+            key = base.OutputKey(label=obj.name, position=idx)
             output[key] = result
 
         # error_msg is "" on an frame/series with no rows or columns
@@ -3211,9 +3258,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sampling probabilities after normalization within each group.
             Values must be non-negative with at least one positive element
             within each group.
-        random_state : int, array-like, BitGenerator, np.random.RandomState, optional
-            If int, array-like, or BitGenerator, seed for random number generator.
-            If np.random.RandomState, use as numpy RandomState object.
+        random_state : int, array-like, BitGenerator, np.random.RandomState,
+            np.random.Generator, optional. If int, array-like, or BitGenerator, seed for
+            random number generator. If np.random.RandomState or np.random.Generator,
+            use as given.
+
+            .. versionchanged:: 1.4.0
+
+                np.random.Generator objects now accepted
 
         Returns
         -------

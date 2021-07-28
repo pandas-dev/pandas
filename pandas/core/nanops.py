@@ -581,9 +581,7 @@ def nansum(
     if is_float_dtype(dtype):
         dtype_sum = dtype
     elif is_timedelta64_dtype(dtype):
-        # error: Incompatible types in assignment (expression has type
-        # "Type[float64]", variable has type "dtype")
-        dtype_sum = np.float64  # type: ignore[assignment]
+        dtype_sum = np.dtype(np.float64)
 
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
@@ -787,7 +785,7 @@ def _get_counts_nanvar(
     axis: int | None,
     ddof: int,
     dtype: Dtype = float,
-) -> tuple[int | np.ndarray, int | np.ndarray]:
+) -> tuple[int | float | np.ndarray, int | float | np.ndarray]:
     """
     Get the count of non-null values along an axis, accounting
     for degrees of freedom.
@@ -807,8 +805,8 @@ def _get_counts_nanvar(
 
     Returns
     -------
-    count : scalar or array
-    d : scalar or array
+    count : int, np.nan or np.ndarray
+    d : int, np.nan or np.ndarray
     """
     dtype = get_dtype(dtype)
     count = _get_counts(values_shape, mask, axis, dtype=dtype)
@@ -820,16 +818,13 @@ def _get_counts_nanvar(
             count = np.nan
             d = np.nan
     else:
-        # error: Incompatible types in assignment (expression has type
-        # "Union[bool, Any]", variable has type "ndarray")
-        mask2: np.ndarray = count <= ddof  # type: ignore[assignment]
-        if mask2.any():
-            np.putmask(d, mask2, np.nan)
-            np.putmask(count, mask2, np.nan)
-    # error: Incompatible return value type (got "Tuple[Union[int, float,
-    # ndarray], Any]", expected "Tuple[Union[int, ndarray], Union[int,
-    # ndarray]]")
-    return count, d  # type: ignore[return-value]
+        # count is not narrowed by is_scalar check
+        count = cast(np.ndarray, count)
+        mask = count <= ddof
+        if mask.any():
+            np.putmask(d, mask, np.nan)
+            np.putmask(count, mask, np.nan)
+    return count, d
 
 
 @bottleneck_switch(ddof=1)
