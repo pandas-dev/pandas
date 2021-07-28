@@ -646,21 +646,21 @@ class StylerRenderer:
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
         >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
-        >>> df.style.format(na_rep='MISS', precision=3)
+        >>> df.style.format(na_rep='MISS', precision=3) # doctest: +SKIP
                 0       1       2
         0    MISS   1.000       A
         1   2.000    MISS   3.000
 
         Using a ``formatter`` specification on consistent column dtypes
 
-        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1]) # doctest: +SKIP
                 0      1          2
         0    MISS   1.00          A
         1    2.00   MISS   3.000000
 
         Using the default ``formatter`` for unspecified columns
 
-        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1) # doctest: +SKIP
                  0      1     2
         0    MISS   £ 1.0     A
         1    2.00    MISS   3.0
@@ -668,8 +668,8 @@ class StylerRenderer:
         Multiple ``na_rep`` or ``precision`` specifications under the default
         ``formatter``.
 
-        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])
+        >>> df.style.format(na_rep='MISS', precision=1, subset=[0]) 
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2]) # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -677,7 +677,7 @@ class StylerRenderer:
         Using a callable ``formatter`` function.
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
-        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS') # doctest: +SKIP
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
@@ -687,8 +687,8 @@ class StylerRenderer:
         >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
         >>> s = df.style.format(
         ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
-        ...     )
-        >>> s.render()
+        ...     ) 
+        >>> s.render() # doctest: +SKIP
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
@@ -698,7 +698,7 @@ class StylerRenderer:
         Using a ``formatter`` with LaTeX ``escape``.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
-        >>> s = df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        >>> s = df.style.format("\\textbf{{{}}}", escape="latex").to_latex() # doctest: +SKIP
         \begin{tabular}{ll}
         {} & {0} \\
         0 & \textbf{123} \\
