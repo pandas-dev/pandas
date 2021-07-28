@@ -418,7 +418,11 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    ids = ensure_platform_int(bins.searchsorted(x, side=side))
+    # error: No overload variant of "searchsorted" of "ndarray" matches
+    # argument types "Any", "str"
+    ids = ensure_platform_int(
+        bins.searchsorted(x, side=side)  # type: ignore[call-overload]
+    )
 
     if include_lowest:
         ids[np.asarray(x) == bins[0]] = 1
