@@ -1209,6 +1209,9 @@ class Styler(StylerRenderer):
         ...  # doctest: +SKIP
         >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A"))
         ...  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
@@ -1279,6 +1282,9 @@ class Styler(StylerRenderer):
         ...  subset=([0,1,2], slice(None)))  # doctest: +SKIP
         >>> df.style.applymap(color_negative, color='red', subset=(slice(0,5,2), "A"))
         ...  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -1696,6 +1702,9 @@ class Styler(StylerRenderer):
         ...     0: [{'selector': 'td:hover',
         ...          'props': [('font-size', '25px')]}]
         ... }, axis=1, overwrite=False)  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         if isinstance(table_styles, dict):
             if axis in [0, "index"]:
@@ -2151,6 +2160,9 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame(np.random.randn(10, 4))
         >>> df.style.set_properties(color="white", align="right")  # doctest: +SKIP
         >>> df.style.set_properties(**{'background-color': 'yellow'})  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
