@@ -1779,11 +1779,6 @@ def create_block_manager_from_blocks(
     return mgr
 
 
-# We define this here so we can override it in tests.extension.test_numpy
-def _extract_array(obj):
-    return extract_array(obj, extract_numpy=True)
-
-
 def create_block_manager_from_arrays(
     arrays,
     names: Index,
@@ -1795,7 +1790,7 @@ def create_block_manager_from_arrays(
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
 
-    arrays = [_extract_array(x) for x in arrays]
+    arrays = [extract_array(x, extract_numpy=True) for x in arrays]
 
     try:
         blocks = _form_blocks(arrays, names, axes, consolidate)
