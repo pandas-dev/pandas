@@ -2286,6 +2286,7 @@ class StataWriter(StataParser):
         value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         super().__init__()
+        self.data = data
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._time_stamp = time_stamp
