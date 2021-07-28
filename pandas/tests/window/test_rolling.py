@@ -233,7 +233,9 @@ def test_datetimelike_centered_selections(
         ("2s", "neither", [1.0, 2.0, 2.0]),
     ],
 )
-def test_datetimelike_centered_offset_covers_all(window, closed, expected):
+def test_datetimelike_centered_offset_covers_all(
+    window, closed, expected, frame_or_series
+):
     # GH 42753
 
     index = [
@@ -241,13 +243,11 @@ def test_datetimelike_centered_offset_covers_all(window, closed, expected):
         Timestamp("20130101 09:00:02"),
         Timestamp("20130101 09:00:02"),
     ]
-    df = DataFrame({"x": 1}, index=index)
+    df = frame_or_series([1, 1, 1], index=index)
 
     result = df.rolling(window, closed=closed, center=True).sum()
-
-    expected = DataFrame({"x": expected}, index=index)
-
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    expected = frame_or_series(expected, index=index)
+    tm.assert_equal(result, expected, check_dtype=False)
 
 
 def test_even_number_window_alignment():
