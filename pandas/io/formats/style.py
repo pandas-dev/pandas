@@ -476,8 +476,8 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.sparse.index`` value.
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.columns`` value.
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom.
@@ -815,6 +815,8 @@ class Styler(StylerRenderer):
         *,
         table_uuid: str | None = None,
         table_attributes: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -840,6 +842,18 @@ class Styler(StylerRenderer):
             ``<table .. <table_attributes> >``
 
             If not given defaults to Styler's preexisting value.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+
+            .. versionadded:: 1.4.0
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+
+            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags,
             defaults to "utf-8" if None.
@@ -866,8 +880,15 @@ class Styler(StylerRenderer):
         if table_attributes:
             self.set_table_attributes(table_attributes)
 
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
         # Build HTML string..
-        html = self.render(
+        html = self._render_html(
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,
