@@ -713,7 +713,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({1: [1, 2], 2: [3, 4], "a": ["a", "b"]})
 
         result = df.loc[0, [1, 2]]
-        expected = Series([1, 3], index=[1, 2], dtype=object, name=0)
+        expected = Series(
+            [1, 3], index=Index([1, 2], dtype=object), dtype=object, name=0
+        )
         tm.assert_series_equal(result, expected)
 
         expected = DataFrame({1: [5, 2], 2: [6, 4], "a": ["a", "b"]})
@@ -2444,9 +2446,6 @@ def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_col
     df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
-
-    if df.columns.is_object() and all(isinstance(x, int) for x in column_key):
-        expected.columns = expected.columns.astype(int)
 
     tm.assert_frame_equal(result, expected, check_column_type=True)
 

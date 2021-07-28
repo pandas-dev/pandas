@@ -672,6 +672,11 @@ class Index(IndexOpsMixin, PandasObject):
         assert len(duplicates)
 
         out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        if self._is_multi:
+            # test_format_duplicate_labels_message_multi
+            # error: "Type[Index]" has no attribute "from_tuples"  [attr-defined]
+            out.index = type(self).from_tuples(out.index)  # type: ignore[attr-defined]
+
         if self.nlevels == 1:
             out = out.rename_axis("label")
         return out.to_frame(name="positions")
@@ -5400,22 +5405,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         self._raise_if_missing(keyarr, indexer, axis_name)
 
-        if (
-            needs_i8_conversion(self.dtype)
-            or is_categorical_dtype(self.dtype)
-            or is_interval_dtype(self.dtype)
-        ):
-            # For CategoricalIndex take instead of reindex to preserve dtype.
-            #  For IntervalIndex this is to map integers to the Intervals they match to.
-            keyarr = self.take(indexer)
-            if keyarr.dtype.kind in ["m", "M"]:
-                # DTI/TDI.take can infer a freq in some cases when we dont want one
-                if isinstance(key, list) or (
-                    isinstance(key, type(self))
-                    # "Index" has no attribute "freq"
-                    and key.freq is None  # type: ignore[attr-defined]
-                ):
-                    keyarr = keyarr._with_freq(None)
+        keyarr = self.take(indexer)
+        if keyarr.dtype.kind in ["m", "M"]:
+            # DTI/TDI.take can infer a freq in some cases when we dont want one
+            if isinstance(key, list) or (
+                isinstance(key, type(self))
+                # "Index" has no attribute "freq"
+                and key.freq is None  # type: ignore[attr-defined]
+            ):
+                keyarr = keyarr._with_freq(None)
 
         return keyarr, indexer
 
