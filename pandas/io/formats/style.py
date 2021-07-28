@@ -427,6 +427,7 @@ class Styler(StylerRenderer):
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
+        environment: str | None = None,
         encoding: str | None = None,
         convert_css: bool = False,
     ):
@@ -457,6 +458,8 @@ class Styler(StylerRenderer):
             \\begin{table}[<position>]
 
             \\<position_float>
+
+            Cannot be used if ``environment`` is "longtable".
         hrules : bool, default False
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
@@ -483,6 +486,12 @@ class Styler(StylerRenderer):
             the left, centrally, or at the right.
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
+        environment : str, optional
+            If given, the environment that will replace 'table' in ``\\begin{table}``.
+            If 'longtable' is specified then a more suitable template is
+            rendered.
+
+            .. versionadded:: 1.4.0
         encoding : str, default "utf-8"
             Character encoding setting.
         convert_css : bool, default False
@@ -519,6 +528,8 @@ class Styler(StylerRenderer):
         italic (with siunitx) | \\usepackage{etoolbox}
                               | \\robustify\\itshape
                               | \\sisetup{detect-all = true}  *(within {document})*
+        environment           \\usepackage{longtable} if arg is "longtable"
+                              | or any other relevant environment package
         ===================== ==========================================================
 
         **Cell Styles**
@@ -536,7 +547,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()
+        >>> s.render()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
@@ -748,6 +759,10 @@ class Styler(StylerRenderer):
             )
 
         if position_float:
+            if environment == "longtable":
+                raise ValueError(
+                    "`position_float` cannot be used in 'longtable' `environment`"
+                )
             if position_float not in ["raggedright", "raggedleft", "centering"]:
                 raise ValueError(
                     f"`position_float` should be one of "
@@ -788,6 +803,7 @@ class Styler(StylerRenderer):
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            environment=environment,
             convert_css=convert_css,
         )
 
