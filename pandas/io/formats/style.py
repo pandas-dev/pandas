@@ -536,7 +536,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()
+        >>> s.render()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
