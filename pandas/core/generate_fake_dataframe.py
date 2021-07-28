@@ -14,6 +14,7 @@ def generate_fake_dataframe(
 ) -> DataFrame:
     """
     Generate a DataFrame with dummy data in a controlled manner.
+    
     Supported datatypes for the columns are int, float, date and categorical.
     For categorical columns, we can choose to get data from these families:
     'names', 'animals', 'cities' and 'colors'.
