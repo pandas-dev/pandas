@@ -369,6 +369,18 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class Shift:
+    def setup(self):
+        N = 18
+        self.df = DataFrame({"g": ["a", "b"] * 9, "v": list(range(N))})
+
+    def time_defaults(self):
+        self.df.groupby("g").shift()
+
+    def time_fill_value(self):
+        self.df.groupby("g").shift(fill_value=99)
+
+
 class FillNA:
     def setup(self):
         N = 100
