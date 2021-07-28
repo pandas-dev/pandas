@@ -2896,7 +2896,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         ids, _, ngroups = grouper.group_info
-        output: dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
 
         base_func = getattr(libgroupby, how)
         base_func = partial(base_func, labels=ids)
@@ -2911,6 +2911,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             else:
                 result_sz = len(values)
 
+            result: ArrayLike
             result = np.zeros(result_sz, dtype=cython_dtype)
             if needs_2d:
                 result = result.reshape((-1, 1))
