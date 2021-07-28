@@ -35,6 +35,7 @@ Other enhancements
 -  Additional options added to :meth:`.Styler.bar` to control alignment and display, with keyword only arguments (:issue:`26070`, :issue:`36419`)
 - :meth:`Styler.bar` now validates the input argument ``width`` and ``height`` (:issue:`42511`)
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
+- Added keyword argument ``environment`` to :meth:`.Styler.to_latex` also allowing a specific "longtable" entry with a separate jinja2 template (:issue:`41866`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -203,7 +204,7 @@ Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.rank` raising ``ValueError`` with ``object`` columns and ``method="first"`` (:issue:`41931`)
 - Bug in :meth:`DataFrame.rank` treating missing values and extreme values as equal (for example ``np.nan`` and ``np.inf``), causing incorrect results when ``na_option="bottom"`` or ``na_option="top`` used (:issue:`41931`)
--
+- Bug in ``numexpr`` engine still being used when the option ``compute.use_numexpr`` is set to ``False`` (:issue:`32556`)
 
 Conversion
 ^^^^^^^^^^
@@ -260,11 +261,12 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Fixed bug in :meth:`SeriesGroupBy.apply` where passing an unrecognized string argument failed to raise ``TypeError`` when the underlying ``Series`` is empty (:issue:`42021`)
 - Bug in :meth:`Series.rolling.apply`, :meth:`DataFrame.rolling.apply`, :meth:`Series.expanding.apply` and :meth:`DataFrame.expanding.apply` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`42287`)
--
+- Bug in :meth:`DataFrame.groupby.rolling.var` would calculate the rolling variance only on the first group (:issue:`42442`)
 
 Reshaping
 ^^^^^^^^^
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
+- Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 -
 
 Sparse
@@ -284,6 +286,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`CustomBusinessMonthBegin.__add__` (:meth:`CustomBusinessMonthEnd.__add__`) not applying the extra ``offset`` parameter when beginning (end) of the target month is already a business day (:issue:`41356`)
 
 .. ***DO NOT USE THIS SECTION***
 
