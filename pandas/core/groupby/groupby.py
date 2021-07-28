@@ -2896,7 +2896,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         ids, _, ngroups = grouper.group_info
-        output: dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
 
         base_func = getattr(libgroupby, how)
         base_func = partial(base_func, labels=ids)
@@ -2946,16 +2946,20 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = result.reshape(-1)
 
             if result_is_index:
-                result = algorithms.take_nd(values, result)
+                # Incompatible types in assignment (expression has type
+                # "Union[ExtensionArray, ndarray[Any, Any]]", variable has
+                # type "ndarray[Any, Any]")
+                result = algorithms.take_nd(values, result)  # type: ignore[assignment]
 
+            out = result
             if post_processing:
                 pp_kwargs = {}
                 if needs_nullable:
                     pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
 
-                result = post_processing(result, inferences, **pp_kwargs)
+                out = post_processing(out, inferences, **pp_kwargs)
 
-            return result
+            return out
 
         error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
