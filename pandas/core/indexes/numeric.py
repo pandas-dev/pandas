@@ -166,6 +166,10 @@ class NumericIndex(Index):
         dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
+            # the try/except below is because it's difficult to predict the error
+            # and/or error message from different combinations of data and type.
+            # Efforts to avoid this try/except welcome.
+            # See https://github.com/pandas-dev/pandas/pull/41153#discussion_r676206222
             try:
                 subarr = np.array(data, dtype=dtype, copy=copy)
                 cls._validate_dtype(subarr.dtype)
@@ -247,6 +251,9 @@ class NumericIndex(Index):
                 else:
                     return NumericIndex(arr, name=self.name, dtype=dtype)
         elif self._is_backward_compat_public_numeric_index:
+            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
+            # NumericIndex[int32] and not Int64Index with dtype int64.
+            # When Int64Index etc. are removed from the code base, removed this also.
             if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
                 return self._constructor(self, dtype=dtype, copy=copy)
 

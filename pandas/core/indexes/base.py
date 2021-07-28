@@ -361,7 +361,8 @@ class Index(IndexOpsMixin, PandasObject):
     _can_hold_strings: bool = True
 
     # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
-    # UInt64Index or RangeIndex. Needed for backwards compat. Remove in pandas 2.0.
+    # UInt64Index or RangeIndex. Needed for backwards compat. Remove this attribute and
+    # associated code in pandas 2.0.
     _is_backward_compat_public_numeric_index: bool = False
 
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
