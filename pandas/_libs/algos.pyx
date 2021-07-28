@@ -217,8 +217,8 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     This is a reverse of the label factorization process.
     """
     cdef:
-        Py_ssize_t i, loc, label, n
-        ndarray[intp_t] indexer, where, counts
+        Py_ssize_t i, label, n
+        intp_t[::1] indexer, where, counts
 
     counts = np.zeros(ngroups + 1, dtype=np.intp)
     n = len(index)
@@ -241,7 +241,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
             indexer[where[label]] = i
             where[label] += 1
 
-    return indexer, counts
+    return indexer.base, counts.base
 
 
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
