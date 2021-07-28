@@ -121,7 +121,8 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/io/parsers/ \
       pandas/io/sas/ \
       pandas/io/sql.py \
-      pandas/tseries/
+      pandas/tseries/ \
+      pandas/io/formats/style_render.py
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
