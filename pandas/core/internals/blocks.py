@@ -1552,12 +1552,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
         """
         Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
         """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
+        new_values = self.array_values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     def fillna(
