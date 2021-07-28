@@ -43,6 +43,8 @@ from pandas._typing import (
     IndexKeyFunc,
     SingleManager,
     StorageOptions,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
     npt,
 )
@@ -141,11 +143,6 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-
-    from pandas._typing import (
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
-    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
@@ -357,10 +354,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "The default dtype for empty Series will be 'object' instead "
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
-                    DeprecationWarning,
+                    FutureWarning,
                     stacklevel=2,
                 )
-                # uncomment the line below when removing the DeprecationWarning
+                # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
 
             if index is not None:
@@ -1217,7 +1214,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
+                self._check_setitem_copy(t="referent", force=True)
             return True
         return super()._check_is_chained_assignment_possible()
 
@@ -1236,14 +1233,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # a copy
             if ref is None:
                 del self._cacher
+            elif len(self) == len(ref) and self.name in ref.columns:
+                # GH#42530 self.name must be in ref.columns
+                # to ensure column still in dataframe
+                # otherwise, either self or ref has swapped in new arrays
+                ref._maybe_cache_changed(cacher[0], self)
             else:
-                if len(self) == len(ref):
-                    # otherwise, either self or ref has swapped in new arrays
-                    ref._maybe_cache_changed(cacher[0], self)
-                else:
-                    # GH#33675 we have swapped in a new array, so parent
-                    #  reference to self is now invalid
-                    ref._item_cache.pop(cacher[0], None)
+                # GH#33675 we have swapped in a new array, so parent
+                #  reference to self is now invalid
+                ref._item_cache.pop(cacher[0], None)
 
         super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
 
@@ -1560,8 +1558,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         klass=_shared_doc_kwargs["klass"],
         storage_options=generic._shared_docs["storage_options"],
         examples=dedent(
-            """
-            Examples
+            """Examples
             --------
             >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
             >>> print(s.to_markdown())
@@ -1571,7 +1568,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             |  1 | pig      |
             |  2 | dog      |
             |  3 | quetzal  |
-            """
+
+            Output markdown with a tabulate option.
+
+            >>> print(s.to_markdown(tablefmt="grid"))
+            +----+----------+
+            |    | animal   |
+            +====+==========+
+            |  0 | elk      |
+            +----+----------+
+            |  1 | pig      |
+            +----+----------+
+            |  2 | dog      |
+            +----+----------+
+            |  3 | quetzal  |
+            +----+----------+"""
         ),
     )
     def to_markdown(
@@ -1614,31 +1625,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -----
         Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
 
-        Examples
-        --------
-        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
-        >>> print(s.to_markdown())
-        |    | animal   |
-        |---:|:---------|
-        |  0 | elk      |
-        |  1 | pig      |
-        |  2 | dog      |
-        |  3 | quetzal  |
-
-        Output markdown with a tabulate option.
-
-        >>> print(s.to_markdown(tablefmt="grid"))
-        +----+----------+
-        |    | animal   |
-        +====+==========+
-        |  0 | elk      |
-        +----+----------+
-        |  1 | pig      |
-        +----+----------+
-        |  2 | dog      |
-        +----+----------+
-        |  3 | quetzal  |
-        +----+----------+
+        {examples}
         """
         return self.to_frame().to_markdown(
             buf, mode, index, storage_options=storage_options, **kwargs
