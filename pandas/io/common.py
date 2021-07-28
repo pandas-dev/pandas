@@ -719,9 +719,8 @@ def get_handle(
             encoding=ioargs.encoding,
         )
         handles.append(handle)
-        # Handle is always provided by caller since
-        # they are trying to read bytes from string
-        # buffer
+        # the (text) handle is always provided by the caller
+        # since get_handle would have opened it in binary mode
         is_wrapped = True
     elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
         handle = TextIOWrapper(
