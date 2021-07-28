@@ -2311,6 +2311,15 @@ def test_groupby_series_with_tuple_name():
     tm.assert_series_equal(result, expected)
 
 
+def test_time_series_groupby_series_named_with_tuple():
+    # GH 42731
+    ser = Series([1, 2, 3, 4], index=[Timestamp(2021, 7, 28 + i) for i in range(4)])
+    grp = Series([1, 0, 1, 0], name=('a', 'a'))
+    result = ser.groupby(grp).last()
+    expected = ser.groupby(grp.rename(None)).last()
+    tm.assert_series_equal(result, expected, check_names=False)
+
+
 @pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 @pytest.mark.parametrize(
     "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
