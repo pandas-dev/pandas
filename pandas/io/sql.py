@@ -1524,9 +1524,11 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
-        from sqlalchemy import text
+        if isinstance(sql, str):
+            from sqlalchemy import text
 
-        sql = text(sql)
+            sql = text(sql)
+
         args = _convert_params(sql, params)
 
         result = self.execute(*args)
