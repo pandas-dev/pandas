@@ -272,17 +272,35 @@ def test_caption_as_sequence(styler):
 
 @pytest.mark.parametrize("index", [False, True])
 @pytest.mark.parametrize("columns", [False, True])
-def test_sticky_basic(styler, index, columns):
+@pytest.mark.parametrize("index_name", [True, False])
+def test_sticky_basic(styler, index, columns, index_name):
+    if index_name:
+        styler.index.name = "some text"
     if index:
         styler.set_sticky(axis=0)
     if columns:
         styler.set_sticky(axis=1)
 
     res = styler.set_uuid("").to_html()
-    cs1 = "tbody th {\n  position: sticky;\n  left: 0px;\n  background-color: white;\n}"
-    assert (cs1 in res) is index
-    cs2 = "thead th {\n  position: sticky;\n  top: 0px;\n  background-color: white;\n}"
-    assert (cs2 in res) is columns
+
+    css_for_index = (
+        "tr th:first-child {\n  position: sticky;\n  background-color: white;\n  "
+        "left: 0px;\n  z-index: 1;\n}"
+    )
+    assert (css_for_index in res) is index
+
+    css_for_cols_1 = (
+        "thead tr:first-child {\n  position: sticky;\n  background-color: white;\n  "
+        "top: 0px;\n  z-index: 2;\n"
+    )
+    css_for_cols_1 += "  height: 25px;\n}" if index_name else "}"
+    assert (css_for_cols_1 in res) is columns
+
+    css_for_cols_2 = (
+        "thead tr:nth-child(2) {\n  position: sticky;\n  background-color: white;\n  "
+        "top: 25px;\n  z-index: 2;\n  height: 25px;\n}"
+    )
+    assert (css_for_cols_2 in res) is (index_name and columns)
 
 
 @pytest.mark.parametrize("index", [False, True])
