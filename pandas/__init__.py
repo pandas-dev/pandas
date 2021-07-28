@@ -113,6 +113,8 @@ from pandas.core.api import (
 
 from pandas.core.arrays.sparse import SparseDtype
 
+from pandas.core.generate_fake_dataframe import generate_fake_dataframe
+
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
 

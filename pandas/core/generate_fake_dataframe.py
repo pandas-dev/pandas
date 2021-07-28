@@ -1,9 +1,112 @@
-from itertools import cycle
+from __future__ import annotations
+from pandas.core.frame import DataFrame
 import pandas as pd
 import numpy as np
+from itertools import cycle
 
 
-def generate_fake_dataframe(size, cols, col_names=None, intervals=None, seed=None):
+def generate_fake_dataframe(
+        size : int,
+        cols : str,
+        col_names : list | None = None,
+        intervals: dict | list | None = None,
+        seed: int | None = None
+) -> DataFrame:
+    """
+    Generate a DataFrame with dummy data in a controlled manner.
+    Supported datatypes for the columns are int, float, date and categorical.
+    For categorical columns, we can choose to get data from these families:
+    'names', 'animals', 'cities' and 'colors'.
+
+    Parameters
+    ----------
+    size : int
+        The number of rows in the DataFrame.
+    cols : str
+        String whose characters represent the types of the columns generated.
+        'i' = int, 'f' = float, 'd' = date and 'c' = categorical.
+        i.e cols = "iifccd" (2 int cols, 1 float, 2 categorical and 1 date)
+    col_names : list or None
+        List of column names for the generated DataFrame.
+        Must be of the same length as cols.
+        If None, column names are assigned as 'column_n_dtype' where n is an
+        integer representing the nth column.
+    intervals: dict, list or None
+        Intervals define how the data generated. 'i', 'f' and 'd' intervals are set
+        as tuples of the form (start,end), where data is sampled between those bounds.
+        'c' intervals can be defined as:
+            a) a tuple of the form (family, n) where n is the max number of different
+               elements from the family used to populate the column.
+            b) a list of objects used to populate the column.
+        The default intervals set are (0, 10) for integers,
+        (0,100) for floats,  ('2020-01-01', '2020-12-31') for dates and
+        ('names', 5) for categorical columns.
+        `intervals` can receive a `dict` of the form: {char : interval ...}
+        which updates the default intervals for specific column types.
+        i.e intervals = {'i' : (-5,5), 'd' : ("1999-01-01","2021-12-05")}
+        A list can be passed instead with intervals for each column. This allows control
+        over how each column is generated (this list must have the same length as `cols`
+        i.e cols = "fcc", intervals = [(2.5, 9.5), ('colors', 3), ['custom', 'family']].
+        If intervals = None, the default intervals are used. None can also be placed
+        inside the `intervals` list to use the default interval for that column type.
+        i.e cols = "ifc", intervals = [(2,3), None, ('colors', 3)]
+
+    seed: int
+        Seed used for the random sampling. If the same parameters and seed are used,
+        the generated dataframe is guaranteed to be the same.
+
+    Returns
+    -------
+    DataFrame
+
+    See Also
+    --------
+    makeDataFrame() : Generates a (30, 4) DataFrame with random float values.
+    makeMissingDataframe() : Generates a (30, 4) DataFrame with some NANs.
+    makeMixedDataFrame() : Generates a predefined (5, 4) DataFrame.
+
+    Examples
+    --------
+    >>> pd.generate_fake_dataframe(1000, "iiccd")
+    >>> pd.generate_fake_dataframe(size = 31,
+                           cols = "cid",
+                           col_names = ["student", "grade", "birthday"])
+    >>> pd.generate_fake_dataframe(20, "cccd", intervals = {"c": ("colors",7)})
+    >>> pd.generate_fake_dataframe(
+                        size = 10,
+                        cols = "cccfd",
+                        col_names = ["name", "pet", "city","height", "birthday"],
+                        intervals = {"f" : (1.72,1.95),
+                                     "d" : ("1996-01-01","1996-12-31")},
+                        seed = 1)
+    >>> pd.generate_fake_dataframe(250,
+                        cols = "cncccd",
+                        intervals = [("names", 1),
+                                     (2.4,3.4),
+                                     ["my", "custom", "list", "of", "categories"],
+                                     [True,False],
+                                     None
+                                    ],
+                        seed = 42)
+    >>> pd.generate_fake_dataframe(
+                        size = 10,
+                        cols = "cccfd",
+                        col_names=["name", "pet", "city","height", "birthday"],
+                        intervals = {"f" : (1.72,1.95),
+                                     "d" : ("1996-01-01","1996-12-31")},
+                        )
+    >>> pd.generate_fake_dataframe(
+                        size = 222,
+                        cols = "ccffd",
+                        intervals = {"c" : [1,0, "-1", 3.14, np.e],
+                                    "d" : ("1996-01-01","1996-12-31")}
+                        )
+    >>> pd.generate_fake_dataframe(
+                        3000,
+                        "ififi",
+                        intervals = [None, None, (-5,5), None, (-1.2,2.4), None]
+                        )
+    """
 
     categories_dict = {
         'animals': [
@@ -103,7 +206,7 @@ def generate_fake_dataframe(size, cols, col_names=None, intervals=None, seed=Non
             default_intervals.update(intervals)
         intervals = [default_intervals[col] for col in cols]
 
-    df = pd.DataFrame()
+    df = DataFrame()
     for col, col_name, interval in zip(cols, col_names, intervals):
         if interval is None:
             interval = default_intervals[col]
