@@ -227,9 +227,9 @@ def generate_fake_dataframe(
                 if isinstance(cat_family, cycle):
                     cat_family = next(cat_family)
                 assert cat_family in categories_dict.keys(), \
-                    f"There are no samples for category '{cat_family}'. \
-                    Consider passing a list with samples \
-                    or use one of the available categories: {categories_dict.keys()}"
+                    f"There are no categories for family '{cat_family}'. \
+                    Consider passing a list with categories \
+                    or use one of the available families: {categories_dict.keys()}"
                 categories = rng.choice(
                     categories_dict[cat_family],
                     length,
