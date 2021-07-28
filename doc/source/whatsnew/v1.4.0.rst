@@ -265,6 +265,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Improved error message when creating a :class:`DataFrame` column from a multi-dimensional :class:`numpy.ndarray` (:issue:`42463`)
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 -
