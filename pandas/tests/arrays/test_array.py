@@ -317,6 +317,25 @@ def test_bounds_check():
         pd.array([-1, 2, 3], dtype="UInt16")
 
 
+def test_ellipsis_index():
+    # GH42430
+    class CapturingStringArray(pd.arrays.StringArray):
+        """Extend StringArray to capture arguments to __getitem__"""
+
+        def __getitem__(self, item):
+            self.last_item_arg = item
+            return super().__getitem__(item)
+
+    df = pd.DataFrame(
+        {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))})
+    _ = df.iloc[:1]
+
+    # String comparison because there's no native way to compare slices.
+    # Before the fix for GH42430, last_item_arg would get set to the 2D slice
+    # (Ellipsis, slice(None, 1, None))
+    tm.assert_equal(str(df["col1"].array.last_item_arg), "slice(None, 1, None)")
+
+
 # ---------------------------------------------------------------------------
 # A couple dummy classes to ensure that Series and Indexes are unboxed before
 # getting to the EA classes.
