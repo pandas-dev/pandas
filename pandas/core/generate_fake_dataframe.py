@@ -14,7 +14,7 @@ def generate_fake_dataframe(
 ) -> DataFrame:
     """
     Generate a DataFrame with dummy data in a controlled manner.
-    
+
     Supported datatypes for the columns are int, float, date and categorical.
     For categorical columns, we can choose to get data from these families:
     'names', 'animals', 'cities' and 'colors'.
@@ -35,6 +35,7 @@ def generate_fake_dataframe(
     intervals: dict, list or None
         Intervals define how the data generated. 'i', 'f' and 'd' intervals are set
         as tuples of the form (start,end), where data is sampled between those bounds.
+        Start and end of 'd' intervals should be strings formatted as %Y–%m–%d.
         'c' intervals can be defined as:
             a) a tuple of the form (family, n) where n is the max number of different
                elements from the family used to populate the column.
