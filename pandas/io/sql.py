@@ -178,6 +178,10 @@ def execute(sql, con, params=None):
     Results Iterable
     """
     pandas_sql = pandasSQL_builder(con)
+    if isinstance(pandas_sql, SQLDatabase):
+        from sqlalchemy import text
+
+        sql = text(sql)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -1520,6 +1524,9 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
+        from sqlalchemy import text
+
+        sql = text(sql)
         args = _convert_params(sql, params)
 
         result = self.execute(*args)
