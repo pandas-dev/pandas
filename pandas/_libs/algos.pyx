@@ -326,6 +326,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
         float64_t[:, ::1] result
+        # Initialize to None since we only use in the no missing value case
         float64_t[::1] means=None, ssqds=None
         ndarray[uint8_t, ndim=2] mask
         bint no_nans
@@ -343,6 +344,10 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
     no_nans = mask.all()
+
+    # Computing the online means and variances is expensive - so if possible we can
+    # precompute these and avoid repeating the computations each time we handle
+    # an (xi, yi) pair
     if no_nans:
         means = np.empty(K, dtype=np.float64)
         ssqds = np.empty(K, dtype=np.float64)
