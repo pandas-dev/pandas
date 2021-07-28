@@ -1372,8 +1372,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        msg = "Using URI string without sqlalchemy installed"
-        with pytest.raises(ImportError, match=msg):
+        with pytest.raises(ImportError, match="SQLAlchemy"):
             sql.read_sql("SELECT * FROM iris", conn)
 
     def test_read_sql_delegate(self):
@@ -2314,8 +2313,7 @@ class _TestPostgreSQLAlchemy:
         # because of transactional schemas
         if isinstance(self.conn, sqlalchemy.engine.Engine):
             engine2 = self.connect()
-            meta = sqlalchemy.MetaData(engine2, schema="other")
-            pdsql = sql.SQLDatabase(engine2, meta=meta)
+            pdsql = sql.SQLDatabase(engine2, schema="other")
             pdsql.to_sql(df, "test_schema_other2", index=False)
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="replace")
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="append")
