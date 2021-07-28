@@ -8,6 +8,7 @@ from pandas.errors import PerformanceWarning
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -267,6 +268,28 @@ class TestDataFrameDrop:
         # GH# 21494
         with pytest.raises(KeyError, match="not found in axis"):
             DataFrame(index=index).drop(drop_labels)
+
+    @pytest.mark.parametrize(
+        "empty_listlike",
+        [
+            [],
+            {},
+            np.array([]),
+            Series([], dtype="datetime64[ns]"),
+            Index([]),
+            DatetimeIndex([]),
+        ],
+    )
+    def test_drop_empty_listlike_non_unique_datetime_index(self, empty_listlike):
+        # GH#27994
+        data = {"column_a": [5, 10], "column_b": ["one", "two"]}
+        index = [Timestamp("2021-01-01"), Timestamp("2021-01-01")]
+        df = DataFrame(data, index=index)
+
+        # Passing empty list-like should return the same DataFrame.
+        expected = df.copy()
+        result = df.drop(empty_listlike)
+        tm.assert_frame_equal(result, expected)
 
     def test_mixed_depth_drop(self):
         arrays = [
