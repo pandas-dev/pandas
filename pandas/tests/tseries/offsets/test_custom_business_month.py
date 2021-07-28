@@ -7,6 +7,7 @@ Tests for the following offsets:
 from datetime import (
     date,
     datetime,
+    timedelta,
 )
 
 import numpy as np
@@ -200,6 +201,59 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
             0
         ] == datetime(2012, 1, 3)
 
+    @pytest.mark.parametrize(
+        "case",
+        [
+            (
+                CBMonthBegin(n=1, offset=timedelta(days=5)),
+                {
+                    datetime(2021, 3, 1): datetime(2021, 4, 1) + timedelta(days=5),
+                    datetime(2021, 4, 17): datetime(2021, 5, 3) + timedelta(days=5),
+                },
+            ),
+            (
+                CBMonthBegin(n=2, offset=timedelta(days=40)),
+                {
+                    datetime(2021, 3, 10): datetime(2021, 5, 3) + timedelta(days=40),
+                    datetime(2021, 4, 30): datetime(2021, 6, 1) + timedelta(days=40),
+                },
+            ),
+            (
+                CBMonthBegin(n=1, offset=timedelta(days=-5)),
+                {
+                    datetime(2021, 3, 1): datetime(2021, 4, 1) - timedelta(days=5),
+                    datetime(2021, 4, 11): datetime(2021, 5, 3) - timedelta(days=5),
+                },
+            ),
+            (
+                -2 * CBMonthBegin(n=1, offset=timedelta(days=10)),
+                {
+                    datetime(2021, 3, 1): datetime(2021, 1, 1) + timedelta(days=10),
+                    datetime(2021, 4, 3): datetime(2021, 3, 1) + timedelta(days=10),
+                },
+            ),
+            (
+                CBMonthBegin(n=0, offset=timedelta(days=1)),
+                {
+                    datetime(2021, 3, 2): datetime(2021, 4, 1) + timedelta(days=1),
+                    datetime(2021, 4, 1): datetime(2021, 4, 1) + timedelta(days=1),
+                },
+            ),
+            (
+                CBMonthBegin(
+                    n=1, holidays=["2021-04-01", "2021-04-02"], offset=timedelta(days=1)
+                ),
+                {
+                    datetime(2021, 3, 2): datetime(2021, 4, 5) + timedelta(days=1),
+                },
+            ),
+        ],
+    )
+    def test_apply_with_extra_offset(self, case):
+        offset, cases = case
+        for base, expected in cases.items():
+            assert_offset_equal(offset, base, expected)
+
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _offset = CBMonthEnd
@@ -337,3 +391,54 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert date_range(start="20120101", end="20130101", freq=freq).tolist()[
             0
         ] == datetime(2012, 1, 31)
+
+    @pytest.mark.parametrize(
+        "case",
+        [
+            (
+                CBMonthEnd(n=1, offset=timedelta(days=5)),
+                {
+                    datetime(2021, 3, 1): datetime(2021, 3, 31) + timedelta(days=5),
+                    datetime(2021, 4, 17): datetime(2021, 4, 30) + timedelta(days=5),
+                },
+            ),
+            (
+                CBMonthEnd(n=2, offset=timedelta(days=40)),
+                {
+                    datetime(2021, 3, 10): datetime(2021, 4, 30) + timedelta(days=40),
+                    datetime(2021, 4, 30): datetime(2021, 6, 30) + timedelta(days=40),
+                },
+            ),
+            (
+                CBMonthEnd(n=1, offset=timedelta(days=-5)),
+                {
+                    datetime(2021, 3, 1): datetime(2021, 3, 31) - timedelta(days=5),
+                    datetime(2021, 4, 11): datetime(2021, 4, 30) - timedelta(days=5),
+                },
+            ),
+            (
+                -2 * CBMonthEnd(n=1, offset=timedelta(days=10)),
+                {
+                    datetime(2021, 3, 1): datetime(2021, 1, 29) + timedelta(days=10),
+                    datetime(2021, 4, 3): datetime(2021, 2, 26) + timedelta(days=10),
+                },
+            ),
+            (
+                CBMonthEnd(n=0, offset=timedelta(days=1)),
+                {
+                    datetime(2021, 3, 2): datetime(2021, 3, 31) + timedelta(days=1),
+                    datetime(2021, 4, 1): datetime(2021, 4, 30) + timedelta(days=1),
+                },
+            ),
+            (
+                CBMonthEnd(n=1, holidays=["2021-03-31"], offset=timedelta(days=1)),
+                {
+                    datetime(2021, 3, 2): datetime(2021, 3, 30) + timedelta(days=1),
+                },
+            ),
+        ],
+    )
+    def test_apply_with_extra_offset(self, case):
+        offset, cases = case
+        for base, expected in cases.items():
+            assert_offset_equal(offset, base, expected)
