@@ -180,3 +180,15 @@ class TestDataFrameConcat:
         result = concat([df1, df2])
         expected = concat([df1.astype("int64"), df2])
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_duplicates_in_index_with_keys(self):
+        # GH#42651
+        index = [1, 1, 3]
+        data = [1, 2, 3]
+
+        df = DataFrame(data=data, index=index)
+        result = concat([df], keys=["A"], names=["ID", "date"])
+        mi = pd.MultiIndex.from_product([["A"], index], names=["ID", "date"])
+        expected = DataFrame(data=data, index=mi)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))

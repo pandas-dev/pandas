@@ -143,6 +143,37 @@ class TestLoc(Base):
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_column_types_consistent(self):
+        # GH 26779
+        df = DataFrame(
+            data={
+                "channel": [1, 2, 3],
+                "A": ["String 1", np.NaN, "String 2"],
+                "B": [
+                    Timestamp("2019-06-11 11:00:00"),
+                    pd.NaT,
+                    Timestamp("2019-06-11 12:00:00"),
+                ],
+            }
+        )
+        df2 = DataFrame(
+            data={"A": ["String 3"], "B": [Timestamp("2019-06-11 12:00:00")]}
+        )
+        # Change Columns A and B to df2.values wherever Column A is NaN
+        df.loc[df["A"].isna(), ["A", "B"]] = df2.values
+        expected = DataFrame(
+            data={
+                "channel": [1, 2, 3],
+                "A": ["String 1", "String 3", "String 2"],
+                "B": [
+                    Timestamp("2019-06-11 11:00:00"),
+                    Timestamp("2019-06-11 12:00:00"),
+                    Timestamp("2019-06-11 12:00:00"),
+                ],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLoc2:
     # TODO: better name, just separating out things that rely on base class
@@ -682,7 +713,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({1: [1, 2], 2: [3, 4], "a": ["a", "b"]})
 
         result = df.loc[0, [1, 2]]
-        expected = Series([1, 3], index=[1, 2], dtype=object, name=0)
+        expected = Series(
+            [1, 3], index=Index([1, 2], dtype=object), dtype=object, name=0
+        )
         tm.assert_series_equal(result, expected)
 
         expected = DataFrame({1: [5, 2], 2: [6, 4], "a": ["a", "b"]})
@@ -2413,9 +2446,6 @@ def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_col
     df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
-
-    if df.columns.is_object() and all(isinstance(x, int) for x in column_key):
-        expected.columns = expected.columns.astype(int)
 
     tm.assert_frame_equal(result, expected, check_column_type=True)
 

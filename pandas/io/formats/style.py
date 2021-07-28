@@ -427,6 +427,7 @@ class Styler(StylerRenderer):
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
+        environment: str | None = None,
         encoding: str | None = None,
         convert_css: bool = False,
     ):
@@ -457,6 +458,8 @@ class Styler(StylerRenderer):
             \\begin{table}[<position>]
 
             \\<position_float>
+
+            Cannot be used if ``environment`` is "longtable".
         hrules : bool, default False
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
@@ -483,6 +486,12 @@ class Styler(StylerRenderer):
             the left, centrally, or at the right.
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
+        environment : str, optional
+            If given, the environment that will replace 'table' in ``\\begin{table}``.
+            If 'longtable' is specified then a more suitable template is
+            rendered.
+
+            .. versionadded:: 1.4.0
         encoding : str, default "utf-8"
             Character encoding setting.
         convert_css : bool, default False
@@ -519,6 +528,8 @@ class Styler(StylerRenderer):
         italic (with siunitx) | \\usepackage{etoolbox}
                               | \\robustify\\itshape
                               | \\sisetup{detect-all = true}  *(within {document})*
+        environment           \\usepackage{longtable} if arg is "longtable"
+                              | or any other relevant environment package
         ===================== ==========================================================
 
         **Cell Styles**
@@ -536,7 +547,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()
+        >>> s.render()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
@@ -748,6 +759,10 @@ class Styler(StylerRenderer):
             )
 
         if position_float:
+            if environment == "longtable":
+                raise ValueError(
+                    "`position_float` cannot be used in 'longtable' `environment`"
+                )
             if position_float not in ["raggedright", "raggedleft", "centering"]:
                 raise ValueError(
                     f"`position_float` should be one of "
@@ -788,6 +803,7 @@ class Styler(StylerRenderer):
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            environment=environment,
             convert_css=convert_css,
         )
 
@@ -1450,7 +1466,8 @@ class Styler(StylerRenderer):
             Whether to make the index or column headers sticky.
         pixel_size : int, optional
             Required to configure the width of index cells or the height of column
-            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+            header cells when sticking a MultiIndex (or with a named Index).
+            Defaults to 75 and 25 respectively.
         levels : list of int
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
@@ -1458,6 +1475,16 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method uses the CSS 'position: sticky;' property to display. It is
+        designed to work with visible axes, therefore both:
+
+          - `styler.set_sticky(axis="index").hide_index()`
+          - `styler.set_sticky(axis="columns").hide_columns()`
+
+        may produce strange behaviour due to CSS controls with missing elements.
         """
         if axis in [0, "index"]:
             axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
@@ -1469,15 +1496,42 @@ class Styler(StylerRenderer):
             raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
 
         if not isinstance(obj, pd.MultiIndex):
-            return self.set_table_styles(
-                [
+            # handling MultiIndexes requires different CSS
+            props = "position:sticky; background-color:white;"
+
+            if axis == 1:
+                # stick the first <tr> of <head> and, if index names, the second <tr>
+                # if self._hide_columns then no <thead><tr> here will exist: no conflict
+                styles: CSSStyles = [
                     {
-                        "selector": f"{tag} th",
-                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                        "selector": "thead tr:first-child",
+                        "props": props + "top:0px; z-index:2;",
                     }
-                ],
-                overwrite=False,
-            )
+                ]
+                if not self.index.names[0] is None:
+                    styles[0]["props"] = (
+                        props + f"top:0px; z-index:2; height:{pixel_size}px;"
+                    )
+                    styles.append(
+                        {
+                            "selector": "thead tr:nth-child(2)",
+                            "props": props
+                            + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
+                        }
+                    )
+            else:
+                # stick the first <th> of each <tr> in both <thead> and <tbody>
+                # if self._hide_index then no <th> will exist in <tbody>: no conflict
+                # but <th> will exist in <thead>: conflict with initial element
+                styles = [
+                    {
+                        "selector": "tr th:first-child",
+                        "props": props + "left:0px; z-index:1;",
+                    }
+                ]
+
+            return self.set_table_styles(styles, overwrite=False)
+
         else:
             range_idx = list(range(obj.nlevels))
 

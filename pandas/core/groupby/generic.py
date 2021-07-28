@@ -758,7 +758,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # new values are where sorted labels change
         lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
         inc = np.r_[True, lchanges]
-        if not len(lchanges):
+        if not len(val):
             inc = lchanges
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
@@ -1033,7 +1033,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(result)
             result.index = Index(range(len(result)))
 
-        return result._convert(datetime=True)
+        return result
 
     agg = aggregate
 
@@ -1684,6 +1684,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
+        # Note: we only need to pass datetime=True in order to get numeric
+        #  values converted
         return self._reindex_output(result)._convert(datetime=True)
 
     def _iterate_column_groupbys(self, obj: FrameOrSeries):

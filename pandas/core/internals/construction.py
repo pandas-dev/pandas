@@ -331,14 +331,14 @@ def ndarray_to_mgr(
         if dtype is None and is_object_dtype(values.dtype):
             arrays = [
                 ensure_wrapped_if_datetimelike(
-                    maybe_infer_to_datetimelike(values[:, i].copy())
+                    maybe_infer_to_datetimelike(values[:, i])
                 )
                 for i in range(values.shape[1])
             ]
         else:
             if is_datetime_or_timedelta_dtype(values.dtype):
                 values = ensure_wrapped_if_datetimelike(values)
-            arrays = [values[:, i].copy() for i in range(values.shape[1])]
+            arrays = [values[:, i] for i in range(values.shape[1])]
 
         return ArrayManager(arrays, [index, columns], verify_integrity=False)
 
@@ -757,6 +757,14 @@ def to_arrays(
                 # i.e. numpy structured array
                 columns = ensure_index(data.dtype.names)
                 arrays = [data[name] for name in columns]
+
+                if len(data) == 0:
+                    # GH#42456 the indexing above results in list of 2D ndarrays
+                    # TODO: is that an issue with numpy?
+                    for i, arr in enumerate(arrays):
+                        if arr.ndim == 2:
+                            arrays[i] = arr[:, 0]
+
                 return arrays, columns
         return [], ensure_index([])
 

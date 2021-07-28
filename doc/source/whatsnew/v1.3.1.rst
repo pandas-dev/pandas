@@ -1,6 +1,6 @@
 .. _whatsnew_131:
 
-What's new in 1.3.1 (July ??, 2021)
+What's new in 1.3.1 (July 25, 2021)
 -----------------------------------
 
 These are the changes in pandas 1.3.1. See :ref:`release` for a full changelog
@@ -26,8 +26,9 @@ Fixed regressions
 - Regression in :func:`concat` between objects with bool dtype and integer dtype casting to object instead of to integer (:issue:`42092`)
 - Bug in :class:`Series` constructor not accepting a ``dask.Array`` (:issue:`38645`)
 - Fixed regression for ``SettingWithCopyWarning`` displaying incorrect stacklevel (:issue:`42570`)
+- Fixed regression for :func:`merge_asof` raising ``KeyError`` when one of the ``by`` columns is in the index (:issue:`34488`)
 - Fixed regression in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
-
+- Fixed regression in :meth:`SeriesGroupBy.value_counts` that resulted in an ``IndexError`` when called on a Series with one row (:issue:`42618`)
 
 .. ---------------------------------------------------------------------------
 
@@ -37,16 +38,8 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.transpose` dropping values when the DataFrame had an Extension Array dtype and a duplicate index (:issue:`42380`)
 - Fixed bug in :meth:`DataFrame.to_xml` raising ``KeyError`` when called with ``index=False`` and an offset index (:issue:`42458`)
+- Fixed bug in :meth:`.Styler.set_sticky` not handling index names correctly for single index columns case (:issue:`42537`)
 - Fixed bug in :meth:`DataFrame.copy` failing to consolidate blocks in the result (:issue:`42579`)
-
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_131.other:
-
-Other
-~~~~~
--
--
 
 .. ---------------------------------------------------------------------------
 
@@ -55,4 +48,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.3.0..v1.3.1|HEAD
+.. contributors:: v1.3.0..v1.3.1
