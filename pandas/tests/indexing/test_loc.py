@@ -2432,6 +2432,18 @@ class TestLocListlike:
         with pytest.raises(KeyError, match="not in index"):
             ser.loc[keys]
 
+    def test_loc_named_index(self):
+        # GH 42790
+        df = DataFrame(
+            [[1, 2], [4, 5], [7, 8]],
+            index=["cobra", "viper", "sidewinder"],
+            columns=["max_speed", "shield"],
+        )
+        expected = df.iloc[:2]
+        expected.index.name = "foo"
+        result = df.loc[Index(["cobra", "viper"], name="foo")]
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
