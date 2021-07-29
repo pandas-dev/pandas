@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_sequence,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
@@ -56,11 +55,8 @@ from pandas.core.indexers import (
     length_of_indexer,
 )
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     Index,
-    IntervalIndex,
     MultiIndex,
-    ensure_index,
 )
 
 if TYPE_CHECKING:
@@ -650,8 +646,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, MultiIndex) and self.name != "iloc":
-            with suppress(TypeError, KeyError, InvalidIndexError):
+        if isinstance(ax, MultiIndex) and self.name != "iloc" and is_hashable(key):
+            with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 return ax.get_loc(key)
 
@@ -662,16 +658,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if isinstance(key, range):
             return list(key)
 
-        try:
-            return self._convert_to_indexer(key, axis=0, is_setter=True)
-        except TypeError as e:
-
-            # invalid indexer type vs 'other' indexing errors
-            if "cannot do" in str(e):
-                raise
-            elif "unhashable type" in str(e):
-                raise
-            raise IndexingError(key) from e
+        return self._convert_to_indexer(key, axis=0, is_setter=True)
 
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
         """
@@ -1213,7 +1200,7 @@ class _LocIndexer(_LocationIndexer):
         is_int_index = labels.is_integer()
         is_int_positional = is_integer(key) and not is_int_index
 
-        if is_scalar(key) or isinstance(labels, MultiIndex):
+        if is_scalar(key) or (isinstance(labels, MultiIndex) and is_hashable(key)):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
@@ -1228,8 +1215,6 @@ class _LocIndexer(_LocationIndexer):
                 # GH35015, using datetime as column indices raises exception
                 if not isinstance(labels, MultiIndex):
                     raise
-            except TypeError:
-                pass
             except ValueError:
                 if not is_int_positional:
                     raise
@@ -1293,93 +1278,11 @@ class _LocIndexer(_LocationIndexer):
             Indexer for the return object, -1 denotes keys not found.
         """
         ax = self.obj._get_axis(axis)
+        axis_name = self.obj._get_axis_name(axis)
 
-        keyarr = key
-        if not isinstance(keyarr, Index):
-            keyarr = com.asarray_tuplesafe(keyarr)
-
-        if isinstance(ax, MultiIndex):
-            # get_indexer expects a MultiIndex or sequence of tuples, but
-            #  we may be doing partial-indexing, so need an extra check
-
-            # Have the index compute an indexer or return None
-            # if it cannot handle:
-            indexer = ax._convert_listlike_indexer(keyarr)
-            # We only act on all found values:
-            if indexer is not None and (indexer != -1).all():
-                # _validate_read_indexer is a no-op if no -1s, so skip
-                return ax[indexer], indexer
-
-        if ax._index_as_unique:
-            indexer = ax.get_indexer_for(keyarr)
-            keyarr = ax.reindex(keyarr)[0]
-        else:
-            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
-
-        self._validate_read_indexer(keyarr, indexer, axis)
-
-        if needs_i8_conversion(ax.dtype) or isinstance(
-            ax, (IntervalIndex, CategoricalIndex)
-        ):
-            # For CategoricalIndex take instead of reindex to preserve dtype.
-            #  For IntervalIndex this is to map integers to the Intervals they match to.
-            keyarr = ax.take(indexer)
-            if keyarr.dtype.kind in ["m", "M"]:
-                # DTI/TDI.take can infer a freq in some cases when we dont want one
-                if isinstance(key, list) or (
-                    isinstance(key, type(ax)) and key.freq is None
-                ):
-                    keyarr = keyarr._with_freq(None)
+        keyarr, indexer = ax._get_indexer_strict(key, axis_name)
 
         return keyarr, indexer
-
-    def _validate_read_indexer(self, key, indexer, axis: int):
-        """
-        Check that indexer can be used to return a result.
-
-        e.g. at least one element was found,
-        unless the list of keys was actually empty.
-
-        Parameters
-        ----------
-        key : list-like
-            Targeted labels (only used to show correct error message).
-        indexer: array-like of booleans
-            Indices corresponding to the key,
-            (with -1 indicating not found).
-        axis : int
-            Dimension on which the indexing is being made.
-
-        Raises
-        ------
-        KeyError
-            If at least one key was requested but none was found.
-        """
-        if len(key) == 0:
-            return
-
-        # Count missing values:
-        missing_mask = indexer < 0
-        missing = (missing_mask).sum()
-
-        if missing:
-            ax = self.obj._get_axis(axis)
-
-            # TODO: remove special-case; this is just to keep exception
-            #  message tests from raising while debugging
-            use_interval_msg = isinstance(ax, IntervalIndex) or (
-                isinstance(ax, CategoricalIndex)
-                and isinstance(ax.categories, IntervalIndex)
-            )
-
-            if missing == len(indexer):
-                axis_name = self.obj._get_axis_name(axis)
-                if use_interval_msg:
-                    key = list(key)
-                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
-
-            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
-            raise KeyError(f"{not_found} not in index")
 
 
 @doc(IndexingMixin.iloc)
