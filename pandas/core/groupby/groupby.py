@@ -2822,6 +2822,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
+        fill_value=None,
         **kwargs,
     ):
         """
@@ -2872,6 +2873,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        fill_value : any, default None
+            The scalar value to use for newly introduced missing values.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2896,7 +2899,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         ids, _, ngroups = grouper.group_info
-        output: dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
 
         base_func = getattr(libgroupby, how)
         base_func = partial(base_func, labels=ids)
@@ -2911,6 +2914,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             else:
                 result_sz = len(values)
 
+            result: ArrayLike
             result = np.zeros(result_sz, dtype=cython_dtype)
             if needs_2d:
                 result = result.reshape((-1, 1))
@@ -2946,7 +2950,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = result.reshape(-1)
 
             if result_is_index:
-                result = algorithms.take_nd(values, result)
+                result = algorithms.take_nd(values, result, fill_value=fill_value)
 
             if post_processing:
                 pp_kwargs = {}
@@ -3022,7 +3026,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         tshift : Shift the time index, using the index’s frequency
             if available.
         """
-        if freq is not None or axis != 0 or not isna(fill_value):
+        if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 
         return self._get_cythonized_result(
@@ -3032,6 +3036,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             needs_ngroups=True,
             result_is_index=True,
             periods=periods,
+            fill_value=fill_value,
         )
 
     @final
