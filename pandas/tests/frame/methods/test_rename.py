@@ -403,13 +403,3 @@ class TestRename:
             ],
         ).set_index(["STK_ID", "RPT_Date"], drop=False)
         tm.assert_frame_equal(result, expected)
-
-
-def test_rename_dict_wrong_matches():
-    # GH4980
-    df = DataFrame(np.arange(15).reshape(5, 3), columns=[False, True, 2])
-    mapper = {0: "foo", 1: "bar", 2: "bah"}
-    res = df.rename(columns=mapper)
-    expected = df.copy()
-    expected.columns = [False, True, "bah"]
-    tm.assert_frame_equal(res, expected)

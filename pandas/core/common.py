@@ -507,15 +507,14 @@ def get_rename_function(mapper):
     if isinstance(mapper, (abc.Mapping, ABCSeries)):
 
         def f(x):
-            if isinstance(x, bool):
-                for map_key, repl in mapper.items():
-                    if id(map_key) == id(x):
-                        return repl
+            if x in mapper:
+                return mapper[x]
+            else:
                 return x
-            return mapper.get(x, x)
 
     else:
         f = mapper
+
     return f
 
 

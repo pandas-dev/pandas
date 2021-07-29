@@ -101,13 +101,3 @@ class TestRename:
         tm.assert_series_equal(result, expected)
 
         assert result.name == expected.name
-
-
-def test_rename_dict_wrong_matches():
-    # GH4980
-    ser = Series(range(3), index=Index([False, True, 2]))
-    mapper = {0: "foo", 1: "bar", 2: "bah"}
-    res = ser.rename(mapper)
-    expected = ser.copy()
-    expected.index = Index([False, True, "bah"])
-    tm.assert_series_equal(res, expected)
