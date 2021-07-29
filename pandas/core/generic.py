@@ -67,6 +67,7 @@ from pandas.util._decorators import (
     doc,
     rewrite_axis_style_signature,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -3506,7 +3507,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
 
         if verify_is_copy:
-            self._check_setitem_copy(stacklevel=5, t="referent")
+            self._check_setitem_copy(t="referent")
 
         if clear:
             self._clear_item_cache()
@@ -3853,25 +3854,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         setting.
         """
         if self._is_copy:
-            self._check_setitem_copy(stacklevel=4, t="referent")
+            self._check_setitem_copy(t="referent")
         return False
 
     @final
-    def _check_setitem_copy(self, stacklevel=4, t="setting", force=False):
+    def _check_setitem_copy(self, t="setting", force=False):
         """
 
         Parameters
         ----------
-        stacklevel : int, default 4
-           the level to show of the stack when the error is output
         t : str, the type of setting error
         force : bool, default False
            If True, then force showing an error.
 
         validate if we are doing a setitem on a chained copy.
-
-        If you call this function, be sure to set the stacklevel such that the
-        user will see the error *at the level of setting*
 
         It is technically possible to figure out that we are setting on
         a copy even WITH a multi-dtyped pandas object. In other words, some
@@ -3931,7 +3927,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if value == "raise":
             raise com.SettingWithCopyError(t)
         elif value == "warn":
-            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=stacklevel)
+            warnings.warn(t, com.SettingWithCopyWarning, stacklevel=find_stack_level())
 
     def __delitem__(self, key) -> None:
         """
