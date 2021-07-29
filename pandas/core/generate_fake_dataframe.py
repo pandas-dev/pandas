@@ -64,6 +64,7 @@ def generate_fake_dataframe(
     See Also
     --------
     makeDataFrame() : Generates a (30, 4) DataFrame with random float values.
+    makeCustomDataFrame() : Generates a (x, y) DataFrame with columns of the same type.
     makeMissingDataframe() : Generates a (30, 4) DataFrame with some NANs.
     makeMixedDataFrame() : Generates a predefined (5, 4) DataFrame.
 

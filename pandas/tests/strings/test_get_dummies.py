@@ -1,12 +1,13 @@
 import numpy as np
 
+from pandas.core.generate_fake_dataframe import generate_fake_dataframe
+
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
-    _testing as tm,
-    generate_fake_dataframe
+    _testing as tm
 )
 
 
