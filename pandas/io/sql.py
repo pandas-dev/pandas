@@ -47,36 +47,12 @@ from pandas.core.tools.datetimes import to_datetime
 from pandas.util.version import Version
 
 
-class SQLAlchemyRequired(ImportError):
-    pass
-
-
 class DatabaseError(IOError):
     pass
 
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
-
-_SQLALCHEMY_INSTALLED: bool | None = None
-
-
-def _is_sqlalchemy_connectable(con):
-    global _SQLALCHEMY_INSTALLED
-    if _SQLALCHEMY_INSTALLED is None:
-        try:
-            import sqlalchemy
-
-            _SQLALCHEMY_INSTALLED = True
-        except ImportError:
-            _SQLALCHEMY_INSTALLED = False
-
-    if _SQLALCHEMY_INSTALLED:
-        import sqlalchemy  # noqa: F811
-
-        return isinstance(con, sqlalchemy.engine.Connectable)
-    else:
-        return False
 
 
 def _gt14() -> bool:
@@ -303,21 +279,14 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-    con = _engine_builder(con)
-    if not _is_sqlalchemy_connectable(con):
-        raise NotImplementedError(
-            "read_sql_table only supported for SQLAlchemy connectable."
-        )
-    import sqlalchemy
-    from sqlalchemy.schema import MetaData
+    from sqlalchemy.exc import InvalidRequestError
 
-    meta = MetaData(con, schema=schema)
+    pandas_sql = pandasSQL_builder(con, schema=schema)
     try:
-        meta.reflect(only=[table_name], views=True)
-    except sqlalchemy.exc.InvalidRequestError as err:
+        pandas_sql.meta.reflect(only=[table_name], views=True)
+    except InvalidRequestError as err:
         raise ValueError(f"Table {table_name} not found") from err
 
-    pandas_sql = SQLDatabase(con, meta=meta)
     table = pandas_sql.read_table(
         table_name,
         index_col=index_col,
@@ -752,36 +721,28 @@ def has_table(table_name: str, con, schema: str | None = None):
 table_exists = has_table
 
 
-def _engine_builder(con):
-    """
-    Returns a SQLAlchemy engine from a URI (if con is a string)
-    else it just return con without modifying it.
-    """
-    global _SQLALCHEMY_INSTALLED
-    if isinstance(con, str):
-        try:
-            import sqlalchemy
-        except ImportError:
-            _SQLALCHEMY_INSTALLED = False
-        else:
-            con = sqlalchemy.create_engine(con)
-            return con
-
-    return con
-
-
-def pandasSQL_builder(con, schema: str | None = None, meta=None):
+def pandasSQL_builder(con, schema: str | None = None):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
     """
-    con = _engine_builder(con)
-    if _is_sqlalchemy_connectable(con):
-        return SQLDatabase(con, schema=schema, meta=meta)
-    elif isinstance(con, str):
-        raise ImportError("Using URI string without sqlalchemy installed.")
-    else:
+    import sqlite3
+
+    if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
+
+    sqlalchemy = import_optional_dependency("sqlalchemy")
+
+    if isinstance(con, str):
+        con = sqlalchemy.create_engine(con)
+
+    if isinstance(con, sqlalchemy.engine.Connectable):
+        return SQLDatabase(con, schema=schema)
+
+    raise ValueError(
+        "pandas only support SQLAlchemy connectable(engine/connection) or"
+        "database string URI or sqlite3 DBAPI2 connection"
+    )
 
 
 class SQLTable(PandasObject):
@@ -1387,21 +1348,14 @@ class SQLDatabase(PandasSQL):
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
-    meta : SQLAlchemy MetaData object, default None
-        If provided, this MetaData object is used instead of a newly
-        created. This allows to specify database flavor specific
-        arguments in the MetaData object.
 
     """
 
-    def __init__(self, engine, schema: str | None = None, meta=None):
+    def __init__(self, engine, schema: str | None = None):
+        from sqlalchemy.schema import MetaData
+
         self.connectable = engine
-        if not meta:
-            from sqlalchemy.schema import MetaData
-
-            meta = MetaData(self.connectable, schema=schema)
-
-        self.meta = meta
+        self.meta = MetaData(self.connectable, schema=schema)
 
     @contextmanager
     def run_transaction(self):
