@@ -29,7 +29,6 @@ Fixed regressions
 - Fixed regression for :func:`merge_asof` raising ``KeyError`` when one of the ``by`` columns is in the index (:issue:`34488`)
 - Fixed regression in :func:`to_datetime` returning pd.NaT for inputs that produce duplicated values, when ``cache=True`` (:issue:`42259`)
 - Fixed regression in :meth:`SeriesGroupBy.value_counts` that resulted in an ``IndexError`` when called on a Series with one row (:issue:`42618`)
-- Fixed regression where :meth:`pandas.read_csv` raised a ``ValueError`` when parameters ``names`` and ``prefix`` were both set to None (:issue:`42387`)
 
 .. ---------------------------------------------------------------------------
 
