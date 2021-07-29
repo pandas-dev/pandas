@@ -2433,7 +2433,7 @@ class TestLocListlike:
             ser.loc[keys]
 
     def test_loc_named_index(self):
-        # GH ???
+        # GH 42790
         df = DataFrame(
             [[1, 2], [4, 5], [7, 8]],
             index=["cobra", "viper", "sidewinder"],
