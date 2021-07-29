@@ -95,29 +95,32 @@ class TestFactorize:
         exp = np.array(["a", "b", "c"], dtype=object)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(range(5))))
+        arr = np.arange(5, dtype=np.intp)[::-1]
+
+        codes, uniques = algos.factorize(arr)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([4, 3, 2, 1, 0], dtype=np.int64)
+        exp = np.array([4, 3, 2, 1, 0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(range(5))), sort=True)
-
+        codes, uniques = algos.factorize(arr, sort=True)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+        exp = np.array([0, 1, 2, 3, 4], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(np.arange(5.0))))
+        arr = np.arange(5.0)[::-1]
+
+        codes, uniques = algos.factorize(arr)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([4.0, 3.0, 2.0, 1.0, 0.0], dtype=np.float64)
+        exp = np.array([4.0, 3.0, 2.0, 1.0, 0.0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(np.arange(5.0))), sort=True)
+        codes, uniques = algos.factorize(arr, sort=True)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=np.float64)
+        exp = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
     def test_mixed(self):
@@ -191,7 +194,7 @@ class TestFactorize:
         # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype="O")
-        rizer = ht.Factorizer(len(key))
+        rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
@@ -245,6 +248,17 @@ class TestFactorize:
         )
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
+
+    def test_numeric_dtype_factorize(self, any_real_dtype):
+        # GH41132
+        dtype = any_real_dtype
+        data = np.array([1, 2, 2, 1], dtype=dtype)
+        expected_codes = np.array([0, 1, 1, 0], dtype=np.intp)
+        expected_uniques = np.array([1, 2], dtype=dtype)
+
+        codes, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_float64_factorize(self, writable):
         data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
@@ -1742,7 +1756,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.intp))
+            result = libalgos.rank_1d(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
@@ -1751,14 +1765,15 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self, writable):
+    @pytest.mark.parametrize("dtype", np.typecodes["AllInteger"])
+    def test_basic(self, writable, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        for dtype in np.typecodes["AllInteger"]:
-            data = np.array([1, 100], dtype=dtype)
-            data.setflags(write=writable)
-            s = Series(data)
-            tm.assert_numpy_array_equal(algos.rank(s), exp)
+        data = np.array([1, 100], dtype=dtype)
+        data.setflags(write=writable)
+        ser = Series(data)
+        result = algos.rank(ser)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_uint64_overflow(self):
         exp = np.array([1, 2], dtype=np.float64)

@@ -52,7 +52,9 @@ import pandas._testing as tm
 
 import pandas.io.sql as sql
 from pandas.io.sql import (
+    SQLAlchemyEngine,
     _gt14,
+    get_engine,
     read_sql_query,
     read_sql_table,
 )
@@ -572,6 +574,23 @@ class PandasSQLTest:
         num_entries = len(self.test_frame1)
         num_rows = self._count_rows("test_frame1")
         assert num_rows == num_entries
+        # Nuke table
+        self.drop_table("test_frame1")
+
+    def _to_sql_with_sql_engine(self, engine="auto", **engine_kwargs):
+        """`to_sql` with the `engine` param"""
+        # mostly copied from this class's `_to_sql()` method
+        self.drop_table("test_frame1")
+
+        self.pandasSQL.to_sql(
+            self.test_frame1, "test_frame1", engine=engine, **engine_kwargs
+        )
+        assert self.pandasSQL.has_table("test_frame1")
+
+        num_entries = len(self.test_frame1)
+        num_rows = self._count_rows("test_frame1")
+        assert num_rows == num_entries
+
         # Nuke table
         self.drop_table("test_frame1")
 
@@ -1353,8 +1372,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        msg = "Using URI string without sqlalchemy installed"
-        with pytest.raises(ImportError, match=msg):
+        with pytest.raises(ImportError, match="SQLAlchemy"):
             sql.read_sql("SELECT * FROM iris", conn)
 
     def test_read_sql_delegate(self):
@@ -2053,6 +2071,41 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         tm.assert_frame_equal(df, expected)
 
+    # -- SQL Engine tests (in the base class for now)
+    def test_invalid_engine(self):
+        msg = "engine must be one of 'auto', 'sqlalchemy'"
+        with pytest.raises(ValueError, match=msg):
+            self._to_sql_with_sql_engine("bad_engine")
+
+    def test_options_sqlalchemy(self):
+        # use the set option
+
+        with pd.option_context("io.sql.engine", "sqlalchemy"):
+            self._to_sql_with_sql_engine()
+
+    def test_options_auto(self):
+        # use the set option
+
+        with pd.option_context("io.sql.engine", "auto"):
+            self._to_sql_with_sql_engine()
+
+    def test_options_get_engine(self):
+        assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+        with pd.option_context("io.sql.engine", "sqlalchemy"):
+            assert isinstance(get_engine("auto"), SQLAlchemyEngine)
+            assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+        with pd.option_context("io.sql.engine", "auto"):
+            assert isinstance(get_engine("auto"), SQLAlchemyEngine)
+            assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
+
+    def test_get_engine_auto_error_message(self):
+        # Expect different error messages from get_engine(engine="auto")
+        # if engines aren't installed vs. are installed but bad version
+        pass
+        # TODO fill this in when we add more engines
+
 
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
     def test_transactions(self):
@@ -2260,8 +2313,7 @@ class _TestPostgreSQLAlchemy:
         # because of transactional schemas
         if isinstance(self.conn, sqlalchemy.engine.Engine):
             engine2 = self.connect()
-            meta = sqlalchemy.MetaData(engine2, schema="other")
-            pdsql = sql.SQLDatabase(engine2, meta=meta)
+            pdsql = sql.SQLDatabase(engine2, schema="other")
             pdsql.to_sql(df, "test_schema_other2", index=False)
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="replace")
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="append")
@@ -2282,7 +2334,7 @@ class _TestPostgreSQLAlchemy:
                 writer.writerows(data_iter)
                 s_buf.seek(0)
 
-                columns = ", ".join(f'"{k}"' for k in keys)
+                columns = ", ".join([f'"{k}"' for k in keys])
                 if table.schema:
                     table_name = f"{table.schema}.{table.name}"
                 else:
@@ -2561,9 +2613,9 @@ def format_query(sql, *args):
     return sql % tuple(processed_args)
 
 
-def tquery(query, con=None, cur=None):
+def tquery(query, con=None):
     """Replace removed sql.tquery function"""
-    res = sql.execute(query, con=con, cur=cur).fetchall()
+    res = sql.execute(query, con=con).fetchall()
     if res is None:
         return None
     else:
@@ -2595,12 +2647,10 @@ class TestXSQLite(SQLiteMixIn):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
-        cur = self.conn.cursor()
-
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
+        for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, con=self.conn)
 
         self.conn.commit()
 
@@ -2858,9 +2908,9 @@ class TestXMySQL(MySQLMixIn):
         cur.execute(drop_sql)
         cur.execute(create_sql)
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
+        for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, con=self.conn)
 
         self.conn.commit()
 

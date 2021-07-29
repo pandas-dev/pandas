@@ -23,6 +23,7 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
+from pandas._libs.arrays cimport NDArrayBacked
 from pandas._libs.util cimport is_integer_object
 
 
@@ -372,7 +373,9 @@ cdef slice indexer_as_slice(intp_t[:] vals):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_blkno_indexers(int64_t[:] blknos, bint group=True):
+def get_blkno_indexers(
+    int64_t[:] blknos, bint group=True
+) -> list[tuple[int, slice | np.ndarray]]:
     """
     Enumerate contiguous runs of integers in ndarray.
 
@@ -514,8 +517,29 @@ cdef class NumpyBlock(SharedBlock):
         #  set placement and ndim
         self.values = values
 
-    # @final  # not useful in cython, but we _would_ annotate with @final
     cpdef NumpyBlock getitem_block_index(self, slice slicer):
+        """
+        Perform __getitem__-like specialized to slicing along index.
+
+        Assumes self.ndim == 2
+        """
+        new_values = self.values[..., slicer]
+        return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
+
+
+cdef class NDArrayBackedBlock(SharedBlock):
+    """
+    Block backed by NDArrayBackedExtensionArray
+    """
+    cdef public:
+        NDArrayBacked values
+
+    def __cinit__(self, NDArrayBacked values, BlockPlacement placement, int ndim):
+        # set values here the (implicit) call to SharedBlock.__cinit__ will
+        #  set placement and ndim
+        self.values = values
+
+    cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -543,7 +567,12 @@ cdef class BlockManager:
         public bint _known_consolidated, _is_consolidated
         public ndarray _blknos, _blklocs
 
-    def __cinit__(self, blocks, axes, verify_integrity=True):
+    def __cinit__(self, blocks=None, axes=None, verify_integrity=True):
+        # None as defaults for unpickling GH#42345
+        if blocks is None:
+            # This adds 1-2 microseconds to DataFrame(np.array([]))
+            return
+
         if isinstance(blocks, list):
             # Backward compat for e.g. pyarrow
             blocks = tuple(blocks)
@@ -554,12 +583,8 @@ cdef class BlockManager:
         # Populate known_consolidate, blknos, and blklocs lazily
         self._known_consolidated = False
         self._is_consolidated = False
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blknos = None  # type: ignore[assignment]
-        # error: Incompatible types in assignment (expression has type "None",
-        # variable has type "ndarray")
-        self._blklocs = None  # type: ignore[assignment]
+        self._blknos = None
+        self._blklocs = None
 
     # -------------------------------------------------------------------
     # Pickle

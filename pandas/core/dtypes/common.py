@@ -1,11 +1,11 @@
 """
 Common type operations.
 """
+from __future__ import annotations
 
 from typing import (
     Any,
     Callable,
-    Union,
 )
 import warnings
 
@@ -20,7 +20,6 @@ from pandas._libs.tslibs import conversion
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    Optional,
 )
 
 from pandas.core.dtypes.base import _registry as registry
@@ -57,21 +56,6 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_scalar,
     is_sequence,
 )
-
-POSSIBLY_CAST_DTYPES = {
-    np.dtype(t).name
-    for t in [
-        "O",
-        "int8",
-        "uint8",
-        "int16",
-        "uint16",
-        "int32",
-        "uint32",
-        "int64",
-        "uint64",
-    ]
-}
 
 DT64NS_DTYPE = conversion.DT64NS_DTYPE
 TD64NS_DTYPE = conversion.TD64NS_DTYPE
@@ -117,7 +101,7 @@ ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 
-def ensure_str(value: Union[bytes, Any]) -> str:
+def ensure_str(value: bytes | Any) -> str:
     """
     Ensure that bytes and non-strings get converted into ``str`` objects.
     """
@@ -128,7 +112,7 @@ def ensure_str(value: Union[bytes, Any]) -> str:
     return value
 
 
-def ensure_python_int(value: Union[int, np.integer]) -> int:
+def ensure_python_int(value: int | np.integer) -> int:
     """
     Ensure that a value is a python int.
 
@@ -157,7 +141,7 @@ def ensure_python_int(value: Union[int, np.integer]) -> int:
 
 
 def classes(*klasses) -> Callable:
-    """ evaluate if the tipo is a subclass of the klasses """
+    """evaluate if the tipo is a subclass of the klasses"""
     return lambda tipo: issubclass(tipo, klasses)
 
 
@@ -178,7 +162,7 @@ def is_object_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -332,7 +316,7 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -365,7 +349,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -406,7 +390,7 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -440,7 +424,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -476,7 +460,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -514,7 +498,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype to check.
 
     Returns
@@ -550,7 +534,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -646,14 +630,12 @@ def is_any_int_dtype(arr_or_dtype) -> bool:
 
     This function is internal and should not be exposed in the public API.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
-       as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+    as integer by this function.
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -693,14 +675,12 @@ def is_integer_dtype(arr_or_dtype) -> bool:
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
-       as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+    as integer by this function.
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -747,14 +727,12 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
 
     Unlike in `in_any_int_dtype`, timedelta64 instances will return False.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
-       as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.Int64Dtype) are also considered
+    as integer by this function.
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -801,14 +779,12 @@ def is_unsigned_integer_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of an unsigned integer dtype.
 
-    .. versionchanged:: 0.24.0
-
-       The nullable Integer dtypes (e.g. pandas.UInt64Dtype) are also
-       considered as integer by this function.
+    The nullable Integer dtypes (e.g. pandas.UInt64Dtype) are also
+    considered as integer by this function.
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -852,7 +828,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -902,7 +878,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -944,7 +920,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -994,7 +970,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1023,7 +999,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1063,7 +1039,7 @@ def is_numeric_v_string_like(a: ArrayLike, b):
 
     Parameters
     ----------
-    a : array-like
+    a : array-like, scalar
         The first object to check.
     b : array-like, scalar
         The second object to check.
@@ -1170,7 +1146,7 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1214,7 +1190,7 @@ def is_numeric_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1258,7 +1234,7 @@ def is_float_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1290,7 +1266,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1361,7 +1337,7 @@ def is_extension_type(arr) -> bool:
 
     Parameters
     ----------
-    arr : array-like
+    arr : array-like, scalar
         The array-like to check.
 
     Returns
@@ -1429,7 +1405,7 @@ def is_1d_only_ea_obj(obj: Any) -> bool:
     )
 
 
-def is_1d_only_ea_dtype(dtype: Optional[DtypeObj]) -> bool:
+def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     """
     Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
     """
@@ -1494,7 +1470,7 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
         return registry.find(dtype) is not None
 
 
-def is_ea_or_datetimelike_dtype(dtype: Optional[DtypeObj]) -> bool:
+def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
     """
     Check for ExtensionDtype, datetime64 dtype, or timedelta64 dtype.
 
@@ -1513,7 +1489,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array or dtype to check.
 
     Returns
@@ -1570,7 +1546,7 @@ def get_dtype(arr_or_dtype) -> DtypeObj:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype object whose dtype we want to extract.
 
     Returns
@@ -1604,7 +1580,7 @@ def _is_dtype_type(arr_or_dtype, condition) -> bool:
 
     Parameters
     ----------
-    arr_or_dtype : array-like
+    arr_or_dtype : array-like or dtype
         The array-like or dtype object whose dtype we want to extract.
     condition : callable[Union[np.dtype, ExtensionDtypeType]]
 
@@ -1738,7 +1714,7 @@ def _validate_date_like_dtype(dtype) -> None:
         )
 
 
-def validate_all_hashable(*args, error_name: Optional[str] = None) -> None:
+def validate_all_hashable(*args, error_name: str | None = None) -> None:
     """
     Return None if all args are hashable, else raise a TypeError.
 

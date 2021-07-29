@@ -1,17 +1,20 @@
+from __future__ import annotations
+
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Optional,
-    Tuple,
 )
 
 from pandas._typing import (
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -102,9 +105,15 @@ class Expanding(RollingAndExpandingMixin):
         center=None,
         axis: Axis = 0,
         method: str = "single",
+        selection=None,
     ):
         super().__init__(
-            obj=obj, min_periods=min_periods, center=center, axis=axis, method=method
+            obj=obj,
+            min_periods=min_periods,
+            center=center,
+            axis=axis,
+            method=method,
+            selection=selection,
         )
 
     def _get_window_indexer(self) -> BaseIndexer:
@@ -178,10 +187,10 @@ class Expanding(RollingAndExpandingMixin):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
-        args: Optional[Tuple[Any, ...]] = None,
-        kwargs: Optional[Dict[str, Any]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+        args: tuple[Any, ...] | None = None,
+        kwargs: dict[str, Any] | None = None,
     ):
         return super().apply(
             func,
@@ -211,8 +220,8 @@ class Expanding(RollingAndExpandingMixin):
     def sum(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_expanding_func("sum", args, kwargs)
@@ -237,8 +246,8 @@ class Expanding(RollingAndExpandingMixin):
     def max(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_expanding_func("max", args, kwargs)
@@ -263,8 +272,8 @@ class Expanding(RollingAndExpandingMixin):
     def min(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_expanding_func("min", args, kwargs)
@@ -289,8 +298,8 @@ class Expanding(RollingAndExpandingMixin):
     def mean(
         self,
         *args,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         nv.validate_expanding_func("mean", args, kwargs)
@@ -313,8 +322,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def median(
         self,
-        engine: Optional[str] = None,
-        engine_kwargs: Optional[Dict[str, bool]] = None,
+        engine: str | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         return super().median(engine=engine, engine_kwargs=engine_kwargs, **kwargs)
@@ -586,8 +595,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
@@ -651,8 +660,8 @@ class Expanding(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: Optional[FrameOrSeriesUnion] = None,
-        pairwise: Optional[bool] = None,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
     ):
