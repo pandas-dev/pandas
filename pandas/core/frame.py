@@ -4754,7 +4754,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         labels : single label or list-like
-            Index or column labels to drop.
+            Index or column labels to drop. A tuple will be used as a single
+            label and not treated as a list-like.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
@@ -4843,6 +4844,17 @@ class DataFrame(NDFrame, OpsMixin):
                 length  1.5     0.8
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
+                length  0.3     0.2
+
+        >>> df.drop(index=('falcon', 'weight'))
+                        big     small
+        lama    speed   45.0    30.0
+                weight  200.0   100.0
+                length  1.5     1.0
+        cow     speed   30.0    20.0
+                weight  250.0   150.0
+                length  1.5     0.8
+        falcon  speed   320.0   250.0
                 length  0.3     0.2
 
         >>> df.drop(index='cow', columns='small')
