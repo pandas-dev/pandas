@@ -384,7 +384,7 @@ def qcut(
 
 def _bins_to_cuts(
     x,
-    bins,
+    bins: np.ndarray,
     right: bool = True,
     labels=None,
     precision: int = 3,
@@ -418,10 +418,14 @@ def _bins_to_cuts(
             bins = unique_bins
 
     side = "left" if right else "right"
-    ids = ensure_platform_int(bins.searchsorted(x, side=side))
+    # error: No overload variant of "searchsorted" of "ndarray" matches
+    # argument types "Any", "str"
+    ids = ensure_platform_int(
+        bins.searchsorted(x, side=side)  # type: ignore[call-overload]
+    )
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        ids[np.asarray(x) == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
