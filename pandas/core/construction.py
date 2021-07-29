@@ -420,9 +420,9 @@ def extract_array(
                 return obj._values
             return obj
 
-        obj = obj.array
+        obj = obj._values
 
-    if extract_numpy and isinstance(obj, ABCPandasArray):
+    elif extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
     return obj
