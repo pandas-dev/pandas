@@ -1866,6 +1866,35 @@ def test_invalid_engine():
 
 
 @td.skip_if_no_ne
+@pytest.mark.parametrize(
+    ("use_numexpr", "expected"),
+    (
+        (True, "numexpr"),
+        (False, "python"),
+    ),
+)
+def test_numexpr_option_respected(use_numexpr, expected):
+    # GH 32556
+    from pandas.core.computation.eval import _check_engine
+
+    with pd.option_context("compute.use_numexpr", use_numexpr):
+        result = _check_engine(None)
+        assert result == expected
+
+
+@td.skip_if_no_ne
+def test_numexpr_option_incompatible_op():
+    # GH 32556
+    with pd.option_context("compute.use_numexpr", False):
+        df = DataFrame(
+            {"A": [True, False, True, False, None, None], "B": [1, 2, 3, 4, 5, 6]}
+        )
+        result = df.query("A.isnull()")
+        expected = DataFrame({"A": [None, None], "B": [5, 6]}, index=[4, 5])
+        tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no_ne
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
