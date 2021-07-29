@@ -1225,7 +1225,6 @@ Other
 - Bug in :func:`show_versions` where console JSON output was not proper JSON (:issue:`39701`)
 - pandas can now compile on z/OS when using `xlc <https://www.ibm.com/products/xl-cpp-compiler-zos>`_ (:issue:`35826`)
 - Bug in :func:`pandas.util.hash_pandas_object` not recognizing ``hash_key``, ``encoding`` and ``categorize`` when the input object type is a :class:`DataFrame` (:issue:`41404`)
-- Bug in :meth:`DataFrame.isin` and :meth:`Series.isin` incorrectly comparing ``None`` values to ``False`` (:issue:`35565`)
 
 .. ---------------------------------------------------------------------------
 
