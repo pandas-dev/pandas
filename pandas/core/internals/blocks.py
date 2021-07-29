@@ -1553,7 +1553,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         """
         Perform __getitem__-like specialized to slicing along index.
         """
-        new_values = self.array_values[slicer]
+        # GH#42787 in principle this is equivalent to values[..., slicer], but we don't
+        # require subclasses of ExtensionArray to support that form (for now).
+        new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     def fillna(
