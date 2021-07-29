@@ -5407,6 +5407,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         keyarr = self.take(indexer)
         if isinstance(key, Index):
+            # GH 42790 - Preserve name from an Index
             keyarr.name = key.name
         if keyarr.dtype.kind in ["m", "M"]:
             # DTI/TDI.take can infer a freq in some cases when we dont want one
