@@ -1090,7 +1090,6 @@ class TestIsin:
         y = x[1].copy()
         res = x.isin(y)
         expected = DataFrame([[False, True], [False, True]])
-        print(expected)
         tm.assert_frame_equal(res, expected)
 
 
