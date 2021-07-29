@@ -505,11 +505,11 @@ def read_csv(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
@@ -603,11 +603,11 @@ def read_table(
     delimiter=None,
     # Column and Index Locations and Names
     header="infer",
-    names=None,
+    names=lib.no_default,
     index_col=None,
     usecols=None,
     squeeze=False,
-    prefix=None,
+    prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
@@ -1224,8 +1224,8 @@ def _refine_defaults_read(
     error_bad_lines: bool | None,
     warn_bad_lines: bool | None,
     on_bad_lines: str | None,
-    names: ArrayLike | None,
-    prefix: str | None,
+    names: ArrayLike | None | object,
+    prefix: str | None | object,
     defaults: dict[str, Any],
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
@@ -1301,12 +1301,13 @@ def _refine_defaults_read(
 
     if delimiter and (sep is not lib.no_default):
         raise ValueError("Specified a sep and a delimiter; you can only specify one.")
-
-    if names is not None and prefix is not None:
+    
+    allowed_names_prefix = {None, lib.no_default}
+    if names not in allowed_names_prefix and prefix not in allowed_names_prefix:
         raise ValueError("Specified named and prefix; you can only specify one.")
 
-    kwds["names"] = names
-    kwds["prefix"] = prefix
+    kwds["names"] = None if names is lib.no_default else names
+    kwds["prefix"] = None if prefix is lib.no_default else prefix
 
     # Alias sep -> delimiter.
     if delimiter is None:
