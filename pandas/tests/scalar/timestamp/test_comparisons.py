@@ -266,6 +266,15 @@ class TestTimestampComparison:
         assert Timestamp.max < other + us
         # Note: numpy gets the reversed comparison wrong
 
+        # GH-42794
+        other = datetime(9999, 9, 9)
+        assert Timestamp.min < other
+        assert Timestamp.max < other
+
+        other = datetime(1, 1, 1)
+        assert Timestamp.max > other
+        assert Timestamp.min > other
+
     def test_compare_zerodim_array(self):
         # GH#26916
         ts = Timestamp.now()
