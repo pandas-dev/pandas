@@ -1920,11 +1920,11 @@ def get_block_type(values, dtype: DtypeObj | None = None):
 
 
 def new_block(values, placement, *, ndim: int, klass=None) -> Block:
+    # caller is responsible for ensuring values is NOT a PandasArray
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    values, _ = extract_pandas_array(values, None, ndim)
     check_ndim(values, placement, ndim)
 
     if klass is None:
