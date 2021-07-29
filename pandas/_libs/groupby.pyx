@@ -1177,7 +1177,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    Py_ssize_t min_count=-1,
                    bint is_datetimelike=False,
                    bint compute_max=True,
-                   uint8_t[:, ::1] mask=None,
+                   const uint8_t[:, ::1] mask=None,
                    uint8_t[:, ::1] mask_out=None):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.

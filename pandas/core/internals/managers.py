@@ -386,10 +386,14 @@ class BaseBlockManager(DataManager):
             # We only get here with fill_value not-lib.no_default
             ncols = self.shape[0]
             if periods > 0:
-                indexer = [-1] * periods + list(range(ncols - periods))
+                indexer = np.array(
+                    [-1] * periods + list(range(ncols - periods)), dtype=np.intp
+                )
             else:
                 nper = abs(periods)
-                indexer = list(range(nper, ncols)) + [-1] * nper
+                indexer = np.array(
+                    list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
+                )
             result = self.reindex_indexer(
                 self.items,
                 indexer,
@@ -1775,11 +1779,6 @@ def create_block_manager_from_blocks(
     return mgr
 
 
-# We define this here so we can override it in tests.extension.test_numpy
-def _extract_array(obj):
-    return extract_array(obj, extract_numpy=True)
-
-
 def create_block_manager_from_arrays(
     arrays,
     names: Index,
@@ -1791,7 +1790,7 @@ def create_block_manager_from_arrays(
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
 
-    arrays = [_extract_array(x) for x in arrays]
+    arrays = [extract_array(x, extract_numpy=True) for x in arrays]
 
     try:
         blocks = _form_blocks(arrays, names, axes, consolidate)

@@ -1251,7 +1251,7 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
 
     Examples
     --------
-    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')]},
     ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
     ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
     >>> _parse_latex_table_styles(table_styles, selector='bar')
