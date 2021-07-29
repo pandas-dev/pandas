@@ -166,8 +166,8 @@ class NumericIndex(Index):
         dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
-            # the try/except below is because it's difficult to predict the error
-            # and/or error message from different combinations of data and type.
+            # TODO: the try/except below is because it's difficult to predict the error
+            # and/or error message from different combinations of data and dtype.
             # Efforts to avoid this try/except welcome.
             # See https://github.com/pandas-dev/pandas/pull/41153#discussion_r676206222
             try:
