@@ -1509,6 +1509,7 @@ class Styler(StylerRenderer):
         """
         if axis in [0, "index"]:
             axis, obj = 0, self.data.index
+            pixel_size = 75 if not pixel_size else pixel_size
         elif axis in [1, "columns"]:
             axis, obj = 1, self.data.columns
             pixel_size = 25 if not pixel_size else pixel_size
