@@ -1301,7 +1301,7 @@ def _refine_defaults_read(
 
     if delimiter and (sep is not lib.no_default):
         raise ValueError("Specified a sep and a delimiter; you can only specify one.")
-    
+
     allowed_names_prefix = {None, lib.no_default}
     if names not in allowed_names_prefix and prefix not in allowed_names_prefix:
         raise ValueError("Specified named and prefix; you can only specify one.")
