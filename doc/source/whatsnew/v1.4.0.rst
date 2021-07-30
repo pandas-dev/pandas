@@ -549,6 +549,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
 - Bug in :meth:`DataFrame.fillna` not replacing missing values when using a dict-like ``value`` and duplicate column names (:issue:`43476`)
+- :meth:`Series.value_counts` and :meth:`Series.mode` no longer coerce ``None``, ``NaT`` and other null-values to a NaN-value for ``np.object``-dtype. This behavior is now consistent with ``unique``, ``isin`` and others (:issue:`42688`)
 -
 
 MultiIndex
