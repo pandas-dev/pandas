@@ -19,6 +19,8 @@ Fixed regressions
 - Regression in :meth:`DataFrame.from_records` with empty records (:issue:`42456`)
 - Fixed regression in :meth:`DataFrame.shift` where TypeError occurred when shifting DataFrame created by concatenation of slices and fills with values (:issue:`42719`)
 - Regression in :meth:`DataFrame.agg` when the ``func`` argument returned lists and ``axis=1`` (:issue:`42727`)
+- Fixed regression where :meth:`pandas.read_csv` raised a ``ValueError`` when parameters ``names`` and ``prefix`` were both set to None (:issue:`42387`)
+- Fixed regression in comparisons between :class:`Timestamp` object and ``datetime64`` objects outside the implementation bounds for nanosecond ``datetime64`` (:issue:`42794`)
 -
 
 .. ---------------------------------------------------------------------------
