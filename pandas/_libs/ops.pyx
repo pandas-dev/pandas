@@ -158,7 +158,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
             x = left[i]
             y = right[i]
             if x is None and y is None:
-                result[i] = True
+                result[i] = False
             elif checknull(x) or checknull(y):
                 result[i] = True
             else:
