@@ -23,7 +23,6 @@ from pandas._typing import (
     Axis,
     FilePathOrBuffer,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     IndexLabel,
     Scalar,
 )
@@ -174,7 +173,7 @@ class Styler(StylerRenderer):
 
     def __init__(
         self,
-        data: FrameOrSeriesUnion,
+        data: DataFrame | Series,
         precision: int | None = None,
         table_styles: CSSStyles | None = None,
         uuid: str | None = None,
@@ -428,6 +427,7 @@ class Styler(StylerRenderer):
         multirow_align: str = "c",
         multicol_align: str = "r",
         siunitx: bool = False,
+        environment: str | None = None,
         encoding: str | None = None,
         convert_css: bool = False,
     ):
@@ -458,6 +458,8 @@ class Styler(StylerRenderer):
             \\begin{table}[<position>]
 
             \\<position_float>
+
+            Cannot be used if ``environment`` is "longtable".
         hrules : bool, default False
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
@@ -474,8 +476,8 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.sparse.index`` value.
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.columns`` value.
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom.
@@ -484,6 +486,12 @@ class Styler(StylerRenderer):
             the left, centrally, or at the right.
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
+        environment : str, optional
+            If given, the environment that will replace 'table' in ``\\begin{table}``.
+            If 'longtable' is specified then a more suitable template is
+            rendered.
+
+            .. versionadded:: 1.4.0
         encoding : str, default "utf-8"
             Character encoding setting.
         convert_css : bool, default False
@@ -520,6 +528,8 @@ class Styler(StylerRenderer):
         italic (with siunitx) | \\usepackage{etoolbox}
                               | \\robustify\\itshape
                               | \\sisetup{detect-all = true}  *(within {document})*
+        environment           \\usepackage{longtable} if arg is "longtable"
+                              | or any other relevant environment package
         ===================== ==========================================================
 
         **Cell Styles**
@@ -537,7 +547,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()
+        >>> s.render()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
@@ -703,12 +713,14 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> df.style.set_properties(
         ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
-        ... ).to_latex(css_convert=True)
+        ... ).to_latex(convert_css=True)
         \begin{tabular}{lr}
         {} & {0} \\
         0 & {\bfseries}{\Huge{1}} \\
         \end{tabular}
         """
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+
         table_selectors = (
             [style["selector"] for style in self.table_styles]
             if self.table_styles is not None
@@ -717,7 +729,7 @@ class Styler(StylerRenderer):
 
         if column_format is not None:
             # add more recent setting to table_styles
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
@@ -735,31 +747,35 @@ class Styler(StylerRenderer):
                     column_format += (
                         ("r" if not siunitx else "S") if ci in numeric_cols else "l"
                     )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
                 overwrite=False,
             )
 
         if position:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position", "props": f":{position}"}],
                 overwrite=False,
             )
 
         if position_float:
+            if environment == "longtable":
+                raise ValueError(
+                    "`position_float` cannot be used in 'longtable' `environment`"
+                )
             if position_float not in ["raggedright", "raggedleft", "centering"]:
                 raise ValueError(
                     f"`position_float` should be one of "
                     f"'raggedright', 'raggedleft', 'centering', "
                     f"got: '{position_float}'"
                 )
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "position_float", "props": f":{position_float}"}],
                 overwrite=False,
             )
 
         if hrules:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [
                     {"selector": "toprule", "props": ":toprule"},
                     {"selector": "midrule", "props": ":midrule"},
@@ -769,24 +785,25 @@ class Styler(StylerRenderer):
             )
 
         if label:
-            self.set_table_styles(
+            obj.set_table_styles(
                 [{"selector": "label", "props": f":{{{label.replace(':', '§')}}}"}],
                 overwrite=False,
             )
 
         if caption:
-            self.set_caption(caption)
+            obj.set_caption(caption)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
 
-        latex = self._render_latex(
+        latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             multirow_align=multirow_align,
             multicol_align=multicol_align,
+            environment=environment,
             convert_css=convert_css,
         )
 
@@ -798,6 +815,8 @@ class Styler(StylerRenderer):
         *,
         table_uuid: str | None = None,
         table_attributes: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -823,6 +842,18 @@ class Styler(StylerRenderer):
             ``<table .. <table_attributes> >``
 
             If not given defaults to Styler's preexisting value.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+
+            .. versionadded:: 1.4.0
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+
+            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags,
             defaults to "utf-8" if None.
@@ -849,8 +880,15 @@ class Styler(StylerRenderer):
         if table_attributes:
             self.set_table_attributes(table_attributes)
 
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
         # Build HTML string..
-        html = self.render(
+        html = self._render_html(
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,
@@ -1029,15 +1067,14 @@ class Styler(StylerRenderer):
 
         Returns None.
         """
-        self.ctx.clear()
-        self.tooltips = None
-        self.cell_context.clear()
-        self._todo.clear()
-
-        self.hide_index_ = False
-        self.hidden_columns = []
-        # self.format and self.table_styles may be dependent on user
-        # input in self.__init__()
+        # create default GH 40675
+        clean_copy = Styler(self.data, uuid=self.uuid)
+        clean_attrs = [a for a in clean_copy.__dict__ if not callable(a)]
+        self_attrs = [a for a in self.__dict__ if not callable(a)]  # maybe more attrs
+        for attr in clean_attrs:
+            setattr(self, attr, getattr(clean_copy, attr))
+        for attr in set(self_attrs).difference(clean_attrs):
+            delattr(self, attr)
 
     def _apply(
         self,
@@ -1463,7 +1500,8 @@ class Styler(StylerRenderer):
             Whether to make the index or column headers sticky.
         pixel_size : int, optional
             Required to configure the width of index cells or the height of column
-            header cells when sticking a MultiIndex. Defaults to 75 and 25 respectively.
+            header cells when sticking a MultiIndex (or with a named Index).
+            Defaults to 75 and 25 respectively.
         levels : list of int
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
@@ -1471,6 +1509,16 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This method uses the CSS 'position: sticky;' property to display. It is
+        designed to work with visible axes, therefore both:
+
+          - `styler.set_sticky(axis="index").hide_index()`
+          - `styler.set_sticky(axis="columns").hide_columns()`
+
+        may produce strange behaviour due to CSS controls with missing elements.
         """
         if axis in [0, "index"]:
             axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
@@ -1482,15 +1530,42 @@ class Styler(StylerRenderer):
             raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
 
         if not isinstance(obj, pd.MultiIndex):
-            return self.set_table_styles(
-                [
+            # handling MultiIndexes requires different CSS
+            props = "position:sticky; background-color:white;"
+
+            if axis == 1:
+                # stick the first <tr> of <head> and, if index names, the second <tr>
+                # if self._hide_columns then no <thead><tr> here will exist: no conflict
+                styles: CSSStyles = [
                     {
-                        "selector": f"{tag} th",
-                        "props": f"position:sticky; {pos}:0px; background-color:white;",
+                        "selector": "thead tr:first-child",
+                        "props": props + "top:0px; z-index:2;",
                     }
-                ],
-                overwrite=False,
-            )
+                ]
+                if not self.index.names[0] is None:
+                    styles[0]["props"] = (
+                        props + f"top:0px; z-index:2; height:{pixel_size}px;"
+                    )
+                    styles.append(
+                        {
+                            "selector": "thead tr:nth-child(2)",
+                            "props": props
+                            + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
+                        }
+                    )
+            else:
+                # stick the first <th> of each <tr> in both <thead> and <tbody>
+                # if self._hide_index then no <th> will exist in <tbody>: no conflict
+                # but <th> will exist in <thead>: conflict with initial element
+                styles = [
+                    {
+                        "selector": "tr th:first-child",
+                        "props": props + "left:0px; z-index:1;",
+                    }
+                ]
+
+            return self.set_table_styles(styles, overwrite=False)
+
         else:
             range_idx = list(range(obj.nlevels))
 
@@ -2052,81 +2127,26 @@ class Styler(StylerRenderer):
         >>> df.style.set_properties(color="white", align="right")
         >>> df.style.set_properties(**{'background-color': 'yellow'})
         """
-        values = "".join(f"{p}: {v};" for p, v in kwargs.items())
+        values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
-
-    @staticmethod
-    def _bar(
-        s,
-        align: str,
-        colors: list[str],
-        width: float = 100,
-        vmin: float | None = None,
-        vmax: float | None = None,
-    ):
-        """
-        Draw bar chart in dataframe cells.
-        """
-        # Get input value range.
-        smin = np.nanmin(s.to_numpy()) if vmin is None else vmin
-        smax = np.nanmax(s.to_numpy()) if vmax is None else vmax
-        if align == "mid":
-            smin = min(0, smin)
-            smax = max(0, smax)
-        elif align == "zero":
-            # For "zero" mode, we want the range to be symmetrical around zero.
-            smax = max(abs(smin), abs(smax))
-            smin = -smax
-        # Transform to percent-range of linear-gradient
-        normed = width * (s.to_numpy(dtype=float) - smin) / (smax - smin + 1e-12)
-        zero = -width * smin / (smax - smin + 1e-12)
-
-        def css_bar(start: float, end: float, color: str) -> str:
-            """
-            Generate CSS code to draw a bar from start to end.
-            """
-            css = "width: 10em; height: 80%;"
-            if end > start:
-                css += "background: linear-gradient(90deg,"
-                if start > 0:
-                    css += f" transparent {start:.1f}%, {color} {start:.1f}%, "
-                e = min(end, width)
-                css += f"{color} {e:.1f}%, transparent {e:.1f}%)"
-            return css
-
-        def css(x):
-            if pd.isna(x):
-                return ""
-
-            # avoid deprecated indexing `colors[x > zero]`
-            color = colors[1] if x > zero else colors[0]
-
-            if align == "left":
-                return css_bar(0, x, color)
-            else:
-                return css_bar(min(x, zero), max(x, zero), color)
-
-        if s.ndim == 1:
-            return [css(x) for x in normed]
-        else:
-            return DataFrame(
-                [[css(x) for x in row] for row in normed],
-                index=s.index,
-                columns=s.columns,
-            )
 
     def bar(
         self,
         subset: Subset | None = None,
         axis: Axis | None = 0,
+        *,
         color="#d65f5f",
         width: float = 100,
-        align: str = "left",
+        height: float = 100,
+        align: str | float | int | Callable = "mid",
         vmin: float | None = None,
         vmax: float | None = None,
+        props: str = "width: 10em;",
     ) -> Styler:
         """
         Draw bar chart in the cell backgrounds.
+
+        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
@@ -2144,16 +2164,30 @@ class Styler(StylerRenderer):
             first element is the color_negative and the second is the
             color_positive (eg: ['#d65f5f', '#5fba7d']).
         width : float, default 100
-            A number between 0 or 100. The largest value will cover `width`
-            percent of the cell's width.
-        align : {'left', 'zero',' mid'}, default 'left'
-            How to align the bars with the cells.
+            The percentage of the cell, measured from the left, in which to draw the
+            bars, in [0, 100].
+        height : float, default 100
+            The percentage height of the bar in the cell, centrally aligned, in [0,100].
 
-            - 'left' : the min value starts at the left of the cell.
+            .. versionadded:: 1.4.0
+        align : str, int, float, callable, default 'mid'
+            How to align the bars within the cells relative to a width adjusted center.
+            If string must be one of:
+
+            - 'left' : bars are drawn rightwards from the minimum data value.
+            - 'right' : bars are drawn leftwards from the maximum data value.
             - 'zero' : a value of zero is located at the center of the cell.
-            - 'mid' : the center of the cell is at (max-min)/2, or
-              if values are all negative (positive) the zero is aligned
-              at the right (left) of the cell.
+            - 'mid' : a value of (max-min)/2 is located at the center of the cell,
+              or if all values are negative (positive) the zero is
+              aligned at the right (left) of the cell.
+            - 'mean' : the mean value of the data is located at the center of the cell.
+
+            If a float or integer is given this will indicate the center of the cell.
+
+            If a callable should take a 1d or 2d array and return a scalar.
+
+            .. versionchanged:: 1.4.0
+
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -2162,14 +2196,16 @@ class Styler(StylerRenderer):
             Maximum bar value, defining the right hand limit
             of the bar drawing range, higher values are clipped to `vmax`.
             When None (default): the maximum value of the data will be used.
+        props : str, optional
+            The base CSS of the cell that is extended to add the bar chart. Defaults to
+            `"width: 10em;"`
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
         self : Styler
         """
-        if align not in ("left", "zero", "mid"):
-            raise ValueError("`align` must be one of {'left', 'zero',' mid'}")
-
         if not (is_list_like(color)):
             color = [color, color]
         elif len(color) == 1:
@@ -2181,18 +2217,25 @@ class Styler(StylerRenderer):
                 "(eg: color=['#d65f5f', '#5fba7d'])"
             )
 
+        if not (0 <= width <= 100):
+            raise ValueError(f"`width` must be a value in [0, 100], got {width}")
+        elif not (0 <= height <= 100):
+            raise ValueError(f"`height` must be a value in [0, 100], got {height}")
+
         if subset is None:
             subset = self.data.select_dtypes(include=np.number).columns
 
         self.apply(
-            self._bar,
+            _bar,
             subset=subset,
             axis=axis,
             align=align,
             colors=color,
-            width=width,
+            width=width / 100,
+            height=height / 100,
             vmin=vmin,
             vmax=vmax,
+            base_css=props,
         )
 
         return self
@@ -2843,3 +2886,176 @@ def _highlight_between(
         else np.full(data.shape, True, dtype=bool)
     )
     return np.where(g_left & l_right, props, "")
+
+
+def _bar(
+    data: FrameOrSeries,
+    align: str | float | int | Callable,
+    colors: list[str],
+    width: float,
+    height: float,
+    vmin: float | None,
+    vmax: float | None,
+    base_css: str,
+):
+    """
+    Draw bar chart in data cells using HTML CSS linear gradient.
+
+    Parameters
+    ----------
+    data : Series or DataFrame
+        Underling subset of Styler data on which operations are performed.
+    align : str in {"left", "right", "mid", "zero", "mean"}, int, float, callable
+        Method for how bars are structured or scalar value of centre point.
+    colors : list-like of str
+        Two listed colors as string in valid CSS.
+    width : float in [0,1]
+        The percentage of the cell, measured from left, where drawn bars will reside.
+    height : float in [0,1]
+        The percentage of the cell's height where drawn bars will reside, centrally
+        aligned.
+    vmin : float, optional
+        Overwrite the minimum value of the window.
+    vmax : float, optional
+        Overwrite the maximum value of the window.
+    base_css : str
+        Additional CSS that is included in the cell before bars are drawn.
+    """
+
+    def css_bar(start: float, end: float, color: str) -> str:
+        """
+        Generate CSS code to draw a bar from start to end in a table cell.
+
+        Uses linear-gradient.
+
+        Parameters
+        ----------
+        start : float
+            Relative positional start of bar coloring in [0,1]
+        end : float
+            Relative positional end of the bar coloring in [0,1]
+        color : str
+            CSS valid color to apply.
+
+        Returns
+        -------
+        str : The CSS applicable to the cell.
+
+        Notes
+        -----
+        Uses ``base_css`` from outer scope.
+        """
+        cell_css = base_css
+        if end > start:
+            cell_css += "background: linear-gradient(90deg,"
+            if start > 0:
+                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
+            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+        return cell_css
+
+    def css_calc(x, left: float, right: float, align: str):
+        """
+        Return the correct CSS for bar placement based on calculated values.
+
+        Parameters
+        ----------
+        x : float
+            Value which determines the bar placement.
+        left : float
+            Value marking the left side of calculation, usually minimum of data.
+        right : float
+            Value marking the right side of the calculation, usually maximum of data
+            (left < right).
+        align : {"left", "right", "zero", "mid"}
+            How the bars will be positioned.
+            "left", "right", "zero" can be used with any values for ``left``, ``right``.
+            "mid" can only be used where ``left <= 0`` and ``right >= 0``.
+            "zero" is used to specify a center when all values ``x``, ``left``,
+            ``right`` are translated, e.g. by say a mean or median.
+
+        Returns
+        -------
+        str : Resultant CSS with linear gradient.
+
+        Notes
+        -----
+        Uses ``colors``, ``width`` and ``height`` from outer scope.
+        """
+        if pd.isna(x):
+            return base_css
+
+        color = colors[0] if x < 0 else colors[1]
+        x = left if x < left else x
+        x = right if x > right else x  # trim data if outside of the window
+
+        start: float = 0
+        end: float = 1
+
+        if align == "left":
+            # all proportions are measured from the left side between left and right
+            end = (x - left) / (right - left)
+
+        elif align == "right":
+            # all proportions are measured from the right side between left and right
+            start = (x - left) / (right - left)
+
+        else:
+            z_frac: float = 0.5  # location of zero based on the left-right range
+            if align == "zero":
+                # all proportions are measured from the center at zero
+                limit: float = max(abs(left), abs(right))
+                left, right = -limit, limit
+            elif align == "mid":
+                # bars drawn from zero either leftwards or rightwards with center at mid
+                mid: float = (left + right) / 2
+                z_frac = (
+                    -mid / (right - left) + 0.5 if mid < 0 else -left / (right - left)
+                )
+
+            if x < 0:
+                start, end = (x - left) / (right - left), z_frac
+            else:
+                start, end = z_frac, (x - left) / (right - left)
+
+        ret = css_bar(start * width, end * width, color)
+        if height < 1 and "background: linear-gradient(" in ret:
+            return (
+                ret + f" no-repeat center; background-size: 100% {height * 100:.1f}%;"
+            )
+        else:
+            return ret
+
+    values = data.to_numpy()
+    left = np.nanmin(values) if vmin is None else vmin
+    right = np.nanmax(values) if vmax is None else vmax
+    z: float = 0  # adjustment to translate data
+
+    if align == "mid":
+        if left >= 0:  # "mid" is documented to act as "left" if all values positive
+            align, left = "left", 0 if vmin is None else vmin
+        elif right <= 0:  # "mid" is documented to act as "right" if all values negative
+            align, right = "right", 0 if vmax is None else vmax
+    elif align == "mean":
+        z, align = np.nanmean(values), "zero"
+    elif callable(align):
+        z, align = align(values), "zero"
+    elif isinstance(align, (float, int)):
+        z, align = float(align), "zero"
+    elif not (align == "left" or align == "right" or align == "zero"):
+        raise ValueError(
+            "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or be a "
+            "value defining the center line or a callable that returns a float"
+        )
+
+    assert isinstance(align, str)  # mypy: should now be in [left, right, mid, zero]
+    if data.ndim == 1:
+        return [css_calc(x - z, left - z, right - z, align) for x in values]
+    else:
+        return DataFrame(
+            [
+                [css_calc(x - z, left - z, right - z, align) for x in row]
+                for row in values
+            ],
+            index=data.index,
+            columns=data.columns,
+        )

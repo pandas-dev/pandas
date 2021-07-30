@@ -253,6 +253,20 @@ class TestDataFrameConstructors:
         should_be_view[0][0] = 97
         assert df.values[0, 0] == 97
 
+    @td.skip_array_manager_invalid_test
+    def test_1d_object_array_does_not_copy(self):
+        # https://github.com/pandas-dev/pandas/issues/39272
+        arr = np.array(["a", "b"], dtype="object")
+        df = DataFrame(arr)
+        assert np.shares_memory(df.values, arr)
+
+    @td.skip_array_manager_invalid_test
+    def test_2d_object_array_does_not_copy(self):
+        # https://github.com/pandas-dev/pandas/issues/39272
+        arr = np.array([["a", "b"], ["c", "d"]], dtype="object")
+        df = DataFrame(arr)
+        assert np.shares_memory(df.values, arr)
+
     def test_constructor_dtype_list_data(self):
         df = DataFrame([[1, "2"], [None, "a"]], dtype=object)
         assert df.loc[1, 0] is None
@@ -2515,6 +2529,19 @@ class TestDataFrameConstructors:
         df3 = DataFrame(data3)
         expected = DataFrame({0: pi, 1: ii, 2: pi, 3: ii})
         tm.assert_frame_equal(df3, expected)
+
+    @pytest.mark.parametrize(
+        "col_a, col_b",
+        [
+            ([[1], [2]], np.array([[1], [2]])),
+            (np.array([[1], [2]]), [[1], [2]]),
+            (np.array([[1], [2]]), np.array([[1], [2]])),
+        ],
+    )
+    def test_error_from_2darray(self, col_a, col_b):
+        msg = "Per-column arrays must each be 1-dimensional"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame({"a": col_a, "b": col_b})
 
 
 class TestDataFrameConstructorWithDtypeCoercion:

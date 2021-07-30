@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Iterator,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -72,7 +73,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -826,8 +826,8 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array-like
-            Values to insert into `self`.
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
