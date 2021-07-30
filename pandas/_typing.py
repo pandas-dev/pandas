@@ -21,7 +21,6 @@ from typing import (
     Dict,
     Hashable,
     List,
-    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -30,6 +29,10 @@ from typing import (
     TypeVar,
     Union,
 )
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 import numpy as np
 
