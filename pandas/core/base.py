@@ -13,6 +13,7 @@ from typing import (
     Literal,
     TypeVar,
     cast,
+    final,
 )
 
 import numpy as np
@@ -24,7 +25,6 @@ from pandas._typing import (
     FrameOrSeries,
     IndexLabel,
     Shape,
-    final,
     npt,
 )
 from pandas.compat import PYPY
@@ -1137,7 +1137,7 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        value : array-like
+        value : array-like or scalar
             Values to insert into `self`.
         side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
