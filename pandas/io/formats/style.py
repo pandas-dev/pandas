@@ -1870,11 +1870,11 @@ class Styler(StylerRenderer):
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
         >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
         >>> df.style.format("{:.1f}").hide_columns()  # doctest: +SKIP
-            a    0.1    0.0    0.4    1.3    0.6   -1.4
-        x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
             c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
-            a    0.4    1.0   -0.2   -0.8   -1.2    1.1
-        y   b   -0.6    1.2    1.8    1.9    0.3    0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
             c    0.8    0.5   -0.3    1.2    2.2   -0.8
 
         Hide specific columns but retain the column headers:
@@ -1883,22 +1883,22 @@ class Styler(StylerRenderer):
         ...   # doctest: +SKIP
                    x      y
                    b      b
-            a    0.0    0.6
-        x   b    1.0   -0.0
+        x   a    0.0    0.6
+            b    1.0   -0.0
             c   -0.8   -0.4
-            a    1.0   -1.2
-        y   b    1.2    0.3
+        y   a    1.0   -1.2
+            b    1.2    0.3
             c    0.5    2.2
 
         Hide specific columns and the column headers:
 
         >>> df.style.format("{:.1f}").hide_columns(
         ...    subset=(slice(None), ["a", "c"])).hide_columns()  # doctest: +SKIP
-            a    0.0    0.6
-        x   b    1.0   -0.0
+        x   a    0.0    0.6
+            b    1.0   -0.0
             c   -0.8   -0.4
-            a    1.0   -1.2
-        y   b    1.2    0.3
+        y   a    1.0   -1.2
+            b    1.2    0.3
             c    0.5    2.2
         """
         if subset is None:
