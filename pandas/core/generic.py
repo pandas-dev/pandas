@@ -4202,6 +4202,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ):
                 # Set level to zero in case of MultiIndex and label is string,
                 #  because isin can't handle strings for MultiIndexes GH#36293
+                # In case of tuples we get dtype object but have to use isin GH#42771
                 indexer = ~axis.get_level_values(0).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
