@@ -2432,6 +2432,18 @@ class TestLocListlike:
         with pytest.raises(KeyError, match="not in index"):
             ser.loc[keys]
 
+    def test_loc_named_index(self):
+        # GH 42790
+        df = DataFrame(
+            [[1, 2], [4, 5], [7, 8]],
+            index=["cobra", "viper", "sidewinder"],
+            columns=["max_speed", "shield"],
+        )
+        expected = df.iloc[:2]
+        expected.index.name = "foo"
+        result = df.loc[Index(["cobra", "viper"], name="foo")]
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
@@ -2798,3 +2810,19 @@ class TestLocSeries:
             [[Timedelta(6, unit="s"), "foo"]], columns=["time", "value"], index=[1]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_set_multiple_items_in_multiple_new_columns(self):
+        # GH 25594
+        df = DataFrame(index=[1, 2], columns=["a"])
+        df.loc[1, ["b", "c"]] = [6, 7]
+
+        expected = DataFrame(
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [6, np.nan],
+                "c": [7, np.nan],
+            },
+            index=[1, 2],
+        )
+
+        tm.assert_frame_equal(df, expected)
