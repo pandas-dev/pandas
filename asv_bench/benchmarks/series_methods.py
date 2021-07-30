@@ -146,7 +146,7 @@ class ValueCounts:
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
-        self.s = Series(np.random.randint(0, N, size=10 * N)).astype("object")
+        self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
 
     def time_value_counts(self, N, dtype):
         self.s.value_counts()
