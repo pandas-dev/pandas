@@ -4385,7 +4385,7 @@ Keep all original rows and also all original values
                 return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
-        self, new_index: Index | None, indexer: np.ndarray | None, copy: bool
+        self, new_index: Index | None, indexer: npt.NDArray[np.intp] | None, copy: bool
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
