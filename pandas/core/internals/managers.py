@@ -1007,21 +1007,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         This optimizes compared to using `iget_values` by converting each
         block.values to a np.ndarray only once up front
         """
-        # special casing datetimetz to avoid conversion through object dtype
-        arrays = [
-            blk.values._ndarray
-            if isinstance(blk, DatetimeTZBlock)
-            else np.asarray(blk.values)
-            for blk in self.blocks
-        ]
-        result = []
-        for i in range(len(self.items)):
-            arr = arrays[self.blknos[i]]
-            if arr.ndim == 2:
-                values = arr[self.blklocs[i]]
+        # This is an optimized equivalent to
+        #  result = [self.iget_values(i) for i in range(len(self.items))]
+        result = [None] * len(self.items)
+        for blk in self.blocks:
+            is_dtz = isinstance(blk, DatetimeTZBlock)
+            mgr_locs = blk._mgr_locs
+            values = blk.values
+            if values.ndim == 1:
+                # TODO(EA2D): special casing not needed with 2D EAs
+                result[mgr_locs.indexer] = values
+
             else:
-                values = arr
-            result.append(values)
+                for i, loc in enumerate(mgr_locs):
+                    result[loc] = values[i]
+                    if is_dtz:
+                        # special casing datetimetz to avoid conversion through
+                        #  object dtype
+                        result[loc] = result[loc]._ndarray
         return result
 
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
