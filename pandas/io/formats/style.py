@@ -342,15 +342,9 @@ class Styler(StylerRenderer):
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
         ...     ('z-index', 1)])  # doctest: +SKIP
-            0	1
-        0	0	1
-        1	2	3
         >>> df.style.set_tooltips(ttips, css_class='tt-add',
         ...     props='visibility:hidden; position:absolute; z-index:1;')
         ... # doctest: +SKIP
-            0	1
-        0	0	1
-        1	2	3
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check. requires reasonable
@@ -554,33 +548,13 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()  # doctest: +ELLIPSIS
-        '<style type="text/css">\n#T_..._row1_col1 {\n  background-color: red;\n
-        font-weight: bold;\n}\n</style>\n<table id="T_..._">\n  <thead>\n
-        <tr>\n      <th class="blank level0" >&nbsp;</th>\n
-        <th class="col_heading level0 col0" >0</th>\n
-        <th class="col_heading level0 col1" >1</th>\n
-        </tr>\n  </thead>\n  <tbody>\n    <tr>\n
-        <th id="T_..._level0_row0" class="row_heading level0 row0" >0</th>\n
-        <td id="T_..._row0_col0" class="data row0 col0" >1</td>\n
-        <td id="T_..._row0_col1" class="data row0 col1" >2</td>\n    </tr>\n
-        <tr>\n      <th id="T_..._level0_row1" class="row_heading level0 row1" >1</th>\n
-        <td id="T_..._row1_col0" class="data row1 col0" >3</td>\n
-        <td id="T_..._row1_col1" class="data row1 col1" >4</td>\n    </tr>\n
-        </tbody>\n</table>\n...'
+        >>> s.render()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='cellcolor:{red}; bfseries: ;')
         >>> s.to_latex()  # doctest: +SKIP
-        \begin{tabular}{lrr}
-        {} & {0} & {1} \\
-        0 & 1 & 2 \\
-        1 & 3 & \\
-        cellcolor{red} \\
-        bfseries 4 \\
-        \end{tabular}
 
         Internally these structured LaTeX ``(<command>, <options>)`` pairs
         are translated to the
@@ -942,9 +916,6 @@ class Styler(StylerRenderer):
         ...     ["red", None, "blue max-val"]
         ... ], index=df.index, columns=df.columns)
         >>> df.style.set_td_classes(classes)  # doctest: +SKIP
-            A	B   C
-        0   1   2   3
-        1   4   5   6
 
         Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
         underlying,
@@ -954,10 +925,6 @@ class Styler(StylerRenderer):
         >>> classes = pd.DataFrame(["min-val"], index=["a"],
         ...     columns=[["level0"],["level1a"]])
         >>> df.style.set_td_classes(classes)  # doctest: +SKIP
-                            level0
-                level1a	    level1b
-        a	    1	        2
-        b	    3	        4
 
         Form of the output with new additional css classes,
 
@@ -1420,18 +1387,7 @@ class Styler(StylerRenderer):
         --------
         >>> df = pd.DataFrame(np.random.randn(10, 4))
         >>> df.style.set_table_attributes('class="pure-table"')  # doctest: +SKIP
-               0      1      2      3
-        0    0.4    1.0   -1.1    0.5
-        1   -0.6    1.2    1.8   -1.4
-        2    1.2   -0.6   -0.2   -0.2
-        3   -0.5   -0.8   -0.2    1.8
-        4   -0.5   -0.8    0.2   -1.7
-        5    0.1    1.5    0.3   -1.3
-        6    1.5   -0.6   -1.3   -0.1
-        7   -0.1   -0.8   -0.7    0.3
-        8    1.7   -0.5   -1.4    0.8
-        9    1.5    0.4   -0.8    0.7
-
+        # ... <table class="pure-table"> ...
         """
         self.table_attributes = attributes
         return self
