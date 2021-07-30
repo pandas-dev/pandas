@@ -1389,6 +1389,34 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json(dfjson, orient="table")
         tm.assert_frame_equal(result, expected)
 
+    def test_to_json_from_json_columns_dtypes(self):
+        expected = DataFrame.from_dict(
+            {
+                "Integer": pd.Series([1, 2, 3], dtype="int64"),
+                "Float": pd.Series([None, 2.0, 3.0], dtype="float64"),
+                "Object": pd.Series([None, "", "c"], dtype="object"),
+                "Bool": pd.Series([True, False, True], dtype="bool"),
+                "Category": pd.Series(["a", "b", None], dtype="category"),
+                "Datetime": pd.Series(
+                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ns]"
+                ),
+            }
+        )
+        dfjson = expected.to_json(orient="columns")
+        result = read_json(
+            dfjson,
+            orient="columns",
+            dtype={
+                "Integer": "int64",
+                "Float": "float64",
+                "Object": "object",
+                "Bool": "bool",
+                "Category": "category",
+                "Datetime": "datetime64[ns]",
+            },
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", [True, {"b": int, "c": int}])
     def test_read_json_table_dtype_raises(self, dtype):
         # GH21345
