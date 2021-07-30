@@ -6,6 +6,7 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
+    option_context,
 )
 
 jinja2 = pytest.importorskip("jinja2")
@@ -269,17 +270,35 @@ def test_caption_as_sequence(styler):
 
 @pytest.mark.parametrize("index", [False, True])
 @pytest.mark.parametrize("columns", [False, True])
-def test_sticky_basic(styler, index, columns):
+@pytest.mark.parametrize("index_name", [True, False])
+def test_sticky_basic(styler, index, columns, index_name):
+    if index_name:
+        styler.index.name = "some text"
     if index:
         styler.set_sticky(axis=0)
     if columns:
         styler.set_sticky(axis=1)
 
     res = styler.set_uuid("").to_html()
-    cs1 = "tbody th {\n  position: sticky;\n  left: 0px;\n  background-color: white;\n}"
-    assert (cs1 in res) is index
-    cs2 = "thead th {\n  position: sticky;\n  top: 0px;\n  background-color: white;\n}"
-    assert (cs2 in res) is columns
+
+    css_for_index = (
+        "tr th:first-child {\n  position: sticky;\n  background-color: white;\n  "
+        "left: 0px;\n  z-index: 1;\n}"
+    )
+    assert (css_for_index in res) is index
+
+    css_for_cols_1 = (
+        "thead tr:first-child {\n  position: sticky;\n  background-color: white;\n  "
+        "top: 0px;\n  z-index: 2;\n"
+    )
+    css_for_cols_1 += "  height: 25px;\n}" if index_name else "}"
+    assert (css_for_cols_1 in res) is columns
+
+    css_for_cols_2 = (
+        "thead tr:nth-child(2) {\n  position: sticky;\n  background-color: white;\n  "
+        "top: 25px;\n  z-index: 2;\n  height: 25px;\n}"
+    )
+    assert (css_for_cols_2 in res) is (index_name and columns)
 
 
 @pytest.mark.parametrize("index", [False, True])
@@ -408,6 +427,27 @@ def test_sticky_levels(styler_mi, index, columns):
 def test_sticky_raises(styler):
     with pytest.raises(ValueError, match="`axis` must be"):
         styler.set_sticky(axis="bad")
+
+
+@pytest.mark.parametrize(
+    "sparse_index, sparse_columns",
+    [(True, True), (True, False), (False, True), (False, False)],
+)
+def test_sparse_options(sparse_index, sparse_columns):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=ridx, columns=cidx)
+    styler = df.style
+
+    default_html = styler.to_html()  # defaults under pd.options to (True , True)
+
+    with option_context(
+        "styler.sparse.index", sparse_index, "styler.sparse.columns", sparse_columns
+    ):
+        html1 = styler.to_html()
+        assert (html1 == default_html) is (sparse_index and sparse_columns)
+    html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=sparse_columns)
+    assert html1 == html2
 
 
 @pytest.mark.parametrize("index", [True, False])

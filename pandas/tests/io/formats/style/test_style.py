@@ -52,6 +52,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
+    mi_styler.applymap_header(lambda x: "color: white;", axis=0)
+    mi_styler.applymap_header(lambda x: "color: black;", axis=1)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
@@ -198,7 +200,14 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
     if render:
         styler.to_html()
 
-    excl = ["na_rep", "precision", "uuid", "cellstyle_map"]  # deprecated or special var
+    excl = [
+        "na_rep",  # deprecated
+        "precision",  # deprecated
+        "uuid",  # special
+        "cellstyle_map",  # render time vars..
+        "cellstyle_map_columns",
+        "cellstyle_map_index",
+    ]
     if not deepcopy:  # check memory locations are equal for all included attributes
         for attr in [a for a in styler.__dict__ if (not callable(a) and a not in excl)]:
             assert id(getattr(s2, attr)) == id(getattr(styler, attr))
@@ -245,6 +254,8 @@ def test_clear(mi_styler_comp):
         "uuid_len",
         "cell_ids",
         "cellstyle_map",  # execution time only
+        "cellstyle_map_columns",  # execution time only
+        "cellstyle_map_index",  # execution time only
         "precision",  # deprecated
         "na_rep",  # deprecated
     ]
@@ -566,10 +577,27 @@ class TestStyler:
     def test_applymap_subset_multiindex(self, slice_):
         # GH 19861
         # edited for GH 33562
+        warn = None
+        msg = "indexing on a MultiIndex with a nested sequence of labels"
+        if (
+            isinstance(slice_[-1], tuple)
+            and isinstance(slice_[-1][-1], list)
+            and "C" in slice_[-1][-1]
+        ):
+            warn = FutureWarning
+        elif (
+            isinstance(slice_[0], tuple)
+            and isinstance(slice_[0][1], list)
+            and 3 in slice_[0][1]
+        ):
+            warn = FutureWarning
+
         idx = MultiIndex.from_product([["a", "b"], [1, 2]])
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
         df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
-        df.style.applymap(lambda x: "color: red;", subset=slice_).render()
+
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            df.style.applymap(lambda x: "color: red;", subset=slice_).render()
 
     def test_applymap_subset_multiindex_code(self):
         # https://github.com/pandas-dev/pandas/issues/25858
@@ -1376,6 +1404,19 @@ class TestStyler:
         idxs = MultiIndex.from_product([["U", "V"], ["W", "X"], ["Y", "Z"]])
         df = DataFrame(np.arange(64).reshape(8, 8), columns=cols, index=idxs)
 
-        expected = df.loc[slice_]
-        result = df.loc[non_reducing_slice(slice_)]
+        msg = "indexing on a MultiIndex with a nested sequence of labels"
+        warn = None
+        for lvl in [0, 1]:
+            key = slice_[lvl]
+            if isinstance(key, tuple):
+                for subkey in key:
+                    if isinstance(subkey, list) and "-" in subkey:
+                        # not present in the index level, ignored, will raise in future
+                        warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = df.loc[slice_]
+
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
