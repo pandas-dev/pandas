@@ -85,6 +85,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
@@ -6202,7 +6203,7 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
-
+        ascending = validate_ascending(ascending)
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):

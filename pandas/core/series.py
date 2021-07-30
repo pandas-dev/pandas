@@ -57,6 +57,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_bool_kwarg,
     validate_percentile,
 )
@@ -69,7 +70,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_bool,
     is_dict_like,
     is_integer,
     is_iterator,
@@ -3438,8 +3438,7 @@ Keep all original rows and also all original values
                 )
             ascending = ascending[0]
 
-        if not is_bool(ascending):
-            raise ValueError("ascending must be boolean")
+        ascending = validate_ascending(ascending)
 
         if na_position not in ["first", "last"]:
             raise ValueError(f"invalid na_position: {na_position}")
