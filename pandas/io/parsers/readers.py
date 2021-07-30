@@ -1302,7 +1302,12 @@ def _refine_defaults_read(
     if delimiter and (sep is not lib.no_default):
         raise ValueError("Specified a sep and a delimiter; you can only specify one.")
 
-    if names is not lib.no_default and prefix is not lib.no_default:
+    if (
+        names is not None
+        and names is not lib.no_default
+        and prefix is not None
+        and prefix is not lib.no_default
+    ):
         raise ValueError("Specified named and prefix; you can only specify one.")
 
     kwds["names"] = None if names is lib.no_default else names
