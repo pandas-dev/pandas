@@ -326,14 +326,14 @@ class TestLoc2:
             #  float64 columns losslessly, so we keep the original underlying arrays
             #  and our dtypes are not changed.
             expected = orig
-        #expected = DataFrame(
+        # expected = DataFrame(
         #    {
         #        "id": ["A"],
         #        "a": np.array([1.2], dtype="float32"),
         #        "b": np.array([0.0], dtype="float32"),
         #        "c": np.array([-2.5], dtype="float32"),
         #    }
-        #)  # id is inferred as object
+        # )  # id is inferred as object
 
         tm.assert_frame_equal(df, expected)
 
@@ -655,7 +655,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame(index=[3, 5, 4], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
-        ser = Series([2, 3, 1], index=[3, 5, 4], dtype="int64")
+        # setting int64 array into float64 column successfully casts so is inplace
+        ser = Series([2.0, 3.0, 1.0], index=[3, 5, 4], dtype="float64")
         expected = DataFrame({"A": ser})
         expected["B"] = "string"
         tm.assert_frame_equal(df, expected)
@@ -665,7 +666,8 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame(index=[1, 2, 3], columns=["A", "B"], dtype=float)
         df["B"] = "string"
         df.loc[slice(3, 0, -1), "A"] = np.array([1, 2, 3], dtype="int64")
-        expected = DataFrame({"A": [3, 2, 1], "B": "string"}, index=[1, 2, 3])
+        # setting int64 array into float64 column successfully casts so is inplace
+        expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
     # TODO(ArrayManager) "split" path overwrites column and therefore don't take

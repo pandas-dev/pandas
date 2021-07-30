@@ -1219,7 +1219,7 @@ class TestILocSetItemDuplicateColumns:
         df = DataFrame([[init_value, "str", "str2"]], columns=["a", "b", "b"])
         df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
         expected_df = DataFrame(
-            [[expected_value, "str", "str2"]], columns=["a", "b", "b"]
+            [[expected_value, "str", "str2"]], columns=["a", "b", "b"], dtype=object
         )
         tm.assert_frame_equal(df, expected_df)
 
