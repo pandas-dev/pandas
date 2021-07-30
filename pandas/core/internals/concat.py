@@ -672,6 +672,7 @@ def _combine_concat_plans(plans, concat_axis: int):
                 offset += last_plc.as_slice.stop
 
     else:
+        # singleton list so we can modify it as a side-effect within _next_or_none
         num_ended = [0]
 
         def _next_or_none(seq):

@@ -402,7 +402,7 @@ def extract_array(
     >>> extract_array([1, 2, 3])
     [1, 2, 3]
 
-    For an ndarray-backed Series / Index a PandasArray is returned.
+    For an ndarray-backed Series / Index the ndarray is returned.
 
     >>> extract_array(pd.Series([1, 2, 3]))
     array([1, 2, 3])

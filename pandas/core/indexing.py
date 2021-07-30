@@ -642,7 +642,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             self._ensure_listlike_indexer(key)
 
         if self.axis is not None:
-            return self._convert_tuple(key, is_setter=True)
+            return self._convert_tuple(key)
 
         ax = self.obj._get_axis(0)
 
@@ -653,12 +653,12 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         if isinstance(key, tuple):
             with suppress(IndexingError):
-                return self._convert_tuple(key, is_setter=True)
+                return self._convert_tuple(key)
 
         if isinstance(key, range):
             return list(key)
 
-        return self._convert_to_indexer(key, axis=0, is_setter=True)
+        return self._convert_to_indexer(key, axis=0)
 
     def _ensure_listlike_indexer(self, key, axis=None, value=None):
         """
@@ -755,21 +755,19 @@ class _LocationIndexer(NDFrameIndexerBase):
             return any(is_nested_tuple(tup, ax) for ax in self.obj.axes)
         return False
 
-    def _convert_tuple(self, key, is_setter: bool = False):
+    def _convert_tuple(self, key):
         keyidx = []
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
             for i in range(self.ndim):
                 if i == axis:
-                    keyidx.append(
-                        self._convert_to_indexer(key, axis=axis, is_setter=is_setter)
-                    )
+                    keyidx.append(self._convert_to_indexer(key, axis=axis))
                 else:
                     keyidx.append(slice(None))
         else:
             self._validate_key_length(key)
             for i, k in enumerate(key):
-                idx = self._convert_to_indexer(k, axis=i, is_setter=is_setter)
+                idx = self._convert_to_indexer(k, axis=i)
                 keyidx.append(idx)
 
         return tuple(keyidx)
@@ -867,8 +865,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         # a tuple passed to a series with a multi-index
         if len(tup) > self.ndim:
             if self.name != "loc":
-                # This should never be reached, but lets be explicit about it
-                raise ValueError("Too many indices")
+                # This should never be reached, but let's be explicit about it
+                raise ValueError("Too many indices")  # pragma: no cover
             if all(is_hashable(x) or com.is_null_slice(x) for x in tup):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -911,7 +909,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         return obj
 
-    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         raise AbstractMethodError(self)
 
     def __getitem__(self, key):
@@ -1176,7 +1174,7 @@ class _LocIndexer(_LocationIndexer):
             #  return a DatetimeIndex instead of a slice object.
             return self.obj.take(indexer, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on a ndarray.
@@ -1486,7 +1484,7 @@ class _iLocIndexer(_LocationIndexer):
         labels._validate_positional_slice(slice_obj)
         return self.obj._slice(slice_obj, axis=axis)
 
-    def _convert_to_indexer(self, key, axis: int, is_setter: bool = False):
+    def _convert_to_indexer(self, key, axis: int):
         """
         Much simpler as we only have to deal with our valid types.
         """
