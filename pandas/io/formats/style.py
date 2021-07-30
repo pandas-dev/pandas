@@ -671,8 +671,13 @@ class Styler(StylerRenderer):
         ...    ("Numeric", "Integers"): '\${}',
         ...    ("Numeric", "Floats"): '{:.3f}',
         ...    ("Non-Numeric", "Strings"): str.upper
-        ... })  # doctest: +ELLIPSIS
-        <pandas.io.formats.style.Styler object at 0x...>
+        ... })  # doctest: +SKIP
+                        Numeric      Non-Numeric
+                  Integers   Floats    Strings
+        L0    ix1       $1   2.200      DOGS
+              ix2       $3   4.400      CATS
+        L1    ix3       $2   6.600      COWS
+
         >>> s.to_latex()  # doctest: +SKIP
         \begin{tabular}{llrrl}
         {} & {} & \multicolumn{2}{r}{Numeric} & {Non-Numeric} \\
