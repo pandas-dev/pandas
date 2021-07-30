@@ -405,9 +405,7 @@ def extract_array(
     For an ndarray-backed Series / Index a PandasArray is returned.
 
     >>> extract_array(pd.Series([1, 2, 3]))
-    <PandasArray>
-    [1, 2, 3]
-    Length: 3, dtype: int64
+    array([1, 2, 3])
 
     To extract all the way down to the ndarray, pass ``extract_numpy=True``.
 
@@ -420,9 +418,9 @@ def extract_array(
                 return obj._values
             return obj
 
-        obj = obj.array
+        obj = obj._values
 
-    if extract_numpy and isinstance(obj, ABCPandasArray):
+    elif extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
     return obj
