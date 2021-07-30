@@ -88,9 +88,6 @@ class TestConcatenate:
                 assert any(np.shares_memory(arr, other) for other in df3._mgr.arrays)
 
     def test_concat_with_group_keys(self):
-        df = DataFrame(np.random.randn(4, 3))
-        df2 = DataFrame(np.random.randn(4, 4))
-
         # axis=0
         df = DataFrame(np.random.randn(3, 4))
         df2 = DataFrame(np.random.randn(4, 4))
