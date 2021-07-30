@@ -3370,7 +3370,10 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         """
         Define default roll function to be called in apply method.
         """
-        cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
+        cbday_kwds = self.kwds.copy()
+        cbday_kwds['offset'] = timedelta(0)
+
+        cbday = CustomBusinessDay(n=1, normalize=False, **cbday_kwds)
 
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -3414,6 +3417,9 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
+
+        if self.offset:
+            result = result + self.offset
         return result
 
 

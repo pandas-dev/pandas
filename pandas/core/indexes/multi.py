@@ -2836,7 +2836,7 @@ class MultiIndex(Index):
             try:
                 return self._engine.get_loc(key)
             except TypeError:
-                # e.g. partial string slicing
+                # e.g. test_partial_slicing_with_multiindex partial string slicing
                 loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
                 return loc
 
