@@ -1525,13 +1525,16 @@ class SQLDatabase(PandasSQL):
 
         """
         if isinstance(sql, str):
-            from sqlalchemy import text
+            if isinstance(params, (list, tuple)):
+                result = self.connectable.connect().exec_driver_sql(sql, tuple(params))
+            else:
+                from sqlalchemy import text
 
-            sql = text(sql)
-
-        args = _convert_params(sql, params)
-
-        result = self.execute(*args)
+                sql = text(sql)
+                result = self.execute(sql, params)
+        else:
+            args = _convert_params(sql, params)
+            result = self.execute(*args)
         columns = result.keys()
 
         if chunksize is not None:

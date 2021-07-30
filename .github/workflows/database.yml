@@ -16,7 +16,7 @@ env:
   PANDAS_CI: 1
   PATTERN: ((not slow and not network and not clipboard) or (single and db))
   COVERAGE: true
-  # SQLALCHEMY_WARN_20: true
+  SQLALCHEMY_WARN_20: true
 
 jobs:
   Linux_py38_IO:
