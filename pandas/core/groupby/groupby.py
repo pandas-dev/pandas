@@ -3004,8 +3004,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if numeric_only:
                 mgr = mgr.get_numeric_data()
 
-            # setting ignore_failures=False for troubleshooting
-            res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
+            res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
             output = type(obj)(res_mgr)
             if aggregate:
                 return self._wrap_aggregated_output(output)
