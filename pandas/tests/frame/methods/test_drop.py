@@ -479,6 +479,17 @@ class TestDataFrameDrop:
         expected = DataFrame([2], index=MultiIndex.from_arrays([["y"], ["j"]]))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("indexer", [("a", "a"), [("a", "a")]])
+    def test_drop_tuple_with_non_unique_multiindex(self, indexer):
+        # GH#42771
+        idx = MultiIndex.from_product([["a", "b"], ["a", "a"]])
+        df = DataFrame({"x": range(len(idx))}, index=idx)
+        result = df.drop(index=[("a", "a")])
+        expected = DataFrame(
+            {"x": [2, 3]}, index=MultiIndex.from_tuples([("b", "a"), ("b", "a")])
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_drop_with_duplicate_columns(self):
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
