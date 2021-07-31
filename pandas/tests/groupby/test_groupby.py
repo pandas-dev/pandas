@@ -717,6 +717,10 @@ def test_ops_not_as_index(reduction_func):
         expected = expected.rename("size")
     expected = expected.reset_index()
 
+    if reduction_func != "size":
+        # 32 bit compat -> groupby preserves dtype whereas reset_index casts to int64
+        expected["a"] = expected["a"].astype(df["a"].dtype)
+
     g = df.groupby("a", as_index=False)
 
     result = getattr(g, reduction_func)()
@@ -1837,7 +1841,6 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         # i.e. SeriesGroupBy
         if op in ["prod", "sum"]:
             # ops that require more than just ordered-ness
-            # FIXME: apply goes through different code path
             if df.dtypes[0].kind == "M":
                 # GH#41291
                 # datetime64 -> prod and sum are invalid
@@ -1857,7 +1860,6 @@ def test_empty_groupby(columns, keys, values, method, op, request):
         # ie. DataFrameGroupBy
         if op in ["prod", "sum"]:
             # ops that require more than just ordered-ness
-            # FIXME: apply goes through different code path
             if df.dtypes[0].kind == "M":
                 # GH#41291
                 # datetime64 -> prod and sum are invalid

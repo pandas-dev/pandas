@@ -672,6 +672,11 @@ class Index(IndexOpsMixin, PandasObject):
         assert len(duplicates)
 
         out = Series(np.arange(len(self))).groupby(self).agg(list)[duplicates]
+        if self._is_multi:
+            # test_format_duplicate_labels_message_multi
+            # error: "Type[Index]" has no attribute "from_tuples"  [attr-defined]
+            out.index = type(self).from_tuples(out.index)  # type: ignore[attr-defined]
+
         if self.nlevels == 1:
             out = out.rename_axis("label")
         return out.to_frame(name="positions")
@@ -5384,6 +5389,85 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _get_indexer_strict(self, key, axis_name: str_t) -> tuple[Index, np.ndarray]:
+        """
+        Analogue to get_indexer that raises if any elements are missing.
+        """
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
+
+        if self._index_as_unique:
+            indexer = self.get_indexer_for(keyarr)
+            keyarr = self.reindex(keyarr)[0]
+        else:
+            keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)
+
+        self._raise_if_missing(keyarr, indexer, axis_name)
+
+        keyarr = self.take(indexer)
+        if isinstance(key, Index):
+            # GH 42790 - Preserve name from an Index
+            keyarr.name = key.name
+        if keyarr.dtype.kind in ["m", "M"]:
+            # DTI/TDI.take can infer a freq in some cases when we dont want one
+            if isinstance(key, list) or (
+                isinstance(key, type(self))
+                # "Index" has no attribute "freq"
+                and key.freq is None  # type: ignore[attr-defined]
+            ):
+                keyarr = keyarr._with_freq(None)
+
+        return keyarr, indexer
+
+    def _raise_if_missing(self, key, indexer, axis_name: str_t):
+        """
+        Check that indexer can be used to return a result.
+
+        e.g. at least one element was found,
+        unless the list of keys was actually empty.
+
+        Parameters
+        ----------
+        key : list-like
+            Targeted labels (only used to show correct error message).
+        indexer: array-like of booleans
+            Indices corresponding to the key,
+            (with -1 indicating not found).
+        axis_name : str
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested but none was found.
+        """
+        if len(key) == 0:
+            return
+
+        # Count missing values
+        missing_mask = indexer < 0
+        nmissing = missing_mask.sum()
+
+        if nmissing:
+
+            # TODO: remove special-case; this is just to keep exception
+            #  message tests from raising while debugging
+            use_interval_msg = is_interval_dtype(self.dtype) or (
+                is_categorical_dtype(self.dtype)
+                # "Index" has no attribute "categories"  [attr-defined]
+                and is_interval_dtype(
+                    self.categories.dtype  # type: ignore[attr-defined]
+                )
+            )
+
+            if nmissing == len(indexer):
+                if use_interval_msg:
+                    key = list(key)
+                raise KeyError(f"None of [{key}] are in the [{axis_name}]")
+
+            not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
+            raise KeyError(f"{not_found} not in index")
+
     @overload
     def _get_indexer_non_comparable(
         self, target: Index, method, unique: Literal[True] = ...
@@ -5431,16 +5515,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if method is not None:
             other = unpack_nested_dtype(target)
-            if self._is_multi ^ other._is_multi:
-                kind = other.dtype.type if self._is_multi else self.dtype.type
-                raise TypeError(
-                    f"'<' not supported between instances of {kind} and 'tuple'"
-                )
-            elif self._is_multi and other._is_multi:
-                assert self.nlevels != other.nlevels
-                # Python allows comparison between tuples of different lengths,
-                #  but for our purposes such a comparison is not meaningful.
-                raise TypeError("'<' not supported between tuples of different lengths")
             raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
@@ -5570,14 +5644,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         other = unpack_nested_dtype(other)
         dtype = other.dtype
-        if other._is_multi:
-            if not self._is_multi:
-                # other contains only tuples so unless we are object-dtype,
-                #  there can never be any matches
-                return self._is_comparable_dtype(dtype)
-            return self.nlevels == other.nlevels
-            # TODO: we can get more specific requiring levels are comparable?
-
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:

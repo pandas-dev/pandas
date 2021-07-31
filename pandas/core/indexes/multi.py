@@ -2541,24 +2541,28 @@ class MultiIndex(Index):
         new_ser = series._constructor(new_values, index=new_index, name=series.name)
         return new_ser.__finalize__(series)
 
-    def _convert_listlike_indexer(self, keyarr) -> np.ndarray | None:
-        """
-        Analogous to get_indexer when we are partial-indexing on our first level.
+    def _get_indexer_strict(self, key, axis_name: str) -> tuple[Index, np.ndarray]:
 
-        Parameters
-        ----------
-        keyarr : Index, np.ndarray, or ExtensionArray
-            Indexer to convert.
+        keyarr = key
+        if not isinstance(keyarr, Index):
+            keyarr = com.asarray_tuplesafe(keyarr)
 
-        Returns
-        -------
-        np.ndarray[intp] or None
-        """
-        indexer = None
-
-        # are we indexing a specific level
         if len(keyarr) and not isinstance(keyarr[0], tuple):
             indexer = self._get_indexer_level_0(keyarr)
+
+            self._raise_if_missing(key, indexer, axis_name)
+            return self[indexer], indexer
+
+        return super()._get_indexer_strict(key, axis_name)
+
+    def _raise_if_missing(self, key, indexer, axis_name: str):
+        keyarr = key
+        if not isinstance(key, Index):
+            keyarr = com.asarray_tuplesafe(key)
+
+        if len(keyarr) and not isinstance(keyarr[0], tuple):
+            # i.e. same condition for special case in MultiIndex._get_indexer_strict
+
             mask = indexer == -1
             if mask.any():
                 check = self.levels[0].get_indexer(keyarr)
@@ -2568,8 +2572,8 @@ class MultiIndex(Index):
                 # We get here when levels still contain values which are not
                 # actually in Index anymore
                 raise KeyError(f"{keyarr} not in index")
-
-        return indexer
+        else:
+            return super()._raise_if_missing(key, indexer, axis_name)
 
     def _get_indexer_level_0(self, target) -> np.ndarray:
         """
@@ -2832,7 +2836,7 @@ class MultiIndex(Index):
             try:
                 return self._engine.get_loc(key)
             except TypeError:
-                # e.g. partial string slicing
+                # e.g. test_partial_slicing_with_multiindex partial string slicing
                 loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
                 return loc
 
@@ -2842,9 +2846,17 @@ class MultiIndex(Index):
         # needs linear search within the slice
         i = self._lexsort_depth
         lead_key, follow_key = key[:i], key[i:]
-        start, stop = (
-            self.slice_locs(lead_key, lead_key) if lead_key else (0, len(self))
-        )
+
+        if not lead_key:
+            start = 0
+            stop = len(self)
+        else:
+            try:
+                start, stop = self.slice_locs(lead_key, lead_key)
+            except TypeError as err:
+                # e.g. test_groupby_example key = ((0, 0, 1, 2), "new_col")
+                #  when self has 5 integer levels
+                raise KeyError(key) from err
 
         if start == stop:
             raise KeyError(key)
@@ -3160,10 +3172,12 @@ class MultiIndex(Index):
             if level > 0 or self._lexsort_depth == 0:
                 # Desired level is not sorted
                 if isinstance(idx, slice):
+                    # test_get_loc_partial_timestamp_multiindex
                     locs = (level_codes >= idx.start) & (level_codes < idx.stop)
                     return locs
 
                 locs = np.array(level_codes == idx, dtype=bool, copy=False)
+
                 if not locs.any():
                     # The label is present in self.levels[level] but unused:
                     raise KeyError(key)

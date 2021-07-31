@@ -167,15 +167,6 @@ class BaseArrayManager(DataManager):
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
 
-    def consolidate(self: T) -> T:
-        return self
-
-    def is_consolidated(self) -> bool:
-        return True
-
-    def _consolidate_inplace(self) -> None:
-        pass
-
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
@@ -474,7 +465,11 @@ class BaseArrayManager(DataManager):
         indices = [i for i, arr in enumerate(self.arrays) if predicate(arr)]
         arrays = [self.arrays[i] for i in indices]
         # TODO copy?
-        new_axes = [self._axes[0], self._axes[1][np.array(indices, dtype="intp")]]
+        # Note: using Index.take ensures we can retain e.g. DatetimeIndex.freq,
+        #  see test_describe_datetime_columns
+        taker = np.array(indices, dtype="intp")
+        new_cols = self._axes[1].take(taker)
+        new_axes = [self._axes[0], new_cols]
         return type(self)(arrays, new_axes, verify_integrity=False)
 
     def get_bool_data(self: T, copy: bool = False) -> T:
@@ -1257,9 +1252,6 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     @property
     def is_single_block(self) -> bool:
         return True
-
-    def _consolidate_check(self):
-        pass
 
     def fast_xs(self, loc: int) -> ArrayLike:
         raise NotImplementedError("Use series._values[loc] instead")
