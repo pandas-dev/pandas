@@ -235,12 +235,14 @@ def test_transform(string_series):
         tm.assert_series_equal(result, expected)
 
         # list-like
-        result = string_series.apply([np.sqrt])
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = string_series.apply([np.sqrt])
         expected = f_sqrt.to_frame().copy()
         expected.columns = ["sqrt"]
         tm.assert_frame_equal(result, expected)
 
-        result = string_series.apply(["sqrt"])
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = string_series.apply(["sqrt"])
         tm.assert_frame_equal(result, expected)
 
         # multiple items in list
@@ -248,7 +250,8 @@ def test_transform(string_series):
         # series and then concatting
         expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["sqrt", "absolute"]
-        result = string_series.apply([np.sqrt, np.abs])
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = string_series.apply([np.sqrt, np.abs])
         tm.assert_frame_equal(result, expected)
 
         # dict, provide renaming
@@ -256,7 +259,8 @@ def test_transform(string_series):
         expected.columns = ["foo", "bar"]
         expected = expected.unstack().rename("series")
 
-        result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
+        with tm.assert_produces_warning(FutureWarning, match="used agg"):
+            result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
         tm.assert_series_equal(result.reindex_like(expected), expected)
 
 
@@ -364,18 +368,19 @@ def test_with_nested_series(datetime_series):
 def test_replicate_describe(string_series):
     # this also tests a result set that is all scalars
     expected = string_series.describe()
-    result = string_series.apply(
-        {
-            "count": "count",
-            "mean": "mean",
-            "std": "std",
-            "min": "min",
-            "25%": lambda x: x.quantile(0.25),
-            "50%": "median",
-            "75%": lambda x: x.quantile(0.75),
-            "max": "max",
-        }
-    )
+    with tm.assert_produces_warning(FutureWarning, match="used agg"):
+        result = string_series.apply(
+            {
+                "count": "count",
+                "mean": "mean",
+                "std": "std",
+                "min": "min",
+                "25%": lambda x: x.quantile(0.25),
+                "50%": "median",
+                "75%": lambda x: x.quantile(0.75),
+                "max": "max",
+            }
+        )
     tm.assert_series_equal(result, expected)
 
 
@@ -402,7 +407,13 @@ def test_non_callable_aggregates(how):
     assert result == expected
 
     # test when mixed w/ callable reducers
-    result = getattr(s, how)(["size", "count", "mean"])
+    if how == "apply":
+        klass = FutureWarning
+        msg = "used aggregate"
+    else:
+        klass, msg = None, None
+    with tm.assert_produces_warning(klass, match=msg):
+        result = getattr(s, how)(["size", "count", "mean"])
     expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
     tm.assert_series_equal(result, expected)
 
@@ -410,7 +421,8 @@ def test_non_callable_aggregates(how):
 def test_series_apply_no_suffix_index():
     # GH36189
     s = Series([4] * 3)
-    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    with tm.assert_produces_warning(FutureWarning, match="used agg"):
+        result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
 
     tm.assert_series_equal(result, expected)
@@ -797,7 +809,13 @@ def test_apply_listlike_reducer(string_series, ops, names, how):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    result = getattr(string_series, how)(ops)
+    if how == "apply":
+        klass = FutureWarning
+        msg = "used aggregate"
+    else:
+        klass, msg = None, None
+    with tm.assert_produces_warning(klass, match=msg):
+        result = getattr(string_series, how)(ops)
     tm.assert_series_equal(result, expected)
 
 
@@ -815,7 +833,13 @@ def test_apply_dictlike_reducer(string_series, ops, how):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    result = getattr(string_series, how)(ops)
+    if how == "apply":
+        klass = FutureWarning
+        msg = "used aggregate"
+    else:
+        klass, msg = None, None
+    with tm.assert_produces_warning(klass, match=msg):
+        result = getattr(string_series, how)(ops)
     tm.assert_series_equal(result, expected)
 
 
@@ -833,7 +857,8 @@ def test_apply_listlike_transformer(string_series, ops, names):
     with np.errstate(all="ignore"):
         expected = concat([op(string_series) for op in ops], axis=1)
         expected.columns = names
-        result = string_series.apply(ops)
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = string_series.apply(ops)
         tm.assert_frame_equal(result, expected)
 
 
@@ -851,5 +876,6 @@ def test_apply_dictlike_transformer(string_series, ops):
     with np.errstate(all="ignore"):
         expected = concat({name: op(string_series) for name, op in ops.items()})
         expected.name = string_series.name
-        result = string_series.apply(ops)
+        with tm.assert_produces_warning(FutureWarning, match="used aggregate"):
+            result = string_series.apply(ops)
         tm.assert_series_equal(result, expected)

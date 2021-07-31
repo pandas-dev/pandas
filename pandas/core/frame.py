@@ -8516,7 +8516,16 @@ NaN 12.3   33.0
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
-        return self._aggregate(func, axis, *args, **kwargs)
+        used_apply, result = self._aggregate(func, axis, *args, **kwargs)
+        if used_apply:
+            warnings.warn(
+                "pandas internally used apply() to compute part of the result. "
+                "In a future version, agg() will be used internally instead, "
+                "possibly resulting in a different behavior.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        return result
 
     def _aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         """Method for internal calls to aggregate."""
@@ -8541,7 +8550,7 @@ NaN 12.3   33.0
             result_in_dict = relabel_result(result, func, columns, order)
             result = DataFrame(result_in_dict, index=columns)
 
-        return result
+        return op.agg_used_apply, result
 
     agg = aggregate
 
@@ -8706,8 +8715,8 @@ NaN 12.3   33.0
         1  1  2
         2  1  2
         """
-        result = self._apply(func, axis, raw, result_type, args, **kwargs)
-        if is_list_like(func):
+        used_agg, result = self._apply(func, axis, raw, result_type, args, **kwargs)
+        if used_agg:
             warnings.warn(
                 "pandas internally used aggregate() to compute part of the result. "
                 "In a future version, apply() will be used internally instead, "
@@ -8738,7 +8747,8 @@ NaN 12.3   33.0
             args=args,
             kwargs=kwargs,
         )
-        return op.apply()
+        result = op.apply()
+        return op.apply_used_agg, result
 
     def applymap(
         self, func: PythonFuncType, na_action: str | None = None, **kwargs

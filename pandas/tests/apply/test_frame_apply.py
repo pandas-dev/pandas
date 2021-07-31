@@ -59,7 +59,8 @@ def test_apply_axis1_with_ea():
 def test_agg_axis1_duplicate_index(data, dtype):
     # GH 42380
     expected = DataFrame([[data], [data]], index=["a", "a"], dtype=dtype)
-    result = expected.agg(lambda x: x, axis=1)
+    with tm.assert_produces_warning(FutureWarning, match="used apply"):
+        result = expected.agg(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -651,7 +652,12 @@ def test_apply_nested_result_axis_1(op):
         return [2 * row["A"], 2 * row["C"], 2 * row["B"]]
 
     df = DataFrame(np.zeros((4, 4)), columns=list("ABCD"))
-    result = getattr(df, op)(apply_list, axis=1)
+    if op == "apply":
+        klass, msg = None, None
+    else:
+        klass, msg = FutureWarning, "used apply"
+    with tm.assert_produces_warning(klass, match=msg):
+        result = getattr(df, op)(apply_list, axis=1)
     expected = Series(
         [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
     )
@@ -1224,8 +1230,6 @@ def test_non_callable_aggregates(how):
         klass, msg = FutureWarning, "used aggregate"
     else:
         klass, msg = None, None
-
-    # Function aggregate
     with tm.assert_produces_warning(klass, match=msg):
         result = getattr(df, how)({"A": "count"})
     expected = Series({"A": 2})
@@ -1286,7 +1290,8 @@ def test_agg_listlike_result():
     def func(group_col):
         return list(group_col.dropna().unique())
 
-    result = df.agg(func)
+    with tm.assert_produces_warning(FutureWarning, match="used apply"):
+        result = df.agg(func)
     expected = Series([[2, 3], [1.5], ["foo", "bar"]], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
@@ -1319,7 +1324,8 @@ def test_agg_args_kwargs(axis, args, kwargs):
     else:
         expected = Series([4.0, 8.0])
 
-    result = df.agg(f, axis, *args, **kwargs)
+    with tm.assert_produces_warning(FutureWarning, match="used apply"):
+        result = df.agg(f, axis, *args, **kwargs)
 
     tm.assert_series_equal(result, expected)
 

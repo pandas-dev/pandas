@@ -138,6 +138,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # For deprecation warning on apply using agg
         self.apply_used_agg = False
+        self.agg_used_apply = False
 
     @abc.abstractmethod
     def apply(self) -> DataFrame | Series:
@@ -518,7 +519,8 @@ class Apply(metaclass=abc.ABCMeta):
             Result when self.f is a list-like or dict-like, None otherwise.
         """
         self.apply_used_agg = True
-        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
+        _, result = self.obj._aggregate(self.f, self.axis, *self.args, **self.kwargs)
+        return result
 
     def normalize_dictlike_arg(
         self, how: str, obj: DataFrame | Series, func: AggFuncTypeDict
@@ -715,7 +717,8 @@ class FrameApply(NDFrameApply):
             result = result.T if result is not None else result
 
         if result is None:
-            result = obj._apply(self.orig_f, axis, args=self.args, **self.kwargs)
+            self.agg_used_apply = True
+            _, result = obj._apply(self.orig_f, axis, args=self.args, **self.kwargs)
 
         return result
 

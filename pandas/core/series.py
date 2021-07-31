@@ -4209,6 +4209,20 @@ Keep all original rows and also all original values
         examples=_agg_examples_doc,
     )
     def aggregate(self, func=None, axis=0, *args, **kwargs):
+        used_apply, result = self._aggregate(func, axis, *args, **kwargs)
+        if used_apply:
+            warnings.warn(
+                "pandas internally used apply() to compute part of the result. "
+                "In a future version, agg() will be used internally instead, "
+                "possibly resulting in a different behavior.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        return result
+
+    agg = aggregate
+
+    def _aggregate(self, func=None, axis=0, *args, **kwargs):
         # Validate the axis parameter
         self._get_axis_number(axis)
 
@@ -4218,9 +4232,7 @@ Keep all original rows and also all original values
 
         op = SeriesApply(self, func, convert_dtype=False, args=args, kwargs=kwargs)
         result = op.agg()
-        return result
-
-    agg = aggregate
+        return op.agg_used_apply, result
 
     @doc(
         _shared_docs["transform"],
@@ -4347,7 +4359,27 @@ Keep all original rows and also all original values
         Helsinki    2.484907
         dtype: float64
         """
-        return SeriesApply(self, func, convert_dtype, args, kwargs).apply()
+        used_agg, result = self._apply(func, convert_dtype, args, **kwargs)
+        if used_agg:
+            warnings.warn(
+                "pandas internally used aggregate() to compute part of the result. "
+                "In a future version, apply() will be used internally instead, "
+                "possibly resulting in a different behavior.",
+                FutureWarning,
+                stacklevel=2,
+            )
+        return result
+
+    def _apply(
+        self,
+        func: AggFuncType,
+        convert_dtype: bool = True,
+        args: tuple[Any, ...] = (),
+        **kwargs,
+    ) -> tuple[bool, DataFrame | Series]:
+        op = SeriesApply(self, func, convert_dtype, args, kwargs)
+        result = op.apply()
+        return op.apply_used_agg, result
 
     def _reduce(
         self,

@@ -364,6 +364,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         if method == "apply":
             # Avoid deprecation warnings from an internal call
             method = "_apply"
+        elif method == "agg":
+            # Avoid deprecation warnings from an internal call
+            method = "_agg"
         result = getattr(ufunc, method)(*inputs, **kwargs)
     else:
         # ufunc(dataframe)
