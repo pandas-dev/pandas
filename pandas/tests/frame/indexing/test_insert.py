@@ -91,6 +91,7 @@ class TestDataFrameInsert:
         assert df.iloc[0, 0] == df[0][0]
 
     def test_insert_frame(self):
+        # GH#42403
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
         msg = "Wrong number of items passed 2, placement implies 1"
         with pytest.raises(ValueError, match=msg):
