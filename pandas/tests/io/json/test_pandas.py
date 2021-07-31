@@ -1389,7 +1389,9 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json(dfjson, orient="table")
         tm.assert_frame_equal(result, expected)
 
-    def test_to_json_from_json_columns_dtypes(self):
+    @pytest.mark.parametrize("orient", ["split", "records", "index", "columns"])
+    def test_to_json_from_json_columns_dtypes(self, orient):
+        # GH21892 GH33205
         expected = DataFrame.from_dict(
             {
                 "Integer": pd.Series([1, 2, 3], dtype="int64"),
@@ -1402,10 +1404,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                 ),
             }
         )
-        dfjson = expected.to_json(orient="columns")
+        dfjson = expected.to_json(orient=orient)
         result = read_json(
             dfjson,
-            orient="columns",
+            orient=orient,
             dtype={
                 "Integer": "int64",
                 "Float": "float64",
