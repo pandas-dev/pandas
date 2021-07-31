@@ -403,7 +403,7 @@ class FillNA:
 
 class GroupByMethods:
 
-    param_names = ["dtype", "method", "application"]
+    param_names = ["dtype", "method", "application", "ncols"]
     params = [
         ["int", "float", "object", "datetime", "uint"],
         [
@@ -443,14 +443,16 @@ class GroupByMethods:
             "var",
         ],
         ["direct", "transformation"],
+        [1, 2, 5, 10],
     ]
 
-    def setup(self, dtype, method, application):
+    def setup(self, dtype, method, application, ncols):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
         ngroups = 1000
         size = ngroups * 2
-        rng = np.arange(ngroups)
+        rng = np.arange(ngroups).reshape(-1, 1)
+        rng = np.broadcast_to(rng, (len(rng), ncols))
         values = rng.take(np.random.randint(0, ngroups, size=size))
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
@@ -465,22 +467,24 @@ class GroupByMethods:
         elif dtype == "datetime":
             key = date_range("1/1/2011", periods=size, freq="s")
 
-        df = DataFrame({"values": values, "key": key})
+        cols = [f"values{n}" for n in range(ncols)]
+        df = DataFrame(values, columns=cols)
+        df["key"] = key
 
         if application == "transform":
             if method == "describe":
                 raise NotImplementedError
 
-            self.as_group_method = lambda: df.groupby("key")["values"].transform(method)
-            self.as_field_method = lambda: df.groupby("values")["key"].transform(method)
+            self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
+            self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
         else:
-            self.as_group_method = getattr(df.groupby("key")["values"], method)
-            self.as_field_method = getattr(df.groupby("values")["key"], method)
+            self.as_group_method = getattr(df.groupby("key")[cols], method)
+            self.as_field_method = getattr(df.groupby(cols)["key"], method)
 
-    def time_dtype_as_group(self, dtype, method, application):
+    def time_dtype_as_group(self, dtype, method, application, ncols):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method, application):
+    def time_dtype_as_field(self, dtype, method, application, ncols):
         self.as_field_method()
 
 
