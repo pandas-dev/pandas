@@ -312,73 +312,30 @@ def test_sticky_mi(styler_mi, index, columns):
     if columns:
         styler_mi.set_sticky(axis=1)
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
+    )
+
     res = styler_mi.set_uuid("").to_html()
+
+    # test the index stickys for thead and tbody over both levels
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level0 {
-          position: sticky;
-          left: 0px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
+        left_css.format("thead tr th:nth-child(1)", "0", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level0", "0", "1") in res) is index
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level1 {
-          position: sticky;
-          left: 75px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level0 {
-          position: sticky;
-          top: 0px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level1 {
-          position: sticky;
-          top: 25px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
+        left_css.format("thead tr th:nth-child(2)", "75", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level1", "75", "1") in res) is index
+
+    # test the column stickys for each level row
+    assert (top_css.format("thead tr:nth-child(1) th", "0", "2") in res) is columns
+    assert (top_css.format("thead tr:nth-child(2) th", "25", "2") in res) is columns
 
 
 @pytest.mark.parametrize("index", [False, True])

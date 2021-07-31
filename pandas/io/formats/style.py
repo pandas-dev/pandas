@@ -1614,7 +1614,7 @@ class Styler(StylerRenderer):
                     props_ = props + (
                         f"left:{i * pixel_size}px; "
                         f"min-width:{pixel_size}px; "
-                        f"max-width:{pixel_size}; "
+                        f"max-width:{pixel_size}px; "
                     )
                     styles.extend(
                         [
