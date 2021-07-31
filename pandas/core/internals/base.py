@@ -33,6 +33,7 @@ class DataManager(PandasObject):
     def items(self) -> Index:
         raise AbstractMethodError(self)
 
+    @final
     def __len__(self) -> int:
         return len(self.items)
 
@@ -105,6 +106,7 @@ class DataManager(PandasObject):
         """
         raise AbstractMethodError(self)
 
+    @final
     def equals(self, other: object) -> bool:
         """
         Implementation for DataFrame.equals
@@ -129,13 +131,27 @@ class DataManager(PandasObject):
     ) -> T:
         raise AbstractMethodError(self)
 
+    @final
     def isna(self: T, func) -> T:
         return self.apply("apply", func=func)
+
+    # --------------------------------------------------------------------
+    # Consolidation: No-ops for all but BlockManager
+
+    def is_consolidated(self) -> bool:
+        return True
+
+    def consolidate(self: T) -> T:
+        return self
+
+    def _consolidate_inplace(self) -> None:
+        return
 
 
 class SingleDataManager(DataManager):
     ndim = 1
 
+    @final
     @property
     def array(self):
         """
