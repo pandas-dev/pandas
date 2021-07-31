@@ -981,15 +981,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return values
 
     @property
-    def column_arrays(self) -> list[np.ndarray]:
+    def column_arrays(self) -> list[ArrayLike]:
         """
         Used in the JSON C code to access column arrays.
         This optimizes compared to using `iget_values` by converting each
-        block.values to a np.ndarray only once up front
         """
         # This is an optimized equivalent to
         #  result = [self.iget_values(i) for i in range(len(self.items))]
-        result = [None] * len(self.items)
+        result: list[ArrayLike | None] = [None] * len(self.items)
         for blk in self.blocks:
             is_dtz = isinstance(blk, DatetimeTZBlock)
             mgr_locs = blk._mgr_locs
@@ -1004,8 +1003,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     if is_dtz:
                         # special casing datetimetz to avoid conversion through
                         #  object dtype
-                        result[loc] = result[loc]._ndarray
-        return result
+                        # error: Item "ndarray[Any, Any]" of
+                        # "Optional[Union[ExtensionArray, ndarray[Any, Any]]]"
+                        # has no attribute "_ndarray"
+                        result[loc] = result[loc]._ndarray  # type: ignore[union-attr]
+        # error: Incompatible return value type (got "List[None]",
+        # expected "List[ndarray[Any, Any]]")
+        return result  # type: ignore[return-value]
 
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
