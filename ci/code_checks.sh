@@ -123,6 +123,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
       pandas/io/sql.py \
       pandas/io/formats/format.py \
       pandas/io/formats/style.py \
+      pandas/io/stata.py \
       pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
