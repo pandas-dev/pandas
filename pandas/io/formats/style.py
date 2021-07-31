@@ -1588,7 +1588,7 @@ class Styler(StylerRenderer):
                 for i, level in enumerate(levels):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({i+1}) th",
+                            "selector": f"thead tr:nth-child({level+1}) th",
                             "props": props
                             + (
                                 f"top:{i * pixel_size}px; height:{pixel_size}px; "
@@ -1599,7 +1599,7 @@ class Styler(StylerRenderer):
                 if not all(name is None for name in self.index.names):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({i+2}) th",
+                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
                             "props": props
                             + (
                                 f"top:{(i+1) * pixel_size}px; height:{pixel_size}px; "
@@ -1619,11 +1619,11 @@ class Styler(StylerRenderer):
                     styles.extend(
                         [
                             {
-                                "selector": f"thead tr th:nth-child({i+1})",
+                                "selector": f"thead tr th:nth-child({level+1})",
                                 "props": props_ + "z-index:3 !important;",
                             },
                             {
-                                "selector": f"tbody tr th.level{i}",
+                                "selector": f"tbody tr th.level{level}",
                                 "props": props_ + "z-index:1;",
                             },
                         ]
