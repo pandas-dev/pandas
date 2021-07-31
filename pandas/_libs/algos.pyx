@@ -217,8 +217,8 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     This is a reverse of the label factorization process.
     """
     cdef:
-        Py_ssize_t i, loc, label, n
-        ndarray[intp_t] indexer, where, counts
+        Py_ssize_t i, label, n
+        intp_t[::1] indexer, where, counts
 
     counts = np.zeros(ngroups + 1, dtype=np.intp)
     n = len(index)
@@ -241,7 +241,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
             indexer[where[label]] = i
             where[label] += 1
 
-    return indexer, counts
+    return indexer.base, counts.base
 
 
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
@@ -325,11 +325,10 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
-        ndarray[float64_t, ndim=2] result
+        float64_t[:, ::1] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
-        float64_t vx, vy, meanx, meany, divisor, prev_meany, prev_meanx, ssqdmx
-        float64_t ssqdmy, covxy
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
 
     N, K = (<object>mat).shape
 
@@ -352,13 +351,13 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
                         nobs += 1
-                        prev_meanx = meanx
-                        prev_meany = meany
-                        meanx = meanx + 1 / nobs * (vx - meanx)
-                        meany = meany + 1 / nobs * (vy - meany)
-                        ssqdmx = ssqdmx + (vx - meanx) * (vx - prev_meanx)
-                        ssqdmy = ssqdmy + (vy - meany) * (vy - prev_meany)
-                        covxy = covxy + (vx - meanx) * (vy - prev_meany)
+                        dx = vx - meanx
+                        dy = vy - meany
+                        meanx += 1 / nobs * dx
+                        meany += 1 / nobs * dy
+                        ssqdmx += (vx - meanx) * dx
+                        ssqdmy += (vy - meany) * dy
+                        covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
@@ -370,7 +369,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
 
-    return result
+    return result.base
 
 # ----------------------------------------------------------------------
 # Pairwise Spearman correlation
