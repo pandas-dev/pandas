@@ -211,3 +211,14 @@ class TestSeriesNLargestNSmallest:
         result = ser.nlargest(1)
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
+
+    def test_nlargest_nullable(self, any_nullable_numeric_dtype):
+        # GH#42816 NB so far we only handles cases without NAs
+        dtype = any_nullable_numeric_dtype
+        arr = np.random.randn(10).astype(dtype.lower(), copy=False)
+
+        ser = Series(arr, dtype=dtype)
+        result = ser.nlargest(5)
+
+        expected = Series(arr).nlargest(5).astype(dtype)
+        tm.assert_series_equal(result, expected)
