@@ -1221,7 +1221,7 @@ class IndexOpsMixin(OpsMixin):
         """
 
     @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(self, value, side="left", sorter=None) -> npt.NDArray[np.intp]:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
@@ -1232,5 +1232,5 @@ class IndexOpsMixin(OpsMixin):
     @final
     def _duplicated(
         self, keep: Literal["first", "last", False] = "first"
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)
