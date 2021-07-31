@@ -192,6 +192,11 @@ Datetimelike
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
 -
 
+Expressions
+^^^^^^^^^^^
+- Bug in :function:`create_valid_python_identifier` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, using an expression to query a dataframe (:issue:`42826`)
+-
+
 Timedelta
 ^^^^^^^^^
 -
