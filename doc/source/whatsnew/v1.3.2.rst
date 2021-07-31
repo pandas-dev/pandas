@@ -30,7 +30,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- 1D slices over extension types turn into N-dimensional slices over ExtensionArrays (:issue:`42430`)
 -
 
 .. ---------------------------------------------------------------------------
