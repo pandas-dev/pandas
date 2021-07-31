@@ -186,6 +186,7 @@ class TestEWMMean:
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
         with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
             result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
             expected = ewm.mean(engine="cython")
 
@@ -222,6 +223,7 @@ class TestEWMMean:
 
         # TODO: why only in these cases?
         with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
             result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
             expected = ewm.mean(engine="cython")
 

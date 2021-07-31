@@ -924,6 +924,7 @@ class TestEWM:
         tm.assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
             expected = df.groupby("A").apply(
                 lambda x: getattr(x.ewm(com=1.0), method)()
             )
@@ -960,6 +961,7 @@ class TestEWM:
         # GH 40951
         halflife = "23 days"
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
             result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = DataFrame(
             {
@@ -998,6 +1000,7 @@ class TestEWM:
         # GH 40951
         halflife = "23 days"
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
             result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
             expected = (
                 times_frame.groupby("A")
@@ -1012,6 +1015,7 @@ class TestEWM:
         halflife = "23 days"
         gb = times_frame.groupby("A")
         with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
             result = gb.ewm(halflife=halflife, times="C").mean()
             expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
         tm.assert_frame_equal(result, expected)

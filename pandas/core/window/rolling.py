@@ -439,7 +439,7 @@ class BaseWindow(SelectionMixin):
             new_mgr = mgr.apply(hfunc, ignore_failures=True)
 
         if 0 != len(new_mgr.items) != len(mgr.items):
-            # ignore_failures dropped nuisance columns
+            # GH#42738 ignore_failures dropped nuisance columns
             warnings.warn(
                 "Dropping of nuisance columns in rolling operations "
                 "is deprecated; in a future version this will raise TypeError. "
