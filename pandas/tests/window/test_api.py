@@ -68,7 +68,8 @@ def tests_skip_nuisance():
 def test_skip_sum_object_raises():
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3)
-    result = r.sum()
+    with tm.assert_produces_warning(FutureWarning, match="nuisance columns"):
+        result = r.sum()
     expected = DataFrame(
         {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
         columns=list("AB"),
