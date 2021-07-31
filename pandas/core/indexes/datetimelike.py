@@ -238,10 +238,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         attrs = super()._format_attrs()
         for attrib in self._attributes:
+            # iterating over _attributes prevents us from doing this for PeriodIndex
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = repr(freq)
+                    freq = repr(freq)  # e.g. D -> 'D'
                 # Argument 1 to "append" of "list" has incompatible type
                 # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
                 attrs.append(("freq", freq))  # type: ignore[arg-type]
