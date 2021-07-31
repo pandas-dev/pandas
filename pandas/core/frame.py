@@ -5252,6 +5252,13 @@ class DataFrame(NDFrame, OpsMixin):
         return res.__finalize__(self)
 
     def _isetitem(self, loc: int, value):
+        """
+        Set a new array in our the given column position.
+
+        Notes
+        -----
+        Replaces the existing array, does not write into it.
+        """
         cols = self.columns
         if cols.is_unique:
             col = cols[loc]

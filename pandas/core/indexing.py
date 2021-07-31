@@ -1252,6 +1252,8 @@ class _LocIndexer(_LocationIndexer):
                 key = list(key)
 
             if com.is_bool_indexer(key):
+                # TODO: in this case should we do a .take on the value here?
+                # test_loc_setitem_all_false_boolean_two_blocks
                 key = check_bool_indexer(labels, key)
                 (inds,) = key.nonzero()
                 return inds
