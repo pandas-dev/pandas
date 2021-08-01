@@ -1776,6 +1776,8 @@ class Styler(StylerRenderer):
             The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
             used simultaneously with ``subset``.
 
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         self : Styler
