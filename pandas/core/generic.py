@@ -99,7 +99,10 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_hashable
+from pandas.core.dtypes.inference import (
+    is_hashable,
+    is_nested_list_like,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -4182,6 +4185,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # Case for non-unique axis
         else:
+            is_tuple_labels = is_nested_list_like(labels) or isinstance(labels, tuple)
             labels = ensure_object(com.index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
@@ -4191,9 +4195,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == "raise" and indexer.all():
                     raise KeyError(f"{labels} not found in axis")
-            elif isinstance(axis, MultiIndex) and labels.dtype == "object":
+            elif (
+                isinstance(axis, MultiIndex)
+                and labels.dtype == "object"
+                and not is_tuple_labels
+            ):
                 # Set level to zero in case of MultiIndex and label is string,
                 #  because isin can't handle strings for MultiIndexes GH#36293
+                # In case of tuples we get dtype object but have to use isin GH#42771
                 indexer = ~axis.get_level_values(0).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
