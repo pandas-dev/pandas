@@ -453,7 +453,8 @@ class GroupByMethods:
         size = ngroups * 2
         rng = np.arange(ngroups).reshape(-1, 1)
         rng = np.broadcast_to(rng, (len(rng), ncols))
-        values = rng.take(np.random.randint(0, ngroups, size=size))
+        taker = np.random.randint(0, ngroups, size=size)
+        values = rng.take(taker, axis=0)
         if dtype == "int":
             key = np.random.randint(0, size, size=size)
         elif dtype == "uint":
@@ -470,6 +471,9 @@ class GroupByMethods:
         cols = [f"values{n}" for n in range(ncols)]
         df = DataFrame(values, columns=cols)
         df["key"] = key
+
+        if len(cols) == 1:
+            cols = cols[0]
 
         if application == "transform":
             if method == "describe":

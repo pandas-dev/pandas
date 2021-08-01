@@ -2964,7 +2964,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
-                result = result[:, 0]
+                # error: Invalid index type "Tuple[slice, int]" for
+                # "Union[ExtensionArray, ndarray[Any, Any]]"; expected type
+                # "Union[int, integer[Any], slice, Sequence[int], ndarray[Any, Any]]"
+                result = result[:, 0]  # type: ignore[index]
                 if needs_mask:
                     mask = mask[:, 0]
 
@@ -2978,12 +2981,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_2d and not real_2d:
                 if result.ndim == 2:
                     assert result.shape[1] == 1
-                    result = result[:, 0]
+                    # error: Invalid index type "Tuple[slice, int]" for
+                    # "Union[ExtensionArray, Any, ndarray[Any, Any]]"; expected
+                    # type "Union[int, integer[Any], slice, Sequence[int],
+                    # ndarray[Any, Any]]"
+                    result = result[:, 0]  # type: ignore[index]
 
             return result.T
 
         obj = self._obj_with_exclusions
         if obj.ndim == 2 and self.axis == 0 and needs_2d and real_2d:
+            # Operate block-wise instead of column-by-column
 
             mgr = obj._mgr
             if numeric_only:
