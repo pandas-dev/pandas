@@ -1449,10 +1449,53 @@ class BarPlot(MPLPlot):
         # we have to treat a series differently than a
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
-        self.bar_width = kwargs.pop("width", 0.5)
         pos = kwargs.pop("position", 0.5)
         kwargs.setdefault("align", "center")
-        self.tick_pos = np.arange(len(data))
+
+        self.x_mode = kwargs.pop("x_mode", "sequential")
+        width = kwargs.pop("width", None)
+        if self.x_mode == "sequential":
+            self.tick_pos = np.arange(len(data))
+            self.ax_pos = self.tick_pos
+            default_width = 0.5
+        elif self.x_mode == "numerical":
+            if is_categorical_dtype(data.index):
+                self.tick_pos = np.array(data.index.codes)
+                default_width = 0.5
+            else:
+                self.tick_pos = data.index
+                if width is None:
+                    # Width must have some units compatible with index
+                    # so ax[i] + k*width is a valid operation
+                    # The default value is half of the smallest non null
+                    # split between points
+                    try:
+                        steps = np.diff(data.index.sort_values().to_numpy())
+                        steps = steps[np.nonzero(steps)]
+                        if len(steps) == 0:
+                            # Either we have a single point or all the
+                            # points are the same so use unit-less x axis
+                            self.tick_pos = np.zeros(len(data))
+                            default_width = 0.5
+                        else:
+                            default_width = np.min(steps) * 0.5
+                    except TypeError as err:
+                        raise ValueError(f'Invalid type for numeric: {err}')
+                else:
+                    default_width = width
+            self.ax_pos = self.tick_pos
+        elif self.x_mode == "categorical":
+            if not is_categorical_dtype(data.index):
+                raise ValueError(
+                    f"x_mode='categorical' needs a categorical index"
+                )
+            self.tick_pos = np.arange(len(data.index.dtype.categories))
+            self.ax_pos = np.array(data.index.codes)
+            default_width = 0.5
+        else:
+            raise ValueError(f'Invalid x_mode={self.x_mode}')
+
+        self.bar_width = kwargs.pop("width", default_width)
 
         self.bottom = kwargs.pop("bottom", 0)
         self.left = kwargs.pop("left", 0)
@@ -1465,7 +1508,7 @@ class BarPlot(MPLPlot):
             if kwargs["align"] == "edge":
                 self.lim_offset = self.bar_width / 2
             else:
-                self.lim_offset = 0
+                self.lim_offset = 0 * self.bar_width
         else:
             if kwargs["align"] == "edge":
                 w = self.bar_width / self.nseries
@@ -1473,9 +1516,9 @@ class BarPlot(MPLPlot):
                 self.lim_offset = w * 0.5
             else:
                 self.tickoffset = self.bar_width * pos
-                self.lim_offset = 0
+                self.lim_offset = 0 * self.bar_width
 
-        self.ax_pos = self.tick_pos - self.tickoffset
+        self.ax_pos = self.ax_pos - self.tickoffset
 
     def _args_adjust(self):
         if is_list_like(self.bottom):
@@ -1568,14 +1611,28 @@ class BarPlot(MPLPlot):
             self._append_legend_handles_labels(rect, label)
 
     def _post_plot_logic(self, ax: Axes, data):
-        if self.use_index:
-            str_index = [pprint_thing(key) for key in data.index]
+
+        s_edge = min(self.tick_pos) - self.tickoffset
+        e_edge = max(self.tick_pos) - self.tickoffset
+        margin = 0.25
+        x_values = data.index
+        if self.x_mode == 'numerical':
+            margin = 0.5 * self.bar_width
+        elif self.x_mode == 'categorical':
+            x_values = data.index.dtype.categories
         else:
-            str_index = [pprint_thing(key) for key in range(data.shape[0])]
+            # Compatibility with previous version
+            s_edge = self.ax_pos[0]
+            e_edge = self.ax_pos[-1]
+
+        if self.use_index:
+            str_index = [pprint_thing(key) for key in x_values]
+        else:
+            str_index = [pprint_thing(key) for key in range(len(x_values))]
         name = self._get_index_name()
 
-        s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
-        e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
+        s_edge = s_edge - margin + self.lim_offset
+        e_edge = e_edge + margin + self.bar_width + self.lim_offset
 
         self._decorate_ticks(ax, name, str_index, s_edge, e_edge)
 
@@ -1608,8 +1665,11 @@ class BarhPlot(BarPlot):
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
-        ax.set_yticks(self.tick_pos)
-        ax.set_yticklabels(ticklabels)
+        if self.yticks is not None:
+            ax.set_yticks(np.array(self.yticks))
+        else:
+            ax.set_yticks(self.tick_pos)
+            ax.set_yticklabels(ticklabels)
         if name is not None and self.use_index:
             ax.set_ylabel(name)
 

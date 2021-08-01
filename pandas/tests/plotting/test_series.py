@@ -815,3 +815,58 @@ class TestSeriesPlots(TestPlotBase):
         xlims = (3, 1)
         ax = Series([1, 2], index=index).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
+
+    @staticmethod
+    def _assert_rect_x_list(ax, x_coord, offset=0.0):
+        for rect, x in zip(ax.get_children(), x_coord):
+            tm.assert_almost_equal(rect.get_x(), x + offset)
+
+    def test_bar_mode_categorical(self):
+        cat = pd.CategoricalDtype(list('ABCDE'))
+        expected_ticks = np.arange(len(cat.categories))
+
+        # Single plot
+        _, ax = self.plt.subplots()
+        idx = pd.CategoricalIndex(['A', 'C', 'E'], dtype=cat)
+        ax = Series(range(3), index=idx).plot.bar(ax=ax, x_mode='categorical')
+        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected_ticks)
+        # First 3 patches are the series in positions:
+        # A => 0 - width / 2 = -0.25
+        # C => 2 - width / 2 = 1.75
+        # E => 4 - width / 2 = 3.75
+        self._assert_rect_x_list(ax, [0, 2, 4], -0.25)
+        tm.close()
+
+    def test_bar_mode_numerical(self):
+        # integer index
+        _, ax = self.plt.subplots()
+        # Window is (5 - 1) / 2 = 2
+        int_index = [1, 5, 10]
+        ax = Series([0, 2, 4], index=int_index).plot.bar(x_mode='numerical')
+        self._assert_rect_x_list(ax, int_index, -2 * 0.5)
+        tm.close()
+
+        # Float index
+        _, ax = self.plt.subplots()
+        # Window is (0.2 - 0.1) / 2 = 0.05
+        float_index = [0.1, 0.2, 0.5]
+        ax = Series([0, 2, 4], index=float_index).plot.bar(x_mode='numerical')
+        self._assert_rect_x_list(ax, float_index, -0.05 * 0.5)
+        tm.close()
+
+        # Categorical
+        _, ax = self.plt.subplots()
+        cat_index = pd.Categorical(['A', 'C', 'E'], ['A', 'B', 'C', 'D', 'E'])
+        ax = Series([0, 2, 4], index=cat_index).plot.bar(x_mode='numerical')
+        self._assert_rect_x_list(ax, cat_index.codes, -0.25)
+        tm.close()
+
+        # Epochs
+        _, ax = self.plt.subplots()
+        # Window is 2 days / 2 = 1 day
+        epoch_index = pd.to_datetime(['2021-01-01', '2021-01-03', '2021-01-06'])
+        ax = Series([0, 2, 4], index=epoch_index).plot.bar(x_mode='numerical')
+        # Matplotlib internally use days since to 1970-01-01 00:00:00
+        offset = pd.Timestamp(1970, 1, 1).to_julian_date()
+        self._assert_rect_x_list(ax, epoch_index.to_julian_date(), -offset - 0.5)
+        tm.close()

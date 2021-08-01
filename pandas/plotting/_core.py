@@ -419,7 +419,7 @@ backend : str, default None
 """
 
 
-_bar_or_line_doc = """
+_bar_or_line_common_param_doc = """
         Parameters
         ----------
         x : label or position, optional
@@ -447,16 +447,183 @@ _bar_or_line_doc = """
                 column `a` in green and %(kind)ss for column `b` in red.
 
             .. versionadded:: 1.1.0
+"""
 
-        **kwargs
-            Additional keyword arguments are documented in
-            :meth:`DataFrame.plot`.
+_line_option_doc = """
+x_compat : bool, optional
+           Suppress automatic tick resolution adjustment
+           for regular frequency time-series data.
+"""
 
-        Returns
-        -------
-        matplotlib.axes.Axes or np.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+
+_bar_option_doc = """
+x_mode : {'sequential', 'numerical', 'categorial'}, default 'sequential'
+    Select the mode for the axis with the categories:
+    
+    - 'sequential' : 
+        Add each x value as a string in the row number it has in the column.
+        The positions in the categories axis are  just ``range(len(x))``
+        
+    - 'numerical' : 
+        Add each x value as a real number.
+        For categorical data use the code value.
+        
+    - 'categorial' : 
+        For categorical data only, each x entry follows its code value,
+        and include all the category entries the axis,
+        leaving blank the unused ones.
+
+    .. versionadded:: 1.4.0
+"""
+
+
+_bar_or_line_ending_doc = """
+**kwargs
+    Additional keyword arguments are documented in
+    :meth:`DataFrame.plot`.
+
+Returns
+-------
+matplotlib.axes.Axes or np.ndarray of them
+    An ndarray is returned with one :class:`matplotlib.axes.Axes`
+    per column when ``subplots=True``.
+"""
+
+
+_bar_examples_doc = """
+See Also
+--------
+DataFrame.plot.%(other)s : %(other_orientation)s bar plot.
+DataFrame.plot : Make plots of a DataFrame.
+matplotlib.pyplot.%(kind)s : Make a %(kind)s plot with matplotlib.
+
+Examples
+--------
+Basic plot.
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
+    >>> ax = df.plot.%(kind)s(x='lab', y='val'%(rot)s)
+
+Plot a whole dataframe to a %(orientation)s bar plot.
+Each column is assigned a distinct color, and each row is nested
+in a group along the %(orientation)s axis.
+
+.. plot::
+    :context: close-figs
+
+    >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+    >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+    >>> index = ['snail', 'pig', 'elephant',
+    ...          'rabbit', 'giraffe', 'coyote', 'horse']
+    >>> df = pd.DataFrame({'speed': speed,
+    ...                    'lifespan': lifespan}, index=index)
+    >>> ax = df.plot.%(kind)s(title="Animals"%(rot)s)
+
+Plot stacked bar charts for the DataFrame
+
+.. plot::
+    :context: close-figs
+
+    >>> ax = df.plot.%(kind)s(stacked=True)
+
+Instead of nesting, the figure can be split by column with
+``subplots=True``. In this case, a :class:`numpy.ndarray` of
+:class:`matplotlib.axes.Axes` are returned.
+
+.. plot::
+    :context: close-figs
+
+    >>> axes = df.plot.%(kind)s(subplots=True%(rot)s)
+    >>> axes[1].legend(loc=2)  # doctest: +SKIP
+
+If you don't like the default colours, you can specify how you'd
+like each column to be colored.
+
+.. plot::
+    :context: close-figs
+
+    >>> axes = df.plot.%(kind)s(
+    ...     subplots=True, color={"speed": "red", "lifespan": "green"}%(rot)s
+    ... )
+    >>> axes[1].legend(loc=2)  # doctest: +SKIP
+
+Plot a single column.
+
+.. plot::
+    :context: close-figs
+
+    >>> ax = df.plot.%(kind)s(y='speed'%(rot)s)
+
+Plot only selected categories for the DataFrame.
+
+.. plot::
+    :context: close-figs
+
+    >>> ax = df.plot.%(kind)s(x='lifespan'%(rot)s)
+
+**Using the advance x_mode**
+
+The classic %(kind)s plot adds one after the other each
+of the x elements to the axis, so each category is at
+position 0, 1,... and the value is treated as a string,
+despite of its real value.
+If the x values are relevant by their value this can produce
+plots difficult to compare.
+
+With x_mode='numeric' the position of the x coordinates honors their
+numeric value.
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({
+    ...     'machine': [1, 6, 5, 2, 10],
+    ...     'cpu': [0.9, 0.2, 0.6, 0.95, 0.5],
+    ...     'ram': [0.4, 0.9, 0.7, 0.99, 0.4]
+    ... })
+    >>> ax = df.plot.%(kind)s(x='machine', x_mode='numerical'%(rot)s)
+
+That is easier to correlate with data from other sample.
+
+.. plot::
+    :context: close-figs
+
+    >>> df = pd.DataFrame({
+    ...     'machine': [1, 3, 5, 4, 9, 10],
+    ...     'cpu': [0.4, 0.2, 0.9, 0.7, 0.5, 0.7],
+    ...     'ram': [0.9, 0.9, 0.7, 0.9, 0.4, 0.6]
+    ... })
+    >>> ax = df.plot.%(kind)s(x='machine', x_mode='numerical'%(rot)s)
+
+For categorical indexes, it is also convenient to include the missing
+categories so the plots are aligned and easy to compare
+
+.. plot::
+    :context: close-figs
+
+    >>> import matplotlib.pyplot as plt
+    >>> animal = pd.CategoricalDtype([
+    ...     'snail', 'pig', 'elephant', 'rabbit', 'bat',
+    ...     'giraffe', 'coyote', 'horse', 'cat'
+    ... ])
+    >>> df_zoo = pd.DataFrame(
+    ...     {'speed': speed, 'lifespan': lifespan},
+    ...     index=pd.CategoricalIndex(index, dtype=animal)
+    ... )
+    >>> index_wonderland = ['rabbit', 'bat', 'cat']
+    >>> df_wonderland = pd.DataFrame(
+    ...     {'speed': [50, 70.3, 90], 'lifespan': [30, 40, 150]},
+    ...     index=pd.CategoricalIndex(index_wonderland, dtype=animal))
+    >>> fig, axes = plt.subplots(2, 1, sharex='all')
+    >>> axes[0] = df_zoo.plot.%(kind)s(
+    ...     ax=axes[0], x_mode='categorical', ylabel='Zoo'%(rot)s
+    ... )
+    >>> axes[1] = df_wonderland.plot.%(kind)s(
+    ...     ax=axes[1], x_mode='categorical', ylabel='Wonderland'%(rot)s
+    ... )
 """
 
 
@@ -1029,7 +1196,9 @@ class PlotAccessor(PandasObject):
         """
     )
     @Substitution(kind="line")
-    @Appender(_bar_or_line_doc)
+    @Appender(_bar_or_line_ending_doc)
+    @Appender(_line_option_doc)
+    @Appender(_bar_or_line_common_param_doc)
     def line(self, x=None, y=None, **kwargs):
         """
         Plot Series or DataFrame as lines.
@@ -1039,84 +1208,14 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="line", x=x, y=y, **kwargs)
 
-    @Appender(
-        """
-        See Also
-        --------
-        DataFrame.plot.barh : Horizontal bar plot.
-        DataFrame.plot : Make plots of a DataFrame.
-        matplotlib.pyplot.bar : Make a bar plot with matplotlib.
-
-        Examples
-        --------
-        Basic plot.
-
-        .. plot::
-            :context: close-figs
-
-            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
-            >>> ax = df.plot.bar(x='lab', y='val', rot=0)
-
-        Plot a whole dataframe to a bar plot. Each column is assigned a
-        distinct color, and each row is nested in a group along the
-        horizontal axis.
-
-        .. plot::
-            :context: close-figs
-
-            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
-            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.bar(rot=0)
-
-        Plot stacked bar charts for the DataFrame
-
-        .. plot::
-            :context: close-figs
-
-            >>> ax = df.plot.bar(stacked=True)
-
-        Instead of nesting, the figure can be split by column with
-        ``subplots=True``. In this case, a :class:`numpy.ndarray` of
-        :class:`matplotlib.axes.Axes` are returned.
-
-        .. plot::
-            :context: close-figs
-
-            >>> axes = df.plot.bar(rot=0, subplots=True)
-            >>> axes[1].legend(loc=2)  # doctest: +SKIP
-
-        If you don't like the default colours, you can specify how you'd
-        like each column to be colored.
-
-        .. plot::
-            :context: close-figs
-
-            >>> axes = df.plot.bar(
-            ...     rot=0, subplots=True, color={"speed": "red", "lifespan": "green"}
-            ... )
-            >>> axes[1].legend(loc=2)  # doctest: +SKIP
-
-        Plot a single column.
-
-        .. plot::
-            :context: close-figs
-
-            >>> ax = df.plot.bar(y='speed', rot=0)
-
-        Plot only selected categories for the DataFrame.
-
-        .. plot::
-            :context: close-figs
-
-            >>> ax = df.plot.bar(x='lifespan', rot=0)
-    """
+    @Substitution(
+        kind="bar", orientation="vertical", rot=", rot=0",
+        other="barh", other_orientation="Horizontal"
     )
-    @Substitution(kind="bar")
-    @Appender(_bar_or_line_doc)
+    @Appender(_bar_examples_doc)
+    @Appender(_bar_or_line_ending_doc)
+    @Appender(_bar_option_doc)
+    @Appender(_bar_or_line_common_param_doc)
     def bar(self, x=None, y=None, **kwargs):
         """
         Vertical bar plot.
@@ -1129,80 +1228,14 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="bar", x=x, y=y, **kwargs)
 
-    @Appender(
-        """
-        See Also
-        --------
-        DataFrame.plot.bar: Vertical bar plot.
-        DataFrame.plot : Make plots of DataFrame using matplotlib.
-        matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
-
-        Examples
-        --------
-        Basic example
-
-        .. plot::
-            :context: close-figs
-
-            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
-            >>> ax = df.plot.barh(x='lab', y='val')
-
-        Plot a whole DataFrame to a horizontal bar plot
-
-        .. plot::
-            :context: close-figs
-
-            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
-            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.barh()
-
-        Plot stacked barh charts for the DataFrame
-
-        .. plot::
-            :context: close-figs
-
-            >>> ax = df.plot.barh(stacked=True)
-
-        We can specify colors for each column
-
-        .. plot::
-            :context: close-figs
-
-            >>> ax = df.plot.barh(color={"speed": "red", "lifespan": "green"})
-
-        Plot a column of the DataFrame to a horizontal bar plot
-
-        .. plot::
-            :context: close-figs
-
-            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
-            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.barh(y='speed')
-
-        Plot DataFrame versus the desired column
-
-        .. plot::
-            :context: close-figs
-
-            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
-            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.barh(x='lifespan')
-    """
+    @Substitution(
+        kind="barh", orientation="horizontal", rot="",
+        other="bar", other_orientation="Vertical"
     )
-    @Substitution(kind="bar")
-    @Appender(_bar_or_line_doc)
+    @Appender(_bar_examples_doc)
+    @Appender(_bar_or_line_ending_doc)
+    @Appender(_bar_option_doc)
+    @Appender(_bar_or_line_common_param_doc)
     def barh(self, x=None, y=None, **kwargs):
         """
         Make a horizontal bar plot.
