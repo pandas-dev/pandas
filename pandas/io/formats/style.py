@@ -1830,14 +1830,14 @@ class Styler(StylerRenderer):
         Hide a specific level:
 
         >>> df.style.format("{:,.1f").hide_index(levels=1)
-                            x                    y
-              a      b      c      a      b      c
-        x   0.1    0.0    0.4    1.3    0.6   -1.4
-            0.7    1.0    1.3    1.5   -0.0   -0.2
-            1.4   -0.8    1.6   -0.2   -0.4   -0.3
-        y   0.4    1.0   -0.2   -0.8   -1.2    1.1
-           -0.6    1.2    1.8    1.9    0.3    0.3
-            0.8    0.5   -0.3    1.2    2.2   -0.8
+                             x                    y
+               a      b      c      a      b      c
+        x    0.1    0.0    0.4    1.3    0.6   -1.4
+             0.7    1.0    1.3    1.5   -0.0   -0.2
+             1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            -0.6    1.2    1.8    1.9    0.3    0.3
+             0.8    0.5   -0.3    1.2    2.2   -0.8
         """
         if levels is not None and subset is not None:
             raise ValueError("`subset` and `levels` cannot be passed simultaneously")
