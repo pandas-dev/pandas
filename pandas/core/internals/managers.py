@@ -465,19 +465,6 @@ class BaseBlockManager(DataManager):
         """
         return self.apply("to_native_types", **kwargs)
 
-    def is_consolidated(self) -> bool:
-        """
-        Return True if more than one block with the same dtype
-        """
-        if not self._known_consolidated:
-            self._consolidate_check()
-        return self._is_consolidated
-
-    def _consolidate_check(self) -> None:
-        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
-        self._is_consolidated = len(dtypes) == len(set(dtypes))
-        self._known_consolidated = True
-
     @property
     def is_numeric_mixed_type(self) -> bool:
         return all(block.is_numeric for block in self.blocks)
@@ -622,13 +609,6 @@ class BaseBlockManager(DataManager):
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
-
-    def _consolidate_inplace(self) -> None:
-        if not self.is_consolidated():
-            self.blocks = tuple(_consolidate(self.blocks))
-            self._is_consolidated = True
-            self._known_consolidated = True
-            self._rebuild_blknos_and_blklocs()
 
     def reindex_indexer(
         self: T,
@@ -1551,6 +1531,29 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return result
 
+    # ----------------------------------------------------------------
+    # Consolidation
+
+    def is_consolidated(self) -> bool:
+        """
+        Return True if more than one block with the same dtype
+        """
+        if not self._known_consolidated:
+            self._consolidate_check()
+        return self._is_consolidated
+
+    def _consolidate_check(self) -> None:
+        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
+        self._is_consolidated = len(dtypes) == len(set(dtypes))
+        self._known_consolidated = True
+
+    def _consolidate_inplace(self) -> None:
+        if not self.is_consolidated():
+            self.blocks = tuple(_consolidate(self.blocks))
+            self._is_consolidated = True
+            self._known_consolidated = True
+            self._rebuild_blknos_and_blklocs()
+
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""
@@ -1710,15 +1713,6 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def is_consolidated(self) -> bool:
-        return True
-
-    def _consolidate_check(self):
-        pass
-
-    def _consolidate_inplace(self):
-        pass
-
     def idelete(self, indexer) -> SingleBlockManager:
         """
         Delete single location from SingleBlockManager.
@@ -1779,11 +1773,6 @@ def create_block_manager_from_blocks(
     return mgr
 
 
-# We define this here so we can override it in tests.extension.test_numpy
-def _extract_array(obj):
-    return extract_array(obj, extract_numpy=True)
-
-
 def create_block_manager_from_arrays(
     arrays,
     names: Index,
@@ -1795,7 +1784,7 @@ def create_block_manager_from_arrays(
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
 
-    arrays = [_extract_array(x) for x in arrays]
+    arrays = [extract_array(x, extract_numpy=True) for x in arrays]
 
     try:
         blocks = _form_blocks(arrays, names, axes, consolidate)
