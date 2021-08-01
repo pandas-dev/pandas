@@ -13,17 +13,17 @@ Usage:
     $ python scripts/generate_pip_deps_from_conda.py --compare
 """
 import argparse
-import os
+import pathlib
 import re
 import sys
 
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-RENAME = {"pytables": "tables", "pyqt": "pyqt5", "dask-core": "dask"}
+RENAME = {"pytables": "tables", "dask-core": "dask"}
 
 
-def conda_package_to_pip(package):
+def conda_package_to_pip(package: str):
     """
     Convert a conda package to its pip equivalent.
 
@@ -36,17 +36,13 @@ def conda_package_to_pip(package):
     package = re.sub("(?<=[^<>])=", "==", package).strip()
 
     for compare in ("<=", ">=", "=="):
-        if compare not in package:
-            continue
+        if compare in package:
+            pkg, version = package.split(compare)
+            if pkg in EXCLUDE:
+                return
 
-        pkg, version = package.split(compare)
-        if pkg in EXCLUDE:
-            return
-
-        if pkg in RENAME:
-            return "".join((RENAME[pkg], compare, version))
-
-        break
+            if pkg in RENAME:
+                return "".join((RENAME[pkg], compare, version))
 
     if package in EXCLUDE:
         return
@@ -57,16 +53,18 @@ def conda_package_to_pip(package):
     return package
 
 
-def main(conda_fname, pip_fname, compare=False):
+def generate_pip_from_conda(
+    conda_path: pathlib.Path, pip_path: pathlib.Path, compare: bool = False
+) -> bool:
     """
     Generate the pip dependencies file from the conda file, or compare that
     they are synchronized (``compare=True``).
 
     Parameters
     ----------
-    conda_fname : str
+    conda_path : pathlib.Path
         Path to the conda file with dependencies (e.g. `environment.yml`).
-    pip_fname : str
+    pip_path : pathlib.Path
         Path to the pip file with dependencies (e.g. `requirements-dev.txt`).
     compare : bool, default False
         Whether to generate the pip file (``False``) or to compare if the
@@ -78,8 +76,8 @@ def main(conda_fname, pip_fname, compare=False):
     bool
         True if the comparison fails, False otherwise
     """
-    with open(conda_fname) as conda_fd:
-        deps = yaml.safe_load(conda_fd)["dependencies"]
+    with conda_path.open() as file:
+        deps = yaml.safe_load(file)["dependencies"]
 
     pip_deps = []
     for dep in deps:
@@ -88,24 +86,23 @@ def main(conda_fname, pip_fname, compare=False):
             if conda_dep:
                 pip_deps.append(conda_dep)
         elif isinstance(dep, dict) and len(dep) == 1 and "pip" in dep:
-            pip_deps += dep["pip"]
+            pip_deps.extend(dep["pip"])
         else:
             raise ValueError(f"Unexpected dependency {dep}")
 
-    fname = os.path.split(conda_fname)[1]
     header = (
-        f"# This file is auto-generated from {fname}, do not modify.\n"
+        f"# This file is auto-generated from {conda_path.name}, do not modify.\n"
         "# See that file for comments about the need/usage of each dependency.\n\n"
     )
     pip_content = header + "\n".join(pip_deps) + "\n"
 
     if compare:
-        with open(pip_fname) as pip_fd:
-            return pip_content != pip_fd.read()
-    else:
-        with open(pip_fname, "w") as pip_fd:
-            pip_fd.write(pip_content)
-        return False
+        with pip_path.open() as file:
+            return pip_content != file.read()
+
+    with pip_path.open("w") as file:
+        file.write(pip_content)
+    return False
 
 
 if __name__ == "__main__":
@@ -117,25 +114,20 @@ if __name__ == "__main__":
         action="store_true",
         help="compare whether the two files are equivalent",
     )
-    argparser.add_argument(
-        "--azure", action="store_true", help="show the output in azure-pipelines format"
-    )
     args = argparser.parse_args()
 
-    repo_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-    res = main(
-        os.path.join(repo_path, "environment.yml"),
-        os.path.join(repo_path, "requirements-dev.txt"),
+    conda_fname = "environment.yml"
+    pip_fname = "requirements-dev.txt"
+    repo_path = pathlib.Path(__file__).parent.parent.absolute()
+    res = generate_pip_from_conda(
+        pathlib.Path(repo_path, conda_fname),
+        pathlib.Path(repo_path, pip_fname),
         compare=args.compare,
     )
     if res:
         msg = (
-            f"`requirements-dev.txt` has to be generated with `{sys.argv[0]}` after "
-            "`environment.yml` is modified.\n"
+            f"`{pip_fname}` has to be generated with `{__file__}` after "
+            f"`{conda_fname}` is modified.\n"
         )
-        if args.azure:
-            msg = (
-                f"##vso[task.logissue type=error;sourcepath=requirements-dev.txt]{msg}"
-            )
         sys.stderr.write(msg)
     sys.exit(res)

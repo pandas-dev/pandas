@@ -217,8 +217,8 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     This is a reverse of the label factorization process.
     """
     cdef:
-        Py_ssize_t i, loc, label, n
-        ndarray[intp_t] indexer, where, counts
+        Py_ssize_t i, label, n
+        intp_t[::1] indexer, where, counts
 
     counts = np.zeros(ngroups + 1, dtype=np.intp)
     n = len(index)
@@ -241,7 +241,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
             indexer[where[label]] = i
             where[label] += 1
 
-    return indexer, counts
+    return indexer.base, counts.base
 
 
 cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
@@ -325,11 +325,14 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
-        ndarray[float64_t, ndim=2] result
+        float64_t[:, ::1] result
+        # Initialize to None since we only use in the no missing value case
+        float64_t[::1] means=None, ssqds=None
         ndarray[uint8_t, ndim=2] mask
+        bint no_nans
         int64_t nobs = 0
-        float64_t vx, vy, meanx, meany, divisor, prev_meany, prev_meanx, ssqdmx
-        float64_t ssqdmy, covxy
+        float64_t mean, ssqd, val
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
 
     N, K = (<object>mat).shape
 
@@ -340,25 +343,57 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    no_nans = mask.all()
+
+    # Computing the online means and variances is expensive - so if possible we can
+    # precompute these and avoid repeating the computations each time we handle
+    # an (xi, yi) pair
+    if no_nans:
+        means = np.empty(K, dtype=np.float64)
+        ssqds = np.empty(K, dtype=np.float64)
+
+        with nogil:
+            for j in range(K):
+                ssqd = mean = 0
+                for i in range(N):
+                    val = mat[i, j]
+                    dx = val - mean
+                    mean += 1 / (i + 1) * dx
+                    ssqd += (val - mean) * dx
+
+                means[j] = mean
+                ssqds[j] = ssqd
 
     with nogil:
         for xi in range(K):
             for yi in range(xi + 1):
-                # Welford's method for the variance-calculation
-                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+                covxy = 0
+                if no_nans:
+                    for i in range(N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
-                        prev_meanx = meanx
-                        prev_meany = meany
-                        meanx = meanx + 1 / nobs * (vx - meanx)
-                        meany = meany + 1 / nobs * (vy - meany)
-                        ssqdmx = ssqdmx + (vx - meanx) * (vx - prev_meanx)
-                        ssqdmy = ssqdmy + (vy - meany) * (vy - prev_meany)
-                        covxy = covxy + (vx - meanx) * (vy - prev_meany)
+                        covxy += (vx - means[xi]) * (vy - means[yi])
+
+                    ssqdmx = ssqds[xi]
+                    ssqdmy = ssqds[yi]
+                    nobs = N
+
+                else:
+                    nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                    for i in range(N):
+                        # Welford's method for the variance-calculation
+                        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx += 1 / nobs * dx
+                            meany += 1 / nobs * dy
+                            ssqdmx += (vx - meanx) * dx
+                            ssqdmy += (vy - meany) * dy
+                            covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
@@ -370,7 +405,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
 
-    return result
+    return result.base
 
 # ----------------------------------------------------------------------
 # Pairwise Spearman correlation
