@@ -267,7 +267,7 @@ def test_hide_raises(mi_styler):
 
     msg = "`levels` must be of type `int`, `str` or list of such"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(levels=("bad", "type"))
+        mi_styler.hide_index(levels={"bad": 1, "type": 2})
 
 
 @pytest.mark.parametrize("levels", [1, "one", [1], ["one"]])
