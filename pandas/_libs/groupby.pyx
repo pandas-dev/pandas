@@ -443,10 +443,16 @@ def group_any_all(int8_t[:, ::1] out,
     else:
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
-    if mask is not None and mask.shape[1] != 1:
-        raise NotImplementedError(
-            "group_any_all assumes mask.shape[1] == 1", mask.shape
-        )
+    if mask is not None and mask.ndim == 2 and mask.shape[1] != 1:
+        if mask.ndim != 2:
+            # FIXME: in some builds mask.shape is e.g. [1, 2, 0, 0, 0, 0, 0, 0]
+            #  seems like a problem in cython
+            # Seems like what really happen is None was passed and then [...]?
+            mask = None
+        else:
+            raise NotImplementedError(
+                "group_any_all assumes mask.shape[1] == 1", mask.shape
+            )
 
     out[:] = 1 - flag_val
 
