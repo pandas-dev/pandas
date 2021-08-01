@@ -24,6 +24,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeries,
     IndexLabel,
+    Level,
     Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -1751,7 +1752,7 @@ class Styler(StylerRenderer):
     def hide_index(
         self,
         subset: Subset | None = None,
-        levels: int | str | list[int | str] | None = None,
+        levels: Level | list[Level] | None = None,
     ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
@@ -1829,14 +1830,16 @@ class Styler(StylerRenderer):
 
         if subset is None:
             if levels is None:
-                levels_: list[int] = list(range(self.index.nlevels))
+                levels_: list[Level] = list(range(self.index.nlevels))
             elif isinstance(levels, int):
                 levels_ = [levels]
             elif isinstance(levels, str):
                 levels_ = [self.index._get_level_number(levels)]
             elif isinstance(levels, list):
                 levels_ = [
-                    self.index._get_level_number(lev) if isinstance(lev, str) else lev
+                    self.index._get_level_number(lev)
+                    if not isinstance(lev, int)
+                    else lev
                     for lev in levels
                 ]
             else:
