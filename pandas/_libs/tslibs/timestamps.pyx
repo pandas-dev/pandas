@@ -270,9 +270,9 @@ cdef class _Timestamp(ABCTimestamp):
         if op == Py_EQ:
             return False
         if op == Py_LE or op == Py_LT:
-            return other.year <= self.year
+            return self.year <= other.year
         if op == Py_GE or op == Py_GT:
-            return other.year >= self.year
+            return self.year >= other.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
