@@ -340,7 +340,7 @@ class TestSampleDataFrame:
             df2["d"] = 1
 
     def test_sample_does_not_modify_weights(self):
-        # GH-?
+        # GH-42843
         result = np.array([np.nan, 1, np.nan])
         expected = result.copy()
         ser = Series([1, 2, 3])
