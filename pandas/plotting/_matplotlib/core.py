@@ -1480,20 +1480,18 @@ class BarPlot(MPLPlot):
                         else:
                             default_width = np.min(steps) * 0.5
                     except TypeError as err:
-                        raise ValueError(f'Invalid type for numeric: {err}')
+                        raise ValueError(f"Invalid type for numeric: {err}")
                 else:
                     default_width = width
             self.ax_pos = self.tick_pos
         elif self.x_mode == "categorical":
             if not is_categorical_dtype(data.index):
-                raise ValueError(
-                    f"x_mode='categorical' needs a categorical index"
-                )
+                raise ValueError("x_mode='categorical' needs a categorical index")
             self.tick_pos = np.arange(len(data.index.dtype.categories))
             self.ax_pos = np.array(data.index.codes)
             default_width = 0.5
         else:
-            raise ValueError(f'Invalid x_mode={self.x_mode}')
+            raise ValueError(f"Invalid x_mode={self.x_mode}")
 
         self.bar_width = kwargs.pop("width", default_width)
 
@@ -1616,9 +1614,9 @@ class BarPlot(MPLPlot):
         e_edge = max(self.tick_pos) - self.tickoffset
         margin = 0.25
         x_values = data.index
-        if self.x_mode == 'numerical':
+        if self.x_mode == "numerical":
             margin = 0.5 * self.bar_width
-        elif self.x_mode == 'categorical':
+        elif self.x_mode == "categorical":
             x_values = data.index.dtype.categories
         else:
             # Compatibility with previous version

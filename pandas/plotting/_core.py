@@ -459,16 +459,16 @@ x_compat : bool, optional
 _bar_option_doc = """
 x_mode : {'sequential', 'numerical', 'categorial'}, default 'sequential'
     Select the mode for the axis with the categories:
-    
-    - 'sequential' : 
+
+    - 'sequential' :
         Add each x value as a string in the row number it has in the column.
         The positions in the categories axis are  just ``range(len(x))``
-        
-    - 'numerical' : 
+
+    - 'numerical' :
         Add each x value as a real number.
         For categorical data use the code value.
-        
-    - 'categorial' : 
+
+    - 'categorial' :
         For categorical data only, each x entry follows its code value,
         and include all the category entries the axis,
         leaving blank the unused ones.
@@ -1209,8 +1209,11 @@ class PlotAccessor(PandasObject):
         return self(kind="line", x=x, y=y, **kwargs)
 
     @Substitution(
-        kind="bar", orientation="vertical", rot=", rot=0",
-        other="barh", other_orientation="Horizontal"
+        kind="bar",
+        orientation="vertical",
+        rot=", rot=0",
+        other="barh",
+        other_orientation="Horizontal",
     )
     @Appender(_bar_examples_doc)
     @Appender(_bar_or_line_ending_doc)
@@ -1229,8 +1232,11 @@ class PlotAccessor(PandasObject):
         return self(kind="bar", x=x, y=y, **kwargs)
 
     @Substitution(
-        kind="barh", orientation="horizontal", rot="",
-        other="bar", other_orientation="Vertical"
+        kind="barh",
+        orientation="horizontal",
+        rot="",
+        other="bar",
+        other_orientation="Vertical",
     )
     @Appender(_bar_examples_doc)
     @Appender(_bar_or_line_ending_doc)
