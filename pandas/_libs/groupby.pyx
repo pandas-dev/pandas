@@ -444,7 +444,9 @@ def group_any_all(int8_t[:, ::1] out,
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
     if mask is not None and mask.shape[1] != 1:
-        raise NotImplementedError("group_any_all assumes mask.shape[1] == 1")
+        raise NotImplementedError(
+            "group_any_all assumes mask.shape[1] == 1", mask.shape
+        )
 
     out[:] = 1 - flag_val
 
