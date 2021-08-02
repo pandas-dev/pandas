@@ -722,7 +722,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        elif isinstance(label, (self._data._recognized_scalars, date)):
+        elif isinstance(label, self._data._recognized_scalars):
             self._deprecate_mismatched_indexing(label)
         else:
             raise self._invalid_indexer("slice", label)
