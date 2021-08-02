@@ -2348,7 +2348,11 @@ class Styler(StylerRenderer):
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.to_numpy()), props, "")
+            arg = {"skipna": True}
+            if isinstance(data, DataFrame):
+                return np.where(data == data.max(**arg).max(**arg), props, "")
+            else:
+                return np.where(data == data.max(**arg), props, "")
 
         if props is None:
             props = f"background-color: {color};"
@@ -2399,7 +2403,11 @@ class Styler(StylerRenderer):
         """
 
         def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.to_numpy()), props, "")
+            arg = {"skipna": True}
+            if isinstance(data, DataFrame):
+                return np.where(data == data.min(**arg).min(**arg), props, "")
+            else:
+                return np.where(data == data.min(**arg), props, "")
 
         if props is None:
             props = f"background-color: {color};"
