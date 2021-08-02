@@ -102,10 +102,14 @@ repos:
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
-
+        types_or: [python, cython, rst]
+    -   id: cython-casting
+        name: Cython Casting
+        language: pygrep
+        entry: |
             # Cython casting is of the form `<type>obj` as opposed to `<type> obj`
             |[a-zA-Z0-9*]>\s
-        types_or: [python, cython, rst]
+        types: [cython]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
