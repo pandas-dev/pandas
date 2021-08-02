@@ -29,7 +29,7 @@ analysis / manipulation tool available in any language**. It is already well on
 its way towards this goal.
 
 ## Main Features
-Here are just a few of the things that pandas do well:
+Here are just a few of the things that pandas does well:
 
   - Easy handling of [**missing data**][missing-data] (represented as
     `NaN`, `NA`, or `NaT`) in floating point as well as non-floating point data
