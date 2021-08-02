@@ -15,30 +15,33 @@ import pandas._testing as tm
 
 
 class TestDataFrameToRecords:
-    def test_to_records_timeseries(self):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_timeseries(self, to_np):
         index = date_range("1/1/2000", periods=10)
         df = DataFrame(np.random.randn(10, 3), index=index, columns=["a", "b", "c"])
 
-        result = df.to_records()
+        result = to_np(df)
         assert result["index"].dtype == "M8[ns]"
 
         result = df.to_records(index=False)
 
-    def test_to_records_dt64(self):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_dt64(self, to_np):
         df = DataFrame(
             [["one", "two", "three"], ["four", "five", "six"]],
             index=date_range("2012-01-01", "2012-01-02"),
         )
 
         expected = df.index.values[0]
-        result = df.to_records()["index"][0]
+        result = to_np(df)["index"][0]
         assert expected == result
 
-    def test_to_records_dt64tz_column(self):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_dt64tz_column(self, to_np):
         # GH#32535 dont less tz in to_records
         df = DataFrame({"A": date_range("2012-01-01", "2012-01-02", tz="US/Eastern")})
 
-        result = df.to_records()
+        result = to_np(df)
 
         assert result.dtype["A"] == object
         val = result[0][1]
@@ -74,23 +77,25 @@ class TestDataFrameToRecords:
         frame = DataFrame.from_records([headers])
         all(x in frame for x in ["Type", "Subject", "From"])
 
-    def test_to_records_floats(self):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_floats(self, to_np):
         df = DataFrame(np.random.rand(10, 10))
-        df.to_records()
+        to_np(df)
 
-    def test_to_records_index_name(self):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_index_name(self, to_np):
         df = DataFrame(np.random.randn(3, 3))
         df.index.name = "X"
-        rs = df.to_records()
+        rs = to_np(df)
         assert "X" in rs.dtype.fields
 
         df = DataFrame(np.random.randn(3, 3))
-        rs = df.to_records()
+        rs = to_np(df)
         assert "index" in rs.dtype.fields
 
         df.index = MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "z")])
         df.index.names = ["A", None]
-        rs = df.to_records()
+        rs = to_np(df)
         assert "level_0" in rs.dtype.fields
 
     def test_to_records_with_unicode_index(self):
@@ -114,7 +119,8 @@ class TestDataFrameToRecords:
         )
         tm.assert_almost_equal(result, expected)
 
-    def test_to_records_with_categorical(self):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_with_categorical(self, to_np):
         # GH#8626
 
         # dict creation
@@ -129,8 +135,12 @@ class TestDataFrameToRecords:
 
         # to record array
         # this coerces
-        result = df.to_records()
-        expected = np.rec.array(
+        result = to_np(df)
+        array_cls = {
+            DataFrame.to_records: np.rec.array,
+            DataFrame.to_structured: np.array,
+        }[to_np]
+        expected = array_cls(
             [(0, "a"), (1, "b"), (2, "c")], dtype=[("index", "=i8"), ("0", "O")]
         )
         tm.assert_almost_equal(result, expected)
@@ -377,14 +387,15 @@ class TestDataFrameToRecords:
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("tz", ["UTC", "GMT", "US/Eastern"])
-    def test_to_records_datetimeindex_with_tz(self, tz):
+    @pytest.mark.parametrize("to_np", [DataFrame.to_records, DataFrame.to_structured])
+    def test_to_records_datetimeindex_with_tz(self, tz, to_np):
         # GH#13937
         dr = date_range("2016-01-01", periods=10, freq="S", tz=tz)
 
         df = DataFrame({"datetime": dr}, index=dr)
 
-        expected = df.to_records()
-        result = df.tz_convert("UTC").to_records()
+        expected = to_np(df)
+        result = to_np(df.tz_convert("UTC"))
 
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)

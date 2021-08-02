@@ -2153,6 +2153,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         See Also
         --------
+        DataFrame.to_structured: Convert DataFrame to structured array
         DataFrame.from_records: Convert structured or record ndarray
             to DataFrame.
         numpy.recarray: An ndarray that allows field access using
@@ -2284,6 +2285,50 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError(msg)
 
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
+
+    def to_structured(
+        self, index=True, column_dtypes=None, index_dtypes=None
+    ) -> np.recarray:
+        """
+        Convert DataFrame to a NumPy structured array.
+
+        Index will be included as the first field of the structured array if
+        requested.
+
+        Parameters
+        ----------
+        index : bool, default True
+            Include index in resulting structured array, stored in 'index'
+            field or using the index label, if set.
+        column_dtypes : str, type, dict, default None
+            If a string or type, the data type to store all columns. If
+            a dictionary, a mapping of column names and indices (zero-indexed)
+            to specific data types.
+        index_dtypes : str, type, dict, default None
+            If a string or type, the data type to store all index levels. If
+            a dictionary, a mapping of index level names and indices
+            (zero-indexed) to specific data types.
+
+            This mapping is applied only if `index=True`.
+
+        Returns
+        -------
+        numpy.array
+            NumPy ndarray with the DataFrame labels as fields and each row
+            of the DataFrame as entries.
+
+        See Also
+        --------
+        DataFrame.to_records: Convert DataFrame to recarray
+        DataFrame.from_records: Convert structured or record ndarray
+            to DataFrame.
+        """
+        r = self.to_records(
+            index=index,
+            column_dtypes=column_dtypes,
+            index_dtypes=index_dtypes,
+        )
+        return r.view(r.dtype.fields, np.ndarray)
 
     @classmethod
     def _from_arrays(
