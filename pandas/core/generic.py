@@ -6314,7 +6314,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 
-            if axis == 1 and limit != None:
+            if axis == 1 and limit is not None:
                 raise NotImplementedError(
                     "If limit is specified, "
                     "values can only be filled "
