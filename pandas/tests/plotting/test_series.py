@@ -840,7 +840,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_bar_mode_numerical(self):
         # integer index
         _, ax = self.plt.subplots()
-        # Window is (5 - 1) / 2 = 2
+        # Width is (5 - 1) / 2 = 2
         int_index = [1, 5, 10]
         ax = Series([0, 2, 4], index=int_index).plot.bar(x_mode="numerical")
         self._assert_rect_x_list(ax, int_index, -2 * 0.5)
@@ -848,7 +848,7 @@ class TestSeriesPlots(TestPlotBase):
 
         # Float index
         _, ax = self.plt.subplots()
-        # Window is (0.2 - 0.1) / 2 = 0.05
+        # Width is (0.2 - 0.1) / 2 = 0.05
         float_index = [0.1, 0.2, 0.5]
         ax = Series([0, 2, 4], index=float_index).plot.bar(x_mode="numerical")
         self._assert_rect_x_list(ax, float_index, -0.05 * 0.5)
@@ -863,10 +863,38 @@ class TestSeriesPlots(TestPlotBase):
 
         # Epochs
         _, ax = self.plt.subplots()
-        # Window is 2 days / 2 = 1 day
+        # Width is 2 days / 2 = 1 day
         epoch_index = pd.to_datetime(["2021-01-01", "2021-01-03", "2021-01-06"])
         ax = Series([0, 2, 4], index=epoch_index).plot.bar(x_mode="numerical")
         # Matplotlib internally use days since to 1970-01-01 00:00:00
-        offset = pd.Timestamp(1970, 1, 1).to_julian_date()
-        self._assert_rect_x_list(ax, epoch_index.to_julian_date(), -offset - 0.5)
+        origin = pd.Timestamp(1970, 1, 1).to_julian_date()
+        self._assert_rect_x_list(ax, epoch_index.to_julian_date(), -origin - 0.5)
         tm.close()
+
+        # Epochs using a custom width
+        _, ax = self.plt.subplots()
+        epoch_index = pd.to_datetime(["2021-01-01", "2021-01-03", "2021-01-06"])
+        # Width is half of previous case
+        width = pd.Timedelta(12, "h")
+        ax = Series([0, 2, 4], index=epoch_index).plot.bar(
+            x_mode="numerical", width=width
+        )
+        # Matplotlib internally use days since to 1970-01-01 00:00:00
+        self._assert_rect_x_list(ax, epoch_index.to_julian_date(), -origin - 0.25)
+        tm.close()
+
+    def test_bar_mode_numerical_cannot_find_width(self):
+        # Cannot do normal arithmetic with MonthEnd
+        s = Series([0, 2, 4], index=pd.period_range("2021-01", periods=3, freq="M"))
+        with pytest.raises(
+            ValueError, match="Cannot determine a proper bar width:.*MonthEnd.*"
+        ):
+            s.plot.bar(x_mode="numerical")
+
+    def test_bar_invalid_x_mode(self):
+        # Try to use a width of different unit
+        s = Series([0, 2, 4], index=[1, 5, 10])
+        with pytest.raises(
+            ValueError, match="x_mode must be a value in .* got: invalid_mode"
+        ):
+            s.plot.bar(x_mode="invalid_mode")

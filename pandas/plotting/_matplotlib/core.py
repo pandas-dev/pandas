@@ -1453,18 +1453,16 @@ class BarPlot(MPLPlot):
         kwargs.setdefault("align", "center")
 
         self.x_mode = kwargs.pop("x_mode", "sequential")
-        width = kwargs.pop("width", None)
+        default_width = 0.5
         if self.x_mode == "sequential":
             self.tick_pos = np.arange(len(data))
             self.ax_pos = self.tick_pos
-            default_width = 0.5
         elif self.x_mode == "numerical":
             if is_categorical_dtype(data.index):
                 self.tick_pos = np.array(data.index.codes)
-                default_width = 0.5
             else:
                 self.tick_pos = data.index
-                if width is None:
+                if "width" not in kwargs:
                     # Width must have some units compatible with index
                     # so ax[i] + k*width is a valid operation
                     # The default value is half of the smallest non null
@@ -1476,22 +1474,22 @@ class BarPlot(MPLPlot):
                             # Either we have a single point or all the
                             # points are the same so use unit-less x axis
                             self.tick_pos = np.zeros(len(data))
-                            default_width = 0.5
                         else:
-                            default_width = np.min(steps) * 0.5
+                            steps = 0.5 * np.min(steps)
+                            # Try to check we can operate with index using
+                            # same trick used by matplotlib
+                            default_width = (data.index[0] + steps) - data.index[0]
                     except TypeError as err:
-                        raise ValueError(f"Invalid type for numeric: {err}")
-                else:
-                    default_width = width
+                        raise ValueError(f"Cannot determine a proper bar width: {err}")
             self.ax_pos = self.tick_pos
         elif self.x_mode == "categorical":
             if not is_categorical_dtype(data.index):
                 raise ValueError("x_mode='categorical' needs a categorical index")
             self.tick_pos = np.arange(len(data.index.dtype.categories))
             self.ax_pos = np.array(data.index.codes)
-            default_width = 0.5
         else:
-            raise ValueError(f"Invalid x_mode={self.x_mode}")
+            modes = "{'sequential', 'numerical', 'categorical'}"
+            raise ValueError(f"x_mode must be a value in {modes} got: {self.x_mode}")
 
         self.bar_width = kwargs.pop("width", default_width)
 
