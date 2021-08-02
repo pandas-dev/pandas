@@ -2784,10 +2784,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         -------
         Series or DataFrame
         """
+        skipna = kwargs.get("skipna", True)
         if axis != 0:
             return self.apply(lambda x: np.minimum.accumulate(x, axis))
 
-        return self._cython_transform("cummin", numeric_only=False)
+        return self._cython_transform("cummin", numeric_only=False, skipna=skipna)
 
     @final
     @Substitution(name="groupby")
@@ -2800,10 +2801,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         -------
         Series or DataFrame
         """
+        skipna = kwargs.get("skipna", True)
         if axis != 0:
             return self.apply(lambda x: np.maximum.accumulate(x, axis))
 
-        return self._cython_transform("cummax", numeric_only=False)
+        return self._cython_transform("cummax", numeric_only=False, skipna=skipna)
 
     @final
     def _get_cythonized_result(
@@ -2822,6 +2824,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
+        fill_value=None,
         **kwargs,
     ):
         """
@@ -2872,6 +2875,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             second argument, i.e. the signature should be
             (ndarray, Type). If `needs_nullable=True`, a third argument should be
             `nullable`, to allow for processing specific to nullable values.
+        fill_value : any, default None
+            The scalar value to use for newly introduced missing values.
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2896,73 +2901,50 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         ids, _, ngroups = grouper.group_info
-        output: dict[base.OutputKey, np.ndarray] = {}
+        output: dict[base.OutputKey, ArrayLike] = {}
+
         base_func = getattr(libgroupby, how)
+        base_func = partial(base_func, labels=ids)
+        if needs_ngroups:
+            base_func = partial(base_func, ngroups=ngroups)
+        if min_count is not None:
+            base_func = partial(base_func, min_count=min_count)
 
-        error_msg = ""
-        for idx, obj in enumerate(self._iterate_slices()):
-            name = obj.name
-            values = obj._values
-
-            if numeric_only and not is_numeric_dtype(values.dtype):
-                continue
-
+        def blk_func(values: ArrayLike) -> ArrayLike:
             if aggregate:
                 result_sz = ngroups
             else:
                 result_sz = len(values)
 
+            result: ArrayLike
             result = np.zeros(result_sz, dtype=cython_dtype)
             if needs_2d:
                 result = result.reshape((-1, 1))
-            func = partial(base_func, result)
+            func = partial(base_func, out=result)
 
             inferences = None
 
             if needs_counts:
                 counts = np.zeros(self.ngroups, dtype=np.int64)
-                func = partial(func, counts)
+                func = partial(func, counts=counts)
 
             if needs_values:
                 vals = values
                 if pre_processing:
-                    try:
-                        vals, inferences = pre_processing(vals)
-                    except TypeError as err:
-                        error_msg = str(err)
-                        howstr = how.replace("group_", "")
-                        warnings.warn(
-                            "Dropping invalid columns in "
-                            f"{type(self).__name__}.{howstr} is deprecated. "
-                            "In a future version, a TypeError will be raised. "
-                            f"Before calling .{howstr}, select only columns which "
-                            "should be valid for the function.",
-                            FutureWarning,
-                            stacklevel=3,
-                        )
-                        continue
+                    vals, inferences = pre_processing(vals)
+
                 vals = vals.astype(cython_dtype, copy=False)
                 if needs_2d:
                     vals = vals.reshape((-1, 1))
-                func = partial(func, vals)
-
-            func = partial(func, ids)
-
-            if min_count is not None:
-                func = partial(func, min_count)
+                func = partial(func, values=vals)
 
             if needs_mask:
                 mask = isna(values).view(np.uint8)
-                func = partial(func, mask)
-
-            if needs_ngroups:
-                func = partial(func, ngroups)
+                func = partial(func, mask=mask)
 
             if needs_nullable:
                 is_nullable = isinstance(values, BaseMaskedArray)
                 func = partial(func, nullable=is_nullable)
-                if post_processing:
-                    post_processing = partial(post_processing, nullable=is_nullable)
 
             func(**kwargs)  # Call func to modify indexer values in place
 
@@ -2970,12 +2952,41 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result = result.reshape(-1)
 
             if result_is_index:
-                result = algorithms.take_nd(values, result)
+                result = algorithms.take_nd(values, result, fill_value=fill_value)
 
             if post_processing:
-                result = post_processing(result, inferences)
+                pp_kwargs = {}
+                if needs_nullable:
+                    pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
 
-            key = base.OutputKey(label=name, position=idx)
+                result = post_processing(result, inferences, **pp_kwargs)
+
+            return result
+
+        error_msg = ""
+        for idx, obj in enumerate(self._iterate_slices()):
+            values = obj._values
+
+            if numeric_only and not is_numeric_dtype(values.dtype):
+                continue
+
+            try:
+                result = blk_func(values)
+            except TypeError as err:
+                error_msg = str(err)
+                howstr = how.replace("group_", "")
+                warnings.warn(
+                    "Dropping invalid columns in "
+                    f"{type(self).__name__}.{howstr} is deprecated. "
+                    "In a future version, a TypeError will be raised. "
+                    f"Before calling .{howstr}, select only columns which "
+                    "should be valid for the function.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+                continue
+
+            key = base.OutputKey(label=obj.name, position=idx)
             output[key] = result
 
         # error_msg is "" on an frame/series with no rows or columns
@@ -3017,7 +3028,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         tshift : Shift the time index, using the index’s frequency
             if available.
         """
-        if freq is not None or axis != 0 or not isna(fill_value):
+        if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 
         return self._get_cythonized_result(
@@ -3027,6 +3038,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             needs_ngroups=True,
             result_is_index=True,
             periods=periods,
+            fill_value=fill_value,
         )
 
     @final

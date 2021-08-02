@@ -310,7 +310,10 @@ cdef inline void add_var(float64_t val, float64_t *nobs, float64_t *mean_x,
     t = y - mean_x[0]
     compensation[0] = t + mean_x[0] - y
     delta = t
-    mean_x[0] = mean_x[0] + delta / nobs[0]
+    if nobs[0]:
+        mean_x[0] = mean_x[0] + delta / nobs[0]
+    else:
+        mean_x[0] = 0
     ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
 
 
