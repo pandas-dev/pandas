@@ -115,6 +115,8 @@ The pandas method is :func:`read_csv`, which works similarly.
        "https://raw.github.com/pandas-dev/"
        "pandas/master/pandas/tests/io/data/csv/tips.csv"
    )
+
+
    tips = pd.read_csv(url)
    tips
 
