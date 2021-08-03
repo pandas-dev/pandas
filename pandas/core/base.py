@@ -1228,7 +1228,7 @@ class IndexOpsMixin(OpsMixin):
         value: NumpyValueArrayLike,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
@@ -1239,5 +1239,5 @@ class IndexOpsMixin(OpsMixin):
     @final
     def _duplicated(
         self, keep: Literal["first", "last", False] = "first"
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)
