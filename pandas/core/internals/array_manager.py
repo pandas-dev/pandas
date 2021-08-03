@@ -167,15 +167,6 @@ class BaseArrayManager(DataManager):
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
 
-    def consolidate(self: T) -> T:
-        return self
-
-    def is_consolidated(self) -> bool:
-        return True
-
-    def _consolidate_inplace(self) -> None:
-        pass
-
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
 
@@ -1261,9 +1252,6 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     @property
     def is_single_block(self) -> bool:
         return True
-
-    def _consolidate_check(self):
-        pass
 
     def fast_xs(self, loc: int) -> ArrayLike:
         raise NotImplementedError("Use series._values[loc] instead")

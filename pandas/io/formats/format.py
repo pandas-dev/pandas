@@ -1956,16 +1956,14 @@ class EngFormatter:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
-
-        >>> format_eng(0)       # for self.accuracy = 0
+        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix=True)
+        >>> format_eng(0)
         ' 0'
-
-        >>> format_eng(1000000) # for self.accuracy = 1,
-                                #     self.use_eng_prefix = True
+        >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix=True)
+        >>> format_eng(1_000_000)
         ' 1.0M'
-
-        >>> format_eng("-1e-6") # for self.accuracy = 2
-                                #     self.use_eng_prefix = False
+        >>> format_eng = EngFormatter(accuracy=2, use_eng_prefix=False)
+        >>> format_eng("-1e-6")
         '-1.00E-06'
 
         @param num: the value to represent
