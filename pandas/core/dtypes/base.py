@@ -8,6 +8,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     TypeVar,
+    cast,
+    overload,
 )
 
 import numpy as np
@@ -15,6 +17,7 @@ import numpy as np
 from pandas._libs.hashtable import object_hash
 from pandas._typing import (
     DtypeObj,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -29,7 +32,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
 
     # To parameterize on same ExtensionDtype
-    E = TypeVar("E", bound="ExtensionDtype")
+    ExtensionDtypeT = TypeVar("ExtensionDtypeT", bound="ExtensionDtype")
 
 
 class ExtensionDtype:
@@ -206,7 +209,9 @@ class ExtensionDtype:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def construct_from_string(cls, string: str):
+    def construct_from_string(
+        cls: type_t[ExtensionDtypeT], string: str
+    ) -> ExtensionDtypeT:
         r"""
         Construct this type from a string.
 
@@ -368,7 +373,7 @@ class ExtensionDtype:
         return True
 
 
-def register_extension_dtype(cls: type[E]) -> type[E]:
+def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
 
@@ -409,9 +414,9 @@ class Registry:
     """
 
     def __init__(self):
-        self.dtypes: list[type[ExtensionDtype]] = []
+        self.dtypes: list[type_t[ExtensionDtype]] = []
 
-    def register(self, dtype: type[ExtensionDtype]) -> None:
+    def register(self, dtype: type_t[ExtensionDtype]) -> None:
         """
         Parameters
         ----------
@@ -422,22 +427,46 @@ class Registry:
 
         self.dtypes.append(dtype)
 
-    def find(self, dtype: type[ExtensionDtype] | str) -> type[ExtensionDtype] | None:
+    @overload
+    def find(self, dtype: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
+        ...
+
+    @overload
+    def find(self, dtype: ExtensionDtypeT) -> ExtensionDtypeT:
+        ...
+
+    @overload
+    def find(self, dtype: str) -> ExtensionDtype | None:
+        ...
+
+    @overload
+    def find(
+        self, dtype: npt.DTypeLike
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
+        ...
+
+    def find(
+        self, dtype: type_t[ExtensionDtype] | ExtensionDtype | npt.DTypeLike
+    ) -> type_t[ExtensionDtype] | ExtensionDtype | None:
         """
         Parameters
         ----------
-        dtype : Type[ExtensionDtype] or str
+        dtype : ExtensionDtype class or instance or str or numpy dtype or python type
 
         Returns
         -------
         return the first matching dtype, otherwise return None
         """
         if not isinstance(dtype, str):
-            dtype_type = dtype
+            dtype_type: type_t
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
+            else:
+                dtype_type = dtype
             if issubclass(dtype_type, ExtensionDtype):
-                return dtype
+                # cast needed here as mypy doesn't know we have figured
+                # out it is an ExtensionDtype or type_t[ExtensionDtype]
+                return cast("ExtensionDtype | type_t[ExtensionDtype]", dtype)
 
             return None
 

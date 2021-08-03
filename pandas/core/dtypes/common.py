@@ -1765,9 +1765,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
-        # error: Incompatible return value type (got "Type[ExtensionDtype]",
-        # expected "Union[dtype, ExtensionDtype]")
-        return result  # type: ignore[return-value]
+        return result
 
     # try a numpy dtype
     # raise a consistent TypeError if failed
