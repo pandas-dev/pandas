@@ -85,6 +85,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
@@ -4754,7 +4755,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         labels : single label or list-like
-            Index or column labels to drop.
+            Index or column labels to drop. A tuple will be used as a single
+            label and not treated as a list-like.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
@@ -4843,6 +4845,17 @@ class DataFrame(NDFrame, OpsMixin):
                 length  1.5     0.8
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
+                length  0.3     0.2
+
+        >>> df.drop(index=('falcon', 'weight'))
+                        big     small
+        lama    speed   45.0    30.0
+                weight  200.0   100.0
+                length  1.5     1.0
+        cow     speed   30.0    20.0
+                weight  250.0   150.0
+                length  1.5     0.8
+        falcon  speed   320.0   250.0
                 length  0.3     0.2
 
         >>> df.drop(index='cow', columns='small')
@@ -6190,7 +6203,7 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
-
+        ascending = validate_ascending(ascending)
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):

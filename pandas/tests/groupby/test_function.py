@@ -803,6 +803,39 @@ def test_cummax(dtypes_for_minmax):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize("dtype", ["float", "Int64", "Float64"])
+@pytest.mark.parametrize(
+    "groups,expected_data",
+    [
+        ([1, 1, 1], [1, None, None]),
+        ([1, 2, 3], [1, None, 2]),
+        ([1, 3, 3], [1, None, None]),
+    ],
+)
+def test_cummin_max_skipna(method, dtype, groups, expected_data):
+    # GH-34047
+    df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
+    gb = df.groupby(groups)["a"]
+
+    result = getattr(gb, method)(skipna=False)
+    expected = Series(expected_data, dtype=dtype, name="a")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+def test_cummin_max_skipna_multiple_cols(method):
+    # Ensure missing value in "a" doesn't cause "b" to be nan-filled
+    df = DataFrame({"a": [np.nan, 2.0, 2.0], "b": [2.0, 2.0, 2.0]})
+    gb = df.groupby([1, 1, 1])[["a", "b"]]
+
+    result = getattr(gb, method)(skipna=False)
+    expected = DataFrame({"a": [np.nan, np.nan, np.nan], "b": [2.0, 2.0, 2.0]})
+
+    tm.assert_frame_equal(result, expected)
+
+
 @td.skip_if_32bit
 @pytest.mark.parametrize("method", ["cummin", "cummax"])
 @pytest.mark.parametrize(
