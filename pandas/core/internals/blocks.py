@@ -426,7 +426,10 @@ class Block(PandasObject):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
 
-        mask = isna(self.values)
+        isna_mask = isna(self.values)
+        value_mask = ~isna(value)
+        mask = isna_mask & value_mask
+
         mask, noop = validate_putmask(self.values, mask)
 
         if limit is not None:

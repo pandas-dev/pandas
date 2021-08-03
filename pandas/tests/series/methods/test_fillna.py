@@ -623,6 +623,24 @@ class TestSeriesFillNA:
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
 
+    def test_fillna_other_missing_values_not_modified(
+        self, unique_nulls_fixture, unique_nulls_fixture2
+    ):
+        # GH#40498
+        null_value1, null_value2 = unique_nulls_fixture, unique_nulls_fixture2
+
+        ser = Series([1, "", "", "four"])
+        ser.iloc[1] = null_value1
+        ser.iloc[2] = null_value2
+
+        value = {2: 0}
+        result = ser.fillna(value)
+
+        expected = Series([1, "", 0, "four"])
+        expected.iloc[1] = null_value1
+
+        tm.assert_series_equal(result, expected)
+
     # ---------------------------------------------------------------
     # CategoricalDtype
 
