@@ -443,14 +443,6 @@ def group_any_all(int8_t[:, ::1] out,
     else:
         raise ValueError("'bool_func' must be either 'any' or 'all'!")
 
-    if mask is not None and mask.ndim == 2 and (<object>mask).shape[1] != 1:
-        # FIXME: in some builds mask.shape is e.g. [1, 2, 0, 0, 0, 0, 0, 0]
-        #  seems like a problem in cython
-        #  github.com/cython/cython/issues/4321
-        raise NotImplementedError(
-            "group_any_all assumes mask.shape[1] == 1", mask.shape
-        )
-
     out[:] = 1 - flag_val
 
     with nogil:
