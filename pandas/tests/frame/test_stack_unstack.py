@@ -255,7 +255,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
         # Fill with non-category results in a ValueError
-        msg = r"'fill_value=d' is not present in"
+        msg = r"Cannot setitem on a Categorical with a new category \(d\)"
         with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
@@ -358,7 +358,7 @@ class TestDataFrameReshape:
                 "E": Series([1.0, 50.0, 100.0]).astype("float32"),
                 "F": Series([3.0, 4.0, 5.0]).astype("float64"),
                 "G": False,
-                "H": Series([1, 200, 923442], dtype="int8"),
+                "H": Series([1, 200, 923442]).astype("int8"),
             }
         )
 
@@ -1996,6 +1996,39 @@ Thu,Lunch,Yes,51.51,17"""
             [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
             index=Index([(0, None), (0, 0), (0, 1)]),
             columns=Index([(0, None), (0, 2), (0, 3)]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_multi_level_stack_categorical(self):
+        # GH 15239
+        midx = MultiIndex.from_arrays(
+            [
+                ["A"] * 2 + ["B"] * 2,
+                pd.Categorical(list("abab")),
+                pd.Categorical(list("ccdd")),
+            ]
+        )
+        df = DataFrame(np.arange(8).reshape(2, 4), columns=midx)
+        result = df.stack([1, 2])
+        expected = DataFrame(
+            [
+                [0, np.nan],
+                [np.nan, 2],
+                [1, np.nan],
+                [np.nan, 3],
+                [4, np.nan],
+                [np.nan, 6],
+                [5, np.nan],
+                [np.nan, 7],
+            ],
+            columns=["A", "B"],
+            index=MultiIndex.from_arrays(
+                [
+                    [0] * 4 + [1] * 4,
+                    pd.Categorical(list("aabbaabb")),
+                    pd.Categorical(list("cdcdcdcd")),
+                ]
+            ),
         )
         tm.assert_frame_equal(result, expected)
 

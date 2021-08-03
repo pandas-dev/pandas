@@ -15,9 +15,9 @@ class TestDataFrameConcat:
     def test_concat_multiple_frames_dtypes(self):
 
         # GH#2759
-        A = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
-        B = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
-        results = concat((A, B), axis=1).dtypes
+        df1 = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
+        df2 = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
+        results = concat((df1, df2), axis=1).dtypes
         expected = Series(
             [np.dtype("float64")] * 2 + [np.dtype("float32")] * 2,
             index=["foo", "bar", 0, 1],
@@ -170,3 +170,25 @@ class TestDataFrameConcat:
         # it works
         result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
         assert list(result.columns) == [("t1", "value"), ("t2", "value")]
+
+    def test_concat_bool_with_int(self):
+        # GH#42092 we may want to change this to return object, but that
+        #  would need a deprecation
+        df1 = DataFrame(Series([True, False, True, True], dtype="bool"))
+        df2 = DataFrame(Series([1, 0, 1], dtype="int64"))
+
+        result = concat([df1, df2])
+        expected = concat([df1.astype("int64"), df2])
+        tm.assert_frame_equal(result, expected)
+
+    def test_concat_duplicates_in_index_with_keys(self):
+        # GH#42651
+        index = [1, 1, 3]
+        data = [1, 2, 3]
+
+        df = DataFrame(data=data, index=index)
+        result = concat([df], keys=["A"], names=["ID", "date"])
+        mi = pd.MultiIndex.from_product([["A"], index], names=["ID", "date"])
+        expected = DataFrame(data=data, index=mi)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))

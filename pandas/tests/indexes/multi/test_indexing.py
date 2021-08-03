@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -445,6 +446,18 @@ class TestGetIndexer:
         expected = np.array([7, 15], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
+    def test_get_indexer_kwarg_validation(self):
+        # GH#41918
+        mi = MultiIndex.from_product([range(3), ["A", "B"]])
+
+        msg = "limit argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], limit=4)
+
+        msg = "tolerance argument only valid if doing pad, backfill or nearest"
+        with pytest.raises(ValueError, match=msg):
+            mi.get_indexer(mi[:-1], tolerance="piano")
+
 
 def test_getitem(idx):
     # scalar
@@ -676,6 +689,14 @@ class TestGetLoc:
         msg = "unhashable type"
         with pytest.raises(TypeError, match=msg):
             idx.get_loc([])
+
+    def test_get_loc_nested_tuple_raises_keyerror(self):
+        # raise KeyError, not TypeError
+        mi = MultiIndex.from_product([range(3), range(4), range(5), range(6)])
+        key = ((2, 3, 4), "foo")
+
+        with pytest.raises(KeyError, match=re.escape(str(key))):
+            mi.get_loc(key)
 
 
 class TestWhere:

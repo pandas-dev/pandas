@@ -3,16 +3,19 @@ Low-dependency indexing utilities.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
 
 from pandas._typing import (
-    Any,
     AnyArrayLike,
     ArrayLike,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -166,6 +169,8 @@ def check_setitem_lengths(indexer, value, values) -> bool:
         if is_list_like(value):
             if len(indexer) != len(value) and values.ndim == 1:
                 # boolean with truth values == len of the value is ok too
+                if isinstance(indexer, list):
+                    indexer = np.array(indexer)
                 if not (
                     isinstance(indexer, np.ndarray)
                     and indexer.dtype == np.bool_
@@ -373,7 +378,7 @@ def deprecate_ndim_indexing(result, stacklevel: int = 3):
             "is deprecated and will be removed in a future "
             "version.  Convert to a numpy array before indexing instead.",
             FutureWarning,
-            stacklevel=stacklevel,
+            stacklevel=find_stack_level(),
         )
 
 

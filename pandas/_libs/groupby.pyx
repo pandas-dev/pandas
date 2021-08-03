@@ -247,24 +247,24 @@ def group_cumsum(numeric[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
+                # For floats, use Kahan summation to reduce floating-point
+                # error (https://en.wikipedia.org/wiki/Kahan_summation_algorithm)
                 if numeric == float32_t or numeric == float64_t:
                     if val == val:
                         y = val - compensation[lab, j]
                         t = accum[lab, j] + y
                         compensation[lab, j] = t - accum[lab, j] - y
                         accum[lab, j] = t
-                        out[i, j] = accum[lab, j]
+                        out[i, j] = t
                     else:
                         out[i, j] = NaN
                         if not skipna:
                             accum[lab, j] = NaN
                             break
                 else:
-                    y = val - compensation[lab, j]
-                    t = accum[lab, j] + y
-                    compensation[lab, j] = t - accum[lab, j] - y
+                    t = val + accum[lab, j]
                     accum[lab, j] = t
-                    out[i, j] = accum[lab, j]
+                    out[i, j] = t
 
 
 @cython.boundscheck(False)
@@ -516,7 +516,7 @@ def group_add(add_t[:, ::1] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if not checknull(val):
                     nobs[lab, j] += 1
 
                     if nobs[lab, j] == 1:
@@ -1317,6 +1317,7 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
                       const intp_t[:] labels,
                       int ngroups,
                       bint is_datetimelike,
+                      bint skipna,
                       bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
@@ -1336,6 +1337,8 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         Number of groups, larger than all entries of `labels`.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
+    skipna : bool
+        If True, ignore nans in `values`.
     compute_max : bool
         True if cumulative maximum should be computed, False
         if cumulative minimum should be computed
@@ -1345,16 +1348,9 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     This method modifies the `out` parameter, rather than returning an object.
     """
     cdef:
-        Py_ssize_t i, j, N, K, size
-        groupby_t val, mval
         groupby_t[:, ::1] accum
-        intp_t lab
-        bint val_is_nan, use_mask
 
-    use_mask = mask is not None
-
-    N, K = (<object>values).shape
-    accum = np.empty((ngroups, K), dtype=values.dtype)
+    accum = np.empty((ngroups, (<object>values).shape[1]), dtype=values.dtype)
     if groupby_t is int64_t:
         accum[:] = -_int64_max if compute_max else _int64_max
     elif groupby_t is uint64_t:
@@ -1362,44 +1358,113 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
     else:
         accum[:] = -np.inf if compute_max else np.inf
 
+    if mask is not None:
+        masked_cummin_max(out, values, mask, labels, accum, skipna, compute_max)
+    else:
+        cummin_max(out, values, labels, accum, skipna, is_datetimelike, compute_max)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef cummin_max(groupby_t[:, ::1] out,
+                ndarray[groupby_t, ndim=2] values,
+                const intp_t[:] labels,
+                groupby_t[:, ::1] accum,
+                bint skipna,
+                bint is_datetimelike,
+                bint compute_max):
+    """
+    Compute the cumulative minimum/maximum of columns of `values`, in row groups
+    `labels`.
+    """
+    cdef:
+        Py_ssize_t i, j, N, K
+        groupby_t val, mval, na_val
+        uint8_t[:, ::1] seen_na
+        intp_t lab
+        bint na_possible
+
+    if groupby_t is float64_t or groupby_t is float32_t:
+        na_val = NaN
+        na_possible = True
+    elif is_datetimelike:
+        na_val = NPY_NAT
+        na_possible = True
+    # Will never be used, just to avoid uninitialized warning
+    else:
+        na_val = 0
+        na_possible = False
+
+    if na_possible:
+        seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
+
+    N, K = (<object>values).shape
     with nogil:
         for i in range(N):
             lab = labels[i]
-
             if lab < 0:
                 continue
             for j in range(K):
-                val_is_nan = False
-
-                if use_mask:
-                    if mask[i, j]:
-
-                        # `out` does not need to be set since it
-                        # will be masked anyway
-                        val_is_nan = True
-                    else:
-
-                        # If using the mask, we can avoid grabbing the
-                        # value unless necessary
-                        val = values[i, j]
-
-                # Otherwise, `out` must be set accordingly if the
-                # value is missing
+                if not skipna and na_possible and seen_na[lab, j]:
+                    out[i, j] = na_val
                 else:
                     val = values[i, j]
-                    if _treat_as_na(val, is_datetimelike):
-                        val_is_nan = True
+                    if not _treat_as_na(val, is_datetimelike):
+                        mval = accum[lab, j]
+                        if compute_max:
+                            if val > mval:
+                                accum[lab, j] = mval = val
+                        else:
+                            if val < mval:
+                                accum[lab, j] = mval = val
+                        out[i, j] = mval
+                    else:
+                        seen_na[lab, j] = 1
                         out[i, j] = val
 
-                if not val_is_nan:
-                    mval = accum[lab, j]
-                    if compute_max:
-                        if val > mval:
-                            accum[lab, j] = mval = val
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef masked_cummin_max(groupby_t[:, ::1] out,
+                       ndarray[groupby_t, ndim=2] values,
+                       uint8_t[:, ::1] mask,
+                       const intp_t[:] labels,
+                       groupby_t[:, ::1] accum,
+                       bint skipna,
+                       bint compute_max):
+    """
+    Compute the cumulative minimum/maximum of columns of `values`, in row groups
+    `labels` with a masked algorithm.
+    """
+    cdef:
+        Py_ssize_t i, j, N, K
+        groupby_t val, mval
+        uint8_t[:, ::1] seen_na
+        intp_t lab
+
+    N, K = (<object>values).shape
+    seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+            for j in range(K):
+                if not skipna and seen_na[lab, j]:
+                    mask[i, j] = 1
+                else:
+                    if not mask[i, j]:
+                        val = values[i, j]
+                        mval = accum[lab, j]
+                        if compute_max:
+                            if val > mval:
+                                accum[lab, j] = mval = val
+                        else:
+                            if val < mval:
+                                accum[lab, j] = mval = val
+                        out[i, j] = mval
                     else:
-                        if val < mval:
-                            accum[lab, j] = mval = val
-                    out[i, j] = mval
+                        seen_na[lab, j] = 1
 
 
 @cython.boundscheck(False)
@@ -1409,7 +1474,8 @@ def group_cummin(groupby_t[:, ::1] out,
                  const intp_t[:] labels,
                  int ngroups,
                  bint is_datetimelike,
-                 uint8_t[:, ::1] mask=None) -> None:
+                 uint8_t[:, ::1] mask=None,
+                 bint skipna=True) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(
         out,
@@ -1418,6 +1484,7 @@ def group_cummin(groupby_t[:, ::1] out,
         labels,
         ngroups,
         is_datetimelike,
+        skipna,
         compute_max=False
     )
 
@@ -1429,7 +1496,8 @@ def group_cummax(groupby_t[:, ::1] out,
                  const intp_t[:] labels,
                  int ngroups,
                  bint is_datetimelike,
-                 uint8_t[:, ::1] mask=None) -> None:
+                 uint8_t[:, ::1] mask=None,
+                 bint skipna=True) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(
         out,
@@ -1438,5 +1506,6 @@ def group_cummax(groupby_t[:, ::1] out,
         labels,
         ngroups,
         is_datetimelike,
+        skipna,
         compute_max=True
     )

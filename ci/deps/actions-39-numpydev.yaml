@@ -1,0 +1,22 @@
+name: pandas-dev
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+
+  # tools
+  - pytest>=6.0
+  - pytest-cov
+  - pytest-xdist>=1.31
+  - hypothesis>=5.5.3
+
+  # pandas dependencies
+  - pytz
+  - pip
+  - pip:
+    - cython==0.29.21 # GH#34014
+    - "git+git://github.com/dateutil/dateutil.git"
+    - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
+    - "--pre"
+    - "numpy"
+    - "scipy"

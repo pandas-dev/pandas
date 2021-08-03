@@ -461,6 +461,9 @@ class TestBlockManager:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._data.base is blk.values._data.base
 
+        # copy(deep=True) consolidates, so the block-wise assertions will
+        #  fail is mgr is not consolidated
+        mgr._consolidate_inplace()
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
 
@@ -545,7 +548,7 @@ class TestBlockManager:
         mgr = create_mgr("a,b: object; c: bool; d: datetime; e: f4; f: f2; g: f8")
 
         t = np.dtype(t)
-        with tm.assert_produces_warning(warn, check_stacklevel=False):
+        with tm.assert_produces_warning(warn):
             tmgr = mgr.astype(t, errors="ignore")
         assert tmgr.iget(2).dtype.type == t
         assert tmgr.iget(4).dtype.type == t
@@ -561,7 +564,7 @@ class TestBlockManager:
 
     def test_convert(self):
         def _compare(old_mgr, new_mgr):
-            """ compare the blocks, numeric compare ==, object don't """
+            """compare the blocks, numeric compare ==, object don't"""
             old_blocks = set(old_mgr.blocks)
             new_blocks = set(new_mgr.blocks)
             assert len(old_blocks) == len(new_blocks)
@@ -1373,9 +1376,11 @@ def test_make_block_no_pandas_array(block_maker):
     # PandasArray, no dtype
     result = block_maker(arr, slice(len(arr)), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
-    assert result.is_extension is False
 
     if block_maker is make_block:
+        # new_block requires caller to unwrap PandasArray
+        assert result.is_extension is False
+
         # PandasArray, PandasDtype
         result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]

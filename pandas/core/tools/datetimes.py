@@ -194,9 +194,9 @@ def _maybe_cache(
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
             cache_array = Series(cache_dates, index=unique_dates)
-            if not cache_array.is_unique:
-                # GH#39882 in case of None and NaT we get duplicates
-                cache_array = cache_array.drop_duplicates()
+            # GH#39882 and GH#35888 in case of None and NaT we get duplicates
+            if not cache_array.index.is_unique:
+                cache_array = cache_array[~cache_array.index.duplicated()]
     return cache_array
 
 
@@ -497,14 +497,12 @@ def _to_datetime_with_format(
                 return _box_as_indexlike(result, utc=utc, name=name)
 
         # fallback
-        if result is None:
-            res = _array_strptime_with_fallback(
-                arg, name, tz, fmt, exact, errors, infer_datetime_format
-            )
-            if res is not None:
-                return res
+        res = _array_strptime_with_fallback(
+            arg, name, tz, fmt, exact, errors, infer_datetime_format
+        )
+        return res
 
-    except ValueError as e:
+    except ValueError as err:
         # Fallback to try to convert datetime objects if timezone-aware
         #  datetime objects are found without passing `utc=True`
         try:
@@ -512,11 +510,7 @@ def _to_datetime_with_format(
             dta = DatetimeArray(values, dtype=tz_to_dtype(tz))
             return DatetimeIndex._simple_new(dta, name=name)
         except (ValueError, TypeError):
-            raise e
-
-    # error: Incompatible return value type (got "Optional[ndarray]", expected
-    # "Optional[Index]")
-    return result  # type: ignore[return-value]
+            raise err
 
 
 def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
@@ -768,7 +762,9 @@ def to_datetime(
         If parsing succeeded.
         Return type depends on input:
 
-        - list-like: DatetimeIndex
+        - list-like:
+            - DatetimeIndex, if timezone naive or aware with the same timezone
+            - Index of object dtype, if timezone aware with mixed time offsets
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
 

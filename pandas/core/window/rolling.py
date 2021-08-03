@@ -28,7 +28,6 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -111,6 +110,7 @@ class BaseWindow(SelectionMixin):
 
     _attributes: list[str] = []
     exclusions: frozenset[Hashable] = frozenset()
+    _on: Index
 
     def __init__(
         self,
@@ -169,7 +169,7 @@ class BaseWindow(SelectionMixin):
         return self._win_type
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> bool:
         warnings.warn(
             "is_datetimelike is deprecated and will be removed in a future version.",
             FutureWarning,
@@ -290,6 +290,7 @@ class BaseWindow(SelectionMixin):
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
+        obj = obj.set_axis(self._on)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -329,7 +330,7 @@ class BaseWindow(SelectionMixin):
         # expected "ndarray")
         return values  # type: ignore[return-value]
 
-    def _insert_on_column(self, result: DataFrame, obj: DataFrame):
+    def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
         # the results in the same location
         from pandas import Series
@@ -406,7 +407,7 @@ class BaseWindow(SelectionMixin):
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
@@ -441,7 +442,7 @@ class BaseWindow(SelectionMixin):
 
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame across the entire object
         """
@@ -458,11 +459,11 @@ class BaseWindow(SelectionMixin):
 
     def _apply_pairwise(
         self,
-        target: FrameOrSeriesUnion,
-        other: FrameOrSeriesUnion | None,
+        target: DataFrame | Series,
+        other: DataFrame | Series | None,
         pairwise: bool | None,
-        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
-    ) -> FrameOrSeriesUnion:
+        func: Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series],
+    ) -> DataFrame | Series:
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
@@ -470,6 +471,8 @@ class BaseWindow(SelectionMixin):
             other = target
             # only default unset
             pairwise = True if pairwise is None else pairwise
+        elif not isinstance(other, (ABCDataFrame, ABCSeries)):
+            raise ValueError("other must be a DataFrame or Series")
 
         return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
@@ -478,6 +481,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -491,6 +495,8 @@ class BaseWindow(SelectionMixin):
         name : str,
         numba_cache_key : tuple
             caching key to be used to store a compiled numba func
+        numba_args : tuple
+            args to be passed when func is a numba func
         **kwargs
             additional arguments for rolling function and window function
 
@@ -518,7 +524,7 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                return func(x, start, end, min_periods)
+                return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
                 if values.ndim > 1 and self.method == "single":
@@ -579,12 +585,14 @@ class BaseWindowGroupby(BaseWindow):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
             numba_cache_key,
+            numba_args,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex
@@ -635,11 +643,11 @@ class BaseWindowGroupby(BaseWindow):
 
     def _apply_pairwise(
         self,
-        target: FrameOrSeriesUnion,
-        other: FrameOrSeriesUnion | None,
+        target: DataFrame | Series,
+        other: DataFrame | Series | None,
         pairwise: bool | None,
-        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
-    ) -> FrameOrSeriesUnion:
+        func: Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series],
+    ) -> DataFrame | Series:
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
@@ -965,6 +973,7 @@ class Window(BaseWindow):
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -977,6 +986,8 @@ class Window(BaseWindow):
         func : callable function to apply
         name : str,
         use_numba_cache : tuple
+            unused
+        numba_args : tuple
             unused
         **kwargs
             additional arguments for scipy windows if necessary
@@ -1155,18 +1166,20 @@ class RollingAndExpandingMixin(BaseWindow):
             raise ValueError("raw parameter must be `True` or `False`")
 
         numba_cache_key = None
+        numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             caller_name = type(self).__name__
+            numba_args = args
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    args, kwargs, func, engine_kwargs, caller_name
+                    kwargs, func, engine_kwargs, caller_name
                 )
                 numba_cache_key = (func, f"{caller_name}_apply_single")
             else:
                 apply_func = generate_numba_table_func(
-                    args, kwargs, func, engine_kwargs, f"{caller_name}_apply"
+                    kwargs, func, engine_kwargs, f"{caller_name}_apply"
                 )
                 numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
@@ -1179,6 +1192,7 @@ class RollingAndExpandingMixin(BaseWindow):
         return self._apply(
             apply_func,
             numba_cache_key=numba_cache_key,
+            numba_args=numba_args,
         )
 
     def _generate_cython_apply_func(
@@ -1375,7 +1389,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -1413,7 +1427,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -2155,7 +2169,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -2280,7 +2294,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
