@@ -743,11 +743,10 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
+            import pyarrow.dataset as ds
 
-            dataset = pq.ParquetDataset(path, validate_schema=False)
-            assert len(dataset.partitions.partition_names) == 2
-            assert dataset.partitions.partition_names == set(partition_cols)
+            dataset = ds.dataset(path, partitioning="hive")
+            assert dataset.partitioning.schema.names == partition_cols
             assert read_parquet(path).shape == df.shape
 
     def test_partition_cols_string(self, pa, df_full):
@@ -757,11 +756,10 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
+            import pyarrow.dataset as ds
 
-            dataset = pq.ParquetDataset(path, validate_schema=False)
-            assert len(dataset.partitions.partition_names) == 1
-            assert dataset.partitions.partition_names == set(partition_cols_list)
+            dataset = ds.dataset(path, partitioning="hive")
+            assert dataset.partitioning.schema.names == partition_cols_list
             assert read_parquet(path).shape == df.shape
 
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
