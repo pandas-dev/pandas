@@ -104,7 +104,7 @@ repos:
             |\.\.\ ipython\ ::
         types_or: [python, cython, rst]
     -   id: cython-casting
-        name: Cython Casting
+        name: Check Cython casting is `<type>obj`, not `<type> obj`
         language: pygrep
         entry: '[a-zA-Z0-9*]> '
         files: (\.pyx|\.pxi.in)$
