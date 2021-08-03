@@ -37,6 +37,7 @@ Other enhancements
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 - Added ``sparse_index`` and ``sparse_columns`` keyword arguments to :meth:`.Styler.to_html` (:issue:`41946`)
 - Added keyword argument ``environment`` to :meth:`.Styler.to_latex` also allowing a specific "longtable" entry with a separate jinja2 template (:issue:`41866`)
+- :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -170,6 +171,8 @@ Performance improvements
 - Performance improvement in :meth:`.GroupBy.transform` for user-defined functions (:issue:`41598`)
 - Performance improvement in constructing :class:`DataFrame` objects (:issue:`42631`)
 - Performance improvement in :meth:`GroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
+- Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -229,6 +232,8 @@ Indexing
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 - Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)
+- Bug in :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` when passing an ascending value, failed to raise or incorrectly raising ``ValueError`` (:issue:`41634`)
+- Bug in updating values of :class:`pandas.Series` using boolean index, created by using :meth:`pandas.DataFrame.pop` (:issue:`42530`)
 
 Missing
 ^^^^^^^

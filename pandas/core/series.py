@@ -57,6 +57,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_bool_kwarg,
     validate_percentile,
 )
@@ -69,7 +70,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_bool,
     is_dict_like,
     is_integer,
     is_iterator,
@@ -3438,8 +3438,7 @@ Keep all original rows and also all original values
                 )
             ascending = ascending[0]
 
-        if not is_bool(ascending):
-            raise ValueError("ascending must be boolean")
+        ascending = validate_ascending(ascending)
 
         if na_position not in ["first", "last"]:
             raise ValueError(f"invalid na_position: {na_position}")
@@ -4386,7 +4385,7 @@ Keep all original rows and also all original values
                 return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
-        self, new_index: Index | None, indexer: np.ndarray | None, copy: bool
+        self, new_index: Index | None, indexer: npt.NDArray[np.intp] | None, copy: bool
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
