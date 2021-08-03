@@ -194,7 +194,7 @@ Datetimelike
 
 Expressions
 ^^^^^^^^^^^
-- Bug in :function:`create_valid_python_identifier` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, using an expression to query a dataframe (:issue:`42826`)
+- Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, using an expression to query a dataframe (:issue:`42826`)
 -
 
 Timedelta
