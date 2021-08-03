@@ -449,6 +449,11 @@ class GroupByMethods:
     def setup(self, dtype, method, application, ncols):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
+
+        if ncols != 1 and method in ["value_counts", "unique"]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
         ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups).reshape(-1, 1)
