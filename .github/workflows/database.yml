@@ -104,7 +104,7 @@ jobs:
       run: python ci/print_skipped.py
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
       with:
         flags: unittests
         name: codecov-pandas
