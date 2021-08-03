@@ -60,7 +60,6 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     PandasArray,
-    StringArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseDtype
@@ -1188,8 +1187,6 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             arr = arrays[0]
             arr = maybe_coerce_values(arr)
             arr = extract_pandas_array(arr, None, 1)[0]
-            if isinstance(arr, PandasArray) and not isinstance(arr, StringArray):
-                arr = arr.to_numpy()
             self.arrays = [arr]
             self._verify_integrity()
 
