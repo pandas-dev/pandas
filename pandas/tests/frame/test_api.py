@@ -91,7 +91,7 @@ class TestDataFrameMisc:
         empty_frame = DataFrame()
 
         df = DataFrame([1])
-        msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
+        msg = "unhashable type: 'DataFrame'"
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):

@@ -1372,8 +1372,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
     @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
     def test_con_string_import_error(self):
         conn = "mysql://root@localhost/pandas"
-        msg = "Using URI string without sqlalchemy installed"
-        with pytest.raises(ImportError, match=msg):
+        with pytest.raises(ImportError, match="SQLAlchemy"):
             sql.read_sql("SELECT * FROM iris", conn)
 
     def test_read_sql_delegate(self):
@@ -2314,8 +2313,7 @@ class _TestPostgreSQLAlchemy:
         # because of transactional schemas
         if isinstance(self.conn, sqlalchemy.engine.Engine):
             engine2 = self.connect()
-            meta = sqlalchemy.MetaData(engine2, schema="other")
-            pdsql = sql.SQLDatabase(engine2, meta=meta)
+            pdsql = sql.SQLDatabase(engine2, schema="other")
             pdsql.to_sql(df, "test_schema_other2", index=False)
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="replace")
             pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="append")
@@ -2336,7 +2334,7 @@ class _TestPostgreSQLAlchemy:
                 writer.writerows(data_iter)
                 s_buf.seek(0)
 
-                columns = ", ".join(f'"{k}"' for k in keys)
+                columns = ", ".join([f'"{k}"' for k in keys])
                 if table.schema:
                     table_name = f"{table.schema}.{table.name}"
                 else:
@@ -2615,9 +2613,9 @@ def format_query(sql, *args):
     return sql % tuple(processed_args)
 
 
-def tquery(query, con=None, cur=None):
+def tquery(query, con=None):
     """Replace removed sql.tquery function"""
-    res = sql.execute(query, con=con, cur=cur).fetchall()
+    res = sql.execute(query, con=con).fetchall()
     if res is None:
         return None
     else:
@@ -2649,12 +2647,10 @@ class TestXSQLite(SQLiteMixIn):
         cur = self.conn.cursor()
         cur.execute(create_sql)
 
-        cur = self.conn.cursor()
-
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
+        for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, con=self.conn)
 
         self.conn.commit()
 
@@ -2912,9 +2908,9 @@ class TestXMySQL(MySQLMixIn):
         cur.execute(drop_sql)
         cur.execute(create_sql)
         ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for idx, row in frame.iterrows():
+        for _, row in frame.iterrows():
             fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, cur=cur)
+            tquery(fmt_sql, con=self.conn)
 
         self.conn.commit()
 
