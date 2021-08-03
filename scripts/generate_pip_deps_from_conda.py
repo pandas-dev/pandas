@@ -17,6 +17,7 @@ import os
 import re
 import sys
 
+import toml
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
@@ -98,6 +99,13 @@ def main(conda_fname, pip_fname, compare=False):
         "# See that file for comments about the need/usage of each dependency.\n\n"
     )
     pip_content = header + "\n".join(pip_deps) + "\n"
+
+    # add setuptools to requirements-dev.txt
+    meta = toml.load(pathlib.Path(conda_path.parent, "pyproject.toml"))
+    for requirement in meta["build-system"]["requires"]:
+        if "setuptools" in requirement:
+            pip_content += requirement
+            pip_content += "\n"
 
     if compare:
         with open(pip_fname) as pip_fd:

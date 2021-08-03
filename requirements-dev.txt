@@ -81,3 +81,4 @@ natsort
 git+https://github.com/pydata/pydata-sphinx-theme.git@master
 numpydoc < 1.2
 pandas-dev-flaker==0.2.0
+setuptools>=51.0.0
