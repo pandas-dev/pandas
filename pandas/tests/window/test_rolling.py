@@ -6,7 +6,10 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_arm
+from pandas.compat import (
+    is_platform_arm,
+    is_platform_mac,
+)
 from pandas.errors import UnsupportedFunctionCall
 
 from pandas import (
@@ -1073,7 +1076,7 @@ def test_rolling_sem(frame_or_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(is_platform_arm(), reason="GH 41740")
+@pytest.mark.xfail(is_platform_arm() and not is_platform_mac(), reason="GH 38921")
 @pytest.mark.parametrize(
     ("func", "third_value", "values"),
     [
@@ -1421,3 +1424,11 @@ def test_rolling_zero_window():
     result = s.rolling(0).min()
     expected = Series([np.nan])
     tm.assert_series_equal(result, expected)
+
+
+def test_rolling_float_dtype(float_dtype):
+    # GH#42452
+    df = DataFrame({"A": range(5), "B": range(10, 15)}, dtype=float_dtype)
+    expected = DataFrame({"A": [np.nan] * 5, "B": range(10, 20, 2)}, dtype=float_dtype)
+    result = df.rolling(2, axis=1).sum()
+    tm.assert_frame_equal(result, expected, check_dtype=False)

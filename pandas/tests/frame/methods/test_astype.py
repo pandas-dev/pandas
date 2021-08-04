@@ -632,13 +632,9 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture, request):
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture):
+        # GH#41409
         tz = tz_naive_fixture
-        if tz is None:
-            mark = pytest.mark.xfail(
-                reason="GH#36153 uses ndarray formatting instead of DTA formatting"
-            )
-            request.node.add_marker(mark)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
         dta = dti._data
@@ -660,10 +656,39 @@ class TestAstype:
         alt = obj.astype(str)
         assert np.all(alt.iloc[1:] == result.iloc[1:])
 
+    def test_astype_td64_to_string(self, frame_or_series):
+        # GH#41409
+        tdi = pd.timedelta_range("1 Day", periods=3)
+        obj = frame_or_series(tdi)
+
+        expected = frame_or_series(["1 days", "2 days", "3 days"], dtype="string")
+        result = obj.astype("string")
+        tm.assert_equal(result, expected)
+
     def test_astype_bytes(self):
         # GH#39474
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
+
+    @pytest.mark.parametrize(
+        "index_slice",
+        [
+            np.s_[:2, :2],
+            np.s_[:1, :2],
+            np.s_[:2, :1],
+            np.s_[::2, ::2],
+            np.s_[::1, ::2],
+            np.s_[::2, ::1],
+        ],
+    )
+    def test_astype_noncontiguous(self, index_slice):
+        # GH#42396
+        data = np.arange(16).reshape(4, 4)
+        df = DataFrame(data)
+
+        result = df.iloc[index_slice].astype("int16")
+        expected = df.iloc[index_slice]
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 class TestAstypeCategorical:
@@ -693,3 +718,11 @@ class TestAstypeCategorical:
             {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_astype_categorical_to_string_missing(self):
+        # https://github.com/pandas-dev/pandas/issues/41797
+        df = DataFrame(["a", "b", np.nan])
+        expected = df.astype(str)
+        cat = df.astype("category")
+        result = cat.astype(str)
+        tm.assert_frame_equal(result, expected)

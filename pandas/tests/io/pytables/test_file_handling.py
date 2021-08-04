@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_little_endian
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -27,7 +26,7 @@ from pandas.io.pytables import (
     Term,
 )
 
-pytestmark = [pytest.mark.single, td.skip_array_manager_not_yet_implemented]
+pytestmark = pytest.mark.single
 
 
 def test_mode(setup_path):

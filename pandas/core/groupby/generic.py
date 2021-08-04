@@ -33,7 +33,6 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Manager2D,
 )
 from pandas.util._decorators import (
@@ -296,7 +295,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             arg = zip(columns, arg)
 
-        results: dict[base.OutputKey, FrameOrSeriesUnion] = {}
+        results: dict[base.OutputKey, DataFrame | Series] = {}
         for idx, (name, func) in enumerate(arg):
 
             key = base.OutputKey(label=name, position=idx)
@@ -422,7 +421,7 @@ class SeriesGroupBy(GroupBy[Series]):
         keys: Index,
         values: list[Any] | None,
         not_indexed_same: bool = False,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Wrap the output of SeriesGroupBy.apply into the expected result.
 
@@ -759,7 +758,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # new values are where sorted labels change
         lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
         inc = np.r_[True, lchanges]
-        if not len(lchanges):
+        if not len(val):
             inc = lchanges
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
@@ -1020,19 +1019,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
                     if isinstance(sobj, Series):
                         # GH#35246 test_groupby_as_index_select_column_sum_empty_df
-                        result.columns = [sobj.name]
+                        result.columns = self._obj_with_exclusions.columns.copy()
                     else:
+                        # Retain our column names
+                        result.columns._set_names(
+                            sobj.columns.names, level=list(range(sobj.columns.nlevels))
+                        )
                         # select everything except for the last level, which is the one
                         # containing the name of the function(s), see GH#32040
-                        result.columns = result.columns.rename(
-                            [sobj.columns.name] * result.columns.nlevels
-                        ).droplevel(-1)
+                        result.columns = result.columns.droplevel(-1)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
             result.index = Index(range(len(result)))
 
-        return result._convert(datetime=True)
+        return result
 
     agg = aggregate
 
@@ -1191,7 +1192,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         not_indexed_same: bool,
         first_not_none,
         key_index,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         # this is to silence a DeprecationWarning
         # TODO: Remove when default dtype of empty Series is object
         kwargs = first_not_none._construct_axes_dict()
@@ -1307,10 +1308,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         gen = self.grouper.get_iterator(obj, axis=self.axis)
         fast_path, slow_path = self._define_paths(func, *args, **kwargs)
 
-        for name, group in gen:
+        # Determine whether to use slow or fast path by evaluating on the first group.
+        # Need to handle the case of an empty generator and process the result so that
+        # it does not need to be computed again.
+        try:
+            name, group = next(gen)
+        except StopIteration:
+            pass
+        else:
             object.__setattr__(group, "name", name)
-
-            # Try slow path and fast path.
             try:
                 path, res = self._choose_path(fast_path, slow_path, group)
             except TypeError:
@@ -1318,30 +1324,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             except ValueError as err:
                 msg = "transform must return a scalar value for each group"
                 raise ValueError(msg) from err
-
-            if isinstance(res, Series):
-
-                # we need to broadcast across the
-                # other dimension; this will preserve dtypes
-                # GH14457
-                if not np.prod(group.shape):
-                    continue
-                elif res.index.is_(obj.index):
-                    r = concat([res] * len(group.columns), axis=1)
-                    r.columns = group.columns
-                    r.index = group.index
-                else:
-                    r = self.obj._constructor(
-                        np.concatenate([res.values] * len(group.index)).reshape(
-                            group.shape
-                        ),
-                        columns=group.columns,
-                        index=group.index,
-                    )
-
-                applied.append(r)
-            else:
+            if group.size > 0:
+                res = _wrap_transform_general_frame(self.obj, group, res)
                 applied.append(res)
+
+        # Compute and process with the remaining groups
+        for name, group in gen:
+            if group.size == 0:
+                continue
+            object.__setattr__(group, "name", name)
+            res = path(group)
+            res = _wrap_transform_general_frame(self.obj, group, res)
+            applied.append(res)
 
         concat_index = obj.columns if self.axis == 0 else obj.index
         other_axis = 1 if self.axis == 0 else 0  # switches between 0 & 1
@@ -1665,7 +1659,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = self.obj.columns
         else:
             columns = Index(key.label for key in output)
-            columns.name = self.obj.columns.name
+            columns._set_names(self.obj._get_axis(1 - self.axis).names)
             result.columns = columns
 
         result.index = self.obj.index
@@ -1674,7 +1668,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
         if not self.as_index:
-            index = Index(range(mgr.shape[1]))
+            # GH 41998 - empty mgr always gets index of length 0
+            rows = mgr.shape[1] if mgr.shape[0] > 0 else 0
+            index = Index(range(rows))
             mgr.set_axis(1, index)
             result = self.obj._constructor(mgr)
 
@@ -1688,6 +1684,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
+        # Note: we only need to pass datetime=True in order to get numeric
+        #  values converted
         return self._reindex_output(result)._convert(datetime=True)
 
     def _iterate_column_groupbys(self, obj: FrameOrSeries):
@@ -1800,7 +1798,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         results = self._apply_to_column_groupbys(
             lambda sgb: sgb.nunique(dropna), obj=obj
         )
-        results.columns.names = obj.columns.names  # TODO: do at higher level?
 
         if not self.as_index:
             results.index = Index(range(len(results)))
@@ -1851,3 +1848,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return self._python_apply_general(func, self._obj_with_exclusions)
 
     boxplot = boxplot_frame_groupby
+
+
+def _wrap_transform_general_frame(
+    obj: DataFrame, group: DataFrame, res: DataFrame | Series
+) -> DataFrame:
+    from pandas import concat
+
+    if isinstance(res, Series):
+        # we need to broadcast across the
+        # other dimension; this will preserve dtypes
+        # GH14457
+        if res.index.is_(obj.index):
+            res_frame = concat([res] * len(group.columns), axis=1)
+            res_frame.columns = group.columns
+            res_frame.index = group.index
+        else:
+            res_frame = obj._constructor(
+                np.concatenate([res.values] * len(group.index)).reshape(group.shape),
+                columns=group.columns,
+                index=group.index,
+            )
+        assert isinstance(res_frame, DataFrame)
+        return res_frame
+    else:
+        return res

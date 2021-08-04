@@ -12,6 +12,7 @@ pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 from pandas.io.formats.style_render import (
     _parse_latex_cell_styles,
+    _parse_latex_css_conversion,
     _parse_latex_header_span,
     _parse_latex_table_styles,
     _parse_latex_table_wrapping,
@@ -118,6 +119,10 @@ def test_position_float_raises(styler):
     msg = "`position_float` should be one of 'raggedright', 'raggedleft', 'centering',"
     with pytest.raises(ValueError, match=msg):
         styler.to_latex(position_float="bad_string")
+
+    msg = "`position_float` cannot be used in 'longtable' `environment`"
+    with pytest.raises(ValueError, match=msg):
+        styler.to_latex(position_float="centering", environment="longtable")
 
 
 @pytest.mark.parametrize("label", [(None, ""), ("text", "\\label{text}")])
@@ -321,7 +326,8 @@ def test_hidden_index(styler):
     assert styler.to_latex() == expected
 
 
-def test_comprehensive(df):
+@pytest.mark.parametrize("environment", ["table", "figure*", None])
+def test_comprehensive(df, environment):
     # test as many low level features simultaneously as possible
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
@@ -366,8 +372,8 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 \\end{tabular}
 \\end{table}
 """
-    )
-    assert s.format(precision=2).to_latex() == expected
+    ).replace("table", environment if environment else "table")
+    assert s.format(precision=2).to_latex(environment=environment) == expected
 
 
 def test_parse_latex_table_styles(styler):
@@ -443,3 +449,189 @@ def test_parse_latex_table_wrapping(styler):
 def test_short_caption(styler):
     result = styler.to_latex(caption=("full cap", "short cap"))
     assert "\\caption[short cap]{full cap}" in result
+
+
+@pytest.mark.parametrize(
+    "css, expected",
+    [
+        ([("color", "red")], [("color", "{red}")]),  # test color and input format types
+        (
+            [("color", "rgb(128, 128, 128 )")],
+            [("color", "[rgb]{0.502, 0.502, 0.502}")],
+        ),
+        (
+            [("color", "rgb(128, 50%, 25% )")],
+            [("color", "[rgb]{0.502, 0.500, 0.250}")],
+        ),
+        (
+            [("color", "rgba(128,128,128,1)")],
+            [("color", "[rgb]{0.502, 0.502, 0.502}")],
+        ),
+        ([("color", "#FF00FF")], [("color", "[HTML]{FF00FF}")]),
+        ([("color", "#F0F")], [("color", "[HTML]{FF00FF}")]),
+        ([("font-weight", "bold")], [("bfseries", "")]),  # test font-weight and types
+        ([("font-weight", "bolder")], [("bfseries", "")]),
+        ([("font-weight", "normal")], []),
+        ([("background-color", "red")], [("cellcolor", "{red}--lwrap")]),
+        (
+            [("background-color", "#FF00FF")],  # test background-color command and wrap
+            [("cellcolor", "[HTML]{FF00FF}--lwrap")],
+        ),
+        ([("font-style", "italic")], [("itshape", "")]),  # test font-style and types
+        ([("font-style", "oblique")], [("slshape", "")]),
+        ([("font-style", "normal")], []),
+        ([("color", "red /*--dwrap*/")], [("color", "{red}--dwrap")]),  # css comments
+        ([("background-color", "red /* --dwrap */")], [("cellcolor", "{red}--dwrap")]),
+    ],
+)
+def test_parse_latex_css_conversion(css, expected):
+    result = _parse_latex_css_conversion(css)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "env, inner_env",
+    [
+        (None, "tabular"),
+        ("table", "tabular"),
+        ("longtable", "longtable"),
+    ],
+)
+@pytest.mark.parametrize(
+    "convert, exp", [(True, "bfseries"), (False, "font-weightbold")]
+)
+def test_parse_latex_css_convert_minimal(styler, env, inner_env, convert, exp):
+    # parameters ensure longtable template is also tested
+    styler.highlight_max(props="font-weight:bold;")
+    result = styler.to_latex(convert_css=convert, environment=env)
+    expected = dedent(
+        f"""\
+        0 & 0 & \\{exp} -0.61 & ab \\\\
+        1 & \\{exp} 1 & -1.22 & \\{exp} cd \\\\
+        \\end{{{inner_env}}}
+    """
+    )
+    assert expected in result
+
+
+def test_parse_latex_css_conversion_option():
+    css = [("command", "option--latex--wrap")]
+    expected = [("command", "option--wrap")]
+    result = _parse_latex_css_conversion(css)
+    assert result == expected
+
+
+def test_styler_object_after_render(styler):
+    # GH 42320
+    pre_render = styler._copy(deepcopy=True)
+    styler.to_latex(
+        column_format="rllr",
+        position="h",
+        position_float="centering",
+        hrules=True,
+        label="my lab",
+        caption="my cap",
+    )
+
+    assert pre_render.table_styles == styler.table_styles
+    assert pre_render.caption == styler.caption
+
+
+def test_longtable_comprehensive(styler):
+    result = styler.to_latex(
+        environment="longtable", hrules=True, label="fig:A", caption=("full", "short")
+    )
+    expected = dedent(
+        """\
+        \\begin{longtable}{lrrl}
+        \\caption[short]{full} \\label{fig:A} \\\\
+        \\toprule
+        {} & {A} & {B} & {C} \\\\
+        \\midrule
+        \\endfirsthead
+        \\caption[]{full} \\\\
+        \\toprule
+        {} & {A} & {B} & {C} \\\\
+        \\midrule
+        \\endhead
+        \\midrule
+        \\multicolumn{4}{r}{Continued on next page} \\\\
+        \\midrule
+        \\endfoot
+        \\bottomrule
+        \\endlastfoot
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{longtable}
+    """
+    )
+    assert result == expected
+
+
+def test_longtable_minimal(styler):
+    result = styler.to_latex(environment="longtable")
+    expected = dedent(
+        """\
+        \\begin{longtable}{lrrl}
+        {} & {A} & {B} & {C} \\\\
+        \\endfirsthead
+        {} & {A} & {B} & {C} \\\\
+        \\endhead
+        \\multicolumn{4}{r}{Continued on next page} \\\\
+        \\endfoot
+        \\endlastfoot
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{longtable}
+    """
+    )
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "sparse, exp",
+    [
+        (True, "{} & \\multicolumn{2}{r}{A} & {B}"),
+        (False, "{} & {A} & {A} & {B}"),
+    ],
+)
+def test_longtable_multiindex_columns(df, sparse, exp):
+    cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.columns = cidx
+    expected = dedent(
+        f"""\
+        \\begin{{longtable}}{{lrrl}}
+        {exp} \\\\
+        {{}} & {{a}} & {{b}} & {{c}} \\\\
+        \\endfirsthead
+        {exp} \\\\
+        {{}} & {{a}} & {{b}} & {{c}} \\\\
+        \\endhead
+        """
+    )
+    assert expected in df.style.to_latex(environment="longtable", sparse_columns=sparse)
+
+
+@pytest.mark.parametrize(
+    "caption, cap_exp",
+    [
+        ("full", ("{full}", "")),
+        (("full", "short"), ("{full}", "[short]")),
+    ],
+)
+@pytest.mark.parametrize("label, lab_exp", [(None, ""), ("tab:A", " \\label{tab:A}")])
+def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
+    cap_exp1 = f"\\caption{cap_exp[1]}{cap_exp[0]}"
+    cap_exp2 = f"\\caption[]{cap_exp[0]}"
+
+    expected = dedent(
+        f"""\
+        {cap_exp1}{lab_exp} \\\\
+        {{}} & {{A}} & {{B}} & {{C}} \\\\
+        \\endfirsthead
+        {cap_exp2} \\\\
+        """
+    )
+    assert expected in styler.to_latex(
+        environment="longtable", caption=caption, label=label
+    )

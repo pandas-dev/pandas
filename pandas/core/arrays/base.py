@@ -14,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Iterator,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -72,7 +73,6 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     class ExtensionArraySupportsAnyAll("ExtensionArray"):
         def any(self, *, skipna: bool = True) -> bool:
@@ -250,8 +250,6 @@ class ExtensionArray:
     ):
         """
         Construct a new ExtensionArray from a sequence of strings.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -755,8 +753,6 @@ class ExtensionArray:
         Newly introduced missing values are filled with
         ``self.dtype.na_value``.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         periods : int, default 1
@@ -766,8 +762,6 @@ class ExtensionArray:
         fill_value : object, optional
             The scalar value to use for newly introduced missing values.
             The default is ``self.dtype.na_value``.
-
-            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -817,8 +811,6 @@ class ExtensionArray:
         """
         Find indices where elements should be inserted to maintain order.
 
-        .. versionadded:: 0.24.0
-
         Find the indices into a sorted array `self` (a) such that, if the
         corresponding elements in `value` were inserted before the indices,
         the order of `self` would be preserved.
@@ -834,13 +826,13 @@ class ExtensionArray:
 
         Parameters
         ----------
-        value : array_like
-            Values to insert into `self`.
+        value : array-like, list or scalar
+            Value(s) to insert into `self`.
         side : {'left', 'right'}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
+        sorter : 1-D array-like, optional
             Optional array of integer indices that sort array a into ascending
             order. They are typically the result of argsort.
 
@@ -1304,8 +1296,10 @@ class ExtensionArray:
         """
         raise TypeError(f"cannot perform {name} with type {self.dtype}")
 
-    def __hash__(self) -> int:
-        raise TypeError(f"unhashable type: {repr(type(self).__name__)}")
+    # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
+    # Incompatible types in assignment (expression has type "None", base class
+    # "object" defined the type as "Callable[[object], int]")
+    __hash__: None  # type: ignore[assignment]
 
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
