@@ -23,7 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`pandas.read_excel` modifies the dtypes dictionary when reading a file with duplicate columns (:issue:`42462`)
 -
 
 .. ---------------------------------------------------------------------------
