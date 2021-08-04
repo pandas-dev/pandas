@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under1p0,
     pa_version_under2p0,
+    pa_version_under5p0,
 )
 import pandas.util._test_decorators as td
 
@@ -220,6 +221,29 @@ def check_round_trip(
             compare(repeat)
     else:
         compare(repeat)
+
+
+def check_partition_names(path, expected):
+    """Check partitions of a parquet file are as expected.
+
+    Parameters
+    ----------
+    path: str
+        Path of the dataset.
+    expected: iterable of str
+        Expected partition names.
+    """
+    if pa_version_under5p0:
+        import pyarrow.parquet as pq
+
+        dataset = pq.ParquetDataset(path, validate_schema=False)
+        assert len(dataset.partitions.partition_names) == len(expected)
+        assert dataset.partitions.partition_names == set(expected)
+    else:
+        import pyarrow.dataset as ds
+
+        dataset = ds.dataset(path, partitioning="hive")
+        assert dataset.partitioning.schema.names == expected
 
 
 def test_invalid_engine(df_compat):
@@ -743,11 +767,7 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
-
-            dataset = pq.ParquetDataset(path, validate_schema=False)
-            assert len(dataset.partitions.partition_names) == 2
-            assert dataset.partitions.partition_names == set(partition_cols)
+            check_partition_names(path, partition_cols)
             assert read_parquet(path).shape == df.shape
 
     def test_partition_cols_string(self, pa, df_full):
@@ -757,11 +777,7 @@ class TestParquetPyArrow(Base):
         df = df_full
         with tm.ensure_clean_dir() as path:
             df.to_parquet(path, partition_cols=partition_cols, compression=None)
-            import pyarrow.parquet as pq
-
-            dataset = pq.ParquetDataset(path, validate_schema=False)
-            assert len(dataset.partitions.partition_names) == 1
-            assert dataset.partitions.partition_names == set(partition_cols_list)
+            check_partition_names(path, partition_cols_list)
             assert read_parquet(path).shape == df.shape
 
     @pytest.mark.parametrize("path_type", [str, pathlib.Path])
