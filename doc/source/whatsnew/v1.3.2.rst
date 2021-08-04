@@ -22,7 +22,7 @@ Fixed regressions
 - Regression in :meth:`DataFrame.drop` does nothing if :class:`MultiIndex` has duplicates and indexer is a tuple or list of tuples (:issue:`42771`)
 - Fixed regression where :meth:`pandas.read_csv` raised a ``ValueError`` when parameters ``names`` and ``prefix`` were both set to None (:issue:`42387`)
 - Fixed regression in comparisons between :class:`Timestamp` object and ``datetime64`` objects outside the implementation bounds for nanosecond ``datetime64`` (:issue:`42794`)
--
+- Fixed regression in :meth:`.Styler.highlight_min` and :meth:`.Styler.highlight_max` where ``pandas.NA`` was not successfully ignored (:issue:`42650`)
 
 .. ---------------------------------------------------------------------------
 
@@ -31,7 +31,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - 1D slices over extension types turn into N-dimensional slices over ExtensionArrays (:issue:`42430`)
--
+- :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
 
 .. ---------------------------------------------------------------------------
 
