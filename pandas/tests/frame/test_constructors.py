@@ -1204,7 +1204,7 @@ class TestDataFrameConstructors:
         assert df_casted.values.dtype == np.int64
 
     def test_constructor_empty_DataFrame(self):
-
+# GH 20624
         actual = pd.DataFrame(pd.DataFrame(), dtype="object")
         expected = pd.DataFrame([], dtype="object")
         tm.assert_frame_equal(actual, expected)
