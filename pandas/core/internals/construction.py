@@ -615,6 +615,8 @@ def _extract_index(data) -> Index:
             elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
                 have_raw_arrays = True
                 raw_lengths.append(len(val))
+            elif isinstance(val, np.ndarray) and val.ndim > 1:
+                raise ValueError("Per-column arrays must each be 1-dimensional")
 
         if not indexes and not raw_lengths:
             raise ValueError("If using all scalar values, you must pass an index")
@@ -757,6 +759,14 @@ def to_arrays(
                 # i.e. numpy structured array
                 columns = ensure_index(data.dtype.names)
                 arrays = [data[name] for name in columns]
+
+                if len(data) == 0:
+                    # GH#42456 the indexing above results in list of 2D ndarrays
+                    # TODO: is that an issue with numpy?
+                    for i, arr in enumerate(arrays):
+                        if arr.ndim == 2:
+                            arrays[i] = arr[:, 0]
+
                 return arrays, columns
         return [], ensure_index([])
 
