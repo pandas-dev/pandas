@@ -278,7 +278,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "categories must match existing categories when appending"
                 )
 
-        return other
+        # TODO: this is a lot like the non-coercing constructor
+        return other.astype(self.dtype, copy=False)
 
     def equals(self, other: object) -> bool:
         """
@@ -546,23 +547,3 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         mapped = self._values.map(mapper)
         return Index(mapped, name=self.name)
-
-    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
-        alt = Index._concat(self, to_concat, name=name)  # uses concat_compat
-
-        # if calling index is category, don't check dtype of others
-        try:
-            codes = np.concatenate([self._is_dtype_compat(c).codes for c in to_concat])
-        except TypeError:
-            # not all to_concat elements are among our categories (or NA)
-            from pandas.core.dtypes.concat import concat_compat
-
-            res = concat_compat(to_concat)
-            out = Index(res, name=name)
-            assert out.equals(alt)
-            assert out.dtype == alt.dtype
-            return out
-        else:
-            cat = self._data._from_backing_data(codes)
-            assert cat.dtype == alt.dtype
-            return type(self)._simple_new(cat, name=name)

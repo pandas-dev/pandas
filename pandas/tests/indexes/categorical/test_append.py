@@ -48,9 +48,10 @@ class TestAppend:
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_object(self, ci):
-        # GH#14298 - if base object is not categorical -> coerce to object
+        # GH#14298 - if base object and all entries are among
+        #  categories -> cast to categorical (GH#41626)
         result = Index(["c", "a"]).append(ci)
-        expected = Index(list("caaabbca"))
+        expected = Index(list("caaabbca"), dtype=ci.dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_append_to_another(self):

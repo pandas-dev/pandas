@@ -105,7 +105,7 @@ class TestEmptyConcat:
             ("M8[ns]", np.int64, np.object_),
             # categorical
             ("category", "category", "category"),
-            ("category", "object", "object"),
+            ("category", "object", "category"),  # GH#41626
         ],
     )
     def test_concat_empty_series_dtypes(self, left, right, expected):
@@ -177,12 +177,12 @@ class TestEmptyConcat:
         )
 
     def test_concat_empty_series_dtype_category_with_array(self):
-        # GH#18515
+        # GH#18515, GH#41626
         assert (
             concat(
                 [Series(np.array([]), dtype="category"), Series(dtype="float64")]
             ).dtype
-            == "float64"
+            == "category"
         )
 
     def test_concat_empty_series_dtypes_sparse(self):

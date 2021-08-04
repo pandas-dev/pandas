@@ -511,18 +511,18 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(result, expected)
 
     def test_concat_categorical_coercion(self):
-        # GH 13524
+        # GH 13524, GH#41626
 
-        # category + not-category => not-category
+        # category + not-category (but all-castable/nan) => category
         s1 = Series([1, 2, np.nan], dtype="category")
         s2 = Series([2, 1, 2])
 
-        exp = Series([1, 2, np.nan, 2, 1, 2], dtype="object")
+        exp = Series([1, 2, np.nan, 2, 1, 2], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
         # result shouldn't be affected by 1st elem dtype
-        exp = Series([2, 1, 2, 1, 2, np.nan], dtype="object")
+        exp = Series([2, 1, 2, 1, 2, np.nan], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
@@ -562,31 +562,31 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
-        # if normal series only contains NaN-likes => not-category
+        # if normal series only contains NaN-likes => category (GH#41626)
         s1 = Series([10, 11], dtype="category")
         s2 = Series([np.nan, np.nan, np.nan])
 
-        exp = Series([10, 11, np.nan, np.nan, np.nan])
+        exp = Series([10, 11, np.nan, np.nan, np.nan], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        exp = Series([np.nan, np.nan, np.nan, 10, 11])
+        exp = Series([np.nan, np.nan, np.nan, 10, 11], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
     def test_concat_categorical_3elem_coercion(self):
-        # GH 13524
+        # GH 13524, GH#41626
 
-        # mixed dtypes => not-category
+        # mixed dtypes, all castable to our categories => category (GH#41626)
         s1 = Series([1, 2, np.nan], dtype="category")
         s2 = Series([2, 1, 2], dtype="category")
         s3 = Series([1, 2, 1, 2, np.nan])
 
-        exp = Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan], dtype="float")
+        exp = Series([1, 2, np.nan, 2, 1, 2, 1, 2, 1, 2, np.nan], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s1, s2, s3], ignore_index=True), exp)
         tm.assert_series_equal(s1.append([s2, s3], ignore_index=True), exp)
 
-        exp = Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2], dtype="float")
+        exp = Series([1, 2, 1, 2, np.nan, 1, 2, np.nan, 2, 1, 2], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s3, s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s3.append([s1, s2], ignore_index=True), exp)
 
@@ -654,7 +654,7 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(s1.append([s2, s1], ignore_index=True), exp)
 
     def test_concat_categorical_coercion_nan(self):
-        # GH 13524
+        # GH 13524, GH#41626
 
         # some edge cases
         # category + not-category => not category
@@ -665,18 +665,19 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
+        # all elements of s2 are nan => category (GH#41626)
         s1 = Series([1, np.nan], dtype="category")
         s2 = Series([np.nan, np.nan])
 
-        exp = Series([1, np.nan, np.nan, np.nan], dtype="float")
+        exp = Series([1, np.nan, np.nan, np.nan], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        # mixed dtype, all nan-likes => not-category
+        # mixed dtype, all nan-likes => category (GH#41626)
         s1 = Series([np.nan, np.nan], dtype="category")
         s2 = Series([np.nan, np.nan])
 
-        exp = Series([np.nan, np.nan, np.nan, np.nan])
+        exp = Series([np.nan, np.nan, np.nan, np.nan], dtype=s1.dtype)
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
@@ -692,7 +693,7 @@ class TestConcatAppendCommon:
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
     def test_concat_categorical_empty(self):
-        # GH 13524
+        # GH 13524, GH#41626
 
         s1 = Series([], dtype="category")
         s2 = Series([1, 2], dtype="category")
@@ -712,11 +713,11 @@ class TestConcatAppendCommon:
         s1 = Series([], dtype="category")
         s2 = Series([], dtype="object")
 
-        # different dtype => not-category
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
-        tm.assert_series_equal(s1.append(s2, ignore_index=True), s2)
-        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
-        tm.assert_series_equal(s2.append(s1, ignore_index=True), s2)
+        # different dtype, but all castable (bc empty) => category (GH#41626)
+        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s1)
+        tm.assert_series_equal(s1.append(s2, ignore_index=True), s1)
+        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s1)
+        tm.assert_series_equal(s2.append(s1, ignore_index=True), s1)
 
         s1 = Series([], dtype="category")
         s2 = Series([np.nan, np.nan])

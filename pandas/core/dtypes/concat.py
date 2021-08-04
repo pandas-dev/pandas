@@ -125,17 +125,27 @@ def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):
     if any_ea:
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
-        if any(is_categorical_dtype(x.dtype) for x in to_concat):
-            first = [x for x in to_concat if is_categorical_dtype(x.dtype)][0]
-            from pandas import Index
+        cats = [x for x in to_concat if is_categorical_dtype(x.dtype)]
+        if len(cats):
+            # TODO: Ideally this shouldn't be order-dependent
+            first = cats[0]
+            from pandas import (
+                CategoricalIndex,
+                Index,
+            )
+
+            ci = CategoricalIndex(first)
+
             try:
-                codes = np.concatenate([Index(first)._is_dtype_compat(Index(c)).codes for c in to_concat])
+                codes = np.concatenate(
+                    [ci._is_dtype_compat(Index(c)).codes for c in to_concat]
+                )
             except TypeError:
                 # not all to_concat elements are among our categories (or NA)
                 pass
             else:
                 cat = first._from_backing_data(codes)
-                if first.ordered:
+                if all(x.dtype.ordered for x in cats):
                     cat = cat.as_ordered()
                 return cat
 
