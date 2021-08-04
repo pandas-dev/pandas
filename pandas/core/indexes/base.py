@@ -965,6 +965,10 @@ class Index(IndexOpsMixin, PandasObject):
         taken = algos.take(
             self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
+
+        if not isinstance(taken, np.ndarray):
+            raise TypeError(f"Expected indexer to be of type np.ndarray instead received {type(taken)}")
+
         return type(self)._simple_new(taken, name=self.name)
 
     @final
