@@ -7,9 +7,11 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -26,10 +28,6 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
-)
-from pandas._typing import (
-    Callable,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -240,10 +238,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         attrs = super()._format_attrs()
         for attrib in self._attributes:
+            # iterating over _attributes prevents us from doing this for PeriodIndex
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = repr(freq)
+                    freq = repr(freq)  # e.g. D -> 'D'
                 # Argument 1 to "append" of "list" has incompatible type
                 # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
                 attrs.append(("freq", freq))  # type: ignore[arg-type]

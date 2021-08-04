@@ -2641,7 +2641,7 @@ class Fixed:
         s = self.shape
         if s is not None:
             if isinstance(s, (list, tuple)):
-                jshape = ",".join(pprint_thing(x) for x in s)
+                jshape = ",".join([pprint_thing(x) for x in s])
                 s = f"[{jshape}]"
             return f"{self.pandas_type:12.12} (shape->{s})"
         return self.pandas_type
@@ -3308,10 +3308,10 @@ class Table(Fixed):
 
         ver = ""
         if self.is_old_version:
-            jver = ".".join(str(x) for x in self.version)
+            jver = ".".join([str(x) for x in self.version])
             ver = f"[{jver}]"
 
-        jindex_axes = ",".join(a.name for a in self.index_axes)
+        jindex_axes = ",".join([a.name for a in self.index_axes])
         return (
             f"{self.pandas_type:12.12}{ver} "
             f"(typ->{self.table_type_short},nrows->{self.nrows},"
@@ -3518,7 +3518,7 @@ class Table(Fixed):
         """are we trying to operate on an old version?"""
         if where is not None:
             if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
-                ws = incompatibility_doc % ".".join(str(x) for x in self.version)
+                ws = incompatibility_doc % ".".join([str(x) for x in self.version])
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
@@ -4065,7 +4065,7 @@ class Table(Fixed):
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
                 except (IndexError, KeyError) as err:
-                    jitems = ",".join(pprint_thing(item) for item in items)
+                    jitems = ",".join([pprint_thing(item) for item in items])
                     raise ValueError(
                         f"cannot match existing table structure for [{jitems}] "
                         "on appending data"

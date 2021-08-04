@@ -1424,3 +1424,11 @@ def test_rolling_zero_window():
     result = s.rolling(0).min()
     expected = Series([np.nan])
     tm.assert_series_equal(result, expected)
+
+
+def test_rolling_float_dtype(float_dtype):
+    # GH#42452
+    df = DataFrame({"A": range(5), "B": range(10, 15)}, dtype=float_dtype)
+    expected = DataFrame({"A": [np.nan] * 5, "B": range(10, 20, 2)}, dtype=float_dtype)
+    result = df.rolling(2, axis=1).sum()
+    tm.assert_frame_equal(result, expected, check_dtype=False)

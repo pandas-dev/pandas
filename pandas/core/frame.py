@@ -55,6 +55,7 @@ from pandas._typing import (
     ColspaceArgType,
     CompressionOptions,
     Dtype,
+    DtypeObj,
     FilePathOrBuffer,
     FillnaOptions,
     FloatFormatType,
@@ -68,6 +69,8 @@ from pandas._typing import (
     Scalar,
     StorageOptions,
     Suffixes,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
     npt,
 )
@@ -82,6 +85,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
@@ -208,11 +212,6 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
-
-    from pandas._typing import (
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
-    )
 
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.resample import Resampler
@@ -2540,8 +2539,7 @@ class DataFrame(NDFrame, OpsMixin):
         |  0 | elk        | dog        |
         +----+------------+------------+
         |  1 | pig        | quetzal    |
-        +----+------------+------------+
-        """,
+        +----+------------+------------+""",
     )
     def to_markdown(
         self,
@@ -3342,8 +3340,8 @@ class DataFrame(NDFrame, OpsMixin):
             values = self.values
 
             new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
-            result = self._constructor(
-                dict(zip(self.index, new_values)), index=self.columns
+            result = type(self)._from_arrays(
+                new_values, index=self.columns, columns=self.index
             )
 
         else:
@@ -3456,7 +3454,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             if is_iterator(key):
                 key = list(key)
-            indexer = self.loc._get_listlike_indexer(key, axis=1)[1]
+            indexer = self.columns._get_indexer_strict(key, "columns")[1]
 
         # take() does not accept boolean indexers
         if getattr(indexer, "dtype", None) == bool:
@@ -4282,6 +4280,11 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
                     converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                elif dtype == "float" or dtype is float:
+                    # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
+                    converted_dtypes.extend(
+                        [np.float64, np.float32]  # type: ignore[list-item]
+                    )
                 else:
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Union[dtype[Any], ExtensionDtype]"; expected
@@ -4301,50 +4304,25 @@ class DataFrame(NDFrame, OpsMixin):
         if not include.isdisjoint(exclude):
             raise ValueError(f"include and exclude overlap on {(include & exclude)}")
 
-        # We raise when both include and exclude are empty
-        # Hence, we can just shrink the columns we want to keep
-        keep_these = np.full(self.shape[1], True)
-
-        def extract_unique_dtypes_from_dtypes_set(
-            dtypes_set: frozenset[Dtype], unique_dtypes: np.ndarray
-        ) -> list[Dtype]:
-            extracted_dtypes = [
-                unique_dtype
-                for unique_dtype in unique_dtypes
-                if (
-                    issubclass(
-                        # error: Argument 1 to "tuple" has incompatible type
-                        # "FrozenSet[Union[ExtensionDtype, Union[str, Any], Type[str],
-                        # Type[float], Type[int], Type[complex], Type[bool],
-                        # Type[object]]]"; expected "Iterable[Union[type, Tuple[Any,
-                        # ...]]]"
-                        unique_dtype.type,
-                        tuple(dtypes_set),  # type: ignore[arg-type]
-                    )
-                    or (
-                        np.number in dtypes_set
-                        and getattr(unique_dtype, "_is_numeric", False)
-                    )
-                )
-            ]
-            return extracted_dtypes
-
-        unique_dtypes = self.dtypes.unique()
-
-        if include:
-            included_dtypes = extract_unique_dtypes_from_dtypes_set(
-                include, unique_dtypes
+        def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
+            return issubclass(dtype.type, tuple(dtypes_set)) or (
+                np.number in dtypes_set and getattr(dtype, "_is_numeric", False)
             )
-            keep_these &= self.dtypes.isin(included_dtypes)
 
-        if exclude:
-            excluded_dtypes = extract_unique_dtypes_from_dtypes_set(
-                exclude, unique_dtypes
-            )
-            keep_these &= ~self.dtypes.isin(excluded_dtypes)
+        def predicate(arr: ArrayLike) -> bool:
+            dtype = arr.dtype
+            if include:
+                if not dtype_predicate(dtype, include):
+                    return False
 
-        # error: "ndarray" has no attribute "values"
-        return self.iloc[:, keep_these.values]  # type: ignore[attr-defined]
+            if exclude:
+                if dtype_predicate(dtype, exclude):
+                    return False
+
+            return True
+
+        mgr = self._mgr._get_data_subset(predicate)
+        return type(self)(mgr).__finalize__(self)
 
     def insert(self, loc, column, value, allow_duplicates: bool = False) -> None:
         """
@@ -4782,7 +4760,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         labels : single label or list-like
-            Index or column labels to drop.
+            Index or column labels to drop. A tuple will be used as a single
+            label and not treated as a list-like.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
@@ -4871,6 +4850,17 @@ class DataFrame(NDFrame, OpsMixin):
                 length  1.5     0.8
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
+                length  0.3     0.2
+
+        >>> df.drop(index=('falcon', 'weight'))
+                        big     small
+        lama    speed   45.0    30.0
+                weight  200.0   100.0
+                length  1.5     1.0
+        cow     speed   30.0    20.0
+                weight  250.0   150.0
+                length  1.5     0.8
+        falcon  speed   320.0   250.0
                 length  0.3     0.2
 
         >>> df.drop(index='cow', columns='small')
@@ -6218,7 +6208,7 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
-
+        ascending = validate_ascending(ascending)
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
