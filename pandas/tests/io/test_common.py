@@ -135,6 +135,48 @@ bar2,12,13,14,15
         assert not input_buffer.closed
         input_buffer.close()
 
+    # Test that BytesIOWrapper(get_handle) returns correct amount of bytes every time
+    def test_bytesiowrapper_returns_correct_bytes(self):
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        with icom.get_handle(StringIO(data), "rb", is_text=False) as handles:
+            result = b""
+            chunksize = 5
+            while True:
+                chunk = handles.handle.read(chunksize)
+                # Make sure each chunk is correct amount of bytes
+                assert len(chunk) <= chunksize
+                if len(chunk) < chunksize:
+                    # Can be less amount of bytes, but only at EOF
+                    # which happens when read returns empty
+                    assert len(handles.handle.read()) == 0
+                    result += chunk
+                    break
+                result += chunk
+            assert result == data.encode("utf-8")
+
+    # Test that pyarrow can handle a file opened with get_handle
+    @td.skip_if_no("pyarrow", min_version="0.15.0")
+    def test_get_handle_pyarrow_compat(self):
+        from pyarrow import csv
+
+        # Test latin1, ucs-2, and ucs-4 chars
+        data = """a,b,c
+1,2,3
+©,®,®
+Look,a snake,🐍"""
+        expected = pd.DataFrame(
+            {"a": ["1", "©", "Look"], "b": ["2", "®", "a snake"], "c": ["3", "®", "🐍"]}
+        )
+        s = StringIO(data)
+        with icom.get_handle(s, "rb", is_text=False) as handles:
+            df = csv.read_csv(handles.handle).to_pandas()
+            tm.assert_frame_equal(df, expected)
+            assert not s.closed
+
     def test_iterator(self):
         with pd.read_csv(StringIO(self.data1), chunksize=1) as reader:
             result = pd.concat(reader, ignore_index=True)
