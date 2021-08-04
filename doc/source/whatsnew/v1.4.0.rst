@@ -234,6 +234,8 @@ Indexing
 - Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)
 - Bug in :meth:`DataFrame.sort_values` and :meth:`Series.sort_values` when passing an ascending value, failed to raise or incorrectly raising ``ValueError`` (:issue:`41634`)
 - Bug in updating values of :class:`pandas.Series` using boolean index, created by using :meth:`pandas.DataFrame.pop` (:issue:`42530`)
+- Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, used in an expression to query a dataframe (:issue:`42826`)
+-
 
 Missing
 ^^^^^^^
