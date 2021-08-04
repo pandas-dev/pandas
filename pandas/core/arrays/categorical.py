@@ -110,7 +110,6 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
@@ -2009,16 +2008,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return result
 
     # ------------------------------------------------------------------
-
-    def __getitem__(self, key):
-        """
-        Return an item.
-        """
-        result = super().__getitem__(key)
-        if getattr(result, "ndim", 0) > 1:
-            result = result._ndarray
-            deprecate_ndim_indexing(result)
-        return result
 
     def _validate_listlike(self, value):
         # NB: here we assume scalar-like tuples have already been excluded
