@@ -924,7 +924,10 @@ class Parser:
             if not self.dtype:
                 if all(notna(data)):
                     return data, False
-                return data.fillna(np.nan), True
+                data = data.where(notna(data), np.nan)
+                if all(isna(data)):
+                    data = data.astype(np.float64)
+                return data, True
 
             # error: Non-overlapping identity check (left operand type:
             # "Union[ExtensionDtype, str, dtype[Any], Type[object],
