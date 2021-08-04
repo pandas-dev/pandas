@@ -627,17 +627,12 @@ class TestSeriesFillNA:
         self, unique_nulls_fixture, unique_nulls_fixture2
     ):
         # GH#40498
-        null_value1, null_value2 = unique_nulls_fixture, unique_nulls_fixture2
-
-        ser = Series([1, "", "", "four"])
-        ser.iloc[1] = null_value1
-        ser.iloc[2] = null_value2
+        ser = Series([1, unique_nulls_fixture, unique_nulls_fixture2, "four"])
 
         value = {2: 0}
         result = ser.fillna(value)
 
-        expected = Series([1, "", 0, "four"])
-        expected.iloc[1] = null_value1
+        expected = Series([1, unique_nulls_fixture, 0, "four"])
 
         tm.assert_series_equal(result, expected)
 

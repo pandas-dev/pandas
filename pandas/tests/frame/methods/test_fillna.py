@@ -157,18 +157,21 @@ class TestFillNA:
         self, unique_nulls_fixture, unique_nulls_fixture2
     ):
         # GH#40498
-        null_value1, null_value2 = unique_nulls_fixture, unique_nulls_fixture2
-
-        df = DataFrame({"A": [1, "", "", "four"], "B": [2, "", "", "eight"]})
-        df.loc[1] = null_value1
-        df.loc[2] = null_value2
-
+        df = DataFrame(
+            {
+                "A": [1, unique_nulls_fixture, unique_nulls_fixture2, "four"],
+                "B": [2, unique_nulls_fixture, unique_nulls_fixture2, "eight"],
+            }
+        )
         value = {"A": {1: 0}, "B": {2: 0}}
         result = df.fillna(value)
 
-        expected = DataFrame({"A": [1, 0, "", "four"], "B": [2, "", 0, "eight"]})
-        expected.loc[1, "B"] = null_value1
-        expected.loc[2, "A"] = null_value2
+        expected = DataFrame(
+            {
+                "A": [1, 0, unique_nulls_fixture2, "four"],
+                "B": [2, unique_nulls_fixture, 0, "eight"],
+            }
+        )
 
         tm.assert_frame_equal(result, expected)
 
