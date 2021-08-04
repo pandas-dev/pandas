@@ -1131,7 +1131,7 @@ class TestStyler:
 
         self.df.index.name = "some_name"
         ctx = self.df.style.hide_columns()._translate(True, True)
-        assert len(ctx["head"]) == 1  # only a single row for index names: no col heads
+        assert len(ctx["head"]) == 0  # no header for index names, changed in #42101
 
     def test_hide_single_index(self):
         # GH 14194
