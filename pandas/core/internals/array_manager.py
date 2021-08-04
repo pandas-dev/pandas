@@ -601,6 +601,8 @@ class BaseArrayManager(DataManager):
                     )
                 else:
                     arr = self.arrays[i]
+                    if copy:
+                        arr = arr.copy()
                 new_arrays.append(arr)
 
         else:
