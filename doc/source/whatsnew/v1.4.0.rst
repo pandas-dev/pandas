@@ -193,6 +193,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+- Bug in :func:`_new_DatetimeIndex` when de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
 -
 
 Timedelta
