@@ -2347,15 +2347,15 @@ class Styler(StylerRenderer):
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
-        def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.to_numpy()), props, "")
-
         if props is None:
             props = f"background-color: {color};"
         # error: Argument 1 to "apply" of "Styler" has incompatible type
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+            partial(_highlight_value, op="max"),  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
         )
 
     def highlight_min(
@@ -2398,15 +2398,15 @@ class Styler(StylerRenderer):
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
-        def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.to_numpy()), props, "")
-
         if props is None:
             props = f"background-color: {color};"
         # error: Argument 1 to "apply" of "Styler" has incompatible type
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+            partial(_highlight_value, op="min"),  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
         )
 
     def highlight_between(
@@ -2910,6 +2910,16 @@ def _highlight_between(
         else np.full(data.shape, True, dtype=bool)
     )
     return np.where(g_left & l_right, props, "")
+
+
+def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+    """
+    Return an array of css strings based on the condition of values matching an op.
+    """
+    value = getattr(data, op)(skipna=True)
+    if isinstance(data, DataFrame):  # min/max must be done twice to return scalar
+        value = getattr(value, op)(skipna=True)
+    return np.where(data == value, props, "")
 
 
 def _bar(
