@@ -2464,14 +2464,16 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = (
-       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
-       "pandas/tests/io/data/html/spam.html"
-   )
+   url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
    dfs = pd.read_html(url)
    dfs
 
-Read in the content of the "banklist.html" file and pass it to ``read_html``
+.. note::
+
+   The data from the above URL changes every Monday so the resulting data above
+   and the data below may be slightly different.
+
+Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 
 .. ipython:: python

@@ -134,7 +134,6 @@ class TestReadHtml:
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
     def test_banklist_url_positional_match(self):
         url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
@@ -148,7 +147,6 @@ class TestReadHtml:
 
         assert_framelist_equal(df1, df2)
 
-    @pytest.mark.xfail(reason="Html file was removed")
     @tm.network
     def test_banklist_url(self):
         url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
