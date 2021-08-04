@@ -183,7 +183,7 @@ def test_transform_axis_1(request, transformation_func, using_array_manager):
         result = df.groupby([0, 0, 1], axis=1).transform(transformation_func, *args)
         expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
-    if transformation_func == "diff":
+    if transformation_func in ["diff", "shift"]:
         # Result contains nans, so transpose coerces to float
         expected["b"] = expected["b"].astype("int64")
 
