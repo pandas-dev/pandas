@@ -85,6 +85,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
@@ -4279,6 +4280,11 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
                     converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                elif dtype == "float" or dtype is float:
+                    # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
+                    converted_dtypes.extend(
+                        [np.float64, np.float32]  # type: ignore[list-item]
+                    )
                 else:
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Union[dtype[Any], ExtensionDtype]"; expected
@@ -6202,7 +6208,7 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
-
+        ascending = validate_ascending(ascending)
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):
