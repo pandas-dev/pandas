@@ -3041,6 +3041,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         res = obj._reindex_with_indexers(
             {self.axis: (obj.axes[self.axis], res_indexer)},
             fill_value=fill_value,
+            allow_dups=True,
         )
         return res
 
