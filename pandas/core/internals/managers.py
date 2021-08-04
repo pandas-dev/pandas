@@ -1691,18 +1691,6 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 
-    def setitem_inplace(self, indexer, value):
-        """
-        Set values with indexer.
-
-        For SingleBlockManager, this backs s[indexer] = value
-
-        This is an inplace version of `setitem`, mutating the block/values
-        in place, not returning a new Manager/Block (and thus never changing
-        the dtype).
-        """
-        self._block.values[indexer] = value
-
     @property
     def index(self) -> Index:
         return self.axes[0]

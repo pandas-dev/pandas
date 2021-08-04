@@ -1281,19 +1281,11 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         Set values with indexer.
 
         For SingleArrayManager, this backs s[indexer] = value
+
+        See `setitem_inplace` for a version that works inplace and doesn't
+        return a new Manager.
         """
         return self.apply_with_block("setitem", indexer=indexer, value=value)
-
-    def setitem_inplace(self, indexer, value):
-        """
-        Set values with indexer.
-
-        For SingleArrayManager, this backs s[indexer] = value.
-
-        This is an inplace version of `setitem`, mutating the manager/values
-        in place, not returning a new Manager (and thus never changing the dtype).
-        """
-        self.arrays[0][indexer] = value
 
     def idelete(self, indexer) -> SingleArrayManager:
         """
