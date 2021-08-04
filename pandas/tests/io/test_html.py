@@ -136,24 +136,24 @@ class TestReadHtml:
 
     @tm.network
     def test_banklist_url_positional_match(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html" # noqa E501
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
-                url, "First Federal Bank of Florida", attrs={"id": "table"}
+                url, "First Federal Bank of Florida", attrs={"class": "dataTable"}
             )
         with tm.assert_produces_warning(FutureWarning):
-            df2 = self.read_html(url, "Metcalf Bank", attrs={"id": "table"})
+            df2 = self.read_html(url, "Metcalf Bank", attrs={"class": "dataTable"})
 
         assert_framelist_equal(df1, df2)
 
     @tm.network
     def test_banklist_url(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html" # noqa E501
         df1 = self.read_html(
-            url, match="First Federal Bank of Florida", attrs={"id": "table"}
+            url, match="First Federal Bank of Florida", attrs={"class": "dataTable"}
         )
-        df2 = self.read_html(url, match="Metcalf Bank", attrs={"id": "table"})
+        df2 = self.read_html(url, match="Metcalf Bank", attrs={"class": "dataTable"})
 
         assert_framelist_equal(df1, df2)
 
