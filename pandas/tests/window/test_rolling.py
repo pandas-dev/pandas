@@ -1432,3 +1432,30 @@ def test_rolling_float_dtype(float_dtype):
     expected = DataFrame({"A": [np.nan] * 5, "B": range(10, 20, 2)}, dtype=float_dtype)
     result = df.rolling(2, axis=1).sum()
     tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_rolling_rows():
+    # GH#41779
+    df = DataFrame(np.arange(24).reshape(4, 6), columns=list("abcdef")).astype(
+        {
+            "a": "float16",
+            "b": "float32",
+            "c": "float64",
+            "d": "int8",
+            "e": "int16",
+            "f": "int32",
+        }
+    )
+    result = df.rolling(window=2, min_periods=1, axis=1).min()
+    expected = DataFrame(
+        {
+            "a": range(0, 20, 6),
+            "b": range(0, 20, 6),
+            "c": range(1, 20, 6),
+            "d": range(2, 25, 6),
+            "e": range(3, 25, 6),
+            "f": range(4, 25, 6),
+        },
+        dtype="float64",
+    )
+    tm.assert_frame_equal(result, expected)
