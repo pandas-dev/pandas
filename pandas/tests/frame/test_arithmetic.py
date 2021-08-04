@@ -1183,7 +1183,8 @@ class TestFrameArithmeticUnsorted:
         frame_copy = float_frame.reindex(float_frame.index[::2])
 
         del frame_copy["D"]
-        frame_copy["C"][:5] = np.nan
+        # adding NAs to column "C"
+        frame_copy.iloc[:5, frame_copy.columns.get_loc("C")] = np.nan
 
         added = float_frame + frame_copy
 

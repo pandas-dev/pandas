@@ -6310,6 +6310,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     obj = result[k]
                     downcast_k = downcast if not is_dict else downcast.get(k)
                     obj.fillna(v, limit=limit, inplace=True, downcast=downcast_k)
+                    if isinstance(self._mgr, ArrayManager):
+                        # CoW -> we need to assign filled Series back to obj
+                        # TODO(CoW) we should avoid this here, with inplace=False
+                        # we already copied the original obj, in theory no need
+                        # for copying on write again
+                        result[k] = obj
                 return result if not inplace else None
 
             elif not is_list_like(value):
