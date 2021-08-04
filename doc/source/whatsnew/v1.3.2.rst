@@ -31,6 +31,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - 1D slices over extension types turn into N-dimensional slices over ExtensionArrays (:issue:`42430`)
+- Bug in :func:`_new_DatetimeIndex` when de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
 -
 
 .. ---------------------------------------------------------------------------
