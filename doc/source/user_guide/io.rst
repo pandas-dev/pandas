@@ -2464,7 +2464,7 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
+   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"
    dfs = pd.read_html(url)
    dfs
 
