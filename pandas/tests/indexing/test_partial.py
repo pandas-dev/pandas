@@ -74,7 +74,13 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             df.iloc[4, 2] = 5.0
 
-        msg = "index 2 is out of bounds for axis 0 with size 2"
+        msg = "|".join(
+            [
+                "index 2 is out of bounds for axis 0 with size 2",
+                # TODO(ArrayManager) improve error message
+                "list index out of range",
+            ]
+        )
         with pytest.raises(IndexError, match=msg):
             df.iat[4, 2] = 5.0
 

@@ -3801,8 +3801,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         try:
             if takeable:
-                series = self._ixs(col, axis=1)
-                series._set_value(index, value, takeable=True)
+                if isinstance(self._mgr, ArrayManager):
+                    # with CoW, we can't use intermediate series
+                    self._mgr.column_setitem(col, index, value)
+                else:
+                    series = self._ixs(col, axis=1)
+                    series._set_value(index, value, takeable=True)
                 return
 
             series = self._get_item_cache(col)

@@ -483,14 +483,23 @@ class TestChaining:
                 tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("rhs", [3, DataFrame({0: [1, 2, 3, 4]})])
-    def test_detect_chained_assignment_warning_stacklevel(self, rhs):
+    def test_detect_chained_assignment_warning_stacklevel(
+        self, rhs, using_array_manager
+    ):
         # GH#42570
         df = DataFrame(np.arange(25).reshape(5, 5))
+        df_original = df.copy()
         chained = df.loc[:3]
         with option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(com.SettingWithCopyWarning) as t:
-                chained[2] = rhs
-                assert t[0].filename == __file__
+            if not using_array_manager:
+                with tm.assert_produces_warning(com.SettingWithCopyWarning) as t:
+                    chained[2] = rhs
+                    assert t[0].filename == __file__
+            else:
+                # INFO(CoW) no warning, and original dataframe not changed
+                with tm.assert_produces_warning(None):
+                    chained[2] = rhs
+                tm.assert_frame_equal(df, df_original)
 
     # TODO(ArrayManager) fast_xs with array-like scalars is not yet working
     @td.skip_array_manager_not_yet_implemented

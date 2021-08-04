@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -138,6 +140,8 @@ class TestDataFrameUpdate:
         expected = DataFrame([pd.Timestamp("2019", tz="UTC")])
         tm.assert_frame_equal(result, expected)
 
+    # TODO(CoW) what should the update method do? -> deprecate this?
+    @td.skip_array_manager_not_yet_implemented
     def test_update_with_different_dtype(self):
         # GH#3217
         df = DataFrame({"a": [1, 3], "b": [np.nan, 2]})

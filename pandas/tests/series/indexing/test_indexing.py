@@ -5,6 +5,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     IndexSlice,
@@ -244,6 +246,8 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
+# TODO(CoW) what should the update method do? -> deprecate this?
+@td.skip_array_manager_not_yet_implemented
 def test_underlying_data_conversion():
     # GH 4080
     df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})

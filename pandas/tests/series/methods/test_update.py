@@ -14,6 +14,9 @@ import pandas._testing as tm
 
 
 class TestUpdate:
+
+    # TODO(CoW) what should the update method do? -> deprecate this?
+    @td.skip_array_manager_not_yet_implemented
     def test_update(self):
         s = Series([1.5, np.nan, 3.0, 4.0, np.nan])
         s2 = Series([np.nan, 3.5, np.nan, 5.0])
