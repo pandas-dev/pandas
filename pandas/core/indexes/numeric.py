@@ -244,7 +244,7 @@ class NumericIndex(Index):
 
             # We always treat __getitem__ slicing as label-based
             # translate to locations
-            return self.slice_indexer(key.start, key.stop, key.step, kind=kind)
+            return self.slice_indexer(key.start, key.stop, key.step)
 
         return super()._convert_slice_indexer(key, kind=kind)
 

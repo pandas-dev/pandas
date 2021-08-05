@@ -545,7 +545,9 @@ class TestGetSliceBounds:
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_within(self, kind, side, expected):
         index = Index(range(6))
-        result = index.get_slice_bound(4, kind=kind, side=side)
+        with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+
+            result = index.get_slice_bound(4, kind=kind, side=side)
         assert result == expected
 
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
@@ -553,5 +555,6 @@ class TestGetSliceBounds:
     @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
     def test_get_slice_bounds_outside(self, kind, side, expected, bound):
         index = Index(range(6))
-        result = index.get_slice_bound(bound, kind=kind, side=side)
+        with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+            result = index.get_slice_bound(bound, kind=kind, side=side)
         assert result == expected

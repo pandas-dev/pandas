@@ -729,7 +729,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         return self._maybe_cast_for_get_loc(label)
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=lib.no_default):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -743,6 +743,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           value-based selection in non-monotonic cases.
 
         """
+        self._deprecated_arg(kind, "kind", "slice_indexer")
+
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
