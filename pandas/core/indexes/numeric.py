@@ -97,6 +97,7 @@ class NumericIndex(Index):
     )
     _is_numeric_dtype = True
     _can_hold_strings = False
+    _is_backward_compat_public_numeric_index: bool = True
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -165,7 +166,15 @@ class NumericIndex(Index):
         dtype = cls._ensure_dtype(dtype)
 
         if copy or not is_dtype_equal(data.dtype, dtype):
-            subarr = np.array(data, dtype=dtype, copy=copy)
+            # TODO: the try/except below is because it's difficult to predict the error
+            # and/or error message from different combinations of data and dtype.
+            # Efforts to avoid this try/except welcome.
+            # See https://github.com/pandas-dev/pandas/pull/41153#discussion_r676206222
+            try:
+                subarr = np.array(data, dtype=dtype, copy=copy)
+                cls._validate_dtype(subarr.dtype)
+            except (TypeError, ValueError):
+                raise ValueError(f"data is not compatible with {cls.__name__}")
             cls._assert_safe_casting(data, subarr)
         else:
             subarr = data
@@ -189,12 +198,24 @@ class NumericIndex(Index):
             )
 
     @classmethod
-    def _ensure_dtype(
-        cls,
-        dtype: Dtype | None,
-    ) -> np.dtype | None:
-        """Ensure int64 dtype for Int64Index, etc. Assumed dtype is validated."""
-        return cls._default_dtype
+    def _ensure_dtype(cls, dtype: Dtype | None) -> np.dtype | None:
+        """
+        Ensure int64 dtype for Int64Index etc. but allow int32 etc. for NumericIndex.
+
+        Assumes dtype has already been validated.
+        """
+        if dtype is None:
+            return cls._default_dtype
+
+        dtype = pandas_dtype(dtype)
+        assert isinstance(dtype, np.dtype)
+
+        if cls._is_backward_compat_public_numeric_index:
+            # dtype for NumericIndex
+            return dtype
+        else:
+            # dtype for Int64Index, UInt64Index etc. Needed for backwards compat.
+            return cls._default_dtype
 
     def __contains__(self, key) -> bool:
         """
@@ -214,8 +235,8 @@ class NumericIndex(Index):
 
     @doc(Index.astype)
     def astype(self, dtype, copy=True):
+        dtype = pandas_dtype(dtype)
         if is_float_dtype(self.dtype):
-            dtype = pandas_dtype(dtype)
             if needs_i8_conversion(dtype):
                 raise TypeError(
                     f"Cannot convert Float64Index to dtype {dtype}; integer "
@@ -225,7 +246,16 @@ class NumericIndex(Index):
                 # TODO(jreback); this can change once we have an EA Index type
                 # GH 13149
                 arr = astype_nansafe(self._values, dtype=dtype)
-                return Int64Index(arr, name=self.name)
+                if isinstance(self, Float64Index):
+                    return Int64Index(arr, name=self.name)
+                else:
+                    return NumericIndex(arr, name=self.name, dtype=dtype)
+        elif self._is_backward_compat_public_numeric_index:
+            # this block is needed so e.g. NumericIndex[int8].astype("int32") returns
+            # NumericIndex[int32] and not Int64Index with dtype int64.
+            # When Int64Index etc. are removed from the code base, removed this also.
+            if not is_extension_array_dtype(dtype) and is_numeric_dtype(dtype):
+                return self._constructor(self, dtype=dtype, copy=copy)
 
         return super().astype(dtype, copy=copy)
 
@@ -335,6 +365,8 @@ class IntegerIndex(NumericIndex):
     This is an abstract class for Int64Index, UInt64Index.
     """
 
+    _is_backward_compat_public_numeric_index: bool = False
+
     @property
     def asi8(self) -> np.ndarray:
         # do not cache or you'll create a memory leak
@@ -399,3 +431,4 @@ class Float64Index(NumericIndex):
     _engine_type = libindex.Float64Engine
     _default_dtype = np.dtype(np.float64)
     _dtype_validation_metadata = (is_float_dtype, "float")
+    _is_backward_compat_public_numeric_index: bool = False

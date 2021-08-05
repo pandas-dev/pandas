@@ -226,7 +226,7 @@ class BaseWindow(SelectionMixin):
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
             # dtypes.
-            obj = obj.select_dtypes(include=["integer", "float"], exclude=["timedelta"])
+            obj = obj.select_dtypes(include=["number"], exclude=["timedelta"])
             obj = obj.astype("float64", copy=False)
             obj._mgr = obj._mgr.consolidate()
         return obj
