@@ -29,7 +29,7 @@ and :class:`DataFrame` (2-dimensional), handle the vast majority of typical use
 cases in finance, statistics, social science, and many areas of
 engineering. For R users, :class:`DataFrame` provides everything that R's
 ``data.frame`` provides and much more. pandas is built on top of `NumPy
-<https://www.numpy.org>`__ and is intended to integrate well within a scientific
+<https://numpy.org>`__ and is intended to integrate well within a scientific
 computing environment with many other 3rd party libraries.
 
 Here are just a few of the things that pandas does well:
@@ -75,7 +75,7 @@ Some other notes
    specialized tool.
 
  - pandas is a dependency of `statsmodels
-   <https://www.statsmodels.org/stable/index.html>`__, making it an important part of the
+   <https://statsmodels.org>`__, making it an important part of the
    statistical computing ecosystem in Python.
 
  - pandas has been used extensively in production in financial applications.
@@ -168,7 +168,7 @@ The list of the Core Team members and more detailed information can be found on 
 Institutional partners
 ----------------------
 
-The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
+The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about/sponsors.html>`__.
 
 License
 -------
