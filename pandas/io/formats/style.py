@@ -1418,9 +1418,9 @@ class Styler(StylerRenderer):
         self.table_attributes = attributes
         return self
 
-    def export(self) -> list[tuple[Callable, tuple, dict]]:
+    def export(self) -> dict(str, Any):
         """
-        Export the styles applied to the current ``Styler``.
+        Export the styles applied to the current Styler.
 
         Can be applied to a second Styler with ``Styler.use``.
 
@@ -1430,20 +1430,60 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.use: Set the styles on the current ``Styler``.
-        """
-        return self._todo
+        Styler.use: Set the styles on the current Styler.
+        Styler.copy: Create a copy of the current Styler.
 
-    def use(self, styles: list[tuple[Callable, tuple, dict]]) -> Styler:
+        Notes
+        -----
+        This method is designed to copy non-data dependent attributes of
+        one Styler to another. It differs from ``Styler.copy`` where data and
+        data dependent attributes are also copied.
+
+        The following items are exported since they are not generally data dependent:
+
+          - Styling functions added by the ``apply`` and ``applymap``
+          - Whether axes are hidden from the display
+          - Table attributes
+          - Table styles
+
+        The following attributes are considered data dependent and therefore not
+        exported:
+
+          - Caption
+          - UUID
+          - Tooltips
+          - Any hidden rows or columns identified by Index labels
+          - Any formatting applied using ``Styler.format``
+          - Any CSS classes added using ``Styler.set_td_classes``
         """
-        Set the styles on the current ``Styler``.
+        return {
+            "apply": self._todo,
+            "table_attributes": self.table_attributes,
+            "table_styles": self.table_styles,
+            "hide_index": self.hide_index_,
+            "hide_columns": self.hide_columns_,
+        }
+
+    def use(self, styles: dict(str, Any)) -> Styler:
+        """
+        Set the styles on the current Styler.
 
         Possibly uses styles from ``Styler.export``.
 
         Parameters
         ----------
-        styles : list
-            List of style functions.
+        styles : dict(str, Any)
+            List of attributes to add to Styler. Dict keys should contain only:
+              - "apply": list of styler functions, typically added with ``apply`` or
+                ``applymap``.
+              - "table_attributes": HTML attributes, typically added with
+                ``set_table_attributes``.
+              - "table_styles": CSS seelctors and properties, typically added with
+                ``set_table_styles``.
+              - "hide_index":  whether the index is hidden, typically added with
+                ``hide_index``.
+              - "hide_columns": whether column headers are hidden, typically added with
+                ``hide_columns``.
 
         Returns
         -------
@@ -1451,9 +1491,13 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.export : Export the styles to applied to the current ``Styler``.
+        Styler.export : Export the non data dependent attributes to the current Styler.
         """
-        self._todo.extend(styles)
+        self._todo.extend(styles.get("apply", []))
+        self.set_table_attributes(styles.get("table_attributes", ""))
+        self.set_table_styles(styles.get("table_styles", []))
+        self.hide_index_ = styles.get("hide_index", False)
+        self.hide_columns_ = styles.get("hide_columns", False)
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
