@@ -531,7 +531,7 @@ cpdef array_to_datetime(
                             return values, tz_out
 
                         try:
-                            py_dt = parse_datetime_string(val,
+                            py_dt, swapped_day_and_month = parse_datetime_string(val,
                                                           dayfirst=dayfirst,
                                                           yearfirst=yearfirst)
                             # If the dateutil parser returned tzinfo, capture it
@@ -727,6 +727,7 @@ cdef _array_to_datetime_object(
     # We return an object array and only attempt to parse:
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
+    swapped_day_and_month = False
     for i in range(n):
         val = values[i]
         if checknull_with_nat_and_na(val) or PyDateTime_Check(val):
@@ -737,7 +738,7 @@ cdef _array_to_datetime_object(
                 oresult[i] = 'NaT'
                 continue
             try:
-                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
+                oresult[i], swapped_day_and_month = parse_datetime_string(val, dayfirst=dayfirst,
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
@@ -752,6 +753,12 @@ cdef _array_to_datetime_object(
             if is_raise:
                 raise
             return values, None
+
+    if dayfirst and not swapped_day_and_month:
+        warnings.warn(f"Parsing '{date_string}' in MM/DD/YYYY format.")
+    elif not dayfirst and swapped_day_and_month:
+        warnings.warn(f"Parsing '{date_string}' in DD/MM/YYYY format.")
+
     return oresult, None
 
 
