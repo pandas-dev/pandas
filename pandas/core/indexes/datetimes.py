@@ -92,7 +92,8 @@ def _new_DatetimeIndex(cls, d):
                 # These are already stored in our DatetimeArray; if they are
                 #  also in the pickle and don't match, we have a problem.
                 if key in d:
-                    assert d.pop(key) == getattr(dta, key)
+                    assert d[key] == getattr(dta, key)
+                    d.pop(key)
         result = cls._simple_new(dta, **d)
     else:
         with warnings.catch_warnings():
