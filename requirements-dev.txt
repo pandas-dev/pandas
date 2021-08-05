@@ -84,3 +84,4 @@ types-python-dateutil
 types-PyMySQL
 types-pytz
 types-setuptools
+setuptools>=51.0.0
