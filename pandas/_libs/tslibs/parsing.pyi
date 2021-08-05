@@ -11,7 +11,7 @@ def parse_datetime_string(
     dayfirst: bool = ...,
     yearfirst: bool = ...,
     **kwargs,
-) -> tuple[datetime, bool]: ...
+) -> datetime: ...
 def parse_time_string(
     arg: str,
     freq: BaseOffset | str | None = ...,

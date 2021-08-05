@@ -146,7 +146,7 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
     if length == 10:
         # parsing MM?DD?YYYY and DD?MM?YYYY dates
         if _is_not_delimiter(buf[2]) or _is_not_delimiter(buf[5]):
-            return None, None, None
+            return None, None
         month = _parse_2digit(buf)
         day = _parse_2digit(buf + 3)
         year = _parse_4digit(buf + 6)
@@ -157,17 +157,17 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         if buf[2] == b'.' or _is_not_delimiter(buf[2]):
             # we cannot reliably tell whether e.g. 10.2010 is a float
             # or a date, thus we refuse to parse it here
-            return None, None, None
+            return None, None
         month = _parse_2digit(buf)
         year = _parse_4digit(buf + 3)
         reso = 'month'
     else:
-        return None, None, None
+        return None, None
 
     if month < 0 or day < 0 or year < 1000:
         # some part is not an integer, so
         # date_string can't be converted to date, above format
-        return None, None, None
+        return None, None
 
     swapped_day_and_month = False
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
@@ -184,14 +184,14 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
             elif not dayfirst and swapped_day_and_month:
                 warnings.warn(f"Parsing '{date_string}' in DD/MM/YYYY format.")
 
-            return datetime_new(year, month, day, 0, 0, 0, 0, None), reso, swapped_day_and_month
+            return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
 
         if dayfirst and not swapped_day_and_month:
             warnings.warn(f"Parsing '{date_string}' in MM/DD/YYYY format.")
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(f"Parsing '{date_string}' in DD/MM/YYYY format.")
 
-        return datetime(year, month, day, 0, 0, 0, 0, None), reso, swapped_day_and_month
+        return datetime(year, month, day, 0, 0, 0, 0, None), reso
 
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
@@ -234,7 +234,7 @@ def parse_datetime_string(
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
-) -> tuple[datetime, bool]:
+) -> datetime:
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -254,15 +254,15 @@ def parse_datetime_string(
         # use current datetime as default, not pass _DEFAULT_DATETIME
         dt = du_parse(date_string, dayfirst=dayfirst,
                       yearfirst=yearfirst, **kwargs)
-        return dt, False
+        return dt
 
-    dt, _, swapped_day_and_month = _parse_delimited_date(date_string, dayfirst)
+    dt, _ = _parse_delimited_date(date_string, dayfirst)
     if dt is not None:
-        return dt, swapped_day_and_month
+        return dt
 
     try:
         dt, _ = _parse_dateabbr_string(date_string, _DEFAULT_DATETIME, freq=None)
-        return dt, False
+        return dt
     except DateParseError:
         raise
     except ValueError:
@@ -276,7 +276,7 @@ def parse_datetime_string(
         # TypeError: 'NoneType' object is not iterable
         raise ValueError('Given date string not likely a datetime.')
 
-    return dt, False
+    return dt
 
 
 def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
@@ -309,10 +309,10 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
         if yearfirst is None:
             yearfirst = get_option("display.date_yearfirst")
 
-    res, swapped_day_and_month = parse_datetime_string_with_reso(arg, freq=freq,
+    res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
                                           yearfirst=yearfirst)
-    return res, swapped_day_and_month
+    return res
 
 
 cdef parse_datetime_string_with_reso(

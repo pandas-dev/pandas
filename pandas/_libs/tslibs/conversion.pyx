@@ -645,7 +645,7 @@ cdef _TSObject _convert_str_to_tsobject(object ts, tzinfo tz, str unit,
 
         if string_to_dts_failed or do_parse_datetime_string:
             try:
-                ts, swapped_day_and_month = parse_datetime_string(ts, dayfirst=dayfirst,
+                ts = parse_datetime_string(ts, dayfirst=dayfirst,
                                            yearfirst=yearfirst)
             except (ValueError, OverflowError):
                 raise ValueError("could not convert string to Timestamp")
