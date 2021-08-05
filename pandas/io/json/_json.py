@@ -925,7 +925,7 @@ class Parser:
                 if all(notna(data)):
                     return data, False
                 data = data.where(notna(data), np.nan)
-                if all(isna(data)):
+                if isna(data).all():
                     data = data.astype(np.float64)
                 return data, True
 
