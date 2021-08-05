@@ -5,13 +5,11 @@ from pandas import (
     DatetimeIndex,
     Float64Index,
     Index,
-    Int64Index,
     PeriodIndex,
-    RangeIndex,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -51,7 +49,7 @@ def test_numpy_ufuncs_basic(index, func):
         with tm.external_error_raised((TypeError, AttributeError)):
             with np.errstate(all="ignore"):
                 func(index)
-    elif isinstance(index, (Float64Index, Int64Index, UInt64Index, RangeIndex)):
+    elif isinstance(index, NumericIndex):
         # coerces to float (e.g. np.sin)
         with np.errstate(all="ignore"):
             result = func(index)
@@ -96,7 +94,7 @@ def test_numpy_ufuncs_other(index, func, request):
         with tm.external_error_raised(TypeError):
             func(index)
 
-    elif isinstance(index, (Float64Index, Int64Index, UInt64Index, RangeIndex)):
+    elif isinstance(index, NumericIndex):
         # Results in bool array
         result = func(index)
         assert isinstance(result, np.ndarray)

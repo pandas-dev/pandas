@@ -10,6 +10,7 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.tests.base.common import allow_na_ops
 
 
@@ -23,6 +24,9 @@ def test_unique(index_or_series_obj):
     if isinstance(obj, pd.MultiIndex):
         expected = pd.MultiIndex.from_tuples(unique_values)
         expected.names = obj.names
+        tm.assert_index_equal(result, expected, exact=True)
+    elif isinstance(obj, pd.Index) and obj._is_backward_compat_public_numeric_index:
+        expected = NumericIndex(unique_values, dtype=obj.dtype)
         tm.assert_index_equal(result, expected, exact=True)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
@@ -62,7 +66,10 @@ def test_unique_null(null_obj, index_or_series_obj):
     unique_values_not_null = [val for val in unique_values_raw if not pd.isnull(val)]
     unique_values = [null_obj] + unique_values_not_null
 
-    if isinstance(obj, pd.Index):
+    if isinstance(obj, pd.Index) and obj._is_backward_compat_public_numeric_index:
+        expected = NumericIndex(unique_values, dtype=obj.dtype)
+        tm.assert_index_equal(result, expected, exact=True)
+    elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
         if is_datetime64tz_dtype(obj.dtype):
             result = result.normalize()

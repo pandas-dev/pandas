@@ -12,19 +12,18 @@ from pandas import (
     UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.tests.indexes.common import NumericBase
 
 
-class TestFloat64Index(NumericBase):
-    _index_cls = Float64Index
+class TestFloatNumericIndex(NumericBase):
+    _index_cls = NumericIndex
 
-    @pytest.fixture(params=[np.float64])
+    @pytest.fixture(params=[np.float64, np.float32])
     def dtype(self, request):
         return request.param
 
-    @pytest.fixture(
-        params=["int64", "uint64", "category", "datetime64", "object"],
-    )
+    @pytest.fixture(params=["category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
@@ -54,7 +53,7 @@ class TestFloat64Index(NumericBase):
         return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     def test_repr_roundtrip(self, index):
-        tm.assert_index_equal(eval(repr(index)), index)
+        tm.assert_index_equal(eval(repr(index)), index, exact=True)
 
     def check_is_index(self, idx):
         assert isinstance(idx, Index)
@@ -92,11 +91,11 @@ class TestFloat64Index(NumericBase):
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
-        index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=np.float32)
+        index = index_cls([1.0, 2, 3, 4, 5], dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
-        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.float32)
+        index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=dtype)
         assert isinstance(index, index_cls)
         assert index.dtype == dtype
 
@@ -105,11 +104,6 @@ class TestFloat64Index(NumericBase):
         assert pd.isna(result.values).all()
 
         result = index_cls(np.array([np.nan]), dtype=dtype)
-        assert pd.isna(result.values).all()
-
-        result = Index(np.array([np.nan], dtype=dtype))
-        assert isinstance(result, index_cls)
-        assert result.dtype == dtype
         assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
@@ -134,10 +128,8 @@ class TestFloat64Index(NumericBase):
         with pytest.raises((TypeError, ValueError), match=msg):
             index_cls(["a", "b", 0.0])
 
-        msg = (
-            r"float\(\) argument must be a string or a( real)? number, not 'Timestamp'"
-        )
-        with pytest.raises(TypeError, match=msg):
+        msg = f"data is not compatible with {index_cls.__name__}"
+        with pytest.raises(ValueError, match=msg):
             index_cls([Timestamp("20130101")])
 
     def test_constructor_coerce(self, mixed_index, float_index):
@@ -168,7 +160,7 @@ class TestFloat64Index(NumericBase):
         # There is no Float32Index, so we always
         # generate Float64Index.
         idx = Index([1, 2, 3.5], dtype=float_dtype)
-        tm.assert_index_equal(idx, Index([1, 2, 3.5]))
+        tm.assert_index_equal(idx, Index([1, 2, 3.5]), exact=True)
 
     def test_equals_numeric(self):
         index_cls = self._index_cls
@@ -263,19 +255,54 @@ class TestFloat64Index(NumericBase):
         tm.assert_numpy_array_equal(idx.isin([np.nan]), np.array([False, False]))
 
     def test_fillna_float64(self):
+        index_cls = self._index_cls
         # GH 11343
         idx = Index([1.0, np.nan, 3.0], dtype=float, name="x")
         # can't downcast
         exp = Index([1.0, 0.1, 3.0], name="x")
-        tm.assert_index_equal(idx.fillna(0.1), exp)
+        tm.assert_index_equal(idx.fillna(0.1), exp, exact=True)
 
         # downcast
-        exp = self._index_cls([1.0, 2.0, 3.0], name="x")
-        tm.assert_index_equal(idx.fillna(2), exp)
+        exact = True if index_cls is Int64Index else "equiv"
+        exp = index_cls([1.0, 2.0, 3.0], name="x")
+        tm.assert_index_equal(idx.fillna(2), exp, exact=exact)
 
         # object
         exp = Index([1.0, "obj", 3.0], name="x")
-        tm.assert_index_equal(idx.fillna("obj"), exp)
+        tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
+
+
+class TestFloat64Index(TestFloatNumericIndex):
+    _index_cls = Float64Index
+
+    @pytest.fixture
+    def dtype(self, request):
+        return np.float64
+
+    @pytest.fixture(
+        params=["int64", "uint64", "object", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
+
+    def test_constructor_from_base_index(self, dtype):
+        index_cls = self._index_cls
+
+        result = Index(np.array([np.nan], dtype=dtype))
+        assert isinstance(result, index_cls)
+        assert result.dtype == dtype
+        assert pd.isna(result.values).all()
+
+    def test_constructor_32bit(self, dtype):
+        index_cls = self._index_cls
+
+        index = index_cls(np.array([1.0, 2, 3, 4, 5]), dtype=np.float32)
+        assert isinstance(index, index_cls)
+        assert index.dtype == np.float64
+
+        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.float32)
+        assert isinstance(index, index_cls)
+        assert index.dtype == np.float64
 
 
 class NumericInt(NumericBase):
@@ -287,10 +314,10 @@ class NumericInt(NumericBase):
         assert idx_view.name == "Foo"
 
         idx_view = idx.view(dtype)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"))
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
         idx_view = idx.view(index_cls)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"))
+        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
     def test_is_monotonic(self):
         index_cls = self._index_cls
@@ -380,16 +407,14 @@ class NumericInt(NumericBase):
         assert result.dtype == np.object_
 
 
-class TestInt64Index(NumericInt):
-    _index_cls = Int64Index
+class TestIntNumericIndex(NumericInt):
+    _index_cls = NumericIndex
 
-    @pytest.fixture(params=[np.int64])
+    @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8])
     def dtype(self, request):
         return request.param
 
-    @pytest.fixture(
-        params=["uint64", "float64", "category", "datetime64", "object"],
-    )
+    @pytest.fixture(params=["category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
@@ -406,15 +431,6 @@ class TestInt64Index(NumericInt):
     def test_constructor(self, dtype):
         index_cls = self._index_cls
 
-        # pass list, coerce fine
-        index = index_cls([-5, 0, 1, 2], dtype=dtype)
-        expected = Index([-5, 0, 1, 2], dtype=dtype)
-        tm.assert_index_equal(index, expected)
-
-        # from iterable
-        index = index_cls(iter([-5, 0, 1, 2]))
-        tm.assert_index_equal(index, expected)
-
         # scalar raise Exception
         msg = (
             rf"{index_cls.__name__}\(\.\.\.\) must be called with a collection of some "
@@ -424,41 +440,54 @@ class TestInt64Index(NumericInt):
             index_cls(5)
 
         # copy
+        # pass list, coerce fine
+        index = index_cls([-5, 0, 1, 2], dtype=dtype)
         arr = index.values
         new_index = index_cls(arr, copy=True)
-        tm.assert_index_equal(new_index, index)
+        tm.assert_index_equal(new_index, index, exact=True)
         val = arr[0] + 3000
 
         # this should not change index
         arr[0] = val
         assert new_index[0] != val
 
-        # interpret list-like
-        expected = index_cls([5, 0])
-        for cls in [Index, index_cls]:
-            for idx in [
-                cls([5, 0], dtype=dtype),
-                cls(np.array([5, 0]), dtype=dtype),
-                cls(Series([5, 0]), dtype=dtype),
-            ]:
-                tm.assert_index_equal(idx, expected)
+        if dtype == np.int64:
+            exact = "equiv" if index_cls != Int64Index else True
+
+            # pass list, coerce fine
+            index = index_cls([-5, 0, 1, 2], dtype=dtype)
+            expected = Index([-5, 0, 1, 2], dtype=dtype)
+            tm.assert_index_equal(index, expected, exact=exact)
+
+            # from iterable
+            index = index_cls(iter([-5, 0, 1, 2]), dtype=dtype)
+            expected = index_cls([-5, 0, 1, 2], dtype=dtype)
+            tm.assert_index_equal(index, expected, exact=exact)
+
+            # interpret list-like
+            expected = index_cls([5, 0], dtype=dtype)
+            for cls in [Index, index_cls]:
+                for idx in [
+                    cls([5, 0], dtype=dtype),
+                    cls(np.array([5, 0]), dtype=dtype),
+                    cls(Series([5, 0]), dtype=dtype),
+                ]:
+                    tm.assert_index_equal(idx, expected, exact=exact)
 
     def test_constructor_corner(self, dtype):
         index_cls = self._index_cls
 
         arr = np.array([1, 2, 3, 4], dtype=object)
-        index = index_cls(arr)
-        assert index.values.dtype == dtype
-        tm.assert_index_equal(index, Index(arr))
+        index = index_cls(arr, dtype=dtype)
+        assert index.values.dtype == index.dtype
+        if dtype == np.int64:
+            exact = True if index_cls is Int64Index else "equiv"
+            tm.assert_index_equal(index, Index(arr), exact=exact)
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
         with pytest.raises(TypeError, match="casting"):
-            index_cls(arr)
-
-        arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
-        with pytest.raises(TypeError, match="casting"):
-            index_cls(arr_with_floats)
+            index_cls(arr, dtype=dtype)
 
     def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
 
@@ -478,17 +507,40 @@ class TestInt64Index(NumericInt):
         assert type(arr) is Index
 
 
-class TestUInt64Index(NumericInt):
-
-    _index_cls = UInt64Index
+class TestInt64Index(TestIntNumericIndex):
+    _index_cls = Int64Index
 
     @pytest.fixture
     def dtype(self):
-        return np.uint64
+        return np.int64
 
     @pytest.fixture(
-        params=["int64", "float64", "category", "datetime64", "object"],
+        params=["float64", "uint64", "object", "category", "datetime64"],
     )
+    def invalid_dtype(self, request):
+        return request.param
+
+    def test_constructor_32bit(self, dtype):
+        index_cls = self._index_cls
+
+        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.int32)
+        assert isinstance(index, index_cls)
+        assert index.dtype == np.int64
+
+        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.int32)
+        assert isinstance(index, index_cls)
+        assert index.dtype == np.int64
+
+
+class TestUIntNumericIndex(NumericInt):
+
+    _index_cls = NumericIndex
+
+    @pytest.fixture(params=[np.uint64])
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture(params=["category", "datetime64", "object"])
     def invalid_dtype(self, request):
         return request.param
 
@@ -505,31 +557,47 @@ class TestUInt64Index(NumericInt):
         ids=["index_inc", "index_dec"],
     )
     def index(self, request):
-        return self._index_cls(request.param)
+        return self._index_cls(request.param, dtype=np.uint64)
+
+
+class TestUInt64Index(TestUIntNumericIndex):
+
+    _index_cls = UInt64Index
+
+    @pytest.fixture
+    def dtype(self):
+        return np.uint64
+
+    @pytest.fixture(
+        params=["int64", "float64", "object", "category", "datetime64"],
+    )
+    def invalid_dtype(self, request):
+        return request.param
 
     def test_constructor(self, dtype):
         index_cls = self._index_cls
+        exact = True if index_cls is UInt64Index else "equiv"
 
         idx = index_cls([1, 2, 3])
         res = Index([1, 2, 3], dtype=dtype)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         idx = index_cls([1, 2 ** 63])
         res = Index([1, 2 ** 63], dtype=dtype)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         idx = index_cls([1, 2 ** 63])
         res = Index([1, 2 ** 63])
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         idx = Index([-1, 2 ** 63], dtype=object)
         res = Index(np.array([-1, 2 ** 63], dtype=object))
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
         # https://github.com/pandas-dev/pandas/issues/29526
         idx = index_cls([1, 2 ** 63 + 1], dtype=dtype)
         res = Index([1, 2 ** 63 + 1], dtype=dtype)
-        tm.assert_index_equal(res, idx)
+        tm.assert_index_equal(res, idx, exact=exact)
 
     def test_constructor_does_not_cast_to_float(self):
         # https://github.com/numpy/numpy/issues/19146
@@ -537,6 +605,17 @@ class TestUInt64Index(NumericInt):
 
         result = UInt64Index(values)
         assert list(result) == values
+
+    def test_constructor_32bit(self, dtype):
+        index_cls = self._index_cls
+
+        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.uint32)
+        assert isinstance(index, index_cls)
+        assert index.dtype == np.uint64
+
+        index = index_cls(np.array([1, 2, 3, 4, 5]), dtype=np.uint32)
+        assert isinstance(index, index_cls)
+        assert index.dtype == np.uint64
 
 
 @pytest.mark.parametrize(
