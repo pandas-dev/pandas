@@ -1193,7 +1193,6 @@ class TestStyler:
         assert ctx1["body"][0][0]["is_visible"]
         assert ctx1["body"][0][1]["is_visible"]
         # check for blank header rows
-        print(ctx1["head"][0])
         assert len(ctx1["head"][0]) == 4  # two visible indexes and two data columns
 
         ctx2 = df.style.hide_index()._translate(True, True)
@@ -1201,7 +1200,6 @@ class TestStyler:
         assert not ctx2["body"][0][0]["is_visible"]
         assert not ctx2["body"][0][1]["is_visible"]
         # check for blank header rows
-        print(ctx2["head"][0])
         assert len(ctx2["head"][0]) == 3  # one hidden (col name) and two data columns
         assert not ctx2["head"][0][0]["is_visible"]
 
