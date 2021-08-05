@@ -57,6 +57,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -3888,15 +3889,6 @@ class Index(IndexOpsMixin, PandasObject):
             if self.equals(target):
                 indexer = None
             else:
-                if not self.is_unique:
-                    # GH#42568
-                    warnings.warn(
-                        "reindexing with a non-unique Index is deprecated and "
-                        "will raise in a future version",
-                        FutureWarning,
-                        stacklevel=2,
-                    )
-
                 if self._index_as_unique:
                     indexer = self.get_indexer(
                         target, method=method, limit=limit, tolerance=tolerance
@@ -3910,6 +3902,15 @@ class Index(IndexOpsMixin, PandasObject):
                             "with a method or limit"
                         )
                     indexer, _ = self.get_indexer_non_unique(target)
+
+                if not self.is_unique:
+                    # GH#42568
+                    warnings.warn(
+                        "reindexing with a non-unique Index is deprecated and "
+                        "will raise in a future version",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
@@ -5848,7 +5849,7 @@ class Index(IndexOpsMixin, PandasObject):
         start: Hashable | None = None,
         end: Hashable | None = None,
         step: int | None = None,
-        kind: str_t | None = None,
+        kind=no_default,
     ) -> slice:
         """
         Compute the slice indexer for input labels and step.
@@ -5863,6 +5864,8 @@ class Index(IndexOpsMixin, PandasObject):
             If None, defaults to the end.
         step : int, default None
         kind : str, default None
+
+            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -5889,6 +5892,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_indexer(start='b', end=('c', 'g'))
         slice(1, 3, None)
         """
+        self._deprecated_arg(kind, "kind", "slice_indexer")
+
         start_slice, end_slice = self.slice_locs(start, end, step=step)
 
         # return a slice
@@ -5937,6 +5942,8 @@ class Index(IndexOpsMixin, PandasObject):
         side : {'left', 'right'}
         kind : {'loc', 'getitem'} or None
 
+            .. deprecated:: 1.3.0
+
         Returns
         -------
         label : object
@@ -5971,7 +5978,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side: str_t, kind=None) -> int:
+    def get_slice_bound(self, label, side: str_t, kind=no_default) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -5984,12 +5991,15 @@ class Index(IndexOpsMixin, PandasObject):
         side : {'left', 'right'}
         kind : {'loc', 'getitem'} or None
 
+            .. deprecated:: 1.4.0
+
         Returns
         -------
         int
             Index of label.
         """
-        assert kind in ["loc", "getitem", None]
+        assert kind in ["loc", "getitem", None, no_default]
+        self._deprecated_arg(kind, "kind", "get_slice_bound")
 
         if side not in ("left", "right"):
             raise ValueError(
@@ -6039,7 +6049,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(self, start=None, end=None, step=None, kind=None):
+    def slice_locs(self, start=None, end=None, step=None, kind=no_default):
         """
         Compute slice locations for input labels.
 
@@ -6052,6 +6062,8 @@ class Index(IndexOpsMixin, PandasObject):
         step : int, defaults None
             If None, defaults to 1.
         kind : {'loc', 'getitem'} or None
+
+            .. deprecated:: 1.4.0
 
         Returns
         -------
@@ -6071,6 +6083,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.slice_locs(start='b', end='c')
         (1, 3)
         """
+        self._deprecated_arg(kind, "kind", "slice_locs")
         inc = step is None or step >= 0
 
         if not inc:
@@ -6519,7 +6532,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"'{name}' argument in {methodname} is deprecated "
                 "and will be removed in a future version.  Do not pass it.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
 
