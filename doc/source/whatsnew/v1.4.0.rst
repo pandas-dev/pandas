@@ -277,6 +277,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.groupby.rolling.var` would calculate the rolling variance only on the first group (:issue:`42442`)
 - Bug in :meth:`GroupBy.shift` that would return the grouping columns if ``fill_value`` was not None (:issue:`41556`)
 - Bug in :meth:`pandas.DataFrame.ewm`, where non-float64 dtypes were silently failing (:issue:`42452`)
+- Bug in :meth:`pandas.DataFrame.rolling` operation along rows (``axis=1``) incorrectly omits columns containing ``float16`` and ``float32`` (:issue:`41779`)
 
 Reshaping
 ^^^^^^^^^
