@@ -1205,8 +1205,8 @@ class TestDataFrameConstructors:
 
     def test_constructor_empty_dataframe(self):
         # GH 20624
-        actual = pd.DataFrame(pd.DataFrame(), dtype="object")
-        expected = pd.DataFrame([], dtype="object")
+        actual = DataFrame(DataFrame(), dtype="object")
+        expected = DataFrame([], dtype="object")
         tm.assert_frame_equal(actual, expected)
 
     def test_constructor_more(self, float_frame):
