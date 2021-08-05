@@ -23,7 +23,6 @@ from pandas._typing import (
     Axis,
     FilePathOrBuffer,
     FrameOrSeries,
-    Index,
     IndexLabel,
     Level,
     Scalar,
@@ -33,6 +32,7 @@ from pandas.util._decorators import doc
 
 import pandas as pd
 from pandas import (
+    Index,
     IndexSlice,
     RangeIndex,
 )
