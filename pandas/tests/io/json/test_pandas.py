@@ -1394,12 +1394,12 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # GH21892 GH33205
         expected = DataFrame.from_dict(
             {
-                "Integer": pd.Series([1, 2, 3], dtype="int64"),
-                "Float": pd.Series([None, 2.0, 3.0], dtype="float64"),
-                "Object": pd.Series([None, "", "c"], dtype="object"),
-                "Bool": pd.Series([True, False, True], dtype="bool"),
-                "Category": pd.Series(["a", "b", None], dtype="category"),
-                "Datetime": pd.Series(
+                "Integer": Series([1, 2, 3], dtype="int64"),
+                "Float": Series([None, 2.0, 3.0], dtype="float64"),
+                "Object": Series([None, "", "c"], dtype="object"),
+                "Bool": Series([True, False, True], dtype="bool"),
+                "Category": Series(["a", "b", None], dtype="category"),
+                "Datetime": Series(
                     ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ns]"
                 ),
             }
