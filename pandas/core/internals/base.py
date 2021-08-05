@@ -159,7 +159,7 @@ class SingleDataManager(DataManager):
         """
         return self.arrays[0]  # type: ignore[attr-defined]
 
-    def setitem_inplace(self, indexer, value):
+    def setitem_inplace(self, indexer, value) -> None:
         """
         Set values with indexer.
 
