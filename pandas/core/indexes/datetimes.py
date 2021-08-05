@@ -722,7 +722,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        elif isinstance(label, (self._data._recognized_scalars, date)):
+        elif isinstance(label, self._data._recognized_scalars):
             self._deprecate_mismatched_indexing(label)
         else:
             raise self._invalid_indexer("slice", label)
@@ -801,6 +801,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return slice(None)
         else:
             return indexer
+
+    @doc(Index.get_slice_bound)
+    def get_slice_bound(self, label, side: str, kind=None) -> int:
+        # GH#42855 handle date here instead of _maybe_cast_slice_bound
+        if isinstance(label, date) and not isinstance(label, datetime):
+            label = Timestamp(label).to_pydatetime()
+        return super().get_slice_bound(label, side=side, kind=kind)
 
     # --------------------------------------------------------------------
 
