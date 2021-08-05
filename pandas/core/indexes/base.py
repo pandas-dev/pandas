@@ -5383,6 +5383,12 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         np.ndarray[np.intp]
             List of indices.
+
+        Examples
+        --------
+        >>> idx = pd.Index([np.nan, 'var1', np.nan])
+        >>> idx.get_indexer_for([np.nan])
+        array([0, 2])
         """
         if self._index_as_unique:
             return self.get_indexer(target)
