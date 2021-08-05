@@ -1841,6 +1841,14 @@ class TestToDatetimeMisc:
 
     def test_dayfirst_warnings(self):
         # GH 12585
+        warning_msg_day_first = (
+            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
+            "format or specify infer_datetime_format=True for consistent parsing."
+        )
+        warning_msg_month_first = (
+            "Parsing '03/30/2011' in MM/DD/YYYY format. Provide "
+            "format or specify infer_datetime_format=True for consistent parsing."
+        )
 
         # CASE 1: valid input
         arr = ["31/12/2014", "10/03/2011"]
@@ -1853,13 +1861,19 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, res1)
 
         # B. dayfirst arg incorrect, warning + incorrect output
-        res2 = to_datetime(arr, dayfirst=False)
-        with pytest.raises(AssertionError):
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res2 = to_datetime(arr, dayfirst=False)
+        with pytest.raises(AssertionError, match=None), tm.assert_produces_warning(
+            UserWarning, match=warning_msg_day_first
+        ):
             tm.assert_index_equal(expected, res2)
 
         # C. dayfirst default arg, same as B
-        res3 = to_datetime(arr, dayfirst=False)
-        with pytest.raises(AssertionError):
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res3 = to_datetime(arr, dayfirst=False)
+        with pytest.raises(AssertionError, match=None), tm.assert_produces_warning(
+            UserWarning, match=warning_msg_day_first
+        ):
             tm.assert_index_equal(expected, res3)
 
         # D. infer_datetime_format=True overrides dayfirst default
@@ -1878,19 +1892,23 @@ class TestToDatetimeMisc:
         )
 
         # A. use dayfirst=True
-        res5 = to_datetime(arr, dayfirst=True)
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_month_first):
+            res5 = to_datetime(arr, dayfirst=True)
         tm.assert_index_equal(expected, res5)
 
         # B. use dayfirst=False
-        res6 = to_datetime(arr, dayfirst=False)
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res6 = to_datetime(arr, dayfirst=False)
         tm.assert_index_equal(expected, res6)
 
         # C. use dayfirst default arg, same as B
-        res7 = to_datetime(arr, dayfirst=False)
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res7 = to_datetime(arr, dayfirst=False)
         tm.assert_index_equal(expected, res7)
 
         # D. use infer_datetime_format=True
-        res8 = to_datetime(arr, infer_datetime_format=True)
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res8 = to_datetime(arr, infer_datetime_format=True)
         tm.assert_index_equal(expected, res8)
 
     @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
