@@ -288,10 +288,12 @@ cdef class IndexEngine:
             object val
             int count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc
+            bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
         self._ensure_mapping_populated()
         values = np.array(self._get_index_values(), copy=False)
         stargets = set(targets)
+
         n = len(values)
         n_t = len(targets)
         if n > 10_000:
@@ -321,6 +323,7 @@ cdef class IndexEngine:
 
         if stargets:
             # otherwise, map by iterating through all items in the index
+
             for i in range(n):
                 val = values[i]
                 if val in stargets:
@@ -328,12 +331,27 @@ cdef class IndexEngine:
                         d[val] = []
                     d[val].append(i)
 
+                elif util.is_nan(val):
+                    # GH#35392
+                    if need_nan_check:
+                        # Do this check only once
+                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
+                        need_nan_check = False
+
+                    if stargets_has_nan:
+                        if not d_has_nan:
+                            # use a canonical nan object
+                            d[np.nan] = []
+                            d_has_nan = True
+                        d[np.nan].append(i)
+
         for i in range(n_t):
             val = targets[i]
 
             # found
-            if val in d:
-                for j in d[val]:
+            if val in d or (d_has_nan and util.is_nan(val)):
+                key = val if not util.is_nan(val) else np.nan
+                for j in d[key]:
 
                     # realloc if needed
                     if count >= n_alloc:

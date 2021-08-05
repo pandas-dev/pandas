@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.missing import is_matching_na
+
 import pandas as pd
 from pandas import Index
 import pandas._testing as tm
@@ -64,6 +66,35 @@ class TestGetIndexer:
         )
         expected = np.array([0, 1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
+
+
+class TestGetIndexerNonUnique:
+    def test_get_indexer_non_unique_nas(self, nulls_fixture):
+        # even though this isn't non-unique, this should still work
+        index = Index(["a", "b", nulls_fixture])
+        indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+        expected_indexer = np.array([2], dtype=np.intp)
+        expected_missing = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected_indexer)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+
+        # actually non-unique
+        index = Index(["a", nulls_fixture, "b", nulls_fixture])
+        indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+        expected_indexer = np.array([1, 3], dtype=np.intp)
+        tm.assert_numpy_array_equal(indexer, expected_indexer)
+        tm.assert_numpy_array_equal(missing, expected_missing)
+
+        # matching-but-not-identical nans
+        if is_matching_na(nulls_fixture, float("NaN")):
+            index = Index(["a", float("NaN"), "b", float("NaN")])
+            indexer, missing = index.get_indexer_non_unique([nulls_fixture])
+
+            expected_indexer = np.array([1, 3], dtype=np.intp)
+            tm.assert_numpy_array_equal(indexer, expected_indexer)
+            tm.assert_numpy_array_equal(missing, expected_missing)
 
 
 class TestSliceLocs:
