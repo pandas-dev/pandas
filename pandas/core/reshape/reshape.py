@@ -1215,23 +1215,22 @@ def from_dummies(
         if any(assigned > 1):
             raise ValueError(
                 f"Dummy DataFrame contains multi-assignment(s) for prefix: "
-                f"'{prefix}' in row {assigned.argmax()}."
+                f"'{prefix}'; First instance in row: {assigned.argmax()}."
             )
         elif any(assigned == 0):
             if dropped_first:
                 cats.append(dropped_first[prefix])
             else:
-                cats.append("from_dummies_nan_placeholer_string")
+                raise ValueError(
+                    f"Dummy DataFrame contains unassigned value(s) for prefix: "
+                    f"'{prefix}'; First instance in row: {assigned.argmin()}."
+                )
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
             data_slice = data_to_decode[prefix_slice]
         cat_data[prefix] = data_slice.dot(cats)
 
     categorical_df = concat((non_cat_data, DataFrame(cat_data)), axis=1)
-    if dropped_first is None:
-        categorical_df.replace(
-            "from_dummies_nan_placeholer_string", np.nan, inplace=True
-        )
     return categorical_df
 
 
@@ -1255,20 +1254,19 @@ def _from_dummies_1d(
     assigned = data.sum(axis=1)
     if any(assigned > 1):
         raise ValueError(
-            f"Dummy DataFrame contains multi-assignment in row {assigned.argmax()}."
+            f"Dummy DataFrame contains multi-assignment in row: {assigned.argmax()}."
         )
     elif any(assigned == 0):
         if dropped_first:
             cats.append(dropped_first)
         else:
-            cats.append("from_dummies_nan_placeholer_string")
+            raise ValueError(
+                f"Dummy DataFrame contains unassigned value in row: "
+                f"{assigned.argmin()}."
+            )
         data = concat((data, assigned == 0), axis=1)
 
     categorical_series = data.dot(cats)
-    if dropped_first is None:
-        categorical_series.replace(
-            "from_dummies_nan_placeholer_string", np.nan, inplace=True
-        )
     return categorical_series
 
 

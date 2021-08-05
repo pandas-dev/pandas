@@ -53,9 +53,10 @@ def test_from_dummies_to_series_contains_get_dummies_NaN_column():
 
 def test_from_dummies_to_series_contains_unassigned():
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
-    expected = Series(["a", "b", np.nan])
-    result = from_dummies(dummies, to_series=True)
-    tm.assert_series_equal(result, expected)
+    with pytest.raises(
+        ValueError, match=r"Dummy DataFrame contains unassigned value in row: 2"
+    ):
+        from_dummies(dummies, to_series=True)
 
 
 def test_from_dummies_to_series_dropped_first():
@@ -77,7 +78,7 @@ def test_from_dummies_to_series_wrong_dropped_first():
 def test_from_dummies_to_series_multi_assignment():
     dummies = DataFrame({"a": [1, 0, 1], "b": [0, 1, 1]})
     with pytest.raises(
-        ValueError, match=r"Dummy DataFrame contains multi-assignment in row 2."
+        ValueError, match=r"Dummy DataFrame contains multi-assignment in row: 2."
     ):
         from_dummies(dummies, to_series=True)
 
@@ -172,11 +173,14 @@ def test_from_dummies_to_df_contains_get_dummies_NaN_column():
 
 
 def test_from_dummies_to_df_contains_unassigned(dummies_with_unassigned):
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", np.nan], "col2": [np.nan, "a", "c"]}
-    )
-    result = from_dummies(dummies_with_unassigned)
-    tm.assert_frame_equal(result, expected)
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"Dummy DataFrame contains unassigned value\(s\) for prefix: "
+            r"'col1'; First instance in row: 2"
+        ),
+    ):
+        from_dummies(dummies_with_unassigned)
 
 
 def test_from_dummies_to_df_columns(dummies_basic):
@@ -266,7 +270,7 @@ def test_from_dummies_to_df_double_assignment():
         ValueError,
         match=(
             r"Dummy DataFrame contains multi-assignment\(s\) for prefix: "
-            r"'col1' in row 0."
+            r"'col1'; First instance in row: 0."
         ),
     ):
         from_dummies(dummies)
