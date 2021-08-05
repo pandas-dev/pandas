@@ -464,44 +464,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         except KeyError as err:
             raise KeyError(orig_key) from err
 
+    @doc(DatetimeIndexOpsMixin._maybe_cast_slice_bound)
     def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
-        """
-        If label is a string or a datetime, cast it to Period.ordinal according
-        to resolution.
-
-        Parameters
-        ----------
-        label : object
-        side : {'left', 'right'}
-        kind : {'loc', 'getitem'}, or None
-
-        Returns
-        -------
-        bound : Period or object
-
-        Notes
-        -----
-        Value of `side` parameter should be validated in caller.
-
-        """
-        assert kind in ["loc", "getitem", None, lib.no_default]
-        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
-
         if isinstance(label, datetime):
-            return Period(label, freq=self.freq)
-        elif isinstance(label, str):
-            try:
-                parsed, reso = self._parse_with_reso(label)
-            except ValueError as err:
-                # string cannot be parsed as datetime-like
-                raise self._invalid_indexer("slice", label) from err
+            label = Period(label, freq=self.freq)
 
-            lower, upper = self._parsed_string_to_bounds(reso, parsed)
-            return lower if side == "left" else upper
-        elif not isinstance(label, self._data._recognized_scalars):
-            raise self._invalid_indexer("slice", label)
-
-        return label
+        return super()._maybe_cast_slice_bound(label, side, kind=kind)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         grp = reso.freq_group
