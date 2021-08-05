@@ -66,6 +66,10 @@ class TestTake:
             with pytest.raises(AttributeError, match=msg):
                 index.freq
 
+        scalar_index = 1
+        with pytest.raises(TypeError):
+            index.take(scalar_index)
+
     def test_take_minus1_without_fill(self, index):
         # -1 does not get treated as NA unless allow_fill=True is passed
         if len(index) == 0:
