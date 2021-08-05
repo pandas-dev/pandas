@@ -33,6 +33,8 @@ Bug fixes
 - Bug in :meth:`pandas.read_excel` modifies the dtypes dictionary when reading a file with duplicate columns (:issue:`42462`)
 - 1D slices over extension types turn into N-dimensional slices over ExtensionArrays (:issue:`42430`)
 - :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
+- Bug in de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
+-
 
 .. ---------------------------------------------------------------------------
 
