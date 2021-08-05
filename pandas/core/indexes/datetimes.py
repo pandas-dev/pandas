@@ -722,14 +722,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if self._is_strictly_monotonic_decreasing and len(self) > 1:
                 return upper if side == "left" else lower
             return lower if side == "left" else upper
-        elif isinstance(label, (self._data._recognized_scalars, date)):
+        elif isinstance(label, self._data._recognized_scalars):
             self._deprecate_mismatched_indexing(label)
         else:
             raise self._invalid_indexer("slice", label)
 
         return self._maybe_cast_for_get_loc(label)
 
-    def slice_indexer(self, start=None, end=None, step=None, kind=None):
+    def slice_indexer(self, start=None, end=None, step=None, kind=lib.no_default):
         """
         Return indexer for specified label slice.
         Index.slice_indexer, customized to handle time slicing.
@@ -743,6 +743,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
           value-based selection in non-monotonic cases.
 
         """
+        self._deprecated_arg(kind, "kind", "slice_indexer")
+
         # For historical reasons DatetimeIndex supports slices between two
         # instances of datetime.time as if it were applying a slice mask to
         # an array of (self.hour, self.minute, self.seconds, self.microsecond).
@@ -799,6 +801,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return slice(None)
         else:
             return indexer
+
+    @doc(Index.get_slice_bound)
+    def get_slice_bound(self, label, side: str, kind=None) -> int:
+        # GH#42855 handle date here instead of _maybe_cast_slice_bound
+        if isinstance(label, date) and not isinstance(label, datetime):
+            label = Timestamp(label).to_pydatetime()
+        return super().get_slice_bound(label, side=side, kind=kind)
 
     # --------------------------------------------------------------------
 
