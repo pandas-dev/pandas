@@ -751,5 +751,8 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
 
 def test_frame_astype_no_copy():
     # GH 42501
-    df = DataFrame({"col": [1, 4, None, 5]}, dtype=object)
-    df = df.astype({"col": Int16DtypeNoCopy()}, copy=False)
+    df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+
+    tm.assert_frame_equal(df, result, check_dtype=False)
+    tm.assert_numpy_array_equal(df.b.values, result.b.values, check_same="same")
