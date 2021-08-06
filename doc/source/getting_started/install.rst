@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/products/python/downloads/>`__, various Linux distributions, or a
 `development version <https://github.com/pandas-dev/pandas>`__ are also provided.
 
 .. _install.version:
@@ -47,7 +47,7 @@ rest of the `SciPy <https://scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
 Installation instructions for `Anaconda <https://docs.continuum.io/anaconda/>`__
-`can be found here <https://docs.continuum.io/anaconda/install.html>`__.
+`can be found here <https://docs.continuum.io/anaconda/install/>`__.
 
 A full list of the packages available as part of the
 `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution
