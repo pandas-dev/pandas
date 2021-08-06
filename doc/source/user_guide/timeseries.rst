@@ -204,6 +204,7 @@ If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
+   :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
