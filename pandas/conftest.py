@@ -460,6 +460,16 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
+    "num_int64": tm.makeNumericIndex(100, dtype="int64"),
+    "num_int32": tm.makeNumericIndex(100, dtype="int32"),
+    "num_int16": tm.makeNumericIndex(100, dtype="int16"),
+    "num_int8": tm.makeNumericIndex(100, dtype="int8"),
+    "num_uint64": tm.makeNumericIndex(100, dtype="uint64"),
+    "num_uint32": tm.makeNumericIndex(100, dtype="uint32"),
+    "num_uint16": tm.makeNumericIndex(100, dtype="uint16"),
+    "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
+    "num_float64": tm.makeNumericIndex(100, dtype="float64"),
+    "num_float32": tm.makeNumericIndex(100, dtype="float32"),
     "bool": tm.makeBoolIndex(10),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
@@ -511,7 +521,10 @@ index_flat2 = index_flat
     params=[
         key
         for key in indices_dict
-        if key not in ["int", "uint", "range", "empty", "repeats"]
+        if not (
+            key in ["int", "uint", "range", "empty", "repeats"]
+            or key.startswith("num_")
+        )
         and not isinstance(indices_dict[key], MultiIndex)
     ]
 )

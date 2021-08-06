@@ -1,5 +1,6 @@
 import operator
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -167,8 +168,12 @@ class TestExpressions:
 
             op = getattr(operator, opname)
 
-            result = expr.evaluate(op, left, left, use_numexpr=True)
-            expected = expr.evaluate(op, left, left, use_numexpr=False)
+            with warnings.catch_warnings():
+                # array has 0s
+                msg = "invalid value encountered in true_divide"
+                warnings.filterwarnings("ignore", msg, RuntimeWarning)
+                result = expr.evaluate(op, left, left, use_numexpr=True)
+                expected = expr.evaluate(op, left, left, use_numexpr=False)
             tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
