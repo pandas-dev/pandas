@@ -267,10 +267,9 @@ allowed.
 
 .. warning::
 
-    If both key columns contain rows where the key is ``NA`` or ``NaN``, those
+    If both key columns contain rows where the key is a null value, those
     rows will be matched against each other. This is different from usual SQL
-    join behaviour and can lead to unexpected results. Until this is
-    fixed make sure to sanitize your input dataframes!
+    join behaviour and can lead to unexpected results.
 
 Parameters
 ----------%s
