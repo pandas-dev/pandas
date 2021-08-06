@@ -56,7 +56,7 @@ jobs:
           git remote add upstream https://github.com/pandas-dev/pandas.git
           git fetch upstream
           asv machine --yes
-          asv continuous -f 1.1 upstream/master HEAD -b ^io.csv
+          asv continuous -f 1.1 upstream/master HEAD
           echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
           asv compare -f 1.1 upstream/master HEAD >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
