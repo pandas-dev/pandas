@@ -41,6 +41,7 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
+    mi_styler = mi_styler._copy(deepcopy=True)
     mi_styler.uuid_len = 5
     mi_styler.uuid = "abcde_"
     mi_styler.set_caption("capt")
@@ -258,6 +259,29 @@ def test_clear(mi_styler_comp):
     for attr in [a for a in styler.__dict__ if not (callable(a))]:
         res = getattr(styler, attr) == getattr(clean_copy, attr)
         assert all(res) if hasattr(res, "__iter__") else res
+
+
+def test_export(mi_styler_comp, mi_styler):
+    exp_attrs = [
+        "_todo",
+        "hide_index_",
+        "hide_columns_",
+        "table_attributes",
+        "table_styles",
+    ]
+    for attr in exp_attrs:
+        check = getattr(mi_styler, attr) == getattr(mi_styler_comp, attr)
+        assert not (
+            all(check) if (hasattr(check, "__iter__") and len(check) > 0) else check
+        )
+
+    export = mi_styler_comp.export()
+    used = mi_styler.use(export)
+    for attr in exp_attrs:
+        check = getattr(used, attr) == getattr(mi_styler_comp, attr)
+        assert all(check) if (hasattr(check, "__iter__") and len(check) > 0) else check
+
+    used.to_html()
 
 
 def test_hide_raises(mi_styler):
@@ -936,17 +960,6 @@ class TestStyler:
 
         result = self.df.style.highlight_max().render()
         assert result.count("#") == len(self.df.columns)
-
-    def test_export(self):
-        f = lambda x: "color: red" if x > 0 else "color: blue"
-        g = lambda x, z: f"color: {z}" if x > 0 else f"color: {z}"
-        style1 = self.styler
-        style1.applymap(f).applymap(g, z="b").highlight_max()._compute()  # = render
-        result = style1.export()
-        style2 = self.df.style
-        style2.use(result)
-        assert style1._todo == style2._todo
-        style2.render()
 
     def test_bad_apply_shape(self):
         df = DataFrame([[1, 2], [3, 4]])
