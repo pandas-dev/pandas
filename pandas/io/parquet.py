@@ -309,16 +309,21 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
+        parquet_kwargs = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         # Technically works with 0.7.0, but was incorrect
         # so lets just require 0.7.1
-        if use_nullable_dtypes and Version(self.api.__version__) < Version("0.7.1"):
-            raise ValueError(
-                "The 'use_nullable_dtypes' argument is not supported for the "
-                "fastparquet engine"
-            )
+        if Version(self.api.__version__) > Version("0.7.1"):
+            # Need to set even for use_nullable_dtypes = False,
+            # since our defaults differ
+            parquet_kwargs["pandas_nulls"] = use_nullable_dtypes
+        else:
+            if use_nullable_dtypes:
+                raise ValueError(
+                    "The 'use_nullable_dtypes' argument is not supported for the "
+                    "fastparquet engine for fastparquet versions less than 0.7.1"
+                )
         path = stringify_path(path)
-        parquet_kwargs = {}
         handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
@@ -340,8 +345,6 @@ class FastParquetImpl(BaseImpl):
             )
             path = handles.handle
 
-        # Alias some kwargs to fastparquet equivalents
-        parquet_kwargs["pandas_nulls"] = use_nullable_dtypes
         parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
         result = parquet_file.to_pandas(columns=columns, **kwargs)
