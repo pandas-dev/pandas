@@ -24,6 +24,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeries,
     IndexLabel,
+    Level,
     Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -748,7 +749,9 @@ class Styler(StylerRenderer):
             self.data.columns = RangeIndex(stop=len(self.data.columns))
             numeric_cols = self.data._get_numeric_data().columns.to_list()
             self.data.columns = _original_columns
-            column_format = "" if self.hide_index_ else "l" * self.data.index.nlevels
+            column_format = ""
+            for level in range(self.index.nlevels):
+                column_format += "" if self.hide_index_[level] else "l"
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
                     column_format += (
@@ -1746,14 +1749,18 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self, subset: Subset | None = None) -> Styler:
+    def hide_index(
+        self,
+        subset: Subset | None = None,
+        levels: Level | list[Level] | None = None,
+    ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
 
         This method has dual functionality:
 
-          - if ``subset`` is ``None`` then the entire index will be hidden whilst
-            displaying all data-rows.
+          - if ``subset`` is ``None`` then the entire index, or specified levels, will
+            be hidden whilst displaying all data-rows.
           - if a ``subset`` is given then those specific rows will be hidden whilst the
             index itself remains visible.
 
@@ -1765,6 +1772,11 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the index axis within
             `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
             the function.
+        levels : int, str, list
+            The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
+            used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1814,9 +1826,43 @@ class Styler(StylerRenderer):
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
         -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Hide a specific level:
+
+        >>> df.style.format("{:,.1f").hide_index(levels=1)  # doctest: +SKIP
+                             x                    y
+               a      b      c      a      b      c
+        x    0.1    0.0    0.4    1.3    0.6   -1.4
+             0.7    1.0    1.3    1.5   -0.0   -0.2
+             1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            -0.6    1.2    1.8    1.9    0.3    0.3
+             0.8    0.5   -0.3    1.2    2.2   -0.8
         """
+        if levels is not None and subset is not None:
+            raise ValueError("`subset` and `levels` cannot be passed simultaneously")
+
         if subset is None:
-            self.hide_index_ = True
+            if levels is None:
+                levels_: list[Level] = list(range(self.index.nlevels))
+            elif isinstance(levels, int):
+                levels_ = [levels]
+            elif isinstance(levels, str):
+                levels_ = [self.index._get_level_number(levels)]
+            elif isinstance(levels, list):
+                levels_ = [
+                    self.index._get_level_number(lev)
+                    if not isinstance(lev, int)
+                    else lev
+                    for lev in levels
+                ]
+            else:
+                raise ValueError(
+                    "`levels` must be of type `int`, `str` or list of such"
+                )
+            self.hide_index_ = [
+                True if lev in levels_ else False for lev in range(self.index.nlevels)
+            ]
         else:
             subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
@@ -2347,15 +2393,15 @@ class Styler(StylerRenderer):
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
-        def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.to_numpy()), props, "")
-
         if props is None:
             props = f"background-color: {color};"
         # error: Argument 1 to "apply" of "Styler" has incompatible type
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+            partial(_highlight_value, op="max"),  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
         )
 
     def highlight_min(
@@ -2398,15 +2444,15 @@ class Styler(StylerRenderer):
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
-        def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.to_numpy()), props, "")
-
         if props is None:
             props = f"background-color: {color};"
         # error: Argument 1 to "apply" of "Styler" has incompatible type
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+            partial(_highlight_value, op="min"),  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
         )
 
     def highlight_between(
@@ -2910,6 +2956,16 @@ def _highlight_between(
         else np.full(data.shape, True, dtype=bool)
     )
     return np.where(g_left & l_right, props, "")
+
+
+def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+    """
+    Return an array of css strings based on the condition of values matching an op.
+    """
+    value = getattr(data, op)(skipna=True)
+    if isinstance(data, DataFrame):  # min/max must be done twice to return scalar
+        value = getattr(value, op)(skipna=True)
+    return np.where(data == value, props, "")
 
 
 def _bar(
