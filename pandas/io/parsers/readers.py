@@ -756,6 +756,10 @@ def read_fwf(
             colspecs.append((col, col + w))
             col += w
 
+    if kwds.get("names") is not None:
+        if len(kwds.get("names")) != len(colspecs):
+            raise ValueError("Length of colspecs must match length of names")
+
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
