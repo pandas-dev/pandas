@@ -61,7 +61,7 @@ Instead if you want to use a ``NumericIndex``, you should do:
 In Pandas 2.0, :class:`NumericIndex` will become the default numeric index type and
 ``Int64Index``, ``UInt64Index`` and ``Float64Index`` will be removed.
 
-See :ref:`here <advanced.numericindex>` for more.
+See :ref:`here <indexing.numericindex>` for more.
 
 .. _whatsnew_140.enhancements.enhancement2:
 

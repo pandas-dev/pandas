@@ -855,7 +855,7 @@ Int64Index and RangeIndex
 
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    will be removed. See :ref:`here <advanced.numericindex>` for more.
+    will be removed. See :ref:`here <indexing.numericindex>` for more.
     ``RangeIndex`` however, will not be removed, as it represents an optimized version of an integer index.
 
 :class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
@@ -873,7 +873,7 @@ Float64Index
 
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    will be removed. See :ref:`here <advanced.numericindex>` for more.
+    will be removed. See :ref:`here <indexing.numericindex>` for more.
     ``RangeIndex`` however, will not be removed, as it represents an optimized version of an integer index.
 
 By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
@@ -982,7 +982,7 @@ NumericIndex
 
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    will be removed. See :ref:`here <advanced.numericindex>` for more.
+    will be removed. See :ref:`here <indexing.numericindex>` for more.
     ``RangeIndex`` however, will not be removed, as it represents an optimized version of an integer index.
 
 :class:`NumericIndex` is an index type that can hold data of any numpy int/uint/float dtype. For example:
@@ -991,7 +991,7 @@ NumericIndex
 
    index = pd.NumericIndex([1, 2, 4, 5], dtype="int8")
    index
-   ser = pd.Series(range(5), index=index)
+   ser = pd.Series(range(4), index=index)
    ser
 
 ``NumericIndex`` works the same way as the existing ``Int64Index``, ``Float64Index`` and
