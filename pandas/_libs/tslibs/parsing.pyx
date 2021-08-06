@@ -82,6 +82,11 @@ class DateParseError(ValueError):
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
 
+PARSING_WARNING_MSG = (
+    "Parsing '{date_string}' in {format} format. Provide format "
+    "or specify infer_datetime_format=True for consistent parsing."
+)
+
 cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
@@ -175,38 +180,26 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         if (month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
             swapped_day_and_month = True
-        if PY_VERSION_HEX >= 0x03060100:
-            # In Python <= 3.6.0 there is no range checking for invalid dates
-            # in C api, thus we call faster C version for 3.6.1 or newer
-
-            if dayfirst and not swapped_day_and_month:
-                warnings.warn(
-                    f"Parsing '{date_string}' in MM/DD/YYYY format. Provide format "
-                    "or specify infer_datetime_format=True for consistent parsing.",
-                    stacklevel=4,
-                )
-            elif not dayfirst and swapped_day_and_month:
-                warnings.warn(
-                    f"Parsing '{date_string}' in DD/MM/YYYY format. Provide format "
-                    "or specify infer_datetime_format=True for consistent parsing.",
-                    stacklevel=4,
-                )
-
-            return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
-
         if dayfirst and not swapped_day_and_month:
             warnings.warn(
-                f"Parsing '{date_string}' in MM/DD/YYYY format. Provide format or "
-                "specify infer_datetime_format=True for consistent parsing.",
+                PARSING_WARNING_MSG.format(
+                    date_string=date_string,
+                    format='MM/DD/YYYY'
+                ),
                 stacklevel=4,
             )
         elif not dayfirst and swapped_day_and_month:
             warnings.warn(
-                f"Parsing '{date_string}' in DD/MM/YYYY format. Provide format or "
-                "specify infer_datetime_format=True for consistent parsing.",
+                PARSING_WARNING_MSG.format(
+                    date_string=date_string,
+                    format='DD/MM/YYYY'
+                ),
                 stacklevel=4,
             )
-
+        if PY_VERSION_HEX >= 0x03060100:
+            # In Python <= 3.6.0 there is no range checking for invalid dates
+            # in C api, thus we call faster C version for 3.6.1 or newer
+            return datetime_new(year, month, day, 0, 0, 0, 0, None), reso
         return datetime(year, month, day, 0, 0, 0, 0, None), reso
 
     raise DateParseError(f"Invalid date specified ({month}/{day})")
