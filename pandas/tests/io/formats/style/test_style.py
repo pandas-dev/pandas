@@ -271,7 +271,7 @@ def test_hide_raises(mi_styler):
 
 
 @pytest.mark.parametrize("levels", [1, "one", [1], ["one"]])
-def test_hide_level(mi_styler, levels):
+def test_hide_index_level(mi_styler, levels):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
     ctx = mi_styler.hide_index(levels=levels)._translate(False, True)
     assert len(ctx["head"][0]) == 3
@@ -284,6 +284,16 @@ def test_hide_level(mi_styler, levels):
     assert not ctx["body"][0][1]["is_visible"]
     assert ctx["body"][1][0]["is_visible"]
     assert not ctx["body"][1][1]["is_visible"]
+
+
+@pytest.mark.parametrize("levels", [1, "one", [1], ["one"]])
+@pytest.mark.parametrize("names", [True, False])
+def test_hide_columns_level(mi_styler, levels, names):
+    mi_styler.columns.names = ["zero", "one"]
+    if names:
+        mi_styler.index.names = ["zero", "one"]
+    ctx = mi_styler.hide_columns(levels=levels)._translate(True, False)
+    assert len(ctx["head"]) == (2 if names else 1)
 
 
 class TestStyler:
