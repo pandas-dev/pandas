@@ -57,6 +57,7 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -80,6 +81,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
     is_object_dtype,
     is_scalar,
     is_signed_integer_dtype,
@@ -359,6 +361,11 @@ class Index(IndexOpsMixin, PandasObject):
     _can_hold_na: bool = True
     _can_hold_strings: bool = True
 
+    # Whether this index is a NumericIndex, but not a Int64Index, Float64Index,
+    # UInt64Index or RangeIndex. Needed for backwards compat. Remove this attribute and
+    # associated code in pandas 2.0.
+    _is_backward_compat_public_numeric_index: bool = False
+
     _engine_type: type[libindex.IndexEngine] = libindex.ObjectEngine
     # whether we support partial string indexing. Overridden
     # in DatetimeIndex and PeriodIndex
@@ -436,6 +443,12 @@ class Index(IndexOpsMixin, PandasObject):
             return Index._simple_new(data, name=name)
 
         # index-like
+        elif (
+            isinstance(data, Index)
+            and data._is_backward_compat_public_numeric_index
+            and dtype is None
+        ):
+            return data._constructor(data, name=name, copy=copy)
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
 
             if isinstance(data, ABCMultiIndex):
@@ -5383,6 +5396,12 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         np.ndarray[np.intp]
             List of indices.
+
+        Examples
+        --------
+        >>> idx = pd.Index([np.nan, 'var1', np.nan])
+        >>> idx.get_indexer_for([np.nan])
+        array([0, 2])
         """
         if self._index_as_unique:
             return self.get_indexer(target)
@@ -5718,6 +5737,11 @@ class Index(IndexOpsMixin, PandasObject):
         if not new_values.size:
             # empty
             attributes["dtype"] = self.dtype
+
+        if self._is_backward_compat_public_numeric_index and is_numeric_dtype(
+            new_values.dtype
+        ):
+            return self._constructor(new_values, **attributes)
 
         return Index(new_values, **attributes)
 
@@ -6522,7 +6546,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"'{name}' argument in {methodname} is deprecated "
                 "and will be removed in a future version.  Do not pass it.",
                 FutureWarning,
-                stacklevel=3,
+                stacklevel=find_stack_level(),
             )
 
 
