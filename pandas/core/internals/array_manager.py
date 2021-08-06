@@ -44,7 +44,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_inferred_bool_dtype
@@ -85,6 +84,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
+    extract_pandas_array,
     maybe_coerce_values,
     new_block,
     to_native_types,
@@ -166,15 +166,6 @@ class BaseArrayManager(DataManager):
         self._validate_set_axis(axis, new_labels)
         axis = self._normalize_axis(axis)
         self._axes[axis] = new_labels
-
-    def consolidate(self: T) -> T:
-        return self
-
-    def is_consolidated(self) -> bool:
-        return True
-
-    def _consolidate_inplace(self) -> None:
-        pass
 
     def get_dtypes(self):
         return np.array([arr.dtype for arr in self.arrays], dtype="object")
@@ -408,6 +399,8 @@ class BaseArrayManager(DataManager):
     ) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
+                # extract PandasArray for tests that patch PandasArray._typ
+                arr = np.asarray(arr)
                 return soft_convert_objects(
                     arr,
                     datetime=datetime,
@@ -610,6 +603,8 @@ class BaseArrayManager(DataManager):
                     )
                 else:
                     arr = self.arrays[i]
+                    if copy:
+                        arr = arr.copy()
                 new_arrays.append(arr)
 
         else:
@@ -706,6 +701,7 @@ class ArrayManager(BaseArrayManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            arrays = [extract_pandas_array(x, None, 1)[0] for x in arrays]
             self.arrays = [maybe_coerce_values(arr) for arr in arrays]
             self._verify_integrity()
 
@@ -1192,8 +1188,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
             arr = maybe_coerce_values(arr)
-            if isinstance(arr, ABCPandasArray):
-                arr = arr.to_numpy()
+            arr = extract_pandas_array(arr, None, 1)[0]
             self.arrays = [arr]
             self._verify_integrity()
 
@@ -1261,9 +1256,6 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     @property
     def is_single_block(self) -> bool:
         return True
-
-    def _consolidate_check(self):
-        pass
 
     def fast_xs(self, loc: int) -> ArrayLike:
         raise NotImplementedError("Use series._values[loc] instead")

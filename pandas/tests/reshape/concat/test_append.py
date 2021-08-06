@@ -1,5 +1,4 @@
 import datetime as dt
-from datetime import datetime
 from itertools import combinations
 
 import dateutil

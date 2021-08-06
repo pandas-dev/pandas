@@ -85,6 +85,7 @@ from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_axis_style_args,
     validate_bool_kwarg,
     validate_percentile,
@@ -3745,7 +3746,7 @@ class DataFrame(NDFrame, OpsMixin):
         # try to set first as we want an invalid
         # value exception to occur first
         if len(self):
-            self._check_setitem_copy(stacklevel=5)
+            self._check_setitem_copy()
 
     def _iset_item(self, loc: int, value) -> None:
         arraylike = self._sanitize_column(value)
@@ -4279,6 +4280,11 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Type[signedinteger[Any]]"; expected "Type[signedinteger[Any]]"
                     converted_dtypes.append(np.int64)  # type: ignore[arg-type]
+                elif dtype == "float" or dtype is float:
+                    # GH#42452 : np.dtype("float") coerces to np.float64 from Numpy 1.20
+                    converted_dtypes.extend(
+                        [np.float64, np.float32]  # type: ignore[list-item]
+                    )
                 else:
                     # error: Argument 1 to "append" of "list" has incompatible type
                     # "Union[dtype[Any], ExtensionDtype]"; expected
@@ -4754,7 +4760,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         labels : single label or list-like
-            Index or column labels to drop.
+            Index or column labels to drop. A tuple will be used as a single
+            label and not treated as a list-like.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 or 'index') or
             columns (1 or 'columns').
@@ -4843,6 +4850,17 @@ class DataFrame(NDFrame, OpsMixin):
                 length  1.5     0.8
         falcon  speed   320.0   250.0
                 weight  1.0     0.8
+                length  0.3     0.2
+
+        >>> df.drop(index=('falcon', 'weight'))
+                        big     small
+        lama    speed   45.0    30.0
+                weight  200.0   100.0
+                length  1.5     1.0
+        cow     speed   30.0    20.0
+                weight  250.0   150.0
+                length  1.5     0.8
+        falcon  speed   320.0   250.0
                 length  0.3     0.2
 
         >>> df.drop(index='cow', columns='small')
@@ -6190,7 +6208,7 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
-
+        ascending = validate_ascending(ascending)
         if not isinstance(by, list):
             by = [by]
         if is_sequence(ascending) and len(by) != len(ascending):

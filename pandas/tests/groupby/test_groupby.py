@@ -717,6 +717,10 @@ def test_ops_not_as_index(reduction_func):
         expected = expected.rename("size")
     expected = expected.reset_index()
 
+    if reduction_func != "size":
+        # 32 bit compat -> groupby preserves dtype whereas reset_index casts to int64
+        expected["a"] = expected["a"].astype(df["a"].dtype)
+
     g = df.groupby("a", as_index=False)
 
     result = getattr(g, reduction_func)()
