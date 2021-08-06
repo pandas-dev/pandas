@@ -9,7 +9,12 @@ import pytest
 from pandas._libs import iNaT
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
+from pandas.core.dtypes.common import (
+    is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_unsigned_integer_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -25,10 +30,11 @@ from pandas import (
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
     isna,
 )
+from pandas import UInt64Index  # noqa:F401
 import pandas._testing as tm
+from pandas.core.api import NumericIndex
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
@@ -351,12 +357,13 @@ class Base:
     def test_repeat(self, simple_index):
         rep = 2
         idx = simple_index.copy()
-        expected = Index(idx.values.repeat(rep), name=idx.name)
+        new_index_cls = Int64Index if isinstance(idx, RangeIndex) else idx._constructor
+        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
         idx = simple_index
         rep = np.arange(len(idx))
-        expected = Index(idx.values.repeat(rep), name=idx.name)
+        expected = new_index_cls(idx.values.repeat(rep), name=idx.name)
         tm.assert_index_equal(idx.repeat(rep), expected)
 
     def test_numpy_repeat(self, simple_index):
@@ -531,10 +538,10 @@ class Base:
 
         if len(index) == 0:
             return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
         elif isinstance(index, DatetimeIndexOpsMixin):
             values[1] = iNaT
-        elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
-            return
         else:
             values[1] = np.nan
 
@@ -551,7 +558,9 @@ class Base:
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
-            pass
+            return
+        elif isinstance(index, NumericIndex) and is_integer_dtype(index.dtype):
+            return
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
             msg = "isna is not defined for MultiIndex"
@@ -572,8 +581,6 @@ class Base:
 
             if isinstance(index, DatetimeIndexOpsMixin):
                 values[1] = iNaT
-            elif isinstance(index, (Int64Index, UInt64Index, RangeIndex)):
-                return
             else:
                 values[1] = np.nan
 
@@ -622,8 +629,10 @@ class Base:
         idx = simple_index
 
         # we don't infer UInt64
-        if isinstance(idx, UInt64Index):
+        if is_integer_dtype(idx.dtype):
             expected = idx.astype("int64")
+        elif is_float_dtype(idx.dtype):
+            expected = idx.astype("float64")
         else:
             expected = idx
 
@@ -647,7 +656,7 @@ class Base:
         identity = mapper(idx.values, idx)
 
         # we don't infer to UInt64 for a dict
-        if isinstance(idx, UInt64Index) and isinstance(identity, dict):
+        if is_unsigned_integer_dtype(idx.dtype) and isinstance(identity, dict):
             expected = idx.astype("int64")
         else:
             expected = idx
@@ -657,7 +666,12 @@ class Base:
         tm.assert_index_equal(result, expected)
 
         # empty mappable
-        expected = Index([np.nan] * len(idx))
+        if idx._is_backward_compat_public_numeric_index:
+            new_index_cls = NumericIndex
+        else:
+            new_index_cls = Float64Index
+
+        expected = new_index_cls([np.nan] * len(idx))
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
@@ -782,9 +796,11 @@ class NumericBase(Base):
     """
 
     def test_constructor_unwraps_index(self, dtype):
+        index_cls = self._index_cls
+
         idx = Index([1, 2], dtype=dtype)
-        result = self._index_cls(idx)
-        expected = np.array([1, 2], dtype=dtype)
+        result = index_cls(idx)
+        expected = np.array([1, 2], dtype=idx.dtype)
         tm.assert_numpy_array_equal(result._data, expected)
 
     def test_where(self):
