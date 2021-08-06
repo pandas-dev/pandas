@@ -247,7 +247,7 @@ def test_datetimelike_centered_offset_covers_all(
 
     result = df.rolling(window, closed=closed, center=True).sum()
     expected = frame_or_series(expected, index=index)
-    tm.assert_equal(result, expected, check_dtype=False)
+    tm.assert_equal(result, expected)
 
 
 def test_even_number_window_alignment():
