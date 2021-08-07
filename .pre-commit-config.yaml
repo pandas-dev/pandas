@@ -107,8 +107,7 @@ repos:
             |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
         types_or: [python, cython, rst]
     -   id: incorrect-backticks
-        name: incorrect-backticks
-        description: Check for backticks incorrectly rendering because of missing spaces
+        name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
@@ -119,6 +118,13 @@ repos:
         entry: 'np.random.seed'
         files: ^asv_bench/benchmarks
         exclude: ^asv_bench/benchmarks/pandas_vb_common.py
+    -   id: invalid-ea-testing
+        name: Check for invalid EA testing
+        language: pygrep
+        entry: 'tm.assert_(series|frame)_equal'
+        files: ^pandas/tests/extension/base
+        types: [python]
+        exclude: ^pandas/tests/extension/base/base.py
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal

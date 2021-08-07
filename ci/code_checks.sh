@@ -58,20 +58,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
 fi
 
-### PATTERNS ###
-if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
-
-    # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
-    MSG='Check for invalid EA testing' ; echo $MSG
-    invgrep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for unnecessary random seeds in asv benchmarks' ; echo $MSG
-    invgrep -R --exclude pandas_vb_common.py -E 'np.random.seed' asv_bench/benchmarks/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
