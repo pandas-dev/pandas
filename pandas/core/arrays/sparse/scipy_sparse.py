@@ -3,10 +3,9 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+import numpy as np
+
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
 
 
@@ -19,6 +18,34 @@ def _check_is_partition(parts, whole):
         raise ValueError("Is not a partition because union is not the whole.")
 
 
+def _levels_to_axis(levels_codes, levels_labels, valid_ilocs, sort_labels=False):
+    if sort_labels and levels_codes.shape[0] == 1:
+        ax_coords = levels_codes[0][valid_ilocs]
+        ax_labels = levels_labels[0].tolist()
+
+    else:
+        # Why return_index anyway : https://github.com/numpy/numpy/issues/16923
+        ucodes, ucodes_idx, ucodes_inv = np.unique(
+            levels_codes.T, axis=0, return_index=True, return_inverse=True
+        )
+
+        if sort_labels:
+            ax_coords = ucodes_inv[valid_ilocs]
+
+        else:
+            og_order = np.argsort(ucodes_idx)
+            ucodes = ucodes[og_order, :]
+            ax_coords = og_order.argsort()[ucodes_inv[valid_ilocs]]
+
+        ax_labels = list(
+            zip(
+                *(tuple(lbls[ucodes[:, lvl]]) for lvl, lbls in enumerate(levels_labels))
+            )
+        )
+
+    return ax_coords, ax_labels
+
+
 def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
     For arbitrary (MultiIndexed) sparse Series return
@@ -27,65 +54,26 @@ def _to_ijv(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
     """
     # index and column levels must be a partition of the index
     _check_is_partition([row_levels, column_levels], range(ss.index.nlevels))
-
     # from the sparse Series: get the labels and data for non-null entries
     values = ss.array._valid_sp_values
 
-    nonnull_labels = ss.dropna()
+    codes = ss.index.codes
+    labels = ss.index.levels
+    valid_ilocs = np.where(ss.notnull())[0]
 
-    def get_indexers(levels):
-        """Return sparse coords and dense labels for subset levels"""
-        # TODO: how to do this better? cleanly slice nonnull_labels given the
-        # coord
-        values_ilabels = [tuple(x[i] for i in levels) for x in nonnull_labels.index]
-        if len(levels) == 1:
-            values_ilabels = [x[0] for x in values_ilabels]
+    row_labels = [labels[lvl] for lvl in row_levels]
+    row_codes = np.asarray([codes[lvl] for lvl in row_levels])
+    i_coords, i_labels = _levels_to_axis(
+        row_codes, row_labels, valid_ilocs, sort_labels=sort_labels
+    )
 
-        # # performance issues with groupby ###################################
-        # TODO: these two lines can replace the code below but
-        # groupby is too slow (in some cases at least)
-        # labels_to_i = ss.groupby(level=levels, sort=sort_labels).first()
-        # labels_to_i[:] = np.arange(labels_to_i.shape[0])
+    col_labels = [labels[lvl] for lvl in column_levels]
+    col_codes = np.asarray([codes[lvl] for lvl in column_levels])
+    j_coords, j_labels = _levels_to_axis(
+        col_codes, col_labels, valid_ilocs, sort_labels=sort_labels
+    )
 
-        def _get_label_to_i_dict(labels, sort_labels=False):
-            """
-            Return dict of unique labels to number.
-            Optionally sort by label.
-            """
-            labels = Index(map(tuple, labels)).unique().tolist()  # squish
-            if sort_labels:
-                labels = sorted(labels)
-            return {k: i for i, k in enumerate(labels)}
-
-        def _get_index_subset_to_coord_dict(index, subset, sort_labels=False):
-            ilabels = list(zip(*(index._get_level_values(i) for i in subset)))
-            labels_to_i = _get_label_to_i_dict(ilabels, sort_labels=sort_labels)
-            labels_to_i = Series(labels_to_i)
-            if len(subset) > 1:
-                labels_to_i.index = MultiIndex.from_tuples(labels_to_i.index)
-                labels_to_i.index.names = [index.names[i] for i in subset]
-            else:
-                labels_to_i.index = Index(x[0] for x in labels_to_i.index)
-                labels_to_i.index.name = index.names[subset[0]]
-
-            labels_to_i.name = "value"
-            return labels_to_i
-
-        labels_to_i = _get_index_subset_to_coord_dict(
-            ss.index, levels, sort_labels=sort_labels
-        )
-        # #####################################################################
-        # #####################################################################
-
-        i_coord = labels_to_i[values_ilabels].tolist()
-        i_labels = labels_to_i.index.tolist()
-
-        return i_coord, i_labels
-
-    i_coord, i_labels = get_indexers(row_levels)
-    j_coord, j_labels = get_indexers(column_levels)
-
-    return values, i_coord, j_coord, i_labels, j_labels
+    return values, i_coords, j_coords, i_labels, j_labels
 
 
 def sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=False):
@@ -97,7 +85,7 @@ def sparse_series_to_coo(ss, row_levels=(0,), column_levels=(1,), sort_labels=Fa
     import scipy.sparse
 
     if ss.index.nlevels < 2:
-        raise ValueError("to_coo requires MultiIndex with nlevels > 2")
+        raise ValueError("to_coo requires MultiIndex with nlevels >= 2.")
     if not ss.index.is_unique:
         raise ValueError(
             "Duplicate index entries are not allowed in to_coo transformation."
