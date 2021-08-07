@@ -205,7 +205,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :func:`to_datetime` with ``infer_datetime_format=True`` failing to parse zero UTC offset (``Z``) correctly (:issue:`41047`)
 -
 
 Numeric
