@@ -113,6 +113,12 @@ repos:
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
+    -   id: seed-check-asv
+        name: Check for unnecessary random seeds in asv benchmarks
+        language: pygrep
+        entry: 'np.random.seed'
+        files: ^asv_bench/benchmarks
+        exclude: ^asv_bench/benchmarks/pandas_vb_common.py
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
