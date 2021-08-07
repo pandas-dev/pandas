@@ -109,6 +109,13 @@ repos:
             # Check for backticks incorrectly rendering because of missing spaces
             |[a-zA-Z0-9]\`\`?[a-zA-Z0-9]
         types_or: [python, cython, rst]
+    -   id: incorrect-backticks
+        name: incorrect-backticks
+        description: Check for backticks incorrectly rendering because of missing spaces
+        language: pygrep
+        entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
+        types: [rst]
+        files: ^doc/source/
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
