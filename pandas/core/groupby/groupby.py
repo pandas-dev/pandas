@@ -1372,7 +1372,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _python_apply_general(
-        self, f: F, data: DataFrame | Series, not_indexed_same: bool | None = None
+        self,
+        f: Callable,
+        data: DataFrame | Series,
+        not_indexed_same: bool | None = None,
     ) -> DataFrame | Series:
         """
         Apply function f in python space

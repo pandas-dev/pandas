@@ -3357,7 +3357,7 @@ def _highlight_between(
     return np.where(g_left & l_right, props, "")
 
 
-def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarray:
     """
     Return an array of css strings based on the condition of values matching an op.
     """
