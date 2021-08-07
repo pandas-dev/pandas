@@ -40,7 +40,6 @@ from pandas._typing import (
     ArrayLike,
     DtypeArg,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     Shape,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -2593,7 +2592,7 @@ class Fixed:
 
     pandas_kind: str
     format_type: str = "fixed"  # GH#30962 needed by dask
-    obj_type: type[FrameOrSeriesUnion]
+    obj_type: type[DataFrame | Series]
     ndim: int
     encoding: str
     parent: HDFStore
@@ -2642,7 +2641,7 @@ class Fixed:
         s = self.shape
         if s is not None:
             if isinstance(s, (list, tuple)):
-                jshape = ",".join(pprint_thing(x) for x in s)
+                jshape = ",".join([pprint_thing(x) for x in s])
                 s = f"[{jshape}]"
             return f"{self.pandas_type:12.12} (shape->{s})"
         return self.pandas_type
@@ -3309,10 +3308,10 @@ class Table(Fixed):
 
         ver = ""
         if self.is_old_version:
-            jver = ".".join(str(x) for x in self.version)
+            jver = ".".join([str(x) for x in self.version])
             ver = f"[{jver}]"
 
-        jindex_axes = ",".join(a.name for a in self.index_axes)
+        jindex_axes = ",".join([a.name for a in self.index_axes])
         return (
             f"{self.pandas_type:12.12}{ver} "
             f"(typ->{self.table_type_short},nrows->{self.nrows},"
@@ -3363,7 +3362,7 @@ class Table(Fixed):
         return isinstance(self.levels, list)
 
     def validate_multiindex(
-        self, obj: FrameOrSeriesUnion
+        self, obj: DataFrame | Series
     ) -> tuple[DataFrame, list[Hashable]]:
         """
         validate that we can store the multi-index; reset and return the
@@ -3519,7 +3518,7 @@ class Table(Fixed):
         """are we trying to operate on an old version?"""
         if where is not None:
             if self.version[0] <= 0 and self.version[1] <= 10 and self.version[2] < 1:
-                ws = incompatibility_doc % ".".join(str(x) for x in self.version)
+                ws = incompatibility_doc % ".".join([str(x) for x in self.version])
                 warnings.warn(ws, IncompatibilityWarning)
 
     def validate_min_itemsize(self, min_itemsize):
@@ -4066,7 +4065,7 @@ class Table(Fixed):
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
                 except (IndexError, KeyError) as err:
-                    jitems = ",".join(pprint_thing(item) for item in items)
+                    jitems = ",".join([pprint_thing(item) for item in items])
                     raise ValueError(
                         f"cannot match existing table structure for [{jitems}] "
                         "on appending data"
@@ -4500,7 +4499,7 @@ class AppendableFrameTable(AppendableTable):
     pandas_kind = "frame_table"
     table_type = "appendable_frame"
     ndim = 2
-    obj_type: type[FrameOrSeriesUnion] = DataFrame
+    obj_type: type[DataFrame | Series] = DataFrame
 
     @property
     def is_transposed(self) -> bool:
@@ -5000,7 +4999,7 @@ def _maybe_convert_for_string_atom(
     # check for column in the values conflicts
     if existing_col is not None:
         eci = existing_col.validate_col(itemsize)
-        if eci > itemsize:
+        if eci is not None and eci > itemsize:
             itemsize = eci
 
     data_converted = data_converted.astype(f"|S{itemsize}", copy=False)

@@ -1,7 +1,5 @@
 import numpy as np
 
-from pandas.compat.numpy import np_version_under1p20
-
 from pandas import (
     Categorical,
     NaT,
@@ -280,10 +278,6 @@ class IsInLongSeriesLookUpDominates:
     def setup(self, dtype, MaxNumber, series_type):
         N = 10 ** 7
 
-        # https://github.com/pandas-dev/pandas/issues/39844
-        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
-            raise NotImplementedError
-
         if series_type == "random_hits":
             array = np.random.randint(0, MaxNumber, N)
         if series_type == "random_misses":
@@ -294,7 +288,8 @@ class IsInLongSeriesLookUpDominates:
             array = np.arange(N) + MaxNumber
 
         self.series = Series(array).astype(dtype)
-        self.values = np.arange(MaxNumber).astype(dtype)
+
+        self.values = np.arange(MaxNumber).astype(dtype.lower())
 
     def time_isin(self, dtypes, MaxNumber, series_type):
         self.series.isin(self.values)
@@ -310,18 +305,24 @@ class IsInLongSeriesValuesDominate:
     def setup(self, dtype, series_type):
         N = 10 ** 7
 
-        # https://github.com/pandas-dev/pandas/issues/39844
-        if not np_version_under1p20 and dtype in ("Int64", "Float64"):
-            raise NotImplementedError
-
         if series_type == "random":
             vals = np.random.randint(0, 10 * N, N)
         if series_type == "monotone":
             vals = np.arange(N)
 
-        self.values = vals.astype(dtype)
+        self.values = vals.astype(dtype.lower())
         M = 10 ** 6 + 1
         self.series = Series(np.arange(M)).astype(dtype)
 
     def time_isin(self, dtypes, series_type):
+        self.series.isin(self.values)
+
+
+class IsInWithLongTupples:
+    def setup(self):
+        t = tuple(range(1000))
+        self.series = Series([t] * 1000)
+        self.values = [t]
+
+    def time_isin(self):
         self.series.isin(self.values)

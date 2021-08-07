@@ -369,6 +369,18 @@ class Size:
         self.draws.groupby(self.cats).size()
 
 
+class Shift:
+    def setup(self):
+        N = 18
+        self.df = DataFrame({"g": ["a", "b"] * 9, "v": list(range(N))})
+
+    def time_defaults(self):
+        self.df.groupby("g").shift()
+
+    def time_fill_value(self):
+        self.df.groupby("g").shift(fill_value=99)
+
+
 class FillNA:
     def setup(self):
         N = 100
@@ -830,6 +842,20 @@ class AggEngine:
             return total
 
         self.grouper.agg(function, engine="cython")
+
+
+class Sample:
+    def setup(self):
+        N = 10 ** 3
+        self.df = DataFrame({"a": np.zeros(N)})
+        self.groups = np.arange(0, N)
+        self.weights = np.ones(N)
+
+    def time_sample(self):
+        self.df.groupby(self.groups).sample(n=1)
+
+    def time_sample_weights(self):
+        self.df.groupby(self.groups).sample(n=1, weights=self.weights)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

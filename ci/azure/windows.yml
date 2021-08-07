@@ -8,41 +8,39 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      py37_np17:
-        ENV_FILE: ci/deps/azure-windows-37.yaml
-        CONDA_PY: "37"
-        PATTERN: "not slow and not network"
-
       py38_np18:
         ENV_FILE: ci/deps/azure-windows-38.yaml
         CONDA_PY: "38"
+        PATTERN: "not slow and not network"
+        PYTEST_WORKERS: 2  # GH-42236
+
+      py39:
+        ENV_FILE: ci/deps/azure-windows-39.yaml
+        CONDA_PY: "39"
         PATTERN: "not slow and not network and not high_memory"
+        PYTEST_WORKERS: 2  # GH-42236
 
   steps:
     - powershell: |
         Write-Host "##vso[task.prependpath]$env:CONDA\Scripts"
         Write-Host "##vso[task.prependpath]$HOME/miniconda3/bin"
       displayName: 'Add conda to PATH'
-
     - script: conda update -q -n base conda
       displayName: 'Update conda'
 
     - bash: |
         conda env create -q --file ci\\deps\\azure-windows-$(CONDA_PY).yaml
       displayName: 'Create anaconda environment'
-
     - bash: |
         source activate pandas-dev
         conda list
         python setup.py build_ext -q -j 4
         python -m pip install --no-build-isolation -e .
       displayName: 'Build'
-
     - bash: |
         source activate pandas-dev
         ci/run_tests.sh
       displayName: 'Test'
-
     - task: PublishTestResults@2
       condition: succeededOrFailed()
       inputs:

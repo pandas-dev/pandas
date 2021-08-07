@@ -9,7 +9,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-import pandas.compat as compat
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -38,7 +37,7 @@ from pandas.core.ops import roperator
 @pytest.mark.parametrize(
     "nat,idx",
     [
-        (Timestamp("NaT"), DatetimeIndex),
+        (Timestamp("NaT"), DatetimeArray),
         (Timedelta("NaT"), TimedeltaIndex),
         (Period("NaT", freq="M"), PeriodArray),
     ],
@@ -84,7 +83,7 @@ def test_nat_vector_field_access():
 
     ser = Series(idx)
 
-    for field in DatetimeIndex._field_ops:
+    for field in DatetimeArray._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
         if field == "weekday":
@@ -97,7 +96,7 @@ def test_nat_vector_field_access():
         expected = [getattr(x, field) for x in idx]
         tm.assert_series_equal(result, Series(expected))
 
-    for field in DatetimeIndex._bool_ops:
+    for field in DatetimeArray._bool_ops:
         result = getattr(ser.dt, field)
         expected = [getattr(x, field) for x in idx]
         tm.assert_series_equal(result, Series(expected))
@@ -138,13 +137,7 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
-        pytest.param(
-            "fromisocalendar",
-            marks=pytest.mark.skipif(
-                not compat.PY38,
-                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
-            ),
-        ),
+        "fromisocalendar",
         "isocalendar",
         "strftime",
         "strptime",
@@ -315,11 +308,6 @@ def test_overlap_public_nat_methods(klass, expected):
     # NaT should have *most* of the Timestamp and Timedelta methods.
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
-
-    # "fromisocalendar" was introduced in 3.8
-    if klass is Timestamp and not compat.PY38:
-        expected.remove("fromisocalendar")
-
     assert _get_overlap_public_nat_methods(klass) == expected
 
 

@@ -102,34 +102,34 @@ class TestDataFrameInterpolate:
         expected = df.copy()
         result = df.interpolate(method="polynomial", order=1)
 
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923076
+        expected.loc[3, "A"] = 2.66666667
+        expected.loc[13, "A"] = 5.76923076
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="cubic")
         # GH #15662.
-        expected.A.loc[3] = 2.81547781
-        expected.A.loc[13] = 5.52964175
+        expected.loc[3, "A"] = 2.81547781
+        expected.loc[13, "A"] = 5.52964175
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="nearest")
-        expected.A.loc[3] = 2
-        expected.A.loc[13] = 5
+        expected.loc[3, "A"] = 2
+        expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
         result = df.interpolate(method="quadratic")
-        expected.A.loc[3] = 2.82150771
-        expected.A.loc[13] = 6.12648668
+        expected.loc[3, "A"] = 2.82150771
+        expected.loc[13, "A"] = 6.12648668
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="slinear")
-        expected.A.loc[3] = 2.66666667
-        expected.A.loc[13] = 5.76923077
+        expected.loc[3, "A"] = 2.66666667
+        expected.loc[13, "A"] = 5.76923077
         tm.assert_frame_equal(result, expected)
 
         result = df.interpolate(method="zero")
-        expected.A.loc[3] = 2.0
-        expected.A.loc[13] = 5
+        expected.loc[3, "A"] = 2.0
+        expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     @td.skip_if_no_scipy
@@ -218,7 +218,7 @@ class TestDataFrameInterpolate:
         )
         result = df.interpolate()
         expected = df.copy()
-        expected["B"].loc[3] = -3.75
+        expected.loc[3, "B"] = -3.75
         tm.assert_frame_equal(result, expected)
 
         if check_scipy:

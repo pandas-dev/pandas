@@ -470,8 +470,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
     except ValueError:
         pass
 
-    if date_len == 6 and (freq == 'M' or
-                          getattr(freq, 'rule_code', None) == 'M'):
+    if date_len == 6 and freq == 'M':
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:

@@ -861,7 +861,7 @@ class DataFrameFormatter:
                 return y
 
             str_columns = list(
-                zip(*[[space_format(x, y) for y in x] for x in fmt_columns])
+                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
             )
             if self.sparsify and len(str_columns):
                 str_columns = sparsify_labels(str_columns)
@@ -1635,24 +1635,10 @@ def format_percentiles(
 
     percentiles = 100 * percentiles
 
-    # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int, float]],
-    # List[float], List[Union[str, float]]]" has no attribute "astype"
-    # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]], List[float],
-    # List[Union[str, float]]]" has no attribute "astype"
-    # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int, float]],
-    # List[float], List[Union[str, float]]]" has no attribute "astype"
-    int_idx = np.isclose(
-        percentiles.astype(int), percentiles  # type: ignore[union-attr]
-    )
+    int_idx = np.isclose(percentiles.astype(int), percentiles)
 
     if np.all(int_idx):
-        # error: Item "List[Union[int, float]]" of "Union[ndarray, List[Union[int,
-        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
-        # error: Item "List[float]" of "Union[ndarray, List[Union[int, float]],
-        # List[float], List[Union[str, float]]]" has no attribute "astype"
-        # error: Item "List[Union[str, float]]" of "Union[ndarray, List[Union[int,
-        # float]], List[float], List[Union[str, float]]]" has no attribute "astype"
-        out = percentiles.astype(int).astype(str)  # type: ignore[union-attr]
+        out = percentiles.astype(int).astype(str)
         return [i + "%" for i in out]
 
     unique_pcts = np.unique(percentiles)
@@ -1970,16 +1956,14 @@ class EngFormatter:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
-
-        >>> format_eng(0)       # for self.accuracy = 0
+        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix=True)
+        >>> format_eng(0)
         ' 0'
-
-        >>> format_eng(1000000) # for self.accuracy = 1,
-                                #     self.use_eng_prefix = True
+        >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix=True)
+        >>> format_eng(1_000_000)
         ' 1.0M'
-
-        >>> format_eng("-1e-6") # for self.accuracy = 2
-                                #     self.use_eng_prefix = False
+        >>> format_eng = EngFormatter(accuracy=2, use_eng_prefix=False)
+        >>> format_eng("-1e-6")
         '-1.00E-06'
 
         @param num: the value to represent

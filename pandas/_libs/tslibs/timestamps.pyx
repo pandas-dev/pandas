@@ -129,6 +129,13 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
+def _unpickle_timestamp(value, freq, tz):
+    # GH#41949 dont warn on unpickle if we have a freq
+    ts = Timestamp(value, tz=tz)
+    ts._set_freq(freq)
+    return ts
+
+
 # ----------------------------------------------------------------------
 
 def integer_op_not_supported(obj):
@@ -263,9 +270,9 @@ cdef class _Timestamp(ABCTimestamp):
         if op == Py_EQ:
             return False
         if op == Py_LE or op == Py_LT:
-            return other.year <= self.year
+            return self.year <= other.year
         if op == Py_GE or op == Py_GT:
-            return other.year >= self.year
+            return self.year >= other.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -725,7 +732,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def __reduce__(self):
         object_state = self.value, self._freq, self.tzinfo
-        return (Timestamp, object_state)
+        return (_unpickle_timestamp, object_state)
 
     # -----------------------------------------------------------------
     # Rendering Methods
@@ -1322,6 +1329,19 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
+        if tzobj is not None and is_datetime64_object(ts_input):
+            # GH#24559, GH#42288 In the future we will treat datetime64 as
+            #  wall-time (consistent with DatetimeIndex)
+            warnings.warn(
+                "In a future version, when passing a np.datetime64 object and "
+                "a timezone to Timestamp, the datetime64 will be interpreted "
+                "as a wall time, not a UTC time.  To interpret as a UTC time, "
+                "use `Timestamp(dt64).tz_localize('UTC').tz_convert(tz)`",
+                FutureWarning,
+                stacklevel=1,
+            )
+            # Once this deprecation is enforced, we can do
+            #  return Timestamp(ts_input).tz_localize(tzobj)
         ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
