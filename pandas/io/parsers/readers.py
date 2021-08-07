@@ -756,8 +756,17 @@ def read_fwf(
             colspecs.append((col, col + w))
             col += w
 
+    # GH#40830
+    # Ensure length of `colspecs` matches length of `names`
     if kwds.get("names") is not None:
-        if len(kwds.get("names")) != len(colspecs):
+        len_index = 0
+        if kwds.get("index_col") is not None:
+            index_col = kwds.get("index_col")
+            if isinstance(index_col, int) or isinstance(index_col, str):
+                len_index = 1
+            else:
+                len_index = len(index_col)
+        if len(kwds.get("names")) + len_index != len(colspecs):
             raise ValueError("Length of colspecs must match length of names")
 
     kwds["colspecs"] = colspecs
