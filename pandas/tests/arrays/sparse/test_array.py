@@ -1198,13 +1198,42 @@ class TestAccessor:
     def test_to_coo(self):
         import scipy.sparse
 
-        ser = pd.Series(
-            [1, 2, 3],
-            index=pd.MultiIndex.from_product([[0], [1, 2, 3]], names=["a", "b"]),
-            dtype="Sparse[int]",
+        s = pd.Series([np.nan] * 6)
+        s[2] = 1
+        s[5] = 3
+        s.index = pd.MultiIndex.from_tuples(
+            [
+                ("b", 2, "z", 1),
+                ("a", 2, "z", 2),
+                ("a", 2, "z", 1),
+                ("a", 2, "x", 2),
+                ("b", 1, "z", 1),
+                ("a", 1, "z", 0),
+            ]
         )
-        A, _, _ = ser.sparse.to_coo()
+        ss = s.astype("Sparse")
+
+        expected_A = np.zeros((4, 4))
+        expected_A[1, 0] = 1
+        expected_A[3, 3] = 3
+        A, rows, cols = ss.sparse.to_coo(
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=False
+        )
         assert isinstance(A, scipy.sparse.coo.coo_matrix)
+        assert np.all(A.toarray() == expected_A)
+        assert rows == [("b", 2), ("a", 2), ("b", 1), ("a", 1)]
+        assert cols == [("z", 1), ("z", 2), ("x", 2), ("z", 0)]
+
+        expected_A = np.zeros((4, 4))
+        expected_A[1, 2] = 1
+        expected_A[0, 1] = 3
+        A, rows, cols = ss.sparse.to_coo(
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=True
+        )
+        assert isinstance(A, scipy.sparse.coo.coo_matrix)
+        assert np.all(A.toarray() == expected_A)
+        assert rows == [("a", 1), ("a", 2), ("b", 1), ("b", 2)]
+        assert cols == [("x", 2), ("z", 0), ("z", 1), ("z", 2)]
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
