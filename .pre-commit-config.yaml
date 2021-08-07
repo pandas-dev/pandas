@@ -115,16 +115,16 @@ repos:
     -   id: seed-check-asv
         name: Check for unnecessary random seeds in asv benchmarks
         language: pygrep
-        entry: 'np.random.seed'
+        entry: 'np\.random\.seed'
         files: ^asv_bench/benchmarks
-        exclude: ^asv_bench/benchmarks/pandas_vb_common.py
+        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
     -   id: invalid-ea-testing
         name: Check for invalid EA testing
         language: pygrep
-        entry: 'tm.assert_(series|frame)_equal'
+        entry: 'tm\.assert_(series|frame)_equal'
         files: ^pandas/tests/extension/base
         types: [python]
-        exclude: ^pandas/tests/extension/base/base.py
+        exclude: ^pandas/tests/extension/base/base\.py
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
