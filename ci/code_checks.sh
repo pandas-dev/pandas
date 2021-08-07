@@ -66,14 +66,6 @@ if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
     invgrep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
-    MSG='Check for deprecated messages without sphinx directive' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
-    invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
     MSG='Check for unnecessary random seeds in asv benchmarks' ; echo $MSG
     invgrep -R --exclude pandas_vb_common.py -E 'np.random.seed' asv_bench/benchmarks/
     RET=$(($RET + $?)) ; echo $MSG "DONE"

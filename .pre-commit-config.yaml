@@ -102,6 +102,12 @@ repos:
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
+
+            # Check for deprecated messages without sphinx directive
+            |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
+
+            # Check for backticks incorrectly rendering because of missing spaces
+            |[a-zA-Z0-9]\`\`?[a-zA-Z0-9]
         types_or: [python, cython, rst]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
