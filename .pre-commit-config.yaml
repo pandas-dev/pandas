@@ -103,6 +103,11 @@ repos:
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
         types_or: [python, cython, rst]
+    -   id: check-set-get-options
+        name: Check if set_option or get_option is use-pd_array-in-core
+        language: pygrep
+        entry: ' (get|set)_option'
+        types: [python]
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
