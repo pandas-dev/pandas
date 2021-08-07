@@ -70,7 +70,7 @@ class ToCoo:
     params = [True, False]
     param_names = ["sort_labels"]
 
-    def setup(self):
+    def setup(self, sort_labels):
         s = Series([np.nan] * 10000)
         s[0] = 3.0
         s[100] = -1.0
