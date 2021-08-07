@@ -45,7 +45,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_inferred_bool_dtype
@@ -86,6 +85,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
+    extract_pandas_array,
     maybe_coerce_values,
     new_block,
     to_native_types,
@@ -426,6 +426,8 @@ class BaseArrayManager(DataManager):
     ) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
+                # extract PandasArray for tests that patch PandasArray._typ
+                arr = np.asarray(arr)
                 return soft_convert_objects(
                     arr,
                     datetime=datetime,
@@ -639,6 +641,8 @@ class BaseArrayManager(DataManager):
                     # reusing full column array -> track with reference
                     arr = self.arrays[i]
                     ref = weakref.ref(arr)
+                    if copy:
+                        arr = arr.copy()
                 new_arrays.append(arr)
                 refs.append(ref)
 
@@ -741,6 +745,7 @@ class ArrayManager(BaseArrayManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            arrays = [extract_pandas_array(x, None, 1)[0] for x in arrays]
             self.arrays = [maybe_coerce_values(arr) for arr in arrays]
             self._verify_integrity()
 
@@ -1267,8 +1272,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
             arr = maybe_coerce_values(arr)
-            if isinstance(arr, ABCPandasArray):
-                arr = arr.to_numpy()
+            arr = extract_pandas_array(arr, None, 1)[0]
             self.arrays = [arr]
             self._verify_integrity()
 
@@ -1363,15 +1367,36 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             new_array = getattr(self.array, func)(**kwargs)
         return type(self)([new_array], self._axes)
 
-    def setitem(self, indexer, value, inplace=False):
+    def setitem(self, indexer, value):
+        """
+        Set values with indexer.
+
+        For SingleArrayManager, this backs s[indexer] = value
+
+        See `setitem_inplace` for a version that works inplace and doesn't
+        return a new Manager.
+        """
         if not self._has_no_reference(0):
             # if being referenced -> perform Copy-on-Write and clear the reference
             self.arrays[0] = self.arrays[0].copy()
             self._clear_reference(0)
-        if inplace:
-            self.arrays[0][indexer] = value
-        else:
-            return self.apply_with_block("setitem", indexer=indexer, value=value)
+        return self.apply_with_block("setitem", indexer=indexer, value=value)
+
+    def setitem_inplace(self, indexer, value) -> None:
+        """
+        Set values with indexer.
+
+        For Single[Block/Array]Manager, this backs s[indexer] = value
+
+        This is an inplace version of `setitem()`, mutating the manager/values
+        in place, not returning a new Manager (and Block), and thus never changing
+        the dtype.
+        """
+        if not self._has_no_reference(0):
+            # if being referenced -> perform Copy-on-Write and clear the reference
+            self.arrays[0] = self.arrays[0].copy()
+            self._clear_reference(0)
+        self.array[indexer] = value
 
     def idelete(self, indexer) -> SingleArrayManager:
         """
