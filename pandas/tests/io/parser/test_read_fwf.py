@@ -710,3 +710,20 @@ def test_encoding_mmap(memory_map):
     data.seek(0)
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
+
+
+@pytest.mark.parametrize(
+    "colspecs, names, widths",
+    [
+        ([(0, 6), (6, 12), (12, 18), (18, None)], list("abcde"), None),
+        ([6] * 4, list("abcde"), None),
+        (None, list("abcde"), [6] * 4),
+    ],
+)
+def test_len_colspecs_len_names(colspecs, names, widths):
+    # GH#40830
+    data = """col1  col2  col3  col4
+    bab   ba    2"""
+    msg = "Length of colspecs must match length of names"
+    with pytest.raises(ValueError, match=msg):
+        read_fwf(StringIO(data), colspecs=colspecs, names=names, widths=widths)

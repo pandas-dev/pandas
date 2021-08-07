@@ -758,16 +758,23 @@ def read_fwf(
 
     # GH#40830
     # Ensure length of `colspecs` matches length of `names`
-    if kwds.get("names") is not None:
-        len_index = 0
-        if kwds.get("index_col") is not None:
-            index_col = kwds.get("index_col")
-            if isinstance(index_col, int) or isinstance(index_col, str):
-                len_index = 1
-            else:
-                len_index = len(index_col)
-        if len(kwds.get("names")) + len_index != len(colspecs):
-            raise ValueError("Length of colspecs must match length of names")
+    names = kwds.get("names")
+    if names is not None:
+        if len(names) != len(colspecs):
+            # maybe name of index(s) not present in `names`
+            len_index = 0
+            if kwds.get("index_col") is not None:
+                index_col = kwds.get("index_col")
+                if isinstance(index_col, int) or isinstance(index_col, str):
+                    len_index = 1
+                elif index_col is False:
+                    len_index = 0
+                else:
+                    # error: Argument 1 to "len" has incompatible type
+                    # "Optional[Any]"; expected "Sized"  [arg-type]
+                    len_index = len(index_col)  # type: ignore[arg-type]
+            if len(names) + len_index != len(colspecs):
+                raise ValueError("Length of colspecs must match length of names")
 
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
