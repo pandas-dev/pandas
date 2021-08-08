@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import np_version_under1p18
-
 from pandas import (
     DataFrame,
     Index,
@@ -161,16 +159,8 @@ class TestSample:
         "func_str,arg",
         [
             ("np.array", [2, 3, 1, 0]),
-            pytest.param(
-                "np.random.MT19937",
-                3,
-                marks=pytest.mark.skipif(np_version_under1p18, reason="NumPy<1.18"),
-            ),
-            pytest.param(
-                "np.random.PCG64",
-                11,
-                marks=pytest.mark.skipif(np_version_under1p18, reason="NumPy<1.18"),
-            ),
+            ("np.random.MT19937", 3),
+            ("np.random.PCG64", 11),
         ],
     )
     def test_sample_random_state(self, func_str, arg, frame_or_series):
@@ -348,6 +338,24 @@ class TestSampleDataFrame:
 
         with tm.assert_produces_warning(None):
             df2["d"] = 1
+
+    def test_sample_does_not_modify_weights(self):
+        # GH-42843
+        result = np.array([np.nan, 1, np.nan])
+        expected = result.copy()
+        ser = Series([1, 2, 3])
+
+        # Test numpy array weights won't be modified in place
+        ser.sample(weights=result)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Test DataFrame column won't be modified in place
+        df = DataFrame({"values": [1, 1, 1], "weights": [1, np.nan, np.nan]})
+        expected = df["weights"].copy()
+
+        df.sample(frac=1.0, replace=True, weights="weights")
+        result = df["weights"]
+        tm.assert_series_equal(result, expected)
 
     def test_sample_ignore_index(self):
         # GH 38581

@@ -3,16 +3,17 @@ trigger:
   branches:
     include:
     - master
-    - 1.2.x
     - 1.3.x
   paths:
     exclude:
     - 'doc/*'
 
 pr:
-- master
-- 1.2.x
-- 1.3.x
+  autoCancel: true
+  branches:
+    include:
+    - master
+    - 1.3.x
 
 variables:
   PYTEST_WORKERS: auto
@@ -22,12 +23,12 @@ jobs:
 - template: ci/azure/posix.yml
   parameters:
     name: macOS
-    vmImage: macOS-10.14
+    vmImage: macOS-10.15
 
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
-    vmImage: vs2017-win2016
+    vmImage: windows-2019
 
 - job: py38_32bit
   pool:

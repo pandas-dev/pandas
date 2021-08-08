@@ -512,8 +512,8 @@ class TestFloatIndexers:
         for fancy_idx in [[5.0, 0.0], np.array([5.0, 0.0])]:  # float
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
-        expected = Series([2, 0], index=Index([5, 0], dtype="int64"))
-        for fancy_idx in [[5, 0], np.array([5, 0])]:  # int
+        expected = Series([2, 0], index=Index([5, 0], dtype="float64"))
+        for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
         # all should return the same as we are slicing 'the same'

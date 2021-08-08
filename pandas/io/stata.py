@@ -160,15 +160,30 @@ DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
+
+Creating a dummy stata for this example
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
+...                              'parrot'],
+...                   'speed': [350, 18, 361, 15]}})
+>>> df.to_stata('animals.dta')
+
 Read a Stata dta file:
 
->>> df = pd.read_stata('filename.dta')
+>>> df = pd.read_stata('animals.dta')
 
 Read a Stata dta file in 10,000 line chunks:
+>>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
+>>> df = pd.DataFrame(values, columns=["i"])
+>>> df.to_stata('filename.dta')
 
 >>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
-...     do_something(chunk)
+...    # Operate on a single chunk, e.g., chunk.mean()
+...    pass
+
+>>> import os
+>>> os.remove("./filename.dta")
+>>> os.remove("./animals.dta")
 """
 
 _read_method_doc = f"""\
@@ -1367,12 +1382,12 @@ class StataReader(StataParser, abc.Iterator):
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
-            invalid_types = ",".join(str(x) for x in typlist)
+            invalid_types = ",".join([str(x) for x in typlist])
             raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
-            invalid_dtypes = ",".join(str(x) for x in typlist)
+            invalid_dtypes = ",".join([str(x) for x in typlist])
             raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
 
         if self.format_version > 108:
@@ -1673,12 +1688,7 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                if (
-                    dtype != np.dtype(object)  # type: ignore[type-var]
-                    and dtype != self.dtyplist[i]
-                ):
+                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))

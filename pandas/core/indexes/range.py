@@ -17,7 +17,10 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -98,6 +101,7 @@ class RangeIndex(NumericIndex):
     _engine_type = libindex.Int64Engine
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
+    _is_backward_compat_public_numeric_index: bool = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -395,8 +399,7 @@ class RangeIndex(NumericIndex):
         method: str | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
-        # -> np.ndarray[np.intp]
+    ) -> npt.NDArray[np.intp]:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -502,7 +505,7 @@ class RangeIndex(NumericIndex):
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
+    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -529,7 +532,7 @@ class RangeIndex(NumericIndex):
 
     def factorize(
         self, sort: bool = False, na_sentinel: int | None = -1
-    ) -> tuple[np.ndarray, RangeIndex]:
+    ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
