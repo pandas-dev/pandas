@@ -641,7 +641,8 @@ def _binary_op_method_timedeltalike(op, name):
             return NaT
 
         elif is_datetime64_object(other) or (
-           PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)):
+            PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)
+        ):
             # this case is for a datetime object that is specifically
             # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below

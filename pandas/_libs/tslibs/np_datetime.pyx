@@ -38,7 +38,7 @@ cdef extern from "src/datetime/np_datetime.h":
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                              NPY_DATETIMEUNIT fr,
                                              pandas_timedeltastruct *result
-                                            ) nogil
+                                             ) nogil
 
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 

@@ -199,17 +199,17 @@ def array_strptime(ndarray[object] values, object fmt, bint exact=True, errors='
                 year = int(found_dict['Y'])
             elif parse_code == 2:
                 month = int(found_dict['m'])
-            elif parse_code == 3:
             # elif group_key == 'B':
+            elif parse_code == 3:
                 month = locale_time.f_month.index(found_dict['B'].lower())
-            elif parse_code == 4:
             # elif group_key == 'b':
+            elif parse_code == 4:
                 month = locale_time.a_month.index(found_dict['b'].lower())
-            elif parse_code == 5:
             # elif group_key == 'd':
+            elif parse_code == 5:
                 day = int(found_dict['d'])
-            elif parse_code == 6:
             # elif group_key == 'H':
+            elif parse_code == 6:
                 hour = int(found_dict['H'])
             elif parse_code == 7:
                 hour = int(found_dict['I'])

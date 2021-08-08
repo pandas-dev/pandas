@@ -356,7 +356,7 @@ cdef class TextReader:
                   thousands=None,       # bytes | str
                   dtype=None,
                   usecols=None,
-                  on_bad_lines = ERROR,
+                  on_bad_lines=ERROR,
                   bint na_filter=True,
                   na_values=None,
                   na_fvalues=None,
@@ -1442,7 +1442,7 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
             if na_filter:
                 if kh_get_str_starts_item(na_hashset, word):
-                # is in NA values
+                    # is in NA values
                     na_count += 1
                     codes[i] = NA
                     continue
@@ -1578,7 +1578,7 @@ cdef inline int _try_double_nogil(parser_t *parser,
                             strcasecmp(word, cposinfty) == 0):
                         data[0] = INF
                     elif (strcasecmp(word, cneginf) == 0 or
-                            strcasecmp(word, cneginfty) == 0 ):
+                            strcasecmp(word, cneginfty) == 0):
                         data[0] = NEGINF
                     else:
                         return 1
