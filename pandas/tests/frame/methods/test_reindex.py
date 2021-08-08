@@ -83,6 +83,20 @@ class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
 
+    def test_reindex_copies(self):
+        # based on asv time_reindex_axis1
+        N = 10
+        df = DataFrame(np.random.randn(N * 10, N))
+        cols = np.arange(N)
+        np.random.shuffle(cols)
+
+        result = df.reindex(columns=cols, copy=True)
+        assert not np.shares_memory(result[0]._values, df[0]._values)
+
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        assert not np.shares_memory(result2[0]._values, df[0]._values)
+
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated
         arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
@@ -658,7 +672,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
         # reindex fails
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
 
@@ -668,7 +682,7 @@ class TestDataFrameSelectReindex:
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
         )
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
@@ -942,7 +956,7 @@ class TestDataFrameSelectReindex:
             index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
         )
         # passed duplicate indexers are not allowed
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df2.reindex(["a", "b"])
 

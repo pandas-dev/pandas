@@ -64,6 +64,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core.algorithms import (
     isin,
     take,
+    unique,
     value_counts,
 )
 from pandas.core.arrays.base import (
@@ -1209,8 +1210,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         endpoints. Intervals that only have an open endpoint in common do not
         overlap.
 
-        .. versionadded:: 0.24.0
-
         Parameters
         ----------
         other : %(klass)s
@@ -1289,8 +1288,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an %(klass)s identical to the current one, but closed on the
         specified side.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -1613,6 +1610,29 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         else:
             comb = np.concatenate([left, right], axis=1)
         return comb
+
+    def _from_combined(self, combined: np.ndarray) -> IntervalArray:
+        """
+        Create a new IntervalArray with our dtype from a 1D complex128 ndarray.
+        """
+        nc = combined.view("i8").reshape(-1, 2)
+
+        dtype = self._left.dtype
+        if needs_i8_conversion(dtype):
+            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
+            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+        else:
+            new_left = nc[:, 0].view(dtype)
+            new_right = nc[:, 1].view(dtype)
+        return self._shallow_copy(left=new_left, right=new_right)
+
+    def unique(self) -> IntervalArray:
+        # Invalid index type "Tuple[slice, int]" for "Union[ExtensionArray,
+        # ndarray[Any, Any]]"; expected type "Union[int, integer[Any], slice,
+        # Sequence[int], ndarray[Any, Any]]"
+        nc = unique(self._combined.view("complex128")[:, 0])  # type: ignore[index]
+        nc = nc[:, None]
+        return self._from_combined(nc)
 
 
 def _maybe_convert_platform_interval(values) -> ArrayLike:
