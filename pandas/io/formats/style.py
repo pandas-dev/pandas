@@ -1753,7 +1753,7 @@ class Styler(StylerRenderer):
     def hide_index(
         self,
         subset: Subset | None = None,
-        levels: Level | list[Level] | None = None,
+        level: Level | list[Level] | None = None,
     ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
@@ -1773,7 +1773,7 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the index axis within
             `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
             the function.
-        levels : int, str, list
+        level : int, str, list
             The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
             used simultaneously with ``subset``.
 
@@ -1830,7 +1830,7 @@ class Styler(StylerRenderer):
 
         Hide a specific level:
 
-        >>> df.style.format("{:,.1f").hide_index(levels=1)  # doctest: +SKIP
+        >>> df.style.format("{:,.1f").hide_index(level=1)  # doctest: +SKIP
                              x                    y
                a      b      c      a      b      c
         x    0.1    0.0    0.4    1.3    0.6   -1.4
@@ -1840,11 +1840,11 @@ class Styler(StylerRenderer):
             -0.6    1.2    1.8    1.9    0.3    0.3
              0.8    0.5   -0.3    1.2    2.2   -0.8
         """
-        if levels is not None and subset is not None:
-            raise ValueError("`subset` and `levels` cannot be passed simultaneously")
+        if level is not None and subset is not None:
+            raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
-            levels_ = _refactor_levels(levels, self.index)
+            levels_ = _refactor_levels(level, self.index)
             self.hide_index_ = [
                 True if lev in levels_ else False for lev in range(self.index.nlevels)
             ]
@@ -1861,7 +1861,7 @@ class Styler(StylerRenderer):
     def hide_columns(
         self,
         subset: Subset | None = None,
-        levels: Level | list[Level] | None = None,
+        level: Level | list[Level] | None = None,
     ) -> Styler:
         """
         Hide the column headers or specific keys in the columns from rendering.
@@ -1881,7 +1881,7 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the columns axis within
             `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
             the function.
-        levels : int, str, list
+        level : int, str, list
             The level(s) to hide in a MultiIndex if hiding the entire column headers
             row. Cannot be used simultaneously with ``subset``.
 
@@ -1943,7 +1943,7 @@ class Styler(StylerRenderer):
 
         Hide a specific level:
 
-        >>> df.style.format("{:.1f}").hide_columns(levels=1)  # doctest: +SKIP
+        >>> df.style.format("{:.1f}").hide_columns(level=1)  # doctest: +SKIP
                    x                    y
         x   a    0.1    0.0    0.4    1.3    0.6   -1.4
             b    0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -1952,11 +1952,11 @@ class Styler(StylerRenderer):
             b   -0.6    1.2    1.8    1.9    0.3    0.3
             c    0.8    0.5   -0.3    1.2    2.2   -0.8
         """
-        if levels is not None and subset is not None:
-            raise ValueError("`subset` and `levels` cannot be passed simultaneously")
+        if level is not None and subset is not None:
+            raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
-            levels_ = _refactor_levels(levels, self.columns)
+            levels_ = _refactor_levels(level, self.columns)
             self.hide_columns_ = [
                 True if lev in levels_ else False for lev in range(self.columns.nlevels)
             ]
@@ -3153,7 +3153,7 @@ def _bar(
 
 
 def _refactor_levels(
-    levels: Level | list[Level] | None,
+    level: Level | list[Level] | None,
     obj: Index,
 ) -> list[Level]:
     """
@@ -3161,8 +3161,8 @@ def _refactor_levels(
 
     Parameters
     ----------
-    levels : int, str, list
-        Original ``levels`` arg supplied to above methods.
+    level : int, str, list
+        Original ``level`` arg supplied to above methods.
     obj:
         Either ``self.index`` or ``self.columns``
 
@@ -3170,17 +3170,17 @@ def _refactor_levels(
     -------
     list : refactored arg with a list of levels to hide
     """
-    if levels is None:
+    if level is None:
         levels_: list[Level] = list(range(obj.nlevels))
-    elif isinstance(levels, int):
-        levels_ = [levels]
-    elif isinstance(levels, str):
-        levels_ = [obj._get_level_number(levels)]
-    elif isinstance(levels, list):
+    elif isinstance(level, int):
+        levels_ = [level]
+    elif isinstance(level, str):
+        levels_ = [obj._get_level_number(level)]
+    elif isinstance(level, list):
         levels_ = [
             obj._get_level_number(lev) if not isinstance(lev, int) else lev
-            for lev in levels
+            for lev in level
         ]
     else:
-        raise ValueError("`levels` must be of type `int`, `str` or list of such")
+        raise ValueError("`level` must be of type `int`, `str` or list of such")
     return levels_
