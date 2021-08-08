@@ -36,7 +36,6 @@ Bug fixes
 - :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
 - :meth:`.Styler.set_sticky` has amended CSS to control the column/index names and ensure the correct sticky positions (:issue:`42537`)
 - Bug in de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
-- Some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
 -
 
 .. ---------------------------------------------------------------------------
