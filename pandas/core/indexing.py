@@ -1697,6 +1697,10 @@ class _iLocIndexer(_LocationIndexer):
                 # We get here in one case via .loc with a all-False mask
                 pass
 
+            elif self._is_scalar_access(indexer):
+                # We are setting nested data
+                self._setitem_single_column(indexer[1], value, pi)
+
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
                 for loc, v in zip(ilocs, value):

@@ -680,6 +680,23 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
+@pytest.mark.parametrize(
+    "data, groups",
+    [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])],
+)
+@pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
+def test_nlargest_and_smallest_noop(data, groups, method):
+    # GH 15272, GH 16345, GH 29129
+    # Test nlargest/smallest when it results in a noop,
+    # i.e. input is sorted and group size <= n
+    if method == "nlargest":
+        data = list(reversed(data))
+    ser = Series(data, name="a")
+    result = getattr(ser.groupby(groups), method)(n=2)
+    expected = Series(data, index=MultiIndex.from_arrays([groups, ser.index]), name="a")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
@@ -801,6 +818,39 @@ def test_cummax(dtypes_for_minmax):
     result = df.groupby("a").b.cummax()
     expected = Series([2, 1, 2], name="b")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+@pytest.mark.parametrize("dtype", ["float", "Int64", "Float64"])
+@pytest.mark.parametrize(
+    "groups,expected_data",
+    [
+        ([1, 1, 1], [1, None, None]),
+        ([1, 2, 3], [1, None, 2]),
+        ([1, 3, 3], [1, None, None]),
+    ],
+)
+def test_cummin_max_skipna(method, dtype, groups, expected_data):
+    # GH-34047
+    df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
+    gb = df.groupby(groups)["a"]
+
+    result = getattr(gb, method)(skipna=False)
+    expected = Series(expected_data, dtype=dtype, name="a")
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["cummin", "cummax"])
+def test_cummin_max_skipna_multiple_cols(method):
+    # Ensure missing value in "a" doesn't cause "b" to be nan-filled
+    df = DataFrame({"a": [np.nan, 2.0, 2.0], "b": [2.0, 2.0, 2.0]})
+    gb = df.groupby([1, 1, 1])[["a", "b"]]
+
+    result = getattr(gb, method)(skipna=False)
+    expected = DataFrame({"a": [np.nan, np.nan, np.nan], "b": [2.0, 2.0, 2.0]})
+
+    tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_32bit
