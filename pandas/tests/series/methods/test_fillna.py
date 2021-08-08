@@ -677,14 +677,14 @@ class TestSeriesFillNA:
         cat = ser._values
 
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ser.fillna("d")
 
         msg2 = "Length of 'value' does not match."
         with pytest.raises(ValueError, match=msg2):
             cat.fillna(Series("d"))
 
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ser.fillna({1: "d", 3: "a"})
 
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'

@@ -6,9 +6,11 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 from pandas import (
+    NA,
     CategoricalIndex,
     Interval,
     IntervalIndex,
+    NaT,
     Timedelta,
     date_range,
     timedelta_range,
@@ -168,6 +170,20 @@ class TestGetLoc:
         with pytest.raises(InvalidIndexError, match=msg):
             idx.get_loc(key)
 
+    def test_get_indexer_with_nans(self):
+        # GH#41831
+        index = IntervalIndex([np.nan, Interval(1, 2), np.nan])
+
+        expected = np.array([True, False, True])
+        for key in [None, np.nan, NA]:
+            assert key in index
+            result = index.get_loc(key)
+            tm.assert_numpy_array_equal(result, expected)
+
+        for key in [NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]:
+            with pytest.raises(KeyError, match=str(key)):
+                index.get_loc(key)
+
 
 class TestGetIndexer:
     @pytest.mark.parametrize(
@@ -259,6 +275,26 @@ class TestGetIndexer:
         expected = index.get_indexer(target)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_categorical_with_nans(self):
+        # GH#41934 nans in both index and in target
+        ii = IntervalIndex.from_breaks(range(5))
+        ii2 = ii.append(IntervalIndex([np.nan]))
+        ci2 = CategoricalIndex(ii2)
+
+        result = ii2.get_indexer(ci2)
+        expected = np.arange(5, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # not-all-matches
+        result = ii2[1:].get_indexer(ci2[::-1])
+        expected = np.array([3, 2, 1, 0, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # non-unique target, non-unique nans
+        result = ii2.get_indexer(ci2.append(ci2))
+        expected = np.array([0, 1, 2, 3, 4, 0, 1, 2, 3, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "tuples, closed",
         [
@@ -324,6 +360,17 @@ class TestGetIndexer:
 
         result = idx1.get_indexer(idx1[1:])
         expected = np.array([1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_with_nans(self):
+        # GH#41831
+        index = IntervalIndex([np.nan, np.nan])
+        other = IntervalIndex([np.nan])
+
+        assert not index._index_as_unique
+
+        result = index.get_indexer_for(other)
+        expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
 

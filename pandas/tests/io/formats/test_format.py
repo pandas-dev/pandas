@@ -1369,7 +1369,7 @@ class TestDataFrameFormatting:
         )
         lines = result.split("\n")
         header = lines[0].strip().split()
-        joined = "\n".join(re.sub(r"\s+", " ", x).strip() for x in lines[1:])
+        joined = "\n".join([re.sub(r"\s+", " ", x).strip() for x in lines[1:]])
         recons = read_csv(StringIO(joined), names=header, header=None, sep=" ")
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()

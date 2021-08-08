@@ -82,8 +82,9 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     or ``StringIO``.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
-    sheet positions. Lists of strings/integers are used to request
-    multiple sheets. Specify None to get all sheets.
+    sheet positions (chart sheets do not count as a sheet position).
+    Lists of strings/integers are used to request multiple sheets.
+    Specify None to get all worksheets.
 
     Available cases:
 
@@ -92,7 +93,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * None: All sheets.
+    * None: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -114,16 +115,10 @@ usecols : int, str, list-like, or callable default None
       both sides.
     * If list of int, then indicates list of column numbers to be parsed.
     * If list of string, then indicates list of column names to be parsed.
-
-      .. versionadded:: 0.24.0
-
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
-
-      .. versionadded:: 0.24.0
-
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
 dtype : Type name or dict of column -> type, default None
@@ -422,7 +417,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         elif hasattr(self.handles.handle, "read"):
             # N.B. xlrd.Book has a read attribute too
             self.handles.handle.seek(0)
-            self.book = self.load_workbook(self.handles.handle)
+            try:
+                self.book = self.load_workbook(self.handles.handle)
+            except Exception:
+                self.close()
+                raise
         elif isinstance(self.handles.handle, bytes):
             self.book = self.load_workbook(BytesIO(self.handles.handle))
         else:
@@ -440,8 +439,10 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     def close(self):
-        if hasattr(self.book, "close"):
-            # pyxlsb opens a TemporaryFile
+        if hasattr(self, "book") and hasattr(self.book, "close"):
+            # pyxlsb: opens a TemporaryFile
+            # openpyxl: https://stackoverflow.com/questions/31416842/
+            #     openpyxl-does-not-close-excel-workbook-in-read-only-mode
             self.book.close()
         self.handles.close()
 
@@ -674,8 +675,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         (e.g. 'YYYY-MM-DD HH:MM:SS').
     mode : {'w', 'a'}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
-
-        .. versionadded:: 0.24.0
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc., if using a URL that will

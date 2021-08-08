@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 import pytest
 
@@ -61,7 +63,7 @@ class TestSeriesClip:
         tm.assert_series_equal(s_clipped_lower, expected_lower)
 
     def test_clip_with_na_args(self):
-        """Should process np.nan argument as None """
+        """Should process np.nan argument as None"""
         # GH#17276
         s = Series([1, 2, 3])
 
@@ -126,6 +128,15 @@ class TestSeriesClip:
                 Timestamp("2015-12-01 09:30:30", tz="US/Eastern"),
             ]
         )
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_with_timestamps_and_oob_datetimes(self):
+        # GH-42794
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)])
+
+        result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
+        expected = Series([Timestamp.min, Timestamp.max], dtype="object")
+
         tm.assert_series_equal(result, expected)
 
     def test_clip_pos_args_deprecation(self):

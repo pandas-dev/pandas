@@ -68,7 +68,7 @@ class TestDataFrameSetItem:
             index=Index(["a", "b", "c", "a"], name="foo"),
             name="fiz",
         )
-        msg = "cannot reindex from a duplicate axis"
+        msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
             df["newcol"] = ser
 
@@ -178,6 +178,16 @@ class TestDataFrameSetItem:
         df["new_column"] = sp_series
         expected = Series(SparseArray([1, 0, 0]), name="new_column")
         tm.assert_series_equal(df["new_column"], expected)
+
+    def test_setitem_period_preserves_dtype(self):
+        # GH: 26861
+        data = [Period("2003-12", "D")]
+        result = DataFrame([])
+        result["a"] = data
+
+        expected = DataFrame({"a": data})
+
+        tm.assert_frame_equal(result, expected)
 
     def test_setitem_dict_preserves_dtypes(self):
         # https://github.com/pandas-dev/pandas/issues/34573

@@ -91,14 +91,14 @@ class TestMultiLevel:
         assert chunk.index is new_index
 
         chunk = ymd.loc[new_index]
-        assert chunk.index is new_index
+        assert chunk.index.equals(new_index)
 
         ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
         assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
-        assert chunk.columns is new_index
+        assert chunk.columns.equals(new_index)
 
     def test_groupby_transform(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
@@ -402,7 +402,7 @@ class TestMultiLevel:
 
 
 class TestSorted:
-    """ everything you wanted to test about sorting """
+    """everything you wanted to test about sorting"""
 
     def test_sort_non_lexsorted(self):
         # degenerate case where we sort but don't
