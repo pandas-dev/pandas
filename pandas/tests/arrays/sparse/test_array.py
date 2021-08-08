@@ -1195,7 +1195,26 @@ class TestAccessor:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
-    def test_to_coo(self):
+    @pytest.mark.parametrize(
+        "sort_labels, expected_rows, expected_cols, expected_values_pos",
+        [
+            (
+                False,
+                [("b", 2), ("a", 2), ("b", 1), ("a", 1)],
+                [("z", 1), ("z", 2), ("x", 2), ("z", 0)],
+                {1: (1, 0), 3: (3, 3)},
+            ),
+            (
+                True,
+                [("a", 1), ("a", 2), ("b", 1), ("b", 2)],
+                [("x", 2), ("z", 0), ("z", 1), ("z", 2)],
+                {1: (1, 2), 3: (0, 1)},
+            ),
+        ],
+    )
+    def test_to_coo(
+        self, sort_labels, expected_rows, expected_cols, expected_values_pos
+    ):
         import scipy.sparse
 
         s = pd.Series([np.nan] * 6)
@@ -1214,26 +1233,16 @@ class TestAccessor:
         ss = s.astype("Sparse")
 
         expected_A = np.zeros((4, 4))
-        expected_A[1, 0] = 1
-        expected_A[3, 3] = 3
-        A, rows, cols = ss.sparse.to_coo(
-            row_levels=(0, 1), column_levels=(2, 3), sort_labels=False
-        )
-        assert isinstance(A, scipy.sparse.coo.coo_matrix)
-        assert np.all(A.toarray() == expected_A)
-        assert rows == [("b", 2), ("a", 2), ("b", 1), ("a", 1)]
-        assert cols == [("z", 1), ("z", 2), ("x", 2), ("z", 0)]
+        for value, (row, col) in expected_values_pos.items():
+            expected_A[row, col] = value
 
-        expected_A = np.zeros((4, 4))
-        expected_A[1, 2] = 1
-        expected_A[0, 1] = 3
         A, rows, cols = ss.sparse.to_coo(
-            row_levels=(0, 1), column_levels=(2, 3), sort_labels=True
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
         )
         assert isinstance(A, scipy.sparse.coo.coo_matrix)
         assert np.all(A.toarray() == expected_A)
-        assert rows == [("a", 1), ("a", 2), ("b", 1), ("b", 2)]
-        assert cols == [("x", 2), ("z", 0), ("z", 1), ("z", 2)]
+        assert rows == expected_rows
+        assert cols == expected_cols
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
