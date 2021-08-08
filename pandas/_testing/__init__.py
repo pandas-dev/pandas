@@ -105,6 +105,7 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
+from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     DatetimeArray,
     PandasArray,
@@ -314,7 +315,7 @@ def makeNumericIndex(k=10, name=None, *, dtype):
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
 
-    return Index(values, dtype=dtype, name=name)
+    return NumericIndex(values, dtype=dtype, name=name)
 
 
 def makeIntIndex(k=10, name=None):
