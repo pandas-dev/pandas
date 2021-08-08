@@ -6790,7 +6790,32 @@ class DataFrame(NDFrame, OpsMixin):
             assert isinstance(result.columns, MultiIndex)
             result.columns = result.columns.swaplevel(i, j)
         return result
-
+       """Examples
+        --------
+        >>> data={'class':['Mammals','Mammals','Reptiles','Reptiles'
+        ,'Amphibians','Amphibians'],
+         'diet':['Omnivore','Carnivore','Carnivore','Herbivore','Omnivore','Herbivore'],
+         'species':['Humans','Dogs','Snakes','Iguanas','Frogs','Aquatic Salamanders']
+         }
+        >>> df=pd.DataFrame(data,columns=['class','diet','species'])
+        >>> df.set_index(['class','diet'],drop=True,inplace=True)
+        >>> df.reorder_levels(["diet", "class"])
+             diet	   class	  species
+            Omnivore   Mammals	    Humans
+            Carnivore  Mammals	    Dogs
+                       Reptiles	    Snakes
+            Herbivore  Reptiles	    Iguanas
+            Omnivore   Amphibians	Frogs
+            Herbivore	Amphibians	Aquatic Salamanders
+        >>> df.reorder_levels(["class","diet"])
+              class	    diet	    species
+            Mammals	    Omnivore	Humans
+                        Carnivore	Dogs
+            Reptiles	Carnivore	Snakes
+                        Herbivore	Iguanas
+            Amphibians	Omnivore	Frogs
+                        Herbivore	Aquatic Salamanders
+        """
     def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
         """
         Rearrange index levels using input order. May not drop or duplicate levels.
