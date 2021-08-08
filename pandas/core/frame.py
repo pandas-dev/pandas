@@ -3803,6 +3803,9 @@ class DataFrame(NDFrame, OpsMixin):
             if takeable:
                 if isinstance(self._mgr, ArrayManager):
                     # with CoW, we can't use intermediate series
+                    # with takeable=True, we know that index is positional and
+                    # not a generic hashable label
+                    index = cast(int, index)
                     self._mgr.column_setitem(col, index, value)
                 else:
                     series = self._ixs(col, axis=1)

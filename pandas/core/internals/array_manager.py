@@ -129,7 +129,7 @@ class BaseArrayManager(DataManager):
         self,
         arrays: list[np.ndarray | ExtensionArray],
         axes: list[Index],
-        refs: list[weakref.ref | None] | None,
+        refs: list[weakref.ref | None] | None = None,
         verify_integrity: bool = True,
     ):
         raise NotImplementedError
@@ -562,7 +562,12 @@ class BaseArrayManager(DataManager):
             new_arrays = list(self.arrays)
             refs = [weakref.ref(arr) for arr in self.arrays]
 
-        return type(self)(new_arrays, new_axes, refs, verify_integrity=False)
+        # error: Argument 3 to "BaseArrayManager" has incompatible type
+        # "Optional[List[ReferenceType[Union[ndarray[Any, Any], ExtensionArray]]]]";
+        # expected "Optional[List[Optional[ReferenceType[Any]]]]" [arg-type]
+        return type(self)(
+            new_arrays, new_axes, refs, verify_integrity=False  # type: ignore[arg-type]
+        )
 
     def reindex_indexer(
         self: T,
@@ -571,7 +576,7 @@ class BaseArrayManager(DataManager):
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool = True,
+        copy: bool | None = True,
         # ignored keywords
         consolidate: bool = True,
         only_slice: bool = False,
@@ -596,7 +601,7 @@ class BaseArrayManager(DataManager):
         axis: int,
         fill_value=None,
         allow_dups: bool = False,
-        copy: bool = True,
+        copy: bool | None = True,
         use_na_proxy: bool = False,
     ) -> T:
         """
@@ -632,6 +637,7 @@ class BaseArrayManager(DataManager):
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
+        refs: list[weakref.ref | None] | None = None
         if axis == 1:
             new_arrays = []
             refs = []
@@ -830,7 +836,12 @@ class ArrayManager(BaseArrayManager):
         new_axes = list(self._axes)
         new_axes[axis] = new_axes[axis]._getitem_slice(slobj)
 
-        return type(self)(arrays, new_axes, refs, verify_integrity=False)
+        # error: Argument 3 to "ArrayManager" has incompatible type
+        # "List[ReferenceType[Union[ndarray[Any, Any], ExtensionArray]]]";
+        # expected "Optional[List[Optional[ReferenceType[Any]]]]" [arg-type]
+        return type(self)(
+            arrays, new_axes, refs, verify_integrity=False  # type: ignore[arg-type]
+        )
 
     def iget(self, i: int) -> SingleArrayManager:
         """
