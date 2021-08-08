@@ -44,7 +44,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- :meth:`pandas.read_parquet` now supports reading nullable dtypes with ``fastparquet`` versions above 0.7.1.
 -
 
 .. ---------------------------------------------------------------------------

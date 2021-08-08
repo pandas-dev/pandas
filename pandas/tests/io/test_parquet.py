@@ -596,6 +596,46 @@ class TestBasic(Base):
         msg = r"parquet must have string column names"
         self.check_error_on_write(df, engine, ValueError, msg)
 
+    def test_use_nullable_dtypes(self, engine):
+        import pyarrow.parquet as pq
+
+        if engine == "fastparquet":
+            pytest.importorskip(
+                "fastparquet",
+                "0.7.1",
+                reason="fastparquet must be 0.7.1 or higher for nullable dtype support",
+            )
+
+        table = pyarrow.table(
+            {
+                "a": pyarrow.array([1, 2, 3, None], "int64"),
+                "b": pyarrow.array([1, 2, 3, None], "uint8"),
+                "c": pyarrow.array(["a", "b", "c", None]),
+                "d": pyarrow.array([True, False, True, None]),
+            }
+        )
+        with tm.ensure_clean() as path:
+            # write manually with pyarrow to write integers
+            pq.write_table(table, path)
+            result1 = read_parquet(path, engine=engine)
+            result2 = read_parquet(path, engine=engine, use_nullable_dtypes=True)
+
+        assert result1["a"].dtype == np.dtype("float64")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1, 2, 3, None], dtype="Int64"),
+                "b": pd.array([1, 2, 3, None], dtype="UInt8"),
+                "c": pd.array(["a", "b", "c", None], dtype="string"),
+                "d": pd.array([True, False, True, None], dtype="boolean"),
+            }
+        )
+        if engine == "fastparquet":
+            # Fastparquet doesn't support string columns yet
+            # Only int and boolean
+            result2 = result2.drop("c", axis=1)
+            expected = expected.drop("c", axis=1)
+        tm.assert_frame_equal(result2, expected)
+
 
 @pytest.mark.filterwarnings("ignore:CategoricalBlock is deprecated:DeprecationWarning")
 class TestParquetPyArrow(Base):
@@ -842,35 +882,6 @@ class TestParquetPyArrow(Base):
         )
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow")
-    def test_use_nullable_dtypes(self, pa):
-        import pyarrow.parquet as pq
-
-        table = pyarrow.table(
-            {
-                "a": pyarrow.array([1, 2, 3, None], "int64"),
-                "b": pyarrow.array([1, 2, 3, None], "uint8"),
-                "c": pyarrow.array(["a", "b", "c", None]),
-                "d": pyarrow.array([True, False, True, None]),
-            }
-        )
-        with tm.ensure_clean() as path:
-            # write manually with pyarrow to write integers
-            pq.write_table(table, path)
-            result1 = read_parquet(path)
-            result2 = read_parquet(path, use_nullable_dtypes=True)
-
-        assert result1["a"].dtype == np.dtype("float64")
-        expected = pd.DataFrame(
-            {
-                "a": pd.array([1, 2, 3, None], dtype="Int64"),
-                "b": pd.array([1, 2, 3, None], dtype="UInt8"),
-                "c": pd.array(["a", "b", "c", None], dtype="string"),
-                "d": pd.array([True, False, True, None], dtype="boolean"),
-            }
-        )
-        tm.assert_frame_equal(result2, expected)
-
     def test_timestamp_nanoseconds(self, pa):
         # with version 2.0, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
@@ -941,7 +952,9 @@ class TestParquetFastParquet(Base):
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({"a": [True, None, False]})
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
-        check_round_trip(df, fp, expected=expected)
+        # Fastparquet bug in 0.7.1 makes it so that this dtype becomes
+        # float64
+        check_round_trip(df, fp, expected=expected, check_dtype=False)
 
     def test_unsupported(self, fp):
 
@@ -1062,9 +1075,14 @@ class TestParquetFastParquet(Base):
         expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
-    def test_use_nullable_dtypes_not_supported(self, fp):
+    def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
+        # This is supported now in fastparquet 0.7.1 and above actually
+        # Still need to ensure that this raises in all versions below
+        import fastparquet as fp
+
+        monkeypatch.setattr(fp, "__version__", "0.4")
         with tm.ensure_clean() as path:
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
