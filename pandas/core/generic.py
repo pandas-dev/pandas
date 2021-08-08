@@ -4781,7 +4781,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         method = missing.clean_reindex_fill_method(kwargs.pop("method", None))
         level = kwargs.pop("level", None)
-        copy = kwargs.pop("copy", True)
+        copy = kwargs.pop("copy", None)
         limit = kwargs.pop("limit", None)
         tolerance = kwargs.pop("tolerance", None)
         fill_value = kwargs.pop("fill_value", None)
@@ -4806,9 +4806,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             for axis, ax in axes.items()
             if ax is not None
         ):
-            if copy:
-                return self.copy()
-            return self
+            return self.copy(deep=copy)
 
         # check if we are a multi reindex
         if self._needs_reindex_multi(axes, method, level):

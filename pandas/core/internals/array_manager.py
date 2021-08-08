@@ -612,6 +612,10 @@ class BaseArrayManager(DataManager):
 
         pandas-indexer with -1's only.
         """
+        if copy is None:
+            # use shallow copy
+            copy = False
+
         if indexer is None:
             if new_axis is self._axes[axis] and not copy:
                 return self
@@ -640,9 +644,11 @@ class BaseArrayManager(DataManager):
                 else:
                     # reusing full column array -> track with reference
                     arr = self.arrays[i]
-                    ref = weakref.ref(arr)
                     if copy:
                         arr = arr.copy()
+                        ref = None
+                    else:
+                        ref = weakref.ref(arr)
                 new_arrays.append(arr)
                 refs.append(ref)
 
@@ -692,7 +698,7 @@ class BaseArrayManager(DataManager):
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
-            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
+            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True, copy=None
         )
 
     def _make_na_array(self, fill_value=None, use_na_proxy=False):

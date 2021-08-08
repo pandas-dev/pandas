@@ -121,6 +121,26 @@ def test_rename_columns_modify_parent(using_array_manager):
     tm.assert_frame_equal(df2, df2_orig)
 
 
+def test_reindex_columns(using_array_manager):
+    # Case: reindexing the column returns a new dataframe
+    # + afterwards modifying the result
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.reindex(columns=["a", "c"])
+
+    if using_array_manager:
+        # still shares memory (df2 is a shallow copy)
+        assert np.may_share_memory(df2["a"].values, df["a"].values)
+    else:
+        assert not np.may_share_memory(df2["a"].values, df["a"].values)
+    # mutating df2 triggers a copy-on-write for that column
+    df2.iloc[0, 0] = 0
+    assert not np.may_share_memory(df2["a"].values, df["a"].values)
+    if using_array_manager:
+        assert np.may_share_memory(df2["c"].values, df["c"].values)
+    tm.assert_frame_equal(df, df_orig)
+
+
 # -----------------------------------------------------------------------------
 # Indexing operations taking subset + modifying the subset/parent
 

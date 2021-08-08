@@ -645,6 +645,10 @@ class BaseBlockManager(DataManager):
 
         pandas-indexer with -1's only.
         """
+        if copy is None:
+            # preserve deep copy for BlockManager with copy=None
+            copy = True
+
         if indexer is None:
             if new_axis is self.axes[axis] and not copy:
                 return self

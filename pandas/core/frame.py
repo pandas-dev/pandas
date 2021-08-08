@@ -4726,7 +4726,7 @@ class DataFrame(NDFrame, OpsMixin):
         "labels",
         [
             ("method", None),
-            ("copy", True),
+            ("copy", None),
             ("level", None),
             ("fill_value", np.nan),
             ("limit", None),
