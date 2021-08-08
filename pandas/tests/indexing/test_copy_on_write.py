@@ -292,7 +292,7 @@ def test_subset_set_column(using_array_manager):
     subset = df[1:3]
 
     if using_array_manager:
-        subset["a"] = np.array([10, 11])
+        subset["a"] = np.array([10, 11], dtype="int64")
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
