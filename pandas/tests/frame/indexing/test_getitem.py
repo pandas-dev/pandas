@@ -301,7 +301,8 @@ class TestGetitemBooleanMask:
         df = df_dup_cols
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            df[df.A > 6]
+            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+                df[df.A > 6]
 
     def test_getitem_boolean_series_with_duplicate_columns(self, df_dup_cols):
         # boolean indexing
