@@ -29,9 +29,7 @@ def test_quarterly_dont_normalize():
         assert result.time() == date.time()
 
 
-@pytest.mark.parametrize(
-    "offset", [BQuarterBegin(), BQuarterEnd()]
-)
+@pytest.mark.parametrize("offset", [BQuarterBegin(), BQuarterEnd()])
 def test_on_offset(offset):
     dates = [
         datetime(2016, m, d)

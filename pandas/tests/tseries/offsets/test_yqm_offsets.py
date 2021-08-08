@@ -1,8 +1,6 @@
 """
 Tests for Year, Quarter, and Month-based DateOffset subclasses
 """
-from datetime import datetime
-
 import pytest
 
 import pandas as pd
