@@ -2107,8 +2107,8 @@ cpdef bint is_interval_array(ndarray values):
                 return False
             elif numeric:
                 if not (
-                        util.is_float_object(val.left)
-                        or util.is_integer_object(val.left)
+                    util.is_float_object(val.left)
+                    or util.is_integer_object(val.left)
                 ):
                     # i.e. datetime64 or timedelta64
                     return False

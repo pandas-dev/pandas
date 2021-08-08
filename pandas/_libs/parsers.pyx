@@ -1439,8 +1439,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
             COLITER_NEXT(it, word)
 
             if na_filter:
-                # is in NA values
                 if kh_get_str_starts_item(na_hashset, word):
+                    # is in NA values
                     na_count += 1
                     codes[i] = NA
                     continue
