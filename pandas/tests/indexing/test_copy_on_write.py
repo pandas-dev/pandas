@@ -296,7 +296,7 @@ def test_subset_set_column(using_array_manager):
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(com.SettingWithCopyWarning):
-                subset["a"] = np.array([10, 11])
+                subset["a"] = np.array([10, 11], dtype="int64")
 
     expected = pd.DataFrame(
         {"a": [10, 11], "b": [5, 6], "c": [0.2, 0.3]}, index=range(1, 3)
