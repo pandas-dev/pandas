@@ -882,37 +882,33 @@ void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 
 int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     PyObject *obj = (PyObject *)_obj;
-    PyObject *itemValue = GET_TC(tc)->itemValue;
-    PyObject *itemName = GET_TC(tc)->itemName;
-    PyObject *attr;
-    PyObject *attrName;
-    char *attrStr;
 
     if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
         return 0;
     }
 
-    if (itemValue) {
+    if (GET_TC(tc)->itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);
-        GET_TC(tc)->itemValue = itemValue = NULL;
+        GET_TC(tc)->itemValue = NULL;
     }
 
-    if (itemName) {
+    if (GET_TC(tc)->itemName) {
         Py_DECREF(GET_TC(tc)->itemName);
-        GET_TC(tc)->itemName = itemName = NULL;
+        GET_TC(tc)->itemName = NULL;
     }
 
     for (; GET_TC(tc)->index < GET_TC(tc)->size; GET_TC(tc)->index++) {
-        attrName = PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
-        attr = PyUnicode_AsUTF8String(attrName);
-        attrStr = PyBytes_AS_STRING(attr);
+        PyObject *attrName =
+            PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
+        PyObject *attr = PyUnicode_AsUTF8String(attrName);
+        char *attrStr = PyBytes_AS_STRING(attr);
 
         if (attrStr[0] == '_') {
             Py_DECREF(attr);
             continue;
         }
 
-        itemValue = PyObject_GetAttr(obj, attrName);
+        PyObject *itemValue = PyObject_GetAttr(obj, attrName);
         if (itemValue == NULL) {
             PyErr_Clear();
             Py_DECREF(attr);
@@ -925,25 +921,15 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
             continue;
         }
 
-        GET_TC(tc)->itemName = itemName;
+        GET_TC(tc)->itemName = attr;
         GET_TC(tc)->itemValue = itemValue;
         GET_TC(tc)->index++;
-
-        itemName = attr;
-        break;
+        return 1;
     }
 
-    if (itemName == NULL) {
-        GET_TC(tc)->index = GET_TC(tc)->size;
-        GET_TC(tc)->itemValue = NULL;
-        return 0;
-    }
-
-    GET_TC(tc)->itemName = itemName;
-    GET_TC(tc)->itemValue = itemValue;
-    GET_TC(tc)->index++;
-
-    return 1;
+    GET_TC(tc)->index = GET_TC(tc)->size;
+    GET_TC(tc)->itemValue = NULL;
+    return 0;
 }
 
 JSOBJ Dir_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
