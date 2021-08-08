@@ -716,7 +716,6 @@ def test_encoding_mmap(memory_map):
     "colspecs, names, widths",
     [
         ([(0, 6), (6, 12), (12, 18), (18, None)], list("abcde"), None),
-        ([6] * 4, list("abcde"), None),
         (None, list("abcde"), [6] * 4),
     ],
 )
@@ -727,3 +726,11 @@ def test_len_colspecs_len_names(colspecs, names, widths):
     msg = "Length of colspecs must match length of names"
     with pytest.raises(ValueError, match=msg):
         read_fwf(StringIO(data), colspecs=colspecs, names=names, widths=widths)
+
+
+def test_index_col_True():
+    data = """col1  col2  col3  col4
+    bab   ba    2"""
+    msg = "The value of index_col couldn't be 'True'"
+    with pytest.raises(ValueError, match=msg):
+        read_fwf(StringIO(data), index_col=True)
