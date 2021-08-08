@@ -455,7 +455,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                index = Index(keys, name=self.grouper.names[0])
+                index = Index._with_infer(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], dict):

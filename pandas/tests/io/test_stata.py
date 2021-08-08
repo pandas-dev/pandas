@@ -20,6 +20,7 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
+from pandas.core.indexes.api import ensure_index
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -1174,7 +1175,7 @@ class TestStata:
             if is_categorical_dtype(ser.dtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
-                    categories = pd.Index(cat.categories._values)
+                    categories = ensure_index(cat.categories._values)
                     cat = cat.set_categories(categories)
                 from_frame[col] = cat
         return from_frame

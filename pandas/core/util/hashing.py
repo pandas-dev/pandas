@@ -329,7 +329,9 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
+            cat = Categorical(
+                codes, Index._with_infer(categories), ordered=False, fastpath=True
+            )
             return _hash_categorical(cat, encoding, hash_key)
 
         try:

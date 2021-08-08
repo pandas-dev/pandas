@@ -329,6 +329,7 @@ def test_groupby_resample_interpolate():
             ],
             names=["volume", "week_starting"],
         )
+
     expected = DataFrame(
         data={
             "price": [

@@ -2150,7 +2150,7 @@ class MultiIndex(Index):
         try:
             return MultiIndex.from_tuples(new_tuples, names=self.names)
         except (TypeError, IndexError):
-            return Index(new_tuples)
+            return Index._with_infer(new_tuples)
 
     def argsort(self, *args, **kwargs) -> np.ndarray:
         return self._values.argsort(*args, **kwargs)

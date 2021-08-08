@@ -16,7 +16,10 @@ import numpy as np
 
 from pandas._config import get_option
 
-from pandas._libs import NaT
+from pandas._libs import (
+    NaT,
+    lib,
+)
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -225,6 +228,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
+            if left.dtype == object:
+                left = lib.maybe_convert_objects(left)
+                right = lib.maybe_convert_objects(right)
             closed = closed or infer_closed
 
         return cls._simple_new(
