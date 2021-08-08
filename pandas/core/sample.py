@@ -63,7 +63,11 @@ def preprocess_weights(obj: FrameOrSeries, weights, axis: int) -> np.ndarray:
     if (weights < 0).any():
         raise ValueError("weight vector many not include negative values")
 
-    weights[np.isnan(weights)] = 0
+    missing = np.isnan(weights)
+    if missing.any():
+        # Don't modify weights in place
+        weights = weights.copy()
+        weights[missing] = 0
     return weights
 
 
