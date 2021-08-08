@@ -713,24 +713,61 @@ def test_encoding_mmap(memory_map):
 
 
 @pytest.mark.parametrize(
-    "colspecs, names, widths",
+    "colspecs, names, widths, index_col, msg",
     [
-        ([(0, 6), (6, 12), (12, 18), (18, None)], list("abcde"), None),
-        (None, list("abcde"), [6] * 4),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            None,
+            "Length of colspecs must match length of names",
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            None,
+            "Length of colspecs must match length of names",
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            True,
+            "The value of index_col couldn't be 'True'",
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            False,
+            "Length of colspecs must match length of names",
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            True,
+            "The value of index_col couldn't be 'True'",
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            False,
+            "Length of colspecs must match length of names",
+        ),
     ],
 )
-def test_len_colspecs_len_names(colspecs, names, widths):
+def test_len_colspecs_len_names(colspecs, names, widths, index_col, msg):
     # GH#40830
     data = """col1  col2  col3  col4
     bab   ba    2"""
-    msg = "Length of colspecs must match length of names"
     with pytest.raises(ValueError, match=msg):
-        read_fwf(StringIO(data), colspecs=colspecs, names=names, widths=widths)
-
-
-def test_index_col_True():
-    data = """col1  col2  col3  col4
-    bab   ba    2"""
-    msg = "The value of index_col couldn't be 'True'"
-    with pytest.raises(ValueError, match=msg):
-        read_fwf(StringIO(data), index_col=True)
+        read_fwf(
+            StringIO(data),
+            colspecs=colspecs,
+            names=names,
+            widths=widths,
+            index_col=index_col,
+        )

@@ -765,7 +765,9 @@ def read_fwf(
             len_index = 0
             if kwds.get("index_col") is not None:
                 index_col = kwds.get("index_col")
-                if isinstance(index_col, (int, str)):
+                if index_col is True:
+                    raise ValueError("The value of index_col couldn't be 'True'")
+                elif isinstance(index_col, (int, str)):
                     len_index = 1
                 elif index_col is False:
                     len_index = 0
