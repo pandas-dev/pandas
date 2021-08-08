@@ -162,6 +162,7 @@ Deprecations
 - Deprecated ignoring missing labels when indexing with a sequence of labels on a level of a MultiIndex (:issue:`42351`)
 - Creating an empty Series without a dtype will now raise a more visible ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`30017`)
 - Deprecated the 'kind' argument in :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer`, :meth:`Index.slice_locs`; in a future version passing 'kind' will raise (:issue:`42857`)
+- Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 -
 
 .. ---------------------------------------------------------------------------
