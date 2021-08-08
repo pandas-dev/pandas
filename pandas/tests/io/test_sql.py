@@ -25,7 +25,6 @@ from datetime import (
 )
 from io import StringIO
 import sqlite3
-import warnings
 
 import numpy as np
 import pytest
@@ -875,7 +874,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # see #6921
         df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
-        with tm.assert_produces_warning(UserWarning):
+        with pytest.warns(UserWarning):
             df.to_sql("test_timedelta", self.conn)
         result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
         tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
@@ -1155,14 +1154,9 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         qry = """CREATE TABLE other_table (x INTEGER, y INTEGER);"""
         self.conn.execute(qry)
 
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            # Trigger a warning.
+        with pytest.warns(None):
             sql.read_sql_table("other_table", self.conn)
             sql.read_sql_query("SELECT * FROM other_table", self.conn)
-            # Verify some things
-            assert len(w) == 0
 
     def test_warning_case_insensitive_table_name(self):
         # see gh-7815
@@ -1170,13 +1164,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # We can't test that this warning is triggered, a the database
         # configuration would have to be altered. But here we test that
         # the warning is certainly NOT triggered in a normal case.
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            # This should not trigger a Warning
+        with pytest.warns(None):
             self.test_frame1.to_sql("CaseSensitive", self.conn)
-            # Verify some things
-            assert len(w) == 0
 
     def _get_index_columns(self, tbl_name):
         from sqlalchemy.engine import reflection
@@ -1388,7 +1377,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         # GH 6798
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b "])  # has a space
         # warns on create table with spaces in names
-        with tm.assert_produces_warning():
+        with pytest.warns(UserWarning):
             sql.to_sql(df, "test_frame3_legacy", self.conn, index=False)
 
     def test_get_schema2(self):
@@ -2155,10 +2144,8 @@ class _TestSQLiteAlchemy:
         df = DataFrame({"a": [1, 2]}, dtype="int64")
         df.to_sql("test_bigintwarning", self.conn, index=False)
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        with pytest.warns(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
-            assert len(w) == 0
 
 
 class _TestMySQLAlchemy:
@@ -2731,7 +2718,7 @@ class TestXSQLite:
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with tm.external_error_raised(sqlite3.ProgrammingError):
+        with pytest.raises(sqlite3.ProgrammingError):
             tquery("select * from test", con=self.conn)
 
     def test_keyword_as_column_names(self):
