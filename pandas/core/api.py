@@ -57,6 +57,7 @@ from pandas.core.indexes.api import (
     Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,

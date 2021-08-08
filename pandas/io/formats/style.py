@@ -24,6 +24,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeries,
     IndexLabel,
+    Level,
     Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -748,7 +749,9 @@ class Styler(StylerRenderer):
             self.data.columns = RangeIndex(stop=len(self.data.columns))
             numeric_cols = self.data._get_numeric_data().columns.to_list()
             self.data.columns = _original_columns
-            column_format = "" if self.hide_index_ else "l" * self.data.index.nlevels
+            column_format = ""
+            for level in range(self.index.nlevels):
+                column_format += "" if self.hide_index_[level] else "l"
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
                     column_format += (
@@ -1531,24 +1534,24 @@ class Styler(StylerRenderer):
         may produce strange behaviour due to CSS controls with missing elements.
         """
         if axis in [0, "index"]:
-            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            axis, obj = 0, self.data.index
             pixel_size = 75 if not pixel_size else pixel_size
         elif axis in [1, "columns"]:
-            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            axis, obj = 1, self.data.columns
             pixel_size = 25 if not pixel_size else pixel_size
         else:
             raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
 
+        props = "position:sticky; background-color:white;"
         if not isinstance(obj, pd.MultiIndex):
             # handling MultiIndexes requires different CSS
-            props = "position:sticky; background-color:white;"
 
             if axis == 1:
                 # stick the first <tr> of <head> and, if index names, the second <tr>
                 # if self._hide_columns then no <thead><tr> here will exist: no conflict
                 styles: CSSStyles = [
                     {
-                        "selector": "thead tr:first-child",
+                        "selector": "thead tr:nth-child(1) th",
                         "props": props + "top:0px; z-index:2;",
                     }
                 ]
@@ -1558,7 +1561,7 @@ class Styler(StylerRenderer):
                     )
                     styles.append(
                         {
-                            "selector": "thead tr:nth-child(2)",
+                            "selector": "thead tr:nth-child(2) th",
                             "props": props
                             + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
                         }
@@ -1569,34 +1572,67 @@ class Styler(StylerRenderer):
                 # but <th> will exist in <thead>: conflict with initial element
                 styles = [
                     {
-                        "selector": "tr th:first-child",
+                        "selector": "thead tr th:nth-child(1)",
+                        "props": props + "left:0px; z-index:3 !important;",
+                    },
+                    {
+                        "selector": "tbody tr th:nth-child(1)",
                         "props": props + "left:0px; z-index:1;",
-                    }
+                    },
                 ]
 
-            return self.set_table_styles(styles, overwrite=False)
-
         else:
+            # handle the MultiIndex case
             range_idx = list(range(obj.nlevels))
+            levels = sorted(levels) if levels else range_idx
 
-        levels = sorted(levels) if levels else range_idx
-        for i, level in enumerate(levels):
-            self.set_table_styles(
-                [
-                    {
-                        "selector": f"{tag} th.level{level}",
-                        "props": f"position: sticky; "
-                        f"{pos}: {i * pixel_size}px; "
-                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
-                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
-                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
-                        f"background-color: white;",
-                    }
-                ],
-                overwrite=False,
-            )
+            if axis == 1:
+                styles = []
+                for i, level in enumerate(levels):
+                    styles.append(
+                        {
+                            "selector": f"thead tr:nth-child({level+1}) th",
+                            "props": props
+                            + (
+                                f"top:{i * pixel_size}px; height:{pixel_size}px; "
+                                "z-index:2;"
+                            ),
+                        }
+                    )
+                if not all(name is None for name in self.index.names):
+                    styles.append(
+                        {
+                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
+                            "props": props
+                            + (
+                                f"top:{(i+1) * pixel_size}px; height:{pixel_size}px; "
+                                "z-index:2;"
+                            ),
+                        }
+                    )
 
-        return self
+            else:
+                styles = []
+                for i, level in enumerate(levels):
+                    props_ = props + (
+                        f"left:{i * pixel_size}px; "
+                        f"min-width:{pixel_size}px; "
+                        f"max-width:{pixel_size}px; "
+                    )
+                    styles.extend(
+                        [
+                            {
+                                "selector": f"thead tr th:nth-child({level+1})",
+                                "props": props_ + "z-index:3 !important;",
+                            },
+                            {
+                                "selector": f"tbody tr th.level{level}",
+                                "props": props_ + "z-index:1;",
+                            },
+                        ]
+                    )
+
+        return self.set_table_styles(styles, overwrite=False)
 
     def set_table_styles(
         self,
@@ -1746,14 +1782,18 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self, subset: Subset | None = None) -> Styler:
+    def hide_index(
+        self,
+        subset: Subset | None = None,
+        levels: Level | list[Level] | None = None,
+    ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
 
         This method has dual functionality:
 
-          - if ``subset`` is ``None`` then the entire index will be hidden whilst
-            displaying all data-rows.
+          - if ``subset`` is ``None`` then the entire index, or specified levels, will
+            be hidden whilst displaying all data-rows.
           - if a ``subset`` is given then those specific rows will be hidden whilst the
             index itself remains visible.
 
@@ -1765,6 +1805,11 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the index axis within
             `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
             the function.
+        levels : int, str, list
+            The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
+            used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1814,9 +1859,43 @@ class Styler(StylerRenderer):
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
         -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Hide a specific level:
+
+        >>> df.style.format("{:,.1f").hide_index(levels=1)  # doctest: +SKIP
+                             x                    y
+               a      b      c      a      b      c
+        x    0.1    0.0    0.4    1.3    0.6   -1.4
+             0.7    1.0    1.3    1.5   -0.0   -0.2
+             1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            -0.6    1.2    1.8    1.9    0.3    0.3
+             0.8    0.5   -0.3    1.2    2.2   -0.8
         """
+        if levels is not None and subset is not None:
+            raise ValueError("`subset` and `levels` cannot be passed simultaneously")
+
         if subset is None:
-            self.hide_index_ = True
+            if levels is None:
+                levels_: list[Level] = list(range(self.index.nlevels))
+            elif isinstance(levels, int):
+                levels_ = [levels]
+            elif isinstance(levels, str):
+                levels_ = [self.index._get_level_number(levels)]
+            elif isinstance(levels, list):
+                levels_ = [
+                    self.index._get_level_number(lev)
+                    if not isinstance(lev, int)
+                    else lev
+                    for lev in levels
+                ]
+            else:
+                raise ValueError(
+                    "`levels` must be of type `int`, `str` or list of such"
+                )
+            self.hide_index_ = [
+                True if lev in levels_ else False for lev in range(self.index.nlevels)
+            ]
         else:
             subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
