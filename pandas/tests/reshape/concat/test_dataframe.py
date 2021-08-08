@@ -192,3 +192,16 @@ class TestDataFrameConcat:
         expected = DataFrame(data=data, index=mi)
         tm.assert_frame_equal(result, expected)
         tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))
+
+    @pytest.mark.parametrize("ignore_index", [True, False])
+    @pytest.mark.parametrize("order", ["C", "F"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_concat_copies(self, axis, order, ignore_index):
+        # based on asv ConcatDataFrames
+        df = DataFrame(np.zeros((10000, 200), dtype=np.float32, order=order))
+
+        res = concat([df] * 5, axis=axis, ignore_index=ignore_index, copy=True)
+
+        for arr in res._iter_column_arrays():
+            for arr2 in df._iter_column_arrays():
+                assert not np.shares_memory(arr, arr2)
