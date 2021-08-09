@@ -32,10 +32,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Looking for unwanted patterns
-      run: ci/code_checks.sh patterns
-      if: always()
-
     - name: Cache conda
       uses: actions/cache@v2
       with:
