@@ -1770,7 +1770,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         )
         assert result == expected
 
-    def to_json_series_of_objects(self):
+    def test_to_json_series_of_objects(self):
         class _TestObject:
             def __init__(self, a, b, _c, d):
                 self.a = a
