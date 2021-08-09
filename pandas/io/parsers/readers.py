@@ -765,16 +765,11 @@ def read_fwf(
             len_index = 0
             if kwds.get("index_col") is not None:
                 index_col = kwds.get("index_col")
-                if index_col is True:
-                    raise ValueError("The value of index_col couldn't be 'True'")
-                elif isinstance(index_col, (int, str)):
-                    len_index = 1
-                elif index_col is False:
-                    len_index = 0
-                else:
-                    # error: Argument 1 to "len" has incompatible type
-                    # "Optional[Any]"; expected "Sized"  [arg-type]
-                    len_index = len(index_col)  # type: ignore[arg-type]
+                if index_col is not False:
+                    if not is_list_like(index_col):
+                        len_index = 1
+                    else:
+                        len_index = len(index_col)
             if len(names) + len_index != len(colspecs):
                 raise ValueError("Length of colspecs must match length of names")
 
