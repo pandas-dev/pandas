@@ -309,6 +309,7 @@ def test_tab_completion(mframe):
         "rank",
         "cumprod",
         "tail",
+        "iloc",
         "resample",
         "cummin",
         "fillna",
