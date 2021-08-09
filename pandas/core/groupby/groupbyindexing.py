@@ -27,9 +27,9 @@ class GroupByIndexingMixin:
         - An integer, e.g. ``5``.
         - A list or array of integers, e.g. ``[4, 3, 0]``.
         - A slice object with ints, e.g. ``1:7``.
-    
+
         Allowed inputs for the second index are as for DataFrame.iloc, namely:
-    
+
         - An integer, e.g. ``5``.
         - A list or array of integers, e.g. ``[4, 3, 0]``.
         - A slice object with ints, e.g. ``1:7``.
@@ -47,7 +47,7 @@ class GroupByIndexingMixin:
         Supose that we have a multi-indexed DataFrame with a large primary index and a secondary sorted
         to a different order for each primary.
         To reduce the DataFrame to a middle slice of each secondary, group by the primary and then
-        use iloc. 
+        use iloc.
         This preserves the original DataFrame's order and indexing.
         (See tests/groupby/test_groupby_iloc)
 
@@ -81,10 +81,10 @@ class _ilocGroupByIndexer:
 
         if type(arg) == tuple:
             return self._handle_item(arg[0], arg[1])
-        
+
         else:
             return self._handle_item(arg, None)
-    
+
     def _handle_item(self, arg0, arg1):
         typeof_arg = type(arg0)
 
@@ -114,7 +114,6 @@ class _ilocGroupByIndexer:
 
 
     def _handle_slice(self, start, stop, step, arg1):
-
         mask = None
         if step is None:
             step = 1
@@ -137,7 +136,7 @@ class _ilocGroupByIndexer:
 
                 if step > 1:
                     #
-                    # if start is -ve and -start excedes the length of a group 
+                    # if start is -ve and -start excedes the length of a group
                     # then step must count from the
                     # first row of that group rather than the calculated offset
                     #
@@ -147,7 +146,7 @@ class _ilocGroupByIndexer:
                     #  -start excedes the group size
                     #
                     offset_array = self._descending_count + start + 1
-                    limit_array = (self._ascending_count + self._descending_count  + (start + 1)) < 0
+                    limit_array = (self._ascending_count + self._descending_count + (start + 1)) < 0
                     offset_array = np.where(
                         limit_array, self._ascending_count, offset_array
                     )

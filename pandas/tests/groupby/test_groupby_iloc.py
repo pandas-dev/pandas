@@ -68,7 +68,7 @@ def test_against_head_and_tail():
     data = {
         'group': [f'group {g}' for j in range(n_rows_per_group) for g in range(n_groups)],
         'value': [
-            random.randint(0, 10000)/100 for j in range(n_rows_per_group) for g in range(n_groups)
+            random.randint(0, 10000) / 100 for j in range(n_rows_per_group) for g in range(n_groups)
         ]
     }
     df = pd.DataFrame(data)
@@ -142,3 +142,4 @@ def test_step():
         expected = pd.DataFrame(data, columns=['A', 'B'], index=index)
 
         tm.assert_frame_equal(result, expected)
+        
