@@ -213,22 +213,3 @@ class TestDataFrame2:
 
         with pytest.raises(TypeError, match=msg):
             ts.fillna(0, in_place=True)
-
-    def test_fillna_with_columns_and_limit(self):
-        # 40989
-        df = DataFrame(
-            [
-                [np.nan, 2, np.nan, 0],
-                [3, 4, np.nan, 1],
-                [np.nan, np.nan, np.nan, 5],
-                [np.nan, 3, np.nan, 4],
-            ],
-            columns=list("ABCD"),
-        )
-
-        msg = "If limit is specified, values can only be filled along the index axis"
-        with pytest.raises(NotImplementedError, match=msg):
-            df.fillna(axis="columns", value=100, limit=2)
-
-        with pytest.raises(NotImplementedError, match=msg):
-            df.fillna(axis=1, value=100, limit=1)
