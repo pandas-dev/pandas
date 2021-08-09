@@ -463,7 +463,8 @@ class DataFrame(NDFrame, OpsMixin):
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order.
+        data is a dict, column order follows insertion-order. If dict contain Series
+        which has an index defined, it is aligned by its index.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
@@ -518,11 +519,22 @@ class DataFrame(NDFrame, OpsMixin):
     col2    int8
     dtype: object
 
+    Constructing DataFrame from a dictionary including Series.
+
+    >>> d = {'col1': [1, 2, 3, 4], 'col2': pd.Series([3, 4], index=[3, 4])}
+    >>> df2 = pd.DataFrame(data=d, index=[1, 2, 3, 4])
+    >>> df2
+       col1  col2
+    1     1   NaN
+    2     2   NaN
+    3     3     3
+    4     4     4
+
     Constructing DataFrame from numpy ndarray:
 
-    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    >>> df3 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
     ...                    columns=['a', 'b', 'c'])
-    >>> df2
+    >>> df3
        a  b  c
     0  1  2  3
     1  4  5  6
@@ -532,9 +544,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     >>> data = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
     ...                 dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
-    >>> df3 = pd.DataFrame(data, columns=['c', 'a'])
+    >>> df4 = pd.DataFrame(data, columns=['c', 'a'])
     ...
-    >>> df3
+    >>> df4
        c  a
     0  3  1
     1  6  4
