@@ -125,6 +125,7 @@ groupby_other_methods = frozenset(
         "groups",
         "head",
         "hist",
+        "iloc",
         "indices",
         "ndim",
         "ngroups",
