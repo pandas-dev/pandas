@@ -1249,7 +1249,7 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: int | str = 0,
-        levels: list[int] | int | None = None,
+        level: Level | list[Level] | None = None,
         method: str = "apply",
         **kwargs,
     ) -> Styler:
@@ -1262,11 +1262,8 @@ class Styler(StylerRenderer):
                 f"`axis` must be one of 0, 1, 'index', 'columns', got {axis}"
             )
 
-        if isinstance(obj, pd.MultiIndex) and levels is not None:
-            levels = [levels] if isinstance(levels, int) else levels
-            data = DataFrame(obj.to_list()).loc[:, levels]
-        else:
-            data = DataFrame(obj.to_list())
+        levels_ = _refactor_levels(level, obj)
+        data = DataFrame(obj.to_list()).loc[:, levels_]
 
         if method == "apply":
             result = data.apply(func, axis=0, **kwargs)
@@ -1293,7 +1290,7 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: int | str = 0,
-        levels: list[int] | int | None = None,
+        level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
         """
@@ -1309,7 +1306,7 @@ class Styler(StylerRenderer):
             ``func`` should {func}.
         axis : {axis}
             The headers over which to apply the function.
-        levels : int, list of ints, optional
+        level : int, str, list, optional
             If index is MultiIndex the level(s) over which to apply the function.
         **kwargs : dict
             Pass along to ``func``.
@@ -1347,7 +1344,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.{this}_index(highlight_x, axis="columns", levels=[0, 2])
+        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
         ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/appmaphead2.png
@@ -1355,7 +1352,7 @@ class Styler(StylerRenderer):
         self._todo.append(
             (
                 lambda instance: getattr(instance, "_apply_index"),
-                (func, axis, levels, "apply"),
+                (func, axis, level, "apply"),
                 kwargs,
             )
         )
@@ -1379,13 +1376,13 @@ class Styler(StylerRenderer):
         self,
         func: Callable[..., Styler],
         axis: int | str = 0,
-        levels: list[int] | int | None = None,
+        level: Level | list[Level] | None = None,
         **kwargs,
     ) -> Styler:
         self._todo.append(
             (
                 lambda instance: getattr(instance, "_apply_index"),
-                (func, axis, levels, "applymap"),
+                (func, axis, level, "applymap"),
                 kwargs,
             )
         )
