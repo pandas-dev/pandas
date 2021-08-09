@@ -27,9 +27,9 @@ class GroupByIndexingMixin:
         - An integer, e.g. ``5``.
         - A list or array of integers, e.g. ``[4, 3, 0]``.
         - A slice object with ints, e.g. ``1:7``.
-        
+    
         Allowed inputs for the second index are as for DataFrame.iloc, namely:
-        
+    
         - An integer, e.g. ``5``.
         - A list or array of integers, e.g. ``[4, 3, 0]``.
         - A slice object with ints, e.g. ``1:7``.
@@ -67,22 +67,23 @@ class GroupByIndexingMixin:
         """
         return _ilocGroupByIndexer(self)
 
+
 @doc(GroupByIndexingMixin.iloc)
 class _ilocGroupByIndexer:
     def __init__(self, grouped):
-         self.grouped = grouped
-         self.reversed = False
-         self._cached_ascending_count = None
-         self._cached_descending_count = None
+        self.grouped = grouped
+        self.reversed = False
+        self._cached_ascending_count = None
+        self._cached_descending_count = None
 
     def __getitem__(self, arg):
         self.reversed = False
 
         if type(arg) == tuple:
-           return self._handle_item(arg[0], arg[1])
+            return self._handle_item(arg[0], arg[1])
         
         else:
-           return self._handle_item(arg, None)
+            return self._handle_item(arg, None)
     
     def _handle_item(self, arg0, arg1):
         typeof_arg = type(arg0)
@@ -92,10 +93,10 @@ class _ilocGroupByIndexer:
             stop = arg0.stop
             step = arg0.step
 
-            if not step is None and step < 0:
+            if step is not None and step < 0:
                 raise ValueError(
-                        f'GroupBy.iloc row slice step must be positive. Slice was {start}:{stop}:{step}'
-                    )
+                    f'GroupBy.iloc row slice step must be positive. Slice was {start}:{stop}:{step}'
+                )
                 # self.reversed = True
                 # start = None if start is None else -start - 1
                 # stop = None if stop is None else -stop - 1
@@ -115,8 +116,8 @@ class _ilocGroupByIndexer:
     def _handle_slice(self, start, stop, step, arg1):
 
         mask = None
-        if step == None:
-            step = 1 
+        if step is None:
+            step = 1
 
         self.grouped._reset_group_selection()
 
@@ -127,7 +128,7 @@ class _ilocGroupByIndexer:
         else:
             if start >= 0:
                 mask = self._ascending_count >= start
-            
+
                 if step > 1:
                     mask &= (self._ascending_count - start) % step == 0
 
@@ -136,29 +137,34 @@ class _ilocGroupByIndexer:
 
                 if step > 1:
                     #
-                    # if start is -ve and -start excedes the length of a group then step must count from the
+                    # if start is -ve and -start excedes the length of a group 
+                    # then step must count from the
                     # first row of that group rather than the calculated offset
                     #
-                    # count_array + reverse_array gives the length of the current group enabling to switch between
-                    # the offset_array and the count_array depening on whether -start excedes the group size
+                    # count_array + reverse_array gives the length of the
+                    # current group enabling to switch between
+                    # the offset_array and the count_array depening on whether
+                    #  -start excedes the group size
                     #
                     offset_array = self._descending_count + start + 1
                     limit_array = (self._ascending_count + self._descending_count  + (start + 1)) < 0
-                    offset_array = np.where(limit_array, self._ascending_count, offset_array)
+                    offset_array = np.where(
+                        limit_array, self._ascending_count, offset_array
+                    )
 
                     mask &= offset_array % step == 0
 
-        if not stop is None:
+        if stop is not None:
             if stop >= 0:
                 if mask is None:
                     mask = self._ascending_count < stop
-    
+
                 else:
                     mask &= self._ascending_count < stop
             else:
                 if mask is None:
                     mask = self._descending_count >= -stop
-    
+
                 else:
                     mask &= self._descending_count >= -stop
 
@@ -186,7 +192,9 @@ class _ilocGroupByIndexer:
     @property
     def _descending_count(self):
         if self._cached_descending_count is None:
-            self._cached_descending_count = self.grouped._cumcount_array(ascending=False)
+            self._cached_descending_count = self.grouped._cumcount_array(
+                ascending=False
+            )
             if self.reversed:
                 self._cached_descending_count = self._cached_descending_count[::-1]
 
