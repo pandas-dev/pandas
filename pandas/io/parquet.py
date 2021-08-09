@@ -309,7 +309,7 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
-        parquet_kwargs = {}
+        parquet_kwargs: dict[bool, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         if Version(self.api.__version__) >= Version("0.7.1"):
             # We are disabling nullable dtypes for fastparquet pending discussion
