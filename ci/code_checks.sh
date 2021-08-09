@@ -11,14 +11,13 @@
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
 #   $ ./ci/code_checks.sh lint          # run linting only
-#   $ ./ci/code_checks.sh patterns      # check for patterns that should not exist
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "patterns" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|patterns|code|doctests|docstrings|typing]"; exit 9999; }
+[[ -z "$1" || "$1" == "lint" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+    { echo "Unknown command $1. Usage: $0 [lint|code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -58,28 +57,6 @@ if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
 
 fi
 
-### PATTERNS ###
-if [[ -z "$CHECK" || "$CHECK" == "patterns" ]]; then
-
-    # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
-    MSG='Check for invalid EA testing' ; echo $MSG
-    invgrep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for deprecated messages without sphinx directive' ; echo $MSG
-    invgrep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for backticks incorrectly rendering because of missing spaces' ; echo $MSG
-    invgrep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Check for unnecessary random seeds in asv benchmarks' ; echo $MSG
-    invgrep -R --exclude pandas_vb_common.py -E 'np.random.seed' asv_bench/benchmarks/
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-fi
-
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
@@ -107,44 +84,23 @@ fi
 ### DOCTESTS ###
 if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
-    MSG='Doctests for individual files' ; echo $MSG
-    pytest -q --doctest-modules \
-      pandas/core/accessor.py \
-      pandas/core/aggregation.py \
-      pandas/core/algorithms.py \
-      pandas/core/base.py \
-      pandas/core/construction.py \
-      pandas/core/frame.py \
-      pandas/core/generic.py \
-      pandas/core/indexers.py \
-      pandas/core/nanops.py \
-      pandas/core/series.py \
-      pandas/io/sql.py
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Doctests for directories' ; echo $MSG
-    pytest -q --doctest-modules \
+    MSG='Doctests' ; echo $MSG
+    python -m pytest --doctest-modules \
       pandas/_libs/ \
       pandas/api/ \
       pandas/arrays/ \
       pandas/compat/ \
-      pandas/core/array_algos/ \
-      pandas/core/arrays/ \
-      pandas/core/computation/ \
-      pandas/core/dtypes/ \
-      pandas/core/groupby/ \
-      pandas/core/indexes/ \
-      pandas/core/ops/ \
-      pandas/core/reshape/ \
-      pandas/core/strings/ \
-      pandas/core/tools/ \
-      pandas/core/window/ \
+      pandas/core \
       pandas/errors/ \
       pandas/io/clipboard/ \
       pandas/io/json/ \
       pandas/io/excel/ \
       pandas/io/parsers/ \
       pandas/io/sas/ \
+      pandas/io/sql.py \
+      pandas/io/formats/format.py \
+      pandas/io/formats/style.py \
+      pandas/io/stata.py \
       pandas/tseries/
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

@@ -94,12 +94,15 @@ def _concatenate_array_managers(
             concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
-        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
     else:
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+        if copy:
+            arrays = [x.copy() for x in arrays]
+
+    new_mgr = ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+    return new_mgr
 
 
 def concat_arrays(to_concat: list) -> ArrayLike:
@@ -672,6 +675,7 @@ def _combine_concat_plans(plans, concat_axis: int):
                 offset += last_plc.as_slice.stop
 
     else:
+        # singleton list so we can modify it as a side-effect within _next_or_none
         num_ended = [0]
 
         def _next_or_none(seq):

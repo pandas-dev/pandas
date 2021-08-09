@@ -12,6 +12,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    TypedDict,
     Union,
 )
 from uuid import uuid4
@@ -21,7 +22,6 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
-from pandas._typing import TypedDict
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -97,7 +97,7 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
-        self.hide_index_: bool = False  # bools for hiding col/row headers
+        self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: bool = False
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
@@ -305,9 +305,10 @@ class StylerRenderer:
         # 1) column headers
         if not self.hide_columns_:
             for r in range(self.data.columns.nlevels):
-                index_blanks = [
-                    _element("th", blank_class, blank_value, not self.hide_index_)
-                ] * (self.data.index.nlevels - 1)
+                # number of index blanks is governed by number of hidden index levels
+                index_blanks = [_element("th", blank_class, blank_value, True)] * (
+                    self.index.nlevels - sum(self.hide_index_) - 1
+                )
 
                 name = self.data.columns.names[r]
                 column_name = [
@@ -315,7 +316,7 @@ class StylerRenderer:
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
                         name if name is not None else blank_value,
-                        not self.hide_index_,
+                        not all(self.hide_index_),
                     )
                 ]
 
@@ -352,14 +353,15 @@ class StylerRenderer:
         if (
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
-            and not self.hide_index_
+            and not all(self.hide_index_)
+            and not self.hide_columns_
         ):
             index_names = [
                 _element(
                     "th",
                     f"{index_name_class} level{c}",
                     blank_value if name is None else name,
-                    True,
+                    not self.hide_index_[c],
                 )
                 for c, name in enumerate(self.data.index.names)
             ]
@@ -434,7 +436,7 @@ class StylerRenderer:
                         "th",
                         f"{row_heading_class} level{c} {trimmed_row_class}",
                         "...",
-                        not self.hide_index_,
+                        not self.hide_index_[c],
                         attributes="",
                     )
                     for c in range(self.data.index.nlevels)
@@ -471,7 +473,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hide_index_),
+                    (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
                     id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -536,7 +538,7 @@ class StylerRenderer:
         d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
         body = []
         for r, row in enumerate(d["body"]):
-            if self.hide_index_:
+            if all(self.hide_index_):
                 row_body_headers = []
             else:
                 row_body_headers = [
@@ -646,14 +648,14 @@ class StylerRenderer:
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
         >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
-        >>> df.style.format(na_rep='MISS', precision=3)
+        >>> df.style.format(na_rep='MISS', precision=3)  # doctest: +SKIP
                 0       1       2
         0    MISS   1.000       A
         1   2.000    MISS   3.000
 
         Using a ``formatter`` specification on consistent column dtypes
 
-        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])  # doctest: +SKIP
                 0      1          2
         0    MISS   1.00          A
         1    2.00   MISS   3.000000
@@ -661,6 +663,7 @@ class StylerRenderer:
         Using the default ``formatter`` for unspecified columns
 
         >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+        ...  # doctest: +SKIP
                  0      1     2
         0    MISS   £ 1.0     A
         1    2.00    MISS   3.0
@@ -669,7 +672,7 @@ class StylerRenderer:
         ``formatter``.
 
         >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
                 0      1      2
         0    MISS   1.00      A
         1     2.0   PASS   3.00
@@ -678,6 +681,7 @@ class StylerRenderer:
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
         >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+        ...  # doctest: +SKIP
                 0        1        2
         0    MISS   1.0000   STRING
         1     2.0     MISS    FLOAT
@@ -688,7 +692,7 @@ class StylerRenderer:
         >>> s = df.style.format(
         ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
         ...     )
-        >>> s.render()
+        >>> s.render()  # doctest: +SKIP
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
@@ -698,7 +702,8 @@ class StylerRenderer:
         Using a ``formatter`` with LaTeX ``escape``.
 
         >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
-        >>> s = df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        ...  # doctest: +SKIP
         \begin{tabular}{ll}
         {} & {0} \\
         0 & \textbf{123} \\
@@ -1251,7 +1256,7 @@ def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | N
 
     Examples
     --------
-    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')],
+    >>> table_styles = [{'selector': 'foo', 'props': [('attr','value')]},
     ...                 {'selector': 'bar', 'props': [('attr', 'overwritten')]},
     ...                 {'selector': 'bar', 'props': [('a1', 'baz'), ('a2', 'ignore')]}]
     >>> _parse_latex_table_styles(table_styles, selector='bar')
@@ -1334,9 +1339,9 @@ def _parse_latex_header_span(
 
     Examples
     --------
-    >>> cell = {'display_vale':'text', 'attributes': 'colspan="3"'}
+    >>> cell = {'display_value':'text', 'attributes': 'colspan="3"'}
     >>> _parse_latex_header_span(cell, 't', 'c')
-    '\multicol{3}{c}{text}'
+    '\\multicolumn{3}{c}{text}'
     """
     if "attributes" in cell:
         attrs = cell["attributes"]

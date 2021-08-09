@@ -6,6 +6,7 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
+    option_context,
 )
 
 jinja2 = pytest.importorskip("jinja2")
@@ -272,17 +273,41 @@ def test_caption_as_sequence(styler):
 
 @pytest.mark.parametrize("index", [False, True])
 @pytest.mark.parametrize("columns", [False, True])
-def test_sticky_basic(styler, index, columns):
+@pytest.mark.parametrize("index_name", [True, False])
+def test_sticky_basic(styler, index, columns, index_name):
+    if index_name:
+        styler.index.name = "some text"
     if index:
         styler.set_sticky(axis=0)
     if columns:
         styler.set_sticky(axis=1)
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: 0px;\n  z-index: {1};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  z-index: {2};\n{3}}}"
+    )
+
     res = styler.set_uuid("").to_html()
-    cs1 = "tbody th {\n  position: sticky;\n  left: 0px;\n  background-color: white;\n}"
-    assert (cs1 in res) is index
-    cs2 = "thead th {\n  position: sticky;\n  top: 0px;\n  background-color: white;\n}"
-    assert (cs2 in res) is columns
+
+    # test index stickys over thead and tbody
+    assert (left_css.format("thead tr th:nth-child(1)", "3 !important") in res) is index
+    assert (left_css.format("tbody tr th:nth-child(1)", "1") in res) is index
+
+    # test column stickys including if name row
+    assert (
+        top_css.format("thead tr:nth-child(1) th", "0", "2", "  height: 25px;\n") in res
+    ) is (columns and index_name)
+    assert (
+        top_css.format("thead tr:nth-child(2) th", "25", "2", "  height: 25px;\n")
+        in res
+    ) is (columns and index_name)
+    assert (top_css.format("thead tr:nth-child(1) th", "0", "2", "") in res) is (
+        columns and not index_name
+    )
 
 
 @pytest.mark.parametrize("index", [False, True])
@@ -293,73 +318,30 @@ def test_sticky_mi(styler_mi, index, columns):
     if columns:
         styler_mi.set_sticky(axis=1)
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
+    )
+
     res = styler_mi.set_uuid("").to_html()
+
+    # test the index stickys for thead and tbody over both levels
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level0 {
-          position: sticky;
-          left: 0px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
+        left_css.format("thead tr th:nth-child(1)", "0", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level0", "0", "1") in res) is index
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level1 {
-          position: sticky;
-          left: 75px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level0 {
-          position: sticky;
-          top: 0px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level1 {
-          position: sticky;
-          top: 25px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
+        left_css.format("thead tr th:nth-child(2)", "75", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level1", "75", "1") in res) is index
+
+    # test the column stickys for each level row
+    assert (top_css.format("thead tr:nth-child(1) th", "0", "2") in res) is columns
+    assert (top_css.format("thead tr:nth-child(2) th", "25", "2") in res) is columns
 
 
 @pytest.mark.parametrize("index", [False, True])
@@ -370,44 +352,51 @@ def test_sticky_levels(styler_mi, index, columns):
     if columns:
         styler_mi.set_sticky(axis=1, levels=[1])
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
+    )
+
     res = styler_mi.set_uuid("").to_html()
-    assert "#T_ tbody th.level0 {" not in res
-    assert "#T_ thead th.level0 {" not in res
+
+    # test no sticking of level0
+    assert "#T_ thead tr th:nth-child(1)" not in res
+    assert "#T_ tbody tr th.level0" not in res
+    assert "#T_ thead tr:nth-child(1) th" not in res
+
+    # test sticking level1
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level1 {
-          position: sticky;
-          left: 0px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level1 {
-          position: sticky;
-          top: 0px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
+        left_css.format("thead tr th:nth-child(2)", "0", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level1", "0", "1") in res) is index
+    assert (top_css.format("thead tr:nth-child(2) th", "0", "2") in res) is columns
 
 
 def test_sticky_raises(styler):
     with pytest.raises(ValueError, match="`axis` must be"):
         styler.set_sticky(axis="bad")
+
+
+@pytest.mark.parametrize(
+    "sparse_index, sparse_columns",
+    [(True, True), (True, False), (False, True), (False, False)],
+)
+def test_sparse_options(sparse_index, sparse_columns):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=ridx, columns=cidx)
+    styler = df.style
+
+    default_html = styler.to_html()  # defaults under pd.options to (True , True)
+
+    with option_context(
+        "styler.sparse.index", sparse_index, "styler.sparse.columns", sparse_columns
+    ):
+        html1 = styler.to_html()
+        assert (html1 == default_html) is (sparse_index and sparse_columns)
+    html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=sparse_columns)
+    assert html1 == html2
