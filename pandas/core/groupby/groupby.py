@@ -109,6 +109,8 @@ from pandas.core.util.numba_ import (
     maybe_use_numba,
 )
 
+from pandas.core.groupby.groupbyindexing import GroupByIndexingMixin
+
 _common_see_also = """
         See Also
         --------
@@ -565,7 +567,7 @@ _KeysArgType = Union[
 ]
 
 
-class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries]):
+class BaseGroupBy(PandasObject, SelectionMixin[FrameOrSeries], GroupByIndexingMixin):
     _group_selection: IndexLabel | None = None
     _apply_allowlist: frozenset[str] = frozenset()
     _hidden_attrs = PandasObject._hidden_attrs | {
@@ -3412,3 +3414,4 @@ def get_groupby(
         mutated=mutated,
         dropna=dropna,
     )
+
