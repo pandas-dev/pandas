@@ -611,7 +611,7 @@ class TestBasic(Base):
                 "c": pyarrow.array(["a", "b", "c", None]),
                 "d": pyarrow.array([True, False, True, None]),
                 # Test that nullable dtypes used even in absence of nulls
-                "e": pyarrow.array([1,2,3,4], "int64"),
+                "e": pyarrow.array([1, 2, 3, 4], "int64"),
             }
         )
         with tm.ensure_clean() as path:
@@ -627,7 +627,7 @@ class TestBasic(Base):
                 "b": pd.array([1, 2, 3, None], dtype="UInt8"),
                 "c": pd.array(["a", "b", "c", None], dtype="string"),
                 "d": pd.array([True, False, True, None], dtype="boolean"),
-                "e": pd.array([1,2,3,4], dtype="Int64")
+                "e": pd.array([1, 2, 3, 4], dtype="Int64")
             }
         )
         if engine == "fastparquet":
