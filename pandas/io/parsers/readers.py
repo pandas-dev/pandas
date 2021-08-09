@@ -764,7 +764,7 @@ def read_fwf(
             # maybe name of index(s) not present in `names`
             len_index = 0
             if kwds.get("index_col") is not None:
-                index_col = kwds.get("index_col")
+                index_col: Any = kwds.get("index_col")
                 if index_col is not False:
                     if not is_list_like(index_col):
                         len_index = 1
