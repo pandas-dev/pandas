@@ -316,8 +316,8 @@ class FastParquetImpl(BaseImpl):
             parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
-                "The 'use_nullable_dtypes' argument is not supported for the"
-                " fastparquet engine"
+                "The 'use_nullable_dtypes' argument is not supported for the "
+                "fastparquet engine"
             )
         path = stringify_path(path)
         handles = None
