@@ -64,7 +64,7 @@ xlrd
 xlsxwriter
 xlwt
 odfpy
-fastparquet>=0.4.0, <0.7.0
+fastparquet>=0.4.0
 pyarrow>=0.17.0
 python-snappy
 tables>=3.6.1
