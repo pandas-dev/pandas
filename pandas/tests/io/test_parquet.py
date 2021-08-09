@@ -627,7 +627,7 @@ class TestBasic(Base):
                 "b": pd.array([1, 2, 3, None], dtype="UInt8"),
                 "c": pd.array(["a", "b", "c", None], dtype="string"),
                 "d": pd.array([True, False, True, None], dtype="boolean"),
-                "e": pd.array([1, 2, 3, 4], dtype="Int64")
+                "e": pd.array([1, 2, 3, 4], dtype="Int64"),
             }
         )
         if engine == "fastparquet":
