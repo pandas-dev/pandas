@@ -142,4 +142,4 @@ def test_step():
         expected = pd.DataFrame(data, columns=['A', 'B'], index=index)
 
         tm.assert_frame_equal(result, expected)
-        
+    

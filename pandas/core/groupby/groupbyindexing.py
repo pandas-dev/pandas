@@ -112,7 +112,6 @@ class _ilocGroupByIndexer:
                 f'GroupBy.iloc row must be an integer or a slice, not a {typeof_arg}'
             )
 
-
     def _handle_slice(self, start, stop, step, arg1):
         mask = None
         if step is None:
