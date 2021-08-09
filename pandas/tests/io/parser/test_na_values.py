@@ -590,3 +590,17 @@ def test_nan_multi_index(all_parsers):
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_bool_to_float_with_nans(all_parsers):
+    # GH 42808: Ensure that when reading a file of mixed-bools-and-nans to a
+    # float dtype, we get back the correct result.
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    result = parser.read_csv(StringIO(data), dtype="float")
+    expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
+    tm.assert_frame_equal(result, expected)

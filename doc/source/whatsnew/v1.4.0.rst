@@ -260,6 +260,7 @@ I/O
 - Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
 - Bug in :func:`json_normalize` where ``errors=ignore`` could fail to ignore missing values of ``meta`` when ``record_path`` has a length greater than one (:issue:`41876`)
 - Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
+- Bug in :func:`read_csv` where reading a mixed column of booleans and missing values to a float type results in the missing values becoming 1.0 rather than NaN (:issue:`42808`)
 -
 
 Period
