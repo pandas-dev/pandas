@@ -406,9 +406,9 @@ def test_applymap_header_cell_ids(styler, index, columns):
     func = lambda v: "attr: val;"
     styler.uuid, styler.cell_ids = "", False
     if index:
-        styler.applymap_header(func, axis="index")
+        styler.applymap_index(func, axis="index")
     if columns:
-        styler.applymap_header(func, axis="columns")
+        styler.applymap_index(func, axis="columns")
 
     result = styler.to_html()
 

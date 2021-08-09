@@ -1199,8 +1199,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.applymap_header: Apply a CSS-styling function to headers elementwise.
-        Styler.apply_header: Apply a CSS-styling function to headers level-wise.
+        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -1244,7 +1244,7 @@ class Styler(StylerRenderer):
         )
         return self
 
-    def _apply_header(
+    def _apply_index(
         self,
         func: Callable[..., Styler],
         axis: int | str = 0,
@@ -1288,7 +1288,7 @@ class Styler(StylerRenderer):
         ret='np.where(s == "B", "background-color: yellow;", "")',
         ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
     )
-    def apply_header(
+    def apply_index(
         self,
         func: Callable[..., Styler],
         axis: int | str = 0,
@@ -1319,7 +1319,7 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.{alt}_header: Apply a CSS-styling function to headers {altwise}.
+        Styler.{alt}_index: Apply a CSS-styling function to headers {altwise}.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
@@ -1336,7 +1336,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
         >>> def color_b(s):
         ...     return {ret}
-        >>> df.style.{this}_header(color_b)
+        >>> df.style.{this}_index(color_b)
 
         .. figure:: ../../_static/style/appmaphead1.png
 
@@ -1346,13 +1346,13 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([np.arange(8)], columns=midx)
         >>> def highlight_x({var}):
         ...     return {ret2}
-        >>> df.style.{this}_header(highlight_x, axis="columns", levels=[0, 2])
+        >>> df.style.{this}_index(highlight_x, axis="columns", levels=[0, 2])
 
         .. figure:: ../../_static/style/appmaphead2.png
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_header"),
+                lambda instance: getattr(instance, "_apply_index"),
                 (func, axis, levels, "apply"),
                 kwargs,
             )
@@ -1360,7 +1360,7 @@ class Styler(StylerRenderer):
         return self
 
     @doc(
-        apply_header,
+        apply_index,
         this="applymap",
         wise="elementwise",
         alt="apply",
@@ -1373,7 +1373,7 @@ class Styler(StylerRenderer):
         ret='"background-color: yellow;" if v == "B" else None',
         ret2='"background-color: yellow;" if "x" in v else None',
     )
-    def applymap_header(
+    def applymap_index(
         self,
         func: Callable[..., Styler],
         axis: int | str = 0,
@@ -1382,7 +1382,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_header"),
+                lambda instance: getattr(instance, "_apply_index"),
                 (func, axis, levels, "applymap"),
                 kwargs,
             )
@@ -1425,8 +1425,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.applymap_header: Apply a CSS-styling function to headers elementwise.
-        Styler.apply_header: Apply a CSS-styling function to headers level-wise.
+        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes

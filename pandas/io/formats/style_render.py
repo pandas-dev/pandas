@@ -500,7 +500,6 @@ class StylerRenderer:
                     f"{row_heading_class} level{c} row{r}",
                     value,
                     (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
-                    id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1

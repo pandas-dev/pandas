@@ -52,8 +52,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
-    mi_styler.applymap_header(lambda x: "color: white;", axis=0)
-    mi_styler.applymap_header(lambda x: "color: black;", axis=1)
+    mi_styler.applymap_index(lambda x: "color: white;", axis=0)
+    mi_styler.applymap_index(lambda x: "color: black;", axis=1)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
@@ -308,7 +308,7 @@ def test_apply_map_header(method, axis):
     }
 
     # test execution added to todo
-    result = getattr(df.style, f"{method}_header")(func[method], axis=axis)
+    result = getattr(df.style, f"{method}_index")(func[method], axis=axis)
     assert len(result._todo) == 1
     assert len(getattr(result, f"ctx_{axis}")) == 0
 
@@ -328,7 +328,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
         "apply": lambda s: ["attr: val;" if "b" in v else "" for v in s],
         "applymap": lambda v: "attr: val" if "b" in v else "",
     }
-    result = getattr(mi_styler, f"{method}_header")(func[method], axis=axis)._compute()
+    result = getattr(mi_styler, f"{method}_index")(func[method], axis=axis)._compute()
     expected = {(1, 1): [("attr", "val")]}
     assert getattr(result, f"ctx_{axis}") == expected
 
@@ -336,7 +336,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
 def test_apply_map_header_raises(mi_styler):
     # GH 41893
     with pytest.raises(ValueError, match="`axis` must be one of 0, 1, 'index', 'col"):
-        mi_styler.applymap_header(lambda v: "attr: val;", axis="bad-axis")._compute()
+        mi_styler.applymap_index(lambda v: "attr: val;", axis="bad-axis")._compute()
 
 
 class TestStyler:
