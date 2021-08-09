@@ -446,7 +446,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             object.__setattr__(self, "_name", name)
         else:
             self.name = name
-        self._set_axis(0, index, fastpath=True)
+        self._set_axis(0, index, fastpath=fastpath)
 
     def _init_dict(self, data, index=None, dtype: Dtype | None = None):
         """
@@ -545,9 +545,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 ):
                     try:
                         labels = DatetimeIndex(labels)
-                        # need to set here because we changed the index
-                        if fastpath:
-                            self._mgr.set_axis(axis, labels)
                     except (tslibs.OutOfBoundsDatetime, ValueError):
                         # labels may exceeds datetime bounds,
                         # or not be a DatetimeIndex
