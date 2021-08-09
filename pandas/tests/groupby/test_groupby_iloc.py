@@ -40,7 +40,7 @@ def test_multiindex():
 
     data = {}
     for date in dates:
-        levels = [(item, random.randint(0, 10000)/100, random.randint(0, 10000)/100) for item in items]
+        levels = [(item, random.randint(0, 10000) / 100, random.randint(0, 10000) / 100) for item in items]
         levels.sort(key=lambda x: x[1])
         data[date] = levels
 
@@ -76,6 +76,7 @@ def test_against_head_and_tail():
 
         tm.assert_frame_equal(result, expected)
 
+
 def test_against_df_iloc():
     """ Test that a single group gives the same results as DataFame.iloc"""
 
@@ -87,10 +88,9 @@ def test_against_df_iloc():
     }
     df = pd.DataFrame(data)
     grouped = df.groupby('group')
-    
+
     for start in [None, 0, 1, 10, 29, 30, 1000, -1, -10, -29, -30, -1000]:
         for stop in [None, 0, 1, 10, 29, 30, 1000, -1, -10, -29, -30, -1000]:
-   ### Work in progress!        for step in [None, 1, 2, 3, 10, 29, 30, 100, -1, -2, -3, -10, -29, -30. -100]:
             for step in [None, 1, 2, 3, 10, 29, 30, 100]:
                 result = grouped.iloc[start:stop:step, :]
                 expected = df.iloc[start:stop:step, :]

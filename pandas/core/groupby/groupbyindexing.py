@@ -4,6 +4,7 @@ from unittest.mock import PropertyMock
 from pandas.util._decorators import doc
 import numpy as np
 
+
 class GroupByIndexingMixin:
     """
     Mixin for adding .iloc to GroupBy.
@@ -14,12 +15,13 @@ class GroupByIndexingMixin:
         """
         Integer location-based indexing for selection by position per group.
 
-        Similar to ``.apply(lambda x: x.iloc[i:j, k:l])``, but much faster and returns a subset of rows
-        from the original DataFrame with the original index and order preserved.
-        
+        Similar to ``.apply(lambda x: x.iloc[i:j, k:l])``, but much faster and returns
+        a subset of rows from the original DataFrame with the original index and order
+        preserved.
+
         The output is compatible with head() and tail()
         The output is different from take() and nth() which do not preserve the index or order
-        
+
         Allowed inputs for the first index are:
 
         - An integer, e.g. ``5``.
@@ -43,11 +45,12 @@ class GroupByIndexingMixin:
         Use Case
         --------
         Supose that we have a multi-indexed DataFrame with a large primary index and a secondary sorted
-        to a different order for each primary. 
-        To reduce the DataFrame to a middle slice of each secondary, group by the primary and then use iloc. 
+        to a different order for each primary.
+        To reduce the DataFrame to a middle slice of each secondary, group by the primary and then
+        use iloc. 
         This preserves the original DataFrame's order and indexing.
         (See tests/groupby/test_groupby_iloc)
-        
+
         Examples
         --------
         >>> df = pd.DataFrame([['a', 1], ['a', 2], ['a', 3], ['b', 4], ['b', 5]],
