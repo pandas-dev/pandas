@@ -441,7 +441,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = SingleArrayManager.from_array(data, index)
 
         generic.NDFrame.__init__(self, data)
-        self.name = name
+        if fastpath:
+            # skips validation of the name
+            object.__setattr__(self, "_name", name)
+        else:
+            self.name = name
         self._set_axis(0, index, fastpath=True)
 
     def _init_dict(self, data, index=None, dtype: Dtype | None = None):
@@ -531,23 +535,23 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if not fastpath:
             labels = ensure_index(labels)
 
-        if labels._is_all_dates:
-            deep_labels = labels
-            if isinstance(labels, CategoricalIndex):
-                deep_labels = labels.categories
+            if labels._is_all_dates:
+                deep_labels = labels
+                if isinstance(labels, CategoricalIndex):
+                    deep_labels = labels.categories
 
-            if not isinstance(
-                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
-            ):
-                try:
-                    labels = DatetimeIndex(labels)
-                    # need to set here because we changed the index
-                    if fastpath:
-                        self._mgr.set_axis(axis, labels)
-                except (tslibs.OutOfBoundsDatetime, ValueError):
-                    # labels may exceeds datetime bounds,
-                    # or not be a DatetimeIndex
-                    pass
+                if not isinstance(
+                    deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+                ):
+                    try:
+                        labels = DatetimeIndex(labels)
+                        # need to set here because we changed the index
+                        if fastpath:
+                            self._mgr.set_axis(axis, labels)
+                    except (tslibs.OutOfBoundsDatetime, ValueError):
+                        # labels may exceeds datetime bounds,
+                        # or not be a DatetimeIndex
+                        pass
 
         object.__setattr__(self, "_index", labels)
         if not fastpath:
