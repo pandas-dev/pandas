@@ -646,7 +646,7 @@ class Grouping:
             return self._group_index
 
         uniques = self._codes_and_uniques[1]
-        return Index(uniques, name=self.name)
+        return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
