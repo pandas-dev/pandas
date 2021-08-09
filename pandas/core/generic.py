@@ -6155,7 +6155,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             NaN values to forward/backward fill. In other words, if there is
             a gap with more than this number of consecutive NaNs, it will only
             be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire index axis where NaNs will be
+            maximum number of entries along the entire axis where NaNs will be
             filled. Must be greater than 0 if not None.
         downcast : dict, default is None
             A dict of item->dtype of what to downcast if possible,
@@ -6306,20 +6306,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._mgr.fillna(
-                    value=value, limit=limit, inplace=inplace, downcast=downcast
-                )
+                if not self._mgr.is_single_block and axis == 1:
+
+                    result = self.T.fillna(value=value, limit=limit).T
+
+                    # need to downcast here because of all of the transposes
+                    result._mgr = result._mgr.downcast()
+
+                    new_data = result
+                else:
+
+                    new_data = self._mgr.fillna(
+                        value=value, limit=limit, inplace=inplace, downcast=downcast
+                    )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+
                 new_data = self.where(self.notna(), value)._data
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
-
-            if axis == 1 and limit is not None:
-                raise NotImplementedError(
-                    "If limit is specified, "
-                    "values can only be filled "
-                    "along the index axis"
-                )
 
         result = self._constructor(new_data)
         if inplace:
