@@ -309,9 +309,11 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
-        # We are disabling nullable dtypes for fastparquet pending discussion
-        parquet_kwargs = {"pandas_nulls": False}
+        parquet_kwargs = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        if Version(self.api.__version__) >= Version("0.7.1"):
+            # We are disabling nullable dtypes for fastparquet pending discussion
+            parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the"
