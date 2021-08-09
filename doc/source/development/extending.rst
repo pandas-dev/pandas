@@ -106,7 +106,7 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+:class:`pandas.api.extensions.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
 This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
 example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
 
