@@ -1178,7 +1178,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    bint is_datetimelike=False,
                    bint compute_max=True,
                    const uint8_t[:, ::1] mask_in=None,
-                   uint8_t[:, ::1] mask_out=None):
+                   uint8_t[:, ::1] result_mask=None):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
 
@@ -1202,7 +1202,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
     mask_in : ndarray[bool, ndim=2], optional
         If not None, indices represent missing values,
         otherwise the mask will not be used
-    mask_out : ndarray[bool, ndim=2], optional
+    result_mask : ndarray[bool, ndim=2], optional
         If not None, these specify locations in the output that are NA.
         Modified in-place.
 
@@ -1275,7 +1275,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                         break
                     else:
                         if uses_mask:
-                            mask_out[i, j] = True
+                            result_mask[i, j] = True
                         else:
                             out[i, j] = nan_val
                 else:
@@ -1296,7 +1296,7 @@ def group_max(groupby_t[:, ::1] out,
               Py_ssize_t min_count=-1,
               bint is_datetimelike=False,
               const uint8_t[:, ::1] mask=None,
-              uint8_t[:, ::1] mask_out=None) -> None:
+              uint8_t[:, ::1] result_mask=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
         out,
@@ -1307,7 +1307,7 @@ def group_max(groupby_t[:, ::1] out,
         is_datetimelike=is_datetimelike,
         compute_max=True,
         mask_in=mask,
-        mask_out=mask_out,
+        result_mask=result_mask,
     )
 
 
@@ -1320,7 +1320,7 @@ def group_min(groupby_t[:, ::1] out,
               Py_ssize_t min_count=-1,
               bint is_datetimelike=False,
               const uint8_t[:, ::1] mask=None,
-              uint8_t[:, ::1] mask_out=None) -> None:
+              uint8_t[:, ::1] result_mask=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
         out,
@@ -1331,7 +1331,7 @@ def group_min(groupby_t[:, ::1] out,
         is_datetimelike=is_datetimelike,
         compute_max=False,
         mask_in=mask,
-        mask_out=mask_out,
+        result_mask=result_mask,
     )
 
 
