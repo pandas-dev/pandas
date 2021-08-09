@@ -48,7 +48,6 @@ Other
 - Clarified suggested fix for ``PerformanceWarning`` emitted with a highly fragmented :class:`DataFrame` (:issue:`42579`)
 -
 
-
 .. ---------------------------------------------------------------------------
 
 .. _whatsnew_132.contributors:
