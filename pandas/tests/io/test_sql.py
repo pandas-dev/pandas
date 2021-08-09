@@ -874,7 +874,7 @@ class _TestSQLApi(PandasSQLTest):
 
         # see #6921
         df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(UserWarning):
             df.to_sql("test_timedelta", self.conn)
         result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
         tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
@@ -1154,7 +1154,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         qry = """CREATE TABLE other_table (x INTEGER, y INTEGER);"""
         self.conn.execute(qry)
 
-        with pytest.warns(None):
+        with tm.assert_produces_warning(None):
             sql.read_sql_table("other_table", self.conn)
             sql.read_sql_query("SELECT * FROM other_table", self.conn)
 
@@ -1164,7 +1164,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # We can't test that this warning is triggered, a the database
         # configuration would have to be altered. But here we test that
         # the warning is certainly NOT triggered in a normal case.
-        with pytest.warns(None):
+        with tm.assert_produces_warning(None):
             self.test_frame1.to_sql("CaseSensitive", self.conn)
 
     def _get_index_columns(self, tbl_name):
@@ -1377,7 +1377,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         # GH 6798
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b "])  # has a space
         # warns on create table with spaces in names
-        with pytest.warns(UserWarning):
+        with tm.assert_produces_warning(UserWarning):
             sql.to_sql(df, "test_frame3_legacy", self.conn, index=False)
 
     def test_get_schema2(self):
@@ -2144,7 +2144,7 @@ class _TestSQLiteAlchemy:
         df = DataFrame({"a": [1, 2]}, dtype="int64")
         df.to_sql("test_bigintwarning", self.conn, index=False)
 
-        with pytest.warns(None):
+        with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
 
 
@@ -2718,7 +2718,8 @@ class TestXSQLite:
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with pytest.raises(sqlite3.ProgrammingError):
+        msg = "Cannot operate on a closed database."
+        with pytest.raises(sqlite3.ProgrammingError, match=msg):
             tquery("select * from test", con=self.conn)
 
     def test_keyword_as_column_names(self):
