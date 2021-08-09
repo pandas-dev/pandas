@@ -440,10 +440,12 @@ class BaseWindow(SelectionMixin):
 
         if 0 != len(new_mgr.items) != len(mgr.items):
             # GH#42738 ignore_failures dropped nuisance columns
+            dropped = mgr.items.difference(new_mgr.items)
             warnings.warn(
                 "Dropping of nuisance columns in rolling operations "
                 "is deprecated; in a future version this will raise TypeError. "
-                "Select only valid columns before calling the operation.",
+                "Select only valid columns before calling the operation. "
+                f"Dropped columns were {dropped}",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
