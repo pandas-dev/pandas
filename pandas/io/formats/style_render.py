@@ -98,7 +98,7 @@ class StylerRenderer:
 
         # add rendering variables
         self.hide_index_: list = [False] * self.index.nlevels
-        self.hide_columns_: bool = False
+        self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
@@ -303,8 +303,10 @@ class StylerRenderer:
 
         head = []
         # 1) column headers
-        if not self.hide_columns_:
-            for r in range(self.data.columns.nlevels):
+        for r, hide in enumerate(self.hide_columns_):
+            if hide:
+                continue
+            else:
                 # number of index blanks is governed by number of hidden index levels
                 index_blanks = [_element("th", blank_class, blank_value, True)] * (
                     self.index.nlevels - sum(self.hide_index_) - 1
@@ -354,7 +356,7 @@ class StylerRenderer:
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
             and not all(self.hide_index_)
-            and not self.hide_columns_
+            and not all(self.hide_columns_)
         ):
             index_names = [
                 _element(
