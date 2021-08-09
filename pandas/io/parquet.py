@@ -309,14 +309,21 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
-        use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
-        if use_nullable_dtypes:
-            raise ValueError(
-                "The 'use_nullable_dtypes' argument is not supported for the "
-                "fastparquet engine"
-            )
-        path = stringify_path(path)
         parquet_kwargs = {}
+        use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        # Technically works with 0.7.0, but was incorrect
+        # so lets just require 0.7.1
+        if Version(self.api.__version__) >= Version("0.7.1"):
+            # Need to set even for use_nullable_dtypes = False,
+            # since our defaults differ
+            parquet_kwargs["pandas_nulls"] = use_nullable_dtypes
+        else:
+            if use_nullable_dtypes:
+                raise ValueError(
+                    "The 'use_nullable_dtypes' argument is not supported for the "
+                    "fastparquet engine for fastparquet versions less than 0.7.1"
+                )
+        path = stringify_path(path)
         handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
@@ -337,6 +344,7 @@ class FastParquetImpl(BaseImpl):
                 path, "rb", is_text=False, storage_options=storage_options
             )
             path = handles.handle
+
         parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
         result = parquet_file.to_pandas(columns=columns, **kwargs)
@@ -470,13 +478,17 @@ def read_parquet(
 
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
+        for the resulting DataFrame.
         As new dtypes are added that support ``pd.NA`` in the future, the
         output with this option will change to use those dtypes.
         Note: this is an experimental option, and behaviour (e.g. additional
         support dtypes) may change without notice.
 
         .. versionadded:: 1.2.0
+
+        .. versionchanged:: 1.3.2
+            ``use_nullable_dtypes`` now works with the the ``fastparquet`` engine
+            if ``fastparquet`` is version 0.7.1 or higher.
 
     **kwargs
         Any additional kwargs are passed to the engine.

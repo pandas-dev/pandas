@@ -162,6 +162,7 @@ Deprecations
 - Deprecated ignoring missing labels when indexing with a sequence of labels on a level of a MultiIndex (:issue:`42351`)
 - Creating an empty Series without a dtype will now raise a more visible ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`30017`)
 - Deprecated the 'kind' argument in :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer`, :meth:`Index.slice_locs`; in a future version passing 'kind' will raise (:issue:`42857`)
+- Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -232,6 +233,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` when the object's Index has a length greater than one but only one unique value (:issue:`42365`)
+- Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` with a :class:`MultiIndex` when indexing with a tuple in which one of the levels is also a tuple (:issue:`27591`)
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 - Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)

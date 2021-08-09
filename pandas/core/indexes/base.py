@@ -471,7 +471,9 @@ class Index(IndexOpsMixin, PandasObject):
                 arr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
 
                 if dtype is None:
-                    arr = _maybe_cast_data_without_dtype(arr)
+                    arr = _maybe_cast_data_without_dtype(
+                        arr, cast_numeric_deprecated=True
+                    )
                     dtype = arr.dtype
 
                     if kwargs:
@@ -504,6 +506,15 @@ class Index(IndexOpsMixin, PandasObject):
             # other iterable of some kind
 
             subarr = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
+            if dtype is None:
+                # with e.g. a list [1, 2, 3] casting to numeric is _not_ deprecated
+                # error: Incompatible types in assignment (expression has type
+                # "Union[ExtensionArray, ndarray[Any, Any]]", variable has type
+                # "ndarray[Any, Any]")
+                subarr = _maybe_cast_data_without_dtype(  # type: ignore[assignment]
+                    subarr, cast_numeric_deprecated=False
+                )
+                dtype = subarr.dtype
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     @classmethod
@@ -634,6 +645,26 @@ class Index(IndexOpsMixin, PandasObject):
         result._name = name
         result._cache = {}
         result._reset_identity()
+
+        return result
+
+    @classmethod
+    def _with_infer(cls, *args, **kwargs):
+        """
+        Constructor that uses the 1.0.x behavior inferring numeric dtypes
+        for ndarray[object] inputs.
+        """
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", ".*the Index constructor", FutureWarning)
+            result = cls(*args, **kwargs)
+
+        if result.dtype == object and not result._is_multi:
+            # error: Argument 1 to "maybe_convert_objects" has incompatible type
+            # "Union[ExtensionArray, ndarray[Any, Any]]"; expected
+            # "ndarray[Any, Any]"
+            values = lib.maybe_convert_objects(result._values)  # type: ignore[arg-type]
+            if values.dtype.kind in ["i", "u", "f"]:
+                return Index(values, name=result.name)
 
         return result
 
@@ -2609,7 +2640,7 @@ class Index(IndexOpsMixin, PandasObject):
             if downcast is None:
                 # no need to care metadata other than name
                 # because it can't have freq if
-                return Index(result, name=self.name)
+                return Index._with_infer(result, name=self.name)
         return self._view()
 
     def dropna(self: _IndexT, how: str_t = "any") -> _IndexT:
@@ -3915,6 +3946,15 @@ class Index(IndexOpsMixin, PandasObject):
                         )
                     indexer, _ = self.get_indexer_non_unique(target)
 
+                if not self.is_unique:
+                    # GH#42568
+                    warnings.warn(
+                        "reindexing with a non-unique Index is deprecated and "
+                        "will raise in a future version",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+
         target = self._wrap_reindex_result(target, indexer, preserve_names)
         return target, indexer
 
@@ -4000,7 +4040,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self, ABCMultiIndex):
             new_index = type(self).from_tuples(new_labels, names=self.names)
         else:
-            new_index = Index(new_labels, name=self.name)
+            new_index = Index._with_infer(new_labels, name=self.name)
         return new_index, indexer, new_indexer
 
     # --------------------------------------------------------------------
@@ -4441,9 +4481,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(self, ABCMultiIndex):
             name = self.names if self.names == other.names else None
+            # error: Incompatible return value type (got "MultiIndex",
+            # expected "_IndexT")
+            return self._constructor(joined, name=name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
-        return self._constructor(joined, name=name)
+            return self._constructor._with_infer(joined, name=name)
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -4796,7 +4839,7 @@ class Index(IndexOpsMixin, PandasObject):
         to_concat_vals = [x._values for x in to_concat]
 
         result = concat_compat(to_concat_vals)
-        return Index(result, name=name)
+        return Index._with_infer(result, name=name)
 
     def putmask(self, mask, value) -> Index:
         """
@@ -5743,7 +5786,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             return self._constructor(new_values, **attributes)
 
-        return Index(new_values, **attributes)
+        return Index._with_infer(new_values, **attributes)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
@@ -6219,7 +6262,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Use Index constructor to ensure we get tuples cast correctly.
         item = Index([item], dtype=self.dtype)._values
         idx = np.concatenate((arr[:loc], item, arr[loc:]))
-        return Index(idx, name=self.name)
+        return Index._with_infer(idx, name=self.name)
 
     def drop(self, labels, errors: str_t = "raise") -> Index:
         """
@@ -6304,8 +6347,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = op(Series(self), other)
         if isinstance(result, tuple):
-            return (Index(result[0]), Index(result[1]))
-        return Index(result)
+            return (Index._with_infer(result[0]), Index(result[1]))
+        return Index._with_infer(result)
 
     @final
     def _unary_method(self, op):
@@ -6628,7 +6671,7 @@ def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Ind
 
     if isinstance(index_like, ABCSeries):
         name = index_like.name
-        return Index(index_like, name=name, copy=copy)
+        return Index._with_infer(index_like, name=name, copy=copy)
 
     if is_iterator(index_like):
         index_like = list(index_like)
@@ -6644,10 +6687,9 @@ def ensure_index(index_like: AnyArrayLike | Sequence, copy: bool = False) -> Ind
 
             return MultiIndex.from_arrays(index_like)
         else:
-            return Index(index_like, copy=copy, tupleize_cols=False)
+            return Index._with_infer(index_like, copy=copy, tupleize_cols=False)
     else:
-
-        return Index(index_like, copy=copy)
+        return Index._with_infer(index_like, copy=copy)
 
 
 def ensure_has_len(seq):
@@ -6708,7 +6750,17 @@ def maybe_extract_name(name, obj, cls) -> Hashable:
     return name
 
 
-def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
+_cast_depr_msg = (
+    "In a future version, passing an object-dtype arraylike to pd.Index will "
+    "not infer numeric values to numeric dtype (matching the Series behavior). "
+    "To retain the old behavior, explicitly pass the desired dtype or use the "
+    "desired Index subclass"
+)
+
+
+def _maybe_cast_data_without_dtype(
+    subarr: np.ndarray, cast_numeric_deprecated: bool = True
+) -> ArrayLike:
     """
     If we have an arraylike input but no passed dtype, try to infer
     a supported dtype.
@@ -6716,6 +6768,8 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
     Parameters
     ----------
     subarr : np.ndarray[object]
+    cast_numeric_deprecated : bool, default True
+        Whether to issue a FutureWarning when inferring numeric dtypes.
 
     Returns
     -------
@@ -6730,6 +6784,17 @@ def _maybe_cast_data_without_dtype(subarr: np.ndarray) -> ArrayLike:
         convert_interval=True,
         dtype_if_all_nat=np.dtype("datetime64[ns]"),
     )
+    if result.dtype.kind in ["i", "u", "f"]:
+        if not cast_numeric_deprecated:
+            # i.e. we started with a list, not an ndarray[object]
+            return result
+
+        warnings.warn(
+            "In a future version, the Index constructor will not infer numeric "
+            "dtypes when passed object-dtype sequences (matching Series behavior)",
+            FutureWarning,
+            stacklevel=3,
+        )
     if result.dtype.kind in ["b", "c"]:
         return subarr
     result = ensure_wrapped_if_datetimelike(result)
