@@ -426,6 +426,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             missing = np.array([], dtype=np.intp)
         else:
             indexer, missing = self.get_indexer_non_unique(target)
+            if not self.is_unique:
+                # GH#42568
+                warnings.warn(
+                    "reindexing with a non-unique Index is deprecated and will "
+                    "raise in a future version",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         if len(self) and indexer is not None:
             new_target = self.take(indexer)
