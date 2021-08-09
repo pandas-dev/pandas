@@ -34,7 +34,7 @@ Other enhancements
 - :meth:`Series.sample`, :meth:`DataFrame.sample`, and :meth:`.GroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
 -  Additional options added to :meth:`.Styler.bar` to control alignment and display, with keyword only arguments (:issue:`26070`, :issue:`36419`)
 - :meth:`Styler.bar` now validates the input argument ``width`` and ``height`` (:issue:`42511`)
-- Add keyword ``levels`` to :meth:`.Styler.hide_index` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
+- Add keyword ``level`` to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 - Added ``sparse_index`` and ``sparse_columns`` keyword arguments to :meth:`.Styler.to_html` (:issue:`41946`)
 - Added keyword argument ``environment`` to :meth:`.Styler.to_latex` also allowing a specific "longtable" entry with a separate jinja2 template (:issue:`41866`)

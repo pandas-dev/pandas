@@ -261,19 +261,19 @@ def test_clear(mi_styler_comp):
 
 
 def test_hide_raises(mi_styler):
-    msg = "`subset` and `levels` cannot be passed simultaneously"
+    msg = "`subset` and `level` cannot be passed simultaneously"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(subset="something", levels="something else")
+        mi_styler.hide_index(subset="something", level="something else")
 
-    msg = "`levels` must be of type `int`, `str` or list of such"
+    msg = "`level` must be of type `int`, `str` or list of such"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(levels={"bad": 1, "type": 2})
+        mi_styler.hide_index(level={"bad": 1, "type": 2})
 
 
-@pytest.mark.parametrize("levels", [1, "one", [1], ["one"]])
-def test_hide_level(mi_styler, levels):
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+def test_hide_index_level(mi_styler, level):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
-    ctx = mi_styler.hide_index(levels=levels)._translate(False, True)
+    ctx = mi_styler.hide_index(level=level)._translate(False, True)
     assert len(ctx["head"][0]) == 3
     assert len(ctx["head"][1]) == 3
     assert len(ctx["head"][2]) == 4
@@ -284,6 +284,16 @@ def test_hide_level(mi_styler, levels):
     assert not ctx["body"][0][1]["is_visible"]
     assert ctx["body"][1][0]["is_visible"]
     assert not ctx["body"][1][1]["is_visible"]
+
+
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+@pytest.mark.parametrize("names", [True, False])
+def test_hide_columns_level(mi_styler, level, names):
+    mi_styler.columns.names = ["zero", "one"]
+    if names:
+        mi_styler.index.names = ["zero", "one"]
+    ctx = mi_styler.hide_columns(level=level)._translate(True, False)
+    assert len(ctx["head"]) == (2 if names else 1)
 
 
 class TestStyler:
