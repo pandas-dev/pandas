@@ -125,7 +125,7 @@ data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
 
 They may be backed by none, one, or many NumPy arrays. For example,
-``pandas.Categorical`` is an extension array backed by two arrays,
+:class:`pandas.Categorical` is an extension array backed by two arrays,
 one for codes and one for categories. An array of IPv6 addresses may
 be backed by a NumPy structured array with two fields, one for the
 lower 64 bits and one for the upper 64 bits. Or they may be backed
