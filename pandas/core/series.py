@@ -519,8 +519,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index: Index | None = None
-
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
@@ -549,7 +547,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call above ensures we have an Index object
             self._mgr.set_axis(axis, labels)
