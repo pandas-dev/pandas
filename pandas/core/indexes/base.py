@@ -1215,7 +1215,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        attrs = []
+        attrs: list[tuple[str_t, str_t | int]] = []
 
         if not self._is_multi:
             attrs.append(("dtype", f"'{self.dtype}'"))
