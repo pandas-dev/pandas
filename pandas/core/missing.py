@@ -339,6 +339,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
 
     if method == "linear":
         inds = xarr
+        inds = cast(np.ndarray, inds)
     else:
         inds = np.asarray(xarr)
 
@@ -429,11 +430,7 @@ def _interpolate_1d(
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
-        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
-        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
-        # Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        indexer = np.argsort(indices[valid])  # type: ignore[arg-type]
+        indexer = np.argsort(indices[valid])
         result[invalid] = np.interp(
             indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
