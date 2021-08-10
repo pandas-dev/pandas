@@ -23,9 +23,10 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script validates the doctests and formatting error in docstrings. It is possible to
-run the checks independently by using the parameters ``docstring``, and
-``doctests`` (e.g. ``./ci/code_checks.sh doctests``).
+The script validates the doctests, formatting in docstrings, static typing, and
+imported modules. It is possible to run the checks independently by using the
+parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+(e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
