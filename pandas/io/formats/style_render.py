@@ -805,14 +805,14 @@ def _get_trimming_maximums(
     scaling_factor=0.8,
 ):
     """
-    Recursively reduce the number of rows and columns to satisfy max_elements.
+    Recursively reduce the number of rows and columns to satisfy max elements.
 
     Parameters
     ----------
     rn, cn : int
-        The number of input rows / columns.
+        The number of input rows / columns
     max_elements : int
-        The number of allowable elements.
+        The number of allowable elements
     max_rows, max_cols : int, optional
         Directly specify an initial maximum rows or columns before compression.
     scaling_factor : float
