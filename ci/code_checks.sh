@@ -3,21 +3,18 @@
 # Run checks related to code quality.
 #
 # This script is intended for both the CI and to check locally that code standards are
-# respected. We are currently linting (PEP-8 and similar), looking for patterns of
-# common mistakes (sphinx directives with missing blank lines, old style classes,
-# unwanted imports...), we run doctests here (currently some files only), and we
+# respected. We run doctests here (currently some files only), and we
 # validate formatting error in docstrings.
 #
 # Usage:
 #   $ ./ci/code_checks.sh               # run all checks
-#   $ ./ci/code_checks.sh lint          # run linting only
 #   $ ./ci/code_checks.sh code          # checks on imported code
 #   $ ./ci/code_checks.sh doctests      # run doctests
 #   $ ./ci/code_checks.sh docstrings    # validate docstring errors
 #   $ ./ci/code_checks.sh typing        # run static type analysis
 
-[[ -z "$1" || "$1" == "lint" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
-    { echo "Unknown command $1. Usage: $0 [lint|code|doctests|docstrings|typing]"; exit 9999; }
+[[ -z "$1" || "$1" == "code" || "$1" == "doctests" || "$1" == "docstrings" || "$1" == "typing" ]] || \
+    { echo "Unknown command $1. Usage: $0 [code|doctests|docstrings|typing]"; exit 9999; }
 
 BASE_DIR="$(dirname $0)/.."
 RET=0
@@ -38,23 +35,6 @@ function invgrep {
 
 if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     INVGREP_PREPEND="##[error]"
-fi
-
-### LINTING ###
-if [[ -z "$CHECK" || "$CHECK" == "lint" ]]; then
-
-    # Check that cython casting is of the form `<type>obj` as opposed to `<type> obj`;
-    # it doesn't make a difference, but we want to be internally consistent.
-    # Note: this grep pattern is (intended to be) equivalent to the python
-    # regex r'(?<![ ->])> '
-    MSG='Linting .pyx code for spacing conventions in casting' ; echo $MSG
-    invgrep -r -E --include '*.pyx' --include '*.pxi.in' '[a-zA-Z0-9*]> ' pandas/_libs
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    # readability/casting: Warnings about C casting instead of C++ casting
-    # runtime/int: Warnings about using C number types instead of C++ ones
-    # build/include_subdir: Warnings about prefacing included header files with directory
-
 fi
 
 ### CODE ###

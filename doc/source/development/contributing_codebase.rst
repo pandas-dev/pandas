@@ -23,11 +23,10 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script verifies the linting of code files, it looks for common mistake patterns
-(like missing spaces around sphinx directives that make the documentation not
-being rendered properly) and it also validates the doctests. It is possible to
-run the checks independently by using the parameters ``lint``, ``patterns`` and
-``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+The script validates the doctests, formatting in docstrings, static typing, and
+imported modules. It is possible to run the checks independently by using the
+parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+(e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
