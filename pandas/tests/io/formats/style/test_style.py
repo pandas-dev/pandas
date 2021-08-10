@@ -152,6 +152,9 @@ def test_trimming_maximum():
     rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
     assert (rn, cn) == (250, 3)
 
+    rn, cn = _get_trimming_maximums(100, 100, 200, 4, 6, scaling_factor=0.5)
+    assert (rn, cn) == (4, 6)
+
 
 @pytest.mark.parametrize(
     "option, val",
