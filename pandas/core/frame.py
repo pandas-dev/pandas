@@ -9155,6 +9155,7 @@ NaN 12.3   33.0
         self,
         right: DataFrame | Series,
         how: str = "inner",
+        condition: callable = None,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,

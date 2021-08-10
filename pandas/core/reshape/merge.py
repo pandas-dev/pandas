@@ -7,6 +7,7 @@ import copy
 import datetime
 from functools import partial
 import hashlib
+import itertools
 import string
 from typing import (
     TYPE_CHECKING,
@@ -94,6 +95,7 @@ def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
     how: str = "inner",
+    condition: callable = None,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -105,22 +107,42 @@ def merge(
     indicator: bool = False,
     validate: str | None = None,
 ) -> DataFrame:
-    op = _MergeOperation(
-        left,
-        right,
-        how=how,
-        on=on,
-        left_on=left_on,
-        right_on=right_on,
-        left_index=left_index,
-        right_index=right_index,
-        sort=sort,
-        suffixes=suffixes,
-        copy=copy,
-        indicator=indicator,
-        validate=validate,
-    )
-    return op.get_result()
+    if (how == "cross") and (condition is not None):
+        op = _LazyMerge(
+            left, right, condition,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
+        )
+        res = op.get_result()
+    else:
+        op = _MergeOperation(
+            left,
+            right,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
+        )
+        res = op.get_result()
+        if condition is not None:
+            res = res.loc[condition]
+    return res
 
 
 if __debug__:
@@ -2346,3 +2368,36 @@ def _items_overlap_with_suffix(
         )
 
     return llabels, rlabels
+
+
+def _chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
+# TODO: perform lazy merge as optimized cython, rather than chunked merge
+class _LazyMerge:
+
+    def __init__(
+            self,
+            left: DataFrame,
+            right: DataFrame,
+            condition: callable,  # takes frame with same columns as plain merge result
+            *args,
+            **kwargs
+    ):
+        self.condition = condition
+        self.args = args
+        self.kwargs = kwargs
+        # TODO: dynamically determine optimal chunk size
+        left_chunks = _chunks(left, n=1000)
+        right_chunks = _chunks(right, n=1000)
+        self.chunk_pairs = itertools.product(left_chunks, right_chunks)
+
+    def get_result(self) -> DataFrame:  # mimic _MergeOperation
+        result = pd.DataFrame()
+        for left, right in self.chunk_pairs:
+            chunk_result = left.merge(right, *self.args, **self.kwargs)
+            chunk_result_filtered = chunk_result.loc[condition]
+            result = result.append(chunk_result_filtered)
+        return result
