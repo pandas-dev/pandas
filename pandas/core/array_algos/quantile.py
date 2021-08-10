@@ -184,5 +184,7 @@ def _quantile_ea_fallback(
     try:
         out = type(values)._from_sequence(res, dtype=values.dtype)
     except TypeError:
+        # GH#42626: not able to safely cast Int64
+        # for floating point output
         out = np.atleast_2d(np.asarray(res, dtype=np.float64))
     return out
