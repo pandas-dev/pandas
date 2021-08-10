@@ -242,6 +242,7 @@ Indexing
 - Bug in updating values of :class:`pandas.Series` using boolean index, created by using :meth:`pandas.DataFrame.pop` (:issue:`42530`)
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.nan`` (:issue:`35392`)
 - Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, used in an expression to query a dataframe (:issue:`42826`)
+- Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
 -
 
 Missing
