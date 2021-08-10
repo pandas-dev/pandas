@@ -762,6 +762,18 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_max_rows = """
+: int
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_cols = """
+: int
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
@@ -773,5 +785,19 @@ with cf.config_prefix("styler"):
         "render.max_elements",
         2 ** 18,
         styler_max_elements,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_cols",
+        None,
+        styler_max_cols,
         validator=is_nonnegative_int,
     )
