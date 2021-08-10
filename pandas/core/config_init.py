@@ -763,13 +763,13 @@ styler_max_elements = """
 """
 
 styler_max_rows = """
-: int
+: int, optional
     The maximum number of rows that will be rendered. May still be reduced to
     satsify ``max_elements``, which takes precedence.
 """
 
 styler_max_cols = """
-: int
+: int, optional
     The maximum number of columns that will be rendered. May still be reduced to
     satsify ``max_elements``, which takes precedence.
 """
