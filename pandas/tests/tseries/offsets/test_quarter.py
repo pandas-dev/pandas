@@ -7,7 +7,6 @@ from datetime import datetime
 
 import pytest
 
-import pandas as pd
 from pandas.tests.tseries.offsets.common import (
     Base,
     assert_is_on_offset,
@@ -18,29 +17,6 @@ from pandas.tseries.offsets import (
     QuarterBegin,
     QuarterEnd,
 )
-
-
-@pytest.mark.parametrize("n", [-2, 1])
-@pytest.mark.parametrize(
-    "cls",
-    [
-        QuarterBegin,
-        QuarterEnd,
-    ],
-)
-def test_apply_index(cls, n):
-    offset = cls(n=n)
-    rng = pd.date_range(start="1/1/2000", periods=100000, freq="T")
-    ser = pd.Series(rng)
-
-    res = rng + offset
-    assert res.freq is None  # not retained
-    assert res[0] == rng[0] + offset
-    assert res[-1] == rng[-1] + offset
-    res2 = ser + offset
-    # apply_index is only for indexes, not series, so no res2_v2
-    assert res2.iloc[0] == ser.iloc[0] + offset
-    assert res2.iloc[-1] == ser.iloc[-1] + offset
 
 
 def test_quarterly_dont_normalize():
