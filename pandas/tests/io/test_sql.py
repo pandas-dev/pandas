@@ -24,6 +24,7 @@ from datetime import (
     time,
 )
 from io import StringIO
+from pathlib import Path
 import sqlite3
 import warnings
 
@@ -220,6 +221,79 @@ SQL_STRINGS = {
                 """
     },
 }
+
+def iris_table_metadata():
+    from sqlalchemy import (
+        FLOAT,
+        Column,
+        MetaData,
+        String,
+        Table,
+    )
+
+    metadata = MetaData()
+    iris = Table(
+        "iris",
+        metadata,
+        Column("SepalLength", FLOAT),
+        Column("SepalWidth", FLOAT),
+        Column("PetalLength", FLOAT),
+        Column("PetalWidth", FLOAT),
+        Column("Name", String),
+    )
+    return iris
+
+
+def create_and_load_iris(engine, iris_csv_file: Path):
+    import sqlite3
+
+    from sqlalchemy import insert
+    from sqlalchemy.engine import Engine
+
+    if isinstance(engine, sqlite3.Connection):
+        cur = engine.cursor()
+        stmt = """CREATE TABLE iris (
+                "SepalLength" REAL,
+                "SepalWidth" REAL,
+                "PetalLength" REAL,
+                "PetalWidth" REAL,
+                "Name" TEXT
+            )"""
+        cur.execute(stmt)
+    else:
+        iris = iris_table_metadata()
+        iris.create(engine)
+
+    with open(iris_csv_file, newline=None) as csvfile:
+        reader = csv.reader(csvfile)
+        header = next(reader)
+        if isinstance(engine, sqlite3.Connection):
+            cur = engine.cursor()
+            stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
+            for row in reader:
+                cur.execute(stmt, row)
+        elif isinstance(engine, Engine):
+            with engine.connect() as conn:
+                for row in reader:
+                    params = {key: value for key, value in zip(header, row)}
+                    conn.execute(insert(iris), params)
+        else:
+            for row in reader:
+                params = {key: value for key, value in zip(header, row)}
+                engine.execute(insert(iris), params)
+
+
+@pytest.fixture
+def iris_path(datapath):
+    iris_path = datapath("io", "data", "csv", "iris.csv")
+    return Path(iris_path)
+
+
+@pytest.fixture
+def mysql_pymysql_engine():
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pymysql = pytest.importorskip("pymysql")
+    return
 
 
 @pytest.fixture
