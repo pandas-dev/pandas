@@ -592,9 +592,32 @@ def test_nan_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_bool_to_float_with_nans(all_parsers):
-    # GH 42808: Ensure that when reading a file of mixed-bools-and-nans to a
-    # float dtype, we get back the correct result.
+def test_bool_and_nan_to_bool(all_parsers):
+    # GH 42808: (bool | NaN) => bool should error.
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    with pytest.raises(ValueError, match="NA values"):
+        parser.read_csv(StringIO(data), dtype="bool")
+
+
+def test_bool_and_nan_to_int(all_parsers):
+    # GH 42808: (bool | NaN) => int should error.
+    parser = all_parsers
+    data = """0
+NaN
+True
+False
+"""
+    with pytest.raises(ValueError, match="convert"):
+        print(parser.read_csv(StringIO(data), dtype="int"))
+
+
+def test_bool_and_nan_to_float(all_parsers):
+    # GH 42808: (bool | NaN) => float should return 0.0/1.0/NaN.
     parser = all_parsers
     data = """0
 NaN

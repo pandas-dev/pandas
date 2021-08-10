@@ -1089,7 +1089,6 @@ cdef class TextReader:
                     break
 
         # we had a fallback parse on the dtype, so now try to cast
-        # only allow safe casts, eg. with a nan you cannot safely cast to int
         if col_res is not None and col_dtype is not None:
             # If col_res is bool, it might actually be a bool array mixed with NaNs
             # (see _try_bool_flex()). Usually this would be taken care of using
@@ -1101,6 +1100,20 @@ cdef class TextReader:
                 np.putmask(col_res, mask, np.nan)
                 return col_res, na_count
 
+            # Similar special case for bool => int.
+            if col_res.dtype == np.bool_ and is_integer_dtype(col_dtype):
+                # Must throw if there were NaNs.
+                if na_count > 0:
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{col_dtype} for {np.bool_} dtyped data in "
+                        f"column {i} due to NA values"
+                    )
+
+                # Falls through to safe cast below.
+                pass
+
+            # only allow safe casts, eg. with a nan you cannot safely cast to int
             try:
                 col_res = col_res.astype(col_dtype, casting='safe')
             except TypeError:
