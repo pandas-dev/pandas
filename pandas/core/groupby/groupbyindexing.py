@@ -1,5 +1,4 @@
 from __future__ import annotations
-from unittest.mock import PropertyMock
 
 from pandas.util._decorators import doc
 import numpy as np
@@ -50,22 +49,22 @@ class GroupByIndexingMixin:
 
         Use Case
         --------
-        Supose that we have a multi-indexed DataFrame with a large primary index and a secondary sorted
+        Suppose that we have a multi-indexed DataFrame with a large primary index and a secondary sorted
         to a different order for each primary.
         To reduce the DataFrame to a middle slice of each secondary, group by the primary and then
         use iloc.
-        This preserves the original DataFrame's order and indexing.
+        This preserves the original DataFrame"s order and indexing.
         (See tests/groupby/test_groupby_iloc)
 
         Examples
         --------
-        >>> df = pd.DataFrame([['a', 1], ['a', 2], ['a', 3], ['b', 4], ['b', 5]],
-        ...                   columns=['A', 'B'])
-        >>> df.groupby('A').iloc[1:2]
+        >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
+        ...                   columns=["A", "B"])
+        >>> df.groupby("A").iloc[1:2]
            A  B
         1  a  2
         4  b  5
-        >>> df.groupby('A').iloc[:-1, -1:]
+        >>> df.groupby("A").iloc[:-1, -1:]
            B
         0  1
         1  2
@@ -101,7 +100,7 @@ class _ilocGroupByIndexer:
 
             if step is not None and step < 0:
                 raise ValueError(
-                    f'GroupBy.iloc row slice step must be positive. Slice was {start}:{stop}:{step}'
+                    f"GroupBy.iloc row slice step must be positive. Slice was {start}:{stop}:{step}"
                 )
                 # self.reversed = True
                 # start = None if start is None else -start - 1
@@ -115,7 +114,7 @@ class _ilocGroupByIndexer:
 
         else:
             raise ValueError(
-                f'GroupBy.iloc row must be an integer or a slice, not a {typeof_arg}'
+                f"GroupBy.iloc row must be an integer or a slice, not a {typeof_arg}"
             )
 
     def _handle_slice(self, start, stop, step, arg1):
@@ -141,17 +140,19 @@ class _ilocGroupByIndexer:
 
                 if step > 1:
                     #
-                    # if start is -ve and -start excedes the length of a group
+                    # if start is -ve and -start exceedes the length of a group
                     # then step must count from the
                     # first row of that group rather than the calculated offset
                     #
                     # count_array + reverse_array gives the length of the
                     # current group enabling to switch between
-                    # the offset_array and the count_array depening on whether
-                    #  -start excedes the group size
+                    # the offset_array and the count_array depending on whether
+                    #  -start exceedes the group size
                     #
                     offset_array = self._descending_count + start + 1
-                    limit_array = (self._ascending_count + self._descending_count + (start + 1)) < 0
+                    limit_array = (
+                        self._ascending_count + self._descending_count + (start + 1)
+                    ) < 0
                     offset_array = np.where(
                         limit_array, self._ascending_count, offset_array
                     )
