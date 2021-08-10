@@ -22,11 +22,12 @@ class GroupByIndexingMixin:
         The output is compatible with head() and tail()
         The output is different from take() and nth() which do not preserve the index or order
 
+        Inputs
+        ------
         Allowed inputs for the first index are:
 
         - An integer, e.g. ``5``.
-        - A list or array of integers, e.g. ``[4, 3, 0]``.
-        - A slice object with ints, e.g. ``1:7``.
+        - A slice object with ints and positive step, e.g. ``1:``, ``4:-3:2``.
 
         Allowed inputs for the second index are as for DataFrame.iloc, namely:
 
@@ -37,10 +38,15 @@ class GroupByIndexingMixin:
         - A ``callable`` function with one argument (the calling Series or
           DataFrame) and that returns valid output for indexing (one of the above).
 
-
         Returns
         -------
         Series or DataFrame
+
+        Note
+        ----
+        Neither GroupBy.nth() nor GroupBy.take() take a slice argument and
+        neither of them preserve the original DataFrame order and index.
+        They are both slow for large integer lists and take() is very slow for large group counts.
 
         Use Case
         --------
