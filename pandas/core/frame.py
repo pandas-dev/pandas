@@ -527,8 +527,8 @@ class DataFrame(NDFrame, OpsMixin):
        col1  col2
     1     1   NaN
     2     2   NaN
-    3     3     3
-    4     4     4
+    3     3   3.0
+    4     4   4.0
 
     Constructing DataFrame from numpy ndarray:
 
