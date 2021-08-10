@@ -170,26 +170,39 @@ class TestEWMMean:
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
-    @pytest.mark.parametrize(
-        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
-    )
+    @pytest.mark.parametrize("grouper", ["None", "groupby"])
     def test_cython_vs_numba(
         self, grouper, nogil, parallel, nopython, ignore_na, adjust
     ):
+        if grouper == "None":
+            grouper = lambda x: x
+            warn = FutureWarning
+        else:
+            grouper = lambda x: x.groupby("A")
+            warn = None
+
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = ewm.mean(engine="cython")
+        with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
+            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+            expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
-    )
+    @pytest.mark.parametrize("grouper", ["None", "groupby"])
     def test_cython_vs_numba_times(self, grouper, nogil, parallel, nopython, ignore_na):
         # GH 40951
+
+        if grouper == "None":
+            grouper = lambda x: x
+            warn = FutureWarning
+        else:
+            grouper = lambda x: x.groupby("A")
+            warn = None
+
         halflife = "23 days"
         times = to_datetime(
             [
@@ -207,8 +220,11 @@ class TestEWMMean:
         )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = ewm.mean(engine="cython")
+
+        with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
+            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+            expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
