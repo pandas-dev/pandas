@@ -48,10 +48,6 @@ jobs:
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
-    - name: Linting
-      run: ci/code_checks.sh lint
-      if: always()
-
     - name: Checks on imported code
       run: ci/code_checks.sh code
       if: always()
