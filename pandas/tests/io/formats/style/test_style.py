@@ -260,6 +260,42 @@ def test_clear(mi_styler_comp):
         assert all(res) if hasattr(res, "__iter__") else res
 
 
+def test_hide_raises(mi_styler):
+    msg = "`subset` and `level` cannot be passed simultaneously"
+    with pytest.raises(ValueError, match=msg):
+        mi_styler.hide_index(subset="something", level="something else")
+
+    msg = "`level` must be of type `int`, `str` or list of such"
+    with pytest.raises(ValueError, match=msg):
+        mi_styler.hide_index(level={"bad": 1, "type": 2})
+
+
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+def test_hide_index_level(mi_styler, level):
+    mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
+    ctx = mi_styler.hide_index(level=level)._translate(False, True)
+    assert len(ctx["head"][0]) == 3
+    assert len(ctx["head"][1]) == 3
+    assert len(ctx["head"][2]) == 4
+    assert ctx["head"][2][0]["is_visible"]
+    assert not ctx["head"][2][1]["is_visible"]
+
+    assert ctx["body"][0][0]["is_visible"]
+    assert not ctx["body"][0][1]["is_visible"]
+    assert ctx["body"][1][0]["is_visible"]
+    assert not ctx["body"][1][1]["is_visible"]
+
+
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+@pytest.mark.parametrize("names", [True, False])
+def test_hide_columns_level(mi_styler, level, names):
+    mi_styler.columns.names = ["zero", "one"]
+    if names:
+        mi_styler.index.names = ["zero", "one"]
+    ctx = mi_styler.hide_columns(level=level)._translate(True, False)
+    assert len(ctx["head"]) == (2 if names else 1)
+
+
 class TestStyler:
     def setup_method(self, method):
         np.random.seed(24)
@@ -1157,7 +1193,7 @@ class TestStyler:
     def test_hide_multiindex(self):
         # GH 14194
         df = DataFrame(
-            {"A": [1, 2]},
+            {"A": [1, 2], "B": [1, 2]},
             index=MultiIndex.from_arrays(
                 [["a", "a"], [0, 1]], names=["idx_level_0", "idx_level_1"]
             ),
@@ -1167,16 +1203,15 @@ class TestStyler:
         assert ctx1["body"][0][0]["is_visible"]
         assert ctx1["body"][0][1]["is_visible"]
         # check for blank header rows
-        assert ctx1["head"][0][0]["is_visible"]
-        assert ctx1["head"][0][1]["is_visible"]
+        assert len(ctx1["head"][0]) == 4  # two visible indexes and two data columns
 
         ctx2 = df.style.hide_index()._translate(True, True)
         # tests for 'a' and '0'
         assert not ctx2["body"][0][0]["is_visible"]
         assert not ctx2["body"][0][1]["is_visible"]
         # check for blank header rows
+        assert len(ctx2["head"][0]) == 3  # one hidden (col name) and two data columns
         assert not ctx2["head"][0][0]["is_visible"]
-        assert not ctx2["head"][0][1]["is_visible"]
 
     def test_hide_columns_single_level(self):
         # GH 14194
@@ -1243,9 +1278,10 @@ class TestStyler:
         # hide second column and index
         ctx = df.style.hide_columns([("b", 1)]).hide_index()._translate(True, True)
         assert not ctx["body"][0][0]["is_visible"]  # index
-        assert ctx["head"][0][2]["is_visible"]  # b
-        assert ctx["head"][1][2]["is_visible"]  # 0
-        assert not ctx["head"][1][3]["is_visible"]  # 1
+        assert len(ctx["head"][0]) == 3
+        assert ctx["head"][0][1]["is_visible"]  # b
+        assert ctx["head"][1][1]["is_visible"]  # 0
+        assert not ctx["head"][1][2]["is_visible"]  # 1
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
         assert ctx["body"][1][2]["display_value"] == 3
