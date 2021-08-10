@@ -522,8 +522,7 @@ class DataFrame(NDFrame, OpsMixin):
     Constructing DataFrame from a dictionary including Series.
 
     >>> d = {'col1': [1, 2, 3, 4], 'col2': pd.Series([3, 4], index=[3, 4])}
-    >>> df2 = pd.DataFrame(data=d, index=[1, 2, 3, 4])
-    >>> df2
+    >>> pd.DataFrame(data=d, index=[1, 2, 3, 4])
        col1  col2
     1     1   NaN
     2     2   NaN
@@ -532,9 +531,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     Constructing DataFrame from numpy ndarray:
 
-    >>> df3 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
     ...                    columns=['a', 'b', 'c'])
-    >>> df3
+    >>> df2
        a  b  c
     0  1  2  3
     1  4  5  6
@@ -544,9 +543,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     >>> data = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
     ...                 dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
-    >>> df4 = pd.DataFrame(data, columns=['c', 'a'])
+    >>> df3 = pd.DataFrame(data, columns=['c', 'a'])
     ...
-    >>> df4
+    >>> df3
        c  a
     0  3  1
     1  6  4
