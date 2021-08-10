@@ -3,9 +3,7 @@
 # Run checks related to code quality.
 #
 # This script is intended for both the CI and to check locally that code standards are
-# respected. We are currently looking for patterns of
-# common mistakes (sphinx directives with missing blank lines, old style classes,
-# unwanted imports...), we run doctests here (currently some files only), and we
+# respected. We run doctests here (currently some files only), and we
 # validate formatting error in docstrings.
 #
 # Usage:
