@@ -181,5 +181,8 @@ def _quantile_ea_fallback(
     assert res.ndim == 2
     assert res.shape[0] == 1
     res = res[0]
-    out = np.atleast_2d(np.asarray(res, dtype=np.float64))
+    try:
+        out = type(values)._from_sequence(res, dtype=values.dtype)
+    except TypeError:
+        out = np.atleast_2d(np.asarray(res, dtype=np.float64))
     return out
