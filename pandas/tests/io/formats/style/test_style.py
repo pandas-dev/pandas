@@ -153,20 +153,38 @@ def test_trimming_maximum():
     assert (rn, cn) == (250, 3)
 
 
-def test_render_trimming():
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_rows", 3),
+    ],
+)
+def test_render_trimming_rows(option, val):
+    # test auto and specific trimming of rows
     df = DataFrame(np.arange(120).reshape(60, 2))
-    with pd.option_context("styler.render.max_elements", 6):
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 3  # index + 2 data cols
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
     assert len(ctx["body"][0]) == 3  # index + 2 data cols
 
-    df = DataFrame(np.arange(120).reshape(12, 10))
-    with pd.option_context("styler.render.max_elements", 6):
+
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_cols", 2),
+    ],
+)
+def test_render_trimming_cols(option, val):
+    # test auto and specific trimming of cols
+    df = DataFrame(np.arange(30).reshape(3, 10))
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
-    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
-    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
-    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming row
+    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming col
+    assert len(ctx["body"]) == 3  # 3 data rows
+    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming col
 
 
 def test_render_trimming_mi():
