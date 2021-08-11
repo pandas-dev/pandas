@@ -399,11 +399,13 @@ def _convert_listlike_datetimes(
             )
             if res is not None:
                 return res
-        except ValueError:
+        except ValueError as err:
             # GH#42957: ValueError: time data '<NA>'
             # does not match format '%Y%m%d%H%M%S'
-            if isna(arg):
+            if any(isna(arg)):
                 format = None
+            else:
+                raise err
 
     assert format is None or infer_datetime_format
     utc = tz == "utc"
