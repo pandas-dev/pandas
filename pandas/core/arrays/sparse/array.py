@@ -282,8 +282,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     Examples
     --------
-    >>> from pandas.arrays import SparseArray
-    >>> arr = SparseArray([0, 0, 1, 2])
+    >>> import pandas as pd
+    >>> arr = pd.arrays.SparseArray([0, 0, 1, 2])
     >>> arr
     [0, 0, 1, 2]
     Fill: 0

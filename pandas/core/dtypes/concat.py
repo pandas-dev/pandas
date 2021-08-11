@@ -191,16 +191,16 @@ def union_categoricals(
 
     Examples
     --------
-    >>> from pandas.api.types import union_categoricals
+    >>> import pandas as pd
 
     If you want to combine categoricals that do not necessarily have
-    the same categories, `union_categoricals` will combine a list-like
+    the same categories, `pd.api.types.union_categoricals` will combine a list-like
     of categoricals. The new categories will be the union of the
     categories being combined.
 
     >>> a = pd.Categorical(["b", "c"])
     >>> b = pd.Categorical(["a", "b"])
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']
 
@@ -208,17 +208,17 @@ def union_categoricals(
     in the `categories` of the data. If you want the categories to be
     lexsorted, use `sort_categories=True` argument.
 
-    >>> union_categoricals([a, b], sort_categories=True)
+    >>> pd.api.types.union_categoricals([a, b], sort_categories=True)
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['a', 'b', 'c']
 
-    `union_categoricals` also works with the case of combining two
+    `pd.api.types.union_categoricals` also works with the case of combining two
     categoricals of the same categories and order information (e.g. what
     you could also `append` for).
 
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "a"], ordered=True)
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     ['a', 'b', 'a', 'b', 'a']
     Categories (2, object): ['a' < 'b']
 
@@ -226,7 +226,7 @@ def union_categoricals(
 
     >>> a = pd.Categorical(["a", "b"], ordered=True)
     >>> b = pd.Categorical(["a", "b", "c"], ordered=True)
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     Traceback (most recent call last):
         ...
     TypeError: to union ordered Categoricals, all categories must be the same
@@ -238,17 +238,17 @@ def union_categoricals(
 
     >>> a = pd.Categorical(["a", "b", "c"], ordered=True)
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)
-    >>> union_categoricals([a, b], ignore_order=True)
+    >>> pd.api.types.union_categoricals([a, b], ignore_order=True)
     ['a', 'b', 'c', 'c', 'b', 'a']
     Categories (3, object): ['a', 'b', 'c']
 
-    `union_categoricals` also works with a `CategoricalIndex`, or `Series`
+    `pd.api.types.union_categoricals` also works with a `CategoricalIndex`, or `Series`
     containing categorical data, but note that the resulting array will
     always be a plain `Categorical`
 
     >>> a = pd.Series(["b", "c"], dtype='category')
     >>> b = pd.Series(["a", "b"], dtype='category')
-    >>> union_categoricals([a, b])
+    >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
     Categories (3, object): ['b', 'c', 'a']
     """
