@@ -720,6 +720,21 @@ class TestUltraJSONTests:
             ujson.encode(obj_list, default_handler=str)
         )
 
+    def test_encode_object(self):
+        class _TestObject:
+            def __init__(self, a, b, _c, d):
+                self.a = a
+                self.b = b
+                self._c = _c
+                self.d = d
+
+            def e(self):
+                return 5
+
+        # JSON keys should be all non-callable non-underscore attributes, see GH-42768
+        test_object = _TestObject(a=1, b=2, _c=3, d=4)
+        assert ujson.decode(ujson.encode(test_object)) == {"a": 1, "b": 2, "d": 4}
+
 
 class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
