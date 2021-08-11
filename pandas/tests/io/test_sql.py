@@ -558,7 +558,10 @@ class PandasSQLTest:
         if not hasattr(self, "conn"):
             self.setup_connect()
         self.drop_table("iris")
-        create_and_load_iris(self.conn, iris_path)
+        if isinstance(self.conn, sqlite3.Connection):
+            create_and_load_iris_sqlite3(self.conn, iris_path)
+        else:
+            create_and_load_iris(self.conn, iris_path)
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
