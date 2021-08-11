@@ -694,7 +694,8 @@ def test_asfreq_non_unique():
 
     msg = "cannot reindex on an axis with duplicate labels"
     with pytest.raises(ValueError, match=msg):
-        ts.asfreq("B")
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            ts.asfreq("B")
 
 
 def test_resample_axis1():

@@ -210,7 +210,8 @@ class SeriesGroupBy(GroupBy[Series]):
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
     2    3.0
-    dtype: float64"""
+    dtype: float64
+    """
     )
 
     @Appender(
@@ -454,7 +455,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                index = Index(keys, name=self.grouper.names[0])
+                index = Index._with_infer(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], dict):
@@ -975,7 +976,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
           B
     A
     1   1.0
-    2   3.0"""
+    2   3.0
+    """
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
