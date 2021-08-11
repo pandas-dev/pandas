@@ -56,10 +56,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.missing import notna
 
 from pandas.arrays import (
     DatetimeArray,
@@ -393,19 +390,11 @@ def _convert_listlike_datetimes(
             format = None
 
     if format is not None:
-        try:
-            res = _to_datetime_with_format(
-                arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
-            )
-            if res is not None:
-                return res
-        except ValueError as err:
-            # GH#42957: ValueError: time data '<NA>'
-            # does not match format '%Y%m%d%H%M%S'
-            if any(isna(arg)):
-                format = None
-            else:
-                raise err
+        res = _to_datetime_with_format(
+            arg, orig_arg, name, tz, format, exact, errors, infer_datetime_format
+        )
+        if res is not None:
+            return res
 
     assert format is None or infer_datetime_format
     utc = tz == "utc"
