@@ -20,6 +20,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     algos as libalgos,
     index as libindex,
@@ -156,7 +158,6 @@ from pandas.core.strings import StringMethods
 from pandas.io.formats.printing import (
     PrettyDict,
     default_pprint,
-    format_object_attrs,
     format_object_summary,
     pprint_thing,
 )
@@ -1214,7 +1215,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a list of tuples of the (attr,formatted_value).
         """
-        return format_object_attrs(self, include_dtype=not self._is_multi)
+        attrs: list[tuple[str_t, str_t | int]] = []
+
+        if not self._is_multi:
+            attrs.append(("dtype", f"'{self.dtype}'"))
+
+        if self.name is not None:
+            attrs.append(("name", default_pprint(self.name)))
+        elif self._is_multi and any(x is not None for x in self.names):
+            attrs.append(("names", default_pprint(self.names)))
+
+        max_seq_items = get_option("display.max_seq_items") or len(self)
+        if len(self) > max_seq_items:
+            attrs.append(("length", len(self)))
+        return attrs
 
     @final
     def _mpl_repr(self) -> np.ndarray:
@@ -6290,7 +6304,7 @@ class Index(IndexOpsMixin, PandasObject):
         mask = indexer == -1
         if mask.any():
             if errors != "ignore":
-                raise KeyError(f"{labels[mask]} not found in axis")
+                raise KeyError(f"{list(labels[mask])} not found in axis")
             indexer = indexer[~mask]
         return self.delete(indexer)
 
