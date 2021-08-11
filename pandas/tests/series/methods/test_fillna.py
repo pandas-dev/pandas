@@ -623,6 +623,17 @@ class TestSeriesFillNA:
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
 
+    def test_fillna_null_value_replacement(self):
+        # GH#40498
+        ser = Series([None])
+
+        value = np.nan
+        result = ser.fillna(value)
+
+        expected = Series([np.nan])
+
+        tm.assert_series_equal(result, expected)
+
     def test_fillna_other_missing_values_not_modified(
         self, unique_nulls_fixture, unique_nulls_fixture2
     ):

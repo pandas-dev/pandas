@@ -153,6 +153,26 @@ class TestFillNA:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_null_value_replacement(self):
+        # GH$40498
+        df = DataFrame(
+            {
+                "A": [1, 2, None, 4],
+                "B": [2, None, 6, 8],
+            }
+        )
+        value = np.nan
+        result = df.fillna(value)
+
+        expected = DataFrame(
+            {
+                "A": [1, 2, np.nan, 4],
+                "B": [2, np.nan, 6, 8],
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_other_missing_values_not_modified(
         self, unique_nulls_fixture, unique_nulls_fixture2
     ):
