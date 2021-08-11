@@ -309,14 +309,17 @@ class FastParquetImpl(BaseImpl):
     def read(
         self, path, columns=None, storage_options: StorageOptions = None, **kwargs
     ):
+        parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
+        if Version(self.api.__version__) >= Version("0.7.1"):
+            # We are disabling nullable dtypes for fastparquet pending discussion
+            parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the "
                 "fastparquet engine"
             )
         path = stringify_path(path)
-        parquet_kwargs = {}
         handles = None
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
@@ -337,6 +340,7 @@ class FastParquetImpl(BaseImpl):
                 path, "rb", is_text=False, storage_options=storage_options
             )
             path = handles.handle
+
         parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
 
         result = parquet_file.to_pandas(columns=columns, **kwargs)
@@ -470,7 +474,8 @@ def read_parquet(
 
     use_nullable_dtypes : bool, default False
         If True, use dtypes that use ``pd.NA`` as missing value indicator
-        for the resulting DataFrame (only applicable for ``engine="pyarrow"``).
+        for the resulting DataFrame. (only applicable for the ``pyarrow``
+        engine)
         As new dtypes are added that support ``pd.NA`` in the future, the
         output with this option will change to use those dtypes.
         Note: this is an experimental option, and behaviour (e.g. additional
