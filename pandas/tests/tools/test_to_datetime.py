@@ -383,6 +383,24 @@ class TestTimeConversionFormats:
         expected = DatetimeIndex(["2010-01-01 12:00:00"], tz="UTC", name="foo")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data, format, expected",
+        [
+            ([pd.NA], "%Y%m%d%H%M%S", DatetimeIndex(["NaT"])),
+            (
+                [pd.NA, "20210202202020"],
+                "%Y%m%d%H%M%S",
+                DatetimeIndex(["NaT", "2021-02-02 20:20:20"]),
+            ),
+            (["201010", pd.NA], "%y%m%d", DatetimeIndex(["2020-10-10", "NaT"])),
+            (["201010", pd.NA], "%d%m%y", DatetimeIndex(["2010-10-20", "NaT"])),
+        ],
+    )
+    def test_to_datetime_with_pdNA(self, data, format, expected):
+        # GH#42957
+        result = to_datetime(data, format=format)
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetime:
     @pytest.mark.parametrize(
