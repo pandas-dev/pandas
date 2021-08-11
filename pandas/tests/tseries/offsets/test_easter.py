@@ -29,7 +29,7 @@ class TestEaster(Base):
             (-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4)),
             (-Easter(2), datetime(2011, 1, 1), datetime(2009, 4, 12)),
             (-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12)),
-            (-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
+            (-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23)),
         ],
     )
     def test_offset(self, offset, date, expected):
