@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Union,
     cast,
-    final,
 )
 from warnings import warn
 
@@ -28,6 +27,7 @@ from pandas._typing import (
     DtypeObj,
     FrameOrSeriesUnion,
     Scalar,
+    final,
 )
 from pandas.util._decorators import doc
 
