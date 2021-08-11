@@ -23,6 +23,7 @@ Fixed regressions
 - Fixed regression where :meth:`pandas.read_csv` raised a ``ValueError`` when parameters ``names`` and ``prefix`` were both set to None (:issue:`42387`)
 - Fixed regression in comparisons between :class:`Timestamp` object and ``datetime64`` objects outside the implementation bounds for nanosecond ``datetime64`` (:issue:`42794`)
 - Fixed regression in :meth:`.Styler.highlight_min` and :meth:`.Styler.highlight_max` where ``pandas.NA`` was not successfully ignored (:issue:`42650`)
+- Fixed regression in :func:`pandas.concat` where ``copy=False`` was not honored in ``axis=1`` Series concatenation (:issue:`42501`)
 - Regression in :meth:`Series.nlargest` and :meth:`Series.nsmallest` with nullable integer or float dtype (:issue:`41816`)
 - Fixed regression in :meth:`pandas.Series.quantile` with :class:`pandas.Int64Dtype` (:issue:`42626`)
 

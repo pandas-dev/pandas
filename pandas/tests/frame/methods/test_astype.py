@@ -23,6 +23,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.arrays.integer import coerce_to_array
 
 
 def _check_cast(df, v):
@@ -726,3 +727,32 @@ class TestAstypeCategorical:
         cat = df.astype("category")
         result = cat.astype(str)
         tm.assert_frame_equal(result, expected)
+
+
+class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
+    # GH 42501
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArrayNoCopy(values, mask)
+
+    def copy(self):
+        assert False
+
+
+class Int16DtypeNoCopy(pd.Int16Dtype):
+    # GH 42501
+
+    @classmethod
+    def construct_array_type(cls):
+        return IntegerArrayNoCopy
+
+
+def test_frame_astype_no_copy():
+    # GH 42501
+    df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+
+    assert result.a.dtype == pd.Int16Dtype()
+    assert np.shares_memory(df.b.values, result.b.values)
