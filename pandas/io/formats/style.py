@@ -869,7 +869,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.4.0
         max_rows, max_columns : int, optional
             The maximum rows and/or columns that will be rendered. Defaults to
-            ``pandas.options.styler.render.max_rows/max_cols``.
+            ``pandas.options.styler.render.max_rows/max_columns``.
 
             .. versionadded:: 1.4.0
         encoding : str, optional
