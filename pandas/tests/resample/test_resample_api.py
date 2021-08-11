@@ -349,7 +349,12 @@ def test_agg():
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        result = t.aggregate([np.mean, np.std])
+        warn = FutureWarning if t in cases[1:3] else None
+        with tm.assert_produces_warning(
+            warn, match="Dropping invalid columns", check_stacklevel=False
+        ):
+            # .var on dt64 column raises and is dropped
+            result = t.aggregate([np.mean, np.std])
         tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
