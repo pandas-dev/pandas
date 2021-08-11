@@ -218,35 +218,36 @@ def iris_table_metadata():
     return iris
 
 
-def create_and_load_iris(conn, iris_file: Path):
-    import sqlite3
+def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
+    cur = conn.cursor()
+    stmt = """CREATE TABLE iris (
+            "SepalLength" REAL,
+            "SepalWidth" REAL,
+            "PetalLength" REAL,
+            "PetalWidth" REAL,
+            "Name" TEXT
+        )"""
+    cur.execute(stmt)
+    with iris_file.open(newline=None) as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)
+        cur = conn.cursor()
+        stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
+        for row in reader:
+            cur.execute(stmt, row)
 
+
+def create_and_load_iris(conn, iris_file: Path):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
-    if isinstance(conn, sqlite3.Connection):
-        cur = conn.cursor()
-        stmt = """CREATE TABLE iris (
-                "SepalLength" REAL,
-                "SepalWidth" REAL,
-                "PetalLength" REAL,
-                "PetalWidth" REAL,
-                "Name" TEXT
-            )"""
-        cur.execute(stmt)
-    else:
-        iris = iris_table_metadata()
-        iris.create(conn)
+    iris = iris_table_metadata()
+    iris.create(conn)
 
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
-        if isinstance(conn, sqlite3.Connection):
-            cur = conn.cursor()
-            stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
-            for row in reader:
-                cur.execute(stmt, row)
-        elif isinstance(conn, Engine):
+        if isinstance(conn, Engine):
             with conn.connect() as conn:
                 for row in reader:
                     params = {key: value for key, value in zip(header, row)}
@@ -298,8 +299,8 @@ def mysql_pymysql_engine(iris_path):
         "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
     )
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
+    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
+    if not check_target.has_table("iris"):
         create_and_load_iris(engine, iris_path)
     yield engine
     with engine.connect() as conn:
@@ -320,10 +321,9 @@ def postgresql_psycopg2_engine(iris_path):
     engine = sqlalchemy.create_engine(
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
     )
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
+    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
+    if not check_target.has_table("iris"):
         create_and_load_iris(engine, iris_path)
-
     yield engine
     with engine.connect() as conn:
         stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
@@ -369,7 +369,7 @@ def sqlite_buildin():
 
 @pytest.fixture
 def sqlite_buildin_iris(sqlite_buildin, iris_path):
-    create_and_load_iris(sqlite_buildin, iris_path)
+    create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
     return sqlite_buildin
 
 
