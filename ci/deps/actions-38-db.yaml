@@ -15,7 +15,7 @@ dependencies:
   - beautifulsoup4
   - botocore>=1.11
   - dask
-  - fastparquet>=0.4.0, < 0.7.0
+  - fastparquet>=0.4.0
   - fsspec>=0.7.4, <2021.6.0
   - gcsfs>=0.6.0
   - geopandas
