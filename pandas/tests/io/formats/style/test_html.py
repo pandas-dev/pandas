@@ -108,7 +108,7 @@ def test_w3_html_format(styler):
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th class="col_heading level0 col0" >A</th>
+              <th id="T_level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>
@@ -138,10 +138,7 @@ def test_rowspan_w3():
     # GH 38533
     df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert (
-        '<th id="T___level0_row0" class="row_heading '
-        'level0 row0" rowspan="2">l0</th>' in styler.render()
-    )
+    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.render()
 
 
 def test_styles(styler):
@@ -165,7 +162,7 @@ def test_styles(styler):
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th class="col_heading level0 col0" >A</th>
+              <th id="T_abc_level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>
@@ -400,3 +397,36 @@ def test_sparse_options(sparse_index, sparse_columns):
         assert (html1 == default_html) is (sparse_index and sparse_columns)
     html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=sparse_columns)
     assert html1 == html2
+
+
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize("columns", [True, False])
+def test_applymap_header_cell_ids(styler, index, columns):
+    # GH 41893
+    func = lambda v: "attr: val;"
+    styler.uuid, styler.cell_ids = "", False
+    if index:
+        styler.applymap_index(func, axis="index")
+    if columns:
+        styler.applymap_index(func, axis="columns")
+
+    result = styler.to_html()
+
+    # test no data cell ids
+    assert '<td class="data row0 col0" >2.610000</td>' in result
+    assert '<td class="data row1 col0" >2.690000</td>' in result
+
+    # test index header ids where needed and css styles
+    assert (
+        '<th id="T_level0_row0" class="row_heading level0 row0" >a</th>' in result
+    ) is index
+    assert (
+        '<th id="T_level0_row1" class="row_heading level0 row1" >b</th>' in result
+    ) is index
+    assert ("#T_level0_row0, #T_level0_row1 {\n  attr: val;\n}" in result) is index
+
+    # test column header ids where needed and css styles
+    assert (
+        '<th id="T_level0_col0" class="col_heading level0 col0" >A</th>' in result
+    ) is columns
+    assert ("#T_level0_col0 {\n  attr: val;\n}" in result) is columns
