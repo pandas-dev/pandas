@@ -143,10 +143,7 @@ def test_read_chunksize_jagged_names(all_parsers):
     parser = all_parsers
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
-    # error: List item 0 has incompatible type "float"; expected "int"
-    expected = DataFrame(
-        [[0] + [np.nan] * 9] * 7 + [[0] * 10]  # type: ignore[list-item]
-    )
+    expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
     with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
         result = concat(reader)
     tm.assert_frame_equal(result, expected)
@@ -180,13 +177,17 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
 def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
     warning_type = None
     parser = all_parsers
-    integers = [str(i) for i in range(499999)]
-    data = "a\n" + "\n".join(integers + ["a", "b"] + integers)
+    size = 10000
 
     # see gh-3866: if chunks are different types and can't
     # be coerced using numerical types, then issue warning.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
+        # Use larger size to hit warning path
+        size = 499999
+
+    integers = [str(i) for i in range(size)]
+    data = "a\n" + "\n".join(integers + ["a", "b"] + integers)
 
     buf = StringIO(data)
 

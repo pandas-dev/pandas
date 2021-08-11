@@ -232,6 +232,22 @@ class ToHTML:
         self.df2.to_html()
 
 
+class ToDict:
+    params = [["dict", "list", "series", "split", "records", "index"]]
+    param_names = ["orient"]
+
+    def setup(self, orient):
+        data = np.random.randint(0, 1000, size=(10000, 4))
+        self.int_df = DataFrame(data)
+        self.datetimelike_df = self.int_df.astype("timedelta64[ns]")
+
+    def time_to_dict_ints(self, orient):
+        self.int_df.to_dict(orient=orient)
+
+    def time_to_dict_datetimelike(self, orient):
+        self.datetimelike_df.to_dict(orient=orient)
+
+
 class ToNumpy:
     def setup(self):
         N = 10000
@@ -522,8 +538,12 @@ class Interpolate:
     def setup(self, downcast):
         N = 10000
         # this is the worst case, where every column has NaNs.
-        self.df = DataFrame(np.random.randn(N, 100))
-        self.df.values[::2] = np.nan
+        arr = np.random.randn(N, 100)
+        # NB: we need to set values in array, not in df.values, otherwise
+        #  the benchmark will be misleading for ArrayManager
+        arr[::2] = np.nan
+
+        self.df = DataFrame(arr)
 
         self.df2 = DataFrame(
             {
@@ -652,7 +672,9 @@ class Rank:
     ]
 
     def setup(self, dtype):
-        self.df = DataFrame(np.random.randn(10000, 10), columns=range(10), dtype=dtype)
+        self.df = DataFrame(
+            np.random.randn(10000, 10).astype(dtype), columns=range(10), dtype=dtype
+        )
 
     def time_rank(self, dtype):
         self.df.rank()

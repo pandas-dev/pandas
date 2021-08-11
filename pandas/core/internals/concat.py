@@ -94,12 +94,15 @@ def _concatenate_array_managers(
             concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
-        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
     else:
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+        if copy:
+            arrays = [x.copy() for x in arrays]
+
+    new_mgr = ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+    return new_mgr
 
 
 def concat_arrays(to_concat: list) -> ArrayLike:
@@ -123,12 +126,16 @@ def concat_arrays(to_concat: list) -> ArrayLike:
     # ignore the all-NA proxies to determine the resulting dtype
     to_concat_no_proxy = [x for x in to_concat if not isinstance(x, NullArrayProxy)]
 
-    single_dtype = len({x.dtype for x in to_concat_no_proxy}) == 1
+    dtypes = {x.dtype for x in to_concat_no_proxy}
+    single_dtype = len(dtypes) == 1
 
-    if not single_dtype:
-        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
-    else:
+    if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
+    elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
+        # GH#42092
+        target_dtype = np.find_common_type(list(dtypes), [])
+    else:
+        target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
     if target_dtype.kind in ["m", "M"]:
         # for datetimelike use DatetimeArray/TimedeltaArray concatenation
@@ -592,6 +599,9 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
         # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
         all(
             is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            # GH#42092 we only want the dtype_equal check for non-numeric blocks
+            #  (for now, may change but that would need a deprecation)
+            or ju.block.dtype.kind in ["b", "i", "u"]
             for ju in join_units
         )
         and
@@ -665,6 +675,7 @@ def _combine_concat_plans(plans, concat_axis: int):
                 offset += last_plc.as_slice.stop
 
     else:
+        # singleton list so we can modify it as a side-effect within _next_or_none
         num_ended = [0]
 
         def _next_or_none(seq):

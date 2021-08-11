@@ -856,3 +856,35 @@ class TestSortValuesLevelAsStr:
                 tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame\.sort_values "
+            r"except for the argument 'by' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.sort_values("a", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_validate_ascending_for_value_error(self):
+        # GH41634
+        df = DataFrame({"D": [23, 7, 21]})
+
+        msg = 'For argument "ascending" expected type bool, received type str.'
+        with pytest.raises(ValueError, match=msg):
+            df.sort_values(by="D", ascending="False")
+
+    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
+    def test_sort_values_validate_ascending_functional(self, ascending):
+        df = DataFrame({"D": [23, 7, 21]})
+        indexer = df["D"].argsort().values
+
+        if not ascending:
+            indexer = indexer[::-1]
+
+        expected = df.loc[df.index[indexer]]
+        result = df.sort_values(by="D", ascending=ascending)
+        tm.assert_frame_equal(result, expected)

@@ -255,7 +255,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
         # Fill with non-category results in a ValueError
-        msg = r"'fill_value=d' is not present in"
+        msg = r"Cannot setitem on a Categorical with a new category \(d\)"
         with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
@@ -358,7 +358,7 @@ class TestDataFrameReshape:
                 "E": Series([1.0, 50.0, 100.0]).astype("float32"),
                 "F": Series([3.0, 4.0, 5.0]).astype("float64"),
                 "G": False,
-                "H": Series([1, 200, 923442], dtype="int8"),
+                "H": Series([1, 200, 923442]).astype("int8"),
             }
         )
 

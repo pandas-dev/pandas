@@ -89,12 +89,6 @@ class PandasExtensionDtype(ExtensionDtype):
     isnative = 0
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
 
-    def __str__(self) -> str_type:
-        """
-        Return a string representation for a particular Object
-        """
-        return self.name
-
     def __repr__(self) -> str_type:
         """
         Return a string representation for a particular object.
@@ -110,7 +104,7 @@ class PandasExtensionDtype(ExtensionDtype):
 
     @classmethod
     def reset_cache(cls) -> None:
-        """ clear the cache """
+        """clear the cache"""
         cls._cache_dtypes = {}
 
 
@@ -535,7 +529,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
         elif not isinstance(categories, ABCIndex):
-            categories = Index(categories, tupleize_cols=False)
+            categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
 
@@ -1273,8 +1267,6 @@ class IntervalDtype(PandasExtensionDtype):
 class PandasDtype(ExtensionDtype):
     """
     A Pandas ExtensionDtype for NumPy dtypes.
-
-    .. versionadded:: 0.24.0
 
     This is mostly for internal compatibility, and is not especially
     useful on its own.

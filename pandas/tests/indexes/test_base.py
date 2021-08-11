@@ -35,6 +35,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.api.types import is_float_dtype
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -713,6 +714,12 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
+        elif index._is_backward_compat_public_numeric_index:
+            if is_float_dtype(index.dtype):
+                exp_dtype = np.float64
+            else:
+                exp_dtype = np.int64
+            expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
@@ -992,7 +999,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -1622,6 +1629,18 @@ class TestIndexUtils:
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_ensure_index_uint64(self):
+        # with both 0 and a large-uint64, np.array will infer to float64
+        #  https://github.com/numpy/numpy/issues/19146
+        #  but a more accurate choice would be uint64
+        values = [0, np.iinfo(np.uint64).max]
+
+        result = ensure_index(values)
+        assert list(result) == values
+
+        expected = Index(values, dtype="uint64")
+        tm.assert_index_equal(result, expected)
+
     def test_get_combined_index(self):
         result = _get_combined_index([])
         expected = Index([])
@@ -1738,3 +1757,30 @@ def test_construct_from_memoryview(klass, extra_kwargs):
     result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
     expected = klass(range(2000, 2005), **extra_kwargs)
     tm.assert_index_equal(result, expected)
+
+
+def test_index_set_names_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 4])
+    msg = (
+        "In a future version of pandas all arguments of Index.set_names "
+        "except for the argument 'names' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_names("quarter", None)
+    expected = Index([1, 2, 3, 4], name="quarter")
+    tm.assert_index_equal(result, expected)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 1])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Index.drop_duplicates will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx.drop_duplicates("last")
+        result = idx.drop_duplicates("last")
+    expected = Index([2, 3, 1])
+    tm.assert_index_equal(expected, result)

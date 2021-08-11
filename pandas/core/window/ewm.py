@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -12,9 +13,12 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -40,7 +44,14 @@ from pandas.core.window.indexers import (
     ExponentialMovingWindowIndexer,
     GroupbyIndexer,
 )
-from pandas.core.window.numba_ import generate_numba_ewma_func
+from pandas.core.window.numba_ import (
+    generate_ewma_numba_table_func,
+    generate_numba_ewma_func,
+)
+from pandas.core.window.online import (
+    EWMMeanState,
+    generate_online_numba_ewma_func,
+)
 from pandas.core.window.rolling import (
     BaseWindow,
     BaseWindowGroupby,
@@ -196,6 +207,16 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
         Only applicable to ``mean()``.
+    method : str {'single', 'table'}, default 'single'
+        Execute the rolling operation per single column or row (``'single'``)
+        or over the entire object (``'table'``).
+
+        This argument is only implemented when specifying ``engine='numba'``
+        in the method call.
+
+        Only applicable to ``mean()``
+
+        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -254,6 +275,7 @@ class ExponentialMovingWindow(BaseWindow):
         "ignore_na",
         "axis",
         "times",
+        "method",
     ]
 
     def __init__(
@@ -263,21 +285,22 @@ class ExponentialMovingWindow(BaseWindow):
         span: float | None = None,
         halflife: float | TimedeltaConvertibleTypes | None = None,
         alpha: float | None = None,
-        min_periods: int = 0,
+        min_periods: int | None = 0,
         adjust: bool = True,
         ignore_na: bool = False,
         axis: Axis = 0,
         times: str | np.ndarray | FrameOrSeries | None = None,
+        method: str = "single",
         *,
         selection=None,
     ):
         super().__init__(
             obj=obj,
-            min_periods=max(int(min_periods), 1),
+            min_periods=1 if min_periods is None else max(int(min_periods), 1),
             on=None,
             center=False,
             closed=None,
-            method="single",
+            method=method,
             axis=axis,
             selection=selection,
         )
@@ -338,6 +361,48 @@ class ExponentialMovingWindow(BaseWindow):
         """
         return ExponentialMovingWindowIndexer()
 
+    def online(self, engine="numba", engine_kwargs=None):
+        """
+        Return an ``OnlineExponentialMovingWindow`` object to calculate
+        exponentially moving window aggregations in an online method.
+
+        .. versionadded:: 1.3.0
+
+        Parameters
+        ----------
+        engine: str, default ``'numba'``
+            Execution engine to calculate online aggregations.
+            Applies to all supported aggregation methods.
+
+        engine_kwargs : dict, default None
+            Applies to all supported aggregation methods.
+
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+              applied to the function
+
+        Returns
+        -------
+        OnlineExponentialMovingWindow
+        """
+        return OnlineExponentialMovingWindow(
+            obj=self.obj,
+            com=self.com,
+            span=self.span,
+            halflife=self.halflife,
+            alpha=self.alpha,
+            min_periods=self.min_periods,
+            adjust=self.adjust,
+            ignore_na=self.ignore_na,
+            axis=self.axis,
+            times=self.times,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            selection=self._selection,
+        )
+
     @doc(
         _shared_docs["aggregate"],
         see_also=dedent(
@@ -391,12 +456,19 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def mean(self, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
-            ewma_func = generate_numba_ewma_func(
-                engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
-            )
+            if self.method == "single":
+                ewma_func = generate_numba_ewma_func(
+                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+                )
+                numba_cache_key = (lambda x: x, "ewma")
+            else:
+                ewma_func = generate_ewma_numba_table_func(
+                    engine_kwargs, self._com, self.adjust, self.ignore_na, self._deltas
+                )
+                numba_cache_key = (lambda x: x, "ewma_table")
             return self._apply(
                 ewma_func,
-                numba_cache_key=(lambda x: x, "ewma"),
+                numba_cache_key=numba_cache_key,
             )
         elif engine in ("cython", None):
             if engine_kwargs is not None:
@@ -512,7 +584,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
@@ -579,7 +651,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):
@@ -655,3 +727,167 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
+
+
+class OnlineExponentialMovingWindow(ExponentialMovingWindow):
+    def __init__(
+        self,
+        obj: FrameOrSeries,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | TimedeltaConvertibleTypes | None = None,
+        alpha: float | None = None,
+        min_periods: int | None = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        axis: Axis = 0,
+        times: str | np.ndarray | FrameOrSeries | None = None,
+        engine: str = "numba",
+        engine_kwargs: dict[str, bool] | None = None,
+        *,
+        selection=None,
+    ):
+        if times is not None:
+            raise NotImplementedError(
+                "times is not implemented with online operations."
+            )
+        super().__init__(
+            obj=obj,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            axis=axis,
+            times=times,
+            selection=selection,
+        )
+        self._mean = EWMMeanState(
+            self._com, self.adjust, self.ignore_na, self.axis, obj.shape
+        )
+        if maybe_use_numba(engine):
+            self.engine = engine
+            self.engine_kwargs = engine_kwargs
+        else:
+            raise ValueError("'numba' is the only supported engine")
+
+    def reset(self):
+        """
+        Reset the state captured by `update` calls.
+        """
+        self._mean.reset()
+
+    def aggregate(self, func, *args, **kwargs):
+        return NotImplementedError
+
+    def std(self, bias: bool = False, *args, **kwargs):
+        return NotImplementedError
+
+    def corr(
+        self,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
+        **kwargs,
+    ):
+        return NotImplementedError
+
+    def cov(
+        self,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
+        bias: bool = False,
+        **kwargs,
+    ):
+        return NotImplementedError
+
+    def var(self, bias: bool = False, *args, **kwargs):
+        return NotImplementedError
+
+    def mean(self, *args, update=None, update_times=None, **kwargs):
+        """
+        Calculate an online exponentially weighted mean.
+
+        Parameters
+        ----------
+        update: DataFrame or Series, default None
+            New values to continue calculating the
+            exponentially weighted mean from the last values and weights.
+            Values should be float64 dtype.
+
+            ``update`` needs to be ``None`` the first time the
+            exponentially weighted mean is calculated.
+
+        update_times: Series or 1-D np.ndarray, default None
+            New times to continue calculating the
+            exponentially weighted mean from the last values and weights.
+            If ``None``, values are assumed to be evenly spaced
+            in time.
+            This feature is currently unsupported.
+
+        Returns
+        -------
+        DataFrame or Series
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"a": range(5), "b": range(5, 10)})
+        >>> online_ewm = df.head(2).ewm(0.5).online()
+        >>> online_ewm.mean()
+              a     b
+        0  0.00  5.00
+        1  0.75  5.75
+        >>> online_ewm.mean(update=df.tail(3))
+                  a         b
+        2  1.615385  6.615385
+        3  2.550000  7.550000
+        4  3.520661  8.520661
+        >>> online_ewm.reset()
+        >>> online_ewm.mean()
+              a     b
+        0  0.00  5.00
+        1  0.75  5.75
+        """
+        result_kwargs = {}
+        is_frame = True if self._selected_obj.ndim == 2 else False
+        if update_times is not None:
+            raise NotImplementedError("update_times is not implemented.")
+        else:
+            update_deltas = np.ones(
+                max(self._selected_obj.shape[self.axis - 1] - 1, 0), dtype=np.float64
+            )
+        if update is not None:
+            if self._mean.last_ewm is None:
+                raise ValueError(
+                    "Must call mean with update=None first before passing update"
+                )
+            result_from = 1
+            result_kwargs["index"] = update.index
+            if is_frame:
+                last_value = self._mean.last_ewm[np.newaxis, :]
+                result_kwargs["columns"] = update.columns
+            else:
+                last_value = self._mean.last_ewm
+                result_kwargs["name"] = update.name
+            np_array = np.concatenate((last_value, update.to_numpy()))
+        else:
+            result_from = 0
+            result_kwargs["index"] = self._selected_obj.index
+            if is_frame:
+                result_kwargs["columns"] = self._selected_obj.columns
+            else:
+                result_kwargs["name"] = self._selected_obj.name
+            np_array = self._selected_obj.astype(np.float64).to_numpy()
+        ewma_func = generate_online_numba_ewma_func(self.engine_kwargs)
+        result = self._mean.run_ewm(
+            np_array if is_frame else np_array[:, np.newaxis],
+            update_deltas,
+            self.min_periods,
+            ewma_func,
+        )
+        if not is_frame:
+            result = result.squeeze()
+        result = result[result_from:]
+        result = self._selected_obj._constructor(result, **result_kwargs)
+        return result

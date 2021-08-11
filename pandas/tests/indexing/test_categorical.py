@@ -485,9 +485,9 @@ class TestCategoricalIndex:
             [1.5, 2.5, 3.5],
             [-1.5, -2.5, -3.5],
             # numpy int/uint
-            *[np.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_DTYPES],
+            *(np.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_DTYPES),
             # numpy floats
-            *[np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in tm.FLOAT_DTYPES],
+            *(np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in tm.FLOAT_DTYPES),
             # numpy object
             np.array([1, "b", 3.5], dtype=object),
             # pandas scalars
@@ -495,7 +495,7 @@ class TestCategoricalIndex:
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
             [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
             # pandas Integer arrays
-            *[pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES],
+            *(pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES),
             # other pandas arrays
             pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,
@@ -540,3 +540,16 @@ class TestCategoricalIndex:
         result.loc[sl, "A"] = ["qux", "qux2"]
         expected = DataFrame({"A": ["qux", "qux2", "baz"]}, index=cat_idx)
         tm.assert_frame_equal(result, expected)
+
+    def test_getitem_categorical_with_nan(self):
+        # GH#41933
+        ci = CategoricalIndex(["A", "B", np.nan])
+
+        ser = Series(range(3), index=ci)
+
+        assert ser[np.nan] == 2
+        assert ser.loc[np.nan] == 2
+
+        df = DataFrame(ser)
+        assert df.loc[np.nan, 0] == 2
+        assert df.loc[np.nan][0] == 2
