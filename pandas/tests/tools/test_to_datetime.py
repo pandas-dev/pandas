@@ -387,6 +387,7 @@ class TestTimeConversionFormats:
         "data, format, expected",
         [
             ([pd.NA], "%Y%m%d%H%M%S", DatetimeIndex(["NaT"])),
+            ([pd.NA], None, DatetimeIndex(["NaT"])),
             (
                 [pd.NA, "20210202202020"],
                 "%Y%m%d%H%M%S",
@@ -394,6 +395,7 @@ class TestTimeConversionFormats:
             ),
             (["201010", pd.NA], "%y%m%d", DatetimeIndex(["2020-10-10", "NaT"])),
             (["201010", pd.NA], "%d%m%y", DatetimeIndex(["2010-10-20", "NaT"])),
+            (["201010", pd.NA], None, DatetimeIndex(["2010-10-20", "NaT"])),
         ],
     )
     def test_to_datetime_with_pdNA(self, data, format, expected):
