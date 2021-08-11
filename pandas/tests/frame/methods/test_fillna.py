@@ -153,6 +153,28 @@ class TestFillNA:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_other_missing_values_not_modified(
+        self, unique_nulls_fixture, unique_nulls_fixture2
+    ):
+        # GH#40498
+        df = DataFrame(
+            {
+                "A": [1, unique_nulls_fixture, unique_nulls_fixture2, "four"],
+                "B": [2, unique_nulls_fixture, unique_nulls_fixture2, "eight"],
+            }
+        )
+        value = {"A": {1: 0}, "B": {2: 0}}
+        result = df.fillna(value)
+
+        expected = DataFrame(
+            {
+                "A": [1, 0, unique_nulls_fixture2, "four"],
+                "B": [2, unique_nulls_fixture, 0, "eight"],
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_na_actions_categorical(self):
 
         cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
