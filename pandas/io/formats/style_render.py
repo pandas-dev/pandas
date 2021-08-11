@@ -216,7 +216,7 @@ class StylerRenderer:
 
         max_elements = get_option("styler.render.max_elements")
         max_rows = max_rows if max_rows else get_option("styler.render.max_rows")
-        max_cols = max_cols if max_cols else get_option("styler.render.max_cols")
+        max_cols = max_cols if max_cols else get_option("styler.render.max_columns")
         max_rows, max_cols = _get_trimming_maximums(
             len(self.data.index),
             len(self.data.columns),

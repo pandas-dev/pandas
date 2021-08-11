@@ -829,7 +829,7 @@ class Styler(StylerRenderer):
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         max_rows: int | None = None,
-        max_cols: int | None = None,
+        max_columns: int | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -867,7 +867,7 @@ class Styler(StylerRenderer):
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
 
             .. versionadded:: 1.4.0
-        max_rows, max_cols : int, optional
+        max_rows, max_columns : int, optional
             The maximum rows and/or columns that will be rendered. Defaults to
             ``pandas.options.styler.render.max_rows/max_cols``.
 
@@ -908,7 +908,7 @@ class Styler(StylerRenderer):
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             max_rows=max_rows,
-            max_cols=max_cols,
+            max_cols=max_columns,
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,

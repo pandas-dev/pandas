@@ -768,7 +768,7 @@ styler_max_rows = """
     satsify ``max_elements``, which takes precedence.
 """
 
-styler_max_cols = """
+styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
     satsify ``max_elements``, which takes precedence.
@@ -796,8 +796,8 @@ with cf.config_prefix("styler"):
     )
 
     cf.register_option(
-        "render.max_cols",
+        "render.max_columns",
         None,
-        styler_max_cols,
+        styler_max_columns,
         validator=is_nonnegative_int,
     )

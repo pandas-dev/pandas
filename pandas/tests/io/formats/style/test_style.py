@@ -177,7 +177,7 @@ def test_render_trimming_rows(option, val):
     "option, val",
     [
         ("styler.render.max_elements", 6),
-        ("styler.render.max_cols", 2),
+        ("styler.render.max_columns", 2),
     ],
 )
 def test_render_trimming_cols(option, val):

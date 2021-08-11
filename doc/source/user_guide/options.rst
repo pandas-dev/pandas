@@ -490,7 +490,7 @@ styler.sparse.columns                   True         "Sparsify" MultiIndex displ
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
 styler.render.max_rows                  None         Maximum number of rows that Styler will render.
-styler.render.max_cols                  None         Maximum number of columns that Styler will render.
+styler.render.max_columns               None         Maximum number of columns that Styler will render.
 ======================================= ============ ==================================
 
 
