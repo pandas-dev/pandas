@@ -446,7 +446,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             object.__setattr__(self, "_name", name)
         else:
             self.name = name
-        self._set_axis(0, index, fastpath=fastpath)
+            self._set_axis(0, index)
 
     def _init_dict(self, data, index=None, dtype: Dtype | None = None):
         """
@@ -523,34 +523,32 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
+    def _set_axis(self, axis: int, labels) -> None:
         """
         Override generic, we want to set the _typ here.
 
         This is called from the cython code when we set the `index` attribute
         directly, e.g. `series.index = [1, 2, 3]`.
         """
-        if not fastpath:
-            labels = ensure_index(labels)
+        labels = ensure_index(labels)
 
-            if labels._is_all_dates:
-                deep_labels = labels
-                if isinstance(labels, CategoricalIndex):
-                    deep_labels = labels.categories
+        if labels._is_all_dates:
+            deep_labels = labels
+            if isinstance(labels, CategoricalIndex):
+                deep_labels = labels.categories
 
-                if not isinstance(
-                    deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
-                ):
-                    try:
-                        labels = DatetimeIndex(labels)
-                    except (tslibs.OutOfBoundsDatetime, ValueError):
-                        # labels may exceeds datetime bounds,
-                        # or not be a DatetimeIndex
-                        pass
+            if not isinstance(
+                deep_labels, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
+            ):
+                try:
+                    labels = DatetimeIndex(labels)
+                except (tslibs.OutOfBoundsDatetime, ValueError):
+                    # labels may exceeds datetime bounds,
+                    # or not be a DatetimeIndex
+                    pass
 
-        if not fastpath:
-            # The ensure_index call above ensures we have an Index object
-            self._mgr.set_axis(axis, labels)
+        # The ensure_index call above ensures we have an Index object
+        self._mgr.set_axis(axis, labels)
 
     # ndarray compatibility
     @property
