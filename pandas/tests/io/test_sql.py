@@ -212,7 +212,7 @@ def iris_table_metadata():
         Column("SepalWidth", FLOAT),
         Column("PetalLength", FLOAT),
         Column("PetalWidth", FLOAT),
-        Column("Name", String),
+        Column("Name", String(200)),
     )
     return iris
 
