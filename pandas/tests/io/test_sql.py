@@ -428,21 +428,17 @@ common_connections = [
     "postgresql_psycopg2_conn",
 ]
 
-all_connections = common_connections.extend(
-    [
-        "sqlite_engine",
-        "sqlite_conn",
-        "sqlite_buildin",
-    ]
-)
+all_connections = common_connections + [
+    "sqlite_engine",
+    "sqlite_conn",
+    "sqlite_buildin",
+]
 
-all_connections_iris = common_connections.extend(
-    [
-        "sqlite_iris_engine",
-        "sqlite_iris_conn",
-        "sqlite_buildin_iris",
-    ]
-)
+all_connections_iris = common_connections + [
+    "sqlite_iris_engine",
+    "sqlite_iris_conn",
+    "sqlite_buildin_iris",
+]
 
 
 @pytest.mark.parametrize("conn", all_connections)
