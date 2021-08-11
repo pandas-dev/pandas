@@ -1076,7 +1076,7 @@ def from_dummies(
     data: DataFrame,
     to_series: bool = False,
     prefix_sep: str | list[str] | dict[str, str] = "_",
-    columns: None | list[str] = None,
+    columns: None | Index | list[str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> Series | DataFrame:
     """
@@ -1097,7 +1097,7 @@ def from_dummies(
         Pass a list if multiple prefix separators are used in the columns names.
         Alternatively, pass a dictionary to map prefix separators to prefixes if
         multiple and/ mixed separators are used in the column names.
-    columns : None or list of str, default 'None'
+    columns : None, Index, or list of str, default 'None'
         The columns which to convert from dummy-encoding and return as categorical
         `DataFrame`.
         If `columns` is None then all dummy columns are converted and appended
@@ -1187,7 +1187,7 @@ def from_dummies(
 
     # get separator for each prefix and lists to slice data for each prefix
     if isinstance(prefix_sep, dict):
-        variables_slice = {prefix: [] for prefix in prefix_sep}
+        variables_slice: dict[str, list] = {prefix: [] for prefix in prefix_sep}
         for col in data_to_decode.columns:
             for prefix in prefix_sep:
                 if prefix in col:
@@ -1219,7 +1219,7 @@ def from_dummies(
     if dropped_first:
         if isinstance(dropped_first, dict):
             check_len(dropped_first, "dropped_first")
-        elif is_list_like(dropped_first):
+        elif isinstance(dropped_first, list):
             check_len(dropped_first, "dropped_first")
             dropped_first = dict(zip(variables_slice, dropped_first))
         else:
@@ -1237,7 +1237,7 @@ def from_dummies(
                 f"'{prefix}'; First instance in row: {assigned.argmax()}."
             )
         elif any(assigned == 0):
-            if dropped_first:
+            if isinstance(dropped_first, dict):
                 cats.append(dropped_first[prefix])
             else:
                 raise ValueError(
@@ -1255,7 +1255,7 @@ def from_dummies(
 
 def _from_dummies_1d(
     data: DataFrame,
-    dropped_first: None | str = None,
+    dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> Series:
     """
     Helper function for from_dummies.
