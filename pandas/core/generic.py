@@ -6275,11 +6275,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
-                    value = create_series_with_explicit_dtype(
+                    value_map = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
-                    value = value.reindex(self.index, copy=False)
-                    value = value._values
+                    value = self.copy()
+                    modification_index = value.index.intersection(value_map.index)
+                    if not modification_index.empty:
+                        value.loc[modification_index] = value_map[modification_index]
                 elif not is_list_like(value):
                     pass
                 else:
