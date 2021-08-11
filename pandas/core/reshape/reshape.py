@@ -1120,7 +1120,7 @@ def from_dummies(
     Examples
     --------
     >>> d = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
-                          "c": [0, 0, 1, 0]})
+    ...                   "c": [0, 0, 1, 0]})
 
     >>> pd.from_dummies(s, to_series=True)
     0  a
@@ -1129,8 +1129,8 @@ def from_dummies(
     3  a
 
     >>> d = pd.DataFrame({"C": [1, 2, 3], "col1_a": [1, 0, 1],
-                          "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
-                          "col2_b": [1, 0, 0], "col2_c": [0, 0, 1]})
+    ...                   "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
+    ...                   "col2_b": [1, 0, 0], "col2_c": [0, 0, 1]})
 
     >>> pd.from_dummies(d)
        C   col1    col2
@@ -1139,8 +1139,8 @@ def from_dummies(
     2  3     a       c
 
     >>> d = pd.DataFrame({"C": [1, 2, 3], "col1_a": [1, 0, 0],
-                        "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
-                        "col2_b": [1, 0, 0], "col2_c": [0, 0, 0]})
+    ...                   "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
+    ...                   "col2_b": [1, 0, 0], "col2_c": [0, 0, 0]})
 
     >>> pd.from_dummies(d, dropped_first=["d", "e"])
        C   col1    col2
@@ -1149,8 +1149,8 @@ def from_dummies(
     2  3     d       e
 
     >>> d = pd.DataFrame({"col1_a-a": [1, 0, 1], "col1_b-b": [0, 1, 0],
-                          "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
-                          "col2-c_c": [0, 0, 1]})
+    ...                   "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
+    ...                   "col2-c_c": [0, 0, 1]})
 
     >>> pd.from_dummies(d, prefix_sep={"col1": "_", "col2": "-"})
        col1  col2
