@@ -20,6 +20,7 @@ env:
 jobs:
   Linux_py38_IO:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     defaults:
       run:
         shell: bash -l {0}

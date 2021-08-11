@@ -474,12 +474,12 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
-@pytest.mark.parametrize("conn", all_connections_iris)
-def test_read_iris(conn, request):
-    conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    iris_frame = pandasSQL.read_query("SELECT * FROM iris")
-    check_iris_frame(iris_frame)
+# @pytest.mark.parametrize("conn", all_connections_iris)
+# def test_read_iris(conn, request):
+#     conn = request.getfixturevalue(conn)
+#     pandasSQL = pandasSQL_builder(conn)
+#     iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+#     check_iris_frame(iris_frame)
 
 
 class MixInBase:
