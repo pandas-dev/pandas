@@ -653,35 +653,25 @@ def test_apply_map_header_render_mi(df, index, columns):
     func = lambda v: "bfseries: --rwrap" if "A" in v or "Z" in v or "c" in v else None
 
     if index:
-        styler.applymap_header(func, axis="index")
+        styler.applymap_index(func, axis="index")
     if columns:
-        styler.applymap_header(func, axis="columns")
+        styler.applymap_index(func, axis="columns")
 
     result = styler.to_latex()
 
-    assert (
-        (
-            dedent(
-                """\
-        \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
-         & b & 1 & -1.220000 & cd \\\\
-        B & \\bfseries{c} & 2 & -2.220000 & de \\\\
+    expected_index = dedent(
+        """\
+    \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
+     & b & 1 & -1.220000 & cd \\\\
+    B & \\bfseries{c} & 2 & -2.220000 & de \\\\
     """
-            )
-            in result
-        )
-        is index
     )
+    assert (expected_index in result) is index
 
-    assert (
-        (
-            dedent(
-                """\
-        {} & {} & \\multicolumn{2}{r}{\\bfseries{Z}} & {Y} \\\\
-        {} & {} & {a} & {b} & {\\bfseries{c}} \\\\
+    expected_columns = dedent(
+        """\
+    {} & {} & \\multicolumn{2}{r}{\\bfseries{Z}} & {Y} \\\\
+    {} & {} & {a} & {b} & {\\bfseries{c}} \\\\
     """
-            )
-            in result
-        )
-        is columns
     )
+    assert (expected_columns in result) is columns
