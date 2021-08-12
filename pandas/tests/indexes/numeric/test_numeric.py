@@ -136,9 +136,10 @@ class TestFloatNumericIndex(NumericBase):
 
         self.check_coerce(mixed_index, Index([1.5, 2, 3, 4, 5]))
         self.check_coerce(float_index, Index(np.arange(5) * 2.5))
-        self.check_coerce(
-            float_index, Index(np.array(np.arange(5) * 2.5, dtype=object))
-        )
+
+        with tm.assert_produces_warning(FutureWarning, match="will not infer"):
+            result = Index(np.array(np.arange(5) * 2.5, dtype=object))
+        self.check_coerce(float_index, result.astype("float64"))
 
     def test_constructor_explicit(self, mixed_index, float_index):
 
@@ -478,11 +479,17 @@ class TestIntNumericIndex(NumericInt):
         index_cls = self._index_cls
 
         arr = np.array([1, 2, 3, 4], dtype=object)
+
         index = index_cls(arr, dtype=dtype)
         assert index.values.dtype == index.dtype
         if dtype == np.int64:
+
+            msg = "will not infer"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                without_dtype = Index(arr)
+
             exact = True if index_cls is Int64Index else "equiv"
-            tm.assert_index_equal(index, Index(arr), exact=exact)
+            tm.assert_index_equal(index, without_dtype, exact=exact)
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)

@@ -52,8 +52,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
-    mi_styler.applymap_header(lambda x: "color: white;", axis=0)
-    mi_styler.applymap_header(lambda x: "color: black;", axis=1)
+    mi_styler.applymap_index(lambda x: "color: white;", axis=0)
+    mi_styler.applymap_index(lambda x: "color: black;", axis=1)
     mi_styler.set_td_classes(
         DataFrame(
             [["a", "b"], ["a", "c"]], index=mi_styler.index, columns=mi_styler.columns
@@ -272,19 +272,19 @@ def test_clear(mi_styler_comp):
 
 
 def test_hide_raises(mi_styler):
-    msg = "`subset` and `levels` cannot be passed simultaneously"
+    msg = "`subset` and `level` cannot be passed simultaneously"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(subset="something", levels="something else")
+        mi_styler.hide_index(subset="something", level="something else")
 
-    msg = "`levels` must be of type `int`, `str` or list of such"
+    msg = "`level` must be of type `int`, `str` or list of such"
     with pytest.raises(ValueError, match=msg):
-        mi_styler.hide_index(levels={"bad": 1, "type": 2})
+        mi_styler.hide_index(level={"bad": 1, "type": 2})
 
 
-@pytest.mark.parametrize("levels", [1, "one", [1], ["one"]])
-def test_hide_level(mi_styler, levels):
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+def test_hide_index_level(mi_styler, level):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
-    ctx = mi_styler.hide_index(levels=levels)._translate(False, True)
+    ctx = mi_styler.hide_index(level=level)._translate(False, True)
     assert len(ctx["head"][0]) == 3
     assert len(ctx["head"][1]) == 3
     assert len(ctx["head"][2]) == 4
@@ -295,6 +295,16 @@ def test_hide_level(mi_styler, levels):
     assert not ctx["body"][0][1]["is_visible"]
     assert ctx["body"][1][0]["is_visible"]
     assert not ctx["body"][1][1]["is_visible"]
+
+
+@pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
+@pytest.mark.parametrize("names", [True, False])
+def test_hide_columns_level(mi_styler, level, names):
+    mi_styler.columns.names = ["zero", "one"]
+    if names:
+        mi_styler.index.names = ["zero", "one"]
+    ctx = mi_styler.hide_columns(level=level)._translate(True, False)
+    assert len(ctx["head"]) == (2 if names else 1)
 
 
 @pytest.mark.parametrize("method", ["applymap", "apply"])
@@ -308,7 +318,7 @@ def test_apply_map_header(method, axis):
     }
 
     # test execution added to todo
-    result = getattr(df.style, f"{method}_header")(func[method], axis=axis)
+    result = getattr(df.style, f"{method}_index")(func[method], axis=axis)
     assert len(result._todo) == 1
     assert len(getattr(result, f"ctx_{axis}")) == 0
 
@@ -328,7 +338,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
         "apply": lambda s: ["attr: val;" if "b" in v else "" for v in s],
         "applymap": lambda v: "attr: val" if "b" in v else "",
     }
-    result = getattr(mi_styler, f"{method}_header")(func[method], axis=axis)._compute()
+    result = getattr(mi_styler, f"{method}_index")(func[method], axis=axis)._compute()
     expected = {(1, 1): [("attr", "val")]}
     assert getattr(result, f"ctx_{axis}") == expected
 
@@ -336,7 +346,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
 def test_apply_map_header_raises(mi_styler):
     # GH 41893
     with pytest.raises(ValueError, match="`axis` must be one of 0, 1, 'index', 'col"):
-        mi_styler.applymap_header(lambda v: "attr: val;", axis="bad-axis")._compute()
+        mi_styler.applymap_index(lambda v: "attr: val;", axis="bad-axis")._compute()
 
 
 class TestStyler:
