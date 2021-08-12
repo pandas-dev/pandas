@@ -230,10 +230,8 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
-        cur = conn.cursor()
         stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
-        for row in reader:
-            cur.execute(stmt, row)
+        cur.executemany(stmt, reader)
 
 
 def create_and_load_iris(conn, iris_file: Path):
@@ -250,11 +248,11 @@ def create_and_load_iris(conn, iris_file: Path):
             with conn.connect() as conn:
                 for row in reader:
                     params = {key: value for key, value in zip(header, row)}
-                    conn.execute(insert(iris), params)
+                    conn.execute(insert(iris, values=params))
         else:
             for row in reader:
                 params = {key: value for key, value in zip(header, row)}
-                conn.execute(insert(iris), params)
+                conn.execute(insert(iris, values=params))
 
 
 @pytest.fixture
