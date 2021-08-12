@@ -41,6 +41,15 @@ def _levels_to_axis(
     valid_ilocs: np.ndarray,
     sort_labels: bool = False,
 ) -> Tuple[npt.NDArray[np.intp], List[IndexLabel]]:
+    """
+    For a MultiIndexed sparse Series `ss`, return `ax_coords` and `ax_labels`,
+    where `ax_coords` are the coordinates along one of the two axes of the
+    destination sparse matrix, and `ax_labels` are the labels from `ss`' Index
+    which correspond to these coordinates.
+    """
+    # Since the labels are sorted in `Index.levels`, when we wish to sort and
+    # there is only one level of the MultiIndex for this axis, the desired
+    # output can be obtained in the following simpler, more efficient way.
     if sort_labels and len(levels) == 1:
         ax_coords = ss.index.codes[levels[0]][valid_ilocs]
         ax_labels = ss.index.levels[levels[0]]
@@ -69,9 +78,10 @@ def _to_ijv(
     List[IndexLabel],
 ]:
     """
-    For arbitrary (MultiIndexed) sparse Series return
-    (v, i, j, ilabels, jlabels) where (v, (i, j)) is suitable for
-    passing to scipy.sparse.coo constructor.
+    For arbitrary (MultiIndexed) sparse Series return (v, i, j, ilabels,
+    jlabels) where (v, (i, j)) is suitable for passing to scipy.sparse.coo
+    constructor, and ilabels and jlabels are the row and column labels
+    respectively.
     """
     # index and column levels must be a partition of the index
     _check_is_partition([row_levels, column_levels], range(ss.index.nlevels))
