@@ -244,15 +244,13 @@ def create_and_load_iris(conn, iris_file: Path):
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
+        params = [{key: value for key, value in zip(header, row)} for row in reader]
+        stmt = insert(iris).values(params)
         if isinstance(conn, Engine):
             with conn.connect() as conn:
-                for row in reader:
-                    params = {key: value for key, value in zip(header, row)}
-                    conn.execute(insert(iris, values=params))
+                conn.execute(stmt)
         else:
-            for row in reader:
-                params = {key: value for key, value in zip(header, row)}
-                conn.execute(insert(iris, values=params))
+            conn.execute(stmt)
 
 
 @pytest.fixture
