@@ -36,7 +36,6 @@ import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import (
     Base,
     WeekDay,
-    assert_offset_equal,
 )
 
 import pandas.tseries.offsets as offsets
@@ -562,22 +561,6 @@ class TestDateOffset(Base):
         offset2 = DateOffset(days=365)
 
         assert offset1 != offset2
-
-
-def test_Easter():
-    assert_offset_equal(Easter(), datetime(2010, 1, 1), datetime(2010, 4, 4))
-    assert_offset_equal(Easter(), datetime(2010, 4, 5), datetime(2011, 4, 24))
-    assert_offset_equal(Easter(2), datetime(2010, 1, 1), datetime(2011, 4, 24))
-
-    assert_offset_equal(Easter(), datetime(2010, 4, 4), datetime(2011, 4, 24))
-    assert_offset_equal(Easter(2), datetime(2010, 4, 4), datetime(2012, 4, 8))
-
-    assert_offset_equal(-Easter(), datetime(2011, 1, 1), datetime(2010, 4, 4))
-    assert_offset_equal(-Easter(), datetime(2010, 4, 5), datetime(2010, 4, 4))
-    assert_offset_equal(-Easter(2), datetime(2011, 1, 1), datetime(2009, 4, 12))
-
-    assert_offset_equal(-Easter(), datetime(2010, 4, 4), datetime(2009, 4, 12))
-    assert_offset_equal(-Easter(2), datetime(2010, 4, 4), datetime(2008, 3, 23))
 
 
 class TestOffsetNames:
