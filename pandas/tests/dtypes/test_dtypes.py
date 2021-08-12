@@ -1095,3 +1095,10 @@ def test_period_dtype_compare_to_string():
     dtype = PeriodDtype(freq="M")
     assert (dtype == "period[M]") is True
     assert (dtype != "period[M]") is False
+
+
+def test_constructor_dtype():
+    # GH#42971
+    expected = pd.DataFrame(columns=["a"])
+    result = pd.DataFrame({"a": []})
+    tm.assert_frame_equal(result, expected)
