@@ -796,7 +796,7 @@ class ExtensionArray:
             b = empty
         return self._concat_same_type([a, b])
 
-    def unique(self: ExtensionArrayT) -> ExtensionArrayT:
+    def unique(self: ExtensionArrayT, **kwargs) -> ExtensionArrayT:
         """
         Compute the ExtensionArray of unique values.
 
@@ -804,6 +804,13 @@ class ExtensionArray:
         -------
         uniques : ExtensionArray
         """
+
+        if kwargs.get("return_inverse", None):
+            raise NotImplementedError(
+                "this array type does not yet \
+             support `return_inverse=True`"
+            )
+
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
