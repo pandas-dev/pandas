@@ -5,6 +5,8 @@ Currently only includes to_coo helpers.
 """
 import numpy as np
 
+from pandas._libs import lib
+
 from pandas.core.algorithms import factorize
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
@@ -25,7 +27,9 @@ def _levels_to_axis(ss, levels, valid_ilocs, sort_labels=False):
         ax_labels = ss.index.levels[levels[0]]
 
     else:
-        levels_values = list(zip(*(ss.index.get_level_values(lvl) for lvl in levels)))
+        levels_values = lib.fast_zip(
+            [ss.index.get_level_values(lvl).values for lvl in levels]
+        )
         codes, ax_labels = factorize(levels_values, sort=sort_labels)
         ax_coords = codes[valid_ilocs]
 
