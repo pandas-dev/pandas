@@ -85,17 +85,13 @@ from pandas.core.arrays.masked import (
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
-from pandas.core.groupby import (
-    base,
-    grouper,
-)
+from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
     ensure_index,
 )
-from pandas.core.internals import ArrayManager
 from pandas.core.series import Series
 from pandas.core.sorting import (
     compress_group_index,
@@ -718,60 +714,10 @@ class BaseGrouper:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self._get_group_keys()
-        result_values = None
-
-        if data.ndim == 2 and any(
-            isinstance(x, ExtensionArray) for x in data._iter_column_arrays()
-        ):
-            # calling splitter.fast_apply will raise TypeError via apply_frame_axis0
-            #  if we pass EA instead of ndarray
-            #  TODO: can we have a workaround for EAs backed by ndarray?
-            pass
-
-        elif isinstance(data._mgr, ArrayManager):
-            # TODO(ArrayManager) don't use fast_apply / libreduction.apply_frame_axis0
-            # for now -> relies on BlockManager internals
-            pass
-        elif (
-            com.get_callable_name(f) not in base.plotting_methods
-            and isinstance(splitter, FrameSplitter)
-            and axis == 0
-            # fast_apply/libreduction doesn't allow non-numpy backed indexes
-            and not data.index._has_complex_internals
-        ):
-            try:
-                sdata = splitter.sorted_data
-                result_values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-            except IndexError:
-                # This is a rare case in which re-running in python-space may
-                #  make a difference, see  test_apply_mutate.test_mutate_groups
-                pass
-
-            else:
-                # If the fast apply path could be used we can return here.
-                # Otherwise we need to fall back to the slow implementation.
-                if len(result_values) == len(group_keys):
-                    return group_keys, result_values, mutated
-
-        if result_values is None:
-            # result_values is None if fast apply path wasn't taken
-            # or fast apply aborted with an unexpected exception.
-            # In either case, initialize the result list and perform
-            # the slow iteration.
-            result_values = []
-            skip_first = False
-        else:
-            # If result_values is not None we're in the case that the
-            # fast apply loop was broken prematurely but we have
-            # already the result for the first group which we can reuse.
-            skip_first = True
+        result_values = []
 
         # This calls DataSplitter.__iter__
         zipped = zip(group_keys, splitter)
-        if skip_first:
-            # pop the first item from the front of the iterator
-            next(zipped)
 
         for key, group in zipped:
             object.__setattr__(group, "name", key)
@@ -1290,11 +1236,6 @@ class SeriesSplitter(DataSplitter):
 
 
 class FrameSplitter(DataSplitter):
-    def fast_apply(self, f: F, sdata: FrameOrSeries, names):
-        # must return keys::list, values::list, mutated::bool
-        starts, ends = lib.generate_slices(self.slabels, self.ngroups)
-        return libreduction.apply_frame_axis0(sdata, f, names, starts, ends)
-
     def _chop(self, sdata: DataFrame, slice_obj: slice) -> DataFrame:
         # Fastpath equivalent to:
         # if self.axis == 0:
