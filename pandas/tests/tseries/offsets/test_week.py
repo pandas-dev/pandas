@@ -1,5 +1,8 @@
 """
-Tests for offset.Week, offset.WeekofMonth and offset.LastWeekofMonth
+Tests for the following offsets:
+- Week
+- WeekOfMonth
+- LastWeekOfMonth
 """
 from datetime import (
     datetime,
@@ -10,6 +13,7 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
+    Day,
     LastWeekOfMonth,
     Week,
     WeekOfMonth,
@@ -121,6 +125,30 @@ class TestWeek(Base):
                 expected = False
         assert_is_on_offset(offset, date, expected)
 
+    @pytest.mark.parametrize(
+        "n,date",
+        [
+            (2, "1862-01-13 09:03:34.873477378+0210"),
+            (-2, "1856-10-24 16:18:36.556360110-0717"),
+        ],
+    )
+    def test_is_on_offset_weekday_none(self, n, date):
+        # GH 18510 Week with weekday = None, normalize = False
+        # should always be is_on_offset
+        offset = Week(n=n, weekday=None)
+        ts = Timestamp(date, tz="Africa/Lusaka")
+        fast = offset.is_on_offset(ts)
+        slow = (ts + offset) - offset == ts
+        assert fast == slow
+
+    def test_week_add_invalid(self):
+        # Week with weekday should raise TypeError and _not_ AttributeError
+        #  when adding invalid offset
+        offset = Week(weekday=1)
+        other = Day()
+        with pytest.raises(TypeError, match="Cannot add"):
+            offset + other
+
 
 class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
@@ -221,6 +249,22 @@ class TestWeekOfMonth(Base):
         offset = WeekOfMonth(week=week, weekday=weekday)
         assert offset.is_on_offset(dt) == expected
 
+    @pytest.mark.parametrize(
+        "n,week,date,tz",
+        [
+            (2, 2, "1916-05-15 01:14:49.583410462+0422", "Asia/Qyzylorda"),
+            (-3, 1, "1980-12-08 03:38:52.878321185+0500", "Asia/Oral"),
+        ],
+    )
+    def test_is_on_offset_nanoseconds(self, n, week, date, tz):
+        # GH 18864
+        # Make sure that nanoseconds don't trip up is_on_offset (and with it apply)
+        offset = WeekOfMonth(n=n, week=week, weekday=0)
+        ts = Timestamp(date, tz=tz)
+        fast = offset.is_on_offset(ts)
+        slow = (ts + offset) - offset == ts
+        assert fast == slow
+
 
 class TestLastWeekOfMonth(Base):
     _offset = LastWeekOfMonth
@@ -297,6 +341,21 @@ class TestLastWeekOfMonth(Base):
         weekday, dt, expected = case
         offset = LastWeekOfMonth(weekday=weekday)
         assert offset.is_on_offset(dt) == expected
+
+    @pytest.mark.parametrize(
+        "n,weekday,date,tz",
+        [
+            (4, 6, "1917-05-27 20:55:27.084284178+0200", "Europe/Warsaw"),
+            (-4, 5, "2005-08-27 05:01:42.799392561-0500", "America/Rainy_River"),
+        ],
+    )
+    def test_last_week_of_month_on_offset(self, n, weekday, date, tz):
+        # GH 19036, GH 18977 _adjust_dst was incorrect for LastWeekOfMonth
+        offset = LastWeekOfMonth(n=n, weekday=weekday)
+        ts = Timestamp(date, tz=tz)
+        slow = (ts + offset) - offset == ts
+        fast = offset.is_on_offset(ts)
+        assert fast == slow
 
     def test_repr(self):
         assert (
