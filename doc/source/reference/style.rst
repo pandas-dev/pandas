@@ -36,8 +36,8 @@ Style application
 
    Styler.apply
    Styler.applymap
-   Styler.apply_header
-   Styler.applymap_header
+   Styler.apply_index
+   Styler.applymap_index
    Styler.format
    Styler.hide_index
    Styler.hide_columns

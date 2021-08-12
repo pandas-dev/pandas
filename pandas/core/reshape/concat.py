@@ -504,7 +504,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index)
+                df = cons(data, index=index, copy=self.copy)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
