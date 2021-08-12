@@ -51,7 +51,6 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthBegin,
     CustomBusinessMonthEnd,
     DateOffset,
-    Day,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -796,65 +795,6 @@ def test_tick_normalize_raises(tick_classes):
     msg = "Tick offset with `normalize=True` are not allowed."
     with pytest.raises(ValueError, match=msg):
         cls(n=3, normalize=True)
-
-
-def test_weeks_onoffset():
-    # GH#18510 Week with weekday = None, normalize = False should always
-    # be is_on_offset
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1862-01-13 09:03:34.873477378+0210", tz="Africa/Lusaka")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = Week(n=2, weekday=None)
-    ts = Timestamp("1856-10-24 16:18:36.556360110-0717", tz="Pacific/Easter")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_weekofmonth_onoffset():
-    # GH#18864
-    # Make sure that nanoseconds don't trip up is_on_offset (and with it apply)
-    offset = WeekOfMonth(n=2, week=2, weekday=0)
-    ts = Timestamp("1916-05-15 01:14:49.583410462+0422", tz="Asia/Qyzylorda")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-    # negative n
-    offset = WeekOfMonth(n=-3, week=1, weekday=0)
-    ts = Timestamp("1980-12-08 03:38:52.878321185+0500", tz="Asia/Oral")
-    fast = offset.is_on_offset(ts)
-    slow = (ts + offset) - offset == ts
-    assert fast == slow
-
-
-def test_last_week_of_month_on_offset():
-    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
-    offset = LastWeekOfMonth(n=4, weekday=6)
-    ts = Timestamp("1917-05-27 20:55:27.084284178+0200", tz="Europe/Warsaw")
-    slow = (ts + offset) - offset == ts
-    fast = offset.is_on_offset(ts)
-    assert fast == slow
-
-    # negative n
-    offset = LastWeekOfMonth(n=-4, weekday=5)
-    ts = Timestamp("2005-08-27 05:01:42.799392561-0500", tz="America/Rainy_River")
-    slow = (ts + offset) - offset == ts
-    fast = offset.is_on_offset(ts)
-    assert fast == slow
-
-
-def test_week_add_invalid():
-    # Week with weekday should raise TypeError and _not_ AttributeError
-    #  when adding invalid offset
-    offset = Week(weekday=1)
-    other = Day()
-    with pytest.raises(TypeError, match="Cannot add"):
-        offset + other
 
 
 @pytest.mark.parametrize(
