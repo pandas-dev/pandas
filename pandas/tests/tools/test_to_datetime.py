@@ -2748,6 +2748,8 @@ def test_to_datetime_monotonic_increasing_index(cache):
         ),
         (pd.Series([None] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
         (pd.Series([""] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
+        (pd.Series([pd.NA] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
+        (pd.Series([np.NaN] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
     ),
 )
 def test_to_datetime_converts_null_like_to_nat(cache, input, expected):
