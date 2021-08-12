@@ -414,16 +414,19 @@ def test_parse_latex_cell_styles_braces(wrap_arg, expected):
 
 
 def test_parse_latex_header_span():
-    cell = {"attributes": 'colspan="3"', "display_value": "text"}
+    cell = {"attributes": 'colspan="3"', "display_value": "text", "cellstyle": []}
     expected = "\\multicolumn{3}{Y}{text}"
     assert _parse_latex_header_span(cell, "X", "Y") == expected
 
-    cell = {"attributes": 'rowspan="5"', "display_value": "text"}
+    cell = {"attributes": 'rowspan="5"', "display_value": "text", "cellstyle": []}
     expected = "\\multirow[X]{5}{*}{text}"
     assert _parse_latex_header_span(cell, "X", "Y") == expected
 
-    cell = {"display_value": "text"}
+    cell = {"display_value": "text", "cellstyle": []}
     assert _parse_latex_header_span(cell, "X", "Y") == "text"
+
+    cell = {"display_value": "text", "cellstyle": [("bfseries", "--rwrap")]}
+    assert _parse_latex_header_span(cell, "X", "Y") == "\\bfseries{text}"
 
 
 def test_parse_latex_table_wrapping(styler):
@@ -635,3 +638,40 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
     assert expected in styler.to_latex(
         environment="longtable", caption=caption, label=label
     )
+
+
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize("columns", [True, False])
+def test_apply_map_header_render_mi(df, index, columns):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    df.index, df.columns = ridx, cidx
+    styler = df.style
+
+    func = lambda v: "bfseries: --rwrap" if "A" in v or "Z" in v or "c" in v else None
+
+    if index:
+        styler.applymap_index(func, axis="index")
+    if columns:
+        styler.applymap_index(func, axis="columns")
+
+    result = styler.to_latex()
+
+    expected_index = dedent(
+        """\
+    \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
+     & b & 1 & -1.220000 & cd \\\\
+    B & \\bfseries{c} & 2 & -2.220000 & de \\\\
+    """
+    )
+    assert (expected_index in result) is index
+
+    expected_columns = dedent(
+        """\
+    {} & {} & \\multicolumn{2}{r}{\\bfseries{Z}} & {Y} \\\\
+    {} & {} & {a} & {b} & {\\bfseries{c}} \\\\
+    """
+    )
+    assert (expected_columns in result) is columns

@@ -570,7 +570,14 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
-        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        d["head"] = [
+            [
+                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                for c, col in enumerate(row)
+                if col["is_visible"]
+            ]
+            for r, row in enumerate(d["head"])
+        ]
         body = []
         for r, row in enumerate(d["body"]):
             if all(self.hide_index_):
@@ -582,8 +589,9 @@ class StylerRenderer:
                         "display_value": col["display_value"]
                         if col["is_visible"]
                         else "",
+                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
                     }
-                    for col in row
+                    for c, col in enumerate(row)
                     if col["type"] == "th"
                 ]
 
@@ -1378,26 +1386,21 @@ def _parse_latex_header_span(
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """
+    display_val = _parse_latex_cell_styles(cell["cellstyle"], cell["display_value"])
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
-            return (
-                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
-                f"{{{cell['display_value']}}}"
-            )
+            return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
         elif 'rowspan="' in attrs:
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
-            return (
-                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
-                f"{{{cell['display_value']}}}"
-            )
+            return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"
     if wrap:
-        return f"{{{cell['display_value']}}}"
+        return f"{{{display_val}}}"
     else:
-        return cell["display_value"]
+        return display_val
 
 
 def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
