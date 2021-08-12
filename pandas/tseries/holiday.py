@@ -177,35 +177,35 @@ class Holiday:
 
         Examples
         --------
-        >>> import pandas as pd
+        >>> from pandas import tseries as ts
         >>> from dateutil.relativedelta import MO
 
-        >>> USMemorialDay = pd.tseries.holiday.Holiday(
+        >>> USMemorialDay = ts.holiday.Holiday(
         ...     "Memorial Day", month=5, day=31, offset=pd.DateOffset(weekday=MO(-1))
         ... )
         >>> USMemorialDay
         Holiday: Memorial Day (month=5, day=31, offset=<DateOffset: weekday=MO(-1)>)
 
-        >>> USLaborDay = pd.tseries.holiday.Holiday(
+        >>> USLaborDay = ts.holiday.Holiday(
         ...     "Labor Day", month=9, day=1, offset=pd.DateOffset(weekday=MO(1))
         ... )
         >>> USLaborDay
         Holiday: Labor Day (month=9, day=1, offset=<DateOffset: weekday=MO(+1)>)
 
-        >>> July3rd = pd.tseries.holiday.Holiday("July 3rd", month=7, day=3)
+        >>> July3rd = ts.holiday.Holiday("July 3rd", month=7, day=3)
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
 
-        >>> NewYears = pd.tseries.holiday.Holiday(
+        >>> NewYears = ts.holiday.Holiday(
         ...     "New Years Day", month=1,  day=1,
-        ...      observance=pd.tseries.holiday.nearest_workday
+        ...      observance=ts.holiday.nearest_workday
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
             month=1, day=1, observance=<function nearest_workday at 0x66545e9bc440>
         )
 
-        >>> July3rd = pd.tseries.holiday.Holiday("July 3rd", month=7,
+        >>> July3rd = ts.holiday.Holiday("July 3rd", month=7,
         ...                          day=3, days_of_week=(0, 1, 2, 3))
         >>> July3rd
         Holiday: July 3rd (month=7, day=3, )
