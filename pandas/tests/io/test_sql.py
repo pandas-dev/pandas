@@ -257,10 +257,117 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
             conn.execute(stmt)
 
 
+def check_iris_frame(frame: DataFrame):
+    pytype = frame.dtypes[0].type
+    row = frame.iloc[0]
+    assert issubclass(pytype, np.floating)
+    tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
+
+
+def count_rows(conn, table_name: str):
+    import sqlite3
+
+    stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
+    if isinstance(conn, sqlite3.Connection):
+        cur = conn.cursor()
+        result = cur.execute(stmt)
+    else:
+        from sqlalchemy import text
+        from sqlalchemy.engine import Engine
+
+        stmt = text(stmt)
+        if isinstance(conn, Engine):
+            with conn.connect() as conn:
+                result = conn.execute(stmt)
+        else:
+            result = conn.execute(stmt)
+    return result.fetchone()[0]
+
+
 @pytest.fixture
 def iris_path(datapath):
     iris_path = datapath("io", "data", "csv", "iris.csv")
     return Path(iris_path)
+
+
+@pytest.fixture
+def mysql_pymysql_engine(iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pymysql = pytest.importorskip("pymysql")
+    engine = sqlalchemy.create_engine(
+        # "mysql+pymysql://root@localhost:3306/pandas",
+        "mysql+pymysql://root:cdma1993@localhost:3306/pandas",
+        connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+    )
+    create_and_load_iris(engine, iris_path, "mysql")
+    yield engine
+    with engine.connect() as conn:
+        stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
+        conn.execute(stmt)
+    engine.dispose()
+
+
+@pytest.fixture
+def mysql_pymysql_conn(mysql_pymysql_engine):
+    engine = mysql_pymysql_engine.connect()
+    yield engine
+
+
+@pytest.fixture
+def postgresql_psycopg2_engine(iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    _ = pytest.importorskip("psycopg2")
+    engine = sqlalchemy.create_engine(
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
+    )
+    create_and_load_iris(engine, iris_path, "postgresql")
+    yield engine
+    with engine.connect() as conn:
+        stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
+        conn.execute(stmt)
+    engine.dispose()
+
+
+@pytest.fixture
+def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
+    return postgresql_psycopg2_engine.connect()
+
+
+@pytest.fixture
+def sqlite_engine():
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine("sqlite://")
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture
+def sqlite_conn(sqlite_engine):
+    return sqlite_engine.connect()
+
+
+@pytest.fixture
+def sqlite_iris_engine(sqlite_engine, iris_path):
+    create_and_load_iris(sqlite_engine, iris_path, "sqlite")
+    return sqlite_engine
+
+
+@pytest.fixture
+def sqlite_iris_conn(sqlite_iris_engine):
+    return sqlite_iris_engine.connect()
+
+
+@pytest.fixture
+def sqlite_buildin():
+    conn = sqlite3.connect(":memory:")
+    yield conn
+    conn.close()
+
+
+@pytest.fixture
+def sqlite_buildin_iris(sqlite_buildin, iris_path):
+    create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
+    return sqlite_buildin
 
 
 @pytest.fixture
@@ -312,10 +419,10 @@ def test_frame3():
 
 
 common_connections = [
-    "mysql_pymysql_engine",
+    # "mysql_pymysql_engine",
     "mysql_pymysql_conn",
-    "postgresql_psycopg2_engine",
-    "postgresql_psycopg2_conn",
+    # "postgresql_psycopg2_engine",
+    # "postgresql_psycopg2_conn",
 ]
 
 all_connections = common_connections + [
@@ -364,12 +471,12 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
-# @pytest.mark.parametrize("conn", all_connections_iris)
-# def test_read_iris(conn, request):
-#     conn = request.getfixturevalue(conn)
-#     pandasSQL = pandasSQL_builder(conn)
-#     iris_frame = pandasSQL.read_query("SELECT * FROM iris")
-#     check_iris_frame(iris_frame)
+@pytest.mark.parametrize("conn", all_connections_iris)
+def test_read_iris(conn, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+    check_iris_frame(iris_frame)
 
 
 class MixInBase:
@@ -2130,7 +2237,8 @@ class _TestMySQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
+            # f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
+            f"mysql+{cls.driver}://root:cdma1993@localhost:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
