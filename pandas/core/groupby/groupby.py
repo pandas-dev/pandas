@@ -1275,7 +1275,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _python_apply_general(
-        self, f: F, data: DataFrame | Series
+        self, f: F, data: DataFrame | Series, not_indexed_same: bool | None = None
     ) -> DataFrame | Series:
         """
         Apply function f in python space
@@ -1286,6 +1286,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Function to apply
         data : Series or DataFrame
             Data to apply f to
+        not_indexed_same: bool, optional
+            When specified, overrides the value of not_indexed_same. Apply behaves
+            differently when the result index is equal to the input index, but
+            this can be coincidental leading to value-dependent behavior.
 
         Returns
         -------
@@ -1294,8 +1298,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
+        if not_indexed_same is None:
+            not_indexed_same = mutated or self.mutated
+
         return self._wrap_applied_output(
-            data, keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=not_indexed_same
         )
 
     @final
@@ -3031,15 +3038,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 
-        return self._get_cythonized_result(
-            "group_shift_indexer",
-            numeric_only=False,
-            cython_dtype=np.dtype(np.int64),
-            needs_ngroups=True,
-            result_is_index=True,
-            periods=periods,
+        ids, _, ngroups = self.grouper.group_info
+        res_indexer = np.zeros(len(ids), dtype=np.int64)
+
+        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+
+        obj = self._obj_with_exclusions
+
+        res = obj._reindex_with_indexers(
+            {self.axis: (obj.axes[self.axis], res_indexer)},
             fill_value=fill_value,
+            allow_dups=True,
         )
+        return res
 
     @final
     @Substitution(name="groupby")
