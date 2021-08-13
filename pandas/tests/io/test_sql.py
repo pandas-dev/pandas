@@ -205,7 +205,7 @@ def iris_table_metadata(dialect: str):
         Table,
     )
 
-    dtype = REAL if dialect == "mysql" else Float
+    dtype = Float if dialect == "postgresql" else REAL
     metadata = MetaData()
     iris = Table(
         "iris",
@@ -1279,21 +1279,6 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         with pytest.raises(ImportError, match="pg8000"):
             sql.read_sql("select * from table", db_uri)
 
-    def _make_iris_table_metadata(self):
-        sa = sqlalchemy
-        metadata = sa.MetaData()
-        iris = sa.Table(
-            "iris",
-            metadata,
-            sa.Column("SepalLength", sa.REAL),
-            sa.Column("SepalWidth", sa.REAL),
-            sa.Column("PetalLength", sa.REAL),
-            sa.Column("PetalWidth", sa.REAL),
-            sa.Column("Name", sa.TEXT),
-        )
-
-        return iris
-
     def test_query_by_text_obj(self):
         # WIP : GH10846
         name_text = sqlalchemy.text("select * from iris where name=:name")
@@ -1303,7 +1288,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
-        iris = self._make_iris_table_metadata()
+        iris = iris_table_metadata(self.flavor)
 
         name_select = sqlalchemy.select([iris]).where(
             iris.c.Name == sqlalchemy.bindparam("name")
