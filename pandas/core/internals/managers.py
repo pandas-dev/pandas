@@ -1714,6 +1714,11 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
+    def get_numeric_data(self) -> SingleBlockManager:
+        if self._block.is_numeric:
+            return self
+        return self.make_empty()
+
     @property
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
