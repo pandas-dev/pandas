@@ -32,6 +32,7 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -436,6 +437,18 @@ class BaseWindow(SelectionMixin):
             new_mgr = mgr.apply_2d(hfunc2d, ignore_failures=True)
         else:
             new_mgr = mgr.apply(hfunc, ignore_failures=True)
+
+        if 0 != len(new_mgr.items) != len(mgr.items):
+            # GH#42738 ignore_failures dropped nuisance columns
+            dropped = mgr.items.difference(new_mgr.items)
+            warnings.warn(
+                "Dropping of nuisance columns in rolling operations "
+                "is deprecated; in a future version this will raise TypeError. "
+                "Select only valid columns before calling the operation. "
+                f"Dropped columns were {dropped}",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         out = obj._constructor(new_mgr)
 
         return self._resolve_output(out, obj)
