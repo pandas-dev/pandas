@@ -95,7 +95,7 @@ def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
     how: str = "inner",
-    condition: callable = None,
+    condition: Callable | None = None,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -109,7 +109,9 @@ def merge(
 ) -> DataFrame:
     if (how == "cross") and (condition is not None):
         op = _LazyMerge(
-            left, right, condition,
+            left,
+            right,
+            condition,
             how=how,
             on=on,
             left_on=left_on,
@@ -2372,19 +2374,19 @@ def _items_overlap_with_suffix(
 
 def _chunks(lst, n):
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i: i + n]
 
 
 # TODO: perform lazy merge as optimized cython, rather than chunked merge
 class _LazyMerge:
 
     def __init__(
-            self,
-            left: DataFrame,
-            right: DataFrame,
-            condition: callable,  # takes frame with same columns as plain merge result
-            *args,
-            **kwargs
+        self,
+        left: DataFrame,
+        right: DataFrame,
+        condition: Callable,  # takes frame with same columns as plain merge result
+        *args,
+        **kwargs
     ):
         self.condition = condition
         self.args = args
@@ -2395,9 +2397,9 @@ class _LazyMerge:
         self.chunk_pairs = itertools.product(left_chunks, right_chunks)
 
     def get_result(self) -> DataFrame:  # mimic _MergeOperation
-        result = pd.DataFrame()
+        result = DataFrame()
         for left, right in self.chunk_pairs:
             chunk_result = left.merge(right, *self.args, **self.kwargs)
-            chunk_result_filtered = chunk_result.loc[condition]
+            chunk_result_filtered = chunk_result.loc[self.condition]
             result = result.append(chunk_result_filtered)
         return result
