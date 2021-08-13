@@ -15,10 +15,53 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_140.enhancements.enhancement1:
+.. _whatsnew_140.enhancements.numeric_index:
 
-enhancement1
-^^^^^^^^^^^^
+More flexible numeric dtypes for indexes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until now, it has only been possible to create numeric indexes with int64/float64/uint64 dtypes.
+It is now possible to create an index of any numpy int/uint/float dtype using the new :class:`NumericIndex` index type (:issue:`41153`):
+
+.. ipython:: python
+
+    pd.NumericIndex([1, 2, 3], dtype="int8")
+    pd.NumericIndex([1, 2, 3], dtype="uint32")
+    pd.NumericIndex([1, 2, 3], dtype="float32")
+
+In order to maintain backwards compatibility, calls to the base :class:`Index` will in
+pandas 1.x. return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`.
+For example, the code below returns an ``Int64Index`` with dtype ``int64``:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index([1, 2, 3], dtype="int8")
+    Int64Index([1, 2, 3], dtype='int64')
+
+For the duration of Pandas 1.x, in order to maintain backwards compatibility, all
+operations that until now have returned :class:`Int64Index`, :class:`UInt64Index` and
+:class:`Float64Index` will continue to so. This means, that in order to use
+``NumericIndex``, you will have to call ``NumericIndex`` explicitly. For example the below series
+will have an ``Int64Index``:
+
+.. code-block:: ipython
+
+    In [2]: ser = pd.Series([1, 2, 3], index=[1, 2, 3])
+    In [3]: ser.index
+    Int64Index([1, 2, 3], dtype='int64')
+
+Instead if you want to use a ``NumericIndex``, you should do:
+
+.. ipython:: python
+
+    idx = pd.NumericIndex([1, 2, 3], dtype="int8")
+    ser = pd.Series([1, 2, 3], index=idx)
+    ser.index
+
+In Pandas 2.0, :class:`NumericIndex` will become the default numeric index type and
+``Int64Index``, ``UInt64Index`` and ``Float64Index`` will be removed.
+
+See :ref:`here <advanced.numericindex>` for more.
 
 .. _whatsnew_140.enhancements.enhancement2:
 

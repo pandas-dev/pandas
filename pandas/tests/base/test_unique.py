@@ -9,8 +9,8 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
+from pandas import NumericIndex
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.tests.base.common import allow_na_ops
 
 

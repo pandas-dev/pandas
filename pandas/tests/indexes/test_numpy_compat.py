@@ -5,11 +5,11 @@ from pandas import (
     DatetimeIndex,
     Float64Index,
     Index,
+    NumericIndex,
     PeriodIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
