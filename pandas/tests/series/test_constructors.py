@@ -1776,6 +1776,18 @@ class TestSeriesConstructors:
         ser2 = Series(vals, dtype=dtype)
         tm.assert_series_equal(ser, ser2)
 
+    def test_constructor_int_dtype_missing_values(self):
+        # GH#43017
+        result = Series(index=[0], dtype="int64")
+        expected = Series(np.nan, index=[0], dtype="float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_bool_dtype_missing_values(self):
+        # GH#43018
+        result = Series(index=[0], dtype="bool")
+        expected = Series(True, index=[0], dtype="bool")
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
