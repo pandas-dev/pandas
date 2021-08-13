@@ -224,9 +224,9 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
-- Deprecated :class:`Int64Index` (:issue:`xxxxx`).
-- Deprecated :class:`UInt64Index` (:issue:`xxxxx`).
-- Deprecated :class:`Float64Index` (:issue:`xxxxx`).
+- Deprecated :class:`Int64Index` (:issue:`43028`).
+- Deprecated :class:`UInt64Index` (:issue:`43028`).
+- Deprecated :class:`Float64Index` (:issue:`43028`).
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 - Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 - Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)
