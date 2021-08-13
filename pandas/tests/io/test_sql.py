@@ -30,6 +30,7 @@ import warnings
 
 import numpy as np
 import pytest
+from sqlalchemy.sql.sqltypes import FLOAT
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -195,8 +196,9 @@ SQL_STRINGS = {
 }
 
 
-def iris_table_metadata():
+def iris_table_metadata(dialect: str):
     from sqlalchemy import (
+        REAL,
         Column,
         Float,
         MetaData,
@@ -204,14 +206,15 @@ def iris_table_metadata():
         Table,
     )
 
+    dtype = REAL if dialect == "mysql" else Float
     metadata = MetaData()
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", Float),
-        Column("SepalWidth", Float),
-        Column("PetalLength", Float),
-        Column("PetalWidth", Float),
+        Column("SepalLength", dtype),
+        Column("SepalWidth", dtype),
+        Column("PetalLength", dtype),
+        Column("PetalWidth", dtype),
         Column("Name", String(200)),
     )
     return iris
@@ -234,11 +237,11 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
         cur.executemany(stmt, reader)
 
 
-def create_and_load_iris(conn, iris_file: Path):
+def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
-    iris = iris_table_metadata()
+    iris = iris_table_metadata(dialect)
     iris.drop(conn, checkfirst=True)
     iris.create(bind=conn)
 
@@ -387,7 +390,7 @@ class PandasSQLTest:
         if isinstance(self.conn, sqlite3.Connection):
             create_and_load_iris_sqlite3(self.conn, iris_path)
         else:
-            create_and_load_iris(self.conn, iris_path)
+            create_and_load_iris(self.conn, iris_path, self.flavor)
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
