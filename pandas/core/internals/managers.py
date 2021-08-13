@@ -1714,8 +1714,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
-    def get_numeric_data(self) -> SingleBlockManager:
+    def get_numeric_data(self, copy: bool = False):
         if self._block.is_numeric:
+            if copy:
+                return self.copy()
             return self
         return self.make_empty()
 
