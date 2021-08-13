@@ -1366,9 +1366,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if len(self.items) == 0:
             factor = 1
         else:
-            factor = len(new_columns) / len(self.items)
-            assert factor == int(factor)
-            factor = int(factor)
+            fac = len(new_columns) / len(self.items)
+            assert fac == int(fac)
+            factor = int(fac)
 
         for blk in self.blocks:
             mgr_locs = blk.mgr_locs
