@@ -519,7 +519,7 @@ class DataFrame(NDFrame, OpsMixin):
     col2    int8
     dtype: object
 
-    Constructing DataFrame from a dictionary including Series.
+    Constructing DataFrame from a dictionary including Series:
 
     >>> d = {'col1': [1, 2, 3, 4], 'col2': pd.Series([3, 4], index=[3, 4])}
     >>> pd.DataFrame(data=d, index=[1, 2, 3, 4])
