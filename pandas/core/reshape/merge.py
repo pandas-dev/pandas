@@ -2374,7 +2374,7 @@ def _items_overlap_with_suffix(
 
 def _chunks(lst, n):
     for i in range(0, len(lst), n):
-        yield lst[i: i + n]
+        yield lst[i : i + n]
 
 
 # TODO: perform lazy merge as optimized cython, rather than chunked merge
@@ -2386,7 +2386,7 @@ class _LazyMerge:
         right: DataFrame,
         condition: Callable,  # takes frame with same columns as plain merge result
         *args,
-        **kwargs
+        **kwargs,
     ):
         self.condition = condition
         self.args = args
