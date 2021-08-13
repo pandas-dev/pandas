@@ -30,7 +30,6 @@ import warnings
 
 import numpy as np
 import pytest
-from sqlalchemy.sql.sqltypes import FLOAT
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
