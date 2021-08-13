@@ -391,9 +391,6 @@ class JoinUnit:
         if not self.block._can_hold_na:
             return False
 
-        # Usually it's enough to check but a small fraction of values to see if
-        # a block is NOT null, chunks should help in such cases.  1000 value
-        # was chosen rather arbitrarily.
         values = self.block.values
         if isinstance(self.block.values.dtype, SparseDtype):
             return False
