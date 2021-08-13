@@ -1097,8 +1097,8 @@ def test_period_dtype_compare_to_string():
     assert (dtype != "period[M]") is False
 
 
-def test_constructor_dtype():
+def test_dataframe_constructor_dtype():
     # GH#42971
     expected = pd.DataFrame(columns=["a"])
     result = pd.DataFrame({"a": []})
-    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result.dtypes, expected.dtypes)
