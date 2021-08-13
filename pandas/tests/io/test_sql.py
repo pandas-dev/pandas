@@ -165,7 +165,7 @@ SQL_STRINGS = {
     },
     "read_parameters": {
         "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
-        "mysql": 'SELECT * FROM iris WHERE `Name`="%s" AND `SepalLength`=%s',
+        "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
         "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
     },
     "read_named_parameters": {
@@ -174,7 +174,7 @@ SQL_STRINGS = {
                 """,
         "mysql": """
                 SELECT * FROM iris WHERE
-                `Name`="%(name)s" AND `SepalLength`=%(length)s
+                `Name`=%(name)s AND `SepalLength`=%(length)s
                 """,
         "postgresql": """
                 SELECT * FROM iris WHERE
@@ -197,7 +197,7 @@ SQL_STRINGS = {
 
 def iris_table_metadata():
     from sqlalchemy import (
-        FLOAT,
+        REAL,
         Column,
         MetaData,
         String,
@@ -208,10 +208,10 @@ def iris_table_metadata():
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", FLOAT),
-        Column("SepalWidth", FLOAT),
-        Column("PetalLength", FLOAT),
-        Column("PetalWidth", FLOAT),
+        Column("SepalLength", REAL),
+        Column("SepalWidth", REAL),
+        Column("PetalLength", REAL),
+        Column("PetalWidth", REAL),
         Column("Name", String(200)),
     )
     return iris
@@ -239,6 +239,7 @@ def create_and_load_iris(conn, iris_file: Path):
     from sqlalchemy.engine import Engine
 
     iris = iris_table_metadata()
+    iris.drop(conn, checkfirst=True)
     iris.create(bind=conn)
 
     with iris_file.open(newline=None) as csvfile:
