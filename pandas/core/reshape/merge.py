@@ -11,6 +11,7 @@ import itertools
 import string
 from typing import (
     TYPE_CHECKING,
+    Callable,
     Hashable,
     cast,
 )
@@ -94,6 +95,7 @@ if TYPE_CHECKING:
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
+    # TODO: default how=cross if condition defined?
     how: str = "inner",
     condition: Callable | None = None,
     on: IndexLabel | None = None,
@@ -108,7 +110,7 @@ def merge(
     validate: str | None = None,
 ) -> DataFrame:
     if (how == "cross") and (condition is not None):
-        op = _LazyMerge(
+        res = _LazyMerge(
             left,
             right,
             condition,
@@ -123,10 +125,9 @@ def merge(
             copy=copy,
             indicator=indicator,
             validate=validate,
-        )
-        res = op.get_result()
+        ).get_result()
     else:
-        op = _MergeOperation(
+        res = _MergeOperation(
             left,
             right,
             how=how,
@@ -140,8 +141,7 @@ def merge(
             copy=copy,
             indicator=indicator,
             validate=validate,
-        )
-        res = op.get_result()
+        ).get_result()
         if condition is not None:
             res = res.loc[condition]
     return res
