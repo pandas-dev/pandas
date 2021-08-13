@@ -160,8 +160,8 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> import pandas as pd
-      >>> @pd._testing.network
+      >>> from pandas import _testing as ts
+      >>> @ts.network
       ... def test_network():
       ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
@@ -171,7 +171,7 @@ def network(
 
       You can specify alternative URLs::
 
-        >>> @pd._testing.network("https://www.yahoo.com")
+        >>> @ts.network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
         ...    raise IOError("Failure Message")
         >>> test_something_with_yahoo()
@@ -182,7 +182,7 @@ def network(
     If you set check_before_test, it will check the url first and not run the
     test on failure::
 
-        >>> @pd._testing.network("failing://url.blaher", check_before_test=True)
+        >>> @ts.network("failing://url.blaher", check_before_test=True)
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")

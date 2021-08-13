@@ -3073,21 +3073,21 @@ class StataWriter117(StataWriter):
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> from pandas.io.stata import StataWriter117
     >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b', 'c'])
-    >>> writer = pd.io.stata.StataWriter117('./data_file.dta', data)
+    >>> writer = StataWriter117('./data_file.dta', data)
     >>> writer.write_file()
 
     Directly write a zip file
     >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
-    >>> writer = pd.io.stata.StataWriter117('./data_file.zip',
+    >>> writer = StataWriter117('./data_file.zip',
     ...                             data, compression=compression)
     >>> writer.write_file()
 
     Or with long strings stored in strl format
     >>> data = pd.DataFrame([['A relatively long string'], [''], ['']],
     ...                     columns=['strls'])
-    >>> writer = pd.io.stata.StataWriter117('./data_file_with_long_strings.dta', data,
+    >>> writer = StataWriter117('./data_file_with_long_strings.dta', data,
     ...                         convert_strl=['strls'])
     >>> writer.write_file()
     """
@@ -3466,14 +3466,14 @@ class StataWriterUTF8(StataWriter117):
     --------
     Using Unicode data and column names
 
-    >>> import pandas as pd
+    >>> from pandas.io.stata import StataWriterUTF8
     >>> data = pd.DataFrame([[1.0, 1, 'ᴬ']], columns=['a', 'β', 'ĉ'])
-    >>> writer = pd.io.stata.StataWriterUTF8('./data_file.dta', data)
+    >>> writer = StataWriterUTF8('./data_file.dta', data)
     >>> writer.write_file()
 
     Directly write a zip file
     >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
-    >>> writer = pd.io.stata.StataWriterUTF8('./data_file.zip',
+    >>> writer = StataWriterUTF8('./data_file.zip',
     ...                                   data, compression=compression)
     >>> writer.write_file()
 
@@ -3481,7 +3481,7 @@ class StataWriterUTF8(StataWriter117):
 
     >>> data = pd.DataFrame([['ᴀ relatively long ŝtring'], [''], ['']],
     ...                     columns=['strls'])
-    >>> writer = pd.io.stata.StataWriterUTF8('./data_file_with_long_strings.dta', data,
+    >>> writer = StataWriterUTF8('./data_file_with_long_strings.dta', data,
     ...                          convert_strl=['strls'])
     >>> writer.write_file()
     """

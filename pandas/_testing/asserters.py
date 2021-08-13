@@ -303,10 +303,10 @@ def assert_index_equal(
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> from pandas import testing as tm
     >>> a = pd.Index([1, 2, 3])
     >>> b = pd.Index([1, 2, 3])
-    >>> pd.testing.assert_index_equal(a, b)
+    >>> tm.assert_index_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -794,10 +794,10 @@ def assert_extension_array_equal(
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> from pandas import testing as tm
     >>> a = pd.Series([1, 2, 3, 4])
     >>> b, c = a.array, a.array
-    >>> pd.testing.assert_extension_array_equal(b, c)
+    >>> tm.assert_extension_array_equal(b, c)
     """
     if check_less_precise is not no_default:
         warnings.warn(
@@ -938,10 +938,10 @@ def assert_series_equal(
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> from pandas import testing as tm
     >>> a = pd.Series([1, 2, 3, 4])
     >>> b = pd.Series([1, 2, 3, 4])
-    >>> pd.testing.assert_series_equal(a, b)
+    >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -1203,17 +1203,17 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> import pandas as pd
+    >>> from pandas import _testing as ts
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
 
-    >>> pd._testing.assert_frame_equal(df1, df1)
+    >>> ts.assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
 
-    >>> pd._testing.assert_frame_equal(df1, df2)
+    >>> ts.assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     ...
     AssertionError: Attributes of DataFrame.iloc[:, 1] (column name="b") are different
@@ -1224,7 +1224,7 @@ def assert_frame_equal(
 
     Ignore differing dtypes in columns with check_dtype.
 
-    >>> pd._testing.assert_frame_equal(df1, df2, check_dtype=False)
+    >>> ts.assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
 

@@ -1450,15 +1450,15 @@ def is_extension_array_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> from pandas.api.types import is_extension_array_dtype
     >>> arr = pd.Categorical(['a', 'b'])
-    >>> pd.api.types.is_extension_array_dtype(arr)
+    >>> is_extension_array_dtype(arr)
     True
-    >>> pd.api.types.is_extension_array_dtype(arr.dtype)
+    >>> is_extension_array_dtype(arr.dtype)
     True
 
     >>> arr = np.array(['a', 'b'])
-    >>> pd.api.types.is_extension_array_dtype(arr.dtype)
+    >>> is_extension_array_dtype(arr.dtype)
     False
     """
     dtype = getattr(arr_or_dtype, "dtype", arr_or_dtype)

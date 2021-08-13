@@ -1462,20 +1462,20 @@ def take(
 
     Examples
     --------
-    >>> import pandas as pd
+    >>> from pandas.pai.extensions import take
 
     With the default ``allow_fill=False``, negative numbers indicate
     positional indices from the right.
 
-    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1])
+    >>> take(np.array([10, 20, 30]), [0, 0, -1])
     array([10, 10, 30])
 
     Setting ``allow_fill=True`` will place `fill_value` in those positions.
 
-    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
     array([10., 10., nan])
 
-    >>> pd.api.extensions.take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """

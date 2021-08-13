@@ -5681,8 +5681,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Convert to ordered categorical type with custom ordering:
 
-        >>> import pandas as pd
-        >>> cat_dtype = pd.api.types.CategoricalDtype(
+        >>> from pandas.api.types import CategoricalDtype
+        >>> cat_dtype = CategoricalDtype(
         ...     categories=[2, 1], ordered=True)
         >>> ser.astype(cat_dtype)
         0    1
@@ -8042,10 +8042,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         To replace the use of the deprecated `loffset` argument:
 
-        >>> import pandas as pd
+        >>> from pandas.tseries.frequencies import to_offset
         >>> loffset = '19min'
         >>> ts_out = ts.resample('17min').sum()
-        >>> ts_out.index = ts_out.index + pd.tseries.frequencies.to_offset(loffset)
+        >>> ts_out.index = ts_out.index + to_offset(loffset)
         >>> ts_out
         2000-10-01 23:33:00     0
         2000-10-01 23:50:00     9
