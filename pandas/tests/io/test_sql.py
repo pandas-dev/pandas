@@ -186,12 +186,6 @@ SQL_STRINGS = {
         "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
         "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
     },
-    "create_view": {
-        "sqlite": """
-                CREATE VIEW iris_view AS
-                SELECT * FROM iris
-                """
-    },
 }
 
 
@@ -249,6 +243,23 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         header = next(reader)
         params = [{key: value for key, value in zip(header, row)} for row in reader]
         stmt = insert(iris).values(params)
+        if isinstance(conn, Engine):
+            with conn.connect() as conn:
+                conn.execute(stmt)
+        else:
+            conn.execute(stmt)
+
+
+def create_and_load_iris_view(conn):
+    stmt = "CREATE VIEW iris_view AS SELECT * FROM iris"
+    if isinstance(conn, sqlite3.Connection):
+        cur = conn.cursor()
+        cur.execute(stmt)
+    else:
+        from sqlalchemy import text
+        from sqlalchemy.engine import Engine
+
+        stmt = text(stmt)
         if isinstance(conn, Engine):
             with conn.connect() as conn:
                 conn.execute(stmt)
@@ -390,10 +401,6 @@ class PandasSQLTest:
             create_and_load_iris_sqlite3(self.conn, iris_path)
         else:
             create_and_load_iris(self.conn, iris_path, self.flavor)
-
-    def _load_iris_view(self):
-        self.drop_table("iris_view")
-        self._get_exec().execute(SQL_STRINGS["create_view"][self.flavor])
 
     def _check_iris_loaded_frame(self, iris_frame):
         pytype = iris_frame.dtypes[0].type
@@ -697,7 +704,7 @@ class _TestSQLApi(PandasSQLTest):
         self.load_test_data_and_sql()
 
     def load_test_data_and_sql(self):
-        self._load_iris_view()
+        create_and_load_iris_view(self.conn)
         self._load_raw_sql()
 
     def test_read_sql_iris(self):
