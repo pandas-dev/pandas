@@ -38,11 +38,10 @@ For example, the code below returns an ``Int64Index`` with dtype ``int64``:
     In [1]: pd.Index([1, 2, 3], dtype="int8")
     Int64Index([1, 2, 3], dtype='int64')
 
-For the duration of Pandas 1.x, in order to maintain backwards compatibility, all
-operations that until now have returned :class:`Int64Index`, :class:`UInt64Index` and
-:class:`Float64Index` will continue to so. This means, that in order to use
-``NumericIndex``, you will have to call ``NumericIndex`` explicitly. For example the below series
-will have an ``Int64Index``:
+More generally, for the duration of Pandas 1.x, all operations that until now have
+returned :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` will
+continue to so. This means, that in order to use ``NumericIndex``, you will have to call
+``NumericIndex`` explicitly. For example the below series will have an ``Int64Index``:
 
 .. code-block:: ipython
 
@@ -50,7 +49,7 @@ will have an ``Int64Index``:
     In [3]: ser.index
     Int64Index([1, 2, 3], dtype='int64')
 
-Instead if you want to use a ``NumericIndex``, you should do:
+Instead, if you want to use a ``NumericIndex`` in Pandas 1.x, you should do:
 
 .. ipython:: python
 
@@ -59,7 +58,8 @@ Instead if you want to use a ``NumericIndex``, you should do:
     ser.index
 
 In Pandas 2.0, :class:`NumericIndex` will become the default numeric index type and
-``Int64Index``, ``UInt64Index`` and ``Float64Index`` will be removed.
+``Int64Index``, ``UInt64Index`` and ``Float64Index`` are therefore deprecated and will
+be removed in pandas 2.0.
 
 See :ref:`here <advanced.numericindex>` for more.
 
@@ -224,6 +224,9 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+- Deprecated :class:`Int64Index` (:issue:`xxxxx`).
+- Deprecated :class:`UInt64Index` (:issue:`xxxxx`).
+- Deprecated :class:`Float64Index` (:issue:`xxxxx`).
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 - Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 - Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)

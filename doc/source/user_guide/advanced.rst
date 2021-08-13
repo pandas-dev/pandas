@@ -851,11 +851,11 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 Int64Index and RangeIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. note::
-
+.. deprecated:: 1.4.0
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    will be removed. See :ref:`here <advanced.numericindex>` for more.
+    are therefore deprecated and will be removed in Pandas 2.0.
+    See :ref:`here <advanced.numericindex>` for more.
     ``RangeIndex`` however, will not be removed, as it represents an optimized version of an integer index.
 
 :class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
@@ -869,11 +869,11 @@ implementing an ordered, sliceable set.
 Float64Index
 ~~~~~~~~~~~~
 
-.. note::
-
+.. deprecated:: 1.4.0
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
     instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    will be removed. See :ref:`here <advanced.numericindex>` for more.
+    are therefore deprecated and will be removed in Pandas 2.0.
+    See :ref:`here <advanced.numericindex>` for more.
     ``RangeIndex`` however, will not be removed, as it represents an optimized version of an integer index.
 
 By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
@@ -981,9 +981,9 @@ NumericIndex
 .. note::
 
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
-    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
-    will be removed.
-    ``RangeIndex`` however, will not be removed, as it represents an optimized version of an integer index.
+    instead of :class:`Int64Index`, :class:`Float64Index` and :class:`UInt64Index` and those index types
+    are therefore deprecated and will be removed in Pandas 2.0.
+    :class:`RangeIndex` however, will not be removed, as it represents an optimized version of an integer index.
 
 :class:`NumericIndex` is an index type that can hold data of any numpy int/uint/float dtype. For example:
 
