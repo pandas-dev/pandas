@@ -166,7 +166,7 @@ SQL_STRINGS = {
     },
     "read_parameters": {
         "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
-        "mysql": 'SELECT * FROM iris WHERE `Name`="%s" AND `SepalLength`=%s',
+        "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
         "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
     },
     "read_named_parameters": {
@@ -175,7 +175,7 @@ SQL_STRINGS = {
                 """,
         "mysql": """
                 SELECT * FROM iris WHERE
-                `Name`="%(name)s" AND `SepalLength`=%(length)s
+                `Name`=%(name)s AND `SepalLength`=%(length)s
                 """,
         "postgresql": """
                 SELECT * FROM iris WHERE
@@ -196,24 +196,26 @@ SQL_STRINGS = {
 }
 
 
-def iris_table_metadata():
+def iris_table_metadata(dialect: str):
     from sqlalchemy import (
-        FLOAT,
+        REAL,
         Column,
+        Float,
         MetaData,
         String,
         Table,
     )
 
+    dtype = Float if dialect == "postgresql" else REAL
     metadata = MetaData()
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", FLOAT),
-        Column("SepalWidth", FLOAT),
-        Column("PetalLength", FLOAT),
-        Column("PetalWidth", FLOAT),
-        Column("Name", String),
+        Column("SepalLength", dtype),
+        Column("SepalWidth", dtype),
+        Column("PetalLength", dtype),
+        Column("PetalWidth", dtype),
+        Column("Name", String(200)),
     )
     return iris
 
@@ -231,146 +233,34 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
-        cur = conn.cursor()
         stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
-        for row in reader:
-            cur.execute(stmt, row)
+        cur.executemany(stmt, reader)
 
 
-def create_and_load_iris(conn, iris_file: Path):
+def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
-    iris = iris_table_metadata()
-    iris.create(conn)
+    iris = iris_table_metadata(dialect)
+    iris.drop(conn, checkfirst=True)
+    iris.create(bind=conn)
 
     with iris_file.open(newline=None) as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
+        params = [{key: value for key, value in zip(header, row)} for row in reader]
+        stmt = insert(iris).values(params)
         if isinstance(conn, Engine):
             with conn.connect() as conn:
-                for row in reader:
-                    params = {key: value for key, value in zip(header, row)}
-                    conn.execute(insert(iris), params)
+                conn.execute(stmt)
         else:
-            for row in reader:
-                params = {key: value for key, value in zip(header, row)}
-                conn.execute(insert(iris), params)
-
-
-def check_iris_frame(frame: DataFrame):
-    pytype = frame.dtypes[0].type
-    row = frame.iloc[0]
-    assert issubclass(pytype, np.floating)
-    tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
-
-
-def count_rows(conn, table_name: str):
-    import sqlite3
-
-    stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
-    if isinstance(conn, sqlite3.Connection):
-        cur = conn.cursor()
-        result = cur.execute(stmt)
-    else:
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
-
-        stmt = text(stmt)
-        if isinstance(conn, Engine):
-            with conn.connect() as conn:
-                result = conn.execute(stmt)
-        else:
-            result = conn.execute(stmt)
-    return result.fetchone()[0]
+            conn.execute(stmt)
 
 
 @pytest.fixture
 def iris_path(datapath):
     iris_path = datapath("io", "data", "csv", "iris.csv")
     return Path(iris_path)
-
-
-@pytest.fixture
-def mysql_pymysql_engine(iris_path):
-    sqlalchemy = pytest.importorskip("sqlalchemy")
-    pymysql = pytest.importorskip("pymysql")
-    engine = sqlalchemy.create_engine(
-        "mysql+pymysql://root@localhost:3306/pandas",
-        connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
-    )
-    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
-    if not check_target.has_table("iris"):
-        create_and_load_iris(engine, iris_path)
-    yield engine
-    with engine.connect() as conn:
-        stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
-        conn.execute(stmt)
-    engine.dispose()
-
-
-@pytest.fixture
-def mysql_pymysql_conn(mysql_pymysql_engine):
-    return mysql_pymysql_engine.connect()
-
-
-@pytest.fixture
-def postgresql_psycopg2_engine(iris_path):
-    sqlalchemy = pytest.importorskip("sqlalchemy")
-    _ = pytest.importorskip("psycopg2")
-    engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
-    )
-    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
-    if not check_target.has_table("iris"):
-        create_and_load_iris(engine, iris_path)
-    yield engine
-    with engine.connect() as conn:
-        stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
-        conn.execute(stmt)
-    engine.dispose()
-
-
-@pytest.fixture
-def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
-    return postgresql_psycopg2_engine.connect()
-
-
-@pytest.fixture
-def sqlite_engine():
-    sqlalchemy = pytest.importorskip("sqlalchemy")
-    engine = sqlalchemy.create_engine("sqlite://")
-    yield engine
-    engine.dispose()
-
-
-@pytest.fixture
-def sqlite_conn(sqlite_engine):
-    return sqlite_engine.connect()
-
-
-@pytest.fixture
-def sqlite_iris_engine(sqlite_engine, iris_path):
-    create_and_load_iris(sqlite_engine, iris_path)
-    return sqlite_engine
-
-
-@pytest.fixture
-def sqlite_iris_conn(sqlite_iris_engine):
-    return sqlite_iris_engine.connect()
-
-
-@pytest.fixture
-def sqlite_buildin():
-    conn = sqlite3.connect(":memory:")
-    yield conn
-    conn.close()
-
-
-@pytest.fixture
-def sqlite_buildin_iris(sqlite_buildin, iris_path):
-    create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
-    return sqlite_buildin
 
 
 @pytest.fixture
@@ -561,7 +451,7 @@ class PandasSQLTest:
         if isinstance(self.conn, sqlite3.Connection):
             create_and_load_iris_sqlite3(self.conn, iris_path)
         else:
-            create_and_load_iris(self.conn, iris_path)
+            create_and_load_iris(self.conn, iris_path, self.flavor)
 
     def _load_iris_view(self):
         self.drop_table("iris_view")
@@ -1373,21 +1263,6 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         with pytest.raises(ImportError, match="pg8000"):
             sql.read_sql("select * from table", db_uri)
 
-    def _make_iris_table_metadata(self):
-        sa = sqlalchemy
-        metadata = sa.MetaData()
-        iris = sa.Table(
-            "iris",
-            metadata,
-            sa.Column("SepalLength", sa.REAL),
-            sa.Column("SepalWidth", sa.REAL),
-            sa.Column("PetalLength", sa.REAL),
-            sa.Column("PetalWidth", sa.REAL),
-            sa.Column("Name", sa.TEXT),
-        )
-
-        return iris
-
     def test_query_by_text_obj(self):
         # WIP : GH10846
         name_text = sqlalchemy.text("select * from iris where name=:name")
@@ -1397,7 +1272,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
-        iris = self._make_iris_table_metadata()
+        iris = iris_table_metadata(self.flavor)
 
         name_select = sqlalchemy.select([iris]).where(
             iris.c.Name == sqlalchemy.bindparam("name")
