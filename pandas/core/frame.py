@@ -6806,6 +6806,66 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Example
+        -------
+        >>> df =  pd.DataFrame(np.random.randint(10, size=(4, 2)),
+        ...                       index=[['a', 'a', 'b', 'b'],[1, 2, 1, 2]], 
+        ...                       columns=['one', 'two'])
+        >>> df.index.set_names(['index1', 'index2'], inplace=True)
+        >>> df
+                       one  two
+        index1 index2          
+        a      1         7    4
+               2         2    5
+        b      1         4    4
+               2         5    2
+
+        Reorder levels by position
+
+        >>> df.reorder_levels([1, 0])
+                       one  two
+        index2 index1          
+        1      a         7    4
+        2      a         2    5
+        1      b         4    4
+        2      b         5    2
+
+        Reorder levels by lebels
+
+        >>> df.reorder_levels(['index2', 'index1'])
+                       one  two
+        index2 index1          
+        1      a         7    4
+        2      a         2    5
+        1      b         4    4
+        2      b         5    2
+
+        Length of order must be same as number of levels.
+        By default, it reorder levels by index, to reorder by columns, use  axis = 1.
+
+        >>> df = pd.DataFrame(np.random.randint(10, size=(4, 3)), 
+        ...                     index=[1, 2, 3, 4], 
+        ...                     columns=[['A', 'A', 'B'],['one', 'two', 'three']])
+                  
+        >>> df.columns.set_names(['column1', 'column2'], inplace=True)
+        >>> df
+        column1   A         B
+        column2 one two three
+        1         7   3     7
+        2         6   7     6
+        3         2   0     8
+        4         8   4     3
+
+
+        >>> df.reorder_levels([1, 0], axis=1)
+        column2 one two three
+        column1   A   A     B
+        1         7   3     7
+        2         6   7     6
+        3         2   0     8
+        4         8   4     3
+
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
