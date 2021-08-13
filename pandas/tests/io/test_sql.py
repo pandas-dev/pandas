@@ -197,8 +197,8 @@ SQL_STRINGS = {
 
 def iris_table_metadata():
     from sqlalchemy import (
-        REAL,
         Column,
+        Float,
         MetaData,
         String,
         Table,
@@ -208,10 +208,10 @@ def iris_table_metadata():
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", REAL),
-        Column("SepalWidth", REAL),
-        Column("PetalLength", REAL),
-        Column("PetalWidth", REAL),
+        Column("SepalLength", Float),
+        Column("SepalWidth", Float),
+        Column("PetalLength", Float),
+        Column("PetalWidth", Float),
         Column("Name", String(200)),
     )
     return iris
