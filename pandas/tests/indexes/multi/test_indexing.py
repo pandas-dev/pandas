@@ -820,7 +820,8 @@ def test_timestamp_multiindex_indexer():
 def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
     # issue 19132
     idx = MultiIndex.from_arrays(index_arr)
-    result = idx.get_slice_bound(target, side=algo, kind="loc")
+    with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+        result = idx.get_slice_bound(target, side=algo, kind="loc")
     assert result == expected
 
 

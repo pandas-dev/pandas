@@ -2432,6 +2432,18 @@ class TestLocListlike:
         with pytest.raises(KeyError, match="not in index"):
             ser.loc[keys]
 
+    def test_loc_named_index(self):
+        # GH 42790
+        df = DataFrame(
+            [[1, 2], [4, 5], [7, 8]],
+            index=["cobra", "viper", "sidewinder"],
+            columns=["max_speed", "shield"],
+        )
+        expected = df.iloc[:2]
+        expected.index.name = "foo"
+        result = df.loc[Index(["cobra", "viper"], name="foo")]
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
@@ -2569,6 +2581,36 @@ def test_loc_with_period_index_indexer():
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
     tm.assert_frame_equal(df, df.loc[list(idx)])
+
+
+def test_loc_getitem_multiindex_tuple_level():
+    # GH#27591
+    lev1 = ["a", "b", "c"]
+    lev2 = [(0, 1), (1, 0)]
+    lev3 = [0, 1]
+    cols = MultiIndex.from_product([lev1, lev2, lev3], names=["x", "y", "z"])
+    df = DataFrame(6, index=range(5), columns=cols)
+
+    # the lev2[0] here should be treated as a single label, not as a sequence
+    #  of labels
+    result = df.loc[:, (lev1[0], lev2[0], lev3[0])]
+
+    # TODO: i think this actually should drop levels
+    expected = df.iloc[:, :1]
+    tm.assert_frame_equal(result, expected)
+
+    alt = df.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=1)
+    tm.assert_frame_equal(alt, expected)
+
+    # same thing on a Series
+    ser = df.iloc[0]
+    expected2 = ser.iloc[:1]
+
+    alt2 = ser.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=0)
+    tm.assert_series_equal(alt2, expected2)
+
+    result2 = ser.loc[lev1[0], lev2[0], lev3[0]]
+    assert result2 == 6
 
 
 class TestLocSeries:

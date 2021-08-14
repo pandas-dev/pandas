@@ -24,6 +24,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     FrameOrSeries,
     IndexLabel,
+    Level,
     Scalar,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -31,6 +32,7 @@ from pandas.util._decorators import doc
 
 import pandas as pd
 from pandas import (
+    Index,
     IndexSlice,
     RangeIndex,
 )
@@ -341,9 +343,10 @@ class Styler(StylerRenderer):
         >>> df.style.set_tooltips(ttips, css_class='tt-add', props=[
         ...     ('visibility', 'hidden'),
         ...     ('position', 'absolute'),
-        ...     ('z-index', 1)])
+        ...     ('z-index', 1)])  # doctest: +SKIP
         >>> df.style.set_tooltips(ttips, css_class='tt-add',
         ...     props='visibility:hidden; position:absolute; z-index:1;')
+        ... # doctest: +SKIP
         """
         if not self.cell_ids:
             # tooltips not optimised for individual cell check. requires reasonable
@@ -476,8 +479,8 @@ class Styler(StylerRenderer):
             Defaults to ``pandas.options.styler.sparse.index`` value.
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.columns`` value.
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
         multirow_align : {"c", "t", "b"}
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom.
@@ -553,7 +556,7 @@ class Styler(StylerRenderer):
 
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='cellcolor:{red}; bfseries: ;')
-        >>> s.to_latex()
+        >>> s.to_latex()  # doctest: +SKIP
 
         Internally these structured LaTeX ``(<command>, <options>)`` pairs
         are translated to the
@@ -592,7 +595,7 @@ class Styler(StylerRenderer):
         ...     props='cellcolor:[HTML]{FFFF00}; color:{red};'
         ...           'textit:--rwrap; textbf:--rwrap;'
         ... )
-        >>> s.to_latex()
+        >>> s.to_latex()  # doctest: +SKIP
 
         .. figure:: ../../_static/style/latex_1.png
 
@@ -653,7 +656,7 @@ class Styler(StylerRenderer):
         ...     column_format="rrrrr", position="h", position_float="centering",
         ...     hrules=True, label="table:5", caption="Styled LaTeX Table",
         ...     multirow_align="t", multicol_align="r"
-        ... )
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/latex_2.png
 
@@ -670,8 +673,14 @@ class Styler(StylerRenderer):
         ...    ("Numeric", "Integers"): '\${}',
         ...    ("Numeric", "Floats"): '{:.3f}',
         ...    ("Non-Numeric", "Strings"): str.upper
-        ... })
-        >>> s.to_latex()
+        ... })  # doctest: +SKIP
+                        Numeric      Non-Numeric
+                  Integers   Floats    Strings
+        L0    ix1       $1   2.200      DOGS
+              ix2       $3   4.400      CATS
+        L1    ix3       $2   6.600      COWS
+
+        >>> s.to_latex()  # doctest: +SKIP
         \begin{tabular}{llrrl}
         {} & {} & \multicolumn{2}{r}{Numeric} & {Non-Numeric} \\
         {} & {} & {Integers} & {Floats} & {Strings} \\
@@ -713,7 +722,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> df.style.set_properties(
         ...     **{"font-weight": "bold /* --dwrap */", "Huge": "--latex--rwrap"}
-        ... ).to_latex(convert_css=True)
+        ... ).to_latex(convert_css=True)  # doctest: +SKIP
         \begin{tabular}{lr}
         {} & {0} \\
         0 & {\bfseries}{\Huge{1}} \\
@@ -741,7 +750,9 @@ class Styler(StylerRenderer):
             self.data.columns = RangeIndex(stop=len(self.data.columns))
             numeric_cols = self.data._get_numeric_data().columns.to_list()
             self.data.columns = _original_columns
-            column_format = "" if self.hide_index_ else "l" * self.data.index.nlevels
+            column_format = ""
+            for level in range(self.index.nlevels):
+                column_format += "" if self.hide_index_[level] else "l"
             for ci, _ in enumerate(self.data.columns):
                 if ci not in self.hidden_columns:
                     column_format += (
@@ -815,6 +826,8 @@ class Styler(StylerRenderer):
         *,
         table_uuid: str | None = None,
         table_attributes: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -840,6 +853,18 @@ class Styler(StylerRenderer):
             ``<table .. <table_attributes> >``
 
             If not given defaults to Styler's preexisting value.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+
+            .. versionadded:: 1.4.0
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+
+            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags,
             defaults to "utf-8" if None.
@@ -866,8 +891,15 @@ class Styler(StylerRenderer):
         if table_attributes:
             self.set_table_attributes(table_attributes)
 
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
         # Build HTML string..
-        html = self.render(
+        html = self._render_html(
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,
@@ -913,7 +945,7 @@ class Styler(StylerRenderer):
         ...     ["min-val red", "", "blue"],
         ...     ["red", None, "blue max-val"]
         ... ], index=df.index, columns=df.columns)
-        >>> df.style.set_td_classes(classes)
+        >>> df.style.set_td_classes(classes)  # doctest: +SKIP
 
         Using `MultiIndex` columns and a `classes` `DataFrame` as a subset of the
         underlying,
@@ -922,14 +954,14 @@ class Styler(StylerRenderer):
         ...     columns=[["level0", "level0"], ["level1a", "level1b"]])
         >>> classes = pd.DataFrame(["min-val"], index=["a"],
         ...     columns=[["level0"],["level1a"]])
-        >>> df.style.set_td_classes(classes)
+        >>> df.style.set_td_classes(classes)  # doctest: +SKIP
 
         Form of the output with new additional css classes,
 
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().render()
+        >>> s.hide_index().render()  # doctest: +SKIP
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
@@ -980,6 +1012,32 @@ class Styler(StylerRenderer):
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
                 self.ctx[(i, j)].extend(css_list)
 
+    def _update_ctx_header(self, attrs: DataFrame, axis: str) -> None:
+        """
+        Update the state of the ``Styler`` for header cells.
+
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
+
+        Parameters
+        ----------
+        attrs : Series
+            Should contain strings of '<property>: <value>;<prop2>: <val2>', and an
+            integer index.
+            Whitespace shouldn't matter and the final trailing ';' shouldn't
+            matter.
+        axis : str
+            Identifies whether the ctx object being updated is the index or columns
+        """
+        for j in attrs.columns:
+            for i, c in attrs[[j]].itertuples():
+                if not c:
+                    continue
+                css_list = maybe_convert_css_to_tuples(c)
+                if axis == "index":
+                    self.ctx_index[(i, j)].extend(css_list)
+                else:
+                    self.ctx_columns[(j, i)].extend(css_list)
+
     def _copy(self, deepcopy: bool = False) -> Styler:
         """
         Copies a Styler, allowing for deepcopy or shallow copy
@@ -1019,6 +1077,8 @@ class Styler(StylerRenderer):
             "hidden_rows",
             "hidden_columns",
             "ctx",
+            "ctx_index",
+            "ctx_columns",
             "cell_context",
             "_todo",
             "table_styles",
@@ -1140,6 +1200,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
+        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -1157,22 +1219,172 @@ class Styler(StylerRenderer):
         >>> def highlight_max(x, color):
         ...     return np.where(x == np.nanmax(x.to_numpy()), f"color: {color};", None)
         >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
-        >>> df.style.apply(highlight_max, color='red')
-        >>> df.style.apply(highlight_max, color='blue', axis=1)
-        >>> df.style.apply(highlight_max, color='green', axis=None)
+        >>> df.style.apply(highlight_max, color='red')  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='blue', axis=1)  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='green', axis=None)  # doctest: +SKIP
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
         >>> df.style.apply(highlight_max, color='red', subset="A")
+        ...  # doctest: +SKIP
         >>> df.style.apply(highlight_max, color='red', subset=["A", "B"])
+        ...  # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.apply(highlight_max, color='red', subset=([0,1,2], slice(None))
-        >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A")
+        >>> df.style.apply(highlight_max, color='red', subset=([0,1,2], slice(None)))
+        ...  # doctest: +SKIP
+        >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A"))
+        ...  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+        )
+        return self
+
+    def _apply_index(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        method: str = "apply",
+        **kwargs,
+    ) -> Styler:
+        if axis in [0, "index"]:
+            obj, axis = self.index, "index"
+        elif axis in [1, "columns"]:
+            obj, axis = self.columns, "columns"
+        else:
+            raise ValueError(
+                f"`axis` must be one of 0, 1, 'index', 'columns', got {axis}"
+            )
+
+        levels_ = _refactor_levels(level, obj)
+        data = DataFrame(obj.to_list()).loc[:, levels_]
+
+        if method == "apply":
+            result = data.apply(func, axis=0, **kwargs)
+        elif method == "applymap":
+            result = data.applymap(func, **kwargs)
+
+        self._update_ctx_header(result, axis)
+        return self
+
+    @doc(
+        this="apply",
+        wise="level-wise",
+        alt="applymap",
+        altwise="elementwise",
+        func="take a Series and return a string array of the same length",
+        axis='{0, 1, "index", "columns"}',
+        input_note="the index as a Series, if an Index, or a level of a MultiIndex",
+        output_note="an identically sized array of CSS styles as strings",
+        var="s",
+        ret='np.where(s == "B", "background-color: yellow;", "")',
+        ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
+    )
+    def apply_index(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        **kwargs,
+    ) -> Styler:
+        """
+        Apply a CSS-styling function to the index or column headers, {wise}.
+
+        Updates the HTML representation with the result.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        func : function
+            ``func`` should {func}.
+        axis : {axis}
+            The headers over which to apply the function.
+        level : int, str, list, optional
+            If index is MultiIndex the level(s) over which to apply the function.
+        **kwargs : dict
+            Pass along to ``func``.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.{alt}_index: Apply a CSS-styling function to headers {altwise}.
+        Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
+        Styler.applymap: Apply a CSS-styling function elementwise.
+
+        Notes
+        -----
+        Each input to ``func`` will be {input_note}. The output of ``func`` should be
+        {output_note}, in the format 'attribute: value; attribute2: value2; ...'
+        or, if nothing is to be applied to that element, an empty string or ``None``.
+
+        Examples
+        --------
+        Basic usage to conditionally highlight values in the index.
+
+        >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
+        >>> def color_b(s):
+        ...     return {ret}
+        >>> df.style.{this}_index(color_b)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/appmaphead1.png
+
+        Selectively applying to specific levels of MultiIndex columns.
+
+        >>> midx = pd.MultiIndex.from_product([['ix', 'jy'], [0, 1], ['x3', 'z4']])
+        >>> df = pd.DataFrame([np.arange(8)], columns=midx)
+        >>> def highlight_x({var}):
+        ...     return {ret2}
+        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
+        ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/appmaphead2.png
+        """
+        self._todo.append(
+            (
+                lambda instance: getattr(instance, "_apply_index"),
+                (func, axis, level, "apply"),
+                kwargs,
+            )
+        )
+        return self
+
+    @doc(
+        apply_index,
+        this="applymap",
+        wise="elementwise",
+        alt="apply",
+        altwise="level-wise",
+        func="take a scalar and return a string",
+        axis='{0, 1, "index", "columns"}',
+        input_note="an index value, if an Index, or a level value of a MultiIndex",
+        output_note="CSS styles as a string",
+        var="v",
+        ret='"background-color: yellow;" if v == "B" else None',
+        ret2='"background-color: yellow;" if "x" in v else None',
+    )
+    def applymap_index(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        **kwargs,
+    ) -> Styler:
+        self._todo.append(
+            (
+                lambda instance: getattr(instance, "_apply_index"),
+                (func, axis, level, "applymap"),
+                kwargs,
+            )
         )
         return self
 
@@ -1198,7 +1410,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         func : function
-            ``func`` should take a scalar and return a scalar.
+            ``func`` should take a scalar and return a string.
         subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
@@ -1212,6 +1424,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
+        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
@@ -1225,17 +1439,24 @@ class Styler(StylerRenderer):
         >>> def color_negative(v, color):
         ...     return f"color: {color};" if v < 0 else None
         >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
-        >>> df.style.applymap(color_negative, color='red')
+        >>> df.style.applymap(color_negative, color='red')  # doctest: +SKIP
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
         >>> df.style.applymap(color_negative, color='red', subset="A")
+        ...  # doctest: +SKIP
         >>> df.style.applymap(color_negative, color='red', subset=["A", "B"])
+        ...  # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.applymap(color_negative, color='red', subset=([0,1,2], slice(None))
-        >>> df.style.applymap(color_negative, color='red', subset=(slice(0,5,2), "A")
+        >>> df.style.applymap(color_negative, color='red',
+        ...  subset=([0,1,2], slice(None)))  # doctest: +SKIP
+        >>> df.style.applymap(color_negative, color='red', subset=(slice(0,5,2), "A"))
+        ...  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         self._todo.append(
             (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
@@ -1296,6 +1517,7 @@ class Styler(StylerRenderer):
         >>> def cond(v, limit=4):
         ...     return v > 1 and v != limit
         >>> df.style.where(cond, value='color:green;', other='color:red;')
+        ...  # doctest: +SKIP
 
         should be refactored to:
 
@@ -1303,6 +1525,7 @@ class Styler(StylerRenderer):
         ...     cond = v > 1 and v != limit
         ...     return value if cond else other
         >>> df.style.applymap(style_func, value='color:green;', other='color:red;')
+        ...  # doctest: +SKIP
         """
         warnings.warn(
             "this method is deprecated in favour of `Styler.applymap()`",
@@ -1368,7 +1591,7 @@ class Styler(StylerRenderer):
         Examples
         --------
         >>> df = pd.DataFrame(np.random.randn(10, 4))
-        >>> df.style.set_table_attributes('class="pure-table"')
+        >>> df.style.set_table_attributes('class="pure-table"')  # doctest: +SKIP
         # ... <table class="pure-table"> ...
         """
         self.table_attributes = attributes
@@ -1487,24 +1710,24 @@ class Styler(StylerRenderer):
         may produce strange behaviour due to CSS controls with missing elements.
         """
         if axis in [0, "index"]:
-            axis, obj, tag, pos = 0, self.data.index, "tbody", "left"
+            axis, obj = 0, self.data.index
             pixel_size = 75 if not pixel_size else pixel_size
         elif axis in [1, "columns"]:
-            axis, obj, tag, pos = 1, self.data.columns, "thead", "top"
+            axis, obj = 1, self.data.columns
             pixel_size = 25 if not pixel_size else pixel_size
         else:
             raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
 
+        props = "position:sticky; background-color:white;"
         if not isinstance(obj, pd.MultiIndex):
             # handling MultiIndexes requires different CSS
-            props = "position:sticky; background-color:white;"
 
             if axis == 1:
                 # stick the first <tr> of <head> and, if index names, the second <tr>
                 # if self._hide_columns then no <thead><tr> here will exist: no conflict
                 styles: CSSStyles = [
                     {
-                        "selector": "thead tr:first-child",
+                        "selector": "thead tr:nth-child(1) th",
                         "props": props + "top:0px; z-index:2;",
                     }
                 ]
@@ -1514,7 +1737,7 @@ class Styler(StylerRenderer):
                     )
                     styles.append(
                         {
-                            "selector": "thead tr:nth-child(2)",
+                            "selector": "thead tr:nth-child(2) th",
                             "props": props
                             + f"top:{pixel_size}px; z-index:2; height:{pixel_size}px; ",
                         }
@@ -1525,34 +1748,67 @@ class Styler(StylerRenderer):
                 # but <th> will exist in <thead>: conflict with initial element
                 styles = [
                     {
-                        "selector": "tr th:first-child",
+                        "selector": "thead tr th:nth-child(1)",
+                        "props": props + "left:0px; z-index:3 !important;",
+                    },
+                    {
+                        "selector": "tbody tr th:nth-child(1)",
                         "props": props + "left:0px; z-index:1;",
-                    }
+                    },
                 ]
 
-            return self.set_table_styles(styles, overwrite=False)
-
         else:
+            # handle the MultiIndex case
             range_idx = list(range(obj.nlevels))
+            levels = sorted(levels) if levels else range_idx
 
-        levels = sorted(levels) if levels else range_idx
-        for i, level in enumerate(levels):
-            self.set_table_styles(
-                [
-                    {
-                        "selector": f"{tag} th.level{level}",
-                        "props": f"position: sticky; "
-                        f"{pos}: {i * pixel_size}px; "
-                        f"{f'height: {pixel_size}px; ' if axis == 1 else ''}"
-                        f"{f'min-width: {pixel_size}px; ' if axis == 0 else ''}"
-                        f"{f'max-width: {pixel_size}px; ' if axis == 0 else ''}"
-                        f"background-color: white;",
-                    }
-                ],
-                overwrite=False,
-            )
+            if axis == 1:
+                styles = []
+                for i, level in enumerate(levels):
+                    styles.append(
+                        {
+                            "selector": f"thead tr:nth-child({level+1}) th",
+                            "props": props
+                            + (
+                                f"top:{i * pixel_size}px; height:{pixel_size}px; "
+                                "z-index:2;"
+                            ),
+                        }
+                    )
+                if not all(name is None for name in self.index.names):
+                    styles.append(
+                        {
+                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
+                            "props": props
+                            + (
+                                f"top:{(i+1) * pixel_size}px; height:{pixel_size}px; "
+                                "z-index:2;"
+                            ),
+                        }
+                    )
 
-        return self
+            else:
+                styles = []
+                for i, level in enumerate(levels):
+                    props_ = props + (
+                        f"left:{i * pixel_size}px; "
+                        f"min-width:{pixel_size}px; "
+                        f"max-width:{pixel_size}px; "
+                    )
+                    styles.extend(
+                        [
+                            {
+                                "selector": f"thead tr th:nth-child({level+1})",
+                                "props": props_ + "z-index:3 !important;",
+                            },
+                            {
+                                "selector": f"tbody tr th.level{level}",
+                                "props": props_ + "z-index:1;",
+                            },
+                        ]
+                    )
+
+        return self.set_table_styles(styles, overwrite=False)
 
     def set_table_styles(
         self,
@@ -1616,14 +1872,14 @@ class Styler(StylerRenderer):
         >>> df.style.set_table_styles(
         ...     [{'selector': 'tr:hover',
         ...       'props': [('background-color', 'yellow')]}]
-        ... )
+        ... )  # doctest: +SKIP
 
         Or with CSS strings
 
         >>> df.style.set_table_styles(
         ...     [{'selector': 'tr:hover',
-        ...       'props': 'background-color: yellow; font-size: 1em;']}]
-        ... )
+        ...       'props': 'background-color: yellow; font-size: 1em;'}]
+        ... )  # doctest: +SKIP
 
         Adding column styling by name
 
@@ -1631,15 +1887,18 @@ class Styler(StylerRenderer):
         ...     'A': [{'selector': '',
         ...            'props': [('color', 'red')]}],
         ...     'B': [{'selector': 'td',
-        ...            'props': 'color: blue;']}]
-        ... }, overwrite=False)
+        ...            'props': 'color: blue;'}]
+        ... }, overwrite=False)  # doctest: +SKIP
 
         Adding row styling
 
         >>> df.style.set_table_styles({
         ...     0: [{'selector': 'td:hover',
         ...          'props': [('font-size', '25px')]}]
-        ... }, axis=1, overwrite=False)
+        ... }, axis=1, overwrite=False)  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         if isinstance(table_styles, dict):
             if axis in [0, "index"]:
@@ -1699,14 +1958,18 @@ class Styler(StylerRenderer):
         self.na_rep = na_rep
         return self.format(na_rep=na_rep, precision=self.precision)
 
-    def hide_index(self, subset: Subset | None = None) -> Styler:
+    def hide_index(
+        self,
+        subset: Subset | None = None,
+        level: Level | list[Level] | None = None,
+    ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
 
         This method has dual functionality:
 
-          - if ``subset`` is ``None`` then the entire index will be hidden whilst
-            displaying all data-rows.
+          - if ``subset`` is ``None`` then the entire index, or specified levels, will
+            be hidden whilst displaying all data-rows.
           - if a ``subset`` is given then those specific rows will be hidden whilst the
             index itself remains visible.
 
@@ -1718,6 +1981,11 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the index axis within
             `DataFrame.loc[<subset>, :]`, to limit ``data`` to *before* applying
             the function.
+        level : int, str, list
+            The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
+            used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1732,7 +2000,7 @@ class Styler(StylerRenderer):
         Simple application hiding specific rows:
 
         >>> df = pd.DataFrame([[1,2], [3,4], [5,6]], index=["a", "b", "c"])
-        >>> df.style.hide_index(["a", "b"])
+        >>> df.style.hide_index(["a", "b"])  # doctest: +SKIP
              0    1
         c    5    6
 
@@ -1740,7 +2008,7 @@ class Styler(StylerRenderer):
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
         >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
-        >>> df.style.format("{:.1f}").hide_index()
+        >>> df.style.format("{:.1f}").hide_index()  # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
          0.1    0.0    0.4    1.3    0.6   -1.4
@@ -1753,6 +2021,7 @@ class Styler(StylerRenderer):
         Hide specific rows but retain the index:
 
         >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
+        ...   # doctest: +SKIP
                                  x                    y
                    a      b      c      a      b      c
         x   b    0.7    1.0    1.3    1.5   -0.0   -0.2
@@ -1760,15 +2029,33 @@ class Styler(StylerRenderer):
 
         Hide specific rows and the index:
 
-        >>> df.style.format("{:.1f}").hide_index(subset=(slice(None), ["a", "c"]))
-        ...     .hide_index()
+        >>> df.style.format("{:.1f}").hide_index(
+        ...     subset=(slice(None), ["a", "c"])).hide_index()  # doctest: +SKIP
                          x                    y
            a      b      c      a      b      c
          0.7    1.0    1.3    1.5   -0.0   -0.2
         -0.6    1.2    1.8    1.9    0.3    0.3
+
+        Hide a specific level:
+
+        >>> df.style.format("{:,.1f").hide_index(level=1)  # doctest: +SKIP
+                             x                    y
+               a      b      c      a      b      c
+        x    0.1    0.0    0.4    1.3    0.6   -1.4
+             0.7    1.0    1.3    1.5   -0.0   -0.2
+             1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            -0.6    1.2    1.8    1.9    0.3    0.3
+             0.8    0.5   -0.3    1.2    2.2   -0.8
         """
+        if level is not None and subset is not None:
+            raise ValueError("`subset` and `level` cannot be passed simultaneously")
+
         if subset is None:
-            self.hide_index_ = True
+            levels_ = _refactor_levels(level, self.index)
+            self.hide_index_ = [
+                True if lev in levels_ else False for lev in range(self.index.nlevels)
+            ]
         else:
             subset_ = IndexSlice[subset, :]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
@@ -1779,14 +2066,18 @@ class Styler(StylerRenderer):
             self.hidden_rows = hrows  # type: ignore[assignment]
         return self
 
-    def hide_columns(self, subset: Subset | None = None) -> Styler:
+    def hide_columns(
+        self,
+        subset: Subset | None = None,
+        level: Level | list[Level] | None = None,
+    ) -> Styler:
         """
         Hide the column headers or specific keys in the columns from rendering.
 
         This method has dual functionality:
 
-          - if ``subset`` is ``None`` then the entire column headers row will be hidden
-            whilst the data-values remain visible.
+          - if ``subset`` is ``None`` then the entire column headers row, or
+            specific levels, will be hidden whilst the data-values remain visible.
           - if a ``subset`` is given then those specific columns, including the
             data-values will be hidden, whilst the column headers row remains visible.
 
@@ -1798,6 +2089,11 @@ class Styler(StylerRenderer):
             A valid 1d input or single key along the columns axis within
             `DataFrame.loc[:, <subset>]`, to limit ``data`` to *before* applying
             the function.
+        level : int, str, list
+            The level(s) to hide in a MultiIndex if hiding the entire column headers
+            row. Cannot be used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1812,7 +2108,7 @@ class Styler(StylerRenderer):
         Simple application hiding specific columns:
 
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "b", "c"])
-        >>> df.style.hide_columns(["a", "b"])
+        >>> df.style.hide_columns(["a", "b"])  # doctest: +SKIP
              c
         0    3
         1    6
@@ -1821,17 +2117,18 @@ class Styler(StylerRenderer):
 
         >>> midx = pd.MultiIndex.from_product([["x", "y"], ["a", "b", "c"]])
         >>> df = pd.DataFrame(np.random.randn(6,6), index=midx, columns=midx)
-        >>> df.style.format("{:.1f}").hide_columns()
-        x   d    0.1    0.0    0.4    1.3    0.6   -1.4
-            e    0.7    1.0    1.3    1.5   -0.0   -0.2
-            f    1.4   -0.8    1.6   -0.2   -0.4   -0.3
-        y   d    0.4    1.0   -0.2   -0.8   -1.2    1.1
-            e   -0.6    1.2    1.8    1.9    0.3    0.3
-            f    0.8    0.5   -0.3    1.2    2.2   -0.8
+        >>> df.style.format("{:.1f}").hide_columns()  # doctest: +SKIP
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
+            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
+            c    0.8    0.5   -0.3    1.2    2.2   -0.8
 
         Hide specific columns but retain the column headers:
 
         >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
+        ...   # doctest: +SKIP
                    x      y
                    b      b
         x   a    0.0    0.6
@@ -1843,17 +2140,34 @@ class Styler(StylerRenderer):
 
         Hide specific columns and the column headers:
 
-        >>> df.style.format("{:.1f}").hide_columns(subset=(slice(None), ["a", "c"]))
-        ...     .hide_columns()
+        >>> df.style.format("{:.1f}").hide_columns(
+        ...    subset=(slice(None), ["a", "c"])).hide_columns()  # doctest: +SKIP
         x   a    0.0    0.6
             b    1.0   -0.0
             c   -0.8   -0.4
         y   a    1.0   -1.2
             b    1.2    0.3
             c    0.5    2.2
+
+        Hide a specific level:
+
+        >>> df.style.format("{:.1f}").hide_columns(level=1)  # doctest: +SKIP
+                   x                    y
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
+            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
+            c    0.8    0.5   -0.3    1.2    2.2   -0.8
         """
+        if level is not None and subset is not None:
+            raise ValueError("`subset` and `level` cannot be passed simultaneously")
+
         if subset is None:
-            self.hide_columns_ = True
+            levels_ = _refactor_levels(level, self.columns)
+            self.hide_columns_ = [
+                True if lev in levels_ else False for lev in range(self.columns.nlevels)
+            ]
         else:
             subset_ = IndexSlice[:, subset]  # new var so mypy reads not Optional
             subset = non_reducing_slice(subset_)
@@ -1974,31 +2288,32 @@ class Styler(StylerRenderer):
 
         Shading the values column-wise, with ``axis=0``, preselecting numeric columns
 
-        >>> df.style.{name}_gradient(axis=0)
+        >>> df.style.{name}_gradient(axis=0)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_ax0.png
 
         Shading all values collectively using ``axis=None``
 
-        >>> df.style.{name}_gradient(axis=None)
+        >>> df.style.{name}_gradient(axis=None)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone.png
 
         Compress the color map from the both ``low`` and ``high`` ends
 
-        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)
+        >>> df.style.{name}_gradient(axis=None, low=0.75, high=1.0)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_lowhigh.png
 
         Manually setting ``vmin`` and ``vmax`` gradient thresholds
 
-        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)
+        >>> df.style.{name}_gradient(axis=None, vmin=6.7, vmax=21.6)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_vminvmax.png
 
         Setting a ``gmap`` and applying to all columns with another ``cmap``
 
         >>> df.style.{name}_gradient(axis=0, gmap=df['Temp (c)'], cmap='YlOrRd')
+        ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_gmap.png
 
@@ -2008,7 +2323,7 @@ class Styler(StylerRenderer):
         >>> gmap = np.array([[1,2,3], [2,3,4], [3,4,5]])
         >>> df.style.{name}_gradient(axis=None, gmap=gmap,
         ...     cmap='YlOrRd', subset=['Temp (c)', 'Rain (mm)', 'Wind (m/s)']
-        ... )
+        ... )  # doctest: +SKIP
 
         .. figure:: ../../_static/style/{image_prefix}_axNone_gmap.png
         """
@@ -2090,8 +2405,11 @@ class Styler(StylerRenderer):
         Examples
         --------
         >>> df = pd.DataFrame(np.random.randn(10, 4))
-        >>> df.style.set_properties(color="white", align="right")
-        >>> df.style.set_properties(**{'background-color': 'yellow'})
+        >>> df.style.set_properties(color="white", align="right")  # doctest: +SKIP
+        >>> df.style.set_properties(**{'background-color': 'yellow'})  # doctest: +SKIP
+
+        See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
+        more details.
         """
         values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
         return self.applymap(lambda x: values, subset=subset)
@@ -2294,15 +2612,15 @@ class Styler(StylerRenderer):
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
-        def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmax(data.to_numpy()), props, "")
-
         if props is None:
             props = f"background-color: {color};"
         # error: Argument 1 to "apply" of "Styler" has incompatible type
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+            partial(_highlight_value, op="max"),  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
         )
 
     def highlight_min(
@@ -2345,15 +2663,15 @@ class Styler(StylerRenderer):
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
         """
 
-        def f(data: FrameOrSeries, props: str) -> np.ndarray:
-            return np.where(data == np.nanmin(data.to_numpy()), props, "")
-
         if props is None:
             props = f"background-color: {color};"
         # error: Argument 1 to "apply" of "Styler" has incompatible type
         # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            f, axis=axis, subset=subset, props=props  # type: ignore[arg-type]
+            partial(_highlight_value, op="min"),  # type: ignore[arg-type]
+            axis=axis,
+            subset=subset,
+            props=props,
         )
 
     def highlight_between(
@@ -2426,7 +2744,7 @@ class Styler(StylerRenderer):
         ...     'Two': [2.9, 2.1, 2.5],
         ...     'Three': [3.1, 3.2, 3.8],
         ... })
-        >>> df.style.highlight_between(left=2.1, right=2.9)
+        >>> df.style.highlight_between(left=2.1, right=2.9)  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_basic.png
 
@@ -2434,7 +2752,7 @@ class Styler(StylerRenderer):
         and ``right`` for each column individually
 
         >>> df.style.highlight_between(left=[1.4, 2.4, 3.4], right=[1.6, 2.6, 3.6],
-        ...     axis=1, color="#fffd75")
+        ...     axis=1, color="#fffd75")  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_seq.png
 
@@ -2442,14 +2760,14 @@ class Styler(StylerRenderer):
         matches the input DataFrame, with a constant ``right``
 
         >>> df.style.highlight_between(left=[[2,2,3],[2,2,3],[3,3,3]], right=3.5,
-        ...     axis=None, color="#fffd75")
+        ...     axis=None, color="#fffd75")  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_axNone.png
 
         Using ``props`` instead of default background coloring
 
         >>> df.style.highlight_between(left=1.5, right=3.5,
-        ...     props='font-weight:bold;color:#e83e8c')
+        ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hbetw_props.png
         """
@@ -2526,19 +2844,21 @@ class Styler(StylerRenderer):
 
         >>> df = pd.DataFrame(np.arange(10).reshape(2,5) + 1)
         >>> df.style.highlight_quantile(axis=None, q_left=0.8, color="#fffd75")
+        ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_axNone.png
 
         Or highlight quantiles row-wise or column-wise, in this case by row-wise
 
         >>> df.style.highlight_quantile(axis=1, q_left=0.8, color="#fffd75")
+        ...  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_ax1.png
 
         Use ``props`` instead of default background coloring
 
         >>> df.style.highlight_quantile(axis=None, q_left=0.2, q_right=0.8,
-        ...     props='font-weight:bold;color:#e83e8c')
+        ...     props='font-weight:bold;color:#e83e8c')  # doctest: +SKIP
 
         .. figure:: ../../_static/style/hq_props.png
         """
@@ -2682,6 +3002,9 @@ class Styler(StylerRenderer):
         ...    .highlight_min(subset=['conversion'], color='yellow')
         ...    .pipe(format_conversion)
         ...    .set_caption("Results with minimum conversion highlighted."))
+        ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/df_pipe.png
         """
         return com.pipe(self, func, *args, **kwargs)
 
@@ -2852,6 +3175,16 @@ def _highlight_between(
         else np.full(data.shape, True, dtype=bool)
     )
     return np.where(g_left & l_right, props, "")
+
+
+def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+    """
+    Return an array of css strings based on the condition of values matching an op.
+    """
+    value = getattr(data, op)(skipna=True)
+    if isinstance(data, DataFrame):  # min/max must be done twice to return scalar
+        value = getattr(value, op)(skipna=True)
+    return np.where(data == value, props, "")
 
 
 def _bar(
@@ -3025,3 +3358,37 @@ def _bar(
             index=data.index,
             columns=data.columns,
         )
+
+
+def _refactor_levels(
+    level: Level | list[Level] | None,
+    obj: Index,
+) -> list[Level]:
+    """
+    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+
+    Parameters
+    ----------
+    level : int, str, list
+        Original ``level`` arg supplied to above methods.
+    obj:
+        Either ``self.index`` or ``self.columns``
+
+    Returns
+    -------
+    list : refactored arg with a list of levels to hide
+    """
+    if level is None:
+        levels_: list[Level] = list(range(obj.nlevels))
+    elif isinstance(level, int):
+        levels_ = [level]
+    elif isinstance(level, str):
+        levels_ = [obj._get_level_number(level)]
+    elif isinstance(level, list):
+        levels_ = [
+            obj._get_level_number(lev) if not isinstance(lev, int) else lev
+            for lev in level
+        ]
+    else:
+        raise ValueError("`level` must be of type `int`, `str` or list of such")
+    return levels_
