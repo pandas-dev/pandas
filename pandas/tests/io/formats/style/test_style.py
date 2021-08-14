@@ -41,8 +41,8 @@ def mi_styler(mi_df):
 @pytest.fixture
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
-    mi_styler.uuid_len = 5
-    mi_styler.uuid = "abcde_"
+    mi_styler.uuid_len = 8
+    mi_styler.uuid = "abcdefgh_"
     mi_styler.set_caption("capt")
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
@@ -242,7 +242,7 @@ def test_clear(mi_styler_comp):
     # to ensure proper testing of the 'copy', 'clear', 'export' methods with new feature
     # GH 40675
     styler = mi_styler_comp
-    styler.to_html()  # new attrs maybe created on render
+    styler._compute()  # execute applied methods
 
     clean_copy = Styler(styler.data, uuid=styler.uuid)
 
@@ -250,8 +250,6 @@ def test_clear(mi_styler_comp):
         "data",
         "index",
         "columns",
-        "uuid",
-        "uuid_len",
         "cell_ids",
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
