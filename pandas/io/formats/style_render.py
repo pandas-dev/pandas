@@ -102,6 +102,8 @@ class StylerRenderer:
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
         self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
@@ -152,6 +154,8 @@ class StylerRenderer:
         (application method, *args, **kwargs)
         """
         self.ctx.clear()
+        self.ctx_index.clear()
+        self.ctx_columns.clear()
         r = self
         for func, args, kwargs in self._todo:
             r = func(self)(*args, **kwargs)
@@ -201,6 +205,9 @@ class StylerRenderer:
             len(self.data.index), len(self.data.columns), max_elements
         )
 
+        self.cellstyle_map_columns: DefaultDict[
+            tuple[CSSPair, ...], list[str]
+        ] = defaultdict(list)
         head = self._translate_header(
             BLANK_CLASS,
             BLANK_VALUE,
@@ -215,6 +222,9 @@ class StylerRenderer:
         self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
+        self.cellstyle_map_index: DefaultDict[
+            tuple[CSSPair, ...], list[str]
+        ] = defaultdict(list)
         body = self._translate_body(
             DATA_CLASS,
             ROW_HEADING_CLASS,
@@ -226,11 +236,17 @@ class StylerRenderer:
         )
         d.update({"body": body})
 
-        cellstyle: list[dict[str, CSSList | list[str]]] = [
-            {"props": list(props), "selectors": selectors}
-            for props, selectors in self.cellstyle_map.items()
-        ]
-        d.update({"cellstyle": cellstyle})
+        ctx_maps = {
+            "cellstyle": "cellstyle_map",
+            "cellstyle_index": "cellstyle_map_index",
+            "cellstyle_columns": "cellstyle_map_columns",
+        }  # add the cell_ids styles map to the render dictionary in right format
+        for k, attr in ctx_maps.items():
+            map = [
+                {"props": list(props), "selectors": selectors}
+                for props, selectors in getattr(self, attr).items()
+            ]
+            d.update({k: map})
 
         table_attr = self.table_attributes
         use_mathjax = get_option("display.html.use_mathjax")
@@ -323,8 +339,9 @@ class StylerRenderer:
                 ]
 
                 if clabels:
-                    column_headers = [
-                        _element(
+                    column_headers = []
+                    for c, value in enumerate(clabels[r]):
+                        header_element = _element(
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
@@ -335,8 +352,16 @@ class StylerRenderer:
                                 else ""
                             ),
                         )
-                        for c, value in enumerate(clabels[r])
-                    ]
+
+                        if self.cell_ids:
+                            header_element["id"] = f"level{r}_col{c}"
+                        if (r, c) in self.ctx_columns and self.ctx_columns[r, c]:
+                            header_element["id"] = f"level{r}_col{c}"
+                            self.cellstyle_map_columns[
+                                tuple(self.ctx_columns[r, c])
+                            ].append(f"level{r}_col{c}")
+
+                        column_headers.append(header_element)
 
                     if len(self.data.columns) > max_cols:
                         # add an extra column with `...` value to indicate trimming
@@ -470,21 +495,30 @@ class StylerRenderer:
                 body.append(index_headers + data)
                 break
 
-            index_headers = [
-                _element(
+            index_headers = []
+            for c, value in enumerate(rlabels[r]):
+                header_element = _element(
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
                     (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
-                    id=f"level{c}_row{r}",
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1
                         else ""
                     ),
                 )
-                for c, value in enumerate(rlabels[r])
-            ]
+
+                if self.cell_ids:
+                    header_element["id"] = f"level{c}_row{r}"  # id is specified
+                if (r, c) in self.ctx_index and self.ctx_index[r, c]:
+                    # always add id if a style is specified
+                    header_element["id"] = f"level{c}_row{r}"
+                    self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
+                        f"level{c}_row{r}"
+                    )
+
+                index_headers.append(header_element)
 
             data = []
             for c, value in enumerate(row_tup[1:]):
@@ -514,13 +548,12 @@ class StylerRenderer:
                     display_value=self._display_funcs[(r, c)](value),
                 )
 
-                # only add an id if the cell has a style
-                if self.cell_ids or (r, c) in self.ctx:
+                if self.cell_ids:
                     data_element["id"] = f"row{r}_col{c}"
-                    if (r, c) in self.ctx and self.ctx[r, c]:  # only add  if non-empty
-                        self.cellstyle_map[tuple(self.ctx[r, c])].append(
-                            f"row{r}_col{c}"
-                        )
+                if (r, c) in self.ctx and self.ctx[r, c]:
+                    # always add id if needed due to specified style
+                    data_element["id"] = f"row{r}_col{c}"
+                    self.cellstyle_map[tuple(self.ctx[r, c])].append(f"row{r}_col{c}")
 
                 data.append(data_element)
 
@@ -537,7 +570,14 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
-        d["head"] = [[col for col in row if col["is_visible"]] for row in d["head"]]
+        d["head"] = [
+            [
+                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                for c, col in enumerate(row)
+                if col["is_visible"]
+            ]
+            for r, row in enumerate(d["head"])
+        ]
         body = []
         for r, row in enumerate(d["body"]):
             if all(self.hide_index_):
@@ -549,8 +589,9 @@ class StylerRenderer:
                         "display_value": col["display_value"]
                         if col["is_visible"]
                         else "",
+                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
                     }
-                    for col in row
+                    for c, col in enumerate(row)
                     if col["type"] == "th"
                 ]
 
@@ -1345,26 +1386,21 @@ def _parse_latex_header_span(
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """
+    display_val = _parse_latex_cell_styles(cell["cellstyle"], cell["display_value"])
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
-            return (
-                f"\\multicolumn{{{colspan}}}{{{multicol_align}}}"
-                f"{{{cell['display_value']}}}"
-            )
+            return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
         elif 'rowspan="' in attrs:
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
-            return (
-                f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}"
-                f"{{{cell['display_value']}}}"
-            )
+            return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"
     if wrap:
-        return f"{{{cell['display_value']}}}"
+        return f"{{{display_val}}}"
     else:
-        return cell["display_value"]
+        return display_val
 
 
 def _parse_latex_options_strip(value: str | int | float, arg: str) -> str:
