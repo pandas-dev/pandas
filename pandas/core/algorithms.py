@@ -17,8 +17,6 @@ from warnings import warn
 
 import numpy as np
 
-import pandas as pd
-
 from pandas._libs import (
     algos,
     hashtable as htable,
@@ -39,7 +37,6 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_array,
     sanitize_to_nanoseconds,
 )
-
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
@@ -75,6 +72,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
+import pandas as pd
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
     array as pd_array,
@@ -1311,7 +1309,7 @@ class SelectNSeries(SelectN):
             # reverse indices
             inds = narr - 1 - inds
 
-        return pd.concat([dropped.iloc[inds], nan_index])[:nmax]
+        return pd.concat([dropped.iloc[inds], nan_index]).head(nmax)
 
 
 class SelectNFrame(SelectN):
