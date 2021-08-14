@@ -203,7 +203,6 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
     excl = [
         "na_rep",  # deprecated
         "precision",  # deprecated
-        "uuid",  # special
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
@@ -217,6 +216,7 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
             "columns",
             "index",
             "uuid_len",
+            "uuid",
             "caption",
             "cell_ids",
             "hide_index_",
