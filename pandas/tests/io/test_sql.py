@@ -1394,9 +1394,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         conn = cls.conn = cls.connect()
         conn.connect()
 
+    def load_test_data_and_sql(self):
+        pass
+
     @pytest.fixture(autouse=True)
     def setup_method(self, load_iris_data, load_types_data):
-        self.load_test_data_and_sql()
+        pass
 
     @classmethod
     def setup_import(cls):
