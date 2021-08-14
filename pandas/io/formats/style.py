@@ -1065,7 +1065,6 @@ class Styler(StylerRenderer):
         # GH 40675
         styler = Styler(
             self.data,  # populates attributes 'data', 'columns', 'index' as shallow
-            uuid_len=self.uuid_len,
         )
         shallow = [  # simple string or boolean immutables
             "hide_index_",
@@ -1073,6 +1072,7 @@ class Styler(StylerRenderer):
             "table_attributes",
             "cell_ids",
             "caption",
+            "uuid",
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
