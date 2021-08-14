@@ -4558,6 +4558,9 @@ class DataFrame(NDFrame, OpsMixin):
                 columns, method, copy, level, fill_value, limit, tolerance
             )
 
+            # If we have made a copy, no need to make another one
+            copy = False
+
         index = axes["index"]
         if index is not None:
             frame = frame._reindex_index(

@@ -665,6 +665,8 @@ class BaseBlockManager(DataManager):
             new_blocks = self._slice_take_blocks_ax0(
                 indexer, fill_value=fill_value, only_slice=only_slice
             )
+            if copy:
+                new_blocks = [x.copy() for x in new_blocks]
         else:
             new_blocks = [
                 blk.take_nd(
