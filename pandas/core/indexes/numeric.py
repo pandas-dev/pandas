@@ -66,6 +66,14 @@ class NumericIndex(Index):
     name : object
         Name to be stored in the index.
 
+    Attributes
+    ----------
+    None
+
+    Methods
+    ----------
+    None
+
     See Also
     --------
     Index : The base pandas Index type.
@@ -375,6 +383,14 @@ _num_index_shared_docs[
         Make a copy of input ndarray.
     name : object
         Name to be stored in the index.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    ----------
+    None
 
     See Also
     --------
