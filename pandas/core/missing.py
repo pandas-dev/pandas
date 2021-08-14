@@ -430,7 +430,7 @@ def _interpolate_1d(
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
-        indexer = np.argsort(indices[valid])
+        indexer = np.argsort(indices[valid], kind="stable")
         result[invalid] = np.interp(
             indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
