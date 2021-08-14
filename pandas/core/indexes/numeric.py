@@ -86,7 +86,7 @@ class NumericIndex(Index):
     >>> pd.NumericIndex([1, 2, 3], dtype="int8")
     NumericIndex([1, 2, 3], dtype='int8')
     >>> pd.NumericIndex([1, 2, 3], dtype="float32")
-    NumericIndex([1, 2, 3], dtype='float32')
+    NumericIndex([1.0, 2.0, 3.0], dtype='float32')
     """
 
     _typ = "numericindex"
