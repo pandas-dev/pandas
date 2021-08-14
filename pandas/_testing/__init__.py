@@ -50,6 +50,7 @@ from pandas import (
     Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     RangeIndex,
     Series,
     UInt64Index,
@@ -105,7 +106,6 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.api import NumericIndex
 from pandas.core.arrays import (
     DatetimeArray,
     PandasArray,
@@ -219,7 +219,7 @@ def box_expected(expected, box_cls, transpose=True):
         else:
             expected = pd.array(expected)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index._with_infer(expected)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:

@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
-    is_sparse,
 )
 from pandas.core.dtypes.concat import (
     cast_to_common_type,
@@ -46,6 +45,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
+from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
     ArrayManager,
@@ -260,7 +260,10 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
         mgr_shape_list[ax] = len(indexer)
     mgr_shape = tuple(mgr_shape_list)
 
+    has_column_indexer = False
+
     if 0 in indexers:
+        has_column_indexer = True
         ax0_indexer = indexers.pop(0)
         blknos = algos.take_nd(mgr.blknos, ax0_indexer, fill_value=-1)
         blklocs = algos.take_nd(mgr.blklocs, ax0_indexer, fill_value=-1)
@@ -270,9 +273,6 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
-        # error: Incompatible types in assignment (expression has type "None", variable
-        # has type "ndarray")
-        ax0_indexer = None  # type: ignore[assignment]
         blknos = mgr.blknos
         blklocs = mgr.blklocs
 
@@ -288,6 +288,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
         shape = tuple(shape_list)
 
         if blkno == -1:
+            # only reachable in the `0 in indexers` case
             unit = JoinUnit(None, shape)
         else:
             blk = mgr.blocks[blkno]
@@ -302,7 +303,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
                 # placement was sequential before.
                 (
                     (
-                        ax0_indexer is None
+                        not has_column_indexer
                         and blk.mgr_locs.is_slice_like
                         and blk.mgr_locs.as_slice.step == 1
                     )
@@ -330,6 +331,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 class JoinUnit:
     def __init__(self, block, shape: Shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
+        # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
             indexers = {}
         self.block = block
@@ -358,7 +360,7 @@ class JoinUnit:
             return blk.dtype
         return ensure_dtype_can_hold_na(blk.dtype)
 
-    def is_valid_na_for(self, dtype: DtypeObj) -> bool:
+    def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
         Check that we are all-NA of a type/dtype that is compatible with this dtype.
         Augments `self.is_na` with an additional check of the type of NA values.
@@ -389,11 +391,8 @@ class JoinUnit:
         if not self.block._can_hold_na:
             return False
 
-        # Usually it's enough to check but a small fraction of values to see if
-        # a block is NOT null, chunks should help in such cases.  1000 value
-        # was chosen rather arbitrarily.
         values = self.block.values
-        if is_sparse(self.block.values.dtype):
+        if isinstance(self.block.values.dtype, SparseDtype):
             return False
         elif self.block.is_extension:
             # TODO(EA2D): no need for special case with 2D EAs
@@ -411,7 +410,8 @@ class JoinUnit:
         else:
             fill_value = upcasted_na
 
-            if self.is_valid_na_for(empty_dtype):
+            if self._is_valid_na_for(empty_dtype):
+                # note: always holds when self.block is None
                 blk_dtype = getattr(self.block, "dtype", None)
 
                 if blk_dtype == np.dtype("object"):
@@ -592,13 +592,16 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     _concatenate_join_units (which uses `concat_compat`).
 
     """
+    first = join_units[0].block
+    if first is None:
+        return False
     return (
-        # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        # exclude cases where a) ju.block is None or b) we have e.g. Int64+int64
+        all(type(ju.block) is type(first) for ju in join_units)
         and
         # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
         all(
-            is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
             or ju.block.dtype.kind in ["b", "i", "u"]
