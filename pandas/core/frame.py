@@ -6809,9 +6809,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Example
         -------
-        >>> df =  pd.DataFrame(np.random.randint(10, size=(4, 2)),
-        ...                       index=[['a', 'a', 'b', 'b'],[1, 2, 1, 2]], 
-        ...                       columns=['one', 'two'])
+        >>> df = pd.DataFrame(np.random.randint(10, size=(4, 2)),
+        ...                      index=[['a', 'a', 'b', 'b'],[1, 2, 1, 2]], 
+        ...                      columns=['one', 'two'])
         >>> df.index.set_names(['index1', 'index2'], inplace=True)
         >>> df
                        one  two
@@ -6842,7 +6842,7 @@ class DataFrame(NDFrame, OpsMixin):
         2      b         5    2
 
         Length of order must be same as number of levels.
-        By default, it reorder levels by index, to reorder by columns, use  axis = 1.
+        By default, it reorder levels by index, to reorder by columns, use axis = 1.
 
         >>> df = pd.DataFrame(np.random.randint(10, size=(4, 3)), 
         ...                     index=[1, 2, 3, 4], 
