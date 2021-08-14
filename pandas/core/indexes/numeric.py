@@ -51,12 +51,6 @@ class NumericIndex(Index):
 
     .. versionadded:: 1.4.0
 
-    Notes
-    -----
-    An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
-    float64/32/16 dtype. In Particulat, ``NumericIndex`` *can not* hold Pandas numeric
-    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
-
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -81,12 +75,18 @@ class NumericIndex(Index):
     UInt64Index : Index of purely uint64 labels (deprecated).
     Float64Index : Index of  purely float64 labels (deprecated).
 
+    Notes
+    -----
+    An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
+    float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
+    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
+
     Examples
     --------
-    >>> pd.NumericIndex([1, 2, 3])
-    NumericIndex([1, 2, 3], dtype='int32')
     >>> pd.NumericIndex([1, 2, 3], dtype="int8")
     NumericIndex([1, 2, 3], dtype='int8')
+    >>> pd.NumericIndex([1, 2, 3], dtype="float32")
+    NumericIndex([1, 2, 3], dtype='float32')
     """
 
     _typ = "numericindex"
