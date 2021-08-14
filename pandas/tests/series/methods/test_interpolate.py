@@ -812,6 +812,23 @@ class TestSeriesInterpolateData:
         expected = Series(data=expected_values, index=expected_values, dtype=float)
         tm.assert_series_equal(result, expected)
 
+    def test_interpolate_duplicate_index_decreasing(self):
+        # GH 42585
+        ts = Series(data=[-200, -50, np.nan, -50, 1000], index=[79, 79, 0, -61, -2783])
+        result = ts.interpolate(method="index")
+        assert result.loc[0] == -50
+        # TODO: also check validity of sort assumption
+
+    def test_interpolate_duplicate_index_increasing(self):
+        # GH 42585
+        ts = Series(
+            data=[0, 0, 0, 0, 0, 0, 0, -50, np.nan, -50, 0, 0, 0, 0, 0, 0, 0, 0],
+            index=[1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7, 7, 8, 8, 9, 10, 11],
+        )
+        result = ts.interpolate(method="index")
+        assert result.loc[0] == -50
+        # TODO: check validity of sort assumption?
+
     def test_interpolate_pos_args_deprecation(self):
         # https://github.com/pandas-dev/pandas/issues/41485
         ser = Series([1, 2, 3])
