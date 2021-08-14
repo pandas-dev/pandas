@@ -885,11 +885,13 @@ class Styler(StylerRenderer):
         --------
         DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
         """
+        obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
+
         if table_uuid:
-            self.set_uuid(table_uuid)
+            obj.set_uuid(table_uuid)
 
         if table_attributes:
-            self.set_table_attributes(table_attributes)
+            obj.set_table_attributes(table_attributes)
 
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
@@ -897,7 +899,7 @@ class Styler(StylerRenderer):
             sparse_columns = get_option("styler.sparse.columns")
 
         # Build HTML string..
-        html = self._render_html(
+        html = obj._render_html(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             exclude_styles=exclude_styles,
