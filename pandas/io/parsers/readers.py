@@ -761,7 +761,8 @@ def read_fwf(
     names = kwds.get("names")
     if names is not None:
         if len(names) != len(colspecs):
-            # maybe name of index(s) not present in `names`
+            # need to check len(index_col) as it might contain
+            # unnamed indices, in which case it's name is not required
             len_index = 0
             if kwds.get("index_col") is not None:
                 index_col: Any = kwds.get("index_col")
