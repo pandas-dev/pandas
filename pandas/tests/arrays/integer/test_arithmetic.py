@@ -292,9 +292,9 @@ def test_reduce_to_float(op):
     ],
 )
 def test_unary_int_operators(
-    any_signed_nullable_int_dtype, source, neg_target, abs_target
+    any_signed_int_ea_dtype, source, neg_target, abs_target
 ):
-    dtype = any_signed_nullable_int_dtype
+    dtype = any_signed_int_ea_dtype
     arr = pd.array(source, dtype=dtype)
     neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
     neg_target = pd.array(neg_target, dtype=dtype)
