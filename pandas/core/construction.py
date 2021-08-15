@@ -709,8 +709,7 @@ def _try_cast(
 
         else:
             # i.e. list
-            # GH #42971 making dtype=object
-            varr = np.array(arr, copy=False, dtype=object)
+            varr = np.array(arr, copy=False)
             # filter out cases that we _dont_ want to go through
             #  maybe_infer_to_datetimelike
             if varr.dtype != object or varr.size == 0:

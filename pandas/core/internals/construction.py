@@ -456,6 +456,17 @@ def dict_to_mgr(
         ]
         # TODO: can we get rid of the dt64tz special case above?
 
+    if dtype is None and index is None:
+        data_len = 0
+        for each in data.values():
+            if isinstance(each, (int, str)):
+                data_len += 1
+            elif each is None:
+                continue
+            else:
+                data_len += len(each)
+        if data_len == 0:
+            dtype = object
     return arrays_to_mgr(
         arrays, data_names, index, columns, dtype=dtype, typ=typ, consolidate=copy
     )
