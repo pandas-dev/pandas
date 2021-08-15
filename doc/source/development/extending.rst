@@ -50,7 +50,7 @@ decorate a class, providing the name of attribute to add. The class's
 
 Now users can access your methods using the ``geo`` namespace:
 
-      >>> ds = pd.Dataframe(
+      >>> ds = pd.DataFrame(
       ...     {"longitude": np.linspace(0, 10), "latitude": np.linspace(0, 20)}
       ... )
       >>> ds.geo.center
