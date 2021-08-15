@@ -318,8 +318,8 @@ Examples
 """
 
 _transform_template = """
-Apply function ``func`` column-by-column to the GroupBy object and return a %(klass)s with 
-the same length as the group.
+Apply function ``func`` column-by-column to the GroupBy object and return a %(klass)s
+with the same length as the group.
 
 Parameters
 ----------
