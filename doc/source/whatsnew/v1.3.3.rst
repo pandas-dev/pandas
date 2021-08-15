@@ -1,0 +1,45 @@
+.. _whatsnew_133:
+
+What's new in 1.3.3 (September ??, 2021)
+----------------------------------------
+
+These are the changes in pandas 1.3.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.2..v1.3.3|HEAD
