@@ -127,8 +127,8 @@ class TestSeriesNLargestNSmallest:
     def test_nlargest_misc(self):
 
         ser = Series([3.0, np.nan, 1, 2, 5])
-        tm.assert_series_equal(ser.nlargest(), ser.iloc[[4, 0, 3, 2]])
-        tm.assert_series_equal(ser.nsmallest(), ser.iloc[[2, 3, 0, 4]])
+        tm.assert_series_equal(ser.nlargest(), ser.iloc[[4, 0, 3, 2, 1]])
+        tm.assert_series_equal(ser.nsmallest(), ser.iloc[[2, 3, 0, 4, 1]])
 
         msg = 'keep must be either "first", "last"'
         with pytest.raises(ValueError, match=msg):

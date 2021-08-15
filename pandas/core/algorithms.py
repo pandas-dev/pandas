@@ -72,6 +72,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
+import pandas as pd
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
     array as pd_array,
@@ -1256,6 +1257,7 @@ class SelectNSeries(SelectN):
             return self.obj[[]]
 
         dropped = self.obj.dropna()
+        nan_index = self.obj.drop(dropped.index)
 
         if is_extension_array_dtype(dropped.dtype):
             # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
@@ -1272,7 +1274,7 @@ class SelectNSeries(SelectN):
         # slow method
         if n >= len(self.obj):
             ascending = method == "nsmallest"
-            return dropped.sort_values(ascending=ascending).head(n)
+            return self.obj.sort_values(ascending=ascending).head(n)
 
         # fast method
         new_dtype = dropped.dtype
@@ -1290,6 +1292,8 @@ class SelectNSeries(SelectN):
         if self.keep == "last":
             arr = arr[::-1]
 
+        nbase = n
+        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1301,12 +1305,13 @@ class SelectNSeries(SelectN):
 
         if self.keep != "all":
             inds = inds[:n]
+            findex = nbase
 
         if self.keep == "last":
             # reverse indices
             inds = narr - 1 - inds
 
-        return dropped.iloc[inds]
+        return pd.concat([dropped.iloc[inds],nan_index])[:findex]
 
 
 class SelectNFrame(SelectN):
