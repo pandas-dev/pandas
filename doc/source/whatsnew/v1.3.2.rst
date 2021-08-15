@@ -15,6 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Performance regression in :meth:`DataFrame.isin` and :meth:`Series.isin` for nullable data types (:issue:`42714`)
+- Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
 - Regression in updating values of :class:`Series` using boolean index, created by using :meth:`DataFrame.pop` (:issue:`42530`)
 - Regression in :meth:`DataFrame.from_records` with empty records (:issue:`42456`)
 - Fixed regression in :meth:`DataFrame.shift` where ``TypeError`` occurred when shifting DataFrame created by concatenation of slices and fills with values (:issue:`42719`)
