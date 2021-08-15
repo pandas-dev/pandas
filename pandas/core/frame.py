@@ -6807,66 +6807,105 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         DataFrame
 
-        Example
-        -------
-        >>> df = pd.DataFrame(np.random.randint(10, size=(4, 2)),
-        ...      index=[['a', 'a', 'b', 'b'],[1, 2, 1, 2]], 
-        ...      columns=['one', 'two'])
-        >>> df.index.set_names(['index1', 'index2'], inplace=True)
-        >>> df
-                       one  two
-        index1 index2          
-        a      1         7    4
-               2         2    5
-        b      1         4    4
-               2         5    2
+Example
+-------
+>>> df = pd.DataFrame(np.random.randint(10, size=(4, 2)),
+...     index=[['a', 'a', 'b', 'b'],[1, 2, 1, 2]],
+...     columns=['one', 'two'])
+>>> df.index.set_names(['index1', 'index2'], inplace=True)
+>>> df
+               one  two
+index1 index2          
+a      1         7    4
+       2         4    1
+b      1         4    1
+       2         3    8
 
-        Reorder levels by position
+Reorder levels by position
 
-        >>> df.reorder_levels([1, 0])
-                       one  two
-        index2 index1          
-        1      a         7    4
-        2      a         2    5
-        1      b         4    4
-        2      b         5    2
+>>> df.reorder_levels([1, 0])
+               one  two
+index2 index1          
+1      a         7    4
+2      a         4    1
+1      b         4    1
+2      b         3    8
 
-        Reorder levels by lebels
+The `reorder_levels` function returns unsorted index.
+The selection of elements may not works and it will raise `UnsortedIndexError`.
 
-        >>> df.reorder_levels(['index2', 'index1'])
-                       one  two
-        index2 index1          
-        1      a         7    4
-        2      a         2    5
-        1      b         4    4
-        2      b         5    2
+>>> df.loc[(1, 'a'):(2, 'a')]
+UnsortedIndexError: 'Key length (2) was greater than MultiIndex lexsort depth (0)'
 
-        Length of order must be same as number of levels.
-        By default, it reorder levels by index, to reorder by columns, use axis = 1.
+To check if index is sorted or not, you can use `is_lexsorted` method on Index 
+and `lexsort_depth` to check sort depth.
 
-        >>> df = pd.DataFrame(np.random.randint(10, size=(4, 3)), 
-        ...      index=[1, 2, 3, 4], 
-        ...      columns=[['A', 'A', 'B'],['one', 'two', 'three']])
-                  
-        >>> df.columns.set_names(['column1', 'column2'], inplace=True)
-        >>> df
-        column1   A         B
-        column2 one two three
-        1         7   3     7
-        2         6   7     6
-        3         2   0     8
-        4         8   4     3
+>>> df.index.is_lexsorted()
+False
+>>> df.index.lexsort_depth
+0
+
+Multiindex object to be index and sliced properly. They need to be sorted, 
+for that we can use `sort_index` method.
+
+>>> df = df.sort_index()
+>>> df
+               one  two
+index2 index1          
+1      a         7    4
+       b         4    1
+2      a         4    1
+       b         3    8
+>>> df.index.is_lexsorted()
+True
+>>> df.index.lexsort_depth
+2
+
+Now, selection of elements works as expected.
+
+>>> df.loc[(1, 'a'):(2, 'a')]
+               one  two
+index2 index1          
+1      a         7    4
+       b         4    1
+2      a         4    1
 
 
-        >>> df.reorder_levels([1, 0], axis=1)
-        column2 one two three
-        column1   A   A     B
-        1         7   3     7
-        2         6   7     6
-        3         2   0     8
-        4         8   4     3
+Reorder levels by lebels
 
-        """
+>>> df.reorder_levels(['index2', 'index1']).sort_index()
+               one  two
+index2 index1          
+1      a         7    4
+       b         4    1
+2      a         4    1
+       b         3    8
+
+Length of order must be same as number of levels.
+By default, it reorder levels by index, to reorder by columns, use axis = 1.
+
+>>> df = pd.DataFrame(np.random.randint(10, size=(4, 3)),
+...     index=[1, 2, 3, 4],
+...     columns=[['A', 'A', 'B'],['one', 'two', 'one']])
+>>> df.columns.set_names(['column1', 'column2'], inplace=True)
+>>> df
+column1   A       B
+column2 one two one
+1         6   1   8
+2         5   2   3
+3         8   4   1
+4         5   2   9
+
+To sort column index, we can use same `sort_index()` method with parameter `axis=1` 
+
+>>> df.reorder_levels([1, 0], axis=1).sort_index(axis=1)
+column2 one    two
+column1   A  B   A
+1         6  8   1
+2         5  3   2
+3         8  1   4
+4         5  9   2
+"""
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
             raise TypeError("Can only reorder levels on a hierarchical axis.")
