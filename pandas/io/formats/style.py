@@ -1250,6 +1250,13 @@ class Styler(StylerRenderer):
         >>> df.style.apply(highlight_max, color='red', subset=(slice(0,5,2), "A"))
         ...  # doctest: +SKIP
 
+        Using a function which returns a Series / DataFrame of unequal length but
+        containing valid index labels
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4], [4, 6]], index=["A1", "A2", "Total"])
+        >>> total_style = pd.Series("font-weight: bold;", index=["Total"])
+        >>> df.style.apply(lambda s: total_style)  # doctest: +SKIP
+
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
