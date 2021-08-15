@@ -6870,7 +6870,6 @@ index2 index1
        b         4    1
 2      a         4    1
 
-
 Reorder levels by lebels
 
 >>> df.reorder_levels(['index2', 'index1']).sort_index()
@@ -6891,6 +6890,14 @@ By default, it reorder levels by index, to reorder by columns, use axis = 1.
 >>> df
 column1   A       B
 column2 one two one
+1         6   1   8
+2         5   2   3
+3         8   4   1
+4         5   2   9
+
+>>> df.reorder_levels([1, 0], axis=1)
+column2 one two one
+column1   A   A   B
 1         6   1   8
 2         5   2   3
 3         8   4   1
