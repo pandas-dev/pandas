@@ -318,14 +318,13 @@ Examples
 """
 
 _transform_template = """
-Call function producing a like-indexed %(klass)s on each group and
-return a %(klass)s having the same indexes as the original object
-filled with the transformed values
+Apply function ``func`` column-by-column to the GroupBy object and return a %(klass)s with 
+the same length as the group.
 
 Parameters
 ----------
-f : function
-    Function to apply to each group.
+func : function
+    Function to apply to each column within each group.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified.
@@ -375,16 +374,16 @@ Notes
 Each group is endowed the attribute 'name' in case you need to know
 which group you are working on.
 
-The current implementation imposes three requirements on f:
+The current implementation imposes three requirements on func:
 
-* f must return a value that either has the same shape as the input
+* func must return a value that either has the same shape as the input
   subframe or can be broadcast to the shape of the input subframe.
-  For example, if `f` returns a scalar it will be broadcast to have the
+  For example, if `func` returns a scalar it will be broadcast to have the
   same shape as the input subframe.
-* if this is a DataFrame, f must support application column-by-column
-  in the subframe. If f also supports application to the entire subframe,
+* func must support application column-by-column
+  in the subframe. If func also supports application to the entire subframe,
   then a fast path is used starting from the second chunk.
-* f must not mutate groups. Mutation is not supported and may
+* func must not mutate groups. Mutation is not supported and may
   produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
 
 When using ``engine='numba'``, there will be no "fall back" behavior internally.
