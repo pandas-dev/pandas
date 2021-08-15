@@ -479,7 +479,7 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=None if self.times is None else self._deltas,
             )
             return self._apply(window_func)
         else:
