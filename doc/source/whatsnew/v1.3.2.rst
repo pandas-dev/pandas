@@ -1,6 +1,6 @@
 .. _whatsnew_132:
 
-What's new in 1.3.2 (August ??, 2021)
+What's new in 1.3.2 (August 15, 2021)
 -------------------------------------
 
 These are the changes in pandas 1.3.2. See :ref:`release` for a full changelog
@@ -39,15 +39,6 @@ Bug fixes
 - :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
 - :meth:`.Styler.set_sticky` has amended CSS to control the column/index names and ensure the correct sticky positions (:issue:`42537`)
 - Bug in de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
--
-
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_132.other:
-
-Other
-~~~~~
--
 
 .. ---------------------------------------------------------------------------
 
