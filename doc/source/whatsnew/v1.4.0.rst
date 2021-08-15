@@ -349,7 +349,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
-- Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels.
+- Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 -
 
 Other
