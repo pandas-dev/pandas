@@ -207,7 +207,7 @@ def types_table_metadata(dialect: str):
         Column("BoolColWithNull", bool_type),
     )
     if dialect == "postgresql":
-        types.append_column(Column("DateColWithTz", DateTime))
+        types.append_column(Column("DateColWithTz", DateTime(timezone=True)))
     return types
 
 
