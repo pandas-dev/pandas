@@ -6790,7 +6790,8 @@ class DataFrame(NDFrame, OpsMixin):
             assert isinstance(result.columns, MultiIndex)
             result.columns = result.columns.swaplevel(i, j)
         return result
-       """Examples
+        """
+        Examples
         --------
         >>> data={'class':['Mammals','Mammals','Reptiles','Reptiles'
         ,'Amphibians','Amphibians'],
