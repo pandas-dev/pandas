@@ -693,6 +693,9 @@ class _MergeOperation:
             self.left_on = self.right_on = [cross_col]
         self._cross = cross_col
 
+        if self.how in ["anti_left", "anti_right", "anti_full"]:
+            self._anti_join_update()
+
         # note this function has side effects
         (
             self.left_join_keys,
@@ -743,6 +746,52 @@ class _MergeOperation:
         self._maybe_drop_cross_column(result, self._cross)
 
         return result.__finalize__(self, method="merge")
+
+    def _anti_join_update(self):
+        if self.left_index and self.right_index:
+            if self.how == "anti_right":
+                join_index = set(self.right.index).difference(set(self.left.index))
+                self.how = "right"
+            elif self.how == "anti_left":
+                join_index = set(self.left.index).difference(set(self.right.index))
+                self.how = "left"
+            else:
+                join_index = set(self.left.index.union(self.right.index)) - set(
+                    self.left.index.intersection(self.right.index)
+                )
+                self.how = "outer"
+            self.left = self.left[self.left.index.isin(join_index)]
+            self.right = self.right[self.right.index.isin(join_index)]
+        else:
+            if self.on is not None:
+                left_on = right_on = self.on
+            else:
+                left_on = self.left_on
+                right_on = self.right_on
+            if self.how == "anti_right":
+                join_index = set(self.right[right_on].values.flatten()).difference(
+                    set(self.left[left_on].values.flatten())
+                )
+                self.how = "right"
+            elif self.how == "anti_left":
+                join_index = set(self.left[left_on].values.flatten()).difference(
+                    set(self.right[right_on].values.flatten())
+                )
+                self.how = "left"
+            else:
+                join_index = set(self.left[left_on].values.flatten()).union(
+                    self.right[right_on].values.flatten()
+                ) - set(self.left[left_on].values.flatten()).intersection(
+                    self.right[right_on].values.flatten()
+                )
+                self.how = "outer"
+            self.left = self.left[self.left[left_on].isin(join_index).values.flatten()]
+            self.right = self.right[
+                self.right[right_on].isin(join_index).values.flatten()
+            ]
+
+        # sanity check to ensure correct `how`
+        assert self.how in ["left", "right", "inner", "outer"]
 
     def _maybe_drop_cross_column(
         self, result: DataFrame, cross_col: str | None

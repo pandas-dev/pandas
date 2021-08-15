@@ -2487,3 +2487,129 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
     df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
     with pytest.raises(MergeError, match="Can only pass argument"):
         merge(df_1, df_2, on=["C"], left_index=True)
+
+
+@pytest.mark.parametrize(
+    "expected, how, on, left_on, right_on, left_index, right_index",
+    [
+        (
+            DataFrame({"A": 3, "C_x": 7, "B": np.nan, "C_y": np.nan}, index=["c"]),
+            "anti_left",
+            None,
+            None,
+            None,
+            True,
+            True,
+        ),
+        (
+            DataFrame({"A": np.nan, "C_x": np.nan, "B": 4, "C_y": 9}, index=["d"]),
+            "anti_right",
+            None,
+            None,
+            None,
+            True,
+            True,
+        ),
+        (
+            DataFrame(
+                {
+                    "A": [3, np.nan],
+                    "C_x": [7, np.nan],
+                    "B": [np.nan, 4],
+                    "C_y": [np.nan, 9],
+                },
+                index=["c", "d"],
+            ),
+            "anti_full",
+            None,
+            None,
+            None,
+            True,
+            True,
+        ),
+        (
+            DataFrame({"A": [1, 2], "C": [5, 6], "B": [np.nan, np.nan]}, index=[0, 1]),
+            "anti_left",
+            ["C"],
+            None,
+            None,
+            False,
+            False,
+        ),
+        (
+            DataFrame({"A": [np.nan, np.nan], "B": [2, 4], "C": [8, 9]}, index=[0, 1]),
+            "anti_right",
+            ["C"],
+            None,
+            None,
+            False,
+            False,
+        ),
+        (
+            DataFrame(
+                {
+                    "A": [1, 2, np.nan, np.nan],
+                    "C": [5, 6, 8, 9],
+                    "B": [np.nan, np.nan, 2, 4],
+                },
+                index=[0, 1, 2, 3],
+            ),
+            "anti_full",
+            ["C"],
+            None,
+            None,
+            False,
+            False,
+        ),
+        (
+            DataFrame({"A": 3, "C_x": 7, "B": np.nan, "C_y": np.nan}, index=[0]),
+            "anti_left",
+            None,
+            ["A"],
+            ["B"],
+            False,
+            False,
+        ),
+        (
+            DataFrame({"A": np.nan, "C_x": np.nan, "B": 4, "C_y": 9}, index=[0]),
+            "anti_right",
+            None,
+            ["A"],
+            ["B"],
+            False,
+            False,
+        ),
+        (
+            DataFrame(
+                {
+                    "A": [3, np.nan],
+                    "C_x": [7, np.nan],
+                    "B": [np.nan, 4],
+                    "C_y": [np.nan, 9],
+                },
+                index=[0, 1],
+            ),
+            "anti_full",
+            None,
+            ["A"],
+            ["B"],
+            False,
+            False,
+        ),
+    ],
+)
+def test_anti_join(expected, how, on, left_on, right_on, left_index, right_index):
+    # GH#42916
+    df_l = DataFrame({"A": [1, 2, 3], "C": [5, 6, 7]}, index=["a", "b", "c"])
+    df_r = DataFrame({"B": [1, 2, 4], "C": [7, 8, 9]}, index=["a", "b", "d"])
+    result = merge(
+        df_l,
+        df_r,
+        how=how,
+        on=on,
+        left_on=left_on,
+        right_on=right_on,
+        left_index=left_index,
+        right_index=right_index,
+    )
+    tm.assert_frame_equal(result, expected)
