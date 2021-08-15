@@ -496,7 +496,10 @@ class TestIntNumericIndex(NumericInt):
         with pytest.raises(TypeError, match="casting"):
             index_cls(arr, dtype=dtype)
 
-    def test_constructor_coercion_signed_to_unsigned(self, any_unsigned_int_numpy_dtype):
+    def test_constructor_coercion_signed_to_unsigned(
+        self,
+        any_unsigned_int_numpy_dtype,
+    ):
 
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"

@@ -2027,7 +2027,12 @@ class TestTimedeltaArraylikeMulDivOps:
         [np.array([20, 30, 40]), pd.Index([20, 30, 40]), Series([20, 30, 40])],
         ids=lambda x: type(x).__name__,
     )
-    def test_td64arr_rmul_numeric_array(self, box_with_array, vector, any_real_numpy_dtype):
+    def test_td64arr_rmul_numeric_array(
+        self,
+        box_with_array,
+        vector,
+        any_real_numpy_dtype,
+    ):
         # GH#4521
         # divide/multiply by integers
         xbox = get_upcast_box(box_with_array, vector)
