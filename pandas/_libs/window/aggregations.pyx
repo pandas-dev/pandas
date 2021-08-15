@@ -1502,7 +1502,8 @@ def ewma(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
     com : float64
     adjust : bool
     ignore_na : bool
-    deltas : ndarray (float64 type)
+    deltas : ndarray (float64 type), optional. If None, implicitly assumes equally
+             spaced points (used when `times` is not passed)
 
     Returns
     -------
