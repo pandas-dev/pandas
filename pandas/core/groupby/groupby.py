@@ -318,13 +318,13 @@ Examples
 """
 
 _transform_template = """
-Apply function ``func`` column-by-column to the GroupBy object and return a %(klass)s with the same length as the group.
+Apply function ``func`` column-by-column to the GroupBy object and return a %(klass)s with 
+the same length as the group.
 
 Parameters
 ----------
 func : function
-    Function to apply to each group.
-    Function to apply 
+    Function to apply to each column within each group.
 
     Can also accept a Numba JIT function with
     ``engine='numba'`` specified.
