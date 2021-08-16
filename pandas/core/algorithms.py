@@ -72,7 +72,6 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
-import pandas as pd
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
     array as pd_array,
@@ -1248,6 +1247,7 @@ class SelectNSeries(SelectN):
 
     def compute(self, method: str) -> Series:
 
+        from pandas.core.reshape.concat import concat
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
@@ -1311,7 +1311,7 @@ class SelectNSeries(SelectN):
             # reverse indices
             inds = narr - 1 - inds
 
-        return pd.concat([dropped.iloc[inds], nan_index])[:findex]
+        return concat([dropped.iloc[inds], nan_index])[:findex]
 
 
 class SelectNFrame(SelectN):
