@@ -506,7 +506,7 @@ def test_combine_first_duplicates_rows_for_nan_index_values():
         {
             "a": [1, 2, 3, 4],
             "b": [np.nan, 5, 6, 7],
-            "x": [9.0, 10., 11.0, np.nan],
+            "x": [9.0, 10.0, 11.0, np.nan],
             "y": [12.0, 13.0, np.nan, 14.0],
         }
     ).set_index(["a", "b"])
