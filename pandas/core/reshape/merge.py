@@ -95,8 +95,7 @@ if TYPE_CHECKING:
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
-    # TODO: default how=cross if condition defined?
-    how: str = "inner",
+    how: str | None = None,
     condition: Callable | None = None,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
@@ -109,6 +108,12 @@ def merge(
     indicator: bool = False,
     validate: str | None = None,
 ) -> DataFrame:
+    if how is None:
+        if condition is None:
+            how = "inner"
+        else:
+            how = "cross"
+
     if (how == "cross") and (condition is not None):
         res = _LazyMerge(
             left,
@@ -2401,4 +2406,4 @@ class _LazyMerge:
             chunk_result = left.merge(right, *self.args, **self.kwargs)
             chunk_result_filtered = chunk_result.loc[self.condition]
             result = result.append(chunk_result_filtered)
-        return result
+        return result.reset_index(drop=True)

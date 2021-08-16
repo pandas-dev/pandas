@@ -269,7 +269,10 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross'}
+    default if `condition` not defined: 'inner'
+    default if `condition` is defined: 'cross'
+
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -284,6 +287,11 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       of the left keys.
 
       .. versionadded:: 1.2.0
+
+condition : Callable
+    Function that takes the provided merge result as an input and returns a
+    boolean mask to filter that result. When paired with `how=cross`, this
+    can be used as a way to provide custom merge conditions.
 
 on : label or list
     Column or index level names to join on. These must be found in both
@@ -443,6 +451,43 @@ ValueError: columns overlap but no suffix specified:
 1   foo      8
 2   bar      7
 3   bar      8
+
+Merge dataframes df1 and df2, where column df1.timestep falls within the range
+of df2.timestart to df2.timeend, using `condition`.
+
+>>> df1 = pd.DataFrame({'timestep': range(5)})
+>>> df2 = pd.DataFrame({'mood': ['happy', 'jolly', 'joy', 'cloud9'],
+                        'timestart': [0, 2, 2, 3],
+                        'timeend': [1, 3, 4, 4]})
+>>> df1
+   timestep
+0         0
+1         1
+2         2
+3         3
+4         4
+>>> df2
+     mood  timestart  timeend
+0   happy          0        1
+1   jolly          2        3
+2     joy          2        4
+3  cloud9          3        4
+>>> merge = df1.merge(
+...     df2,
+...     condition=lambda dfx: (dfx.timestart <= dfx.timestep)
+...                           & (dfx.timestep <= dfx.timeend)
+... )
+>>> merge
+    timestep    mood  timestart  timeend
+0          0   happy          0        1
+1          1   happy          0        1
+2          2   jolly          2        3
+3          2     joy          2        4
+4          3   jolly          2        3
+5          3     joy          2        4
+6          3  cloud9          3        4
+7          4     joy          2        4
+8          4  cloud9          3        4
 """
 
 
@@ -9154,7 +9199,7 @@ NaN 12.3   33.0
     def merge(
         self,
         right: DataFrame | Series,
-        how: str = "inner",
+        how: str | None = None,
         condition: Callable | None = None,
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
