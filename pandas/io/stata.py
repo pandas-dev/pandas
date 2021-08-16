@@ -3080,8 +3080,7 @@ class StataWriter117(StataWriter):
 
     Directly write a zip file
     >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
-    >>> writer = StataWriter117('./data_file.zip',
-    ...                             data, compression=compression)
+    >>> writer = StataWriter117('./data_file.zip', data, compression=compression)
     >>> writer.write_file()
 
     Or with long strings stored in strl format
@@ -3473,8 +3472,7 @@ class StataWriterUTF8(StataWriter117):
 
     Directly write a zip file
     >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
-    >>> writer = StataWriterUTF8('./data_file.zip',
-    ...                                   data, compression=compression)
+    >>> writer = StataWriterUTF8('./data_file.zip', data, compression=compression)
     >>> writer.write_file()
 
     Or with long strings stored in strl format

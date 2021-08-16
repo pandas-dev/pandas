@@ -1203,17 +1203,17 @@ def assert_frame_equal(
     This example shows comparing two DataFrames that are equal
     but with columns of differing dtypes.
 
-    >>> from pandas import _testing as ts
+    >>> from pandas._testing import assert_frame_equal
     >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
 
     df1 equals itself.
 
-    >>> ts.assert_frame_equal(df1, df1)
+    >>> assert_frame_equal(df1, df1)
 
     df1 differs from df2 as column 'b' is of a different type.
 
-    >>> ts.assert_frame_equal(df1, df2)
+    >>> assert_frame_equal(df1, df2)
     Traceback (most recent call last):
     ...
     AssertionError: Attributes of DataFrame.iloc[:, 1] (column name="b") are different
@@ -1224,7 +1224,7 @@ def assert_frame_equal(
 
     Ignore differing dtypes in columns with check_dtype.
 
-    >>> ts.assert_frame_equal(df1, df2, check_dtype=False)
+    >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
     __tracebackhide__ = True
 

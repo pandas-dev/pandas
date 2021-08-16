@@ -1462,7 +1462,7 @@ def take(
 
     Examples
     --------
-    >>> from pandas.pai.extensions import take
+    >>> from pandas.api.extensions import take
 
     With the default ``allow_fill=False``, negative numbers indicate
     positional indices from the right.
