@@ -2379,7 +2379,6 @@ def _chunks(lst, n):
 
 # TODO: perform lazy merge as optimized cython, rather than chunked merge
 class _LazyMerge:
-
     def __init__(
         self,
         left: DataFrame,
