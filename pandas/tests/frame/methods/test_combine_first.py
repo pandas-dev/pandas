@@ -492,3 +492,23 @@ def test_combine_preserve_dtypes():
     )
     combined = df1.combine_first(df2)
     tm.assert_frame_equal(combined, expected)
+
+
+def test_combine_first_duplicates_rows_for_nan_index_values():
+    # GH39881
+    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [np.nan, 5, 6], "x": [9, 10, 11]})
+    df1 = df1.set_index(["a", "b"])
+
+    df2 = pd.DataFrame({"a": [1, 2, 4], "b": [np.nan, 5, 7], "y": [12, 13, 14]})
+    df2 = df2.set_index(["a", "b"])
+
+    expected = DataFrame(
+        {
+            "a": [1, 2, 3, 4],
+            "b": [np.nan, 5, 6, 7],
+            "x": [9.0, 10., 11.0, np.nan],
+            "y": [12.0, 13.0, np.nan, 14.0],
+        }
+    ).set_index(["a", "b"])
+    combined = df1.combine_first(df2)
+    tm.assert_frame_equal(combined, expected)
