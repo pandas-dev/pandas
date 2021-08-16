@@ -135,7 +135,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             raise NotImplementedError
         return nargminmax(self, "argmax", axis=axis)
 
-    def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
+    def unique(
+        self: NDArrayBackedExtensionArrayT, return_inverse=False
+    ) -> NDArrayBackedExtensionArrayT:
+
+        if return_inverse:
+            raise NotImplementedError(
+                "this array type does not yet support `return_inverse=True`"
+            )
+
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
 

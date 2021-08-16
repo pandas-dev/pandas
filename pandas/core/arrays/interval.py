@@ -1632,10 +1632,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             new_right = nc[:, 1].view(dtype)
         return self._shallow_copy(left=new_left, right=new_right)
 
-    def unique(self) -> IntervalArray:
+    def unique(self, return_inverse=False) -> IntervalArray:
         # Invalid index type "Tuple[slice, int]" for "Union[ExtensionArray,
         # ndarray[Any, Any]]"; expected type "Union[int, integer[Any], slice,
         # Sequence[int], ndarray[Any, Any]]"
+
+        if return_inverse:
+            raise NotImplementedError(
+                "this array type does not yet support `return_inverse=True`"
+            )
+
         nc = unique(self._combined.view("complex128")[:, 0])  # type: ignore[index]
         nc = nc[:, None]
         return self._from_combined(nc)
