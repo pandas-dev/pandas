@@ -521,13 +521,13 @@ class DataFrame(NDFrame, OpsMixin):
 
     Constructing DataFrame from a dictionary including Series:
 
-    >>> d = {'col1': [1, 2, 3, 4], 'col2': pd.Series([3, 4], index=[3, 4])}
-    >>> pd.DataFrame(data=d, index=[1, 2, 3, 4])
+    >>> d = {'col1': [0, 1, 2, 3], 'col2': pd.Series([2, 3], index=[2, 3])}
+    >>> pd.DataFrame(data=d, index=[0, 1, 2, 3])
        col1  col2
+    0     0   NaN
     1     1   NaN
-    2     2   NaN
+    2     2   2.0
     3     3   3.0
-    4     4   4.0
 
     Constructing DataFrame from numpy ndarray:
 
