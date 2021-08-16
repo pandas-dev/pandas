@@ -2386,8 +2386,8 @@ def _chunks(lst, n):
 class _LazyMerge:
     def __init__(
         self,
-        left: DataFrame,
-        right: DataFrame,
+        left: DataFrame | Series,
+        right: DataFrame | Series,
         condition: Callable,  # takes frame with same columns as plain merge result
         *args,
         **kwargs,
@@ -2403,7 +2403,7 @@ class _LazyMerge:
     def get_result(self) -> DataFrame:  # mimic _MergeOperation
         result = DataFrame()
         for left, right in self.chunk_pairs:
-            chunk_result = left.merge(right, *self.args, **self.kwargs)
+            chunk_result = merge(left, right, *self.args, **self.kwargs)
             chunk_result_filtered = chunk_result.loc[self.condition]
             result = result.append(chunk_result_filtered)
         return result.reset_index(drop=True)
