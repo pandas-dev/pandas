@@ -496,10 +496,10 @@ def test_combine_preserve_dtypes():
 
 def test_combine_first_duplicates_rows_for_nan_index_values():
     # GH39881
-    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [np.nan, 5, 6], "x": [9, 10, 11]})
+    df1 = DataFrame({"a": [1, 2, 3], "b": [np.nan, 5, 6], "x": [9, 10, 11]})
     df1 = df1.set_index(["a", "b"])
 
-    df2 = pd.DataFrame({"a": [1, 2, 4], "b": [np.nan, 5, 7], "y": [12, 13, 14]})
+    df2 = DataFrame({"a": [1, 2, 4], "b": [np.nan, 5, 7], "y": [12, 13, 14]})
     df2 = df2.set_index(["a", "b"])
 
     expected = DataFrame(
