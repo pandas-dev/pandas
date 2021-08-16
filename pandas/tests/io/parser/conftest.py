@@ -4,6 +4,8 @@ import os
 
 import pytest
 
+from pandas.compat._optional import VERSIONS
+
 from pandas import (
     read_csv,
     read_table,
@@ -48,6 +50,11 @@ class PythonParser(BaseParser):
     float_precision_choices = [None]
 
 
+class PyArrowParser(BaseParser):
+    engine = "pyarrow"
+    float_precision_choices = [None]
+
+
 @pytest.fixture
 def csv_dir_path(datapath):
     """
@@ -67,14 +74,19 @@ def csv1(datapath):
 _cParserHighMemory = CParserHighMemory()
 _cParserLowMemory = CParserLowMemory()
 _pythonParser = PythonParser()
+_pyarrowParser = PyArrowParser()
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_all_parsers = [*_c_parsers_only, *_py_parsers_only]
+_pyarrow_parsers_only = [_pyarrowParser]
+
+_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
 
 _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
-_all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
+_pyarrow_parsers_ids = ["pyarrow"]
+
+_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parsers_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
@@ -82,6 +94,8 @@ def all_parsers(request):
     """
     Fixture all of the CSV parsers.
     """
+    if request.param.engine == "pyarrow":
+        pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
     return request.param
 
 
@@ -207,3 +221,26 @@ def numeric_decimal(request):
     represents the value to read while the second represents the expected result.
     """
     return request.param
+
+
+@pytest.fixture
+def pyarrow_xfail(request):
+    """
+    Fixture that xfails a test if the engine is pyarrow.
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+        if parser.engine == "pyarrow":
+            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+            request.node.add_marker(mark)
+
+
+@pytest.fixture
+def pyarrow_skip(request):
+    """
+    Fixture that skips a test if the engine is pyarrow.
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+        if parser.engine == "pyarrow":
+            pytest.skip("pyarrow doesn't support this.")

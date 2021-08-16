@@ -1622,11 +1622,19 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a Python implementation which is currently more feature-complete. Where
-possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to Python if C-unsupported options are specified. Currently, C-unsupported
-options include:
+Pandas currently supports three engines, the C engine, the python engine, and an experimental
+pyarrow engine(which requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads, and is equivalent in speed to the C engine on most other workloads.
+The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
+the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
+Python engines
+
+Where possible pandas uses the C parser (specified as ``engine='c'``), but it may fall
+back to Python if C-unsupported options are specified. If pyarrow unsupported options are
+specified while using ``engine='pyarrow'``, the parser will throw an error.
+(a full list of unsupported options is available at ``pandas.io.parsers._pyarrow_unsupported``).
+
+Currently, C-unsupported options include:.
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
