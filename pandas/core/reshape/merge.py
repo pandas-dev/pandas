@@ -748,6 +748,37 @@ class _MergeOperation:
         return result.__finalize__(self, method="merge")
 
     def _anti_join_update(self):
+        def isin_nd(a, b, invert=False):
+            # a,b are the nD input arrays to give us
+            # "isin-like" functionality across them
+            a = np.ascontiguousarray(a)
+            b = np.ascontiguousarray(b)
+            void_dt = np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
+            A, B = a.view(void_dt).ravel(), b.view(void_dt).ravel()
+            return np.isin(A, B, invert=invert)
+
+        def _multi_columns(arr_l, arr_r, how):
+            nrows, ncols = arr_l.shape
+            if how == "anti_right":
+                join_index_l = join_index_r = isin_nd(arr_r, arr_l, invert=True)
+                _how = "right"
+            elif how == "anti_left":
+                join_index_l = join_index_r = isin_nd(arr_l, arr_r, invert=True)
+                _how = "left"
+            else:
+                try:
+                    _union = np.unique(np.vstack((arr_l, arr_r)), axis=0)
+                except TypeError:
+                    _union = np.vstack((arr_l, arr_r))
+                _intersect = np.array(
+                    list({tuple(x) for x in arr_l} & {tuple(x) for x in arr_r})
+                )
+                _union_index = _union[isin_nd(_union, _intersect, invert=True)]
+                join_index_l = isin_nd(arr_l, _union_index)
+                join_index_r = isin_nd(arr_r, _union_index)
+                _how = "outer"
+            return (join_index_l, join_index_r, _how)
+
         if self.left_index and self.right_index:
             if self.how == "anti_right":
                 join_index = set(self.right.index).difference(set(self.left.index))
@@ -768,27 +799,33 @@ class _MergeOperation:
             else:
                 left_on = self.left_on
                 right_on = self.right_on
-            if self.how == "anti_right":
-                join_index = set(self.right[right_on].values.flatten()).difference(
-                    set(self.left[left_on].values.flatten())
+            if is_list_like(left_on) and len(left_on) > 1:
+                join_index_l, join_index_r, self.how = _multi_columns(
+                    self.left[left_on].values, self.right[right_on].values, self.how
                 )
-                self.how = "right"
-            elif self.how == "anti_left":
-                join_index = set(self.left[left_on].values.flatten()).difference(
-                    set(self.right[right_on].values.flatten())
-                )
-                self.how = "left"
+                self.left = self.left[join_index_l]
+                self.right = self.right[join_index_r]
+
             else:
-                join_index = set(self.left[left_on].values.flatten()).union(
-                    self.right[right_on].values.flatten()
-                ) - set(self.left[left_on].values.flatten()).intersection(
-                    self.right[right_on].values.flatten()
-                )
-                self.how = "outer"
-            self.left = self.left[self.left[left_on].isin(join_index).values.flatten()]
-            self.right = self.right[
-                self.right[right_on].isin(join_index).values.flatten()
-            ]
+                if self.how == "anti_right":
+                    join_index = set(self.right[right_on].values.flatten()).difference(
+                        set(self.left[left_on].values.flatten())
+                    )
+                    self.how = "right"
+                elif self.how == "anti_left":
+                    join_index = set(self.left[left_on].values.flatten()).difference(
+                        set(self.right[right_on].values.flatten())
+                    )
+                    self.how = "left"
+                else:
+                    join_index = set(self.left[left_on].values.flatten()).union(
+                        self.right[right_on].values.flatten()
+                    ) - set(self.left[left_on].values.flatten()).intersection(
+                        self.right[right_on].values.flatten()
+                    )
+                    self.how = "outer"
+                self.left = self.left[self.left[left_on].isin(join_index).values]
+                self.right = self.right[self.right[right_on].isin(join_index).values]
 
         # sanity check to ensure correct `how`
         assert self.how in ["left", "right", "inner", "outer"]
