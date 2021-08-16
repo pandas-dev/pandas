@@ -1311,7 +1311,7 @@ class SelectNSeries(SelectN):
             # reverse indices
             inds = narr - 1 - inds
 
-        return pd.concat([dropped.iloc[inds],nan_index])[:findex]
+        return pd.concat([dropped.iloc[inds], nan_index])[:findex]
 
 
 class SelectNFrame(SelectN):
