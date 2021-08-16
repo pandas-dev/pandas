@@ -15,7 +15,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
--
+- Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
 -
 
 .. ---------------------------------------------------------------------------
