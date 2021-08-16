@@ -214,6 +214,8 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
+        if get_option("styler.render.repr") == "latex":
+            return self.to_latex()
         return self.render()
 
     def render(
