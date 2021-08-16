@@ -1248,6 +1248,7 @@ class SelectNSeries(SelectN):
     def compute(self, method: str) -> Series:
 
         from pandas.core.reshape.concat import concat
+
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
