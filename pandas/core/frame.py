@@ -6790,7 +6790,22 @@ class DataFrame(NDFrame, OpsMixin):
             assert isinstance(result.columns, MultiIndex)
             result.columns = result.columns.swaplevel(i, j)
         return result
+    def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
         """
+        Rearrange index levels using input order. May not drop or duplicate levels.
+
+        Parameters
+        ----------
+        order : list of int or list of str
+            List representing new level order. Reference level by number
+            (position) or by key (label).
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Where to reorder levels.
+
+        Returns
+        -------
+        DataFrame
+        
         Examples
         --------
         >>> data={'class':['Mammals','Mammals','Reptiles','Reptiles'
@@ -6799,7 +6814,7 @@ class DataFrame(NDFrame, OpsMixin):
          'species':['Humans','Dogs','Snakes','Iguanas','Frogs','Aquatic Salamanders']
          }
         >>> df=pd.DataFrame(data,columns=['class','diet','species'])
-        >>> df.set_index(['class','diet'],drop=True,inplace=True)
+        >>> df.set_index(['class','diet'],drop=True)
         >>> df.reorder_levels(["diet", "class"])
              diet	   class	  species
             Omnivore   Mammals	    Humans
@@ -6816,22 +6831,6 @@ class DataFrame(NDFrame, OpsMixin):
                         Herbivore	Iguanas
             Amphibians	Omnivore	Frogs
                         Herbivore	Aquatic Salamanders
-        """
-    def reorder_levels(self, order: Sequence[Axis], axis: Axis = 0) -> DataFrame:
-        """
-        Rearrange index levels using input order. May not drop or duplicate levels.
-
-        Parameters
-        ----------
-        order : list of int or list of str
-            List representing new level order. Reference level by number
-            (position) or by key (label).
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Where to reorder levels.
-
-        Returns
-        -------
-        DataFrame
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
