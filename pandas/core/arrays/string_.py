@@ -47,7 +47,7 @@ from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers.utils import check_array_indexer
 from pandas.core.missing import isna
 
 if TYPE_CHECKING:

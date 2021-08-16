@@ -30,7 +30,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers.utils import check_array_indexer
 
 
 @register_extension_dtype

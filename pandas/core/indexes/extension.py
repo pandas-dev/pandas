@@ -37,7 +37,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.indexers import deprecate_ndim_indexing
+from pandas.core.indexers.utils import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 

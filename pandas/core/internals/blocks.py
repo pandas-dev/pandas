@@ -106,7 +106,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import (
+from pandas.core.indexers.utils import (
     check_setitem_lengths,
     is_empty_indexer,
     is_exact_shape_match,

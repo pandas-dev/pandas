@@ -110,7 +110,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.generic import NDFrame
-from pandas.core.indexers import (
+from pandas.core.indexers.utils import (
     deprecate_ndim_indexing,
     unpack_1tuple,
 )

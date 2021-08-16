@@ -78,7 +78,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import validate_indices
+from pandas.core.indexers.utils import validate_indices
 
 if TYPE_CHECKING:
 

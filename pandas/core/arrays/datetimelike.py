@@ -109,7 +109,7 @@ from pandas.core.construction import (
     array as pd_array,
     extract_array,
 )
-from pandas.core.indexers import (
+from pandas.core.indexers.utils import (
     check_array_indexer,
     check_setitem_lengths,
 )

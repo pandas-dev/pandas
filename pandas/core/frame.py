@@ -159,7 +159,7 @@ from pandas.core.generic import (
     NDFrame,
     _shared_docs,
 )
-from pandas.core.indexers import check_key_length
+from pandas.core.indexers.utils import check_key_length
 from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,

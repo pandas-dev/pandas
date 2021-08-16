@@ -54,7 +54,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import maybe_convert_indices
+from pandas.core.indexers.utils import maybe_convert_indices
 from pandas.core.indexes.api import (
     Float64Index,
     Index,
