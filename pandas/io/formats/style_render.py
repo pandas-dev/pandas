@@ -22,6 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
+from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -108,7 +109,13 @@ class StylerRenderer:
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
         def_precision = get_option("display.precision")
-        self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
+        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
+        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
+        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
 
@@ -346,6 +353,7 @@ class StylerRenderer:
                             f"{col_heading_class} level{r} col{c}",
                             value,
                             _is_visible(c, r, col_lengths),
+                            display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
                                 if col_lengths.get((r, c), 0) > 1
@@ -502,6 +510,7 @@ class StylerRenderer:
                     f"{row_heading_class} level{c} row{r}",
                     value,
                     (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
+                    display_value=self._display_funcs_index[(r, c)](value),
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1
@@ -788,6 +797,64 @@ class StylerRenderer:
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
+
+        return self
+
+    def format_index(
+        self,
+        formatter: ExtFormatter | None = None,
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: str | None = None,
+    ) -> StylerRenderer:
+        r""" """
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index, self.index
+        elif axis == 1:
+            display_funcs_, obj = self._display_funcs_columns, self.columns
+
+        levels_ = refactor_levels(level, obj)
+
+        if all(
+            (
+                formatter is None,
+                precision is None,
+                decimal == ".",
+                thousands is None,
+                na_rep is None,
+                escape is None,
+            )
+        ):
+            display_funcs_.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
+        if not isinstance(formatter, dict):
+            formatter = {level: formatter for level in levels_}
+        else:
+            formatter = {
+                obj._get_level_number(level): formatter_
+                for level, formatter_ in formatter.items()
+            }
+
+        for level in set(formatter.keys()).union(levels_):
+            format_func = _maybe_wrap_formatter(
+                formatter.get(level),
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+            )
+
+            for i in range(len(obj)):
+                if axis == 0:
+                    display_funcs_[(i, level)] = format_func
+                else:
+                    display_funcs_[(level, i)] = format_func
 
         return self
 
@@ -1111,6 +1178,40 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def refactor_levels(
+    level: Level | list[Level] | None,
+    obj: Index,
+) -> list[Level]:
+    """
+    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+
+    Parameters
+    ----------
+    level : int, str, list
+        Original ``level`` arg supplied to above methods.
+    obj:
+        Either ``self.index`` or ``self.columns``
+
+    Returns
+    -------
+    list : refactored arg with a list of levels to hide
+    """
+    if level is None:
+        levels_: list[Level] = list(range(obj.nlevels))
+    elif isinstance(level, int):
+        levels_ = [level]
+    elif isinstance(level, str):
+        levels_ = [obj._get_level_number(level)]
+    elif isinstance(level, list):
+        levels_ = [
+            obj._get_level_number(lev) if not isinstance(lev, int) else lev
+            for lev in level
+        ]
+    else:
+        raise ValueError("`level` must be of type `int`, `str` or list of such")
+    return levels_
 
 
 class Tooltips:

@@ -32,7 +32,6 @@ from pandas.util._decorators import doc
 
 import pandas as pd
 from pandas import (
-    Index,
     IndexSlice,
     RangeIndex,
 )
@@ -57,6 +56,7 @@ from pandas.io.formats.style_render import (
     Tooltips,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
+    refactor_levels,
 )
 
 try:
@@ -1074,6 +1074,8 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
+            "_display_funcs_index",
+            "_display_funcs_columns",
             "hidden_rows",
             "hidden_columns",
             "ctx",
@@ -1262,7 +1264,7 @@ class Styler(StylerRenderer):
                 f"`axis` must be one of 0, 1, 'index', 'columns', got {axis}"
             )
 
-        levels_ = _refactor_levels(level, obj)
+        levels_ = refactor_levels(level, obj)
         data = DataFrame(obj.to_list()).loc[:, levels_]
 
         if method == "apply":
@@ -2052,7 +2054,7 @@ class Styler(StylerRenderer):
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
-            levels_ = _refactor_levels(level, self.index)
+            levels_ = refactor_levels(level, self.index)
             self.hide_index_ = [
                 True if lev in levels_ else False for lev in range(self.index.nlevels)
             ]
@@ -2164,7 +2166,7 @@ class Styler(StylerRenderer):
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
-            levels_ = _refactor_levels(level, self.columns)
+            levels_ = refactor_levels(level, self.columns)
             self.hide_columns_ = [
                 True if lev in levels_ else False for lev in range(self.columns.nlevels)
             ]
@@ -3358,37 +3360,3 @@ def _bar(
             index=data.index,
             columns=data.columns,
         )
-
-
-def _refactor_levels(
-    level: Level | list[Level] | None,
-    obj: Index,
-) -> list[Level]:
-    """
-    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
-
-    Parameters
-    ----------
-    level : int, str, list
-        Original ``level`` arg supplied to above methods.
-    obj:
-        Either ``self.index`` or ``self.columns``
-
-    Returns
-    -------
-    list : refactored arg with a list of levels to hide
-    """
-    if level is None:
-        levels_: list[Level] = list(range(obj.nlevels))
-    elif isinstance(level, int):
-        levels_ = [level]
-    elif isinstance(level, str):
-        levels_ = [obj._get_level_number(level)]
-    elif isinstance(level, list):
-        levels_ = [
-            obj._get_level_number(lev) if not isinstance(lev, int) else lev
-            for lev in level
-        ]
-    else:
-        raise ValueError("`level` must be of type `int`, `str` or list of such")
-    return levels_

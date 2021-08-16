@@ -51,6 +51,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.hide_index([("i0", "i1_a")])
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
+    mi_styler.format_index(precision=2, axis=0)
+    mi_styler.format_index(precision=4, axis=1)
     mi_styler.highlight_max(axis=None)
     mi_styler.applymap_index(lambda x: "color: white;", axis=0)
     mi_styler.applymap_index(lambda x: "color: black;", axis=1)
