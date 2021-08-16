@@ -457,8 +457,8 @@ of df2.timestart to df2.timeend, using `condition`.
 
 >>> df1 = pd.DataFrame({'timestep': range(5)})
 >>> df2 = pd.DataFrame({'mood': ['happy', 'jolly', 'joy', 'cloud9'],
-                        'timestart': [0, 2, 2, 3],
-                        'timeend': [1, 3, 4, 4]})
+...                     'timestart': [0, 2, 2, 3],
+...                     'timeend': [1, 3, 4, 4]})
 >>> df1
    timestep
 0         0
