@@ -2401,6 +2401,8 @@ class _LazyMerge:
         self.chunk_pairs = itertools.product(left_chunks, right_chunks)
 
     def get_result(self) -> DataFrame:  # mimic _MergeOperation
+        from pandas import DataFrame
+
         result = DataFrame()
         for left, right in self.chunk_pairs:
             chunk_result = merge(left, right, *self.args, **self.kwargs)
