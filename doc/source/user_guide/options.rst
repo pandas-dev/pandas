@@ -488,6 +488,7 @@ styler.sparse.index                     True         "Sparsify" MultiIndex displ
 styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
                                                      in Styler output.
 styler.render.repr                      html         Standard output format for Styler rendered in Jupyter Notebook.
+                                                     Should be one of "html" or "latex".
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
 ======================================= ============ ==================================
