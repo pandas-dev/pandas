@@ -9,13 +9,13 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
-    Int64Index,
     NaT,
     PeriodIndex,
     Timestamp,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestDatetimeIndex:

@@ -572,15 +572,15 @@ class Index(IndexOpsMixin, PandasObject):
             return TimedeltaIndex
 
         elif is_float_dtype(dtype):
-            from pandas import Float64Index
+            from pandas.core.api import Float64Index
 
             return Float64Index
         elif is_unsigned_integer_dtype(dtype):
-            from pandas import UInt64Index
+            from pandas.core.api import UInt64Index
 
             return UInt64Index
         elif is_signed_integer_dtype(dtype):
-            from pandas import Int64Index
+            from pandas.core.api import Int64Index
 
             return Int64Index
 

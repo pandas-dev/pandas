@@ -70,7 +70,6 @@ from pandas.core.api import (
     # indexes
     Index,
     CategoricalIndex,
-    Int64Index,
     UInt64Index,
     RangeIndex,
     Float64Index,
@@ -186,10 +185,41 @@ del get_versions, v
 
 
 # GH 27101
+deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
+
+
+def __dir__():
+    return list(globals().keys()) + deprecated_num_index_names
+
+
 def __getattr__(name):
     import warnings
 
-    if name == "datetime":
+    if name in deprecated_num_index_names:
+        num_msg = (
+            f"The pandas.{name} class is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.NumericIndex with the appropriate dtype instead."
+        )
+        if name == "Int64Index":
+            from pandas.core.api import Int64Index
+
+            warnings.warn(num_msg, FutureWarning, stacklevel=2)
+            return Int64Index
+        elif name == "Unt64Index":
+            from pandas.core.api import UInt64Index
+
+            warnings.warn(num_msg, FutureWarning, stacklevel=2)
+            return UInt64Index
+        elif name == "Float64Index":
+            from pandas.core.api import Float64Index
+
+            warnings.warn(num_msg, FutureWarning, stacklevel=2)
+            return Float64Index
+        else:
+            raise NameError(name)
+
+    elif name == "datetime":
         warnings.warn(
             "The pandas.datetime class is deprecated "
             "and will be removed from pandas in a future version. "
