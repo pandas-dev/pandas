@@ -2787,3 +2787,87 @@ class Test_AntiJoin:
             right_index=right_index,
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected, how, on, left_on, right_on",
+        [
+            (
+                DataFrame({"A": np.nan, "B": "c", "C": np.nan}, index=[0]),
+                "anti_right",
+                None,
+                None,
+                None,
+            ),
+            (
+                DataFrame({"A": np.nan, "B": 3, "C": np.nan}, index=[0]).astype(
+                    {"B": object}
+                ),
+                "anti_left",
+                None,
+                None,
+                None,
+            ),
+            (
+                DataFrame(
+                    {"A": [np.nan, np.nan], "B": [3.0, "c"], "C": [np.nan, np.nan]}
+                ),
+                "anti_full",
+                None,
+                None,
+                None,
+            ),
+            (
+                DataFrame({"A": np.nan, "B": "c", "C": np.nan}, index=[0]),
+                "anti_right",
+                ["B"],
+                None,
+                None,
+            ),
+            (
+                DataFrame({"A": np.nan, "B": 3, "C": np.nan}, index=[0]).astype(
+                    {"B": object}
+                ),
+                "anti_left",
+                ["B"],
+                None,
+                None,
+            ),
+            (
+                DataFrame(
+                    {"A": [np.nan, np.nan], "B": [3.0, "c"], "C": [np.nan, np.nan]}
+                ),
+                "anti_full",
+                ["B"],
+                None,
+                None,
+            ),
+            (
+                DataFrame(
+                    {"A": [2.0], "B_x": [2], "C": [np.nan], "B_y": [np.nan]}
+                ).astype({"B_x": object, "B_y": object}),
+                "anti_left",
+                None,
+                ["A"],
+                ["C"],
+            ),
+            (
+                DataFrame(
+                    {
+                        "A": [np.nan, np.nan],
+                        "B_x": [np.nan, np.nan],
+                        "C": [1.0, 3.0],
+                        "B_y": ["a", 2],
+                    }
+                ).astype({"B_x": object}),
+                "anti_right",
+                None,
+                ["A"],
+                ["C"],
+            ),
+        ],
+    )
+    def test_nan_anti_join(self, expected, how, on, left_on, right_on):
+        df_1 = DataFrame({"A": [np.nan, 2, np.nan], "B": ["a", 2, 3]})
+        df_2 = DataFrame({"C": [1, 3, np.nan], "B": ["a", 2, "c"]})
+        result = merge(df_1, df_2, on=on, how=how, left_on=left_on, right_on=right_on)
+        tm.assert_frame_equal(result, expected)
