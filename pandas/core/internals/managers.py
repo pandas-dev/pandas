@@ -1178,8 +1178,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
-                "Consider using pd.concat instead.  To get a de-fragmented frame, "
-                "use `newframe = frame.copy()`",
+                "Consider joining all columns at once using pd.concat(axis=1) "
+                "instead.  To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
                 stacklevel=5,
             )
@@ -1713,6 +1713,13 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def array_values(self):
         """The array that Series.array returns"""
         return self._block.array_values
+
+    def get_numeric_data(self, copy: bool = False):
+        if self._block.is_numeric:
+            if copy:
+                return self.copy()
+            return self
+        return self.make_empty()
 
     @property
     def _can_hold_na(self) -> bool:
