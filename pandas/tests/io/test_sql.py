@@ -416,11 +416,10 @@ class PandasSQLTest:
     """
 
     def _get_exec(self):
-        return (
-            self.conn.cursor()
-            if isinstance(self.conn, sqlite3.Connection)
-            else self.conn
-        )
+        if hasattr(self.conn, "execute"):
+            return self.conn
+        else:
+            return self.conn.cursor()
 
     @pytest.fixture
     def load_iris_data(self, iris_path):
