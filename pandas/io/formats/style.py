@@ -1703,14 +1703,9 @@ class Styler(StylerRenderer):
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
-        if axis in [0, "index"]:
-            axis, obj = 0, self.data.index
-            pixel_size = 75 if not pixel_size else pixel_size
-        elif axis in [1, "columns"]:
-            axis, obj = 1, self.data.columns
-            pixel_size = 25 if not pixel_size else pixel_size
-        else:
-            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+        axis = self.data._get_axis_number(axis)
+        obj = self.data.index if axis == 0 else self.data.columns
+        pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
         props = "position:sticky; background-color:white;"
         if not isinstance(obj, pd.MultiIndex):
