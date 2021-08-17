@@ -124,21 +124,21 @@ def test_w3_html_format(styler):
         </table>
         """
     )
-    assert expected == styler.render()
+    assert expected == styler.to_html()
 
 
 def test_colspan_w3():
     # GH 36223
     df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.render()
+    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.to_html()
 
 
 def test_rowspan_w3():
     # GH 38533
     df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.render()
+    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.to_html()
 
 
 def test_styles(styler):
@@ -238,7 +238,7 @@ def test_from_custom_template_table(tmpdir):
     assert result.env is not Styler.env
     assert result.template_html_table is not Styler.template_html_table
     styler = result(DataFrame({"A": [1, 2]}))
-    assert "<h1>My Title</h1>\n\n\n<table" in styler.render(custom_title="My Title")
+    assert "<h1>My Title</h1>\n\n\n<table" in styler.to_html(custom_title="My Title")
 
 
 def test_from_custom_template_style(tmpdir):
@@ -265,7 +265,7 @@ def test_from_custom_template_style(tmpdir):
 
 def test_caption_as_sequence(styler):
     styler.set_caption(("full cap", "short cap"))
-    assert "<caption>full cap</caption>" in styler.render()
+    assert "<caption>full cap</caption>" in styler.to_html()
 
 
 @pytest.mark.parametrize("index", [False, True])
