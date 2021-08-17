@@ -14,6 +14,8 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)
+- Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
 -
 -
 

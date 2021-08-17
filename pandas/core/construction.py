@@ -550,7 +550,6 @@ def sanitize_array(
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:
             subarr = subarr.copy()
-        return subarr
 
     else:
         if isinstance(data, (set, frozenset)):
