@@ -46,17 +46,14 @@
         "numba": [],
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
+        "pyarrow": [],
         "tables": [null, ""],
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
         "xlwt": [],
         "odfpy": [],
-        "pytest": [],
         "jinja2": [],
-        // If using Windows with python 2.7 and want to build using the
-        // mingw toolchain (rather than MSVC), uncomment the following line.
-        // "libpython": [],
     },
     "conda_channels": ["defaults", "conda-forge"],
     // Combinations of libraries/python versions can be excluded/included
