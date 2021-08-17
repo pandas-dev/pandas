@@ -395,7 +395,7 @@ def get_blkno_indexers(
     cdef:
         int64_t cur_blkno
         Py_ssize_t i, start, stop, n, diff, tot_len
-        object blkno
+        int64_t blkno
         object group_dict = defaultdict(list)
 
     n = blknos.shape[0]
