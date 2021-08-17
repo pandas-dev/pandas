@@ -413,14 +413,14 @@ class NaTType(_NaT):
         "weekday",
         """
         Return the day of the week represented by the date.
-        Monday == 1 ... Sunday == 7.
+        Monday == 0 ... Sunday == 6.
         """,
     )
     isoweekday = _make_nan_func(
         "isoweekday",
         """
         Return the day of the week represented by the date.
-        Monday == 0 ... Sunday == 6.
+        Monday == 1 ... Sunday == 7.
         """,
     )
     total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
