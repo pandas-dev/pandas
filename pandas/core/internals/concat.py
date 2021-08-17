@@ -10,7 +10,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import internals as libinternals
+from pandas._libs import (
+    NaT,
+    internals as libinternals,
+)
+from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -28,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import (
     cast_to_common_type,
@@ -374,13 +378,20 @@ class JoinUnit:
             values = self.block.values
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
-        if self.dtype.kind == dtype.kind == "M" and not is_dtype_equal(
-            self.dtype, dtype
-        ):
+        na_value = self.block.fill_value
+        if na_value is NaT and not is_dtype_equal(self.dtype, dtype):
+            # e.g. we are dt64 and other is td64
             # fill_values match but we should not cast self.block.values to dtype
+            # TODO: this will need updating if we ever have non-nano dt64/td64
             return False
 
-        na_value = self.block.fill_value
+        if na_value is NA and needs_i8_conversion(dtype):
+            # FIXME: kludge; test_append_empty_frame_with_timedelta64ns_nat
+            #  e.g. self.dtype == "Int64" and dtype is td64, we dont want
+            #  to consider these as matching
+            return False
+
+        # TODO: better to use can_hold_element?
         return is_valid_na_for_dtype(na_value, dtype)
 
     @cache_readonly
@@ -426,9 +437,6 @@ class JoinUnit:
                     i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
-                elif is_extension_array_dtype(blk_dtype):
-                    pass
-
                 elif is_1d_only_ea_dtype(empty_dtype):
                     empty_dtype = cast(ExtensionDtype, empty_dtype)
                     cls = empty_dtype.construct_array_type()
@@ -440,11 +448,16 @@ class JoinUnit:
                     return missing_arr.take(
                         empty_arr, allow_fill=True, fill_value=fill_value
                     )
+                elif isinstance(empty_dtype, ExtensionDtype):
+                    # TODO: no tests get here, a handful would if we disabled
+                    #  the dt64tz special-case above (which is faster)
+                    cls = empty_dtype.construct_array_type()
+                    missing_arr = cls._empty(shape=self.shape, dtype=empty_dtype)
+                    missing_arr[:] = fill_value
+                    return missing_arr
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
-                    empty_dtype = cast(np.dtype, empty_dtype)
-
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
