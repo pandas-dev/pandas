@@ -197,7 +197,8 @@ class Holiday:
         Holiday: July 3rd (month=7, day=3, )
 
         >>> NewYears = Holiday(
-        ...     "New Years Day", month=1,  day=1, observance=nearest_workday
+        ...     "New Years Day", month=1,  day=1,
+        ...      observance=nearest_workday
         ... )
         >>> NewYears  # doctest: +SKIP
         Holiday: New Years Day (
