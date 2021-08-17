@@ -15,7 +15,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import Int64Index
+from pandas.core.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestDatetimeIndex:
@@ -46,7 +49,7 @@ class TestDatetimeIndex:
 
     def test_astype_uint(self):
         arr = date_range("2000", periods=2, name="idx")
-        expected = pd.UInt64Index(
+        expected = UInt64Index(
             np.array([946684800000000000, 946771200000000000], dtype="uint64"),
             name="idx",
         )
