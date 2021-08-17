@@ -851,16 +851,10 @@ ctypedef fused fillna_t:
     float64_t
     float32_t
     object
-    # TODO: Maybe add datetime64 support through viewing data as int64?
-    # But datetime64 seems to be handled elsewhere
-    int64_t   # Datetime64
-    uint16_t  # Float 16
-    complex64_t
-    complex128_t
-
-# algos_t+complex numbers/float16 support
-ctypedef fused fillna_values_t:
-    algos_t
+    int8_t  # Categorical
+    int16_t  # Categorical
+    int32_t  # Categorical
+    int64_t   # Categorical/Datetime64
     uint16_t  # Float 16
     complex64_t
     complex128_t
@@ -875,14 +869,6 @@ def fillna1d(fillna_t[:] arr,
              ) -> ndarray:
     """
     Fills na-like elements inplace for a 1D array
-    according to the criteria defined in `checknull`:
-     - None
-     - nan
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
-     - Decimal("NaN")
 
     Parameters
     ----------
@@ -934,14 +920,6 @@ def fillna1d_multi_values(fillna_t[:] arr,
                           ) -> ndarray:
     """
     Fills na-like elements inplace for a 1D array
-    according to the criteria defined in `checknull`:
-     - None
-     - nan
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
-     - Decimal("NaN")
 
     Parameters
     ----------
@@ -1005,14 +983,6 @@ def fillna2d(fillna_t[:, :] arr,
              ) -> ndarray:
     """
     Fills na-like elements inplace for a 2D array
-    according to the criteria defined in `checknull`:
-     - None
-     - nan
-     - NaT
-     - np.datetime64 representation of NaT
-     - np.timedelta64 representation of NaT
-     - NA
-     - Decimal("NaN")
 
     Parameters
     ----------
