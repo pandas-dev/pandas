@@ -34,6 +34,28 @@ def test_display_format(styler):
     assert len(ctx["body"][0][1]["display_value"].lstrip("-")) <= 3
 
 
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize("columns", [True, False])
+def test_display_format_index(styler, index, columns):
+    exp_index = ["x", "y"]
+    if index:
+        styler.format_index(lambda v: v.upper(), axis=0)
+        exp_index = ["X", "Y"]
+
+    exp_columns = ["A", "B"]
+    if columns:
+        styler.format_index(lambda v: v.lower(), axis=1)
+        exp_columns = ["a", "b"]
+
+    ctx = styler._translate(True, True)
+
+    for r, row in enumerate(ctx["body"]):
+        assert row[0]["display_value"] == exp_index[r]
+
+    for c, col in enumerate(ctx["head"][1:]):
+        assert col["display_value"] == exp_columns[c]
+
+
 def test_format_dict(styler):
     ctx = styler.format({"A": "{:0.1f}", "B": "{0:.2%}"})._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == "0.0"
@@ -90,12 +112,20 @@ def test_format_non_numeric_na():
     assert ctx["body"][1][2]["display_value"] == "-"
 
 
-def test_format_clear(styler):
-    assert (0, 0) not in styler._display_funcs  # using default
-    styler.format("{:.2f")
-    assert (0, 0) in styler._display_funcs  # formatter is specified
-    styler.format()
-    assert (0, 0) not in styler._display_funcs  # formatter cleared to default
+@pytest.mark.parametrize(
+    "func, attr, kwargs",
+    [
+        ("format", "_display_funcs", {}),
+        ("format_index", "_display_funcs_index", {"axis": 0}),
+        ("format_index", "_display_funcs_columns", {"axis": 1}),
+    ],
+)
+def test_format_clear(styler, func, attr, kwargs):
+    assert (0, 0) not in getattr(styler, attr)  # using default
+    getattr(styler, func)("{:.2f}", **kwargs)
+    assert (0, 0) in getattr(styler, attr)  # formatter is specified
+    getattr(styler, func)(**kwargs)
+    assert (0, 0) not in getattr(styler, attr)  # formatter cleared to default
 
 
 @pytest.mark.parametrize(
