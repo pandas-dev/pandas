@@ -213,37 +213,29 @@ class TestGetItem:
 
     def test_getitem_day(self):
         # GH#6716
-        # Confirm DatetimeIndex and PeriodIndex works identically
         didx = date_range(start="2013/01/01", freq="D", periods=400)
         pidx = period_range(start="2013/01/01", freq="D", periods=400)
 
+        # Identitcal for DatetimeIndex and PeriodIndex
         for idx in [didx, pidx]:
-            # getitem against index should raise ValueError
-            values = [
-                "2014",
-                "2013/02",
-                "2013/01/02",
-                "2013/02/01 9H",
-                "2013/02/01 09:00",
-            ]
-            for v in values:
-
-                # GH7116
-                # these show deprecations as we are trying
-                # to slice with non-integer indexers
-                # with pytest.raises(IndexError):
-                #    idx[v]
-                continue
-
             s = Series(np.random.rand(len(idx)), index=idx)
             tm.assert_series_equal(s["2013/01"], s[0:31])
             tm.assert_series_equal(s["2013/02"], s[31:59])
             tm.assert_series_equal(s["2014"], s[365:])
 
-            invalid = ["2013/02/01 9H", "2013/02/01 09:00"]
-            for v in invalid:
-                with pytest.raises(KeyError, match=v):
-                    s[v]
+        higher_reso = ["2013/02/01 9H", "2013/02/01 09:00"]
+
+        # DatetimeIndex raises
+        s = Series(np.random.rand(len(didx)), index=didx)
+        for v in higher_reso:
+            with pytest.raises(KeyError, match=v):
+                s[v]
+
+        # GH 40145 PeriodIndex works
+        s = Series(np.random.rand(len(pidx)), index=pidx)
+        for v in higher_reso:
+            assert v in pidx
+            assert s[v] == s[31]
 
 
 class TestGetLoc:
@@ -883,15 +875,10 @@ class TestContains:
             assert p in idx0
             assert str(p) in idx0
 
-        # GH#31172
-        # Higher-resolution period-like are _not_ considered as contained
         key = "2017-09-01 00:00:01"
-        assert key not in idx0
-        with pytest.raises(KeyError, match=key):
-            idx0.get_loc(key)
-        with pytest.raises(KeyError, match=key):
-            with tm.assert_produces_warning(FutureWarning):
-                idx0.get_value(ser, key)
+        assert key in idx0
+        with tm.assert_produces_warning(FutureWarning):
+            idx0.get_value(ser, key)
 
         assert "2017-09" in idx0
 
