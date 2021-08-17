@@ -374,7 +374,7 @@ def test_sticky_levels(styler_mi, index, columns):
 
 
 def test_sticky_raises(styler):
-    with pytest.raises(ValueError, match="`axis` must be"):
+    with pytest.raises(ValueError, match="No axis named bad for object type DataFrame"):
         styler.set_sticky(axis="bad")
 
 

@@ -1012,7 +1012,7 @@ class Styler(StylerRenderer):
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
                 self.ctx[(i, j)].extend(css_list)
 
-    def _update_ctx_header(self, attrs: DataFrame, axis: str) -> None:
+    def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
         """
         Update the state of the ``Styler`` for header cells.
 
@@ -1025,7 +1025,7 @@ class Styler(StylerRenderer):
             integer index.
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
-        axis : str
+        axis : int
             Identifies whether the ctx object being updated is the index or columns
         """
         for j in attrs.columns:
@@ -1033,7 +1033,7 @@ class Styler(StylerRenderer):
                 if not c:
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
-                if axis == "index":
+                if axis == 0:
                     self.ctx_index[(i, j)].extend(css_list)
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
@@ -1253,14 +1253,8 @@ class Styler(StylerRenderer):
         method: str = "apply",
         **kwargs,
     ) -> Styler:
-        if axis in [0, "index"]:
-            obj, axis = self.index, "index"
-        elif axis in [1, "columns"]:
-            obj, axis = self.columns, "columns"
-        else:
-            raise ValueError(
-                f"`axis` must be one of 0, 1, 'index', 'columns', got {axis}"
-            )
+        axis = self.data._get_axis_number(axis)
+        obj = self.index if axis == 0 else self.columns
 
         levels_ = _refactor_levels(level, obj)
         data = DataFrame(obj.to_list()).loc[:, levels_]
@@ -1709,14 +1703,9 @@ class Styler(StylerRenderer):
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
-        if axis in [0, "index"]:
-            axis, obj = 0, self.data.index
-            pixel_size = 75 if not pixel_size else pixel_size
-        elif axis in [1, "columns"]:
-            axis, obj = 1, self.data.columns
-            pixel_size = 25 if not pixel_size else pixel_size
-        else:
-            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+        axis = self.data._get_axis_number(axis)
+        obj = self.data.index if axis == 0 else self.data.columns
+        pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
         props = "position:sticky; background-color:white;"
         if not isinstance(obj, pd.MultiIndex):
@@ -1901,10 +1890,9 @@ class Styler(StylerRenderer):
         more details.
         """
         if isinstance(table_styles, dict):
-            if axis in [0, "index"]:
-                obj, idf = self.data.columns, ".col"
-            else:
-                obj, idf = self.data.index, ".row"
+            axis = self.data._get_axis_number(axis)
+            obj = self.data.index if axis == 1 else self.data.columns
+            idf = ".row" if axis == 1 else ".col"
 
             table_styles = [
                 {
@@ -2869,15 +2857,13 @@ class Styler(StylerRenderer):
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
         kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
-        if axis in [0, "index"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply: int | None = 1
-        elif axis in [1, "columns"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply = 0
-        else:  # axis is None
+        if axis is None:
             q = Series(data.to_numpy().ravel()).quantile(**kwargs)
-            axis_apply = None
+            axis_apply: int | None = None
+        else:
+            axis = self.data._get_axis_number(axis)
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 1 - axis
 
         if props is None:
             props = f"background-color: {color};"
