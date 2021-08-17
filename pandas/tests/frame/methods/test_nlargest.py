@@ -209,3 +209,17 @@ class TestNLargestNSmallest:
         result = df.nlargest(3, ("x", "b"))
         expected = df.iloc[[3, 2, 1]]
         tm.assert_frame_equal(result, expected)
+
+    def test_nlargest_nan_column(self):
+        # GH#43060
+        df = pd.DataFrame(
+            {
+                'grp': [1, 1, 2, 2],
+                'y': [1, 0, 2, 5],
+                'z': [1, 2, np.nan, np.nan]
+            }
+        )
+        dfgrp = df.groupby('grp')
+        result = dfgrp.apply(lambda grp_df: grp_df.nlargest(1, 'z'))
+        expected = dfgrp.apply(lambda x: x.sort_values('z', ascending=False).head(1))
+        tm.assert_frame_equal(result, expected)
