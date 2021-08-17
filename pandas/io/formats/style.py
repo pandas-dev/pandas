@@ -1087,6 +1087,7 @@ class Styler(StylerRenderer):
             "cell_ids",
             "caption",
             "uuid",
+            "uuid_len",
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
