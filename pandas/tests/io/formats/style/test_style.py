@@ -345,8 +345,8 @@ def test_apply_map_header_mi(mi_styler, method, axis):
 
 def test_apply_map_header_raises(mi_styler):
     # GH 41893
-    with pytest.raises(ValueError, match="`axis` must be one of 0, 1, 'index', 'col"):
-        mi_styler.applymap_index(lambda v: "attr: val;", axis="bad-axis")._compute()
+    with pytest.raises(ValueError, match="No axis named bad for object type DataFrame"):
+        mi_styler.applymap_index(lambda v: "attr: val;", axis="bad")._compute()
 
 
 class TestStyler:
