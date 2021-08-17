@@ -172,15 +172,19 @@ class ToJSON(BaseIO):
     def peakmem_to_json(self, orient, frame):
         getattr(self, frame).to_json(self.fname, orient=orient)
 
-    def time_to_json_wide(self, orient, frame):
+
+class ToJSONWide(ToJSON):
+    def setup(self, orient, frame):
+        super().setup(orient, frame)
         base_df = getattr(self, frame).copy()
-        df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        df_wide = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
+        self.df_wide = df_wide
+
+    def time_to_json_wide(self, orient, frame):
+        self.df_wide.to_json(self.fname, orient=orient)
 
     def peakmem_to_json_wide(self, orient, frame):
-        base_df = getattr(self, frame).copy()
-        df = concat([base_df.iloc[:100]] * 1000, ignore_index=True, axis=1)
-        df.to_json(self.fname, orient=orient)
+        self.df_wide.to_json(self.fname, orient=orient)
 
 
 class ToJSONISO(BaseIO):
