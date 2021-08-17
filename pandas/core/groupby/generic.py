@@ -210,7 +210,8 @@ class SeriesGroupBy(GroupBy[Series]):
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
     2    3.0
-    dtype: float64"""
+    dtype: float64
+    """
     )
 
     @Appender(
@@ -454,7 +455,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                index = Index(keys, name=self.grouper.names[0])
+                index = Index._with_infer(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], dict):
@@ -758,7 +759,7 @@ class SeriesGroupBy(GroupBy[Series]):
         # new values are where sorted labels change
         lchanges = llab(lab, slice(1, None)) != llab(lab, slice(None, -1))
         inc = np.r_[True, lchanges]
-        if not len(lchanges):
+        if not len(val):
             inc = lchanges
         inc[idx] = True  # group boundaries are also new values
         out = np.diff(np.nonzero(np.r_[inc, True])[0])  # value counts
@@ -870,6 +871,24 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return (filled / shifted) - 1
 
+    @doc(Series.nlargest)
+    def nlargest(self, n: int = 5, keep: str = "first"):
+        f = partial(Series.nlargest, n=n, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
+
+    @doc(Series.nsmallest)
+    def nsmallest(self, n: int = 5, keep: str = "first"):
+        f = partial(Series.nsmallest, n=n, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
+
 
 @pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
@@ -957,7 +976,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
           B
     A
     1   1.0
-    2   3.0"""
+    2   3.0
+    """
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
@@ -1033,7 +1053,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             self._insert_inaxis_grouper_inplace(result)
             result.index = Index(range(len(result)))
 
-        return result._convert(datetime=True)
+        return result
 
     agg = aggregate
 
@@ -1684,6 +1704,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if self.axis == 1:
             result = result.T
 
+        # Note: we only need to pass datetime=True in order to get numeric
+        #  values converted
         return self._reindex_output(result)._convert(datetime=True)
 
     def _iterate_column_groupbys(self, obj: FrameOrSeries):

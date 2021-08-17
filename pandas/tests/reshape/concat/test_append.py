@@ -1,5 +1,4 @@
 import datetime as dt
-from datetime import datetime
 from itertools import combinations
 
 import dateutil
@@ -345,6 +344,12 @@ class TestAppend:
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
         other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
+        result = df.append(other, ignore_index=True)
+        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        tm.assert_frame_equal(result, expected)
+
+        # mismatched tz
+        other = Series({"a": pd.NaT}, dtype="datetime64[ns, US/Pacific]")
         result = df.append(other, ignore_index=True)
         expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)

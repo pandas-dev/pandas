@@ -395,7 +395,7 @@ def get_blkno_indexers(
     cdef:
         int64_t cur_blkno
         Py_ssize_t i, start, stop, n, diff, tot_len
-        object blkno
+        int64_t blkno
         object group_dict = defaultdict(list)
 
     n = blknos.shape[0]
@@ -517,7 +517,6 @@ cdef class NumpyBlock(SharedBlock):
         #  set placement and ndim
         self.values = values
 
-    # @final  # not useful in cython, but we _would_ annotate with @final
     cpdef NumpyBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
@@ -540,7 +539,6 @@ cdef class NDArrayBackedBlock(SharedBlock):
         #  set placement and ndim
         self.values = values
 
-    # @final  # not useful in cython, but we _would_ annotate with @final
     cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
