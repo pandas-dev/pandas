@@ -65,12 +65,8 @@ def _gt14() -> bool:
     return Version(sqlalchemy.__version__) >= Version("1.4.0")
 
 
-def _convert_params(sql, params, using_sqlite=False):
+def _convert_params(sql, params):
     """Convert SQL and params args to DBAPI2.0 compliant format."""
-    if isinstance(sql, str) and not using_sqlite:
-        from sqlalchemy import text
-
-        sql = text(sql)
     args = [sql]
     if params is not None:
         if hasattr(params, "keys"):  # test if params is a mapping
@@ -181,12 +177,8 @@ def execute(sql, con, params=None):
     -------
     Results Iterable
     """
-    import sqlite3
-
     pandas_sql = pandasSQL_builder(con)
-    args = _convert_params(
-        sql, params, using_sqlite=isinstance(con, sqlite3.Connection)
-    )
+    args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
 
@@ -850,11 +842,8 @@ class SQLTable(PandasObject):
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
         """
-        from sqlalchemy import insert
-
         data = [dict(zip(keys, row)) for row in data_iter]
-        insert_stmt = insert(self.table).values(data)
-        conn.execute(insert_stmt)
+        conn.execute(self.table.insert(data))
 
     def insert_data(self):
         if self.index is not None:
@@ -1361,7 +1350,6 @@ class SQLDatabase(PandasSQL):
         supports this). If None, use default schema (default).
 
     """
-    from sqlalchemy import Engine
 
     def __init__(self, engine, schema: str | None = None):
         from sqlalchemy.schema import MetaData
@@ -1379,7 +1367,7 @@ class SQLDatabase(PandasSQL):
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.connect().execute(*args, **kwargs)
+        return self.connectable.execution_options().execute(*args, **kwargs)
 
     def read_table(
         self,
@@ -2066,7 +2054,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
     ):
 
-        args = _convert_params(sql, params, using_sqlite=True)
+        args = _convert_params(sql, params)
         cursor = self.execute(*args)
         columns = [col_desc[0] for col_desc in cursor.description]
 
