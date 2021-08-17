@@ -159,6 +159,18 @@ class SingleDataManager(DataManager):
         """
         return self.arrays[0]  # type: ignore[attr-defined]
 
+    def setitem_inplace(self, indexer, value) -> None:
+        """
+        Set values with indexer.
+
+        For Single[Block/Array]Manager, this backs s[indexer] = value
+
+        This is an inplace version of `setitem()`, mutating the manager/values
+        in place, not returning a new Manager (and Block), and thus never changing
+        the dtype.
+        """
+        self.array[indexer] = value
+
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
     """

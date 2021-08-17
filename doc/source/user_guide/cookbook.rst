@@ -1211,6 +1211,9 @@ The :ref:`Excel <io.excel>` docs
 `Modifying formatting in XlsxWriter output
 <https://pbpython.com/improve-pandas-excel-output.html>`__
 
+`Loading only visible sheets
+<https://github.com/pandas-dev/pandas/issues/19842#issuecomment-892150745>`__
+
 .. _cookbook.html:
 
 HTML
