@@ -2808,15 +2808,6 @@ class Test_AntiJoin:
                 None,
             ),
             (
-                DataFrame(
-                    {"A": [np.nan, np.nan], "B": [3.0, "c"], "C": [np.nan, np.nan]}
-                ),
-                "anti_full",
-                None,
-                None,
-                None,
-            ),
-            (
                 DataFrame({"A": np.nan, "B": "c", "C": np.nan}, index=[0]),
                 "anti_right",
                 ["B"],
@@ -2828,15 +2819,6 @@ class Test_AntiJoin:
                     {"B": object}
                 ),
                 "anti_left",
-                ["B"],
-                None,
-                None,
-            ),
-            (
-                DataFrame(
-                    {"A": [np.nan, np.nan], "B": [3.0, "c"], "C": [np.nan, np.nan]}
-                ),
-                "anti_full",
                 ["B"],
                 None,
                 None,
