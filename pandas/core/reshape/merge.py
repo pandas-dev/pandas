@@ -758,7 +758,13 @@ class _MergeOperation:
             return np.isin(A, B, invert=invert)
 
         def _multi_columns(arr_l, arr_r, how):
-            nrows, ncols = arr_l.shape
+            if len(arr_l.shape) == 1:
+                arr_l = np.atleast_2d(arr_l).reshape(-1, np.atleast_2d(arr_l).shape[0])
+            if len(arr_r.shape) == 1:
+                arr_r = np.atleast_2d(arr_r).reshape(-1, np.atleast_2d(arr_r).shape[0])
+            if arr_l.dtype.kind == "O" or arr_r.dtype.kind == "O":
+                arr_l = arr_l.astype(str)
+                arr_r = arr_r.astype(str)
             if how == "anti_right":
                 join_index_l = join_index_r = isin_nd(arr_r, arr_l, invert=True)
                 _how = "right"
@@ -780,52 +786,37 @@ class _MergeOperation:
             return (join_index_l, join_index_r, _how)
 
         if self.left_index and self.right_index:
-            if self.how == "anti_right":
-                join_index = set(self.right.index).difference(set(self.left.index))
-                self.how = "right"
-            elif self.how == "anti_left":
-                join_index = set(self.left.index).difference(set(self.right.index))
-                self.how = "left"
-            else:
-                join_index = set(self.left.index.union(self.right.index)) - set(
-                    self.left.index.intersection(self.right.index)
-                )
-                self.how = "outer"
-            self.left = self.left[self.left.index.isin(join_index)]
-            self.right = self.right[self.right.index.isin(join_index)]
-        else:
+            join_index_l, join_index_r, self.how = _multi_columns(
+                self.left.index.values, self.right.index.values, self.how
+            )
+            self.left = self.left[join_index_l]
+            self.right = self.right[join_index_r]
+        elif self.on is not None or (
+            None not in self.left_on and None not in self.right_on
+        ):
             if self.on is not None:
                 left_on = right_on = self.on
             else:
                 left_on = self.left_on
                 right_on = self.right_on
-            if is_list_like(left_on) and len(left_on) > 1:
+            if is_list_like(left_on):
                 join_index_l, join_index_r, self.how = _multi_columns(
                     self.left[left_on].values, self.right[right_on].values, self.how
                 )
                 self.left = self.left[join_index_l]
                 self.right = self.right[join_index_r]
-
-            else:
-                if self.how == "anti_right":
-                    join_index = set(self.right[right_on].values.flatten()).difference(
-                        set(self.left[left_on].values.flatten())
-                    )
-                    self.how = "right"
-                elif self.how == "anti_left":
-                    join_index = set(self.left[left_on].values.flatten()).difference(
-                        set(self.right[right_on].values.flatten())
-                    )
-                    self.how = "left"
-                else:
-                    join_index = set(self.left[left_on].values.flatten()).union(
-                        self.right[right_on].values.flatten()
-                    ) - set(self.left[left_on].values.flatten()).intersection(
-                        self.right[right_on].values.flatten()
-                    )
-                    self.how = "outer"
-                self.left = self.left[self.left[left_on].isin(join_index).values]
-                self.right = self.right[self.right[right_on].isin(join_index).values]
+        elif self.left_index and self.right_on is not None:
+            join_index_l, join_index_r, self.how = _multi_columns(
+                self.left.index.values, self.right[self.right_on].values, self.how
+            )
+            self.left = self.left[join_index_l]
+            self.right = self.right[join_index_r]
+        elif self.right_index and self.left_on is not None:
+            join_index_l, join_index_r, self.how = _multi_columns(
+                self.left[self.left_on].values, self.right.index.values, self.how
+            )
+            self.left = self.left[join_index_l]
+            self.right = self.right[join_index_r]
 
         # sanity check to ensure correct `how`
         assert self.how in ["left", "right", "inner", "outer"]

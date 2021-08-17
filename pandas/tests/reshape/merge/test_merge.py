@@ -2541,7 +2541,7 @@ class Test_AntiJoin:
             ),
             (
                 DataFrame(
-                    {"A": [np.nan, np.nan], "B": [2, 4], "C": [8, 9]}, index=[0, 1]
+                    {"A": [np.nan, np.nan], "C": [8, 9], "B": [2, 4]}, index=[0, 1]
                 ),
                 "anti_right",
                 ["C"],
@@ -2621,8 +2621,8 @@ class Test_AntiJoin:
                 DataFrame(
                     {
                         "A": [np.nan, np.nan],
-                        "B": [2, 4],
                         "C": [8, 9],
+                        "B": [2, 4],
                     },
                     index=[0, 1],
                 ),
@@ -2746,6 +2746,25 @@ class Test_AntiJoin:
                 None,
                 None,
                 False,
+                False,
+            ),
+            (
+                DataFrame(
+                    {
+                        "A": [3],
+                        "B_x": [6],
+                        "C_x": [7],
+                        "B_y": [np.nan],
+                        "C_y": [np.nan],
+                        "D": ["c"],
+                    },
+                    index=[np.nan],
+                ),
+                "anti_left",
+                None,
+                None,
+                ["D"],
+                True,
                 False,
             ),
         ],
