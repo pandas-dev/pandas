@@ -474,12 +474,14 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
             nv.validate_window_func("mean", args, kwargs)
+
+            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewma,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=deltas,
             )
             return self._apply(window_func)
         else:
