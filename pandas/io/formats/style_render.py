@@ -90,7 +90,7 @@ class StylerRenderer:
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid_len = min(32, uuid_len)
-        self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
+        self.uuid = uuid or uuid4().hex[: self.uuid_len]
         self.table_styles = table_styles
         self.table_attributes = table_attributes
         self.caption = caption
@@ -735,7 +735,7 @@ class StylerRenderer:
         >>> s = df.style.format(
         ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
         ...     )
-        >>> s.render()  # doctest: +SKIP
+        >>> s.to_html()  # doctest: +SKIP
         ...
         <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
         <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
@@ -1210,7 +1210,7 @@ class Tooltips:
         -------
         pseudo_css : List
         """
-        selector_id = "#T_" + uuid + "row" + str(row) + "_col" + str(col)
+        selector_id = "#T_" + uuid + "_row" + str(row) + "_col" + str(col)
         return [
             {
                 "selector": selector_id + f":hover .{name}",

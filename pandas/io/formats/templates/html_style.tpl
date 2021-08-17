@@ -14,7 +14,7 @@
 {% block cellstyle %}
 {% for cs in [cellstyle, cellstyle_index, cellstyle_columns] %}
 {% for s in cs %}
-{% for selector in s.selectors %}{% if not loop.first %}, {% endif %}#T_{{uuid}}{{selector}}{% endfor %} {
+{% for selector in s.selectors %}{% if not loop.first %}, {% endif %}#T_{{uuid}}_{{selector}}{% endfor %} {
 {% for p,val in s.props %}
   {{p}}: {{val}};
 {% endfor %}
