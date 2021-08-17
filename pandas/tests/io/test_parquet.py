@@ -600,11 +600,9 @@ class TestBasic(Base):
         import pyarrow.parquet as pq
 
         if engine == "fastparquet":
-            pytest.importorskip(
-                "fastparquet",
-                "0.7.1",
-                reason="fastparquet must be 0.7.1 or higher for nullable dtype support",
-            )
+            # We are manually disabling fastparquet's
+            # nullable dtype support pending discussion
+            pytest.skip("Fastparquet nullable dtype support is disabled")
 
         table = pyarrow.table(
             {
@@ -612,6 +610,8 @@ class TestBasic(Base):
                 "b": pyarrow.array([1, 2, 3, None], "uint8"),
                 "c": pyarrow.array(["a", "b", "c", None]),
                 "d": pyarrow.array([True, False, True, None]),
+                # Test that nullable dtypes used even in absence of nulls
+                "e": pyarrow.array([1, 2, 3, 4], "int64"),
             }
         )
         with tm.ensure_clean() as path:
@@ -627,6 +627,7 @@ class TestBasic(Base):
                 "b": pd.array([1, 2, 3, None], dtype="UInt8"),
                 "c": pd.array(["a", "b", "c", None], dtype="string"),
                 "d": pd.array([True, False, True, None], dtype="boolean"),
+                "e": pd.array([1, 2, 3, 4], dtype="Int64"),
             }
         )
         if engine == "fastparquet":
@@ -1078,11 +1079,6 @@ class TestParquetFastParquet(Base):
     def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
-        # This is supported now in fastparquet 0.7.1 and above actually
-        # Still need to ensure that this raises in all versions below
-        import fastparquet as fp
-
-        monkeypatch.setattr(fp, "__version__", "0.4")
         with tm.ensure_clean() as path:
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):

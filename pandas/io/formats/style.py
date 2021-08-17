@@ -151,7 +151,7 @@ class Styler(StylerRenderer):
     be applied to the indicated cells.
 
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
-    to automatically render itself. Otherwise call Styler.render to get
+    to automatically render itself. Otherwise call Styler.to_html to get
     the generated HTML.
 
     CSS classes are attached to the generated HTML
@@ -214,7 +214,7 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self.render()
+        return self.to_html()
 
     def render(
         self,
@@ -224,6 +224,8 @@ class Styler(StylerRenderer):
     ) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
+
+        .. deprecated:: 1.4.0
 
         Parameters
         ----------
@@ -248,11 +250,14 @@ class Styler(StylerRenderer):
 
         Notes
         -----
+        This method is deprecated in favour of ``Styler.to_html``.
+
         Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
+        which automatically calls ``self.to_html()`` when it's the
+        last item in a Notebook cell.
+
+        When calling ``Styler.render()`` directly, wrap the result in
+        ``IPython.display.HTML`` to view the rendered HTML in the notebook.
 
         Pandas uses the following keys in render. Arguments passed
         in ``**kwargs`` take precedence, so think carefully if you want
@@ -266,6 +271,11 @@ class Styler(StylerRenderer):
         * caption
         * table_attributes
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.to_html()`",
+            FutureWarning,
+            stacklevel=2,
+        )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
@@ -336,7 +346,7 @@ class Styler(StylerRenderer):
         >>> ttips = pd.DataFrame(
         ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
         ... )
-        >>> s = df.style.set_tooltips(ttips).render()
+        >>> s = df.style.set_tooltips(ttips).to_html()
 
         Optionally controlling the tooltip visual display
 
@@ -550,7 +560,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()  # doctest: +SKIP
+        >>> s.to_html()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
@@ -833,6 +843,7 @@ class Styler(StylerRenderer):
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
+        **kwargs,
     ):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
@@ -882,6 +893,10 @@ class Styler(StylerRenderer):
             Whether to include the ``<style>`` element and all associated element
             ``class`` and ``id`` identifiers, or solely the ``<table>`` element without
             styling identifiers.
+        **kwargs
+            Any additional keyword arguments are passed through to the jinj2
+            ``self.template.render`` process. This is useful when you need to provide
+            additional variables for a custom template.
 
         Returns
         -------
@@ -912,6 +927,7 @@ class Styler(StylerRenderer):
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,
+            **kwargs,
         )
 
         return save_to_buffer(
@@ -970,7 +986,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().render()  # doctest: +SKIP
+        >>> s.hide_index().to_html()  # doctest: +SKIP
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
@@ -1021,6 +1037,32 @@ class Styler(StylerRenderer):
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
                 self.ctx[(i, j)].extend(css_list)
 
+    def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
+        """
+        Update the state of the ``Styler`` for header cells.
+
+        Collects a mapping of {index_label: [('<property>', '<value>'), ..]}.
+
+        Parameters
+        ----------
+        attrs : Series
+            Should contain strings of '<property>: <value>;<prop2>: <val2>', and an
+            integer index.
+            Whitespace shouldn't matter and the final trailing ';' shouldn't
+            matter.
+        axis : int
+            Identifies whether the ctx object being updated is the index or columns
+        """
+        for j in attrs.columns:
+            for i, c in attrs[[j]].itertuples():
+                if not c:
+                    continue
+                css_list = maybe_convert_css_to_tuples(c)
+                if axis == 0:
+                    self.ctx_index[(i, j)].extend(css_list)
+                else:
+                    self.ctx_columns[(j, i)].extend(css_list)
+
     def _copy(self, deepcopy: bool = False) -> Styler:
         """
         Copies a Styler, allowing for deepcopy or shallow copy
@@ -1060,6 +1102,8 @@ class Styler(StylerRenderer):
             "hidden_rows",
             "hidden_columns",
             "ctx",
+            "ctx_index",
+            "ctx_columns",
             "cell_context",
             "_todo",
             "table_styles",
@@ -1181,6 +1225,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
+        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.applymap: Apply a CSS-styling function elementwise.
 
         Notes
@@ -1224,6 +1270,143 @@ class Styler(StylerRenderer):
         )
         return self
 
+    def _apply_index(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        method: str = "apply",
+        **kwargs,
+    ) -> Styler:
+        axis = self.data._get_axis_number(axis)
+        obj = self.index if axis == 0 else self.columns
+
+        levels_ = _refactor_levels(level, obj)
+        data = DataFrame(obj.to_list()).loc[:, levels_]
+
+        if method == "apply":
+            result = data.apply(func, axis=0, **kwargs)
+        elif method == "applymap":
+            result = data.applymap(func, **kwargs)
+
+        self._update_ctx_header(result, axis)
+        return self
+
+    @doc(
+        this="apply",
+        wise="level-wise",
+        alt="applymap",
+        altwise="elementwise",
+        func="take a Series and return a string array of the same length",
+        axis='{0, 1, "index", "columns"}',
+        input_note="the index as a Series, if an Index, or a level of a MultiIndex",
+        output_note="an identically sized array of CSS styles as strings",
+        var="s",
+        ret='np.where(s == "B", "background-color: yellow;", "")',
+        ret2='["background-color: yellow;" if "x" in v else "" for v in s]',
+    )
+    def apply_index(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        **kwargs,
+    ) -> Styler:
+        """
+        Apply a CSS-styling function to the index or column headers, {wise}.
+
+        Updates the HTML representation with the result.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        func : function
+            ``func`` should {func}.
+        axis : {axis}
+            The headers over which to apply the function.
+        level : int, str, list, optional
+            If index is MultiIndex the level(s) over which to apply the function.
+        **kwargs : dict
+            Pass along to ``func``.
+
+        Returns
+        -------
+        self : Styler
+
+        See Also
+        --------
+        Styler.{alt}_index: Apply a CSS-styling function to headers {altwise}.
+        Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
+        Styler.applymap: Apply a CSS-styling function elementwise.
+
+        Notes
+        -----
+        Each input to ``func`` will be {input_note}. The output of ``func`` should be
+        {output_note}, in the format 'attribute: value; attribute2: value2; ...'
+        or, if nothing is to be applied to that element, an empty string or ``None``.
+
+        Examples
+        --------
+        Basic usage to conditionally highlight values in the index.
+
+        >>> df = pd.DataFrame([[1,2], [3,4]], index=["A", "B"])
+        >>> def color_b(s):
+        ...     return {ret}
+        >>> df.style.{this}_index(color_b)  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/appmaphead1.png
+
+        Selectively applying to specific levels of MultiIndex columns.
+
+        >>> midx = pd.MultiIndex.from_product([['ix', 'jy'], [0, 1], ['x3', 'z4']])
+        >>> df = pd.DataFrame([np.arange(8)], columns=midx)
+        >>> def highlight_x({var}):
+        ...     return {ret2}
+        >>> df.style.{this}_index(highlight_x, axis="columns", level=[0, 2])
+        ...  # doctest: +SKIP
+
+        .. figure:: ../../_static/style/appmaphead2.png
+        """
+        self._todo.append(
+            (
+                lambda instance: getattr(instance, "_apply_index"),
+                (func, axis, level, "apply"),
+                kwargs,
+            )
+        )
+        return self
+
+    @doc(
+        apply_index,
+        this="applymap",
+        wise="elementwise",
+        alt="apply",
+        altwise="level-wise",
+        func="take a scalar and return a string",
+        axis='{0, 1, "index", "columns"}',
+        input_note="an index value, if an Index, or a level value of a MultiIndex",
+        output_note="CSS styles as a string",
+        var="v",
+        ret='"background-color: yellow;" if v == "B" else None',
+        ret2='"background-color: yellow;" if "x" in v else None',
+    )
+    def applymap_index(
+        self,
+        func: Callable[..., Styler],
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        **kwargs,
+    ) -> Styler:
+        self._todo.append(
+            (
+                lambda instance: getattr(instance, "_apply_index"),
+                (func, axis, level, "applymap"),
+                kwargs,
+            )
+        )
+        return self
+
     def _applymap(
         self, func: Callable, subset: Subset | None = None, **kwargs
     ) -> Styler:
@@ -1246,7 +1429,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         func : function
-            ``func`` should take a scalar and return a scalar.
+            ``func`` should take a scalar and return a string.
         subset : label, array-like, IndexSlice, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
@@ -1260,6 +1443,8 @@ class Styler(StylerRenderer):
 
         See Also
         --------
+        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
         Notes
@@ -1519,7 +1704,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to make the index or column headers sticky.
         pixel_size : int, optional
             Required to configure the width of index cells or the height of column
@@ -1543,14 +1728,9 @@ class Styler(StylerRenderer):
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
-        if axis in [0, "index"]:
-            axis, obj = 0, self.data.index
-            pixel_size = 75 if not pixel_size else pixel_size
-        elif axis in [1, "columns"]:
-            axis, obj = 1, self.data.columns
-            pixel_size = 25 if not pixel_size else pixel_size
-        else:
-            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+        axis = self.data._get_axis_number(axis)
+        obj = self.data.index if axis == 0 else self.data.columns
+        pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
         props = "position:sticky; background-color:white;"
         if not isinstance(obj, pd.MultiIndex):
@@ -1735,10 +1915,9 @@ class Styler(StylerRenderer):
         more details.
         """
         if isinstance(table_styles, dict):
-            if axis in [0, "index"]:
-                obj, idf = self.data.columns, ".col"
-            else:
-                obj, idf = self.data.index, ".row"
+            axis = self.data._get_axis_number(axis)
+            obj = self.data.index if axis == 1 else self.data.columns
+            idf = ".row" if axis == 1 else ".col"
 
             table_styles = [
                 {
@@ -2703,15 +2882,13 @@ class Styler(StylerRenderer):
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
         kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
-        if axis in [0, "index"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply: int | None = 1
-        elif axis in [1, "columns"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply = 0
-        else:  # axis is None
+        if axis is None:
             q = Series(data.to_numpy().ravel()).quantile(**kwargs)
-            axis_apply = None
+            axis_apply: int | None = None
+        else:
+            axis = self.data._get_axis_number(axis)
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 1 - axis
 
         if props is None:
             props = f"background-color: {color};"

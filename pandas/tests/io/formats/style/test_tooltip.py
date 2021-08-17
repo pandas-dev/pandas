@@ -36,7 +36,7 @@ def styler(df):
 )
 def test_tooltip_render(ttips, styler):
     # GH 21266
-    result = styler.set_tooltips(ttips).render()
+    result = styler.set_tooltips(ttips).to_html()
 
     # test tooltip table level class
     assert "#T__ .pd-t {\n  visibility: hidden;\n" in result
@@ -61,7 +61,7 @@ def test_tooltip_render(ttips, styler):
 
 def test_tooltip_ignored(styler):
     # GH 21266
-    result = styler.render()  # no set_tooltips() creates no <span>
+    result = styler.to_html()  # no set_tooltips() creates no <span>
     assert '<style type="text/css">\n</style>' in result
     assert '<span class="pd-t"></span>' not in result
 
@@ -72,7 +72,7 @@ def test_tooltip_css_class(styler):
         DataFrame([["tooltip"]], index=["x"], columns=["A"]),
         css_class="other-class",
         props=[("color", "green")],
-    ).render()
+    ).to_html()
     assert "#T__ .other-class {\n  color: green;\n" in result
     assert '#T__ #T__row0_col0 .other-class::after {\n  content: "tooltip";\n' in result
 
@@ -81,5 +81,5 @@ def test_tooltip_css_class(styler):
         DataFrame([["tooltip"]], index=["x"], columns=["A"]),
         css_class="another-class",
         props="color:green;color:red;",
-    ).render()
+    ).to_html()
     assert "#T__ .another-class {\n  color: green;\n  color: red;\n}" in result
