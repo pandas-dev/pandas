@@ -3,11 +3,11 @@
 {{ header }}
 
 ********************
-10 minutes to pandas
+10 minutes quick cheat-guide to pandas
 ********************
 
-This is a short introduction to pandas, geared mainly for new users.
-You can see more complex recipes in the :ref:`Cookbook<cookbook>`.
+This is a quick overview of pandas, aimed mostly towards newcomers.
+More complicated recipes can be found in the :ref:`Cookbook<cookbook>`.
 
 Customarily, we import as follows:
 
@@ -26,11 +26,10 @@ a default integer index:
 
 .. ipython:: python
 
-   s = pd.Series([1, 3, 5, np.nan, 6, 8])
+   s = pd.Series([1, np.nan, np.nan, 27, 3, 15, np.nan, 6, 8, 10])
    s
 
-Creating a :class:`DataFrame` by passing a NumPy array, with a datetime index
-and labeled columns:
+Creating a :class:`DataFrame` in which a NumPy array with a datetime index and named columns is passed:
 
 .. ipython:: python
 
@@ -63,9 +62,10 @@ The columns of the resulting :class:`DataFrame` have different
 
    df2.dtypes
 
-If you're using IPython, tab completion for column names (as well as public
-attributes) is automatically enabled. Here's a subset of the attributes that
-will be completed:
+Tab completion for column names (as well as public attributes) is enabled by
+default if you're using IPython. A selection of the characteristics that 
+will be completed is shown below:
+
 
 .. ipython::
 
@@ -93,12 +93,17 @@ Viewing data
 
 See the :ref:`Basics section <basics>`.
 
-Here is how to view the top and bottom rows of the frame:
+The top and bottom rows of the frame can be seen as follows:
 
 .. ipython:: python
 
-   df.head()
+   df.head() 
    df.tail(3)
+
+.. note::
+
+   head() gives the first 5 rows
+   tail() gives the rows from the end
 
 Display the index, columns:
 
@@ -149,9 +154,17 @@ Transposing your data:
 
 Sorting by an axis:
 
+.. note::
+
+   axis = 0 signifies rows, whereas, axis =1 signifies columns
+   ascending = False gives the dataframe arranged in descending order
+   check below : 
+
 .. ipython:: python
 
    df.sort_index(axis=1, ascending=False)
+
+   df.sort_index(axis=0, ascending=False)
 
 Sorting by values:
 
@@ -348,8 +361,8 @@ A ``where`` operation with setting:
 Missing data
 ------------
 
-pandas primarily uses the value ``np.nan`` to represent missing data. It is by
-default not included in computations. See the :ref:`Missing Data section
+The number ``np.nan`` is commonly used by pandas to indicate missing data. 
+It is not included in calculations by default. See the :ref:`Missing Data section
 <missing_data>`.
 
 Reindexing allows you to change/add/delete the index on a specified axis. This
@@ -402,12 +415,12 @@ Same operation on the other axis:
 
    df.mean(1)
 
-Operating with objects that have different dimensionality and need alignment.
-In addition, pandas automatically broadcasts along the specified dimension:
+Working with objects of varying dimensions that must be aligned.
+Furthermore, pandas transmits along the given dimension automatically :
 
 .. ipython:: python
 
-   s = pd.Series([1, 3, 5, np.nan, 6, 8], index=dates).shift(2)
+   s = pd.Series([1, np.nan, np.nan, 27, 3, 15, np.nan, 6, 8, 10], index=dates).shift(2)
    s
    df.sub(s, axis="index")
 
@@ -454,10 +467,9 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together Series and
-DataFrame objects with various kinds of set logic for the indexes
-and relational algebra functionality in the case of join / merge-type
-operations.
+In the event of join / merge-type operations, pandas provides a variety of tools
+for conveniently merging Series and DataFrame objects with various types of set
+logic for the indexes and relational algebra capability.
 
 See the :ref:`Merging section <merging>`.
 
