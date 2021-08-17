@@ -1890,10 +1890,9 @@ class Styler(StylerRenderer):
         more details.
         """
         if isinstance(table_styles, dict):
-            if axis in [0, "index"]:
-                obj, idf = self.data.columns, ".col"
-            else:
-                obj, idf = self.data.index, ".row"
+            axis = self.data._get_axis_number(axis)
+            obj = self.data.index if axis == 1 else self.data.columns
+            idf = ".row" if axis == 1 else ".col"
 
             table_styles = [
                 {
@@ -2858,15 +2857,13 @@ class Styler(StylerRenderer):
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
         kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
-        if axis in [0, "index"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply: int | None = 1
-        elif axis in [1, "columns"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply = 0
-        else:  # axis is None
+        if axis is None:
             q = Series(data.to_numpy().ravel()).quantile(**kwargs)
-            axis_apply = None
+            axis_apply: int | None = None
+        else:
+            axis = self.data._get_axis_number(axis)
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 1 - axis
 
         if props is None:
             props = f"background-color: {color};"
