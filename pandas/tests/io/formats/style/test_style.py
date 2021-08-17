@@ -1216,11 +1216,11 @@ class TestStyler:
         df = DataFrame(data=[[0, 1], [1, 2]], columns=["A", "B"])
         s = Styler(df, uuid_len=0)
         s = s.set_table_styles({"A": [{"selector": "", "props": [("color", "blue")]}]})
-        assert "#T__ .col0 {\n  color: blue;\n}" in s.to_html()
+        assert "#T_ .col0 {\n  color: blue;\n}" in s.to_html()
         s = s.set_table_styles(
             {0: [{"selector": "", "props": [("color", "blue")]}]}, axis=1
         )
-        assert "#T__ .row0 {\n  color: blue;\n}" in s.to_html()
+        assert "#T_ .row0 {\n  color: blue;\n}" in s.to_html()
 
     @pytest.mark.parametrize("len_", [1, 5, 32, 33, 100])
     def test_uuid_len(self, len_):
@@ -1230,9 +1230,9 @@ class TestStyler:
         strt = s.find('id="T_')
         end = s[strt + 6 :].find('"')
         if len_ > 32:
-            assert end == 32 + 1
+            assert end == 32
         else:
-            assert end == len_ + 1
+            assert end == len_
 
     @pytest.mark.parametrize("len_", [-2, "bad", None])
     def test_uuid_len_raises(self, len_):

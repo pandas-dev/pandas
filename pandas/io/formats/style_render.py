@@ -90,7 +90,7 @@ class StylerRenderer:
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
         self.uuid_len = min(32, uuid_len)
-        self.uuid = (uuid or uuid4().hex[: self.uuid_len]) + "_"
+        self.uuid = uuid or uuid4().hex[: self.uuid_len]
         self.table_styles = table_styles
         self.table_attributes = table_attributes
         self.caption = caption
@@ -1210,7 +1210,7 @@ class Tooltips:
         -------
         pseudo_css : List
         """
-        selector_id = "#T_" + uuid + "row" + str(row) + "_col" + str(col)
+        selector_id = "#T_" + uuid + "_row" + str(row) + "_col" + str(col)
         return [
             {
                 "selector": selector_id + f":hover .{name}",
