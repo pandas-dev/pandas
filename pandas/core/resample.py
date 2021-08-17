@@ -316,6 +316,12 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
     2013-01-01 00:00:04       NaN      5
+
+    >>> r.agg(average="mean", total="sum")
+                             average  total
+    2013-01-01 00:00:00      1.5      3
+    2013-01-01 00:00:02      3.5      7
+    2013-01-01 00:00:04      5.0      5
     """
     )
 
@@ -326,7 +332,7 @@ class Resampler(BaseGroupBy, PandasObject):
         klass="DataFrame",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
 
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
