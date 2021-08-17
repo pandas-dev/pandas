@@ -208,7 +208,7 @@ Deprecations
 - Deprecated the 'kind' argument in :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer`, :meth:`Index.slice_locs`; in a future version passing 'kind' will raise (:issue:`42857`)
 - Deprecated dropping of nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`EWM` aggregations (:issue:`42738`)
 - Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
--
+- Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
 
 .. ---------------------------------------------------------------------------
 
