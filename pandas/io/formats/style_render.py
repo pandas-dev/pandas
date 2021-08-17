@@ -811,7 +811,135 @@ class StylerRenderer:
         thousands: str | None = None,
         escape: str | None = None,
     ) -> StylerRenderer:
-        r""" """
+        r"""
+        Format the text display value of index labels or column headers.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Object to define how values are displayed. See notes.
+        axis : int, str
+            Whether to apply the formatter to the index or column headers.
+        level : int, str, list
+            The level(s) over which to apply the generic formatter.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        This method assigns a formatting function, ``formatter``, to each level label
+        in the DataFrame's index or column headers. If ``formatter`` is ``None``,
+        then the default formatter is used.
+        If a callable then that function should take a label value as input and return
+        a displayable representation, such as a string. If ``formatter`` is
+        given as a string this is assumed to be a valid Python format specification
+        and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given,
+        keys should correspond to MultiIndex level numbers or names, and values should
+        be string or callable, as above.
+
+        The default formatter currently expresses floats and complex numbers with the
+        pandas display precision unless using the ``precision`` argument here. The
+        default formatter does not adjust the representation of missing values unless
+        the ``na_rep`` argument is used.
+
+        The ``level`` argument defines which levels of a MultiIndex to apply the
+        method to. If the ``formatter`` argument is given in dict form but does
+        not include all levels within the level argument then these unspecified levels
+        will have the default formatter applied. Any levels in the formatter dict
+        specifically excluded from the level argument will raise a ``KeyError``.
+
+        When using a ``formatter`` string the dtypes must be compatible, otherwise a
+        `ValueError` will be raised.
+
+        Examples
+        --------
+        Using ``na_rep`` and ``precision`` with the default ``formatter``
+
+        >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
+        >>> df.style.format(na_rep='MISS', precision=3)  # doctest: +SKIP
+                0       1       2
+        0    MISS   1.000       A
+        1   2.000    MISS   3.000
+
+        Using a ``formatter`` specification on consistent column dtypes
+
+        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])  # doctest: +SKIP
+                0      1          2
+        0    MISS   1.00          A
+        1    2.00   MISS   3.000000
+
+        Using the default ``formatter`` for unspecified columns
+
+        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+        ...  # doctest: +SKIP
+                 0      1     2
+        0    MISS   £ 1.0     A
+        1    2.00    MISS   3.0
+
+        Multiple ``na_rep`` or ``precision`` specifications under the default
+        ``formatter``.
+
+        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
+        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
+                0      1      2
+        0    MISS   1.00      A
+        1     2.0   PASS   3.00
+
+        Using a callable ``formatter`` function.
+
+        >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
+        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+        ...  # doctest: +SKIP
+                0        1        2
+        0    MISS   1.0000   STRING
+        1     2.0     MISS    FLOAT
+
+        Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
+
+        >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
+        >>> s = df.style.format(
+        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
+        ...     )
+        >>> s.to_html()  # doctest: +SKIP
+        ...
+        <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
+        <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
+        <td .. >NA</td>
+        ...
+
+        Using a ``formatter`` with LaTeX ``escape``.
+
+        >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
+        >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{ll}
+        {} & {0} \\
+        0 & \textbf{123} \\
+        1 & \textbf{\textasciitilde \space \textasciicircum } \\
+        2 & \textbf{\$\%\#} \\
+        \end{tabular}
+        """
         if axis == 0:
             display_funcs_, obj = self._display_funcs_index, self.index
         elif axis == 1:
