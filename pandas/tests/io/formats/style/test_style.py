@@ -250,9 +250,9 @@ def test_clear(mi_styler_comp):
         "data",
         "index",
         "columns",
-        "cell_ids",
         "uuid",
         "uuid_len",  # uuid is set to be the same on styler and clean_copy
+        "cell_ids",
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
