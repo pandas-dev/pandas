@@ -1300,6 +1300,21 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [[Timestamp("2021-01-01")]],
+            [{"x": Timestamp("2021-01-01")}],
+            {"x": [Timestamp("2021-01-01")]},
+            {"x": Timestamp("2021-01-01")},
+        ],
+    )
+    def test_constructor_one_element_data_list(self, data):
+        # GH#42810
+        result = DataFrame(data, index=[0, 1, 2], columns=["x"])
+        expected = DataFrame({"x": [Timestamp("2021-01-01")] * 3})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Sequence like
