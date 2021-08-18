@@ -694,7 +694,7 @@ class _MergeOperation:
         self._cross = cross_col
 
         if self.how in ["anti_left", "anti_right", "anti_full"]:
-            self._anti_join_update()
+            self.left, self.right, self.how = self._anti_join_update()
 
         # note this function has side effects
         (
@@ -748,43 +748,29 @@ class _MergeOperation:
         return result.__finalize__(self, method="merge")
 
     def _anti_join_update(self):
-        def isin_nd(a, b, invert=False):
-            # a,b are the nD input arrays to give us
-            # "isin-like" functionality across them
-            a = np.ascontiguousarray(a)
-            b = np.ascontiguousarray(b)
-            void_dt = np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
-            A, B = a.view(void_dt).ravel(), b.view(void_dt).ravel()
-            return np.isin(A, B, invert=invert)
+        def _anti_helper(_left, _right, _how):
+            if not isinstance(_left, Index):
+                if len(_left.columns) == 1:
+                    _left = Index(_left.values.flatten())
+                else:
+                    _left = MultiIndex.from_frame(_left)
+            if not isinstance(_right, Index):
+                if len(_right.columns) == 1:
+                    _right = Index(_right.values.flatten())
+                else:
+                    _right = MultiIndex.from_frame(_right)
 
-        def _multi_columns(arr_l, arr_r, how):
-            if len(arr_l.shape) == 1:
-                arr_l = np.atleast_2d(arr_l).reshape(-1, np.atleast_2d(arr_l).shape[0])
-            if len(arr_r.shape) == 1:
-                arr_r = np.atleast_2d(arr_r).reshape(-1, np.atleast_2d(arr_r).shape[0])
-            if arr_l.dtype.kind == "O" or arr_r.dtype.kind == "O":
-                arr_l = arr_l.astype(str)
-                arr_r = arr_r.astype(str)
-            if how == "anti_right":
-                join_index_l = join_index_r = isin_nd(arr_r, arr_l, invert=True)
-                _how = "right"
-            elif how == "anti_left":
-                join_index_l = join_index_r = isin_nd(arr_l, arr_r, invert=True)
-                _how = "left"
+            if _how in ["anti_left", "anti_right"]:
+                _how = _how.split("_")[1]
             else:
-                _union = np.unique(np.vstack((arr_l, arr_r)), axis=0)
-                _intersect = np.array(
-                    list({tuple(x) for x in arr_l} & {tuple(x) for x in arr_r})
-                )
-                _union_index = _union[isin_nd(_union, _intersect, invert=True)]
-                join_index_l = isin_nd(arr_l, _union_index)
-                join_index_r = isin_nd(arr_r, _union_index)
                 _how = "outer"
+            join_index_l = ~_left.isin(_right)
+            join_index_r = ~_right.isin(_left)
             return (join_index_l, join_index_r, _how)
 
         if self.left_index and self.right_index:
-            join_index_l, join_index_r, self.how = _multi_columns(
-                self.left.index.values, self.right.index.values, self.how
+            join_index_l, join_index_r, self.how = _anti_helper(
+                self.left.index, self.right.index, self.how
             )
         elif self.on is not None or (
             None not in self.left_on and None not in self.right_on
@@ -794,22 +780,23 @@ class _MergeOperation:
             else:
                 left_on = self.left_on
                 right_on = self.right_on
-            join_index_l, join_index_r, self.how = _multi_columns(
-                self.left[left_on].values, self.right[right_on].values, self.how
+            join_index_l, join_index_r, self.how = _anti_helper(
+                self.left[left_on], self.right[right_on], self.how
             )
         elif self.left_index and self.right_on is not None:
-            join_index_l, join_index_r, self.how = _multi_columns(
-                self.left.index.values, self.right[self.right_on].values, self.how
+            join_index_l, join_index_r, self.how = _anti_helper(
+                self.left.index, self.right[self.right_on], self.how
             )
         elif self.right_index and self.left_on is not None:
-            join_index_l, join_index_r, self.how = _multi_columns(
-                self.left[self.left_on].values, self.right.index.values, self.how
+            join_index_l, join_index_r, self.how = _anti_helper(
+                self.left[self.left_on], self.right.index, self.how
             )
-        self.left = self.left[join_index_l]
-        self.right = self.right[join_index_r]
+        self.left = self.left.loc[join_index_l]
+        self.right = self.right.loc[join_index_r]
 
         # sanity check to ensure correct `how`
         assert self.how in ["left", "right", "inner", "outer"]
+        return (self.left, self.right, self.how)
 
     def _maybe_drop_cross_column(
         self, result: DataFrame, cross_col: str | None
