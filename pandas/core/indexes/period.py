@@ -427,15 +427,14 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                     raise KeyError(key) from err
 
             if reso == self.dtype.resolution:
-                # the reso < self.dtype.resolution case goes through _get_string_slice
+                # the reso > self.dtype.resolution case goes through _partial_date_slice
                 key = Period(parsed, freq=self.freq)
                 loc = self.get_loc(key, method=method, tolerance=tolerance)
                 # Recursing instead of falling through matters for the exception
                 #  message in test_get_loc3 (though not clear if that really matters)
                 return loc
-            elif method is None:
-                raise KeyError(key)
-            else:
+            elif reso < self.dtype.resolution:
+                # GH 40145 Fall through
                 key = Period(parsed, freq=self.freq)
 
         elif isinstance(key, Period):
