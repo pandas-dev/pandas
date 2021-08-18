@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.core.reshape.merge import merge
@@ -251,11 +252,11 @@ class Test_AntiJoin:
         ],
     )
     def test_anti_multicol(self, expected, how, on):
-        df_2 = DataFrame({"B": [5, 5, 9], "C": [4, 6, 7], "D": ["a", "b", "d"]})
-        df_1 = DataFrame(
+        right = DataFrame({"B": [5, 5, 9], "C": [4, 6, 7], "D": ["a", "b", "d"]})
+        left = DataFrame(
             {"A": [1, 2, 3], "B": [4, 5, 6], "C": [5, 6, 7]}, index=["a", "b", "c"]
         )
-        result = merge(df_1, df_2, how=how, on=on)
+        result = merge(left, right, how=how, on=on)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -319,7 +320,88 @@ class Test_AntiJoin:
         ],
     )
     def test_anti_with_nan(self, expected, how, on, left_on, right_on):
-        df_1 = DataFrame({"A": [np.nan, 2, np.nan], "B": ["a", 2, 3]})
-        df_2 = DataFrame({"C": [1, 3, np.nan], "B": ["a", 2, "c"]})
-        result = merge(df_1, df_2, on=on, how=how, left_on=left_on, right_on=right_on)
+        left = DataFrame({"A": [np.nan, 2, np.nan], "B": ["a", 2, 3]})
+        right = DataFrame({"C": [1, 3, np.nan], "B": ["a", 2, "c"]})
+        result = merge(left, right, on=on, how=how, left_on=left_on, right_on=right_on)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected, how, left_on, right_on",
+        [
+            (
+                DataFrame({"A": [np.nan, pd.NA], "B": ["a", 3], "C": [np.nan, np.nan]}),
+                "anti_left",
+                "B",
+                "B",
+            ),
+            (
+                DataFrame(
+                    {"A": [np.nan, np.nan], "B": [pd.NA, "c"], "C": [1, np.nan]}
+                ).astype({"A": object}),
+                "anti_right",
+                "B",
+                "B",
+            ),
+            (
+                DataFrame(
+                    {
+                        "A": [np.nan, pd.NA, np.nan, np.nan],
+                        "B": ["a", 3, pd.NA, "c"],
+                        "C": [np.nan, np.nan, 1, np.nan],
+                    }
+                ),
+                "anti_full",
+                "B",
+                "B",
+            ),
+            (
+                DataFrame(
+                    {
+                        "A": [2, pd.NA],
+                        "B_x": [2, 3],
+                        "C": [np.nan, np.nan],
+                        "B_y": [np.nan, np.nan],
+                    }
+                ).astype({"B_x": object, "B_y": object}),
+                "anti_left",
+                "A",
+                "C",
+            ),
+            (
+                DataFrame(
+                    {
+                        "A": [np.nan, np.nan],
+                        "B_x": [np.nan, np.nan],
+                        "C": [1.0, 3],
+                        "B_y": [pd.NA, 2],
+                    }
+                ).astype(
+                    {
+                        "A": object,
+                        "B_x": object,
+                    }
+                ),
+                "anti_right",
+                "A",
+                "C",
+            ),
+            (
+                DataFrame(
+                    {
+                        "A": [2, pd.NA, np.nan, np.nan],
+                        "B_x": [2, 3, np.nan, np.nan],
+                        "C": [np.nan, np.nan, 1, 3],
+                        "B_y": [np.nan, np.nan, pd.NA, 2],
+                    }
+                ).astype({"B_x": object}),
+                "anti_full",
+                "A",
+                "C",
+            ),
+        ],
+    )
+    def test_anti_with_nan_and_NA(self, expected, how, left_on, right_on):
+        left = DataFrame({"A": [np.nan, 2, pd.NA], "B": ["a", 2, 3]})
+        right = DataFrame({"C": [1, 3, np.nan], "B": [pd.NA, 2, "c"]})
+        result = merge(left, right, how=how, left_on=left_on, right_on=right_on)
         tm.assert_frame_equal(result, expected)
