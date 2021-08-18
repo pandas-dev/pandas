@@ -2046,7 +2046,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             Unicode,
             select,
         )
-        from sqlalchemy.orm import Session
+        from sqlalchemy.orm import Session, sessionmaker
 
         if _gt14():
             from sqlalchemy.orm import declarative_base
@@ -2072,13 +2072,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                     session.flush()
                     df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
         else:
-            with Session(self.conn) as session:
-                with session.transaction:
-                    conn = session.connection()
-                    Temporary.__table__.create(conn)
-                    session.add(Temporary(spam=test_data))
-                    session.flush()
-                    df = sql.read_sql_query(sql=select([Temporary.spam]), con=conn)
+            Session = sessionmaker()
+            session = Session(bind=self.conn)
+            with session.transaction:
+                conn = session.connection()
+                Temporary.__table__.create(conn)
+                session.add(Temporary(spam=test_data))
+                session.flush()
+                df = sql.read_sql_query(sql=select([Temporary.spam]), con=conn)
 
         tm.assert_frame_equal(df, expected)
 
