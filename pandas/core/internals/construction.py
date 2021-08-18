@@ -433,7 +433,7 @@ def dict_to_mgr(
             arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
-        data_names = columns
+        data_names = ensure_index(columns)
 
     else:
         keys = list(data.keys())
