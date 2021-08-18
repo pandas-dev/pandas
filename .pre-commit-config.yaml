@@ -164,3 +164,8 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: pandas-errors-documented
+        name: Ensure pandas errors are documented in doc/source/reference/general_utility_functions.rst
+        entry: python scripts/pandas_errors_documented.py
+        language: python
+        files: ^pandas/errors/__init__.py$
