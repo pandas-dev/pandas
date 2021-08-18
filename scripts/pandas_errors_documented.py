@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import argparse
 import ast
+import pathlib
 import sys
 from typing import Sequence
 
-API_PATH = "doc/source/reference/general_utility_functions.rst"
+API_PATH = pathlib.Path("doc/source/reference/general_utility_functions.rst").resolve()
 
 
 def get_defined_errors(content: str) -> set[str]:
