@@ -36,11 +36,11 @@ class Render:
 
     def time_format_render(self, cols, rows):
         self._style_format()
-        self.st.render()
+        self.st._render_html(True, True)
 
     def peakmem_format_render(self, cols, rows):
         self._style_format()
-        self.st.render()
+        self.st._render_html(True, True)
 
     def _style_apply(self):
         def _apply_func(s):

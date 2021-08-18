@@ -16,6 +16,7 @@ The SQL tests are broken down in different classes:
     - Tests for the fallback mode (`TestSQLiteFallback`)
 
 """
+from __future__ import annotations
 
 import csv
 from datetime import (
@@ -73,96 +74,6 @@ except ImportError:
     SQLALCHEMY_INSTALLED = False
 
 SQL_STRINGS = {
-    "create_test_types": {
-        "sqlite": """CREATE TABLE types_test_data (
-                    "TextCol" TEXT,
-                    "DateCol" TEXT,
-                    "IntDateCol" INTEGER,
-                    "IntDateOnlyCol" INTEGER,
-                    "FloatCol" REAL,
-                    "IntCol" INTEGER,
-                    "BoolCol" INTEGER,
-                    "IntColWithNull" INTEGER,
-                    "BoolColWithNull" INTEGER
-                )""",
-        "mysql": """CREATE TABLE types_test_data (
-                    `TextCol` TEXT,
-                    `DateCol` DATETIME,
-                    `IntDateCol` INTEGER,
-                    `IntDateOnlyCol` INTEGER,
-                    `FloatCol` DOUBLE,
-                    `IntCol` INTEGER,
-                    `BoolCol` BOOLEAN,
-                    `IntColWithNull` INTEGER,
-                    `BoolColWithNull` BOOLEAN
-                )""",
-        "postgresql": """CREATE TABLE types_test_data (
-                    "TextCol" TEXT,
-                    "DateCol" TIMESTAMP,
-                    "DateColWithTz" TIMESTAMP WITH TIME ZONE,
-                    "IntDateCol" INTEGER,
-                    "IntDateOnlyCol" INTEGER,
-                    "FloatCol" DOUBLE PRECISION,
-                    "IntCol" INTEGER,
-                    "BoolCol" BOOLEAN,
-                    "IntColWithNull" INTEGER,
-                    "BoolColWithNull" BOOLEAN
-                )""",
-    },
-    "insert_test_types": {
-        "sqlite": {
-            "query": """
-                INSERT INTO types_test_data
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-            "fields": (
-                "TextCol",
-                "DateCol",
-                "IntDateCol",
-                "IntDateOnlyCol",
-                "FloatCol",
-                "IntCol",
-                "BoolCol",
-                "IntColWithNull",
-                "BoolColWithNull",
-            ),
-        },
-        "mysql": {
-            "query": """
-                INSERT INTO types_test_data
-                VALUES("%s", %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-            "fields": (
-                "TextCol",
-                "DateCol",
-                "IntDateCol",
-                "IntDateOnlyCol",
-                "FloatCol",
-                "IntCol",
-                "BoolCol",
-                "IntColWithNull",
-                "BoolColWithNull",
-            ),
-        },
-        "postgresql": {
-            "query": """
-                INSERT INTO types_test_data
-                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-            "fields": (
-                "TextCol",
-                "DateCol",
-                "DateColWithTz",
-                "IntDateCol",
-                "IntDateOnlyCol",
-                "FloatCol",
-                "IntCol",
-                "BoolCol",
-                "IntColWithNull",
-                "BoolColWithNull",
-            ),
-        },
-    },
     "read_parameters": {
         "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
         "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
@@ -267,10 +178,128 @@ def create_and_load_iris_view(conn):
             conn.execute(stmt)
 
 
+def types_table_metadata(dialect: str):
+    from sqlalchemy import (
+        TEXT,
+        Boolean,
+        Column,
+        DateTime,
+        Float,
+        Integer,
+        MetaData,
+        Table,
+    )
+
+    date_type = TEXT if dialect == "sqlite" else DateTime
+    bool_type = Integer if dialect == "sqlite" else Boolean
+    metadata = MetaData()
+    types = Table(
+        "types",
+        metadata,
+        Column("TextCol", TEXT),
+        Column("DateCol", date_type),
+        Column("IntDateCol", Integer),
+        Column("IntDateOnlyCol", Integer),
+        Column("FloatCol", Float),
+        Column("IntCol", Integer),
+        Column("BoolCol", bool_type),
+        Column("IntColWithNull", Integer),
+        Column("BoolColWithNull", bool_type),
+    )
+    if dialect == "postgresql":
+        types.append_column(Column("DateColWithTz", DateTime(timezone=True)))
+    return types
+
+
+def create_and_load_types_sqlite3(conn: sqlite3.Connection, types_data: list[dict]):
+    cur = conn.cursor()
+    stmt = """CREATE TABLE types (
+                    "TextCol" TEXT,
+                    "DateCol" TEXT,
+                    "IntDateCol" INTEGER,
+                    "IntDateOnlyCol" INTEGER,
+                    "FloatCol" REAL,
+                    "IntCol" INTEGER,
+                    "BoolCol" INTEGER,
+                    "IntColWithNull" INTEGER,
+                    "BoolColWithNull" INTEGER
+                )"""
+    cur.execute(stmt)
+
+    stmt = """
+            INSERT INTO types
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+    cur.executemany(stmt, types_data)
+
+
+def create_and_load_types(conn, types_data: list[dict], dialect: str):
+    from sqlalchemy import insert
+    from sqlalchemy.engine import Engine
+
+    types = types_table_metadata(dialect)
+    types.drop(conn, checkfirst=True)
+    types.create(bind=conn)
+
+    stmt = insert(types).values(types_data)
+    if isinstance(conn, Engine):
+        with conn.connect() as conn:
+            conn.execute(stmt)
+    else:
+        conn.execute(stmt)
+
+
 @pytest.fixture
 def iris_path(datapath):
     iris_path = datapath("io", "data", "csv", "iris.csv")
     return Path(iris_path)
+
+
+@pytest.fixture
+def types_data():
+    return [
+        {
+            "TextCol": "first",
+            "DateCol": "2000-01-03 00:00:00",
+            "IntDateCol": 535852800,
+            "IntDateOnlyCol": 20101010,
+            "FloatCol": 10.10,
+            "IntCol": 1,
+            "BoolCol": False,
+            "IntColWithNull": 1,
+            "BoolColWithNull": False,
+            "DateColWithTz": "2000-01-01 00:00:00-08:00",
+        },
+        {
+            "TextCol": "first",
+            "DateCol": "2000-01-04 00:00:00",
+            "IntDateCol": 1356998400,
+            "IntDateOnlyCol": 20101212,
+            "FloatCol": 10.10,
+            "IntCol": 1,
+            "BoolCol": False,
+            "IntColWithNull": None,
+            "BoolColWithNull": None,
+            "DateColWithTz": "2000-06-01 00:00:00-07:00",
+        },
+    ]
+
+
+@pytest.fixture
+def types_data_frame(types_data):
+    dtypes = {
+        "TextCol": "str",
+        "DateCol": "str",
+        "IntDateCol": "int64",
+        "IntDateOnlyCol": "int64",
+        "FloatCol": "float",
+        "IntCol": "int64",
+        "BoolCol": "int64",
+        "IntColWithNull": "float",
+        "BoolColWithNull": "float",
+    }
+    df = DataFrame(types_data)
+    return df[dtypes.keys()].astype(dtypes)
 
 
 @pytest.fixture
@@ -402,98 +431,25 @@ class PandasSQLTest:
         else:
             create_and_load_iris(self.conn, iris_path, self.flavor)
 
+    @pytest.fixture
+    def load_types_data(self, types_data):
+        if not hasattr(self, "conn"):
+            self.setup_connect()
+        if self.flavor != "postgresql":
+            for entry in types_data:
+                entry.pop("DateColWithTz")
+        if isinstance(self.conn, sqlite3.Connection):
+            types_data = [tuple(entry.values()) for entry in types_data]
+            create_and_load_types_sqlite3(self.conn, types_data)
+        else:
+            create_and_load_types(self.conn, types_data, self.flavor)
+
     def _check_iris_loaded_frame(self, iris_frame):
         pytype = iris_frame.dtypes[0].type
         row = iris_frame.iloc[0]
 
         assert issubclass(pytype, np.floating)
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
-
-    def _load_types_test_data(self, data):
-        def _filter_to_flavor(flavor, df):
-            flavor_dtypes = {
-                "sqlite": {
-                    "TextCol": "str",
-                    "DateCol": "str",
-                    "IntDateCol": "int64",
-                    "IntDateOnlyCol": "int64",
-                    "FloatCol": "float",
-                    "IntCol": "int64",
-                    "BoolCol": "int64",
-                    "IntColWithNull": "float",
-                    "BoolColWithNull": "float",
-                },
-                "mysql": {
-                    "TextCol": "str",
-                    "DateCol": "str",
-                    "IntDateCol": "int64",
-                    "IntDateOnlyCol": "int64",
-                    "FloatCol": "float",
-                    "IntCol": "int64",
-                    "BoolCol": "bool",
-                    "IntColWithNull": "float",
-                    "BoolColWithNull": "float",
-                },
-                "postgresql": {
-                    "TextCol": "str",
-                    "DateCol": "str",
-                    "DateColWithTz": "str",
-                    "IntDateCol": "int64",
-                    "IntDateOnlyCol": "int64",
-                    "FloatCol": "float",
-                    "IntCol": "int64",
-                    "BoolCol": "bool",
-                    "IntColWithNull": "float",
-                    "BoolColWithNull": "float",
-                },
-            }
-
-            dtypes = flavor_dtypes[flavor]
-            return df[dtypes.keys()].astype(dtypes)
-
-        df = DataFrame(data)
-        self.types_test = {
-            flavor: _filter_to_flavor(flavor, df)
-            for flavor in ("sqlite", "mysql", "postgresql")
-        }
-
-    def _load_raw_sql(self):
-        self.drop_table("types_test_data")
-        self._get_exec().execute(SQL_STRINGS["create_test_types"][self.flavor])
-        ins = SQL_STRINGS["insert_test_types"][self.flavor]
-        data = [
-            {
-                "TextCol": "first",
-                "DateCol": "2000-01-03 00:00:00",
-                "DateColWithTz": "2000-01-01 00:00:00-08:00",
-                "IntDateCol": 535852800,
-                "IntDateOnlyCol": 20101010,
-                "FloatCol": 10.10,
-                "IntCol": 1,
-                "BoolCol": False,
-                "IntColWithNull": 1,
-                "BoolColWithNull": False,
-            },
-            {
-                "TextCol": "first",
-                "DateCol": "2000-01-04 00:00:00",
-                "DateColWithTz": "2000-06-01 00:00:00-07:00",
-                "IntDateCol": 1356998400,
-                "IntDateOnlyCol": 20101212,
-                "FloatCol": 10.10,
-                "IntCol": 1,
-                "BoolCol": False,
-                "IntColWithNull": None,
-                "BoolColWithNull": None,
-            },
-        ]
-
-        for d in data:
-            self._get_exec().execute(
-                ins["query"], [d[field] for field in ins["fields"]]
-            )
-
-        self._load_types_test_data(data)
 
     def _count_rows(self, table_name):
         result = (
@@ -700,12 +656,11 @@ class _TestSQLApi(PandasSQLTest):
         self.conn = self.connect()
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, load_iris_data):
+    def setup_method(self, load_iris_data, load_types_data):
         self.load_test_data_and_sql()
 
     def load_test_data_and_sql(self):
         create_and_load_iris_view(self.conn)
-        self._load_raw_sql()
 
     def test_read_sql_iris(self):
         iris_frame = sql.read_sql_query("SELECT * FROM iris", self.conn)
@@ -799,11 +754,11 @@ class _TestSQLApi(PandasSQLTest):
     def test_date_parsing(self):
         # Test date parsing in read_sql
         # No Parsing
-        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
+        df = sql.read_sql_query("SELECT * FROM types", self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_query(
-            "SELECT * FROM types_test_data", self.conn, parse_dates=["DateCol"]
+            "SELECT * FROM types", self.conn, parse_dates=["DateCol"]
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
         assert df.DateCol.tolist() == [
@@ -812,7 +767,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types_test_data",
+            "SELECT * FROM types",
             self.conn,
             parse_dates={"DateCol": "%Y-%m-%d %H:%M:%S"},
         )
@@ -823,7 +778,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types_test_data", self.conn, parse_dates=["IntDateCol"]
+            "SELECT * FROM types", self.conn, parse_dates=["IntDateCol"]
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
@@ -832,7 +787,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types_test_data", self.conn, parse_dates={"IntDateCol": "s"}
+            "SELECT * FROM types", self.conn, parse_dates={"IntDateCol": "s"}
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
         assert df.IntDateCol.tolist() == [
@@ -841,7 +796,7 @@ class _TestSQLApi(PandasSQLTest):
         ]
 
         df = sql.read_sql_query(
-            "SELECT * FROM types_test_data",
+            "SELECT * FROM types",
             self.conn,
             parse_dates={"IntDateOnlyCol": "%Y%m%d"},
         )
@@ -855,21 +810,21 @@ class _TestSQLApi(PandasSQLTest):
     @pytest.mark.parametrize(
         "read_sql, text, mode",
         [
-            (sql.read_sql, "SELECT * FROM types_test_data", ("sqlalchemy", "fallback")),
-            (sql.read_sql, "types_test_data", ("sqlalchemy")),
+            (sql.read_sql, "SELECT * FROM types", ("sqlalchemy", "fallback")),
+            (sql.read_sql, "types", ("sqlalchemy")),
             (
                 sql.read_sql_query,
-                "SELECT * FROM types_test_data",
+                "SELECT * FROM types",
                 ("sqlalchemy", "fallback"),
             ),
-            (sql.read_sql_table, "types_test_data", ("sqlalchemy")),
+            (sql.read_sql_table, "types", ("sqlalchemy")),
         ],
     )
-    def test_custom_dateparsing_error(self, read_sql, text, mode, error):
+    def test_custom_dateparsing_error(
+        self, read_sql, text, mode, error, types_data_frame
+    ):
         if self.mode in mode:
-            expected = self.types_test[self.flavor].astype(
-                {"DateCol": "datetime64[ns]"}
-            )
+            expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
             result = read_sql(
                 text,
@@ -885,7 +840,7 @@ class _TestSQLApi(PandasSQLTest):
         # Test case where same column appears in parse_date and index_col
 
         df = sql.read_sql_query(
-            "SELECT * FROM types_test_data",
+            "SELECT * FROM types",
             self.conn,
             index_col="DateCol",
             parse_dates=["DateCol", "IntDateCol"],
@@ -1320,7 +1275,7 @@ class _EngineToConnMixin:
     """
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, load_iris_data):
+    def setup_method(self, load_iris_data, load_types_data):
         super().load_test_data_and_sql()
         engine = self.conn
         conn = engine.connect()
@@ -1440,11 +1395,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         conn.connect()
 
     def load_test_data_and_sql(self):
-        self._load_raw_sql()
+        pass
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, load_iris_data):
-        self.load_test_data_and_sql()
+    def setup_method(self, load_iris_data, load_types_data):
+        pass
 
     @classmethod
     def setup_import(cls):
@@ -1559,7 +1514,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             sql.read_sql_table("this_doesnt_exist", con=self.conn)
 
     def test_default_type_conversion(self):
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
 
         assert issubclass(df.FloatCol.dtype.type, np.floating)
         assert issubclass(df.IntCol.dtype.type, np.integer)
@@ -1579,7 +1534,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_frame_equal(df, result)
 
     def test_default_date_load(self):
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         # MySQL SHOULD be converted.
@@ -1624,7 +1579,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 )
 
         # GH11216
-        df = read_sql_query("select * from types_test_data", self.conn)
+        df = read_sql_query("select * from types", self.conn)
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
 
@@ -1635,7 +1590,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert is_datetime64tz_dtype(col.dtype)
 
         df = read_sql_query(
-            "select * from types_test_data", self.conn, parse_dates=["DateColWithTz"]
+            "select * from types", self.conn, parse_dates=["DateColWithTz"]
         )
         if not hasattr(df, "DateColWithTz"):
             pytest.skip("no column with datetime with time zone")
@@ -1645,22 +1600,20 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         check(df.DateColWithTz)
 
         df = concat(
-            list(
-                read_sql_query("select * from types_test_data", self.conn, chunksize=1)
-            ),
+            list(read_sql_query("select * from types", self.conn, chunksize=1)),
             ignore_index=True,
         )
         col = df.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
         assert str(col.dt.tz) == "UTC"
-        expected = sql.read_sql_table("types_test_data", self.conn)
+        expected = sql.read_sql_table("types", self.conn)
         col = expected.DateColWithTz
         assert is_datetime64tz_dtype(col.dtype)
         tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
         # this might or might not be converted depending on the postgres driver
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
         check(df.DateColWithTz)
 
     def test_datetime_with_timezone_roundtrip(self):
@@ -1710,37 +1663,33 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_date_parsing(self):
         # No Parsing
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
         expected_type = object if self.flavor == "sqlite" else np.datetime64
         assert issubclass(df.DateCol.dtype.type, expected_type)
 
-        df = sql.read_sql_table("types_test_data", self.conn, parse_dates=["DateCol"])
+        df = sql.read_sql_table("types", self.conn, parse_dates=["DateCol"])
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
-            "types_test_data", self.conn, parse_dates={"DateCol": "%Y-%m-%d %H:%M:%S"}
+            "types", self.conn, parse_dates={"DateCol": "%Y-%m-%d %H:%M:%S"}
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
-            "types_test_data",
+            "types",
             self.conn,
             parse_dates={"DateCol": {"format": "%Y-%m-%d %H:%M:%S"}},
         )
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
-        df = sql.read_sql_table(
-            "types_test_data", self.conn, parse_dates=["IntDateCol"]
-        )
+        df = sql.read_sql_table("types", self.conn, parse_dates=["IntDateCol"])
+        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
+
+        df = sql.read_sql_table("types", self.conn, parse_dates={"IntDateCol": "s"})
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
         df = sql.read_sql_table(
-            "types_test_data", self.conn, parse_dates={"IntDateCol": "s"}
-        )
-        assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
-
-        df = sql.read_sql_table(
-            "types_test_data", self.conn, parse_dates={"IntDateCol": {"unit": "s"}}
+            "types", self.conn, parse_dates={"IntDateCol": {"unit": "s"}}
         )
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
@@ -2128,7 +2077,7 @@ class _TestSQLiteAlchemy:
         cls.driver = None
 
     def test_default_type_conversion(self):
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
 
         assert issubclass(df.FloatCol.dtype.type, np.floating)
         assert issubclass(df.IntCol.dtype.type, np.integer)
@@ -2143,7 +2092,7 @@ class _TestSQLiteAlchemy:
         assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
     def test_default_date_load(self):
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
 
         # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
@@ -2182,7 +2131,7 @@ class _TestMySQLAlchemy:
         cls.connect_args = {"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS}
 
     def test_default_type_conversion(self):
-        df = sql.read_sql_table("types_test_data", self.conn)
+        df = sql.read_sql_table("types", self.conn)
 
         assert issubclass(df.FloatCol.dtype.type, np.floating)
         assert issubclass(df.IntCol.dtype.type, np.integer)
@@ -2404,7 +2353,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self.conn = self.connect()
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, load_iris_data):
+    def setup_method(self, load_iris_data, load_types_data):
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
     def test_read_sql(self):
