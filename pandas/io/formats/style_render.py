@@ -89,8 +89,8 @@ class StylerRenderer:
         self.columns: Index = data.columns
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
-        self.uuid_len = min(32, uuid_len)
-        self.uuid = uuid or uuid4().hex[: self.uuid_len]
+        self.uuid = uuid or uuid4().hex[: min(32, uuid_len)]
+        self.uuid_len = len(self.uuid)
         self.table_styles = table_styles
         self.table_attributes = table_attributes
         self.caption = caption
