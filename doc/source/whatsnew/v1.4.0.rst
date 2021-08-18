@@ -230,7 +230,7 @@ Deprecations
 .. _whatsnew_140.deprecations.int64_uint64_float64index:
 
 Deprecated Int64Index, UInt64Index & Float64Index
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 :class:`Int64Index`, :class:`UInt64Index` (:issue:`43028`) and :class:`Float64Index` have
 been deprecated in favor of the new :class:`NumericIndex` (:issue:`43028`).
 
