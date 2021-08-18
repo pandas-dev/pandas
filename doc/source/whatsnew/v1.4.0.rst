@@ -222,6 +222,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
+- Performance improvement in :func:`read_stata` (:issue:`43059`)
 -
 
 .. ---------------------------------------------------------------------------
