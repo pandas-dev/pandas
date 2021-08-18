@@ -1,6 +1,7 @@
 from typing import (
     Iterator,
     Sequence,
+    final,
     overload,
 )
 
@@ -32,6 +33,8 @@ class BlockPlacement:
     @property
     def as_array(self) -> np.ndarray: ...
     @property
+    def as_slice(self) -> slice: ...
+    @property
     def is_slice_like(self) -> bool: ...
     @overload
     def __getitem__(self, loc: slice | Sequence[int]) -> BlockPlacement: ...
@@ -50,10 +53,12 @@ class SharedBlock:
 
 class NumpyBlock(SharedBlock):
     values: np.ndarray
+    @final
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class NDArrayBackedBlock(SharedBlock):
     values: NDArrayBackedExtensionArray
+    @final
     def getitem_block_index(self: T, slicer: slice) -> T: ...
 
 class Block(SharedBlock): ...

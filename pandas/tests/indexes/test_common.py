@@ -21,6 +21,7 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     TimedeltaIndex,
@@ -261,7 +262,8 @@ class TestCommon:
         # make unique index
         holder = type(index)
         unique_values = list(set(index))
-        unique_idx = holder(unique_values)
+        dtype = index.dtype if isinstance(index, NumericIndex) else None
+        unique_idx = holder(unique_values, dtype=dtype)
 
         # make duplicated index
         n = len(unique_idx)
@@ -289,7 +291,8 @@ class TestCommon:
         else:
             holder = type(index)
             unique_values = list(set(index))
-            unique_idx = holder(unique_values)
+            dtype = index.dtype if isinstance(index, NumericIndex) else None
+            unique_idx = holder(unique_values, dtype=dtype)
 
         # check on unique index
         expected_duplicated = np.array([False] * len(unique_idx), dtype="bool")

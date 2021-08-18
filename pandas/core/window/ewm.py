@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -12,9 +13,12 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas._typing import (
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
     TimedeltaConvertibleTypes,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame, Series
+
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -212,7 +216,7 @@ class ExponentialMovingWindow(BaseWindow):
 
         Only applicable to ``mean()``
 
-        .. versionadded:: 1.3.0
+        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -470,12 +474,14 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
             nv.validate_window_func("mean", args, kwargs)
+
+            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewma,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=deltas,
             )
             return self._apply(window_func)
         else:
@@ -580,7 +586,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,
@@ -647,7 +653,7 @@ class ExponentialMovingWindow(BaseWindow):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):
@@ -783,7 +789,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
 
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         **kwargs,
     ):
@@ -791,7 +797,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
 
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         bias: bool = False,
         **kwargs,

@@ -13,6 +13,7 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
+    Literal,
     Sequence,
     Union,
     cast,
@@ -39,10 +40,11 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     FillnaOptions,
-    FrameOrSeriesUnion,
     IndexKeyFunc,
     SingleManager,
     StorageOptions,
+    TimedeltaConvertibleTypes,
+    TimestampConvertibleTypes,
     ValueKeyFunc,
     npt,
 )
@@ -55,6 +57,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._validators import (
+    validate_ascending,
     validate_bool_kwarg,
     validate_percentile,
 )
@@ -67,7 +70,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_bool,
     is_dict_like,
     is_integer,
     is_iterator,
@@ -141,12 +143,6 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
-    from typing import Literal
-
-    from pandas._typing import (
-        TimedeltaConvertibleTypes,
-        TimestampConvertibleTypes,
-    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
@@ -202,7 +198,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     methods from ndarray have been overridden to automatically exclude
     missing data (currently represented as NaN).
 
-    Operations between Series (+, -, /, *, **) align values based on their
+    Operations between Series (+, -, /, \\*, \\*\\*) align values based on their
     associated index values-- they need not be the same length. The result
     index will be the sorted union of the two indexes.
 
@@ -358,10 +354,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     "The default dtype for empty Series will be 'object' instead "
                     "of 'float64' in a future version. Specify a dtype explicitly "
                     "to silence this warning.",
-                    DeprecationWarning,
+                    FutureWarning,
                     stacklevel=2,
                 )
-                # uncomment the line below when removing the DeprecationWarning
+                # uncomment the line below when removing the FutureWarning
                 # dtype = np.dtype(object)
 
             if index is not None:
@@ -523,8 +519,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index: Index | None = None
-
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
@@ -553,7 +547,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call above ensures we have an Index object
             self._mgr.set_axis(axis, labels)
@@ -1065,10 +1058,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
-            values = self._values
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
-                values[key] = value
+                if not self.index._should_fallback_to_positional:
+                    # GH#33469
+                    warnings.warn(
+                        "Treating integers as positional in Series.__setitem__ "
+                        "with a Float64Index is deprecated. In a future version, "
+                        "`series[an_int] = val` will insert a new key into the "
+                        "Series. Use `series.iloc[an_int] = val` to treat the "
+                        "key as positional.",
+                        FutureWarning,
+                        stacklevel=2,
+                    )
+                # this is equivalent to self._values[key] = value
+                self._mgr.setitem_inplace(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
@@ -1100,7 +1104,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
         # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
-        self._values[loc] = value
+        # this is equivalent to self._values[key] = value
+        self._mgr.setitem_inplace(loc, value)
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -1207,7 +1212,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if self._is_view and self._is_cached:
             ref = self._get_cacher()
             if ref is not None and ref._is_mixed_type:
-                self._check_setitem_copy(stacklevel=4, t="referent", force=True)
+                self._check_setitem_copy(t="referent", force=True)
             return True
         return super()._check_is_chained_assignment_possible()
 
@@ -1226,14 +1231,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # a copy
             if ref is None:
                 del self._cacher
+            elif len(self) == len(ref) and self.name in ref.columns:
+                # GH#42530 self.name must be in ref.columns
+                # to ensure column still in dataframe
+                # otherwise, either self or ref has swapped in new arrays
+                ref._maybe_cache_changed(cacher[0], self)
             else:
-                if len(self) == len(ref):
-                    # otherwise, either self or ref has swapped in new arrays
-                    ref._maybe_cache_changed(cacher[0], self)
-                else:
-                    # GH#33675 we have swapped in a new array, so parent
-                    #  reference to self is now invalid
-                    ref._item_cache.pop(cacher[0], None)
+                # GH#33675 we have swapped in a new array, so parent
+                #  reference to self is now invalid
+                ref._item_cache.pop(cacher[0], None)
 
         super()._maybe_update_cacher(clear=clear, verify_is_copy=verify_is_copy)
 
@@ -1550,8 +1556,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         klass=_shared_doc_kwargs["klass"],
         storage_options=generic._shared_docs["storage_options"],
         examples=dedent(
-            """
-            Examples
+            """Examples
             --------
             >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
             >>> print(s.to_markdown())
@@ -1561,7 +1566,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             |  1 | pig      |
             |  2 | dog      |
             |  3 | quetzal  |
-            """
+
+            Output markdown with a tabulate option.
+
+            >>> print(s.to_markdown(tablefmt="grid"))
+            +----+----------+
+            |    | animal   |
+            +====+==========+
+            |  0 | elk      |
+            +----+----------+
+            |  1 | pig      |
+            +----+----------+
+            |  2 | dog      |
+            +----+----------+
+            |  3 | quetzal  |
+            +----+----------+"""
         ),
     )
     def to_markdown(
@@ -1604,31 +1623,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -----
         Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
 
-        Examples
-        --------
-        >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
-        >>> print(s.to_markdown())
-        |    | animal   |
-        |---:|:---------|
-        |  0 | elk      |
-        |  1 | pig      |
-        |  2 | dog      |
-        |  3 | quetzal  |
-
-        Output markdown with a tabulate option.
-
-        >>> print(s.to_markdown(tablefmt="grid"))
-        +----+----------+
-        |    | animal   |
-        +====+==========+
-        |  0 | elk      |
-        +----+----------+
-        |  1 | pig      |
-        +----+----------+
-        |  2 | dog      |
-        +----+----------+
-        |  3 | quetzal  |
-        +----+----------+
+        {examples}
         """
         return self.to_frame().to_markdown(
             buf, mode, index, storage_options=storage_options, **kwargs
@@ -3017,7 +3012,7 @@ Keep all original rows and also all original values
         align_axis: Axis = 1,
         keep_shape: bool = False,
         keep_equal: bool = False,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         return super().compare(
             other=other,
             align_axis=align_axis,
@@ -3441,8 +3436,7 @@ Keep all original rows and also all original values
                 )
             ascending = ascending[0]
 
-        if not is_bool(ascending):
-            raise ValueError("ascending must be boolean")
+        ascending = validate_ascending(ascending)
 
         if na_position not in ["first", "last"]:
             raise ValueError(f"invalid na_position: {na_position}")
@@ -4233,7 +4227,7 @@ Keep all original rows and also all original values
     )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
         result = SeriesApply(
@@ -4247,7 +4241,7 @@ Keep all original rows and also all original values
         convert_dtype: bool = True,
         args: tuple[Any, ...] = (),
         **kwargs,
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Invoke function on values of Series.
 
@@ -4389,7 +4383,7 @@ Keep all original rows and also all original values
                 return op(delegate, skipna=skipna, **kwds)
 
     def _reindex_indexer(
-        self, new_index: Index | None, indexer: np.ndarray | None, copy: bool
+        self, new_index: Index | None, indexer: npt.NDArray[np.intp] | None, copy: bool
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
@@ -5072,9 +5066,9 @@ Keep all original rows and also all original values
         4    False
         dtype: bool
 
-        With `inclusive` set to ``False`` boundary values are excluded:
+        With `inclusive` set to ``"neither"`` boundary values are excluded:
 
-        >>> s.between(1, 4, inclusive=False)
+        >>> s.between(1, 4, inclusive="neither")
         0     True
         1    False
         2    False

@@ -148,7 +148,7 @@ class BaseBlockManager(DataManager):
     _known_consolidated: bool
     _is_consolidated: bool
 
-    def __init__(self, blocks, axes, verify_integrity=True):
+    def __init__(self, blocks, axes, verify_integrity: bool = True):
         raise NotImplementedError
 
     @classmethod
@@ -352,6 +352,11 @@ class BaseBlockManager(DataManager):
         )
 
     def setitem(self: T, indexer, value) -> T:
+        """
+        Set values with indexer.
+
+        For SingleBlockManager, this backs s[indexer] = value
+        """
         return self.apply("setitem", indexer=indexer, value=value)
 
     def putmask(self, mask, new, align: bool = True):
@@ -380,6 +385,29 @@ class BaseBlockManager(DataManager):
         axis = self._normalize_axis(axis)
         if fill_value is lib.no_default:
             fill_value = None
+
+        if axis == 0 and self.ndim == 2 and self.nblocks > 1:
+            # GH#35488 we need to watch out for multi-block cases
+            # We only get here with fill_value not-lib.no_default
+            ncols = self.shape[0]
+            if periods > 0:
+                indexer = np.array(
+                    [-1] * periods + list(range(ncols - periods)), dtype=np.intp
+                )
+            else:
+                nper = abs(periods)
+                indexer = np.array(
+                    list(range(nper, ncols)) + [-1] * nper, dtype=np.intp
+                )
+            result = self.reindex_indexer(
+                self.items,
+                indexer,
+                axis=0,
+                fill_value=fill_value,
+                allow_dups=True,
+                consolidate=False,
+            )
+            return result
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
@@ -441,19 +469,6 @@ class BaseBlockManager(DataManager):
         in formatting (repr / csv).
         """
         return self.apply("to_native_types", **kwargs)
-
-    def is_consolidated(self) -> bool:
-        """
-        Return True if more than one block with the same dtype
-        """
-        if not self._known_consolidated:
-            self._consolidate_check()
-        return self._is_consolidated
-
-    def _consolidate_check(self) -> None:
-        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
-        self._is_consolidated = len(dtypes) == len(set(dtypes))
-        self._known_consolidated = True
 
     @property
     def is_numeric_mixed_type(self) -> bool:
@@ -579,6 +594,9 @@ class BaseBlockManager(DataManager):
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
+
+        if deep:
+            res._consolidate_inplace()
         return res
 
     def consolidate(self: T) -> T:
@@ -596,13 +614,6 @@ class BaseBlockManager(DataManager):
         bm._is_consolidated = False
         bm._consolidate_inplace()
         return bm
-
-    def _consolidate_inplace(self) -> None:
-        if not self.is_consolidated():
-            self.blocks = tuple(_consolidate(self.blocks))
-            self._is_consolidated = True
-            self._known_consolidated = True
-            self._rebuild_blknos_and_blklocs()
 
     def reindex_indexer(
         self: T,
@@ -867,7 +878,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     ):
 
         if verify_integrity:
-            assert all(isinstance(x, Index) for x in axes)
+            # Assertion disabled for performance
+            # assert all(isinstance(x, Index) for x in axes)
 
             for block in blocks:
                 if self.ndim != block.ndim:
@@ -1166,8 +1178,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             warnings.warn(
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
-                "Consider using pd.concat instead.  To get a de-fragmented frame, "
-                "use `newframe = frame.copy()`",
+                "Consider joining all columns at once using pd.concat(axis=1) "
+                "instead.  To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
                 stacklevel=5,
             )
@@ -1346,6 +1358,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_columns = unstacker.get_new_columns(self.items)
         new_index = unstacker.new_index
 
+        allow_fill = not unstacker.mask.all()
+
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
 
@@ -1355,7 +1369,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_placement = new_columns.get_indexer(new_items)
 
             blocks, mask = blk._unstack(
-                unstacker, fill_value, new_placement=new_placement
+                unstacker,
+                fill_value,
+                new_placement=new_placement,
+                allow_fill=allow_fill,
             )
 
             new_blocks.extend(blocks)
@@ -1519,6 +1536,29 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return result
 
+    # ----------------------------------------------------------------
+    # Consolidation
+
+    def is_consolidated(self) -> bool:
+        """
+        Return True if more than one block with the same dtype
+        """
+        if not self._known_consolidated:
+            self._consolidate_check()
+        return self._is_consolidated
+
+    def _consolidate_check(self) -> None:
+        dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
+        self._is_consolidated = len(dtypes) == len(set(dtypes))
+        self._known_consolidated = True
+
+    def _consolidate_inplace(self) -> None:
+        if not self.is_consolidated():
+            self.blocks = tuple(_consolidate(self.blocks))
+            self._is_consolidated = True
+            self._known_consolidated = True
+            self._rebuild_blknos_and_blklocs()
+
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""
@@ -1536,8 +1576,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         verify_integrity: bool = False,
         fastpath=lib.no_default,
     ):
-        assert isinstance(block, Block), type(block)
-        assert isinstance(axis, Index), type(axis)
+        # Assertions disabled for performance
+        # assert isinstance(block, Block), type(block)
+        # assert isinstance(axis, Index), type(axis)
 
         if fastpath is not lib.no_default:
             warnings.warn(
@@ -1638,7 +1679,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         return type(self)(block, new_idx)
 
     def get_slice(self, slobj: slice, axis: int = 0) -> SingleBlockManager:
-        assert isinstance(slobj, slice), type(slobj)
+        # Assertion disabled for performance
+        # assert isinstance(slobj, slice), type(slobj)
         if axis >= self.ndim:
             raise IndexError("Requested axis not found in manager")
 
@@ -1672,18 +1714,16 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series.array returns"""
         return self._block.array_values
 
+    def get_numeric_data(self, copy: bool = False):
+        if self._block.is_numeric:
+            if copy:
+                return self.copy()
+            return self
+        return self.make_empty()
+
     @property
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
-
-    def is_consolidated(self) -> bool:
-        return True
-
-    def _consolidate_check(self):
-        pass
-
-    def _consolidate_inplace(self):
-        pass
 
     def idelete(self, indexer) -> SingleBlockManager:
         """
@@ -1745,22 +1785,18 @@ def create_block_manager_from_blocks(
     return mgr
 
 
-# We define this here so we can override it in tests.extension.test_numpy
-def _extract_array(obj):
-    return extract_array(obj, extract_numpy=True)
-
-
 def create_block_manager_from_arrays(
     arrays,
     names: Index,
     axes: list[Index],
     consolidate: bool = True,
 ) -> BlockManager:
-    assert isinstance(names, Index)
-    assert isinstance(axes, list)
-    assert all(isinstance(x, Index) for x in axes)
+    # Assertions disabled for performance
+    # assert isinstance(names, Index)
+    # assert isinstance(axes, list)
+    # assert all(isinstance(x, Index) for x in axes)
 
-    arrays = [_extract_array(x) for x in arrays]
+    arrays = [extract_array(x, extract_numpy=True) for x in arrays]
 
     try:
         blocks = _form_blocks(arrays, names, axes, consolidate)
@@ -1813,7 +1849,8 @@ def _form_blocks(
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
-        assert names_idx.intersection(axes[0]).is_unique
+        # Assertion disabled for performance
+        # assert names_idx.intersection(axes[0]).is_unique
         names_indexer = names_idx.get_indexer_for(axes[0])
 
     for i, name_idx in enumerate(names_indexer):
@@ -1841,10 +1878,9 @@ def _form_blocks(
 
     if len(items_dict["DatetimeTZBlock"]):
         dttz_blocks = [
-            new_block(
+            DatetimeTZBlock(
                 ensure_block_shape(extract_array(array), 2),
-                klass=DatetimeTZBlock,
-                placement=i,
+                placement=BlockPlacement(i),
                 ndim=2,
             )
             for i, array in items_dict["DatetimeTZBlock"]
@@ -1859,14 +1895,14 @@ def _form_blocks(
 
     if len(items_dict["CategoricalBlock"]) > 0:
         cat_blocks = [
-            new_block(array, klass=CategoricalBlock, placement=i, ndim=2)
+            CategoricalBlock(array, placement=BlockPlacement(i), ndim=2)
             for i, array in items_dict["CategoricalBlock"]
         ]
         blocks.extend(cat_blocks)
 
     if len(items_dict["ExtensionBlock"]):
         external_blocks = [
-            new_block(array, klass=ExtensionBlock, placement=i, ndim=2)
+            ExtensionBlock(array, placement=BlockPlacement(i), ndim=2)
             for i, array in items_dict["ExtensionBlock"]
         ]
 
@@ -1899,7 +1935,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
     if dtype is not None and values.dtype != dtype:  # pragma: no cover
         values = values.astype(dtype)
 
-    block = new_block(values, placement=placement, ndim=2)
+    block = new_block(values, placement=BlockPlacement(placement), ndim=2)
     return [block]
 
 
@@ -1922,14 +1958,14 @@ def _multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = T
             list(tup_block), dtype  # type: ignore[arg-type]
         )
 
-        block = new_block(values, placement=placement, ndim=2)
+        block = new_block(values, placement=BlockPlacement(placement), ndim=2)
         new_blocks.append(block)
 
     return new_blocks
 
 
 def _tuples_to_blocks_no_consolidate(tuples, dtype: DtypeObj | None) -> list[Block]:
-    # tuples produced within _form_blocks are of the form (placement, whatever, array)
+    # tuples produced within _form_blocks are of the form (placement, array)
     if dtype is not None:
         return [
             new_block(

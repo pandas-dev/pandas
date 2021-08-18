@@ -23,6 +23,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.arrays.integer import coerce_to_array
 
 
 def _check_cast(df, v):
@@ -670,6 +671,26 @@ class TestAstype:
         result = DataFrame(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes[0] == np.dtype("S3")
 
+    @pytest.mark.parametrize(
+        "index_slice",
+        [
+            np.s_[:2, :2],
+            np.s_[:1, :2],
+            np.s_[:2, :1],
+            np.s_[::2, ::2],
+            np.s_[::1, ::2],
+            np.s_[::2, ::1],
+        ],
+    )
+    def test_astype_noncontiguous(self, index_slice):
+        # GH#42396
+        data = np.arange(16).reshape(4, 4)
+        df = DataFrame(data)
+
+        result = df.iloc[index_slice].astype("int16")
+        expected = df.iloc[index_slice]
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
 
 class TestAstypeCategorical:
     def test_astype_from_categorical3(self):
@@ -706,3 +727,32 @@ class TestAstypeCategorical:
         cat = df.astype("category")
         result = cat.astype(str)
         tm.assert_frame_equal(result, expected)
+
+
+class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
+    # GH 42501
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
+        return IntegerArrayNoCopy(values, mask)
+
+    def copy(self):
+        assert False
+
+
+class Int16DtypeNoCopy(pd.Int16Dtype):
+    # GH 42501
+
+    @classmethod
+    def construct_array_type(cls):
+        return IntegerArrayNoCopy
+
+
+def test_frame_astype_no_copy():
+    # GH 42501
+    df = DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)
+    result = df.astype({"a": Int16DtypeNoCopy()}, copy=False)
+
+    assert result.a.dtype == pd.Int16Dtype()
+    assert np.shares_memory(df.b.values, result.b.values)

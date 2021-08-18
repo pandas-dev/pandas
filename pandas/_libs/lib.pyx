@@ -2107,9 +2107,9 @@ cpdef bint is_interval_array(ndarray values):
                 return False
             elif numeric:
                 if not (
-                        util.is_float_object(val.left)
-                        or util.is_integer_object(val.left)
-                    ):
+                    util.is_float_object(val.left)
+                    or util.is_integer_object(val.left)
+                ):
                     # i.e. datetime64 or timedelta64
                     return False
             elif td64:
@@ -2953,6 +2953,28 @@ def to_object_array_tuples(rows: object) -> np.ndarray:
                 result[i, j] = row[j]
 
     return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def fast_multiget(dict mapping, ndarray keys, default=np.nan) -> np.ndarray:
+    cdef:
+        Py_ssize_t i, n = len(keys)
+        object val
+        ndarray[object] output = np.empty(n, dtype='O')
+
+    if n == 0:
+        # kludge, for Series
+        return np.empty(0, dtype='f8')
+
+    for i in range(n):
+        val = keys[i]
+        if val in mapping:
+            output[i] = mapping[val]
+        else:
+            output[i] = default
+
+    return maybe_convert_objects(output)
 
 
 def is_bool_list(obj: list) -> bool:

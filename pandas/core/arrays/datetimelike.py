@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
     TypeVar,
     Union,
@@ -121,7 +122,6 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas.core.arrays import (
         DatetimeArray,

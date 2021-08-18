@@ -13,10 +13,7 @@ import warnings
 import numpy as np
 
 import pandas._libs.lib as lib
-from pandas._typing import (
-    DtypeObj,
-    FrameOrSeriesUnion,
-)
+from pandas._typing import DtypeObj
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import (
@@ -37,9 +34,14 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.base import NoNewAttributesMixin
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from pandas import Index
+    from pandas import (
+        DataFrame,
+        Index,
+        Series,
+    )
 
 _shared_docs: dict[str, str] = {}
 _cpython_optimized_encoders = (
@@ -212,10 +214,7 @@ class StringMethods(NoNewAttributesMixin):
         # see _libs/lib.pyx for list of inferred types
         allowed_types = ["string", "empty", "bytes", "mixed", "mixed-integer"]
 
-        # TODO: avoid kludge for tests.extension.test_numpy
-        from pandas.core.internals.managers import _extract_array
-
-        data = _extract_array(data)
+        data = extract_array(data)
 
         values = getattr(data, "categories", data)  # categorical / normal
 
@@ -323,7 +322,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index._with_infer(result, name=name)
         else:
             index = self._orig.index
             # This is a mess.
@@ -2314,7 +2313,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def extract(
         self, pat: str, flags: int = 0, expand: bool = True
-    ) -> FrameOrSeriesUnion | Index:
+    ) -> DataFrame | Series | Index:
         r"""
         Extract capture groups in the regex `pat` as columns in a DataFrame.
 

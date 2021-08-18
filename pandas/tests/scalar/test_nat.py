@@ -9,7 +9,6 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-import pandas.compat as compat
 
 from pandas.core.dtypes.common import is_datetime64_any_dtype
 
@@ -138,13 +137,7 @@ def test_round_nat(klass, method, freq):
         "dst",
         "fromordinal",
         "fromtimestamp",
-        pytest.param(
-            "fromisocalendar",
-            marks=pytest.mark.skipif(
-                not compat.PY38,
-                reason="'fromisocalendar' was added in stdlib datetime in python 3.8",
-            ),
-        ),
+        "fromisocalendar",
         "isocalendar",
         "strftime",
         "strptime",
@@ -315,11 +308,6 @@ def test_overlap_public_nat_methods(klass, expected):
     # NaT should have *most* of the Timestamp and Timedelta methods.
     # In case when Timestamp, Timedelta, and NaT are overlap, the overlap
     # is considered to be with Timestamp and NaT, not Timedelta.
-
-    # "fromisocalendar" was introduced in 3.8
-    if klass is Timestamp and not compat.PY38:
-        expected.remove("fromisocalendar")
-
     assert _get_overlap_public_nat_methods(klass) == expected
 
 
