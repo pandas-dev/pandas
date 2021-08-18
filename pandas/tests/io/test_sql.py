@@ -981,8 +981,10 @@ class _TestSQLApi(PandasSQLTest):
         assert "CREATE TABLE pypi." in create_sql
 
     def test_get_schema_dtypes(self):
+        from sqlalchemy import Integer
+
         float_frame = DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
-        dtype = sqlalchemy.Integer if self.mode == "sqlalchemy" else "INTEGER"
+        dtype = Integer if self.mode == "sqlalchemy" else "INTEGER"
         create_sql = sql.get_schema(
             float_frame, "test", con=self.conn, dtype={"b": dtype}
         )
@@ -1240,18 +1242,23 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_query_by_text_obj(self):
         # WIP : GH10846
-        name_text = sqlalchemy.text("select * from iris where name=:name")
+        from sqlalchemy import text
+
+        name_text = text("select * from iris where name=:name")
         iris_df = sql.read_sql(name_text, self.conn, params={"name": "Iris-versicolor"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-versicolor"}
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
+        from sqlalchemy import (
+            bindparam,
+            select,
+        )
+
         iris = iris_table_metadata(self.flavor)
 
-        name_select = sqlalchemy.select(iris).where(
-            iris.c.Name == sqlalchemy.bindparam("name")
-        )
+        name_select = select(iris).where(iris.c.Name == bindparam("name"))
         iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
@@ -2242,6 +2249,8 @@ class _TestPostgreSQLAlchemy:
         cls.driver = "psycopg2"
 
     def test_schema_support(self):
+        from sqlalchemy.engine import Engine
+
         # only test this for postgresql (schema's not supported in
         # mysql/sqlite)
         df = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
@@ -2301,7 +2310,7 @@ class _TestPostgreSQLAlchemy:
 
         # The schema won't be applied on another Connection
         # because of transactional schemas
-        if isinstance(self.conn, sqlalchemy.engine.Engine):
+        if isinstance(self.conn, Engine):
             engine2 = self.connect()
             pdsql = sql.SQLDatabase(engine2, schema="other")
             pdsql.to_sql(df, "test_schema_other2", index=False)
