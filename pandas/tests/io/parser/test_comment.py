@@ -10,7 +10,7 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])
