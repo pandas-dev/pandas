@@ -55,6 +55,12 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as com
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    FixedWindowIndexer,
+    GroupbyIndexer,
+    VariableWindowIndexer,
+)
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
@@ -84,12 +90,6 @@ from pandas.core.window.doc import (
     template_see_also,
     window_agg_numba_parameters,
     window_apply_parameters,
-)
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    FixedWindowIndexer,
-    GroupbyIndexer,
-    VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import (
     generate_manual_numpy_nan_agg_with_axis,
