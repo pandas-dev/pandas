@@ -981,10 +981,14 @@ class _TestSQLApi(PandasSQLTest):
         assert "CREATE TABLE pypi." in create_sql
 
     def test_get_schema_dtypes(self):
-        from sqlalchemy import Integer
+        if self.mode == "sqlalchemy":
+            from sqlalchemy import Integer
+
+            dtype = Integer
+        else:
+            dtype = "INTEGER"
 
         float_frame = DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
-        dtype = Integer if self.mode == "sqlalchemy" else "INTEGER"
         create_sql = sql.get_schema(
             float_frame, "test", con=self.conn, dtype={"b": dtype}
         )
@@ -2042,10 +2046,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             Unicode,
             select,
         )
-        from sqlalchemy.orm import (
-            declarative_base,
-            sessionmaker,
-        )
+        from sqlalchemy.orm import sessionmaker
+
+        if _gt14():
+            from sqlalchemy.orm import declarative_base
+        else:
+            from sqlalchemy.ext.declarative import declarative_base
 
         test_data = "Hello, World!"
         expected = DataFrame({"spam": [test_data]})
