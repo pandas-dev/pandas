@@ -81,7 +81,7 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers.utils import check_array_indexer
+from pandas.core.indexers import check_array_indexer
 from pandas.core.indexes.base import ensure_index
 from pandas.core.ops import (
     invalid_comparison,

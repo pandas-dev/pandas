@@ -68,7 +68,7 @@ from pandas.core.arrays.interval import (
     _interval_shared_docs,
 )
 import pandas.core.common as com
-from pandas.core.indexers.utils import is_valid_positional_slice
+from pandas.core.indexers import is_valid_positional_slice
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,

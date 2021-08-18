@@ -68,7 +68,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers.utils import (
+from pandas.core.indexers import (
     maybe_convert_indices,
     validate_indices,
 )

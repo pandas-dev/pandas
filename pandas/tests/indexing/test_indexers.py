@@ -1,8 +1,8 @@
-# Tests aimed at pandas.core.indexers.utils
+# Tests aimed at pandas.core.indexers
 import numpy as np
 import pytest
 
-from pandas.core.indexers.utils import (
+from pandas.core.indexers import (
     is_scalar_indexer,
     length_of_indexer,
     validate_indices,

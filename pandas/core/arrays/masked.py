@@ -55,7 +55,7 @@ from pandas.core.algorithms import (
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.indexers.utils import check_array_indexer
+from pandas.core.indexers import check_array_indexer
 
 if TYPE_CHECKING:
     from pandas import Series

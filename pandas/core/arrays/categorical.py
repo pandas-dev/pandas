@@ -107,7 +107,7 @@ from pandas.core.construction import (
     extract_array,
     sanitize_array,
 )
-from pandas.core.indexers.utils import deprecate_ndim_indexing
+from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.ops.common import unpack_zerodim_and_defer
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin

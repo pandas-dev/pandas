@@ -47,7 +47,7 @@ from pandas.core.construction import (
     array as pd_array,
     extract_array,
 )
-from pandas.core.indexers.utils import (
+from pandas.core.indexers import (
     check_array_indexer,
     is_empty_indexer,
     is_exact_shape_match,

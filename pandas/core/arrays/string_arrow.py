@@ -51,7 +51,7 @@ from pandas.core.arrays.string_ import (
     BaseStringArray,
     StringDtype,
 )
-from pandas.core.indexers.utils import (
+from pandas.core.indexers import (
     check_array_indexer,
     validate_indices,
 )
