@@ -1261,8 +1261,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         )
 
         iris = iris_table_metadata(self.flavor)
-
-        name_select = select(iris).where(iris.c.Name == bindparam("name"))
+        iris_select = iris if _gt14() else [iris]
+        name_select = select(iris_select).where(iris.c.Name == bindparam("name"))
         iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
         all_names = set(iris_df["Name"])
         assert all_names == {"Iris-setosa"}
@@ -2046,7 +2046,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             Unicode,
             select,
         )
-        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.orm import Session
 
         if _gt14():
             from sqlalchemy.orm import declarative_base
@@ -2063,14 +2063,22 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             id = Column(Integer, primary_key=True)
             spam = Column(Unicode(30), nullable=False)
 
-        Session = sessionmaker(bind=self.conn)
-        session = Session()
-        with session.begin():
-            conn = session.connection()
-            Temporary.__table__.create(conn)
-            session.add(Temporary(spam=test_data))
-            session.flush()
-            df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
+        if _gt14():
+            with Session(self.conn) as session:
+                with session.begin():
+                    conn = session.connection()
+                    Temporary.__table__.create(conn)
+                    session.add(Temporary(spam=test_data))
+                    session.flush()
+                    df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
+        else:
+            with Session(self.conn) as session:
+                with session.transaction:
+                    conn = session.connection()
+                    Temporary.__table__.create(conn)
+                    session.add(Temporary(spam=test_data))
+                    session.flush()
+                    df = sql.read_sql_query(sql=select([Temporary.spam]), con=conn)
 
         tm.assert_frame_equal(df, expected)
 
@@ -2174,7 +2182,7 @@ class _TestMySQLAlchemy:
     @classmethod
     def connect(cls):
         return sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
+            f"mysql+{cls.driver}://root:cdma1993@localhost:{cls.port}/pandas",
             connect_args=cls.connect_args,
         )
 
