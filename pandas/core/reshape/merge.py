@@ -772,10 +772,7 @@ class _MergeOperation:
                 join_index_l = join_index_r = isin_nd(arr_l, arr_r, invert=True)
                 _how = "left"
             else:
-                try:
-                    _union = np.unique(np.vstack((arr_l, arr_r)), axis=0)
-                except TypeError:
-                    _union = np.vstack((arr_l, arr_r))
+                _union = np.unique(np.vstack((arr_l, arr_r)), axis=0)
                 _intersect = np.array(
                     list({tuple(x) for x in arr_l} & {tuple(x) for x in arr_r})
                 )
@@ -789,8 +786,6 @@ class _MergeOperation:
             join_index_l, join_index_r, self.how = _multi_columns(
                 self.left.index.values, self.right.index.values, self.how
             )
-            self.left = self.left[join_index_l]
-            self.right = self.right[join_index_r]
         elif self.on is not None or (
             None not in self.left_on and None not in self.right_on
         ):
@@ -799,24 +794,19 @@ class _MergeOperation:
             else:
                 left_on = self.left_on
                 right_on = self.right_on
-            if is_list_like(left_on):
-                join_index_l, join_index_r, self.how = _multi_columns(
-                    self.left[left_on].values, self.right[right_on].values, self.how
-                )
-                self.left = self.left[join_index_l]
-                self.right = self.right[join_index_r]
+            join_index_l, join_index_r, self.how = _multi_columns(
+                self.left[left_on].values, self.right[right_on].values, self.how
+            )
         elif self.left_index and self.right_on is not None:
             join_index_l, join_index_r, self.how = _multi_columns(
                 self.left.index.values, self.right[self.right_on].values, self.how
             )
-            self.left = self.left[join_index_l]
-            self.right = self.right[join_index_r]
         elif self.right_index and self.left_on is not None:
             join_index_l, join_index_r, self.how = _multi_columns(
                 self.left[self.left_on].values, self.right.index.values, self.how
             )
-            self.left = self.left[join_index_l]
-            self.right = self.right[join_index_r]
+        self.left = self.left[join_index_l]
+        self.right = self.right[join_index_r]
 
         # sanity check to ensure correct `how`
         assert self.how in ["left", "right", "inner", "outer"]
