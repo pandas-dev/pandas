@@ -423,6 +423,10 @@ _pyarrow_unsupported = {
     "dialect",
     "warn_bad_lines",
     "error_bad_lines",
+    # TODO(1.4)
+    # This doesn't error properly ATM, fix for release
+    # but not blocker for initial PR
+    # "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -501,7 +505,20 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
-    chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    chunksize = kwds.get("chunksize", None)
+    if kwds.get("engine") == "pyarrow":
+        if iterator:
+            raise ValueError(
+                "The 'iterator' option is not supported with the 'pyarrow' engine"
+            )
+
+        if chunksize is not None:
+            raise ValueError(
+                "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            )
+    else:
+        chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.

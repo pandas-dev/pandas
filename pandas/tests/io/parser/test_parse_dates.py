@@ -40,6 +40,8 @@ from pandas.core.indexes.datetimes import date_range
 
 import pandas.io.date_converters as conv
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
 

@@ -13,6 +13,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("na_filter", [True, False])
 def test_inf_parsing(all_parsers, na_filter):

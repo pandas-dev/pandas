@@ -21,6 +21,10 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+# TODO(1.4) Please xfail individual tests at release time
+# instead of skip
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @tm.network
 def test_url(all_parsers, csv_dir_path):

@@ -13,6 +13,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_int_conversion(all_parsers):
     data = """A,B
