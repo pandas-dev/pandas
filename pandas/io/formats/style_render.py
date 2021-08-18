@@ -867,7 +867,7 @@ class StylerRenderer:
         method to. If the ``formatter`` argument is given in dict form but does
         not include all levels within the level argument then these unspecified levels
         will have the default formatter applied. Any levels in the formatter dict
-        specifically excluded from the level argument will raise a ``KeyError``.
+        specifically excluded from the level argument will be ignored.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
@@ -876,80 +876,66 @@ class StylerRenderer:
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
 
-        >>> df = pd.DataFrame([[np.nan, 1.0, 'A'], [2.0, np.nan, 3.0]])
-        >>> df.style.format(na_rep='MISS', precision=3)  # doctest: +SKIP
-                0       1       2
-        0    MISS   1.000       A
-        1   2.000    MISS   3.000
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
+            2.000    MISS   4.000
+        0       1       2       3
 
-        Using a ``formatter`` specification on consistent column dtypes
+        Using a ``formatter`` specification on consistent dtypes in a level
 
-        >>> df.style.format('{:.2f}', na_rep='MISS', subset=[0,1])  # doctest: +SKIP
-                0      1          2
-        0    MISS   1.00          A
-        1    2.00   MISS   3.000000
+        >>> df.style.format_index('{:.2f}', axis=1, na_rep='MISS')  # doctest: +SKIP
+             2.00   MISS    4.00
+        0       1      2       3
 
-        Using the default ``formatter`` for unspecified columns
+        Using the default ``formatter`` for unspecified levels
 
-        >>> df.style.format({0: '{:.2f}', 1: '£ {:.1f}'}, na_rep='MISS', precision=1)
+        >>> df = pd.DataFrame([[1, 2, 3]],
+        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
         ...  # doctest: +SKIP
-                 0      1     2
-        0    MISS   £ 1.0     A
-        1    2.00    MISS   3.0
-
-        Multiple ``na_rep`` or ``precision`` specifications under the default
-        ``formatter``.
-
-        >>> df.style.format(na_rep='MISS', precision=1, subset=[0])
-        ...     .format(na_rep='PASS', precision=2, subset=[1, 2])  # doctest: +SKIP
-                0      1      2
-        0    MISS   1.00      A
-        1     2.0   PASS   3.00
+                       A       B
+              2.0    nan     4.0
+        0       1      2       3
 
         Using a callable ``formatter`` function.
 
         >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
-        >>> df.style.format({0: '{:.1f}', 2: func}, precision=4, na_rep='MISS')
+        >>> df.style.format_index(func, axis=1, na_rep='MISS')
         ...  # doctest: +SKIP
-                0        1        2
-        0    MISS   1.0000   STRING
-        1     2.0     MISS    FLOAT
+                  STRING  STRING
+            FLOAT   MISS   FLOAT
+        0       1      2       3
 
         Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
 
-        >>> df = pd.DataFrame([['<div></div>', '"A&B"', None]])
-        >>> s = df.style.format(
-        ...     '<a href="a.com/{0}">{0}</a>', escape="html", na_rep="NA"
-        ...     )
-        >>> s.to_html()  # doctest: +SKIP
-        ...
-        <td .. ><a href="a.com/&lt;div&gt;&lt;/div&gt;">&lt;div&gt;&lt;/div&gt;</a></td>
-        <td .. ><a href="a.com/&#34;A&amp;B&#34;">&#34;A&amp;B&#34;</a></td>
-        <td .. >NA</td>
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
+        >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        <th .. >$ &#34;A&#34;</th>
+        <th .. >$ A&amp;B</th>
+        <th .. >NA</td>
         ...
 
         Using a ``formatter`` with LaTeX ``escape``.
 
-        >>> df = pd.DataFrame([["123"], ["~ ^"], ["$%#"]])
-        >>> df.style.format("\\textbf{{{}}}", escape="latex").to_latex()
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
+        >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
         ...  # doctest: +SKIP
-        \begin{tabular}{ll}
-        {} & {0} \\
-        0 & \textbf{123} \\
-        1 & \textbf{\textasciitilde \space \textasciicircum } \\
-        2 & \textbf{\$\%\#} \\
+        \begin{tabular}{lrrr}
+        {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
+        0 & 1 & 2 & 3 \\
         \end{tabular}
         """
+        axis = self.data._get_axis_number(axis)
         if axis == 0:
             display_funcs_, obj = self._display_funcs_index, self.index
-        elif axis == 1:
+        else:
             display_funcs_, obj = self._display_funcs_columns, self.columns
-
         levels_ = refactor_levels(level, obj)
 
         if all(
             (
                 formatter is None,
+                level is None,
                 precision is None,
                 decimal == ".",
                 thousands is None,
@@ -968,7 +954,7 @@ class StylerRenderer:
                 for level, formatter_ in formatter.items()
             }
 
-        for level in set(formatter.keys()).union(levels_):
+        for level in levels_:
             format_func = _maybe_wrap_formatter(
                 formatter.get(level),
                 na_rep=na_rep,
