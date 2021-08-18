@@ -222,6 +222,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
+- Performance improvement in :func:`read_stata` (:issue:`43059`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -329,6 +330,8 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.nlargest` and :meth:`SeriesGroupBy.nsmallest` would have an inconsistent index when the input Series was sorted and ``n`` was greater than or equal to all group sizes (:issue:`15272`, :issue:`16345`, :issue:`29129`)
 - Bug in :meth:`pandas.DataFrame.ewm`, where non-float64 dtypes were silently failing (:issue:`42452`)
 - Bug in :meth:`pandas.DataFrame.rolling` operation along rows (``axis=1``) incorrectly omits columns containing ``float16`` and ``float32`` (:issue:`41779`)
+- Bug in :meth:`Resampler.aggregate` did not allow the use of Named Aggregation (:issue:`32803`)
+-
 
 Reshaping
 ^^^^^^^^^
@@ -349,6 +352,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
+- Minor bug in :class:`.Styler` where the ``uuid`` at initialization maintained a floating underscore (:issue:`43037`)
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 -
 
