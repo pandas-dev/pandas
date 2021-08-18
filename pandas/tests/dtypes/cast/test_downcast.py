@@ -50,8 +50,8 @@ def test_downcast_booleans():
     tm.assert_series_equal(result, expected)
 
 
-def test_downcast_conversion_no_nan(any_real_dtype):
-    dtype = any_real_dtype
+def test_downcast_conversion_no_nan(any_real_numpy_dtype):
+    dtype = any_real_numpy_dtype
     expected = np.array([1, 2])
     arr = np.array([1.0, 2.0], dtype=dtype)
 
@@ -59,8 +59,8 @@ def test_downcast_conversion_no_nan(any_real_dtype):
     tm.assert_almost_equal(result, expected, check_dtype=False)
 
 
-def test_downcast_conversion_nan(float_dtype):
-    dtype = float_dtype
+def test_downcast_conversion_nan(float_numpy_dtype):
+    dtype = float_numpy_dtype
     data = [1.0, 2.0, np.nan]
 
     expected = np.array(data, dtype=dtype)
@@ -70,8 +70,8 @@ def test_downcast_conversion_nan(float_dtype):
     tm.assert_almost_equal(result, expected)
 
 
-def test_downcast_conversion_empty(any_real_dtype):
-    dtype = any_real_dtype
+def test_downcast_conversion_empty(any_real_numpy_dtype):
+    dtype = any_real_numpy_dtype
     arr = np.array([], dtype=dtype)
     result = maybe_downcast_to_dtype(arr, np.dtype("int64"))
     tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))

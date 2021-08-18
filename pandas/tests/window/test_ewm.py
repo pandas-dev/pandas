@@ -221,11 +221,11 @@ def test_ewma_times_adjust_false_raises():
         ],
     ],
 )
-def test_float_dtype_ewma(func, expected, float_dtype):
+def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     # GH#42452
 
     df = DataFrame(
-        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_dtype
+        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_numpy_dtype
     )
     e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()

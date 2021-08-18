@@ -293,8 +293,8 @@ def test_qcut_bool_coercion_to_int(bins, box, compare):
 
 
 @pytest.mark.parametrize("q", [2, 5, 10])
-def test_qcut_nullable_integer(q, any_nullable_numeric_dtype):
-    arr = pd.array(np.arange(100), dtype=any_nullable_numeric_dtype)
+def test_qcut_nullable_integer(q, any_numeric_ea_dtype):
+    arr = pd.array(np.arange(100), dtype=any_numeric_ea_dtype)
     arr[::2] = pd.NA
 
     result = qcut(arr, q)

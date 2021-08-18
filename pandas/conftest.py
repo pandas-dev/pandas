@@ -1232,8 +1232,8 @@ def timedelta64_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_DTYPES)
-def float_dtype(request):
+@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
+def float_numpy_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1255,8 +1255,8 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_float_allowed_nullable_dtype(request):
+@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1281,8 +1281,8 @@ def complex_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_INT_DTYPES)
-def sint_dtype(request):
+@pytest.fixture(params=tm.SIGNED_INT_NUMPY_DTYPES)
+def any_signed_int_numpy_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
 
@@ -1295,8 +1295,8 @@ def sint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.UNSIGNED_INT_DTYPES)
-def uint_dtype(request):
+@pytest.fixture(params=tm.UNSIGNED_INT_NUMPY_DTYPES)
+def any_unsigned_int_numpy_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
 
@@ -1308,8 +1308,8 @@ def uint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_DTYPES)
-def any_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES)
+def any_int_numpy_dtype(request):
     """
     Parameterized fixture for any integer dtype.
 
@@ -1326,8 +1326,8 @@ def any_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_EA_INT_DTYPES)
-def any_nullable_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_EA_DTYPES)
+def any_int_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1343,8 +1343,8 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
-def any_int_or_nullable_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1369,8 +1369,8 @@ def any_int_or_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_nullable_numeric_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_numeric_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
@@ -1389,8 +1389,8 @@ def any_nullable_numeric_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
-def any_signed_nullable_int_dtype(request):
+@pytest.fixture(params=tm.SIGNED_INT_EA_DTYPES)
+def any_signed_int_ea_dtype(request):
     """
     Parameterized fixture for any signed nullable integer dtype.
 
@@ -1402,8 +1402,8 @@ def any_signed_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_REAL_DTYPES)
-def any_real_dtype(request):
+@pytest.fixture(params=tm.ALL_REAL_NUMPY_DTYPES)
+def any_real_numpy_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
 

@@ -10,7 +10,7 @@ pa = pytest.importorskip("pyarrow", minversion="0.17.0")
 
 from pandas.core.arrays._arrow_utils import pyarrow_array_to_numpy_and_mask
 
-arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_EA_INT_DTYPES]
+arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
 arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
 arrays += [pd.array([True, False, True, None], dtype="boolean")]
 
@@ -85,8 +85,8 @@ def test_arrow_sliced(data):
 
 
 @pytest.fixture
-def np_dtype_to_arrays(any_real_dtype):
-    np_dtype = np.dtype(any_real_dtype)
+def np_dtype_to_arrays(any_real_numpy_dtype):
+    np_dtype = np.dtype(any_real_numpy_dtype)
     pa_type = pa.from_numpy_dtype(np_dtype)
 
     # None ensures the creation of a bitmask buffer.

@@ -1409,12 +1409,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = expected.sort_index(axis=1)
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_uint_drop(self, any_int_dtype):
+    def test_loc_setitem_uint_drop(self, any_int_numpy_dtype):
         # see GH#18311
         # assigning series.loc[0] = 4 changed series.dtype to int
-        series = Series([1, 2, 3], dtype=any_int_dtype)
+        series = Series([1, 2, 3], dtype=any_int_numpy_dtype)
         series.loc[0] = 4
-        expected = Series([4, 2, 3], dtype=any_int_dtype)
+        expected = Series([4, 2, 3], dtype=any_int_numpy_dtype)
         tm.assert_series_equal(series, expected)
 
     def test_loc_setitem_td64_non_nano(self):
