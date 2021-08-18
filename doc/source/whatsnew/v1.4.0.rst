@@ -68,7 +68,7 @@ See :ref:`here <advanced.numericindex>` for more.
 Multithreaded CSV reading with a new CSV Engine based on pyarrow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`pandas.read_csv` now accepts engine="pyarrow" as an argument, allowing for faster csv parsing on multicore machines
+:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` as an argument, allowing for faster csv parsing on multicore machines
 with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 .. _whatsnew_140.enhancements.other:
