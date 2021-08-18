@@ -640,7 +640,7 @@ class StylerRenderer:
         to. If the ``formatter`` argument is given in dict form but does not include
         all columns within the subset then these columns will have the default formatter
         applied. Any columns in the formatter dict excluded from the subset will
-        raise a ``KeyError``.
+        be ignored.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
