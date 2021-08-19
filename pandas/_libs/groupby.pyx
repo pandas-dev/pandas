@@ -388,10 +388,10 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(int8_t[::1] out,
-                  const int8_t[::1] values,
+def group_any_all(int8_t[:, ::1] out,
+                  const int8_t[:, :] values,
                   const intp_t[::1] labels,
-                  const uint8_t[::1] mask,
+                  const uint8_t[:, :] mask,
                   str val_test,
                   bint skipna,
                   bint nullable) -> None:
@@ -426,9 +426,9 @@ def group_any_all(int8_t[::1] out,
     -1 to signify a masked position in the case of a nullable input.
     """
     cdef:
-        Py_ssize_t i, N = len(labels)
+        Py_ssize_t i, j, N = len(labels), K = out.shape[1]
         intp_t lab
-        int8_t flag_val
+        int8_t flag_val, val
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -448,21 +448,27 @@ def group_any_all(int8_t[::1] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0 or (skipna and mask[i]):
+            if lab < 0:
                 continue
 
-            if nullable and mask[i]:
-                # Set the position as masked if `out[lab] != flag_val`, which
-                # would indicate True/False has not yet been seen for any/all,
-                # so by Kleene logic the result is currently unknown
-                if out[lab] != flag_val:
-                    out[lab] = -1
-                continue
+            for j in range(K):
+                if skipna and mask[i, j]:
+                    continue
 
-            # If True and 'any' or False and 'all', the result is
-            # already determined
-            if values[i] == flag_val:
-                out[lab] = flag_val
+                if nullable and mask[i, j]:
+                    # Set the position as masked if `out[lab] != flag_val`, which
+                    # would indicate True/False has not yet been seen for any/all,
+                    # so by Kleene logic the result is currently unknown
+                    if out[lab, j] != flag_val:
+                        out[lab, j] = -1
+                    continue
+
+                val = values[i, j]
+
+                # If True and 'any' or False and 'all', the result is
+                # already determined
+                if val == flag_val:
+                    out[lab, j] = flag_val
 
 
 # ----------------------------------------------------------------------
