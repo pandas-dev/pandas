@@ -67,6 +67,7 @@ Computations / descriptive stats
    GroupBy.min
    GroupBy.ngroup
    GroupBy.nth
+   GroupBy.iloc
    GroupBy.ohlc
    GroupBy.pad
    GroupBy.prod

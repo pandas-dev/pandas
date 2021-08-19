@@ -56,7 +56,7 @@ class GroupByIndexingMixin:
               (nth behaves like an aggregator and removes the non-grouped indexes)
         - GroupBy.nth is quite fast for a high group count but slower than head,
           tail and iloc.
-        
+
         Since GroupBy.take and GroupBy.nth only accept a list of individual indexes
         it is not possible to define a slice that ends relative to the last row of
         each group.
@@ -86,7 +86,7 @@ class GroupByIndexingMixin:
         GroupBy.tail : Return last n rows of each group.
         GroupBy.nth : Take the nth row from each group if n is an int, or a subset of rows
             if n is a list of ints.
-        GroupBy.take : Return the elements in the given positional indices along an axis.
+        DataFrameGroupBy.take : Return the elements in the given positional indices along an axis.
 
         Examples
         --------
