@@ -2022,7 +2022,13 @@ class DataFrame(NDFrame, OpsMixin):
         if columns is not None:
             columns = ensure_index(columns)
 
-        def maybe_reorder(arrays, arr_columns, columns, index):
+        def maybe_reorder(
+            arrays: list[ArrayLike], arr_columns: Index, columns: Index, index
+        ) -> tuple[list[ArrayLike], Index, Index | None]:
+            """
+            If our desired 'columns' do not match the data's pre-existing 'arr_columns',
+            we re-order our arrays.  This is like a pre-emptive (cheap) reindex.
+            """
             if len(arrays):
                 length = len(arrays[0])
             else:
