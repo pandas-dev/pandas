@@ -729,7 +729,8 @@ class MultiIndex(Index):
     @cache_readonly
     def dtypes(self) -> Series:
         """
-        Return the dtypes as a Series for the underlying MultiIndex
+        Return the dtypes as a 
+        for the underlying MultiIndex
         """
         from pandas import Series
 
@@ -739,7 +740,11 @@ class MultiIndex(Index):
                 for idx, level in enumerate(self.levels)
             }
         )
-
+    
+    @property
+    def dtypes(self) -> Series:
+        return Series({self.names[i]: self.get_level_values(i).dtype for i in range(len(self.names))})
+    
     def __len__(self) -> int:
         return len(self.codes[0])
 
