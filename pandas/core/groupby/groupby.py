@@ -95,6 +95,7 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
+from pandas.core.groupby.groupbyindexing import GroupByIndexingMixin
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
@@ -108,8 +109,6 @@ from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
     maybe_use_numba,
 )
-
-from pandas.core.groupby.groupbyindexing import GroupByIndexingMixin
 
 _common_see_also = """
         See Also

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from pandas.util._decorators import doc
 import numpy as np
+
+from pandas.util._decorators import doc
 
 
 class GroupByIndexingMixin:
@@ -81,12 +82,14 @@ class GroupByIndexingMixin:
 
         See Also
         --------
-        DataFrame.iloc : Purely integer-location based indexing for selection by position.
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
         GroupBy.head : Return first n rows of each group.
         GroupBy.tail : Return last n rows of each group.
-        GroupBy.nth : Take the nth row from each group if n is an int, or a subset of rows
-            if n is a list of ints.
-        DataFrameGroupBy.take : Return the elements in the given positional indices along an axis.
+        GroupBy.nth : Take the nth row from each group if n is an int, or a
+            subset of rows, if n is a list of ints.
+        DataFrameGroupBy.take : Return the elements in the given positional indices along
+            an axis.
 
         Examples
         --------

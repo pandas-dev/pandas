@@ -1,8 +1,9 @@
 """ Test positional grouped indexing with iloc GH#42864"""
 
+import random
+
 import pandas as pd
 import pandas._testing as tm
-import random
 
 
 def test_doc_examples():
@@ -67,12 +68,14 @@ def test_against_head_and_tail():
     n_rows_per_group = 30
 
     data = {
-        "group": [f"group {g}" for j in range(n_rows_per_group) for g in range(n_groups)],
+        "group": [
+            f"group {g}" for j in range(n_rows_per_group) for g in range(n_groups)
+        ],
         "value": [
             random.randint(0, 10000) / 100
             for j in range(n_rows_per_group)
             for g in range(n_groups)
-        ]
+        ],
     }
     df = pd.DataFrame(data)
     grouped = df.groupby("group")
@@ -95,8 +98,12 @@ def test_against_df_iloc():
     n_rows_per_group = 30
 
     data = {
-        "group": ["group 0" for j in range(n_rows_per_group)],
-        "value": [random.randint(0, 10000) / 100 for j in range(n_rows_per_group)]
+        "group": [
+            "group 0" for j in range(n_rows_per_group)
+        ],
+        "value": [
+            random.randint(0, 10000) / 100 for j in range(n_rows_per_group)
+        ],
     }
     df = pd.DataFrame(data)
     grouped = df.groupby("group")
