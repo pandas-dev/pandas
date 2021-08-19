@@ -14,6 +14,7 @@ class OutputKey:
     label: Hashable
     position: int
 
+
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
 plotting_methods = frozenset(["plot", "hist"])
