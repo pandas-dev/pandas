@@ -99,7 +99,7 @@ def test_w3_html_format(styler):
         #T_ th {
           att2: v2;
         }
-        #T_row0_col0, #T_row1_col0 {
+        #T__row0_col0, #T__row1_col0 {
           att1: v1;
         }
         </style>
@@ -108,17 +108,17 @@ def test_w3_html_format(styler):
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th id="T_level0_col0" class="col_heading level0 col0" >A</th>
+              <th id="T__level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <th id="T_level0_row0" class="row_heading level0 row0" >a</th>
-              <td id="T_row0_col0" class="data row0 col0 my-cls2" >2.6</td>
+              <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
+              <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
             </tr>
             <tr>
-              <th id="T_level0_row1" class="row_heading level0 row1" >b</th>
-              <td id="T_row1_col0" class="data row1 col0" >2.7</td>
+              <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
+              <td id="T__row1_col0" class="data row1 col0" >2.7</td>
             </tr>
           </tbody>
         </table>
@@ -142,7 +142,7 @@ def test_rowspan_w3():
 
 
 def test_styles(styler):
-    styler.set_uuid("abc_")
+    styler.set_uuid("abc")
     styler.set_table_styles([{"selector": "td", "props": "color: red;"}])
     result = styler.to_html(doctype_html=True)
     expected = dedent(
@@ -152,13 +152,13 @@ def test_styles(styler):
         <head>
         <meta charset="utf-8">
         <style type="text/css">
-        #T_abc_ td {
+        #T_abc td {
           color: red;
         }
         </style>
         </head>
         <body>
-        <table id="T_abc_">
+        <table id="T_abc">
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
@@ -418,15 +418,15 @@ def test_applymap_header_cell_ids(styler, index, columns):
 
     # test index header ids where needed and css styles
     assert (
-        '<th id="T_level0_row0" class="row_heading level0 row0" >a</th>' in result
+        '<th id="T__level0_row0" class="row_heading level0 row0" >a</th>' in result
     ) is index
     assert (
-        '<th id="T_level0_row1" class="row_heading level0 row1" >b</th>' in result
+        '<th id="T__level0_row1" class="row_heading level0 row1" >b</th>' in result
     ) is index
-    assert ("#T_level0_row0, #T_level0_row1 {\n  attr: val;\n}" in result) is index
+    assert ("#T__level0_row0, #T__level0_row1 {\n  attr: val;\n}" in result) is index
 
     # test column header ids where needed and css styles
     assert (
-        '<th id="T_level0_col0" class="col_heading level0 col0" >A</th>' in result
+        '<th id="T__level0_col0" class="col_heading level0 col0" >A</th>' in result
     ) is columns
-    assert ("#T_level0_col0 {\n  attr: val;\n}" in result) is columns
+    assert ("#T__level0_col0 {\n  attr: val;\n}" in result) is columns
