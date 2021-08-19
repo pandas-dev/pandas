@@ -1557,7 +1557,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 return result.astype(inference, copy=False)
 
         return self._get_cythonized_result(
-            "group_any_all",
+            libgroupby.group_any_all,
             aggregate=True,
             numeric_only=False,
             cython_dtype=np.dtype(np.int8),
@@ -1733,7 +1733,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Standard deviation of values within each group.
         """
         return self._get_cythonized_result(
-            "group_var",
+            libgroupby.group_var,
             aggregate=True,
             needs_counts=True,
             needs_values=True,
@@ -2149,7 +2149,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             limit = -1
 
         return self._get_cythonized_result(
-            "group_fillna_indexer",
+            libgroupby.group_fillna_indexer,
             numeric_only=False,
             needs_mask=True,
             cython_dtype=np.dtype(np.int64),
@@ -2465,7 +2465,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if is_scalar(q):
             return self._get_cythonized_result(
-                "group_quantile",
+                libgroupby.group_quantile,
                 aggregate=True,
                 numeric_only=False,
                 needs_values=True,
@@ -2479,7 +2479,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         else:
             results = [
                 self._get_cythonized_result(
-                    "group_quantile",
+                    libgroupby.group_quantile,
                     aggregate=True,
                     needs_values=True,
                     needs_mask=True,
@@ -2817,7 +2817,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     def _get_cythonized_result(
         self,
-        how: str,
+        base_func: Callable,
         cython_dtype: np.dtype,
         aggregate: bool = False,
         numeric_only: bool | lib.NoDefault = lib.no_default,
@@ -2839,7 +2839,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Parameters
         ----------
-        how : str, Cythonized function name to be called
+        base_func : callable, Cythonized function to be called
         cython_dtype : np.dtype
             Type of the array that will be modified by the Cython call.
         aggregate : bool, default False
@@ -2910,7 +2910,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         ids, _, ngroups = grouper.group_info
         output: dict[base.OutputKey, ArrayLike] = {}
 
-        base_func = getattr(libgroupby, how)
+        how = base_func.__name__
         base_func = partial(base_func, labels=ids)
         if needs_ngroups:
             base_func = partial(base_func, ngroups=ngroups)
