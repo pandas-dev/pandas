@@ -45,16 +45,17 @@ class GroupByIndexingMixin:
         - Input to iloc is a slice of indexes rather than a list of indexes.
         - Output from iloc is:
             - In the same order as the original grouped DataFrame or Series.
-            - Has the same index columns as the original grouped DataFrame or Series.
-              (GroupBy.take introduces an additional index)
+            - Has the same index columns as the original grouped DataFrame or
+              Series. (GroupBy.take introduces an additional index)
         - GroupBy.take is extremely slow when there is a high group count.
 
         The behaviour is different from GroupBy.nth:
         - Input to iloc is a slice of indexes rather than a list of indexes.
         - Output from iloc is:
             - In the same order as the original grouped DataFrame or Series.
-            - Has the same index columns as the original grouped DataFrame or Series.
-              (nth behaves like an aggregator and removes the non-grouped indexes)
+            - Has the same index columns as the original grouped DataFrame or
+              Series. (nth behaves like an aggregator and removes the non-grouped
+              indexes)
         - GroupBy.nth is quite fast for a high group count but slower than head,
           tail and iloc.
 
