@@ -1275,7 +1275,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _python_apply_general(
-        self, f: F, data: DataFrame | Series
+        self, f: F, data: DataFrame | Series, not_indexed_same: bool | None = None
     ) -> DataFrame | Series:
         """
         Apply function f in python space
@@ -1286,6 +1286,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Function to apply
         data : Series or DataFrame
             Data to apply f to
+        not_indexed_same: bool, optional
+            When specified, overrides the value of not_indexed_same. Apply behaves
+            differently when the result index is equal to the input index, but
+            this can be coincidental leading to value-dependent behavior.
 
         Returns
         -------
@@ -1294,8 +1298,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
+        if not_indexed_same is None:
+            not_indexed_same = mutated or self.mutated
+
         return self._wrap_applied_output(
-            data, keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=not_indexed_same
         )
 
     @final
@@ -1550,7 +1557,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 return result.astype(inference, copy=False)
 
         return self._get_cythonized_result(
-            "group_any_all",
+            libgroupby.group_any_all,
             aggregate=True,
             numeric_only=False,
             cython_dtype=np.dtype(np.int8),
@@ -1727,7 +1734,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Standard deviation of values within each group.
         """
         return self._get_cythonized_result(
-            "group_var",
+            libgroupby.group_var,
             aggregate=True,
             needs_counts=True,
             needs_values=True,
@@ -2143,7 +2150,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             limit = -1
 
         return self._get_cythonized_result(
-            "group_fillna_indexer",
+            libgroupby.group_fillna_indexer,
             numeric_only=False,
             needs_mask=True,
             cython_dtype=np.dtype(np.int64),
@@ -2459,7 +2466,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if is_scalar(q):
             return self._get_cythonized_result(
-                "group_quantile",
+                libgroupby.group_quantile,
                 aggregate=True,
                 numeric_only=False,
                 needs_values=True,
@@ -2473,7 +2480,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         else:
             results = [
                 self._get_cythonized_result(
-                    "group_quantile",
+                    libgroupby.group_quantile,
                     aggregate=True,
                     needs_values=True,
                     needs_mask=True,
@@ -2811,7 +2818,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     def _get_cythonized_result(
         self,
-        how: str,
+        base_func: Callable,
         cython_dtype: np.dtype,
         aggregate: bool = False,
         numeric_only: bool | lib.NoDefault = lib.no_default,
@@ -2833,7 +2840,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Parameters
         ----------
-        how : str, Cythonized function name to be called
+        base_func : callable, Cythonized function to be called
         cython_dtype : np.dtype
             Type of the array that will be modified by the Cython call.
         aggregate : bool, default False
@@ -2904,7 +2911,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         ids, _, ngroups = grouper.group_info
         output: dict[base.OutputKey, ArrayLike] = {}
 
-        base_func = getattr(libgroupby, how)
+        how = base_func.__name__
         base_func = partial(base_func, labels=ids)
         if needs_ngroups:
             base_func = partial(base_func, ngroups=ngroups)
@@ -3073,15 +3080,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 
-        return self._get_cythonized_result(
-            "group_shift_indexer",
-            numeric_only=False,
-            cython_dtype=np.dtype(np.int64),
-            needs_ngroups=True,
-            result_is_index=True,
-            periods=periods,
+        ids, _, ngroups = self.grouper.group_info
+        res_indexer = np.zeros(len(ids), dtype=np.int64)
+
+        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+
+        obj = self._obj_with_exclusions
+
+        res = obj._reindex_with_indexers(
+            {self.axis: (obj.axes[self.axis], res_indexer)},
             fill_value=fill_value,
+            allow_dups=True,
         )
+        return res
 
     @final
     @Substitution(name="groupby")

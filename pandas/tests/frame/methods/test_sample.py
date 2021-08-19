@@ -339,6 +339,24 @@ class TestSampleDataFrame:
         with tm.assert_produces_warning(None):
             df2["d"] = 1
 
+    def test_sample_does_not_modify_weights(self):
+        # GH-42843
+        result = np.array([np.nan, 1, np.nan])
+        expected = result.copy()
+        ser = Series([1, 2, 3])
+
+        # Test numpy array weights won't be modified in place
+        ser.sample(weights=result)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Test DataFrame column won't be modified in place
+        df = DataFrame({"values": [1, 1, 1], "weights": [1, np.nan, np.nan]})
+        expected = df["weights"].copy()
+
+        df.sample(frac=1.0, replace=True, weights="weights")
+        result = df["weights"]
+        tm.assert_series_equal(result, expected)
+
     def test_sample_ignore_index(self):
         # GH 38581
         df = DataFrame(
