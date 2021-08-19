@@ -96,7 +96,6 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
 def test_integer_overflow_bug(all_parsers, sep):
     # see gh-2601

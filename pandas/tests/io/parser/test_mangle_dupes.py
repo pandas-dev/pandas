@@ -48,6 +48,7 @@ def test_basic_names_raise(all_parsers):
         parser.read_csv(StringIO(data), names=["a", "b", "a"])
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "data,expected",
     [

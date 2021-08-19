@@ -48,7 +48,6 @@ def test_categorical_dtype(all_parsers, dtype):
     tm.assert_frame_equal(actual, expected)
 
 
-@xfail_pyarrow
 @pytest.mark.parametrize("dtype", [{"b": "category"}, {1: "category"}])
 def test_categorical_dtype_single(all_parsers, dtype):
     # see gh-10153
@@ -233,6 +232,7 @@ def test_categorical_category_dtype_unsorted(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_categorical_coerces_numeric(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype([1, 2, 3])}
@@ -256,7 +256,6 @@ def test_categorical_coerces_datetime(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_categorical_coerces_timestamp(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype([Timestamp("2014")])}

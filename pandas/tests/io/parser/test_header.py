@@ -401,6 +401,7 @@ q,r,s,t,u,v
     tm.assert_frame_equal(expected, result)
 
 
+@skip_pyarrow
 def test_header_multi_index_blank_line(all_parsers):
     # GH 40442
     parser = all_parsers

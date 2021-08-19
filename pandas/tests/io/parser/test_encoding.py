@@ -234,6 +234,7 @@ def test_parse_encoded_special_characters(encoding):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
 def test_encoding_memory_map(all_parsers, encoding):
     # GH40986

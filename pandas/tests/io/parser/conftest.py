@@ -96,6 +96,10 @@ def all_parsers(request):
     """
     if request.param.engine == "pyarrow":
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
+        # Try setting num cpus to 1 to avoid hangs?
+        import pyarrow
+
+        pyarrow.set_cpu_count(1)
     return request.param
 
 
@@ -111,6 +115,14 @@ def c_parser_only(request):
 def python_parser_only(request):
     """
     Fixture all of the CSV parsers using the Python engine.
+    """
+    return request.param
+
+
+@pytest.fixture(params=_pyarrow_parsers_only, ids=_pyarrow_parsers_ids)
+def pyarrow_parser_only(request):
+    """
+    Fixture all of the CSV parsers using the Pyarrow engine.
     """
     return request.param
 
@@ -230,9 +242,13 @@ def pyarrow_xfail(request):
     """
     if "all_parsers" in request.fixturenames:
         parser = request.getfixturevalue("all_parsers")
-        if parser.engine == "pyarrow":
-            mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
-            request.node.add_marker(mark)
+    elif "all_parsers_all_precisions" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers_all_precisions")
+    else:
+        return
+    if parser.engine == "pyarrow":
+        mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+        request.node.add_marker(mark)
 
 
 @pytest.fixture

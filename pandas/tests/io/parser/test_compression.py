@@ -114,6 +114,7 @@ def test_compression(parser_and_data, compression_only, buffer, filename):
         tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("ext", [None, "gz", "bz2"])
 def test_infer_compression(all_parsers, csv1, buffer, ext):
     # see gh-9770

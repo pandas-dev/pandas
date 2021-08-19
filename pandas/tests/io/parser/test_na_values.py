@@ -223,6 +223,7 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
@@ -595,6 +596,7 @@ foo,,bar
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_nan_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers
