@@ -34,11 +34,10 @@ class SharedSetAxisTests:
         new_index = list("abcd")[: len(obj)]
 
         expected = obj.copy()
-        if axis in [0, "index"]:
-            expected.index = new_index
-        else:
-            expected.columns = new_index
-
+      
+        axis = self.data._get_axis_number(axis)
+        expected.index = new_index if axis == 0 else expected.columns = new_index 
+        
         result = obj.copy()
         result.set_axis(new_index, axis=axis, inplace=True)
         tm.assert_equal(result, expected)
