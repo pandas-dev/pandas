@@ -365,6 +365,8 @@ Styler
 - Minor bug in :class:`.Styler` where the ``uuid`` at initialization maintained a floating underscore (:issue:`43037`)
 - Bug in :meth:`.Styler.to_html` where the ``Styler`` object was updated if the ``to_html`` method was called with some args (:issue:`43034`)
 - Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
+- Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
+-
 
 Other
 ^^^^^
