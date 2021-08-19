@@ -283,7 +283,9 @@ def read_sql_table(
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
     try:
-        pandas_sql.meta.reflect(bind=pandas_sql.connectable, only=[table_name], views=True)
+        pandas_sql.meta.reflect(
+            bind=pandas_sql.connectable, only=[table_name], views=True
+        )
     except InvalidRequestError as err:
         raise ValueError(f"Table {table_name} not found") from err
 
