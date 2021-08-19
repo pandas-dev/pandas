@@ -260,7 +260,7 @@ def test_from_custom_template_style(tmpdir):
     assert result.env is not Styler.env
     assert result.template_html_style is not Styler.template_html_style
     styler = result(DataFrame({"A": [1, 2]}))
-    assert '<link rel="stylesheet" href="mystyle.css">\n\n<style' in styler.render()
+    assert '<link rel="stylesheet" href="mystyle.css">\n\n<style' in styler.to_html()
 
 
 def test_caption_as_sequence(styler):

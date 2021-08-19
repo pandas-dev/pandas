@@ -355,7 +355,7 @@ ExtensionArray
 Styler
 ^^^^^^
 - Minor bug in :class:`.Styler` where the ``uuid`` at initialization maintained a floating underscore (:issue:`43037`)
--
+- Bug in :meth:`.Styler.to_html` where the ``Styler`` object was updated if the ``to_html`` method was called with some args (:issue:`43034`)
 
 Other
 ^^^^^
