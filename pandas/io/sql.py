@@ -44,6 +44,7 @@ from pandas.core.api import (
 )
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
+from sqlalchemy.sql.expression import insert
 from pandas.util.version import Version
 
 
@@ -283,7 +284,7 @@ def read_sql_table(
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
     try:
-        pandas_sql.meta.reflect(only=[table_name], views=True)
+        pandas_sql.meta.reflect(bind=pandas_sql.connectable, only=[table_name], views=True)
     except InvalidRequestError as err:
         raise ValueError(f"Table {table_name} not found") from err
 
@@ -580,7 +581,7 @@ def read_sql(
         _is_table_name = False
 
     if _is_table_name:
-        pandas_sql.meta.reflect(only=[sql])
+        pandas_sql.meta.reflect(bind=pandas_sql.connectable, only=[sql])
         return pandas_sql.read_table(
             sql,
             index_col=index_col,
@@ -803,7 +804,7 @@ class SQLTable(PandasObject):
             self.table = self.table.to_metadata(self.pd_sql.meta)
         else:
             self.table = self.table.tometadata(self.pd_sql.meta)
-        self.table.create()
+        self.table.create(bind=self.pd_sql.connectable)
 
     def create(self):
         if self.exists():
@@ -843,7 +844,8 @@ class SQLTable(PandasObject):
         but performance degrades quickly with increase of columns.
         """
         data = [dict(zip(keys, row)) for row in data_iter]
-        conn.execute(self.table.insert(data))
+        stmt = insert(self.table).values(data)
+        conn.execute(stmt)
 
     def insert_data(self):
         if self.index is not None:
@@ -951,17 +953,16 @@ class SQLTable(PandasObject):
                 yield self.frame
 
     def read(self, coerce_float=True, parse_dates=None, columns=None, chunksize=None):
+        from sqlalchemy import select
 
         if columns is not None and len(columns) > 0:
-            from sqlalchemy import select
-
             cols = [self.table.c[n] for n in columns]
             if self.index is not None:
                 for idx in self.index[::-1]:
                     cols.insert(0, self.table.c[idx])
-            sql_select = select(cols)
+            sql_select = select(*cols)
         else:
-            sql_select = self.table.select()
+            sql_select = select(self.table)
 
         result = self.pd_sql.execute(sql_select)
         column_names = result.keys()
@@ -1043,6 +1044,7 @@ class SQLTable(PandasObject):
             PrimaryKeyConstraint,
             Table,
         )
+        from sqlalchemy.schema import MetaData
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
@@ -1063,10 +1065,7 @@ class SQLTable(PandasObject):
 
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
-        from sqlalchemy.schema import MetaData
-
-        meta = MetaData(self.pd_sql, schema=schema)
-
+        meta = MetaData()
         return Table(self.name, meta, *columns, schema=schema)
 
     def _harmonize_columns(self, parse_dates=None):
@@ -1355,15 +1354,19 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.schema import MetaData
 
         self.connectable = engine
-        self.meta = MetaData(self.connectable, schema=schema)
+        self.meta = MetaData()
+        self.meta.reflect(bind=engine, schema=schema)
 
     @contextmanager
     def run_transaction(self):
-        with self.connectable.begin() as tx:
-            if hasattr(tx, "execute"):
-                yield tx
-            else:
-                yield self.connectable
+        from sqlalchemy.engine import Engine
+
+        if isinstance(self.connectable, Engine):
+            with self.connectable.connect() as conn:
+                with conn.begin():
+                    yield conn
+        else:
+            yield self.connectable
 
     def execute(self, *args, **kwargs):
         """Simple passthrough to SQLAlchemy connectable"""
@@ -1752,8 +1755,8 @@ class SQLDatabase(PandasSQL):
     def drop_table(self, table_name: str, schema: str | None = None):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(only=[table_name], schema=schema)
-            self.get_table(table_name, schema).drop()
+            self.meta.reflect(bind=self.connectable, only=[table_name], schema=schema)
+            self.get_table(table_name, schema).drop(bind=self.connectable)
             self.meta.clear()
 
     def _create_sql_schema(
