@@ -433,6 +433,7 @@ def dict_to_mgr(
             arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
+        data_names = ensure_index(columns)
 
     else:
         keys = list(data.keys())
@@ -738,6 +739,17 @@ def to_arrays(
 ) -> tuple[list[ArrayLike], Index]:
     """
     Return list of arrays, columns.
+
+    Returns
+    -------
+    list[ArrayLike]
+        These will become columns in a DataFrame.
+    Index
+        This will become frame.columns.
+
+    Notes
+    -----
+    Ensures that len(result_arrays) == len(result_index).
     """
     if isinstance(data, ABCDataFrame):
         # see test_from_records_with_index_data, test_from_records_bad_index_column
@@ -783,6 +795,11 @@ def to_arrays(
         )
         if columns is None:
             columns = ibase.default_index(len(data))
+        elif len(columns) > len(data):
+            raise ValueError("len(columns) > len(data)")
+        elif len(columns) < len(data):
+            # doing this here is akin to a pre-emptive reindex
+            data = data[: len(columns)]
         return data, columns
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:

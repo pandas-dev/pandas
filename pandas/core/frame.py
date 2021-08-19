@@ -2323,6 +2323,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = get_option("mode.data_manager")
         columns = ensure_index(columns)
+        if len(columns) != len(arrays):
+            raise ValueError("len(columns) must match len(arrays)")
         mgr = arrays_to_mgr(
             arrays,
             columns,
