@@ -1090,6 +1090,10 @@ class Styler(StylerRenderer):
             "caption",
             "uuid",
             "uuid_len",
+            "template_latex",  # also copy templates if these have been customised
+            "template_html_style",
+            "template_html_table",
+            "template_html",
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
