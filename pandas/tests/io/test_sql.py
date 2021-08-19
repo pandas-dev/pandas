@@ -1145,7 +1145,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # configuration would have to be altered. But here we test that
         # the warning is certainly NOT triggered in a normal case.
         with tm.assert_produces_warning(None):
-            self.test_frame1.to_sql("CaseSensitive", self.conn)
+            test_frame1.to_sql("CaseSensitive", self.conn)
 
     def _get_index_columns(self, tbl_name):
         from sqlalchemy.engine import reflection
