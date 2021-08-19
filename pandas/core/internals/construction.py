@@ -99,9 +99,8 @@ if TYPE_CHECKING:
 
 def arrays_to_mgr(
     arrays,
-    arr_names: Index,
+    columns: Index,
     index,
-    columns,
     *,
     dtype: DtypeObj | None = None,
     verify_integrity: bool = True,
@@ -133,7 +132,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_arrays(
-            arrays, arr_names, axes, consolidate=consolidate
+            arrays, columns, axes, consolidate=consolidate
         )
     elif typ == "array":
         if len(columns) != len(arrays):
@@ -180,14 +179,14 @@ def rec_array_to_mgr(
     # create the manager
 
     # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
-    # expected "List[ExtensionArray]"
+    # expected "List[Union[ExtensionArray, ndarray]]"
     arrays, arr_columns = reorder_arrays(
-        new_arrays, arr_columns, columns  # type: ignore[arg-type]
+        new_arrays, arr_columns, columns, len(index)  # type: ignore[arg-type]
     )
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype=dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ)
 
     if copy:
         mgr = mgr.copy()
@@ -226,7 +225,7 @@ def mgr_to_mgr(mgr, typ: str, copy: bool = True):
         else:
             if mgr.ndim == 2:
                 new_mgr = arrays_to_mgr(
-                    mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], typ="block"
+                    mgr.arrays, mgr.axes[0], mgr.axes[1], typ="block"
                 )
             else:
                 new_mgr = SingleBlockManager.from_array(mgr.arrays[0], mgr.index)
@@ -288,7 +287,7 @@ def ndarray_to_mgr(
         else:
             columns = ensure_index(columns)
 
-        return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
+        return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
     elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
         # i.e. Datetime64TZ
@@ -409,7 +408,6 @@ def dict_to_mgr(
         from pandas.core.series import Series
 
         arrays = Series(data, index=columns, dtype=object)
-        data_names = arrays.index
         missing = arrays.isna()
         if index is None:
             # GH10856
@@ -433,10 +431,11 @@ def dict_to_mgr(
             arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
+        columns = ensure_index(columns)
 
     else:
         keys = list(data.keys())
-        columns = data_names = Index(keys)
+        columns = Index(keys)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
@@ -456,9 +455,7 @@ def dict_to_mgr(
         ]
         # TODO: can we get rid of the dt64tz special case above?
 
-    return arrays_to_mgr(
-        arrays, data_names, index, columns, dtype=dtype, typ=typ, consolidate=copy
-    )
+    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
 
 
 def nested_data_to_arrays(
@@ -654,13 +651,33 @@ def _extract_index(data) -> Index:
 
 
 def reorder_arrays(
-    arrays: list[ArrayLike], arr_columns: Index, columns: Index | None
+    arrays: list[ArrayLike], arr_columns: Index, columns: Index | None, length: int
 ) -> tuple[list[ArrayLike], Index]:
+    """
+    Pre-emptively (cheaply) reindex arrays with new columns.
+    """
     # reorder according to the columns
-    if columns is not None and len(columns) and len(arr_columns):
-        indexer = ensure_index(arr_columns).get_indexer(columns)
-        arr_columns = ensure_index([arr_columns[i] for i in indexer])
-        arrays = [arrays[i] for i in indexer]
+    if columns is not None:
+        if not columns.equals(arr_columns):
+            # if they are equal, there is nothing to do
+            new_arrays: list[ArrayLike | None]
+            new_arrays = [None] * len(columns)
+            indexer = arr_columns.get_indexer(columns)
+            for i, k in enumerate(indexer):
+                if k == -1:
+                    # by convention default is all-NaN object dtype
+                    arr = np.empty(length, dtype=object)
+                    arr.fill(np.nan)
+                else:
+                    arr = arrays[k]
+                new_arrays[i] = arr
+
+            # Incompatible types in assignment (expression has type
+            # "List[Union[ExtensionArray, ndarray[Any, Any], None]]", variable
+            # has type "List[Union[ExtensionArray, ndarray[Any, Any]]]")
+            arrays = new_arrays  # type: ignore[assignment]
+            arr_columns = columns
+
     return arrays, arr_columns
 
 
@@ -738,6 +755,17 @@ def to_arrays(
 ) -> tuple[list[ArrayLike], Index]:
     """
     Return list of arrays, columns.
+
+    Returns
+    -------
+    list[ArrayLike]
+        These will become columns in a DataFrame.
+    Index
+        This will become frame.columns.
+
+    Notes
+    -----
+    Ensures that len(result_arrays) == len(result_index).
     """
     if isinstance(data, ABCDataFrame):
         # see test_from_records_with_index_data, test_from_records_bad_index_column
@@ -783,6 +811,11 @@ def to_arrays(
         )
         if columns is None:
             columns = ibase.default_index(len(data))
+        elif len(columns) > len(data):
+            raise ValueError("len(columns) > len(data)")
+        elif len(columns) < len(data):
+            # doing this here is akin to a pre-emptive reindex
+            data = data[: len(columns)]
         return data, columns
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:

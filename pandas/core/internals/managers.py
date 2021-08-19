@@ -1363,10 +1363,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
 
+        if len(self.items) == 0:
+            factor = 1
+        else:
+            fac = len(new_columns) / len(self.items)
+            assert fac == int(fac)
+            factor = int(fac)
+
         for blk in self.blocks:
-            blk_cols = self.items[blk.mgr_locs.indexer]
-            new_items = unstacker.get_new_columns(blk_cols)
-            new_placement = new_columns.get_indexer(new_items)
+            mgr_locs = blk.mgr_locs
+            new_placement = mgr_locs.tile_for_unstack(factor)
 
             blocks, mask = blk._unstack(
                 unstacker,
