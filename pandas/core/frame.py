@@ -700,7 +700,6 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays,
                         columns,
                         index,
-                        columns,
                         dtype=dtype,
                         typ=manager,
                     )
@@ -746,9 +745,7 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(
-                    values, columns, index, columns, dtype=None, typ=manager
-                )
+                mgr = arrays_to_mgr(values, columns, index, dtype=None, typ=manager)
             else:
                 arr2d = construct_2d_arraylike_from_scalar(
                     data,
@@ -2025,6 +2022,20 @@ class DataFrame(NDFrame, OpsMixin):
         if columns is not None:
             columns = ensure_index(columns)
 
+        def maybe_reorder(arrays, arr_columns, columns, index):
+            if len(arrays):
+                length = len(arrays[0])
+            else:
+                length = 0
+
+            result_index = None
+            if len(arrays) == 0 and index is None and length == 0:
+                # for backward compat use an object Index instead of RangeIndex
+                result_index = Index([])
+
+            arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
+            return arrays, arr_columns, result_index
+
         if is_iterator(data):
             if nrows == 0:
                 return cls()
@@ -2062,20 +2073,9 @@ class DataFrame(NDFrame, OpsMixin):
                         arr_columns_list.append(k)
                         arrays.append(v)
 
-                if len(arrays):
-                    length = len(arrays[0])
-                elif index is not None:
-                    length = len(index)
-                else:
-                    length = 0
-
                 arr_columns = Index(arr_columns_list)
-                if len(arrays) == 0 and index is None and length == 0:
-                    # for backward compat use an object Index instead of RangeIndex
-                    result_index = Index([])
-
-                arrays, arr_columns = reorder_arrays(
-                    arrays, arr_columns, columns, length
+                arrays, arr_columns, result_index = maybe_reorder(
+                    arrays, arr_columns, columns, index
                 )
 
         elif isinstance(data, (np.ndarray, DataFrame)):
@@ -2097,6 +2097,10 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = ensure_index(arr_columns)
             if columns is None:
                 columns = arr_columns
+            else:
+                arrays, arr_columns, result_index = maybe_reorder(
+                    arrays, arr_columns, columns, index
+                )
 
         if exclude is None:
             exclude = set()
@@ -2130,7 +2134,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns = columns.drop(exclude)
 
         manager = get_option("mode.data_manager")
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns, typ=manager)
+        mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
 
@@ -2343,7 +2347,6 @@ class DataFrame(NDFrame, OpsMixin):
             arrays,
             columns,
             index,
-            columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
             typ=manager,
