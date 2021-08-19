@@ -85,8 +85,8 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
-    create_block_manager_from_arrays,
     create_block_manager_from_blocks,
+    create_block_manager_from_column_arrays,
 )
 
 if TYPE_CHECKING:
@@ -131,8 +131,8 @@ def arrays_to_mgr(
     axes = [columns, index]
 
     if typ == "block":
-        return create_block_manager_from_arrays(
-            arrays, columns, axes, consolidate=consolidate
+        return create_block_manager_from_column_arrays(
+            arrays, axes, consolidate=consolidate
         )
     elif typ == "array":
         if len(columns) != len(arrays):
