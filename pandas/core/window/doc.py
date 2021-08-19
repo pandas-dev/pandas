@@ -16,7 +16,7 @@ template_header = "Calculate the {window_method} {aggregation_description}.\n\n"
 template_returns = dedent(
     """
     Series or DataFrame
-        Return type is the same as the original object.\n
+        Return type is the same as the original object with ``np.float64`` dtype.\n
     """
 ).replace("\n", "", 1)
 
@@ -94,8 +94,8 @@ window_apply_parameters = dedent(
 ).replace("\n", "", 1)
 
 numba_notes = (
-    "See :ref:`window.numba_engine` for extended documentation "
-    "and performance considerations for the Numba engine.\n\n"
+    "See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for "
+    "extended documentation and performance considerations for the Numba engine.\n\n"
 )
 
 window_agg_numba_parameters = dedent(

@@ -10,8 +10,10 @@ from typing import (
     Any,
     Generic,
     Hashable,
+    Literal,
     TypeVar,
     cast,
+    final,
 )
 
 import numpy as np
@@ -19,12 +21,11 @@ import numpy as np
 import pandas._libs.lib as lib
 from pandas._typing import (
     ArrayLike,
-    Dtype,
     DtypeObj,
     FrameOrSeries,
     IndexLabel,
     Shape,
-    final,
+    npt,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -64,7 +65,6 @@ from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas import Categorical
 
@@ -411,7 +411,7 @@ class IndexOpsMixin(OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Dtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
@@ -510,8 +510,16 @@ class IndexOpsMixin(OpsMixin):
         """
         if is_extension_array_dtype(self.dtype):
             # error: Too many arguments for "to_numpy" of "ExtensionArray"
+
+            # error: Argument 1 to "to_numpy" of "ExtensionArray" has incompatible type
+            # "Optional[Union[dtype[Any], None, type, _SupportsDType[dtype[Any]], str,
+            # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
+            # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]";
+            # expected "Optional[Union[ExtensionDtype, Union[str, dtype[Any]],
+            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
+            # Type[object]]]"
             return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs
+                dtype, copy=copy, na_value=na_value, **kwargs  # type: ignore[arg-type]
             )
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
@@ -519,12 +527,7 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(self._values, dtype=dtype)  # type: ignore[arg-type]
+        result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
             result = result.copy()
@@ -1091,6 +1094,7 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
+            # https://github.com/python/mypy/issues/1424
             # error: "ExtensionArray" has no attribute "memory_usage"
             return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
 
@@ -1133,13 +1137,13 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        value : array_like
+        value : array-like or scalar
             Values to insert into `self`.
         side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
+        sorter : 1-D array-like, optional
             Optional array of integer indices that sort `self` into ascending
             order. They are typically the result of ``np.argsort``.
 
@@ -1217,7 +1221,7 @@ class IndexOpsMixin(OpsMixin):
         """
 
     @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(self, value, side="left", sorter=None) -> npt.NDArray[np.intp]:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
@@ -1228,5 +1232,5 @@ class IndexOpsMixin(OpsMixin):
     @final
     def _duplicated(
         self, keep: Literal["first", "last", False] = "first"
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)

@@ -874,7 +874,7 @@ def test_none_comparison(series_with_simple_index):
 
     # bug brought up by #1079
     # changed from TypeError in 0.17.0
-    series[0] = np.nan
+    series.iloc[0] = np.nan
 
     # noinspection PyComparisonWithNone
     result = series == None  # noqa
@@ -924,7 +924,7 @@ def test_series_varied_multiindex_alignment():
         [1000 * i for i in range(1, 5)],
         index=pd.MultiIndex.from_product([list("xy"), [1, 2]], names=["xy", "num"]),
     )
-    result = s1.loc[pd.IndexSlice["a", :, :]] + s2
+    result = s1.loc[pd.IndexSlice[["a"], :, :]] + s2
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(

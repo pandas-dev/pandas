@@ -92,7 +92,7 @@ class TestAstype:
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
             init_empty = Series([], dtype=dtype)
-            with tm.assert_produces_warning(DeprecationWarning):
+            with tm.assert_produces_warning(FutureWarning):
                 as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
@@ -355,6 +355,13 @@ class TestAstype:
         # GH#39474
         result = Series(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes == np.dtype("S3")
+
+    def test_astype_nan_to_bool(self):
+        # GH#43018
+        ser = Series(np.nan, dtype="object")
+        result = ser.astype("bool")
+        expected = Series(True, dtype="bool")
+        tm.assert_series_equal(result, expected)
 
 
 class TestAstypeString:

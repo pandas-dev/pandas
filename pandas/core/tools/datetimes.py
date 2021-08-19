@@ -194,9 +194,9 @@ def _maybe_cache(
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
             cache_array = Series(cache_dates, index=unique_dates)
-            if not cache_array.is_unique:
-                # GH#39882 in case of None and NaT we get duplicates
-                cache_array = cache_array.drop_duplicates()
+            # GH#39882 and GH#35888 in case of None and NaT we get duplicates
+            if not cache_array.index.is_unique:
+                cache_array = cache_array[~cache_array.index.duplicated()]
     return cache_array
 
 
@@ -226,7 +226,7 @@ def _box_as_indexlike(
     if is_datetime64_dtype(dt_array):
         tz = "utc" if utc else None
         return DatetimeIndex(dt_array, tz=tz, name=name)
-    return Index(dt_array, name=name)
+    return Index(dt_array, name=name, dtype=dt_array.dtype)
 
 
 def _convert_and_box_cache(
@@ -517,7 +517,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
-    arg = getattr(arg, "_values", arg)
+    arg = getattr(arg, "_values", arg)  # TODO: extract_array
 
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
@@ -529,7 +529,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-        result = Index(arr, name=name)
+        result = Index._with_infer(arr, name=name)
     else:
         result = DatetimeIndex(arr, name=name)
 
@@ -762,7 +762,9 @@ def to_datetime(
         If parsing succeeded.
         Return type depends on input:
 
-        - list-like: DatetimeIndex
+        - list-like:
+            - DatetimeIndex, if timezone naive or aware with the same timezone
+            - Index of object dtype, if timezone aware with mixed time offsets
         - Series: Series of datetime64 dtype
         - scalar: Timestamp
 

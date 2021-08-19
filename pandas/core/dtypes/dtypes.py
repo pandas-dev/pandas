@@ -104,7 +104,7 @@ class PandasExtensionDtype(ExtensionDtype):
 
     @classmethod
     def reset_cache(cls) -> None:
-        """ clear the cache """
+        """clear the cache"""
         cls._cache_dtypes = {}
 
 
@@ -529,7 +529,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
         elif not isinstance(categories, ABCIndex):
-            categories = Index(categories, tupleize_cols=False)
+            categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
 

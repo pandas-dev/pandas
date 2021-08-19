@@ -8,6 +8,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Literal,
     cast,
     overload,
 )
@@ -81,8 +82,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
+    from pandas import DataFrame
     from pandas.core.arrays import (
         PeriodArray,
         TimedeltaArray,
@@ -508,6 +509,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # Descriptive Properties
 
     def _box_func(self, x) -> Timestamp | NaTType:
+        if isinstance(x, np.datetime64):
+            # GH#42228
+            # Argument 1 to "signedinteger" has incompatible type "datetime64";
+            # expected "Union[SupportsInt, Union[str, bytes], SupportsIndex]"
+            x = np.int64(x)  # type: ignore[arg-type]
         ts = Timestamp(x, tz=self.tz)
         # Non-overlapping identity check (left operand type: "Timestamp",
         # right operand type: "NaTType")
@@ -1256,7 +1262,7 @@ default 'raise'
         return result
 
     @property
-    def time(self):
+    def time(self) -> np.ndarray:
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1268,7 +1274,7 @@ default 'raise'
         return ints_to_pydatetime(timestamps, box="time")
 
     @property
-    def timetz(self):
+    def timetz(self) -> np.ndarray:
         """
         Returns numpy array of datetime.time also containing timezone
         information. The time part of the Timestamps.
@@ -1276,7 +1282,7 @@ default 'raise'
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
-    def date(self):
+    def date(self) -> np.ndarray:
         """
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
@@ -1288,7 +1294,7 @@ default 'raise'
 
         return ints_to_pydatetime(timestamps, box="date")
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         """
         Returns a DataFrame with the year, week, and day calculated according to
         the ISO 8601 standard.
@@ -1871,7 +1877,7 @@ default 'raise'
         """,
     )
 
-    def to_julian_date(self):
+    def to_julian_date(self) -> np.ndarray:
         """
         Convert Datetime Array to float64 ndarray of Julian Dates.
         0 Julian date is noon January 1, 4713 BC.

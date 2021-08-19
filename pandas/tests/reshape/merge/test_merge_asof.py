@@ -40,7 +40,7 @@ class TestAsOfMerge:
         )
 
     def test_examples1(self):
-        """ doc-string examples """
+        """doc-string examples"""
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
         right = pd.DataFrame({"a": [1, 2, 3, 6, 7], "right_val": [1, 2, 3, 6, 7]})
 
@@ -52,7 +52,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_examples2(self):
-        """ doc-string examples """
+        """doc-string examples"""
         trades = pd.DataFrame(
             {
                 "time": to_datetime(
@@ -136,7 +136,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_examples3(self):
-        """ doc-string examples """
+        """doc-string examples"""
         # GH14887
 
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
@@ -150,7 +150,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(result, expected)
 
     def test_examples4(self):
-        """ doc-string examples """
+        """doc-string examples"""
         # GH14887
 
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
@@ -1047,9 +1047,9 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_on_specialized_type(self, any_real_dtype):
+    def test_on_specialized_type(self, any_real_numpy_dtype):
         # see gh-13936
-        dtype = np.dtype(any_real_dtype).type
+        dtype = np.dtype(any_real_numpy_dtype).type
 
         df1 = pd.DataFrame(
             {"value": [5, 2, 25, 100, 78, 120, 79], "symbol": list("ABCDEFG")},
@@ -1078,9 +1078,9 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_on_specialized_type_by_int(self, any_real_dtype):
+    def test_on_specialized_type_by_int(self, any_real_numpy_dtype):
         # see gh-13936
-        dtype = np.dtype(any_real_dtype).type
+        dtype = np.dtype(any_real_numpy_dtype).type
 
         df1 = pd.DataFrame(
             {
@@ -1309,18 +1309,18 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_int_type_tolerance(self, any_int_dtype):
+    def test_int_type_tolerance(self, any_int_numpy_dtype):
         # GH #28870
 
         left = pd.DataFrame({"a": [0, 10, 20], "left_val": [1, 2, 3]})
         right = pd.DataFrame({"a": [5, 15, 25], "right_val": [1, 2, 3]})
-        left["a"] = left["a"].astype(any_int_dtype)
-        right["a"] = right["a"].astype(any_int_dtype)
+        left["a"] = left["a"].astype(any_int_numpy_dtype)
+        right["a"] = right["a"].astype(any_int_numpy_dtype)
 
         expected = pd.DataFrame(
             {"a": [0, 10, 20], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
         )
-        expected["a"] = expected["a"].astype(any_int_dtype)
+        expected["a"] = expected["a"].astype(any_int_numpy_dtype)
 
         result = merge_asof(left, right, on="a", tolerance=10)
         tm.assert_frame_equal(result, expected)
@@ -1437,3 +1437,50 @@ def test_merge_asof_index_behavior(kwargs):
         index=index,
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_numeri_column_in_index():
+    # GH#34488
+    left = pd.DataFrame({"b": [10, 11, 12]}, index=Index([1, 2, 3], name="a"))
+    right = pd.DataFrame({"c": [20, 21, 22]}, index=Index([0, 2, 3], name="a"))
+
+    result = merge_asof(left, right, left_on="a", right_on="a")
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [10, 11, 12], "c": [20, 21, 22]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_numeri_column_in_multiindex():
+    # GH#34488
+    left = pd.DataFrame(
+        {"b": [10, 11, 12]},
+        index=pd.MultiIndex.from_arrays([[1, 2, 3], ["a", "b", "c"]], names=["a", "z"]),
+    )
+    right = pd.DataFrame(
+        {"c": [20, 21, 22]},
+        index=pd.MultiIndex.from_arrays([[1, 2, 3], ["x", "y", "z"]], names=["a", "y"]),
+    )
+
+    result = merge_asof(left, right, left_on="a", right_on="a")
+    expected = pd.DataFrame({"a": [1, 2, 3], "b": [10, 11, 12], "c": [20, 21, 22]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_numeri_column_in_index_object_dtype():
+    # GH#34488
+    left = pd.DataFrame({"b": [10, 11, 12]}, index=Index(["1", "2", "3"], name="a"))
+    right = pd.DataFrame({"c": [20, 21, 22]}, index=Index(["m", "n", "o"], name="a"))
+
+    with pytest.raises(
+        MergeError,
+        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+    ):
+        merge_asof(left, right, left_on="a", right_on="a")
+
+    left = left.reset_index().set_index(["a", "b"])
+    right = right.reset_index().set_index(["a", "c"])
+
+    with pytest.raises(
+        MergeError,
+        match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+    ):
+        merge_asof(left, right, left_on="a", right_on="a")

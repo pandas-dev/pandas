@@ -11,7 +11,6 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    PY38,
     PY310,
     is_platform_windows,
 )
@@ -27,8 +26,6 @@ from pandas import (
     read_json,
 )
 import pandas._testing as tm
-
-pytestmark = pytest.mark.skipif(PY310, reason="timeout with coverage")
 
 _seriesd = tm.getSeriesData()
 
@@ -1181,6 +1178,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = s.to_json()
         assert expected == ss.to_json()
 
+    @pytest.mark.skipif(PY310, reason="segfault GH 42130")
     @pytest.mark.parametrize(
         "ts",
         [
@@ -1198,6 +1196,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         dt = ts.to_pydatetime()
         assert dumps(dt, iso_dates=True) == exp
 
+    @pytest.mark.skipif(PY310, reason="segfault GH 42130")
     @pytest.mark.parametrize(
         "tz_range",
         [
@@ -1715,7 +1714,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert result == expected
 
     @pytest.mark.xfail(
-        is_platform_windows() and PY38,
+        is_platform_windows(),
         reason="localhost connection rejected",
         strict=False,
     )
@@ -1770,3 +1769,18 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
             "\"(Timestamp('2017-01-23 00:00:00'), 'bar')\":true}"
         )
         assert result == expected
+
+    def test_to_json_series_of_objects(self):
+        class _TestObject:
+            def __init__(self, a, b, _c, d):
+                self.a = a
+                self.b = b
+                self._c = _c
+                self.d = d
+
+            def e(self):
+                return 5
+
+        # JSON keys should be all non-callable non-underscore attributes, see GH-42768
+        series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
+        assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}

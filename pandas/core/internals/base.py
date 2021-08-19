@@ -2,16 +2,16 @@
 Base class for the internal managers. Both BlockManager and ArrayManager
 inherit from this class.
 """
+from __future__ import annotations
+
 from typing import (
-    List,
-    Optional,
     TypeVar,
+    final,
 )
 
 from pandas._typing import (
     DtypeObj,
     Shape,
-    final,
 )
 from pandas.errors import AbstractMethodError
 
@@ -27,12 +27,13 @@ class DataManager(PandasObject):
 
     # TODO share more methods/attributes
 
-    axes: List[Index]
+    axes: list[Index]
 
     @property
     def items(self) -> Index:
         raise AbstractMethodError(self)
 
+    @final
     def __len__(self) -> int:
         return len(self.items)
 
@@ -105,6 +106,7 @@ class DataManager(PandasObject):
         """
         raise AbstractMethodError(self)
 
+    @final
     def equals(self, other: object) -> bool:
         """
         Implementation for DataFrame.equals
@@ -123,19 +125,33 @@ class DataManager(PandasObject):
     def apply(
         self: T,
         f,
-        align_keys: Optional[List[str]] = None,
+        align_keys: list[str] | None = None,
         ignore_failures: bool = False,
         **kwargs,
     ) -> T:
         raise AbstractMethodError(self)
 
+    @final
     def isna(self: T, func) -> T:
         return self.apply("apply", func=func)
+
+    # --------------------------------------------------------------------
+    # Consolidation: No-ops for all but BlockManager
+
+    def is_consolidated(self) -> bool:
+        return True
+
+    def consolidate(self: T) -> T:
+        return self
+
+    def _consolidate_inplace(self) -> None:
+        return
 
 
 class SingleDataManager(DataManager):
     ndim = 1
 
+    @final
     @property
     def array(self):
         """
@@ -143,8 +159,20 @@ class SingleDataManager(DataManager):
         """
         return self.arrays[0]  # type: ignore[attr-defined]
 
+    def setitem_inplace(self, indexer, value) -> None:
+        """
+        Set values with indexer.
 
-def interleaved_dtype(dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+        For Single[Block/Array]Manager, this backs s[indexer] = value
+
+        This is an inplace version of `setitem()`, mutating the manager/values
+        in place, not returning a new Manager (and Block), and thus never changing
+        the dtype.
+        """
+        self.array[indexer] = value
+
+
+def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
     """
     Find the common dtype for `blocks`.
 
