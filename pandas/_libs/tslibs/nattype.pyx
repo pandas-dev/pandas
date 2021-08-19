@@ -409,8 +409,20 @@ class NaTType(_NaT):
     # These are the ones that can get their docstrings from datetime.
 
     # nan methods
-    weekday = _make_nan_func("weekday", datetime.weekday.__doc__)
-    isoweekday = _make_nan_func("isoweekday", datetime.isoweekday.__doc__)
+    weekday = _make_nan_func(
+        "weekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """,
+    )
+    isoweekday = _make_nan_func(
+        "isoweekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """,
+    )
     total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
     month_name = _make_nan_func(
         "month_name",

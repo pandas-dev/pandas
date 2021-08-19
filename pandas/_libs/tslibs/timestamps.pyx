@@ -1960,6 +1960,20 @@ default 'raise'
                  self.nanosecond / 3600.0 / 1e+9
                  ) / 24.0)
 
+    def isoweekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """
+        return super().isoweekday()
+
+    def weekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """
+        return super().weekday()
+
 
 # Aliases
 Timestamp.weekofyear = Timestamp.week
