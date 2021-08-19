@@ -244,6 +244,24 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
         conn.execute(stmt)
 
 
+def count_rows(conn, table_name: str):
+    stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
+    if isinstance(conn, sqlite3.Connection):
+        cur = conn.cursor()
+        result = cur.execute(stmt)
+    else:
+        from sqlalchemy import text
+        from sqlalchemy.engine import Engine
+
+        stmt = text(stmt)
+        if isinstance(conn, Engine):
+            with conn.connect() as conn:
+                result = conn.execute(stmt)
+        else:
+            result = conn.execute(stmt)
+    return result.fetchone()[0]
+
+
 @pytest.fixture
 def iris_path(datapath):
     iris_path = datapath("io", "data", "csv", "iris.csv")
@@ -409,12 +427,6 @@ class PandasSQLTest:
 
     """
 
-    def _get_exec(self):
-        if hasattr(self.conn, "execute"):
-            return self.conn
-        else:
-            return self.conn.cursor()
-
     @pytest.fixture
     def load_iris_data(self, iris_path):
         if not hasattr(self, "conn"):
@@ -445,14 +457,6 @@ class PandasSQLTest:
         assert issubclass(pytype, np.floating)
         tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
-    def _count_rows(self, table_name):
-        result = (
-            self._get_exec()
-            .execute(f"SELECT count(*) AS count_1 FROM {table_name}")
-            .fetchone()
-        )
-        return result[0]
-
     def _read_sql_iris(self):
         iris_frame = self.pandasSQL.read_query("SELECT * FROM iris")
         self._check_iris_loaded_frame(iris_frame)
@@ -481,7 +485,7 @@ class PandasSQLTest:
         assert self.pandasSQL.has_table("test_frame1")
 
         num_entries = len(test_frame1)
-        num_rows = self._count_rows("test_frame1")
+        num_rows = count_rows(self.conn, "test_frame1")
         assert num_rows == num_entries
 
         # Nuke table
@@ -512,7 +516,7 @@ class PandasSQLTest:
         assert self.pandasSQL.has_table("test_frame1")
 
         num_entries = len(test_frame1)
-        num_rows = self._count_rows("test_frame1")
+        num_rows = count_rows(self.conn, "test_frame1")
 
         assert num_rows == num_entries
         self.drop_table("test_frame1")
@@ -528,7 +532,7 @@ class PandasSQLTest:
         assert self.pandasSQL.has_table("test_frame1")
 
         num_entries = 2 * len(test_frame1)
-        num_rows = self._count_rows("test_frame1")
+        num_rows = count_rows(self.conn, "test_frame1")
 
         assert num_rows == num_entries
         self.drop_table("test_frame1")
@@ -548,7 +552,7 @@ class PandasSQLTest:
 
         assert check == [1]
         num_entries = len(test_frame1)
-        num_rows = self._count_rows("test_frame1")
+        num_rows = count_rows(self.conn, "test_frame1")
         assert num_rows == num_entries
         # Nuke table
         self.drop_table("test_frame1")
@@ -564,7 +568,7 @@ class PandasSQLTest:
         assert self.pandasSQL.has_table("test_frame1")
 
         num_entries = len(test_frame1)
-        num_rows = self._count_rows("test_frame1")
+        num_rows = count_rows(self.conn, "test_frame1")
         assert num_rows == num_entries
 
         # Nuke table
@@ -689,7 +693,7 @@ class _TestSQLApi(PandasSQLTest):
         assert sql.has_table("test_frame3", self.conn)
 
         num_entries = len(test_frame1)
-        num_rows = self._count_rows("test_frame3")
+        num_rows = count_rows(self.conn, "test_frame3")
 
         assert num_rows == num_entries
 
@@ -701,7 +705,7 @@ class _TestSQLApi(PandasSQLTest):
         assert sql.has_table("test_frame4", self.conn)
 
         num_entries = 2 * len(test_frame1)
-        num_rows = self._count_rows("test_frame4")
+        num_rows = count_rows(self.conn, "test_frame4")
 
         assert num_rows == num_entries
 

@@ -203,7 +203,6 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
     excl = [
         "na_rep",  # deprecated
         "precision",  # deprecated
-        "uuid",  # special
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
@@ -217,6 +216,7 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
             "columns",
             "index",
             "uuid_len",
+            "uuid",
             "caption",
             "cell_ids",
             "hide_index_",
@@ -242,7 +242,7 @@ def test_clear(mi_styler_comp):
     # to ensure proper testing of the 'copy', 'clear', 'export' methods with new feature
     # GH 40675
     styler = mi_styler_comp
-    styler.to_html()  # new attrs maybe created on render
+    styler._compute()  # execute applied methods
 
     clean_copy = Styler(styler.data, uuid=styler.uuid)
 
@@ -251,7 +251,7 @@ def test_clear(mi_styler_comp):
         "index",
         "columns",
         "uuid",
-        "uuid_len",
+        "uuid_len",  # uuid is set to be the same on styler and clean_copy
         "cell_ids",
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
