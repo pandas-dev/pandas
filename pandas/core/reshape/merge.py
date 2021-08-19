@@ -1521,12 +1521,12 @@ def _anti_helper(
     # MultiIndex as required
     if not isinstance(_left, Index):
         if len(_left.columns) == 1:
-            _left = Index(_left.values.flatten())
+            _left = Index(_left.values.flatten(), dtype=_left.dtypes[0])
         else:
             _left = MultiIndex.from_frame(_left)
     if not isinstance(_right, Index):
         if len(_right.columns) == 1:
-            _right = Index(_right.values.flatten())
+            _right = Index(_right.values.flatten(), dtype=_right.dtypes[0])
         else:
             _right = MultiIndex.from_frame(_right)
 

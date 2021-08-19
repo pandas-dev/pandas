@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
+from pandas import (
+    Categorical,
+    DataFrame,
+)
 import pandas._testing as tm
 from pandas.core.reshape.merge import merge
 
@@ -404,4 +407,117 @@ class Test_AntiJoin:
         left = DataFrame({"A": [np.nan, 2, pd.NA], "B": ["a", 2, 3]})
         right = DataFrame({"C": [1, 3, np.nan], "B": [pd.NA, 2, "c"]})
         result = merge(left, right, how=how, left_on=left_on, right_on=right_on)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "how, expected",
+        [
+            (
+                "anti_left",
+                DataFrame(
+                    {"vals_x": [20, 17], "vals_y": [np.nan] * 2},
+                    index=pd.date_range("1/2/2010", periods=2, freq="2d"),
+                ),
+            ),
+            (
+                "anti_right",
+                DataFrame(
+                    {"vals_x": [np.nan] * 2, "vals_y": [17, 21]},
+                    index=pd.date_range("1/7/2010", periods=2, freq="2d"),
+                ),
+            ),
+            (
+                "anti_full",
+                DataFrame(
+                    {
+                        "vals_x": [20, 17, np.nan, np.nan],
+                        "vals_y": [np.nan, np.nan, 17, 21],
+                    },
+                    index=pd.date_range("1/7/2010", periods=2, freq="2d").union(
+                        pd.date_range("1/2/2010", periods=2, freq="2d")
+                    ),
+                ),
+            ),
+        ],
+    )
+    def test_anti_datetime(self, how, expected):
+        left = DataFrame(
+            {"vals": [10, 20, 15, 17, 21]},
+            index=pd.date_range("1/1/2010", periods=5, freq="D"),
+        )
+        right = DataFrame(
+            {"vals": [10, 20, 15, 17, 21]},
+            index=pd.date_range("1/1/2010", periods=5, freq="2D"),
+        )
+        result = merge(left, right, left_index=True, right_index=True, how=how)
+        tm.assert_frame_equal(result, expected)
+
+    def test_anti_datetime_tz(self):
+        expected = DataFrame(
+            {
+                "Date": pd.date_range(
+                    "20-10-2021", periods=2, freq="6D", tz="Asia/Kolkata"
+                ),
+                "a_x": [3, 4],
+                "a_y": [np.nan, np.nan],
+            }
+        )
+        left = DataFrame(
+            {
+                "Date": pd.date_range(
+                    "10-02-2021", periods=5, freq="6D", tz="Asia/Kolkata"
+                ),
+                "a": range(5),
+            }
+        )
+        right = DataFrame(
+            {
+                "Date": pd.date_range(
+                    "10-02-2021", periods=5, freq="3D", tz="Asia/Kolkata"
+                ),
+                "a": range(5),
+            }
+        )
+        result = merge(left, right, how="anti_left", on="Date")
+        tm.assert_frame_equal(result, expected)
+
+    def test_anti_categorical(self):
+        left = DataFrame({"A": list("abca"), "B": list("bccd")}, dtype="category")
+        right = DataFrame({"A": list("dad"), "C": list("gap")}, dtype="category")
+        expected = DataFrame(
+            {
+                "A": ["b", "c"],
+                "B": Categorical(["c", "c"], categories=list("bcd")),
+                "C": Categorical([np.nan, np.nan], categories=list("agp")),
+            }
+        )
+        result = merge(left, right, how="anti_left")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype", ["Int64", "Int32", "UInt32", "UInt64", "Float32", "Float64"]
+    )
+    def test_anti_EA_dtypes(self, dtype):
+        left = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, dtype=dtype)
+        right = DataFrame({"A": [1, 4, 5], "C": [7, 6, 8]}, dtype=dtype)
+        result = merge(left, right, how="anti_right")
+        expected = DataFrame(
+            {"A": [4, 5], "B": [pd.NA, pd.NA], "C": [6, 8]}, dtype=dtype
+        ).astype({"A": object})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype", ["Int64", "Int32", "UInt32", "UInt64", "Float32", "Float64"]
+    )
+    def test_anti_EA_dtypes_with_multicol(self, dtype):
+        left = DataFrame(
+            {"A": [1, 2, 3], "B": [4, 5, 6], "C": [5, 6, 7]},
+            index=["a", "b", "c"],
+            dtype=dtype,
+        )
+        right = DataFrame({"B": [5, 5, 9], "C": [4, 6, 7], "D": [1, 0, 0]}, dtype=dtype)
+        expected = DataFrame(
+            columns=list("ABCD"), data=[[1, 4, 5, pd.NA], [3, 6, 7, pd.NA]], dtype=dtype
+        )
+        result = merge(left, right, how="anti_left")
         tm.assert_frame_equal(result, expected)
