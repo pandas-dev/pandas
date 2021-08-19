@@ -2046,7 +2046,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             Unicode,
             select,
         )
-        from sqlalchemy.orm import Session, sessionmaker
+        from sqlalchemy.orm import (
+            Session,
+            sessionmaker,
+        )
 
         if _gt14():
             from sqlalchemy.orm import declarative_base
