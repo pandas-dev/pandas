@@ -366,10 +366,19 @@ class InsertColumns:
     def setup(self):
         self.N = 10 ** 3
         self.df = DataFrame(index=range(self.N))
+        self.df2 = DataFrame(np.random.randn(self.N, 2))
 
     def time_insert(self):
         for i in range(100):
             self.df.insert(0, i, np.random.randn(self.N), allow_duplicates=True)
+
+    def time_insert_middle(self):
+        # same as time_insert but inserting to a middle column rather than
+        #  front or back (which have fast-paths)
+        for i in range(100):
+            self.df2.insert(
+                1, "colname", np.random.randn(self.N), allow_duplicates=True
+            )
 
     def time_assign_with_setitem(self):
         for i in range(100):
