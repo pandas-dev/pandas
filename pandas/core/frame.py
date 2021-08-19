@@ -269,7 +269,8 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
+how : {'left', 'right', 'outer', 'inner', 'cross',
+ 'anti_left', 'anti_right', 'anti_full'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -284,6 +285,15 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
       of the left keys.
 
       .. versionadded:: 1.2.0
+    * anti_left: use only keys from left frame that are absent in right
+      frame; preserve key order.
+    * anti_right: use keys from the right frame that are absent in the
+      left frame; preserve key order.
+    * anti_full: use keys from  the right frame that are absent in the
+      left frame, and the keys in the left frame that are absent in the
+      right frame; sort keys lexicographically.
+
+      .. versionadded:: 1.4.0
 
 on : label or list
     Column or index level names to join on. These must be found in both
@@ -443,6 +453,33 @@ ValueError: columns overlap but no suffix specified:
 1   foo      8
 2   bar      7
 3   bar      8
+
+>>> df1 = pd.DataFrame({"A": [1, 2, 3], "C": [5, 6, 7]})
+>>> df2 = pd. DataFrame({"B": [1, 2, 4], "C": [7, 8, 9]})
+>>> df1
+   A  C
+0  1  5
+1  2  6
+2  3  7
+>>> df2
+   B  C
+0  1  7
+1  2  8
+2  4  9
+>>> df1.merge(df2, on="C", how="anti_left")
+   A  C   B
+0  1  5 NaN
+1  2  6 NaN
+>>> df1.merge(df2, on="C", how="anti_right")
+    A  C  B
+0 NaN  8  2
+1 NaN  9  4
+>>> df1.merge(df2, on="C", how="anti_full")
+     A  C    B
+0  1.0  5  NaN
+1  2.0  6  NaN
+2  NaN  8  2.0
+3  NaN  9  4.0
 """
 
 
