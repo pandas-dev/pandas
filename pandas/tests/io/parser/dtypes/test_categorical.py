@@ -19,6 +19,7 @@ from pandas import (
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @xfail_pyarrow
@@ -48,6 +49,7 @@ def test_categorical_dtype(all_parsers, dtype):
     tm.assert_frame_equal(actual, expected)
 
 
+@skip_pyarrow  # Flaky
 @pytest.mark.parametrize("dtype", [{"b": "category"}, {1: "category"}])
 def test_categorical_dtype_single(all_parsers, dtype):
     # see gh-10153
@@ -232,7 +234,6 @@ def test_categorical_category_dtype_unsorted(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_categorical_coerces_numeric(all_parsers):
     parser = all_parsers
     dtype = {"b": CategoricalDtype([1, 2, 3])}
@@ -244,6 +245,7 @@ def test_categorical_coerces_numeric(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # Flaky
 def test_categorical_coerces_datetime(all_parsers):
     parser = all_parsers
     dti = pd.DatetimeIndex(["2017-01-01", "2018-01-01", "2019-01-01"], freq=None)

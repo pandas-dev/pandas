@@ -14,6 +14,7 @@ from pandas import (
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_int_conversion(all_parsers):
@@ -96,6 +97,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # Flaky
 @pytest.mark.parametrize("sep", [" ", r"\s+"])
 def test_integer_overflow_bug(all_parsers, sep):
     # see gh-2601
