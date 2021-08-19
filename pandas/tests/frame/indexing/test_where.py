@@ -316,11 +316,11 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_bug_mixed(self, sint_dtype):
+    def test_where_bug_mixed(self, any_signed_int_numpy_dtype):
         # see gh-2793
         df = DataFrame(
             {
-                "a": np.array([1, 2, 3, 4], dtype=sint_dtype),
+                "a": np.array([1, 2, 3, 4], dtype=any_signed_int_numpy_dtype),
                 "b": np.array([4.0, 3.0, 2.0, 1.0], dtype="float64"),
             }
         )

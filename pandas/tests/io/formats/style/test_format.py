@@ -7,7 +7,6 @@ from pandas import (
     NaT,
     Timestamp,
 )
-import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -84,14 +83,6 @@ def test_format_non_numeric_na():
             "datetime": [None, NaT, Timestamp("20120101")],
         }
     )
-
-    with tm.assert_produces_warning(FutureWarning):
-        ctx = df.style.set_na_rep("NA")._translate(True, True)
-    assert ctx["body"][0][1]["display_value"] == "NA"
-    assert ctx["body"][0][2]["display_value"] == "NA"
-    assert ctx["body"][1][1]["display_value"] == "NA"
-    assert ctx["body"][1][2]["display_value"] == "NA"
-
     ctx = df.style.format(None, na_rep="-")._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == "-"
     assert ctx["body"][0][2]["display_value"] == "-"
@@ -125,12 +116,12 @@ def test_format_escape_html(escape, exp):
 
     s = Styler(df, uuid_len=0).format("&{0}&", escape=None)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{chars}&</td>'
-    assert expected in s.render()
+    assert expected in s.to_html()
 
     # only the value should be escaped before passing to the formatter
     s = Styler(df, uuid_len=0).format("&{0}&", escape=escape)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{exp}&</td>'
-    assert expected in s.render()
+    assert expected in s.to_html()
 
 
 def test_format_escape_na_rep():
@@ -139,19 +130,19 @@ def test_format_escape_na_rep():
     s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&")
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
-    assert ex in s.render()
-    assert expected2 in s.render()
+    assert ex in s.to_html()
+    assert expected2 in s.to_html()
 
 
 def test_format_escape_floats(styler):
     # test given formatter for number format is not impacted by escape
     s = styler.format("{:.1f}", escape="html")
     for expected in [">0.0<", ">1.0<", ">-1.2<", ">-0.6<"]:
-        assert expected in s.render()
+        assert expected in s.to_html()
     # tests precision of floats is not impacted by escape
     s = styler.format(precision=1, escape="html")
     for expected in [">0<", ">1<", ">-1.2<", ">-0.6<"]:
-        assert expected in s.render()
+        assert expected in s.to_html()
 
 
 @pytest.mark.parametrize("formatter", [5, True, [2.0]])

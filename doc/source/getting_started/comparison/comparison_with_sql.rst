@@ -233,6 +233,12 @@ default, :meth:`~pandas.DataFrame.join` will join the DataFrames on their indice
 parameters allowing you to specify the type of join to perform (``LEFT``, ``RIGHT``, ``INNER``,
 ``FULL``) or the columns to join on (column names or indices).
 
+.. warning::
+
+    If both key columns contain rows where the key is a null value, those
+    rows will be matched against each other. This is different from usual SQL
+    join behaviour and can lead to unexpected results.
+
 .. ipython:: python
 
     df1 = pd.DataFrame({"key": ["A", "B", "C", "D"], "value": np.random.randn(4)})

@@ -265,6 +265,12 @@ on indexes or indexes on a column or columns, the index will be passed on.
 When performing a cross merge, no column specifications to merge on are
 allowed.
 
+.. warning::
+
+    If both key columns contain rows where the key is a null value, those
+    rows will be matched against each other. This is different from usual SQL
+    join behaviour and can lead to unexpected results.
+
 Parameters
 ----------%s
 right : DataFrame or named Series
@@ -2019,6 +2025,8 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        result_index = None
+
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = ensure_index(columns)
@@ -2060,8 +2068,21 @@ class DataFrame(NDFrame, OpsMixin):
                         arr_columns_list.append(k)
                         arrays.append(v)
 
+                if len(arrays):
+                    length = len(arrays[0])
+                elif index is not None:
+                    length = len(index)
+                else:
+                    length = 0
+
                 arr_columns = Index(arr_columns_list)
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
+                if len(arrays) == 0 and index is None and length == 0:
+                    # for backward compat use an object Index instead of RangeIndex
+                    result_index = Index([])
+
+                arrays, arr_columns = reorder_arrays(
+                    arrays, arr_columns, columns, length
+                )
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
@@ -2088,7 +2109,6 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             exclude = set(exclude)
 
-        result_index = None
         if index is not None:
             if isinstance(index, str) or not hasattr(index, "__iter__"):
                 i = columns.get_loc(index)
@@ -2323,6 +2343,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = get_option("mode.data_manager")
         columns = ensure_index(columns)
+        if len(columns) != len(arrays):
+            raise ValueError("len(columns) must match len(arrays)")
         mgr = arrays_to_mgr(
             arrays,
             columns,
