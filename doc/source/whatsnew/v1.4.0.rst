@@ -239,6 +239,7 @@ Categorical
 - Bug in :meth:`Series.where` with ``CategoricalDtype`` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
 - Bug in :meth:`Categorical.fillna` when passing a dtype-incompatible value raising ``ValueError`` instead of ``TypeError`` (:issue:`41919`)
 - Bug in :meth:`Categorical.fillna` with a tuple-like category raising ``ValueError`` instead of ``TypeError`` when filling with a non-category tuple (:issue:`41919`)
+- Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
 -
 
 Datetimelike
@@ -265,6 +266,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
+- Bug in :class:`Series` constructor returning 0 for missing values with dtype ``int64`` and ``False`` for dtype ``bool`` (:issue:`43017`, :issue:`43018`)
 -
 
 Strings
