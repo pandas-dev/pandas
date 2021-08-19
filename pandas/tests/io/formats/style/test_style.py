@@ -42,7 +42,7 @@ def mi_styler(mi_df):
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler.uuid_len = 5
-    mi_styler.uuid = "abcde_"
+    mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
