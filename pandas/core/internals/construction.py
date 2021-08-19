@@ -99,9 +99,8 @@ if TYPE_CHECKING:
 
 def arrays_to_mgr(
     arrays,
-    arr_names: Index,
+    columns: Index,
     index,
-    columns,
     *,
     dtype: DtypeObj | None = None,
     verify_integrity: bool = True,
@@ -133,7 +132,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_arrays(
-            arrays, arr_names, axes, consolidate=consolidate
+            arrays, columns, axes, consolidate=consolidate
         )
     elif typ == "array":
         if len(columns) != len(arrays):
@@ -187,7 +186,7 @@ def rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ)
 
     if copy:
         mgr = mgr.copy()
@@ -226,7 +225,7 @@ def mgr_to_mgr(mgr, typ: str, copy: bool = True):
         else:
             if mgr.ndim == 2:
                 new_mgr = arrays_to_mgr(
-                    mgr.arrays, mgr.axes[0], mgr.axes[1], mgr.axes[0], typ="block"
+                    mgr.arrays, mgr.axes[0], mgr.axes[1], typ="block"
                 )
             else:
                 new_mgr = SingleBlockManager.from_array(mgr.arrays[0], mgr.index)
@@ -288,7 +287,7 @@ def ndarray_to_mgr(
         else:
             columns = ensure_index(columns)
 
-        return arrays_to_mgr(values, columns, index, columns, dtype=dtype, typ=typ)
+        return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
 
     elif is_extension_array_dtype(vdtype) and not is_1d_only_ea_dtype(vdtype):
         # i.e. Datetime64TZ
@@ -409,7 +408,6 @@ def dict_to_mgr(
         from pandas.core.series import Series
 
         arrays = Series(data, index=columns, dtype=object)
-        data_names = arrays.index
         missing = arrays.isna()
         if index is None:
             # GH10856
@@ -433,11 +431,11 @@ def dict_to_mgr(
             arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
-        data_names = ensure_index(columns)
+        columns = ensure_index(columns)
 
     else:
         keys = list(data.keys())
-        columns = data_names = Index(keys)
+        columns = Index(keys)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
         # GH#24096 need copy to be deep for datetime64tz case
         # TODO: See if we can avoid these copies
@@ -457,9 +455,7 @@ def dict_to_mgr(
         ]
         # TODO: can we get rid of the dt64tz special case above?
 
-    return arrays_to_mgr(
-        arrays, data_names, index, columns, dtype=dtype, typ=typ, consolidate=copy
-    )
+    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
 
 
 def nested_data_to_arrays(
