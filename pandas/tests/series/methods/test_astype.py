@@ -356,6 +356,13 @@ class TestAstype:
         result = Series(["foo", "bar", "baz"]).astype(bytes)
         assert result.dtypes == np.dtype("S3")
 
+    def test_astype_nan_to_bool(self):
+        # GH#43018
+        ser = Series(np.nan, dtype="object")
+        result = ser.astype("bool")
+        expected = Series(True, dtype="bool")
+        tm.assert_series_equal(result, expected)
+
 
 class TestAstypeString:
     @pytest.mark.parametrize(
