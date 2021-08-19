@@ -954,9 +954,9 @@ class StylerRenderer:
                 for level, formatter_ in formatter.items()
             }
 
-        for level in levels_:
+        for lvl in levels_:
             format_func = _maybe_wrap_formatter(
-                formatter.get(level),
+                formatter.get(lvl),
                 na_rep=na_rep,
                 precision=precision,
                 decimal=decimal,
@@ -964,11 +964,8 @@ class StylerRenderer:
                 escape=escape,
             )
 
-            for i in range(len(obj)):
-                if axis == 0:
-                    display_funcs_[(i, level)] = format_func
-                else:
-                    display_funcs_[(level, i)] = format_func
+            for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
+                display_funcs_[idx] = format_func
 
         return self
 
