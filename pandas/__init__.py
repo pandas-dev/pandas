@@ -192,6 +192,7 @@ def __dir__():
 
 def __getattr__(name):
     import warnings
+    from pandas.core.api import Float64Index, Int64Index, UInt64Index
 
     if name in __deprecated_num_index_names:
         num_msg = (
@@ -199,24 +200,12 @@ def __getattr__(name):
             "and will be removed from pandas in a future version. "
             "Use pandas.NumericIndex with the appropriate dtype instead."
         )
-        if name == "Int64Index":
-            from pandas.core.api import Int64Index
-
-            warnings.warn(num_msg, FutureWarning, stacklevel=2)
-            return Int64Index
-        elif name == "UInt64Index":
-            from pandas.core.api import UInt64Index
-
-            warnings.warn(num_msg, FutureWarning, stacklevel=2)
-            return UInt64Index
-        elif name == "Float64Index":
-            from pandas.core.api import Float64Index
-
-            warnings.warn(num_msg, FutureWarning, stacklevel=2)
-            return Float64Index
-        else:
-            raise NameError(name)
-
+        warnings.warn(num_msg, FutureWarning, stacklevel=2)
+        return {
+            "Float64Index": Float64Index,
+            "Int64Index": Int64Index,
+            "UInt64Index": UInt64Index,
+        }[name]
     elif name == "datetime":
         warnings.warn(
             "The pandas.datetime class is deprecated "
