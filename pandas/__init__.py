@@ -192,15 +192,17 @@ def __dir__():
 
 def __getattr__(name):
     import warnings
-    from pandas.core.api import Float64Index, Int64Index, UInt64Index
 
     if name in __deprecated_num_index_names:
-        num_msg = (
+        warnings.warn(
             f"pandas.{name} is deprecated "
             "and will be removed from pandas in a future version. "
-            "Use pandas.NumericIndex with the appropriate dtype instead."
+            "Use pandas.NumericIndex with the appropriate dtype instead.",
+            FutureWarning,
+            stacklevel=2,
         )
-        warnings.warn(num_msg, FutureWarning, stacklevel=2)
+        from pandas.core.api import Float64Index, Int64Index, UInt64Index
+
         return {
             "Float64Index": Float64Index,
             "Int64Index": Int64Index,
