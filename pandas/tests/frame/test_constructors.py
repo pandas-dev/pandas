@@ -1300,6 +1300,21 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [[Timestamp("2021-01-01")]],
+            [{"x": Timestamp("2021-01-01")}],
+            {"x": [Timestamp("2021-01-01")]},
+            {"x": Timestamp("2021-01-01")},
+        ],
+    )
+    def test_constructor_one_element_data_list(self, data):
+        # GH#42810
+        result = DataFrame(data, index=[0, 1, 2], columns=["x"])
+        expected = DataFrame({"x": [Timestamp("2021-01-01")] * 3})
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Sequence like
@@ -2242,9 +2257,9 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize(
         "dtype",
-        tm.ALL_INT_DTYPES
-        + tm.ALL_EA_INT_DTYPES
-        + tm.FLOAT_DTYPES
+        tm.ALL_INT_NUMPY_DTYPES
+        + tm.ALL_INT_EA_DTYPES
+        + tm.FLOAT_NUMPY_DTYPES
         + tm.COMPLEX_DTYPES
         + tm.DATETIME64_DTYPES
         + tm.TIMEDELTA64_DTYPES
@@ -2413,14 +2428,14 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("copy", [False, True])
     @td.skip_array_manager_not_yet_implemented
-    def test_dict_nocopy(self, copy, any_nullable_numeric_dtype, any_numpy_dtype):
+    def test_dict_nocopy(self, copy, any_numeric_ea_dtype, any_numpy_dtype):
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
             # These get cast, making the checks below more cumbersome
             return
 
-        c = pd.array([1, 2], dtype=any_nullable_numeric_dtype)
+        c = pd.array([1, 2], dtype=any_numeric_ea_dtype)
         df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
 
         def get_base(obj):

@@ -151,7 +151,7 @@ class Styler(StylerRenderer):
     be applied to the indicated cells.
 
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
-    to automatically render itself. Otherwise call Styler.render to get
+    to automatically render itself. Otherwise call Styler.to_html to get
     the generated HTML.
 
     CSS classes are attached to the generated HTML
@@ -214,7 +214,7 @@ class Styler(StylerRenderer):
         """
         Hooks into Jupyter notebook rich display system.
         """
-        return self.render()
+        return self.to_html()
 
     def render(
         self,
@@ -224,6 +224,8 @@ class Styler(StylerRenderer):
     ) -> str:
         """
         Render the ``Styler`` including all applied styles to HTML.
+
+        .. deprecated:: 1.4.0
 
         Parameters
         ----------
@@ -248,11 +250,14 @@ class Styler(StylerRenderer):
 
         Notes
         -----
+        This method is deprecated in favour of ``Styler.to_html``.
+
         Styler objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
+        which automatically calls ``self.to_html()`` when it's the
+        last item in a Notebook cell.
+
+        When calling ``Styler.render()`` directly, wrap the result in
+        ``IPython.display.HTML`` to view the rendered HTML in the notebook.
 
         Pandas uses the following keys in render. Arguments passed
         in ``**kwargs`` take precedence, so think carefully if you want
@@ -266,6 +271,11 @@ class Styler(StylerRenderer):
         * caption
         * table_attributes
         """
+        warnings.warn(
+            "this method is deprecated in favour of `Styler.to_html()`",
+            FutureWarning,
+            stacklevel=2,
+        )
         if sparse_index is None:
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
@@ -336,7 +346,7 @@ class Styler(StylerRenderer):
         >>> ttips = pd.DataFrame(
         ...    data=[["Min", ""], [np.nan, "Max"]], columns=df.columns, index=df.index
         ... )
-        >>> s = df.style.set_tooltips(ttips).render()
+        >>> s = df.style.set_tooltips(ttips).to_html()
 
         Optionally controlling the tooltip visual display
 
@@ -550,7 +560,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1,2], [3,4]])
         >>> s = df.style.highlight_max(axis=None,
         ...                            props='background-color:red; font-weight:bold;')
-        >>> s.render()  # doctest: +SKIP
+        >>> s.to_html()  # doctest: +SKIP
 
         The equivalent using LaTeX only commands is the following:
 
@@ -831,6 +841,7 @@ class Styler(StylerRenderer):
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
+        **kwargs,
     ):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
@@ -875,6 +886,10 @@ class Styler(StylerRenderer):
             Whether to include the ``<style>`` element and all associated element
             ``class`` and ``id`` identifiers, or solely the ``<table>`` element without
             styling identifiers.
+        **kwargs
+            Any additional keyword arguments are passed through to the jinj2
+            ``self.template.render`` process. This is useful when you need to provide
+            additional variables for a custom template.
 
         Returns
         -------
@@ -903,6 +918,7 @@ class Styler(StylerRenderer):
             exclude_styles=exclude_styles,
             encoding=encoding if encoding else "utf-8",
             doctype_html=doctype_html,
+            **kwargs,
         )
 
         return save_to_buffer(
@@ -961,7 +977,7 @@ class Styler(StylerRenderer):
         >>> df = pd.DataFrame([[1]])
         >>> css = pd.DataFrame([["other-class"]])
         >>> s = Styler(df, uuid="_", cell_ids=False).set_td_classes(css)
-        >>> s.hide_index().render()  # doctest: +SKIP
+        >>> s.hide_index().to_html()  # doctest: +SKIP
         '<style type="text/css"></style>'
         '<table id="T__">'
         '  <thead>'
@@ -1012,7 +1028,7 @@ class Styler(StylerRenderer):
                 i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
                 self.ctx[(i, j)].extend(css_list)
 
-    def _update_ctx_header(self, attrs: DataFrame, axis: str) -> None:
+    def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
         """
         Update the state of the ``Styler`` for header cells.
 
@@ -1025,7 +1041,7 @@ class Styler(StylerRenderer):
             integer index.
             Whitespace shouldn't matter and the final trailing ';' shouldn't
             matter.
-        axis : str
+        axis : int
             Identifies whether the ctx object being updated is the index or columns
         """
         for j in attrs.columns:
@@ -1033,7 +1049,7 @@ class Styler(StylerRenderer):
                 if not c:
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
-                if axis == "index":
+                if axis == 0:
                     self.ctx_index[(i, j)].extend(css_list)
                 else:
                     self.ctx_columns[(j, i)].extend(css_list)
@@ -1063,7 +1079,6 @@ class Styler(StylerRenderer):
         # GH 40675
         styler = Styler(
             self.data,  # populates attributes 'data', 'columns', 'index' as shallow
-            uuid_len=self.uuid_len,
         )
         shallow = [  # simple string or boolean immutables
             "hide_index_",
@@ -1071,6 +1086,8 @@ class Styler(StylerRenderer):
             "table_attributes",
             "cell_ids",
             "caption",
+            "uuid",
+            "uuid_len",
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
@@ -1253,14 +1270,8 @@ class Styler(StylerRenderer):
         method: str = "apply",
         **kwargs,
     ) -> Styler:
-        if axis in [0, "index"]:
-            obj, axis = self.index, "index"
-        elif axis in [1, "columns"]:
-            obj, axis = self.columns, "columns"
-        else:
-            raise ValueError(
-                f"`axis` must be one of 0, 1, 'index', 'columns', got {axis}"
-            )
+        axis = self.data._get_axis_number(axis)
+        obj = self.index if axis == 0 else self.columns
 
         levels_ = _refactor_levels(level, obj)
         data = DataFrame(obj.to_list()).loc[:, levels_]
@@ -1685,7 +1696,7 @@ class Styler(StylerRenderer):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns', None}, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to make the index or column headers sticky.
         pixel_size : int, optional
             Required to configure the width of index cells or the height of column
@@ -1709,14 +1720,9 @@ class Styler(StylerRenderer):
 
         may produce strange behaviour due to CSS controls with missing elements.
         """
-        if axis in [0, "index"]:
-            axis, obj = 0, self.data.index
-            pixel_size = 75 if not pixel_size else pixel_size
-        elif axis in [1, "columns"]:
-            axis, obj = 1, self.data.columns
-            pixel_size = 25 if not pixel_size else pixel_size
-        else:
-            raise ValueError("`axis` must be one of {0, 1, 'index', 'columns'}")
+        axis = self.data._get_axis_number(axis)
+        obj = self.data.index if axis == 0 else self.data.columns
+        pixel_size = (75 if axis == 0 else 25) if not pixel_size else pixel_size
 
         props = "position:sticky; background-color:white;"
         if not isinstance(obj, pd.MultiIndex):
@@ -1901,10 +1907,9 @@ class Styler(StylerRenderer):
         more details.
         """
         if isinstance(table_styles, dict):
-            if axis in [0, "index"]:
-                obj, idf = self.data.columns, ".col"
-            else:
-                obj, idf = self.data.index, ".row"
+            axis = self.data._get_axis_number(axis)
+            obj = self.data.index if axis == 1 else self.data.columns
+            idf = ".row" if axis == 1 else ".col"
 
             table_styles = [
                 {
@@ -2869,15 +2874,13 @@ class Styler(StylerRenderer):
         # after quantile is found along axis, e.g. along rows,
         # applying the calculated quantile to alternate axis, e.g. to each column
         kwargs = {"q": [q_left, q_right], "interpolation": interpolation}
-        if axis in [0, "index"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply: int | None = 1
-        elif axis in [1, "columns"]:
-            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
-            axis_apply = 0
-        else:  # axis is None
+        if axis is None:
             q = Series(data.to_numpy().ravel()).quantile(**kwargs)
-            axis_apply = None
+            axis_apply: int | None = None
+        else:
+            axis = self.data._get_axis_number(axis)
+            q = data.quantile(axis=axis, numeric_only=False, **kwargs)
+            axis_apply = 1 - axis
 
         if props is None:
             props = f"background-color: {color};"
