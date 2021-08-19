@@ -180,14 +180,14 @@ def rec_array_to_mgr(
     # create the manager
 
     # error: Argument 1 to "reorder_arrays" has incompatible type "List[ndarray]";
-    # expected "List[ExtensionArray]"
+    # expected "List[Union[ExtensionArray, ndarray]]"
     arrays, arr_columns = reorder_arrays(
-        new_arrays, arr_columns, columns  # type: ignore[arg-type]
+        new_arrays, arr_columns, columns, len(index)  # type: ignore[arg-type]
     )
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, arr_columns, index, columns, dtype=dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, columns, index, columns, dtype=dtype, typ=typ)
 
     if copy:
         mgr = mgr.copy()
@@ -433,6 +433,7 @@ def dict_to_mgr(
             arrays.loc[missing] = [val] * missing.sum()
 
         arrays = list(arrays)
+        data_names = ensure_index(columns)
 
     else:
         keys = list(data.keys())
@@ -654,13 +655,33 @@ def _extract_index(data) -> Index:
 
 
 def reorder_arrays(
-    arrays: list[ArrayLike], arr_columns: Index, columns: Index | None
+    arrays: list[ArrayLike], arr_columns: Index, columns: Index | None, length: int
 ) -> tuple[list[ArrayLike], Index]:
+    """
+    Pre-emptively (cheaply) reindex arrays with new columns.
+    """
     # reorder according to the columns
-    if columns is not None and len(columns) and len(arr_columns):
-        indexer = ensure_index(arr_columns).get_indexer(columns)
-        arr_columns = ensure_index([arr_columns[i] for i in indexer])
-        arrays = [arrays[i] for i in indexer]
+    if columns is not None:
+        if not columns.equals(arr_columns):
+            # if they are equal, there is nothing to do
+            new_arrays: list[ArrayLike | None]
+            new_arrays = [None] * len(columns)
+            indexer = arr_columns.get_indexer(columns)
+            for i, k in enumerate(indexer):
+                if k == -1:
+                    # by convention default is all-NaN object dtype
+                    arr = np.empty(length, dtype=object)
+                    arr.fill(np.nan)
+                else:
+                    arr = arrays[k]
+                new_arrays[i] = arr
+
+            # Incompatible types in assignment (expression has type
+            # "List[Union[ExtensionArray, ndarray[Any, Any], None]]", variable
+            # has type "List[Union[ExtensionArray, ndarray[Any, Any]]]")
+            arrays = new_arrays  # type: ignore[assignment]
+            arr_columns = columns
+
     return arrays, arr_columns
 
 
@@ -738,6 +759,17 @@ def to_arrays(
 ) -> tuple[list[ArrayLike], Index]:
     """
     Return list of arrays, columns.
+
+    Returns
+    -------
+    list[ArrayLike]
+        These will become columns in a DataFrame.
+    Index
+        This will become frame.columns.
+
+    Notes
+    -----
+    Ensures that len(result_arrays) == len(result_index).
     """
     if isinstance(data, ABCDataFrame):
         # see test_from_records_with_index_data, test_from_records_bad_index_column
@@ -783,6 +815,11 @@ def to_arrays(
         )
         if columns is None:
             columns = ibase.default_index(len(data))
+        elif len(columns) > len(data):
+            raise ValueError("len(columns) > len(data)")
+        elif len(columns) < len(data):
+            # doing this here is akin to a pre-emptive reindex
+            data = data[: len(columns)]
         return data, columns
 
     elif isinstance(data, np.ndarray) and data.dtype.names is not None:
