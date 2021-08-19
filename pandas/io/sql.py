@@ -44,7 +44,6 @@ from pandas.core.api import (
 )
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
-from sqlalchemy.sql.expression import insert
 from pandas.util.version import Version
 
 
@@ -843,6 +842,9 @@ class SQLTable(PandasObject):
         and tables containing a few columns
         but performance degrades quickly with increase of columns.
         """
+
+        from sqlalchemy import insert
+
         data = [dict(zip(keys, row)) for row in data_iter]
         stmt = insert(self.table).values(data)
         conn.execute(stmt)
