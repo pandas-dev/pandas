@@ -373,6 +373,7 @@ Examples
 1   bar      2
 2   baz      3
 3   foo      5
+
 >>> df2
     rkey value
 0   foo      5
@@ -420,6 +421,7 @@ ValueError: columns overlap but no suffix specified:
       a  b
 0   foo  1
 1   bar  2
+
 >>> df2
       a  c
 0   foo  3
@@ -440,6 +442,7 @@ ValueError: columns overlap but no suffix specified:
     left
 0   foo
 1   bar
+
 >>> df2
     right
 0   7
@@ -452,28 +455,30 @@ ValueError: columns overlap but no suffix specified:
 2   bar      7
 3   bar      8
 
-Merge dataframes df1 and df2, where column df1.timestep falls within the range
-of df2.timestart to df2.timeend, using `condition`.
+Merge dataframes `left` and `right`, where column `left.timestep` falls
+within the range of `right.timestart` to `right.timeend`, using `condition`.
 
->>> df1 = pd.DataFrame({'timestep': range(5)})
->>> df2 = pd.DataFrame({'mood': ['happy', 'jolly', 'joy', 'cloud9'],
-...                     'timestart': [0, 2, 2, 3],
-...                     'timeend': [1, 3, 4, 4]})
->>> df1
+>>> left = pd.DataFrame({'timestep': range(5)})
+>>> right = pd.DataFrame({'mood': ['happy', 'jolly', 'joy', 'cloud9'],
+...                       'timestart': [0, 2, 2, 3],
+...                       'timeend': [1, 3, 4, 4]})
+>>> left
    timestep
 0         0
 1         1
 2         2
 3         3
 4         4
->>> df2
+
+>>> right
      mood  timestart  timeend
 0   happy          0        1
 1   jolly          2        3
 2     joy          2        4
 3  cloud9          3        4
->>> merge = df1.merge(
-...     df2,
+
+>>> merge = left.merge(
+...     right,
 ...     condition=lambda dfx: (dfx.timestart <= dfx.timestep)
 ...                           & (dfx.timestep <= dfx.timeend)
 ... )
