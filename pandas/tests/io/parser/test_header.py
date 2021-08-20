@@ -585,3 +585,20 @@ def test_read_csv_multiindex_columns(all_parsers):
     tm.assert_frame_equal(df1, expected.iloc[:1])
     df2 = parser.read_csv(StringIO(s2), header=[0, 1])
     tm.assert_frame_equal(df2, expected)
+
+
+def test_read_csv_multi_header_length_check(all_parsers):
+    # GH#43102
+    parser = all_parsers
+
+    case = """row11,row12,row13
+row21,row22, row23
+row31,row32
+"""
+
+    with pytest.raises(
+        ValueError,
+        match="Header rows must have equal number of columns. "
+        "Mismatch found at header 1.",
+    ):
+        parser.read_csv(StringIO(case), sep=",", header=[0, 2])
