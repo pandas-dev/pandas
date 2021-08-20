@@ -303,7 +303,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
 -
 
 MultiIndex
