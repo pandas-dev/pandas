@@ -14,8 +14,8 @@ class Test_AntiJoin:
     @pytest.mark.parametrize(
         "how, exp_index, exp_values",
         [
-            ("anti_left", ["c"], [3, 30, np.nan, np.nan]),
-            ("anti_right", ["d"], [np.nan, np.nan, 4, 40]),
+            ("anti_left", ["c"], [[3, 30, np.nan, np.nan]]),
+            ("anti_right", ["d"], [[np.nan, np.nan, 4, 40]]),
             (
                 "anti_full",
                 ["c", "d"],
@@ -33,60 +33,44 @@ class Test_AntiJoin:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "on, how, expected",
+        "on, how, data",
         [
             (
                 ["C"],
                 "anti_left",
-                DataFrame(
-                    {"A": [1, 2], "C": [5, 6], "B": [np.nan, np.nan]}, index=[0, 1]
-                ),
+                [[1, 5, np.nan], [2, 6, np.nan]],
             ),
             (
                 ["C"],
                 "anti_right",
-                DataFrame(
-                    {"A": [np.nan, np.nan], "C": [8, 9], "B": [2, 4]}, index=[0, 1]
-                ),
+                [[np.nan, 8, 2], [np.nan, 9, 4]],
             ),
             (
                 ["C"],
                 "anti_full",
-                DataFrame(
-                    {
-                        "A": [1, 2, np.nan, np.nan],
-                        "C": [5, 6, 8, 9],
-                        "B": [np.nan, np.nan, 2, 4],
-                    },
-                    index=[0, 1, 2, 3],
-                ),
+                [[1, 5, np.nan], [2, 6, np.nan], [np.nan, 8, 2], [np.nan, 9, 4]],
             ),
             (
                 None,
                 "anti_left",
-                DataFrame({"A": [1, 2], "C": [5, 6], "B": [np.nan, np.nan]}),
+                [[1, 5, np.nan], [2, 6, np.nan]],
             ),
             (
                 None,
                 "anti_right",
-                DataFrame({"A": [np.nan, np.nan], "C": [8, 9], "B": [2, 4]}),
+                [[np.nan, 8, 2], [np.nan, 9, 4]],
             ),
             (
                 None,
                 "anti_full",
-                DataFrame(
-                    {
-                        "A": [1, 2, np.nan, np.nan],
-                        "C": [5, 6, 8, 9],
-                        "B": [np.nan, np.nan, 2, 4],
-                    },
-                ),
+                [[1, 5, np.nan], [2, 6, np.nan], [np.nan, 8, 2], [np.nan, 9, 4]],
             ),
         ],
     )
-    def test_basic_anti_on(self, on, how, expected):
+    def test_basic_anti_on(self, on, how, data):
         left = DataFrame({"A": [1, 2, 3], "C": [5, 6, 7]}, index=["a", "b", "c"])
         right = DataFrame({"B": [1, 2, 4], "C": [7, 8, 9]}, index=["a", "b", "d"])
+        expected = DataFrame(data, columns=["A", "C", "B"])
         result = merge(left, right, how=how, on=on)
         tm.assert_frame_equal(result, expected)
 
