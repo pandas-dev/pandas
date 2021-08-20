@@ -6837,6 +6837,31 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+        
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...  {"name" : ['Rahul','Arijit','Tushar','Amit']}, 
+        ...    index = [
+        ...        [70, 67, 95, 89], 
+        ...        ['CSE', 'EEE', 'IT', 'ECE'],
+        ...        ['B,'C','A+','A']
+        ...    ]
+        ... )
+        >>> df
+                     name
+        70 CSE B    Rahul
+        67 EEE C   Arijit
+        95 IT  A+  Tushar
+        89 ECE A     Amit
+        
+        >>> df.reorder_levels([0,2,1])
+                     name
+        70 B  CSE   Rahul
+        67 C  EEE  Arijit
+        95 A+ IT   Tushar
+        89 A  ECE    Amit
+        
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
