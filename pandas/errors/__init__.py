@@ -14,7 +14,7 @@ from pandas._libs.tslibs import (
 
 class IntCastingNaNError(ValueError):
     """
-    raised when attempting an astype operation on an array with NaN to an integer
+    Raised when attempting an astype operation on an array with NaN to an integer
     dtype.
     """
 
