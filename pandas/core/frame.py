@@ -6841,26 +6841,22 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...  {"name" : ['Rahul','Arijit','Tushar','Amit']}, 
+        ...  {"name" : ['Rahul','Arijit']}, 
         ...    index = [
-        ...        [70, 67, 95, 89], 
-        ...        ['CSE', 'EEE', 'IT', 'ECE'],
-        ...        ['B,'C','A+','A']
+        ...        [90, 77], 
+        ...        ['CSE', 'EEE'],
+        ...        ['A','B']
         ...    ]
         ... )
         >>> df
                      name
-        70 CSE B    Rahul
-        67 EEE C   Arijit
-        95 IT  A+  Tushar
-        89 ECE A     Amit
-        
+        90 CSE A    Rahul
+        77 EEE B   Arijit
+    
         >>> df.reorder_levels([0,2,1])
                      name
-        70 B  CSE   Rahul
-        67 C  EEE  Arijit
-        95 A+ IT   Tushar
-        89 A  ECE    Amit
+        90 A  CSE   Rahul
+        77 B  EEE  Arijit
         
         """
         axis = self._get_axis_number(axis)
