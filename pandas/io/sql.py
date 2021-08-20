@@ -1352,8 +1352,8 @@ class SQLDatabase(PandasSQL):
         from sqlalchemy.schema import MetaData
 
         self.connectable = engine
-        self.meta = MetaData()
-        self.meta.reflect(bind=engine, schema=schema)
+        self.meta = MetaData(schema=schema)
+        self.meta.reflect(bind=engine)
 
     @contextmanager
     def run_transaction(self):
@@ -1725,9 +1725,9 @@ class SQLDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None):
         if _gt14():
-            import sqlalchemy as sa
+            from sqlalchemy import inspect
 
-            insp = sa.inspect(self.connectable)
+            insp = inspect(self.connectable)
             return insp.has_table(name, schema or self.meta.schema)
         else:
             return self.connectable.run_callable(
