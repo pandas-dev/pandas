@@ -187,6 +187,9 @@ __deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
 
 
 def __dir__():
+    # GH43028
+    # Int64Index etc. are deprecated, but we still want them to be available in the dir.
+    # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
     return list(globals().keys()) + __deprecated_num_index_names
 
 
