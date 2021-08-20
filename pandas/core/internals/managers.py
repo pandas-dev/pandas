@@ -1808,21 +1808,19 @@ def create_block_manager_from_blocks(
     return mgr
 
 
-def create_block_manager_from_arrays(
+def create_block_manager_from_column_arrays(
     arrays,
-    names: Index,
     axes: list[Index],
     consolidate: bool = True,
 ) -> BlockManager:
     # Assertions disabled for performance
-    # assert isinstance(names, Index)
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
 
     arrays = [extract_array(x, extract_numpy=True) for x in arrays]
 
     try:
-        blocks = _form_blocks(arrays, names, axes, consolidate)
+        blocks = _form_blocks(arrays, consolidate)
         mgr = BlockManager(blocks, axes)
     except ValueError as e:
         raise construction_error(len(arrays), arrays[0].shape, axes, e)
@@ -1860,26 +1858,11 @@ def construction_error(
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(
-    arrays: list[ArrayLike], names: Index, axes: list[Index], consolidate: bool
-) -> list[Block]:
-    # put "leftover" items in float bucket, where else?
-    # generalize?
+def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
+
     items_dict: DefaultDict[str, list] = defaultdict(list)
-    extra_locs = []
 
-    names_idx = names
-    if names_idx.equals(axes[0]):
-        names_indexer = np.arange(len(names_idx))
-    else:
-        # Assertion disabled for performance
-        # assert names_idx.intersection(axes[0]).is_unique
-        names_indexer = names_idx.get_indexer_for(axes[0])
-
-    for i, name_idx in enumerate(names_indexer):
-        if name_idx == -1:
-            extra_locs.append(i)
-            continue
+    for i, name_idx in enumerate(range(len(arrays))):
 
         v = arrays[name_idx]
 
@@ -1888,13 +1871,13 @@ def _form_blocks(
 
     blocks: list[Block] = []
     if len(items_dict["NumericBlock"]):
-        numeric_blocks = _multi_blockify(
+        numeric_blocks = multi_blockify(
             items_dict["NumericBlock"], consolidate=consolidate
         )
         blocks.extend(numeric_blocks)
 
     if len(items_dict["DatetimeLikeBlock"]):
-        dtlike_blocks = _multi_blockify(
+        dtlike_blocks = multi_blockify(
             items_dict["DatetimeLikeBlock"], consolidate=consolidate
         )
         blocks.extend(dtlike_blocks)
@@ -1911,7 +1894,7 @@ def _form_blocks(
         blocks.extend(dttz_blocks)
 
     if len(items_dict["ObjectBlock"]) > 0:
-        object_blocks = _simple_blockify(
+        object_blocks = simple_blockify(
             items_dict["ObjectBlock"], np.object_, consolidate=consolidate
         )
         blocks.extend(object_blocks)
@@ -1931,20 +1914,10 @@ def _form_blocks(
 
         blocks.extend(external_blocks)
 
-    if len(extra_locs):
-        shape = (len(extra_locs),) + tuple(len(x) for x in axes[1:])
-
-        # empty items -> dtype object
-        block_values = np.empty(shape, dtype=object)
-        block_values.fill(np.nan)
-
-        na_block = new_block(block_values, placement=extra_locs, ndim=2)
-        blocks.append(na_block)
-
     return blocks
 
 
-def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
+def simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
     """
     return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
@@ -1962,7 +1935,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
     return [block]
 
 
-def _multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
+def multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
     """return an array of blocks that potentially have different dtypes"""
 
     if not consolidate:
