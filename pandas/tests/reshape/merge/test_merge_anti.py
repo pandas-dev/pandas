@@ -12,33 +12,16 @@ from pandas.core.reshape.merge import merge
 
 class Test_AntiJoin:
     @pytest.mark.parametrize(
-        "how, expected",
-        [
-            (
-                "anti_left",
-                DataFrame({"A": 3, "C_x": 7, "B": np.nan, "C_y": np.nan}, index=["c"]),
-            ),
-            (
-                "anti_right",
-                DataFrame({"A": np.nan, "C_x": np.nan, "B": 4, "C_y": 9}, index=["d"]),
-            ),
-            (
-                "anti_full",
-                DataFrame(
-                    {
-                        "A": [3, np.nan],
-                        "C_x": [7, np.nan],
-                        "B": [np.nan, 4],
-                        "C_y": [np.nan, 9],
-                    },
-                    index=["c", "d"],
-                ),
-            ),
-        ],
+        "how, exp_index, exp_values", [
+            ("anti_left", ["c"], [3, 30, np.nan, np.nan]),
+            ("anti_right", ["d"], [np.nan, np.nan, 4, 40]),
+            ("anti_full", ["c", "d"], [[3, 30, np.nan, np.nan], [np.nan, np.nan, 4, 40]])
+            ]
     )
-    def test_basic_anti_index(self, how, expected):
-        left = DataFrame({"A": [1, 2, 3], "C": [5, 6, 7]}, index=["a", "b", "c"])
-        right = DataFrame({"B": [1, 2, 4], "C": [7, 8, 9]}, index=["a", "b", "d"])
+    def test_basic_anti_index(self, how, exp_index, exp_values):
+        left = DataFrame({"A": [1, 2, 3], "C": [10, 20, 30]}, index=["a", "b", "c"])
+        right = DataFrame({"B": [1, 2, 4], "C": [10, 20, 40]}, index=["a", "b", "d"])
+        expected = DataFrame(exp_values, index=exp_index, columns=["A", "C_x", "B", "C_y"])
         result = merge(left, right, how=how, left_index=True, right_index=True)
         tm.assert_frame_equal(result, expected)
 
