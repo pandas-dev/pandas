@@ -141,9 +141,6 @@ def test_check_label_or_level_ambiguity_df(df_ambig, axis):
 
     else:
         msg = "'L1' is both an index level and a column label"
-    
-        
-
     # df_ambig has both an on-axis level and off-axis label named L1
     # Therefore, L1 is ambiguous.
     with pytest.raises(ValueError, match=msg):
