@@ -62,6 +62,12 @@ def test_format_dict(styler):
     assert ctx["body"][0][2]["display_value"] == "-60.90%"
 
 
+def test_format_index_dict(styler):
+    ctx = styler.format_index({0: lambda v: v.upper()})._translate(True, True)
+    for i, val in enumerate(["X", "Y"]):
+        assert ctx["body"][i][0]["display_value"] == val
+
+
 def test_format_string(styler):
     ctx = styler.format("{:.2f}")._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == "0.00"
