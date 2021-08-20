@@ -597,8 +597,6 @@ row31,row32
 """
 
     with pytest.raises(
-        ParserError,
-        match="Header rows must have equal number of columns. "
-        "Mismatch found at header 1.",
+        ParserError, match="Header rows must have an equal number of columns."
     ):
-        parser.read_csv(StringIO(case), sep=",", header=[0, 2])
+        parser.read_csv(StringIO(case), header=[0, 2])
