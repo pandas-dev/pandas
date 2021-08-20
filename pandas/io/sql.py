@@ -960,7 +960,7 @@ class SQLTable(PandasObject):
                     cols.insert(0, self.table.c[idx])
             sql_select = select(*cols) if _gt14() else select(cols)
         else:
-            sql_select = select(self.table)
+            sql_select = select(self.table) if _gt14() else self.table.select()
 
         result = self.pd_sql.execute(sql_select)
         column_names = result.keys()
