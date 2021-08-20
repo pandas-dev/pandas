@@ -1080,9 +1080,9 @@ class TestToDatetime:
             (Series([np.NaN] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
         ),
     )
-    def test_to_datetime_converts_null_like_to_nat(cache, input, expected):
+    def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
         # GH35888
-        result = to_datetime(input)
+        result = to_datetime(input, cache=cache)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
