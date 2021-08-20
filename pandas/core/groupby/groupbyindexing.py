@@ -136,7 +136,8 @@ class _ilocGroupByIndexer:
 
             if step is not None and step < 0:
                 raise ValueError(
-                    f"GroupBy.iloc row slice step must be positive. Slice was {start}:{stop}:{step}"
+                    f"GroupBy.iloc row slice step must be positive."
+                    " Slice was {start}:{stop}:{step}"
                 )
                 # self.reversed = True
                 # start = None if start is None else -start - 1
