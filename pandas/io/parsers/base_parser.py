@@ -342,10 +342,12 @@ class ParserBase:
         field_count = len(header[0])
 
         # check if header lengths are equal
-        for header_len in range(len(header)):
-            if len(header[header_len]) != field_count:
-                raise ParserError("Header rows must have equal number of columns."
-                                  f" Mismatch found at row {header_len}")
+        for header_iter in range(len(header)):
+            if len(header[header_iter]) != field_count:
+                raise ParserError(
+                    "Header rows must have equal number of columns. "
+                    f"Mismatch found at header {header_iter}."
+                )
 
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
