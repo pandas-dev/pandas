@@ -597,7 +597,7 @@ row31,row32
 """
 
     with pytest.raises(
-        ValueError,
+        ParserError,
         match="Header rows must have equal number of columns. "
         "Mismatch found at header 1.",
     ):
