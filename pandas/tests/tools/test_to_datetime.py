@@ -1066,6 +1066,25 @@ class TestToDatetime:
         )
         tm.assert_series_equal(result_series, expected_series)
 
+    @pytest.mark.parametrize("cache", [True, False])
+    @pytest.mark.parametrize(
+        ("input", "expected"),
+        (
+            (
+                Series([NaT] * 200 + [None] * 200, dtype="object"),
+                Series([NaT] * 400, dtype="datetime64[ns]"),
+            ),
+            (Series([None] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
+            (Series([""] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
+            (Series([pd.NA] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
+            (Series([np.NaN] * 200), Series([NaT] * 200, dtype="datetime64[ns]")),
+        ),
+    )
+    def test_to_datetime_converts_null_like_to_nat(cache, input, expected):
+        # GH35888
+        result = to_datetime(input)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "date, format",
         [
@@ -2735,24 +2754,4 @@ def test_to_datetime_monotonic_increasing_index(cache):
     times.index = times.index.to_series().astype(float) / 1000
     result = to_datetime(times.iloc[:, 0], cache=cache)
     expected = times.iloc[:, 0]
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("cache", [True, False])
-@pytest.mark.parametrize(
-    ("input", "expected"),
-    (
-        (
-            pd.Series([pd.NaT] * 200 + [None] * 200, dtype="object"),
-            pd.Series([pd.NaT] * 400, dtype="datetime64[ns]"),
-        ),
-        (pd.Series([None] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
-        (pd.Series([""] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
-        (pd.Series([pd.NA] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
-        (pd.Series([np.NaN] * 200), pd.Series([pd.NaT] * 200, dtype="datetime64[ns]")),
-    ),
-)
-def test_to_datetime_converts_null_like_to_nat(cache, input, expected):
-    # GH35888
-    result = to_datetime(input)
     tm.assert_series_equal(result, expected)
