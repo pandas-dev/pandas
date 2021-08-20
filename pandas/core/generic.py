@@ -6312,10 +6312,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._mgr.fillna(
-                    value=value, limit=limit, inplace=inplace, downcast=downcast
-                )
+                if not self._mgr.is_single_block and axis == 1:
+
+                    result = self.T.fillna(value=value, limit=limit).T
+
+                    # need to downcast here because of all of the transposes
+                    result._mgr = result._mgr.downcast()
+
+                    new_data = result
+                else:
+
+                    new_data = self._mgr.fillna(
+                        value=value, limit=limit, inplace=inplace, downcast=downcast
+                    )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+
                 new_data = self.where(self.notna(), value)._data
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
