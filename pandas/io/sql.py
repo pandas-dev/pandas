@@ -958,7 +958,7 @@ class SQLTable(PandasObject):
             if self.index is not None:
                 for idx in self.index[::-1]:
                     cols.insert(0, self.table.c[idx])
-            sql_select = select(*cols)
+            sql_select = select(*cols) if _gt14() else select(cols)
         else:
             sql_select = select(self.table)
 
