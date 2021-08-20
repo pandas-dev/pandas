@@ -341,6 +341,11 @@ class ParserBase:
         # extract the columns
         field_count = len(header[0])
 
+        #check if header lengths are equal
+        for l in range(len(header)):
+            if len(header[l])!=field_count:
+                raise ParserError(f"Header rows must have equal number of columns. Mismatch found at row " + str(l))
+            
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
