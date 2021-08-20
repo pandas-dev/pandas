@@ -1165,7 +1165,10 @@ class Styler(StylerRenderer):
                 result = DataFrame(result, index=data.index, columns=data.columns)
         else:
             axis = self.data._get_axis_number(axis)
-            result = data.T.apply(func, axis=0, **kwargs).T if axis == 1 else data.apply(func, axis=0, **kwargs)
+            if axis == 0:
+                result = data.apply(func, axis=0, **kwargs)
+            else:
+                result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
 
         if isinstance(result, Series):
             raise ValueError(
