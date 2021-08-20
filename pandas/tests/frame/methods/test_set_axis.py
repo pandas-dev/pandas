@@ -28,7 +28,7 @@ class SharedSetAxisTests:
     def test_set_axis_inplace_axis(self, axis, obj):
         # GH#14636
         axis = obj._get_axis_number(axis)
-        if obj.ndim == 1 and (axis == 1 or axis = "columns"):
+        if obj.ndim == 1 and axis == 1:
             # Series only has [0, "index"]
             return
 
@@ -36,8 +36,7 @@ class SharedSetAxisTests:
 
         expected = obj.copy()
         
-        axis = expected._get_axis_number(axis)
-        if axis == 0 or axis == "index" : 
+        if axis == 0 : 
             expected.index = new_index 
         else : 
             expected.columns = new_index
