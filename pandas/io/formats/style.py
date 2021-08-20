@@ -1148,11 +1148,7 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis in [0, "index"]:
-            result = data.apply(func, axis=0, **kwargs)
-        elif axis in [1, "columns"]:
-            result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
-        else:
+        if axis is None:
             result = func(data, **kwargs)
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
@@ -1167,6 +1163,9 @@ class Styler(StylerRenderer):
                         f"Expected shape: {data.shape}"
                     )
                 result = DataFrame(result, index=data.index, columns=data.columns)
+        else:
+            axis = self.data._get_axis_number(axis)
+            result = data.T.apply(func, axis=0, **kwargs).T if axis == 1 else data.apply(func, axis=0, **kwargs)
 
         if isinstance(result, Series):
             raise ValueError(
