@@ -231,14 +231,14 @@ Deprecations
 
 Deprecated Int64Index, UInt64Index & Float64Index
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-:class:`Int64Index`, :class:`UInt64Index` (:issue:`43028`) and :class:`Float64Index` have
-been deprecated in favor of the new :class:`NumericIndex` (:issue:`43028`).
+:class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` have been deprecated
+in favor of the new :class:`NumericIndex` and will be removed in Pandas 2.0 (:issue:`43028`).
 
 For the duration of Pandas 1.x, in order to maintain backward compatibility, calls to
 :class:`Index` will continue to return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`
 when given numeric data, but in Pandas 2.0, a :class:`NumericIndex` will be returned.
 
-*Current behavior (Pandas 1.x)*:
+*Current behavior*:
 
 .. code-block:: ipython
 
@@ -247,7 +247,7 @@ when given numeric data, but in Pandas 2.0, a :class:`NumericIndex` will be retu
     In [1]: pd.Index([1, 2, 3], dtype="uint64")
     Out [1]: UInt64Index([1, 2, 3], dtype='uint64')
 
-*Future behavior (Pandas 2.0)*:
+*Future behavior*:
 
 .. code-block:: ipython
 
