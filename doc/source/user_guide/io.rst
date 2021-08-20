@@ -1638,7 +1638,7 @@ Python engine.
 Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
 back to Python if C-unsupported options are specified.
 
-Currently, options unsupported by the C and pyarrow engines include:.
+Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
@@ -1647,7 +1647,7 @@ Currently, options unsupported by the C and pyarrow engines include:.
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
 
-Options that are unsupported by the pyarrow engines not covered by the list above include:.
+Options that are unsupported by the pyarrow engine which are not covered by the list above include:
 
 * ``float_precision``
 * ``chunksize``
@@ -1671,7 +1671,7 @@ Options that are unsupported by the pyarrow engines not covered by the list abov
 * ``skipinitialspace``
 * ``low_memory``
 
-Specifying these options will raise a ``ValueError``.
+Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
 .. _io.remote:
 
