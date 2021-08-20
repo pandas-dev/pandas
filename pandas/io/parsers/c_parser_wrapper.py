@@ -391,7 +391,7 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         warning_message = " ".join(
             [
                 f"Columns ({warning_names}) have mixed types. "
-                f"Specify dtype option on import or set low_memory=False."
+                f"Specify dtype option on import or set low_memory=False. "
             ]
         )
         warnings.warn(warning_message, DtypeWarning, stacklevel=8)
