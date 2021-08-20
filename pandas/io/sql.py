@@ -279,15 +279,9 @@ def read_sql_table(
     --------
     >>> pd.read_sql_table('table_name', 'postgres:///db_name')  # doctest:+SKIP
     """
-    from sqlalchemy.exc import InvalidRequestError
-
     pandas_sql = pandasSQL_builder(con, schema=schema)
-    try:
-        pandas_sql.meta.reflect(
-            bind=pandas_sql.connectable, only=[table_name], views=True
-        )
-    except InvalidRequestError as err:
-        raise ValueError(f"Table {table_name} not found") from err
+    if not pandas_sql.has_table(table_name):
+        raise ValueError(f"Table {table_name} not found")
 
     table = pandas_sql.read_table(
         table_name,
