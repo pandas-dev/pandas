@@ -166,6 +166,7 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   the pyarrow engine.
 
   .. versionadded:: 1.4.0
+
      The "pyarrow" engine was added as an *experimental* engine, and some features
      are unsupported, or may not work correctly, with this engine.
 converters : dict, default ``None``
@@ -1632,14 +1633,12 @@ pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engin
 on larger workloads and is equivalent in speed to the C engine on most other workloads.
 The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
 the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
-Python engines.
+Python engine.
 
 Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
-back to Python if C-unsupported options are specified. If pyarrow unsupported options are
-specified while using ``engine='pyarrow'``, the parser will throw an error.
-(a full list of unsupported options is available at ``pandas.io.parsers._pyarrow_unsupported``).
+back to Python if C-unsupported options are specified.
 
-Currently, C-unsupported options include:.
+Currently, options unsupported by the C and pyarrow engines include:.
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
@@ -1647,6 +1646,32 @@ Currently, C-unsupported options include:.
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Options that are unsupported by the pyarrow engines not covered by the list above include:.
+
+* ``float_precision``
+* ``chunksize``
+* ``comment``
+* ``nrows``
+* ``thousands``
+* ``memory_map``
+* ``dialect``
+* ``warn_bad_lines``
+* ``error_bad_lines``
+* ``on_bad_lines``
+* ``delim_whitespace``
+* ``quoting``
+* ``lineterminator``
+* ``converters``
+* ``decimal``
+* ``iterator``
+* ``dayfirst``
+* ``infer_datetime_format``
+* ``verbose``
+* ``skipinitialspace``
+* ``low_memory``
+
+Specifying these options will raise a ``ValueError``.
 
 .. _io.remote:
 

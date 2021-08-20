@@ -150,6 +150,7 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
     the pyarrow engine.
 
     .. versionadded:: 1.4.0
+
         The "pyarrow" engine was added as an *experimental* engine, and some features
         are unsupported, or may not work correctly, with this engine.
 converters : dict, optional

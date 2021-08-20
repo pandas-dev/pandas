@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from pandas._typing import FilePathOrBuffer
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.inference import is_integer
+
+from pandas.core.frame import DataFrame
 
 from pandas.io.common import get_handle
 from pandas.io.parsers.base_parser import ParserBase
@@ -13,7 +16,7 @@ class ArrowParserWrapper(ParserBase):
     Wrapper for the pyarrow engine for read_csv()
     """
 
-    def __init__(self, src, **kwds):
+    def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         self.src = src
 
@@ -22,6 +25,9 @@ class ArrowParserWrapper(ParserBase):
         self._parse_kwds()
 
     def _parse_kwds(self):
+        """
+        Validates keywords before passing to pyarrow.
+        """
         encoding: str | None = self.kwds.get("encoding")
         self.encoding = "utf-8" if encoding is None else encoding
 
@@ -36,7 +42,9 @@ class ArrowParserWrapper(ParserBase):
         self.na_values = list(self.kwds["na_values"])
 
     def _get_pyarrow_options(self):
-        # rename some arguments to pass to pyarrow
+        """
+        Rename some arguments to pass to pyarrow
+        """
         mapping = {
             "usecols": "include_columns",
             "na_values": "null_values",
@@ -68,7 +76,20 @@ class ArrowParserWrapper(ParserBase):
             else self.kwds["skiprows"],
         }
 
-    def _finalize_output(self, frame):
+    def _finalize_output(self, frame: DataFrame) -> DataFrame:
+        """
+        Processes data read in based on kwargs.
+
+        Parameters
+        ----------
+        frame: DataFrame
+            The DataFrame to process.
+
+        Returns
+        -------
+        DataFrame
+            The processed DataFrame.
+        """
         num_cols = len(frame.columns)
         if self.header is None:
             if self.names is None:
@@ -89,7 +110,17 @@ class ArrowParserWrapper(ParserBase):
             frame = frame.astype(self.kwds.get("dtype"))
         return frame
 
-    def read(self):
+    def read(self) -> DataFrame:
+        """
+        Reads the contents of a CSV file into a DataFrame and
+        processes it according to the kwargs passed in the
+        constructor.
+
+        Returns
+        -------
+        DataFrame
+            The DataFrame created from the CSV file.
+        """
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
 
