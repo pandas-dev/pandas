@@ -119,7 +119,7 @@ def test_groupby_aggregation_mixed_dtype():
             "v2": [165, 77, 99, 33, 33, 55],
             "by2": [293, 194, 0, 'damp', 'dry', 'wetred']
         },
-        index = Index([1,2,12,'big','blue','red'],
+        index=Index([1, 2, 12, 'big', 'blue', 'red'],
                       dtype='object', name='by1'),
     )
 
