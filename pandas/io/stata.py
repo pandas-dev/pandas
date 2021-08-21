@@ -160,15 +160,30 @@ DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
+
+Creating a dummy stata for this example
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
+...                              'parrot'],
+...                   'speed': [350, 18, 361, 15]}})
+>>> df.to_stata('animals.dta')
+
 Read a Stata dta file:
 
->>> df = pd.read_stata('filename.dta')
+>>> df = pd.read_stata('animals.dta')
 
 Read a Stata dta file in 10,000 line chunks:
+>>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
+>>> df = pd.DataFrame(values, columns=["i"])
+>>> df.to_stata('filename.dta')
 
 >>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
-...     do_something(chunk)
+...    # Operate on a single chunk, e.g., chunk.mean()
+...    pass
+
+>>> import os
+>>> os.remove("./filename.dta")
+>>> os.remove("./animals.dta")
 """
 
 _read_method_doc = f"""\
@@ -1367,12 +1382,12 @@ class StataReader(StataParser, abc.Iterator):
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
-            invalid_types = ",".join(str(x) for x in typlist)
+            invalid_types = ",".join([str(x) for x in typlist])
             raise ValueError(f"cannot convert stata types [{invalid_types}]") from err
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
         except ValueError as err:
-            invalid_dtypes = ",".join(str(x) for x in typlist)
+            invalid_dtypes = ",".join([str(x) for x in typlist])
             raise ValueError(f"cannot convert stata dtypes [{invalid_dtypes}]") from err
 
         if self.format_version > 108:
@@ -1673,12 +1688,7 @@ the string values returned are correct."""
             if self.dtyplist[i] is not None:
                 col = data.columns[i]
                 dtype = data[col].dtype
-                # error: Value of type variable "_DTypeScalar" of "dtype" cannot be
-                # "object"
-                if (
-                    dtype != np.dtype(object)  # type: ignore[type-var]
-                    and dtype != self.dtyplist[i]
-                ):
+                if dtype != np.dtype(object) and dtype != self.dtyplist[i]:
                     requires_type_conversion = True
                     data_formatted.append(
                         (col, Series(data[col], ix, self.dtyplist[i]))
@@ -1747,7 +1757,10 @@ the string values returned are correct."""
             fmt = cast(str, fmt)  # only strs in VALID_RANGE
             nmin, nmax = self.VALID_RANGE[fmt]
             series = data[colname]
-            missing = np.logical_or(series < nmin, series > nmax)
+
+            # appreciably faster to do this with ndarray instead of Series
+            svals = series._values
+            missing = (svals < nmin) | (svals > nmax)
 
             if not missing.any():
                 continue
@@ -1766,13 +1779,17 @@ the string values returned are correct."""
                 if dtype not in (np.float32, np.float64):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
-                replacement[missing] = np.nan
+                # Note: operating on ._values is much faster than directly
+                # TODO: can we fix that?
+                replacement._values[missing] = np.nan
             replacements[colname] = replacement
         if replacements:
             columns = data.columns
-            replacement_df = DataFrame(replacements)
+            replacement_df = DataFrame(replacements, copy=False)
             replaced = concat(
-                [data.drop(replacement_df.columns, axis=1), replacement_df], axis=1
+                [data.drop(replacement_df.columns, axis=1), replacement_df],
+                axis=1,
+                copy=False,
             )
             data = replaced[columns]
         return data
@@ -1891,7 +1908,7 @@ The repeated labels are:
                 cat_converted_data.append((col, cat_series))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame.from_dict(dict(cat_converted_data))
+        data = DataFrame(dict(cat_converted_data), copy=False)
         return data
 
     @property

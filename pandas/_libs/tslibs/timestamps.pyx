@@ -270,9 +270,9 @@ cdef class _Timestamp(ABCTimestamp):
         if op == Py_EQ:
             return False
         if op == Py_LE or op == Py_LT:
-            return other.year <= self.year
+            return self.year <= other.year
         if op == Py_GE or op == Py_GT:
-            return other.year >= self.year
+            return self.year >= other.year
 
     cdef bint _can_compare(self, datetime other):
         if self.tzinfo is not None:
@@ -1958,7 +1958,21 @@ default 'raise'
                  self.second / 3600.0 +
                  self.microsecond / 3600.0 / 1e+6 +
                  self.nanosecond / 3600.0 / 1e+9
-                ) / 24.0)
+                 ) / 24.0)
+
+    def isoweekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """
+        return super().isoweekday()
+
+    def weekday(self):
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """
+        return super().weekday()
 
 
 # Aliases

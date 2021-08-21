@@ -14,7 +14,6 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     Sized,
     TypeVar,
     cast,
@@ -59,7 +58,6 @@ from pandas.core.dtypes.common import (
     is_complex_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
-    is_datetime_or_timedelta_dtype,
     is_dtype_equal,
     is_extension_array_dtype,
     is_float,
@@ -182,9 +180,7 @@ def maybe_box_native(value: Scalar) -> Scalar:
     -------
     scalar or Series
     """
-    if is_datetime_or_timedelta_dtype(value):
-        value = maybe_box_datetimelike(value)
-    elif is_float(value):
+    if is_float(value):
         # error: Argument 1 to "float" has incompatible type
         # "Union[Union[str, int, float, bool], Union[Any, Timestamp, Timedelta, Any]]";
         # expected "Union[SupportsFloat, _SupportsIndex, str]"
@@ -196,6 +192,8 @@ def maybe_box_native(value: Scalar) -> Scalar:
         value = int(value)  # type: ignore[arg-type]
     elif is_bool(value):
         value = bool(value)
+    elif isinstance(value, (np.datetime64, np.timedelta64)):
+        value = maybe_box_datetimelike(value)
     return value
 
 
@@ -1094,14 +1092,11 @@ def astype_nansafe(
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     """
     if arr.ndim > 1:
-        # Make sure we are doing non-copy ravel and reshape.
-        flags = arr.flags
-        flat = arr.ravel("K")
+        flat = arr.ravel()
         result = astype_nansafe(flat, dtype, copy=copy, skipna=skipna)
-        order: Literal["C", "F"] = "F" if flags.f_contiguous else "C"
         # error: Item "ExtensionArray" of "Union[ExtensionArray, ndarray]" has no
         # attribute "reshape"
-        return result.reshape(arr.shape, order=order)  # type: ignore[union-attr]
+        return result.reshape(arr.shape)  # type: ignore[union-attr]
 
     # We get here with 0-dim from sparse
     arr = np.atleast_1d(arr)

@@ -96,18 +96,18 @@ class TestIndexConcat:
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
 
-    @pytest.mark.parametrize("test_series", [True, False])
-    def test_concat_copy_index(self, test_series, axis):
+    def test_concat_copy_index_series(self, axis):
         # GH 29879
-        if test_series:
-            ser = Series([1, 2])
-            comb = concat([ser, ser], axis=axis, copy=True)
-            assert comb.index is not ser.index
-        else:
-            df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-            comb = concat([df, df], axis=axis, copy=True)
-            assert comb.index is not df.index
-            assert comb.columns is not df.columns
+        ser = Series([1, 2])
+        comb = concat([ser, ser], axis=axis, copy=True)
+        assert comb.index is not ser.index
+
+    def test_concat_copy_index_frame(self, axis):
+        # GH 29879
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+        comb = concat([df, df], axis=axis, copy=True)
+        assert comb.index is not df.index
+        assert comb.columns is not df.columns
 
     def test_default_index(self):
         # is_series and ignore_index

@@ -10,7 +10,10 @@ import numpy as np
 
 import pandas._libs.reshape as libreshape
 from pandas._libs.sparse import IntIndex
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import maybe_promote
@@ -136,7 +139,7 @@ class _Unstacker:
     def _indexer_and_to_sort(
         self,
     ) -> tuple[
-        np.ndarray,  # np.ndarray[np.intp]
+        npt.NDArray[np.intp],
         list[np.ndarray],  # each has _some_ signed integer dtype
     ]:
         v = self.level
@@ -284,7 +287,7 @@ class _Unstacker:
 
         return new_values, new_mask
 
-    def get_new_columns(self, value_columns):
+    def get_new_columns(self, value_columns: Index | None):
         if value_columns is None:
             if self.lift == 0:
                 return self.removed_level._rename(name=self.removed_name)
@@ -305,6 +308,16 @@ class _Unstacker:
             new_names = [value_columns.name, self.removed_name]
             new_codes = [propagator]
 
+        repeater = self._repeater
+
+        # The entire level is then just a repetition of the single chunk:
+        new_codes.append(np.tile(repeater, width))
+        return MultiIndex(
+            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+        )
+
+    @cache_readonly
+    def _repeater(self) -> np.ndarray:
         # The two indices differ only if the unstacked level had unused items:
         if len(self.removed_level_full) != len(self.removed_level):
             # In this case, we remap the new codes to the original level:
@@ -313,13 +326,10 @@ class _Unstacker:
                 repeater = np.insert(repeater, 0, -1)
         else:
             # Otherwise, we just use each level item exactly once:
+            stride = len(self.removed_level) + self.lift
             repeater = np.arange(stride) - self.lift
 
-        # The entire level is then just a repetition of the single chunk:
-        new_codes.append(np.tile(repeater, width))
-        return MultiIndex(
-            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
-        )
+        return repeater
 
     @cache_readonly
     def new_index(self):
@@ -399,7 +409,8 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
             return result
 
-        dummy = data.copy()
+        # GH#42579 deep=False to avoid consolidating
+        dummy = data.copy(deep=False)
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)

@@ -746,7 +746,7 @@ class TestGetSliceBounds:
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("year, expected", [(1999, 0), (2020, 30)])
@@ -764,7 +764,7 @@ class TestGetSliceBounds:
             result = index.get_slice_bound(key, kind=kind, side=side)
         assert result == expected
 
-    @pytest.mark.parametrize("box", [date, datetime, Timestamp])
+    @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("kind", ["getitem", "loc", None])
     def test_slice_datetime_locs(self, box, kind, tz_aware_fixture):
         # GH 34077
