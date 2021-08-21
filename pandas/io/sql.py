@@ -178,6 +178,10 @@ def execute(sql, con, params=None):
     Results Iterable
     """
     pandas_sql = pandasSQL_builder(con)
+    if isinstance(pandas_sql, SQLDatabase):
+        from sqlalchemy import text
+
+        sql = text(sql)
     args = _convert_params(sql, params)
     return pandas_sql.execute(*args)
 
@@ -1367,8 +1371,19 @@ class SQLDatabase(PandasSQL):
             yield self.connectable
 
     def execute(self, *args, **kwargs):
-        """Simple passthrough to SQLAlchemy connectable"""
-        return self.connectable.execution_options().execute(*args, **kwargs)
+        from sqlalchemy.engine import Engine
+
+        if isinstance(self.connectable, Engine):
+            if not self.connectable.dialect.name == "sqlite":
+                with self.connectable.connect() as conn:
+                    with conn.begin():
+                        result = conn.execute(*args, **kwargs)
+            else:
+                conn = self.connectable.connect()
+                result = conn.execute(*args, **kwargs)
+        else:
+            result = self.connectable.execute(*args, **kwargs)
+        return result
 
     def read_table(
         self,
@@ -1521,6 +1536,11 @@ class SQLDatabase(PandasSQL):
         read_sql
 
         """
+        from sqlalchemy import text
+
+        if isinstance(sql, str) and hasattr(params, "keys"):
+            sql = text(sql)
+
         args = _convert_params(sql, params)
 
         result = self.execute(*args)
