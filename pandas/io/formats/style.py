@@ -839,6 +839,7 @@ class Styler(StylerRenderer):
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         bold_headers: bool = False,
+        caption: str | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -879,6 +880,10 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.4.0
         bold_headers : bool, optional
             Adds "font-weight: bold;" as a CSS property to table style header cells.
+
+            .. versionadded:: 1.4.0
+        caption : str, optional
+            Set, or overwrite, the caption on Styler before rendering.
 
             .. versionadded:: 1.4.0
         encoding : str, optional
@@ -922,6 +927,9 @@ class Styler(StylerRenderer):
             obj.set_table_styles(
                 [{"selector": "th", "props": "font-weight: bold;"}], overwrite=False
             )
+
+        if caption is not None:
+            obj.set_caption(caption)
 
         # Build HTML string..
         html = obj._render_html(
