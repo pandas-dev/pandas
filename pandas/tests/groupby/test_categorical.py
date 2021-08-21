@@ -1741,3 +1741,15 @@ def test_groupby_categorical_indices_unused_categories():
     assert result.keys() == expected.keys()
     for key in result.keys():
         tm.assert_numpy_array_equal(result[key], expected[key])
+
+
+def test_groupby_last_first_preserve_categoricaldtype():
+    # GH#33090
+    df = DataFrame({"a": [1, 2, 3]})
+    df["b"] = df["a"].astype("category")
+    result = df.groupby("a")["b"].last()
+    expected = Series(Categorical([1, 2, 3]), name="b", index=[1, 2, 3])
+    expected.index.name = "a"
+    tm.assert_series_equal(expected, result)
+    result = df.groupby("a")["b"].first()
+    tm.assert_series_equal(expected, result)
