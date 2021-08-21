@@ -838,6 +838,7 @@ class Styler(StylerRenderer):
         table_attributes: str | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
+        bold_headers: bool = False,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -912,6 +913,11 @@ class Styler(StylerRenderer):
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
+
+        if bold_headers:
+            obj.set_table_styles(
+                [{"selector": "th", "props": "font-weight: bold;"}], overwrite=False
+            )
 
         # Build HTML string..
         html = obj._render_html(

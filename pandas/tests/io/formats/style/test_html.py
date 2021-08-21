@@ -191,6 +191,13 @@ def test_doctype(styler):
     assert "<head>" not in result
 
 
+def test_bold_headers(styler):
+    result = styler.to_html(bold_headers=True)
+    assert "th {\n  font-weight: bold;\n}" in result
+    result = styler.to_html()
+    assert "th {\n  font-weight: bold;\n}" not in result
+
+
 def test_block_names(tpl_style, tpl_table):
     # catch accidental removal of a block
     expected_style = {
