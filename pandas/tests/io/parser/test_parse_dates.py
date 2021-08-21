@@ -439,7 +439,9 @@ def test_multiple_date_cols_int_cast(all_parsers, date_parser, warning):
     parse_dates = {"actual": [1, 2], "nominal": [1, 3]}
     parser = all_parsers
 
-    with tm.assert_produces_warning(warning, check_stacklevel=False):
+    with tm.assert_produces_warning(
+        UserWarning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
         result = parser.read_csv(
             StringIO(data),
             header=None,
@@ -1239,7 +1241,9 @@ date, time,a,b
 2001-01-06, 00:00:00, 1.0, 11.
 """
     parser = all_parsers
-    with tm.assert_produces_warning(warning, check_stacklevel=False):
+    with tm.assert_produces_warning(
+        warning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
         result = parser.read_csv(
             StringIO(data),
             header=[0, 1],
@@ -1333,7 +1337,9 @@ date,time,a,b
 )
 def test_parse_date_time(all_parsers, data, kwargs, expected, date_parser, warning):
     parser = all_parsers
-    with tm.assert_produces_warning(warning, check_stacklevel=False):
+    with tm.assert_produces_warning(
+        warning, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
         result = parser.read_csv(StringIO(data), date_parser=date_parser, **kwargs)
 
     # Python can sometimes be flaky about how

@@ -39,7 +39,7 @@ cnp.import_array()
 
 from dateutil.parser import (
     DEFAULTPARSER,
-    parse as du_parse,
+    parse as du_parse_raw,
 )
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
@@ -236,6 +236,14 @@ cdef inline bint does_string_look_like_time(str parse_string):
             minute = _parse_2digit(buf + 3)
 
     return 0 <= hour <= 23 and 0 <= minute <= 59
+
+
+def du_parse(*args, **kwargs):
+    warnings.warn(
+        "Parsing datetime strings without a format specified, "
+        "please specify a format to avoid unexpected results"
+    )
+    return du_parse_raw(*args, **kwargs)
 
 
 def parse_datetime_string(

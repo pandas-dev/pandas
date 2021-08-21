@@ -552,7 +552,7 @@ class TestPeriodMethods:
     @pytest.mark.parametrize("tzstr", ["Europe/Brussels", "Asia/Tokyo", "US/Pacific"])
     def test_to_timestamp_tz_arg(self, tzstr):
         # GH#34522 tz kwarg deprecated
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="M").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
@@ -561,7 +561,7 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="3H").to_timestamp(tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
@@ -570,7 +570,7 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
         exp = Timestamp(day=31, month=12, year=2005, tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
@@ -579,7 +579,7 @@ class TestPeriodMethods:
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="A").to_timestamp(freq="3H", tz=tzstr)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
@@ -594,14 +594,14 @@ class TestPeriodMethods:
     )
     def test_to_timestamp_tz_arg_dateutil(self, tzstr):
         tz = maybe_get_tz(tzstr)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="M").to_timestamp(tz=tz)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         assert p == exp
         assert p.tz == dateutil_gettz(tzstr.split("/", 1)[1])
         assert p.tz == exp.tz
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="M").to_timestamp(freq="3H", tz=tz)
         exp = Timestamp("1/1/2005", tz="UTC").tz_convert(tzstr)
         assert p == exp
@@ -609,7 +609,7 @@ class TestPeriodMethods:
         assert p.tz == exp.tz
 
     def test_to_timestamp_tz_arg_dateutil_from_string(self):
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning((FutureWarning, UserWarning)):
             p = Period("1/1/2005", freq="M").to_timestamp(tz="dateutil/Europe/Brussels")
         assert p.tz == dateutil_gettz("Europe/Brussels")
 
