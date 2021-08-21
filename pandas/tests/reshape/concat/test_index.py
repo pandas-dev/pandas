@@ -293,5 +293,12 @@ class TestMultiIndexConcat:
         df1 = DataFrame(np.zeros((1, len(mi1))), columns=mi1)
         df2 = DataFrame(np.zeros((1, len(mi2))), columns=mi2)
 
+        expected = DataFrame(
+            np.zeros((1, len(mi1) + len(mi2))),
+            columns=MultiIndex.from_tuples(list(mi1) + list(mi2)),
+        )
+
         with tm.assert_produces_warning(None):
-            concat((df1, df2), axis=1)
+            result = concat((df1, df2), axis=1)
+
+        tm.assert_frame_equal(expected, result)
