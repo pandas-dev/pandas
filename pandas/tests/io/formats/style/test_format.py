@@ -206,9 +206,10 @@ def test_format_escape_floats(styler):
 
 
 @pytest.mark.parametrize("formatter", [5, True, [2.0]])
-def test_format_raises(styler, formatter):
+@pytest.mark.parametrize("func", ["format", "format_index"])
+def test_format_raises(styler, formatter, func):
     with pytest.raises(TypeError, match="expected str or callable"):
-        styler.format(formatter)
+        getattr(styler, func)(formatter)
 
 
 def test_format_with_precision():
