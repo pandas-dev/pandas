@@ -33,8 +33,17 @@ def test_merge_conditional(monkeypatch, chunk_size):
         def condition(dfx):
             return (dfx.timestart <= dfx.timestep) & (dfx.timestep <= dfx.timeend)
 
-        result = m.merge(left, right, condition=condition)
-        expected = m.merge(left, right, how="cross").loc[condition].reset_index()
+        result = (
+            m.merge(left, right, condition=condition)
+            .sort_values(["timestep", "mood", "timestart", "timeend"])
+            .reset_index(drop=True)
+        )
+        expected = (
+            m.merge(left, right, how="cross")
+            .loc[condition]
+            .sort_values(["timestep", "mood", "timestart", "timeend"])
+            .reset_index(drop=True)
+        )
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(left, left_copy)
         tm.assert_frame_equal(right, right_copy)
