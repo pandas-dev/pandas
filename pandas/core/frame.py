@@ -6840,23 +6840,28 @@ class DataFrame(NDFrame, OpsMixin):
         
         Examples
         --------
-        >>> df = pd.DataFrame(
-        ...  {"name" : ['Rahul','Arijit']}, 
-        ...    index = [
-        ...        [90, 77], 
-        ...        ['CSE', 'EEE'],
-        ...        ['A','B']
-        ...    ]
-        ... )
+        >>> data={'Name':['Rahul', 'Arijit', 'Tushar'],
+        ...      'Mark':[70,95,89],
+        ...      'Branch':['CSE', 'EEE', 'IT'],
+        ...      'Grade':['C', 'B', 'A'], 
+        ... }
+        >>> df=pd.DataFrame(data, columns = ['Mark', 'Branch', 'Grade', 'Name'])
+        >>> df.set_index(['Branch', 'Mark', 'Grade'], inplace = True)
         >>> df
-                     name
-        90 CSE A    Rahul
-        77 EEE B   Arijit
-    
-        >>> df.reorder_levels([0,2,1])
-                     name
-        90 A  CSE   Rahul
-        77 B  EEE  Arijit
+        	
+                             Name
+        Branch Mark Grade        
+        CSE    70   C       Rahul
+        EEE    95   B      Arijit
+        IT     89   A      Tushar
+        
+        >>> df.reorder_levels(['Mark', 'Grade', 'Branch'])
+        
+                             Name
+        Mark Grade Branch        
+        70   C     CSE      Rahul
+        95   B     EEE     Arijit
+        89   A     IT      Tushar
         
         """
         axis = self._get_axis_number(axis)
