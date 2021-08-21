@@ -120,7 +120,7 @@ def test_groupby_aggregation_mixed_dtype():
             "by2": [293, 194, 0, 'damp', 'dry', 'wetred']
         },
         index=Index([1, 2, 12, 'big', 'blue', 'red'],
-                     dtype='object', name='by1'),
+                    dtype='object', name='by1'),
     )
 
     g = df.groupby(["by1"])
