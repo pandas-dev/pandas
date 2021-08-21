@@ -129,6 +129,7 @@ def arrays_to_mgr(
 
     else:
         index = ensure_index(index)
+        arrays = [extract_array(x, extract_numpy=True) for x in arrays]
 
         # Reached via DataFrame._from_arrays; we do validation here
         for arr in arrays:
