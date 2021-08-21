@@ -212,28 +212,30 @@ def test_format_raises(styler, formatter, func):
         getattr(styler, func)(formatter)
 
 
-def test_format_with_precision():
+@pytest.mark.parametrize(
+    "precision, expected",
+    [
+        (1, ["1.0", "2.0", "3.2", "4.6"]),
+        (2, ["1.00", "2.01", "3.21", "4.57"]),
+        (3, ["1.000", "2.009", "3.212", "4.566"]),
+    ],
+)
+def test_format_with_precision(precision, expected):
     # Issue #13257
-    df = DataFrame(data=[[1.0, 2.0090], [3.2121, 4.566]], columns=["a", "b"])
-    s = Styler(df)
+    df = DataFrame([[1.0, 2.0090, 3.2121, 4.566]], columns=[1.0, 2.0090, 3.2121, 4.566])
+    styler = Styler(df)
+    styler.format(precision=precision)
+    styler.format_index(precision=precision, axis=1)
 
-    ctx = s.format(precision=1)._translate(True, True)
-    assert ctx["body"][0][1]["display_value"] == "1.0"
-    assert ctx["body"][0][2]["display_value"] == "2.0"
-    assert ctx["body"][1][1]["display_value"] == "3.2"
-    assert ctx["body"][1][2]["display_value"] == "4.6"
+    ctx = styler._translate(True, True)
+    for col, exp in enumerate(expected):
+        assert ctx["body"][0][col + 1]["display_value"] == exp  # format test
+        assert ctx["head"][0][col + 1]["display_value"] == exp  # format_index test
 
-    ctx = s.format(precision=2)._translate(True, True)
-    assert ctx["body"][0][1]["display_value"] == "1.00"
-    assert ctx["body"][0][2]["display_value"] == "2.01"
-    assert ctx["body"][1][1]["display_value"] == "3.21"
-    assert ctx["body"][1][2]["display_value"] == "4.57"
 
-    ctx = s.format(precision=3)._translate(True, True)
-    assert ctx["body"][0][1]["display_value"] == "1.000"
-    assert ctx["body"][0][2]["display_value"] == "2.009"
-    assert ctx["body"][1][1]["display_value"] == "3.212"
-    assert ctx["body"][1][2]["display_value"] == "4.566"
+def test_format_index_level():
+    # TODO
+    pass
 
 
 def test_format_subset():
