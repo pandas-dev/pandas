@@ -39,7 +39,6 @@ def test_namespace():
         "SingleBlockManager",
         "SingleArrayManager",
         "concatenate_managers",
-        "create_block_manager_from_arrays",
         "create_block_manager_from_blocks",
     ]
 
