@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     IndexSlice,
     NaT,
@@ -39,13 +40,13 @@ def test_display_format(styler):
 def test_display_format_index(styler, index, columns):
     exp_index = ["x", "y"]
     if index:
-        styler.format_index(lambda v: v.upper(), axis=0)
+        styler.format_index(lambda v: v.upper(), axis=0)  # test callable
         exp_index = ["X", "Y"]
 
     exp_columns = ["A", "B"]
     if columns:
-        styler.format_index(lambda v: v.lower(), axis=1)
-        exp_columns = ["a", "b"]
+        styler.format_index("*{}*", axis=1)  # test string
+        exp_columns = ["*A*", "*B*"]
 
     ctx = styler._translate(True, True)
 
@@ -103,6 +104,14 @@ def test_format_with_na_rep():
     assert ctx["body"][1][2]["display_value"] == "120.00%"
 
 
+def test_format_index_with_na_rep():
+    df = DataFrame([[1, 2, 3, 4, 5]], columns=["A", None, np.nan, NaT, NA])
+    ctx = df.style.format_index(None, na_rep="--", axis=1)._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "A"
+    for i in [2, 3, 4, 5]:
+        assert ctx["head"][0][i]["display_value"] == "--"
+
+
 def test_format_non_numeric_na():
     # GH 21527 28358
     df = DataFrame(
@@ -158,6 +167,13 @@ def test_format_escape_html(escape, exp):
     s = Styler(df, uuid_len=0).format("&{0}&", escape=escape)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{exp}&</td>'
     assert expected in s.to_html()
+
+    # also test format_index()
+    styler = Styler(DataFrame(columns=[chars]), uuid_len=0)
+    styler.format_index("&{0}&", escape=None, axis=1)
+    assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{chars}&"
+    styler.format_index("&{0}&", escape=escape, axis=1)
+    assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{exp}&"
 
 
 def test_format_escape_na_rep():
