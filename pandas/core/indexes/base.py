@@ -3607,7 +3607,7 @@ class Index(IndexOpsMixin, PandasObject):
         method: str_t | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
@@ -3686,7 +3686,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_fill_indexer(
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
 
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
@@ -3713,7 +3713,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_fill_indexer_searchsorted(
         self, target: Index, method: str_t, limit: int | None = None
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
         indexes and non-monotonic targets.
@@ -3747,7 +3747,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_nearest_indexer(
         self, target: Index, limit: int | None, tolerance
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3777,10 +3777,10 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _filter_indexer_tolerance(
         self,
-        target: Index | np.ndarray | ExtensionArray,
-        indexer: np.ndarray,
+        target: np.ndarray,
+        indexer: npt.NDArray[np.intp],
         tolerance,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         own_values = self._get_engine_target()
         distance = abs(own_values[indexer] - target)
         return np.where(distance <= tolerance, indexer, -1)

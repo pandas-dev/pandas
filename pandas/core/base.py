@@ -787,6 +787,7 @@ class IndexOpsMixin(OpsMixin):
             )
         return func(skipna=skipna, **kwds)
 
+    @final
     def _map_values(self, mapper, na_action=None):
         """
         An internal function that maps values using the input
