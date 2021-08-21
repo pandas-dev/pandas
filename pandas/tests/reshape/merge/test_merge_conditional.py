@@ -12,8 +12,12 @@ def test_merge_conditional(monkeypatch, chunk_size):
     # GH#8962
 
     with monkeypatch.context() as context:
-        context.setattr("m._DEFAULT_LEFT_CHUNK_SIZE", chunk_size)
-        context.setattr("m._DEFAULT_RIGHT_CHUNK_SIZE", chunk_size)
+        context.setattr(
+            "pandas.core.reshape.merge._DEFAULT_LEFT_CHUNK_SIZE", chunk_size
+        )
+        context.setattr(
+            "pandas.core.reshape.merge._DEFAULT_RIGHT_CHUNK_SIZE", chunk_size
+        )
 
         left = DataFrame({"timestep": range(5)})
         right = DataFrame(
