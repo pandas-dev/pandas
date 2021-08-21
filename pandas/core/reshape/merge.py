@@ -902,21 +902,21 @@ class _MergeOperation:
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 if mask_left.all():  # type: ignore[union-attr]
                     key_col = Index(rvals)
-                    final_dtype = rvals.dtype
+                    result_dtype = rvals.dtype
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 elif (
                     right_indexer is not None
                     and mask_right.all()  # type: ignore[union-attr]
                 ):
                     key_col = Index(lvals)
-                    final_dtype = lvals.dtype
+                    result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
-                    final_dtype = lvals.dtype
+                    result_dtype = lvals.dtype
 
                 if result._is_label_reference(name):
                     result[name] = Series(
-                        key_col, dtype=final_dtype, index=result.index
+                        key_col, dtype=result_dtype, index=result.index
                     )
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):

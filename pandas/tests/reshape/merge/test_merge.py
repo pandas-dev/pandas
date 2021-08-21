@@ -1642,6 +1642,40 @@ class TestMergeDtypes:
         with pytest.raises(ValueError, match=msg):
             merge(df2, df1, on=["A"])
 
+    @pytest.mark.parametrize(
+        "expected_data, how",
+        [
+            ([1, 2], "outer"),
+            ([], "inner"),
+            ([2], "right"),
+            ([1], "left"),
+        ],
+    )
+    def test_merge_EA_dtype(self, any_numeric_ea_dtype, how, expected_data):
+        # GH#40073
+        d1 = DataFrame([(1,)], columns=["id"], dtype=any_numeric_ea_dtype)
+        d2 = DataFrame([(2,)], columns=["id"], dtype=any_numeric_ea_dtype)
+        result = merge(d1, d2, how=how)
+        expected = DataFrame(expected_data, columns=["id"], dtype=any_numeric_ea_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected_data, how",
+        [
+            (["a", "b"], "outer"),
+            ([], "inner"),
+            (["b"], "right"),
+            (["a"], "left"),
+        ],
+    )
+    def test_merge_string_dtype(self, how, expected_data, any_string_dtype):
+        # GH#40073
+        d1 = DataFrame([("a",)], columns=["id"], dtype=any_string_dtype)
+        d2 = DataFrame([("b",)], columns=["id"], dtype=any_string_dtype)
+        result = merge(d1, d2, how=how)
+        expected = DataFrame(expected_data, columns=["id"], dtype=any_string_dtype)
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.fixture
 def left():
@@ -2487,42 +2521,3 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
     df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
     with pytest.raises(MergeError, match="Can only pass argument"):
         merge(df_1, df_2, on=["C"], left_index=True)
-
-
-@pytest.mark.parametrize(
-    "expected_data, how",
-    [
-        ([1, 2], "outer"),
-        ([], "inner"),
-        ([2], "right"),
-        ([1], "left"),
-    ],
-)
-@pytest.mark.parametrize(
-    "dtype", ["Float64", "Float32", "Int64", "Int32", "UInt64", "UInt32"]
-)
-def test_merge_EA_dtype(dtype, how, expected_data):
-    # GH#40073
-    d1 = DataFrame([(1,)], columns=["id"], dtype=dtype)
-    d2 = DataFrame([(2,)], columns=["id"], dtype=dtype)
-    result = merge(d1, d2, how=how)
-    expected = DataFrame(expected_data, columns=["id"], dtype=dtype)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "expected_data, how",
-    [
-        (["a", "b"], "outer"),
-        ([], "inner"),
-        (["b"], "right"),
-        (["a"], "left"),
-    ],
-)
-def test_merge_string_dtype(how, expected_data):
-    # GH#40073
-    d1 = DataFrame([("a",)], columns=["id"], dtype="string")
-    d2 = DataFrame([("b",)], columns=["id"], dtype="string")
-    result = merge(d1, d2, how=how)
-    expected = DataFrame(expected_data, columns=["id"], dtype="string")
-    tm.assert_frame_equal(result, expected)
