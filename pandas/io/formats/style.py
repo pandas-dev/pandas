@@ -877,6 +877,10 @@ class Styler(StylerRenderer):
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
 
             .. versionadded:: 1.4.0
+        bold_headers : bool, optional
+            Adds "font-weight: bold;" as a CSS property to table style header cells.
+
+            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags,
             defaults to "utf-8" if None.
