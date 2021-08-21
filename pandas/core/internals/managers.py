@@ -1859,6 +1859,14 @@ def construction_error(
 # -----------------------------------------------------------------------
 
 
+def _grouping_func(tup):
+    # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
+    # raises instead of returning False. Once earlier numpy versions are dropped,
+    # this can be simplified to `return tup[1].dtype`
+    dtype = tup[1].dtype
+    return isinstance(dtype, np.dtype), dtype
+
+
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
     tuples = list(enumerate(arrays))
 
@@ -1867,10 +1875,10 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
         return nbs
 
     # group by dtype
-    grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
+    grouper = itertools.groupby(tuples, _grouping_func)
 
     nbs = []
-    for dtype, tup_block in grouper:
+    for (_, dtype), tup_block in grouper:
         block_type = get_block_type(None, dtype)
 
         if isinstance(dtype, np.dtype):
