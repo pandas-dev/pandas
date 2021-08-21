@@ -287,3 +287,13 @@ def test_columns_groupby_quantile():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [float, "Float64", "Float32"])
+def test_groupby_quantile_NA(dtype):
+    # GH#42849
+    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=dtype)
+    result = df.groupby("x")["y"].quantile(0.5)
+    expected = pd.Series([0.2], dtype=float, index=[1.0], name="y")
+    expected.index.name = "x"
+    tm.assert_series_equal(expected, result)
