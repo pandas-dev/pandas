@@ -317,9 +317,7 @@ class TestPandasContainer:
                 '"data":[[1.0,"1"],[2.0,"2"],[null,"3"]]}',
                 "|".join(
                     [
-                        r"Shape of passed values is \(3, 2\), indices imply \(2, 2\)",
-                        "Passed arrays should have the same length as the rows Index: "
-                        "3 vs 2 rows",
+                        r"Length of values \(3\) does not match length of index \(2\)",
                     ]
                 ),
                 "split",

@@ -121,11 +121,30 @@ def arrays_to_mgr(
 
         # don't force copy because getting jammed in an ndarray anyway
         arrays = _homogenize(arrays, index, dtype)
+        # _homogenize ensures
+        #  - all(len(x) == len(index) for x in arrays)
+        #  - all(x.ndim == 1 for x in arrays)
+        #  - all(isinstance(x, (np.ndarray, ExtensionArray)) for x in arrays)
+        #  - all(type(x) is not PandasArray for x in arrays)
 
     else:
         index = ensure_index(index)
 
+        # Reached via DataFrame._from_arrays; we do validation here
+        for arr in arrays:
+            if (
+                not isinstance(arr, (np.ndarray, ExtensionArray))
+                or arr.ndim != 1
+                or len(arr) != len(index)
+            ):
+                raise ValueError(
+                    "Arrays must be 1-dimensional np.ndarray or ExtensionArray "
+                    "with length matching len(index)"
+                )
+
     columns = ensure_index(columns)
+    if len(columns) != len(arrays):
+        raise ValueError("len(arrays) must match len(columns)")
 
     # from BlockManager perspective
     axes = [columns, index]
@@ -581,6 +600,7 @@ def _homogenize(data, index: Index, dtype: DtypeObj | None) -> list[ArrayLike]:
             val = sanitize_array(
                 val, index, dtype=dtype, copy=False, raise_cast_failure=False
             )
+            com.require_length_match(val, index)
 
         homogenized.append(val)
 

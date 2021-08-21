@@ -2222,8 +2222,7 @@ class TestDataFrameConstructors:
         # invalid (shape)
         msg = "|".join(
             [
-                r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)",
-                "Passed arrays should have the same length as the rows Index",
+                r"Length of values \(6\) does not match length of index \(3\)",
             ]
         )
         msg2 = "will be changed to match the behavior"
@@ -2790,6 +2789,17 @@ class TestDataFrameConstructorWithDatetimeTZ:
         arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
         df = DataFrame(arr)
         assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
+
+    def test_construction_from_ndarray_with_eadtype_mismatched_columns(self):
+        arr = np.random.randn(10, 2)
+        dtype = pd.array([2.0]).dtype
+        msg = r"len\(arrays\) must match len\(columns\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr, columns=["foo"], dtype=dtype)
+
+        arr2 = pd.array([2.0, 3.0, 4.0])
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr2, columns=["foo", "bar"])
 
 
 def get1(obj):

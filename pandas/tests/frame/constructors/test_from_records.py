@@ -188,8 +188,7 @@ class TestFromRecords:
         # should fail
         msg = "|".join(
             [
-                r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)",
-                "Passed arrays should have the same length as the rows Index: 10 vs 1",
+                r"Length of values \(10\) does not match length of index \(1\)",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -268,8 +267,7 @@ class TestFromRecords:
         # wrong length
         msg = "|".join(
             [
-                r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)",
-                "Passed arrays should have the same length as the rows Index: 2 vs 1",
+                r"Length of values \(2\) does not match length of index \(1\)",
             ]
         )
         with pytest.raises(ValueError, match=msg):
