@@ -1095,3 +1095,16 @@ def test_period_dtype_compare_to_string():
     dtype = PeriodDtype(freq="M")
     assert (dtype == "period[M]") is True
     assert (dtype != "period[M]") is False
+
+
+def test_compare_complex_dtypes():
+    # GH 28050
+    # https://github.com/pandas-dev/pandas/issues/28050
+    arr = np.arange(5).astype(np.complex128)
+    df = pd.DataFrame(arr)
+
+    with pytest.raises(
+        TypeError,
+        match="'<' not supported between instances of 'complex' and 'complex'",
+    ):
+        df.lt(df.astype(object))
