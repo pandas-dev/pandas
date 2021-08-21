@@ -271,41 +271,43 @@ def test_format_subset():
 @pytest.mark.parametrize("formatter", [None, "{:,.1f}"])
 @pytest.mark.parametrize("decimal", [".", "*"])
 @pytest.mark.parametrize("precision", [None, 2])
-def test_format_thousands(formatter, decimal, precision):
-    s = DataFrame([[1000000.123456789]]).style  # test float
-    result = s.format(
+@pytest.mark.parametrize("func, col", [("format", 1), ("format_index", 0)])
+def test_format_thousands(formatter, decimal, precision, func, col):
+    styler = DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
+    result = getattr(styler, func)(  # testing float
         thousands="_", formatter=formatter, decimal=decimal, precision=precision
     )._translate(True, True)
-    assert "1_000_000" in result["body"][0][1]["display_value"]
+    assert "1_000_000" in result["body"][0][col]["display_value"]
 
-    s = DataFrame([[1000000]]).style  # test int
-    result = s.format(
+    styler = DataFrame([[1000000]], index=[1000000]).style
+    result = getattr(styler, func)(  # testing int
         thousands="_", formatter=formatter, decimal=decimal, precision=precision
     )._translate(True, True)
-    assert "1_000_000" in result["body"][0][1]["display_value"]
+    assert "1_000_000" in result["body"][0][col]["display_value"]
 
-    s = DataFrame([[1 + 1000000.123456789j]]).style  # test complex
-    result = s.format(
+    styler = DataFrame([[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]).style
+    result = getattr(styler, func)(  # testing complex
         thousands="_", formatter=formatter, decimal=decimal, precision=precision
     )._translate(True, True)
-    assert "1_000_000" in result["body"][0][1]["display_value"]
+    assert "1_000_000" in result["body"][0][col]["display_value"]
 
 
 @pytest.mark.parametrize("formatter", [None, "{:,.4f}"])
 @pytest.mark.parametrize("thousands", [None, ",", "*"])
 @pytest.mark.parametrize("precision", [None, 4])
-def test_format_decimal(formatter, thousands, precision):
-    s = DataFrame([[1000000.123456789]]).style  # test float
-    result = s.format(
+@pytest.mark.parametrize("func, col", [("format", 1), ("format_index", 0)])
+def test_format_decimal(formatter, thousands, precision, func, col):
+    styler = DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
+    result = getattr(styler, func)(  # testing float
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
-    assert "000_123" in result["body"][0][1]["display_value"]
+    assert "000_123" in result["body"][0][col]["display_value"]
 
-    s = DataFrame([[1 + 1000000.123456789j]]).style  # test complex
-    result = s.format(
+    styler = DataFrame([[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]).style
+    result = getattr(styler, func)(  # testing complex
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
-    assert "000_123" in result["body"][0][1]["display_value"]
+    assert "000_123" in result["body"][0][col]["display_value"]
 
 
 def test_str_escape_error():
