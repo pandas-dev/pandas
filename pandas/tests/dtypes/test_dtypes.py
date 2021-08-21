@@ -1107,4 +1107,10 @@ def test_compare_complex_dtypes():
         TypeError,
         match="'<' not supported between instances of 'complex' and 'complex'",
     ):
+        df < df.astype(object)
+
+    with pytest.raises(
+        TypeError,
+        match="'<' not supported between instances of 'complex' and 'complex'",
+    ):
         df.lt(df.astype(object))
