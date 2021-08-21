@@ -440,7 +440,7 @@ def test_multiple_date_cols_int_cast(all_parsers, date_parser, warning):
     parser = all_parsers
 
     with tm.assert_produces_warning(
-        UserWarning, check_stacklevel=False, raise_on_extra_warnings=False
+        (FutureWarning, UserWarning), check_stacklevel=False
     ):
         result = parser.read_csv(
             StringIO(data),
@@ -1242,7 +1242,7 @@ date, time,a,b
 """
     parser = all_parsers
     with tm.assert_produces_warning(
-        warning, check_stacklevel=False, raise_on_extra_warnings=False
+        (FutureWarning, UserWarning), check_stacklevel=False
     ):
         result = parser.read_csv(
             StringIO(data),
@@ -1338,7 +1338,7 @@ date,time,a,b
 def test_parse_date_time(all_parsers, data, kwargs, expected, date_parser, warning):
     parser = all_parsers
     with tm.assert_produces_warning(
-        warning, check_stacklevel=False, raise_on_extra_warnings=False
+        (FutureWarning, UserWarning), check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), date_parser=date_parser, **kwargs)
 
