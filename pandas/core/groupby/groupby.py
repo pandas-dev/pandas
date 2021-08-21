@@ -1130,7 +1130,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     else:
                         numeric_only = True
                 else:
-                    if len(non_num_cols)>0:
+                    if len(non_num_cols) > 0:
                         numeric_only = False
                     else:
                         numeric_only = True
