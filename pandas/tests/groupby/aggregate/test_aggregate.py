@@ -113,16 +113,14 @@ def test_groupby_aggregation_mixed_dtype():
     g = df.groupby(["by1", "by2"])
     result = g[["v1", "v2"]].mean()
     tm.assert_frame_equal(result, expected)
-
-
     expected2 = DataFrame(
         {
             "v1": [15, 7, 9, 3, 3, 5],
             "v2": [165, 77, 99, 33, 33, 55],
-            "by2":[293, 194, 0, 'damp', 'dry', 'wetred']
+            "by2": [293, 194, 0, 'damp', 'dry', 'wetred']
         },
-        index= Index([1, 2, 12, 'big', 'blue', 'red'],\
-            dtype='object', name='by1'),
+        index = Index([1,2,12,'big','blue','red'],
+                      dtype='object', name='by1'),
     )
 
     g = df.groupby(["by1"])
