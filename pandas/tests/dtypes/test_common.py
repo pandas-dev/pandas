@@ -295,10 +295,10 @@ integer_dtypes: list = []
     "dtype",
     integer_dtypes
     + [pd.Series([1, 2])]
-    + tm.ALL_INT_DTYPES
-    + to_numpy_dtypes(tm.ALL_INT_DTYPES)
-    + tm.ALL_EA_INT_DTYPES
-    + to_ea_dtypes(tm.ALL_EA_INT_DTYPES),
+    + tm.ALL_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.ALL_INT_NUMPY_DTYPES)
+    + tm.ALL_INT_EA_DTYPES
+    + to_ea_dtypes(tm.ALL_INT_EA_DTYPES),
 )
 def test_is_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -327,10 +327,10 @@ signed_integer_dtypes: list = []
     "dtype",
     signed_integer_dtypes
     + [pd.Series([1, 2])]
-    + tm.SIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
-    + tm.SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
+    + tm.SIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
 )
 def test_is_signed_integer_dtype(dtype):
     assert com.is_integer_dtype(dtype)
@@ -347,10 +347,10 @@ def test_is_signed_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + tm.UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
-    + tm.UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
+    + tm.UNSIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
 )
 def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
@@ -363,10 +363,10 @@ unsigned_integer_dtypes: list = []
     "dtype",
     unsigned_integer_dtypes
     + [pd.Series([1, 2], dtype=np.uint32)]
-    + tm.UNSIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.UNSIGNED_INT_DTYPES)
-    + tm.UNSIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.UNSIGNED_EA_INT_DTYPES),
+    + tm.UNSIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.UNSIGNED_INT_NUMPY_DTYPES)
+    + tm.UNSIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.UNSIGNED_INT_EA_DTYPES),
 )
 def test_is_unsigned_integer_dtype(dtype):
     assert com.is_unsigned_integer_dtype(dtype)
@@ -383,10 +383,10 @@ def test_is_unsigned_integer_dtype(dtype):
         np.array(["a", "b"]),
         np.array([], dtype=np.timedelta64),
     ]
-    + tm.SIGNED_INT_DTYPES
-    + to_numpy_dtypes(tm.SIGNED_INT_DTYPES)
-    + tm.SIGNED_EA_INT_DTYPES
-    + to_ea_dtypes(tm.SIGNED_EA_INT_DTYPES),
+    + tm.SIGNED_INT_NUMPY_DTYPES
+    + to_numpy_dtypes(tm.SIGNED_INT_NUMPY_DTYPES)
+    + tm.SIGNED_INT_EA_DTYPES
+    + to_ea_dtypes(tm.SIGNED_INT_EA_DTYPES),
 )
 def test_is_not_unsigned_integer_dtype(dtype):
     assert not com.is_unsigned_integer_dtype(dtype)
@@ -722,9 +722,9 @@ def test_astype_nansafe(val, typ):
             astype_nansafe(arr, dtype=typ)
 
 
-def test_astype_nansafe_copy_false(any_int_dtype):
+def test_astype_nansafe_copy_false(any_int_numpy_dtype):
     # GH#34457 use astype, not view
-    arr = np.array([1, 2, 3], dtype=any_int_dtype)
+    arr = np.array([1, 2, 3], dtype=any_int_numpy_dtype)
 
     dtype = np.dtype("float64")
     result = astype_nansafe(arr, dtype, copy=False)

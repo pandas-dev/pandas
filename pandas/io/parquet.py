@@ -311,7 +311,7 @@ class FastParquetImpl(BaseImpl):
     ):
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
-        if Version(self.api.__version__) >= Version("0.7.1"):
+        if Version(self.api.__version__) >= Version("0.7.0"):
             # We are disabling nullable dtypes for fastparquet pending discussion
             parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
@@ -382,8 +382,12 @@ def to_parquet(
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
-    compression : {{'snappy', 'gzip', 'brotli', None}}, default 'snappy'
-        Name of the compression to use. Use ``None`` for no compression.
+    compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
+        default 'snappy'. Name of the compression to use. Use ``None``
+        for no compression. The supported compression methods actually
+        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
+        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
+        only 'gzip' and 'snappy' are supported.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
