@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
-import numpy as np
+
 from functools import (
     partial,
     wraps,
@@ -1124,11 +1124,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
                 non_num_cols = self.obj.select_dtypes(
                     exclude=[np.number, np.datetime64, np.timedelta64]).columns
-                
-                if len(set(non_num_cols) - set(self.keys)) > 0:
-                    numeric_only = False
+                if self.keys is not None:
+                    if len(set(non_num_cols) - set(self.keys)) > 0:
+                        numeric_only = False
+                    else:
+                        numeric_only = True
                 else:
-                    numeric_only = True
+                    if len(non_num_cols)>0:
+                        numeric_only = False
+                    else:
+                        numeric_only = True
             else:
                 numeric_only = False
 
