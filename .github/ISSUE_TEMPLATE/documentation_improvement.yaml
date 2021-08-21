@@ -16,7 +16,7 @@ body:
     attributes:
       label: Location of the documentation
       description: >
-        This should provide the location of the documentation, e.g. "pandas.read_csv" or the
+        Please provide the location of the documentation, e.g. "pandas.read_csv" or the
         URL of the documentation, e.g.
         "https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html"
       placeholder: https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html
@@ -27,7 +27,7 @@ body:
     attributes:
       label: Documentation problem
       description: >
-        This should provide a description of what documentation you believe needs to be fixed/improved
+        Please provide a description of what documentation you believe needs to be fixed/improved
     validations:
       required: true
   - type: textarea
@@ -35,6 +35,6 @@ body:
     attributes:
       label: Suggested fix for documentation
       description: >
-        This should explain the suggested fix and **why** it's better than the existing documentation
+        Please explain the suggested fix and **why** it's better than the existing documentation
     validations:
       required: true
