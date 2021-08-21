@@ -1743,13 +1743,12 @@ def test_groupby_categorical_indices_unused_categories():
         tm.assert_numpy_array_equal(result[key], expected[key])
 
 
-def test_groupby_last_first_preserve_categoricaldtype():
+@pytest.mark.parametrize("func", ["first", "last"])
+def test_groupby_last_first_preserve_categoricaldtype(func):
     # GH#33090
     df = DataFrame({"a": [1, 2, 3]})
     df["b"] = df["a"].astype("category")
-    result = df.groupby("a")["b"].last()
+    result = getattr(df.groupby("a")["b"], func)()
     expected = Series(Categorical([1, 2, 3]), name="b", index=[1, 2, 3])
     expected.index.name = "a"
-    tm.assert_series_equal(expected, result)
-    result = df.groupby("a")["b"].first()
     tm.assert_series_equal(expected, result)
