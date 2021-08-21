@@ -38,17 +38,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-
-        # GH 39416
-        pip install numpy
-
     - name: Build pandas sdist
       run: |
-        pip list
-        python setup.py sdist --formats=gztar
+        pipx run build --sdist
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
