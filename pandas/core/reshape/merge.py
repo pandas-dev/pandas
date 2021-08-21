@@ -108,30 +108,9 @@ def merge(
     indicator: bool = False,
     validate: str | None = None,
 ) -> DataFrame:
-    if how is None:
-        if condition is None:
-            how = "inner"
-        else:
-            how = "cross"
+    how = ("inner" if condition is None else "cross") if how is None else how
 
-    if (how == "cross") and (condition is not None):
-        res = _LazyMerge(
-            left,
-            right,
-            condition,
-            how=how,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            sort=sort,
-            suffixes=suffixes,
-            copy=copy,
-            indicator=indicator,
-            validate=validate,
-        ).get_result()
-    else:
+    if condition is None:
         res = _MergeOperation(
             left,
             right,
@@ -147,8 +126,28 @@ def merge(
             indicator=indicator,
             validate=validate,
         ).get_result()
-        if condition is not None:
-            res = res.loc[condition]
+    else:
+        if how != "cross":
+            raise MergeError(
+                'Must use `how="cross" | None` if `condition` is specified'
+            )
+
+        res = _LazyMerge(
+            left,
+            right,
+            condition,
+            how="cross",
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,
+            validate=validate,
+        ).get_result()
     return res
 
 
@@ -2382,6 +2381,9 @@ def _chunks(lst, n):
         yield lst[i : i + n]
 
 
+_DEFAULT_LEFT_CHUNK_SIZE = _DEFAULT_RIGHT_CHUNK_SIZE = 1000
+
+
 # TODO: perform lazy merge as optimized cython, rather than chunked merge
 class _LazyMerge:
     def __init__(
@@ -2389,15 +2391,24 @@ class _LazyMerge:
         left: DataFrame | Series,
         right: DataFrame | Series,
         condition: Callable,  # takes frame with same columns as plain merge result
+        left_chunk_size: int | None = None,
+        right_chunk_size: int | None = None,
         *args,
         **kwargs,
     ):
         self.condition = condition
         self.args = args
         self.kwargs = kwargs
-        # TODO: dynamically determine optimal chunk size
-        left_chunks = _chunks(left, n=1000)
-        right_chunks = _chunks(right, n=1000)
+
+        # TODO: dynamically determine optimal default chunk size
+        if (not left_chunk_size) or left_chunk_size < 1:
+            left_chunk_size = _DEFAULT_LEFT_CHUNK_SIZE
+
+        if (not right_chunk_size) or right_chunk_size < 1:
+            right_chunk_size = _DEFAULT_RIGHT_CHUNK_SIZE
+
+        left_chunks = _chunks(left, n=left_chunk_size)
+        right_chunks = _chunks(right, n=right_chunk_size)
         self.chunk_pairs = itertools.product(left_chunks, right_chunks)
 
     def get_result(self) -> DataFrame:  # mimic _MergeOperation

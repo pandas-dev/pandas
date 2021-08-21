@@ -482,6 +482,7 @@ within the range of `right.timestart` to `right.timeend`, using `condition`.
 ...     condition=lambda dfx: (dfx.timestart <= dfx.timestep)
 ...                           & (dfx.timestep <= dfx.timeend)
 ... )
+
 >>> merge
     timestep    mood  timestart  timeend
 0          0   happy          0        1
