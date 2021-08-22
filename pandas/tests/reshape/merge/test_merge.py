@@ -365,12 +365,10 @@ class TestMerge:
         assert df["key_0"].dtype == "int64"
 
     def test_handle_join_key_pass_array(self):
-        # changed column `value` from np.arange to list
-        # to ensure same dtype of column `key` and variable `key`
         left = DataFrame(
-            {"key": [1, 1, 2, 2, 3], "value": [0, 1, 2, 3, 4]}, columns=["value", "key"]
+            {"key": [1, 1, 2, 2, 3], "value": np.arange(5)}, columns=["value", "key"]
         )
-        right = DataFrame({"rvalue": [0, 1, 2, 3, 4, 5]})
+        right = DataFrame({"rvalue": np.arange(6)})
         key = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on="key", right_on=key, how="outer")
