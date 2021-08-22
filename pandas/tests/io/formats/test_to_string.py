@@ -289,9 +289,9 @@ def test_nullable_float_to_string(float_ea_dtype):
     assert result == expected
 
 
-def test_nullable_int_to_string(any_nullable_int_dtype):
+def test_nullable_int_to_string(any_int_ea_dtype):
     # https://github.com/pandas-dev/pandas/issues/36775
-    dtype = any_nullable_int_dtype
+    dtype = any_int_ea_dtype
     s = Series([0, 1, None], dtype=dtype)
     result = s.to_string()
     expected = dedent(

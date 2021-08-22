@@ -24,8 +24,7 @@ from pandas.compat import is_numpy_dev as _is_numpy_dev
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
 except ImportError as e:  # pragma: no cover
-    # hack but overkill to use re
-    module = str(e).replace("cannot import name ", "")
+    module = e.name
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
@@ -75,6 +74,7 @@ from pandas.core.api import (
     UInt64Index,
     RangeIndex,
     Float64Index,
+    NumericIndex,
     MultiIndex,
     IntervalIndex,
     TimedeltaIndex,

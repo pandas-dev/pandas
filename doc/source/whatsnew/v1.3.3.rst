@@ -1,0 +1,47 @@
+.. _whatsnew_133:
+
+What's new in 1.3.3 (September ??, 2021)
+----------------------------------------
+
+These are the changes in pandas 1.3.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)
+- Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
+- Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.2..v1.3.3|HEAD
