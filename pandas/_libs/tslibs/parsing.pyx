@@ -39,7 +39,7 @@ cnp.import_array()
 
 from dateutil.parser import (
     DEFAULTPARSER,
-    parse as du_parse_raw,
+    parse as du_parse,
 )
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
@@ -238,12 +238,12 @@ cdef inline bint does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
-def du_parse(*args, **kwargs):
+def du_parse_with_warning(*args, **kwargs):
     warnings.warn(
         "Parsing datetime strings without a format specified, "
         "please specify a format to avoid unexpected results"
     )
-    return du_parse_raw(*args, **kwargs)
+    return du_parse(*args, **kwargs)
 
 
 def parse_datetime_string(
@@ -269,8 +269,12 @@ def parse_datetime_string(
 
     if does_string_look_like_time(date_string):
         # use current datetime as default, not pass _DEFAULT_DATETIME
-        dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst, **kwargs)
+        dt = du_parse_with_warning(
+            date_string,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            **kwargs,
+        )
         return dt
 
     dt, _ = _parse_delimited_date(date_string, dayfirst)
@@ -286,8 +290,13 @@ def parse_datetime_string(
         pass
 
     try:
-        dt = du_parse(date_string, default=_DEFAULT_DATETIME,
-                      dayfirst=dayfirst, yearfirst=yearfirst, **kwargs)
+        dt = du_parse_with_warning(
+            date_string,
+            default=_DEFAULT_DATETIME,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            **kwargs,
+        )
     except TypeError:
         # following may be raised from dateutil
         # TypeError: 'NoneType' object is not iterable
@@ -641,7 +650,11 @@ def try_parse_dates(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        parse_date = lambda x: du_parse_with_warning(
+            x,
+            dayfirst=dayfirst,
+            default=default,
+        )
 
         # EAFP here
         try:
@@ -688,13 +701,17 @@ def try_parse_date_and_time(
             date = datetime.now()
             default = datetime(date.year, date.month, 1)
 
-        parse_date = lambda x: du_parse(x, dayfirst=dayfirst, default=default)
+        parse_date = lambda x: du_parse_with_warning(
+            x,
+            dayfirst=dayfirst,
+            default=default,
+        )
 
     else:
         parse_date = date_parser
 
     if time_parser is None:
-        parse_time = lambda x: du_parse(x)
+        parse_time = lambda x: du_parse_with_warning(x)
 
     else:
         parse_time = time_parser
@@ -868,7 +885,7 @@ def format_is_iso(f: str) -> bint:
 def guess_datetime_format(
     dt_str,
     bint dayfirst=False,
-    dt_str_parse=du_parse,
+    dt_str_parse=du_parse_with_warning,
     dt_str_split=_DATEUTIL_LEXER_SPLIT,
 ):
     """
