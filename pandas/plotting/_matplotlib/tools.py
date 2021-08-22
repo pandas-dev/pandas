@@ -225,7 +225,9 @@ def create_subplots(
                 ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
-                    "When passing multiple axes, layout keyword is ignored.", UserWarning
+                    "When passing multiple axes, layout keyword is "
+                    "ignored.",
+                     UserWarning
                 )
             if sharex or sharey:
                 warnings.warn(
