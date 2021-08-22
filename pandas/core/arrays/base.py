@@ -27,9 +27,9 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     FillnaOptions,
-    NumpySorter,
     PositionalIndexer,
     Shape,
+    npt,
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -81,6 +81,11 @@ if TYPE_CHECKING:
 
         def all(self, *, skipna: bool = True) -> bool:
             pass
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 
 _extension_array_shared_docs: dict[str, str] = {}
@@ -810,10 +815,10 @@ class ExtensionArray:
 
     def searchsorted(
         self,
-        value: ArrayLike | object,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -844,8 +849,9 @@ class ExtensionArray:
 
         Returns
         -------
-        array of ints
-            Array of insertion points with the same shape as `value`.
+        array of ints or int
+            If value is array-like, array of insertion points
+            If value is scalar, a single integer
 
         See Also
         --------

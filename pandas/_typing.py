@@ -69,6 +69,11 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset
+
+    # numpy compatible types
+    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]
+
 else:
     npt: Any = None
 
@@ -84,19 +89,6 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
-
-# numpy compatible types
-NumpyValueArrayLike = Union[PythonScalar, Sequence[PythonScalar]]
-NumpySorter = Union[
-    int,
-    np.integer,
-    bool,
-    np.ndarray,
-    Sequence[int],
-    Sequence[np.integer],
-    Sequence[bool],
-    None,
-]
 
 
 # timestamp and timedelta convertible types

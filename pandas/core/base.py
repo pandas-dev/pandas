@@ -24,8 +24,6 @@ from pandas._typing import (
     DtypeObj,
     FrameOrSeries,
     IndexLabel,
-    NumpySorter,
-    NumpyValueArrayLike,
     Shape,
     npt,
 )
@@ -68,7 +66,13 @@ import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Categorical
+
 
 _shared_docs: dict[str, str] = {}
 _indexops_doc_kwargs = {
@@ -789,6 +793,7 @@ class IndexOpsMixin(OpsMixin):
             )
         return func(skipna=skipna, **kwds)
 
+    @final
     def _map_values(self, mapper, na_action=None):
         """
         An internal function that maps values using the input
@@ -1228,7 +1233,7 @@ class IndexOpsMixin(OpsMixin):
         value: NumpyValueArrayLike,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> npt.NDArray[np.intp]:
+    ) -> npt.NDArray[np.intp] | np.intp:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):

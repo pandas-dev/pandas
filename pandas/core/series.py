@@ -41,8 +41,6 @@ from pandas._typing import (
     DtypeObj,
     FillnaOptions,
     IndexKeyFunc,
-    NumpySorter,
-    NumpyValueArrayLike,
     SingleManager,
     StorageOptions,
     TimedeltaConvertibleTypes,
@@ -145,6 +143,11 @@ import pandas.io.formats.format as fmt
 import pandas.plotting
 
 if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
@@ -477,7 +480,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(pandas_dtype(dtype))
+            values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             keys = index
         else:
             keys, values = (), []
@@ -521,8 +524,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index: Index | None = None
-
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
@@ -551,7 +552,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call above ensures we have an Index object
             self._mgr.set_axis(axis, labels)
@@ -1063,7 +1063,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             self._set_with_engine(key, value)
         except (KeyError, ValueError):
-            values = self._values
             if is_integer(key) and self.index.inferred_type != "integer":
                 # positional setter
                 if not self.index._should_fallback_to_positional:
@@ -1077,7 +1076,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         FutureWarning,
                         stacklevel=2,
                     )
-                values[key] = value
+                # this is equivalent to self._values[key] = value
+                self._mgr.setitem_inplace(key, value)
             else:
                 # GH#12862 adding a new key to the Series
                 self.loc[key] = value
@@ -1109,7 +1109,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # error: Argument 1 to "validate_numeric_casting" has incompatible type
         # "Union[dtype, ExtensionDtype]"; expected "dtype"
         validate_numeric_casting(self.dtype, value)  # type: ignore[arg-type]
-        self._values[loc] = value
+        # this is equivalent to self._values[key] = value
+        self._mgr.setitem_inplace(loc, value)
 
     def _set_with(self, key, value):
         # other: fancy integer or otherwise
@@ -2787,7 +2788,7 @@ Name: Max Speed, dtype: float64
         value: NumpyValueArrayLike,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp] | np.intp:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------

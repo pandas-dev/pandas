@@ -32,6 +32,7 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -54,6 +55,12 @@ from pandas.core.base import (
     SelectionMixin,
 )
 import pandas.core.common as com
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    FixedWindowIndexer,
+    GroupbyIndexer,
+    VariableWindowIndexer,
+)
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
@@ -83,12 +90,6 @@ from pandas.core.window.doc import (
     template_see_also,
     window_agg_numba_parameters,
     window_apply_parameters,
-)
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    FixedWindowIndexer,
-    GroupbyIndexer,
-    VariableWindowIndexer,
 )
 from pandas.core.window.numba_ import (
     generate_manual_numpy_nan_agg_with_axis,
@@ -226,7 +227,7 @@ class BaseWindow(SelectionMixin):
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
             # dtypes.
-            obj = obj.select_dtypes(include=["integer", "float"], exclude=["timedelta"])
+            obj = obj.select_dtypes(include=["number"], exclude=["timedelta"])
             obj = obj.astype("float64", copy=False)
             obj._mgr = obj._mgr.consolidate()
         return obj
@@ -436,6 +437,18 @@ class BaseWindow(SelectionMixin):
             new_mgr = mgr.apply_2d(hfunc2d, ignore_failures=True)
         else:
             new_mgr = mgr.apply(hfunc, ignore_failures=True)
+
+        if 0 != len(new_mgr.items) != len(mgr.items):
+            # GH#42738 ignore_failures dropped nuisance columns
+            dropped = mgr.items.difference(new_mgr.items)
+            warnings.warn(
+                "Dropping of nuisance columns in rolling operations "
+                "is deprecated; in a future version this will raise TypeError. "
+                "Select only valid columns before calling the operation. "
+                f"Dropped columns were {dropped}",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         out = obj._constructor(new_mgr)
 
         return self._resolve_output(out, obj)

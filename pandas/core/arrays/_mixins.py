@@ -14,12 +14,10 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
-    ArrayLike,
     F,
-    NumpySorter,
     PositionalIndexer2D,
-    PythonScalar,
     Shape,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -51,6 +49,11 @@ NDArrayBackedExtensionArrayT = TypeVar(
 
 if TYPE_CHECKING:
     from typing import Literal
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 
 def ravel_compat(meth: F) -> F:
@@ -166,24 +169,20 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
         self,
-        value: ArrayLike | object,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_searchsorted_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     def _validate_searchsorted_value(
-        self, value: ArrayLike | object
-    ) -> np.ndarray | PythonScalar:
+        self, value: NumpyValueArrayLike | ExtensionArray
+    ) -> NumpyValueArrayLike | ExtensionArray:
         if isinstance(value, ExtensionArray):
             return value.to_numpy()
-        elif isinstance(value, np.ndarray):
-            return value
         else:
-            # While we also can support DatetimeLikeScalar, numpy.searchsorted
-            # does not accept that as an argument
-            return cast(PythonScalar, value)
+            return value
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):

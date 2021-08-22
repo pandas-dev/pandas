@@ -29,8 +29,8 @@ from pandas._typing import (
     ArrayLike,
     Dtype,
     NpDtype,
-    NumpySorter,
     Scalar,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -82,6 +82,8 @@ import pandas.io.formats.printing as printing
 
 if TYPE_CHECKING:
     from typing import Literal
+
+    from pandas._typing import NumpySorter
 
 # ----------------------------------------------------------------------------
 # Array
@@ -1003,7 +1005,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         v: ArrayLike | object,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp] | np.intp:
 
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=2)

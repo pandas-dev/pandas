@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Sequence,
-    cast,
 )
 
 import numpy as np
@@ -40,10 +39,9 @@ from pandas._libs.tslibs.period import (
 )
 from pandas._typing import (
     AnyArrayLike,
-    ArrayLike,
     Dtype,
     NpDtype,
-    NumpySorter,
+    npt,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -74,12 +72,19 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import datetimelike as dtl
+from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 if TYPE_CHECKING:
     from typing import Literal
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas.core.arrays import DatetimeArray
+
 
 _shared_doc_kwargs = {
     "klass": "PeriodArray",
@@ -651,13 +656,11 @@ class PeriodArray(dtl.DatelikeOps):
 
     def searchsorted(
         self,
-        value: ArrayLike | object,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter = None,
-    ) -> np.ndarray:
-        npvalue = cast(
-            np.ndarray, self._validate_searchsorted_value(value).view("M8[ns]")
-        )
+    ) -> npt.NDArray[np.intp] | np.intp:
+        npvalue = self._validate_searchsorted_value(value).view("M8[ns]")
 
         # Cast to M8 to get datetime-like NaT placement
         m8arr = self._ndarray.view("M8[ns]")

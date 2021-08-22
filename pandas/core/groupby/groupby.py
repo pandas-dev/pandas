@@ -1275,7 +1275,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _python_apply_general(
-        self, f: F, data: DataFrame | Series
+        self, f: F, data: DataFrame | Series, not_indexed_same: bool | None = None
     ) -> DataFrame | Series:
         """
         Apply function f in python space
@@ -1286,6 +1286,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Function to apply
         data : Series or DataFrame
             Data to apply f to
+        not_indexed_same: bool, optional
+            When specified, overrides the value of not_indexed_same. Apply behaves
+            differently when the result index is equal to the input index, but
+            this can be coincidental leading to value-dependent behavior.
 
         Returns
         -------
@@ -1294,8 +1298,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         keys, values, mutated = self.grouper.apply(f, data, self.axis)
 
+        if not_indexed_same is None:
+            not_indexed_same = mutated or self.mutated
+
         return self._wrap_applied_output(
-            data, keys, values, not_indexed_same=mutated or self.mutated
+            data, keys, values, not_indexed_same=not_indexed_same
         )
 
     @final
@@ -1520,13 +1527,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return self.obj._constructor
 
     @final
-    def _bool_agg(self, val_test, skipna):
+    def _bool_agg(self, val_test: Literal["any", "all"], skipna: bool):
         """
         Shared func to call any / all Cython GroupBy implementations.
         """
 
         def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals):
+            if is_object_dtype(vals.dtype):
                 # GH#37501: don't raise on pd.NA when skipna=True
                 if skipna:
                     vals = np.array([bool(x) if not isna(x) else True for x in vals])
@@ -1535,7 +1542,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             elif isinstance(vals, BaseMaskedArray):
                 vals = vals._data.astype(bool, copy=False)
             else:
-                vals = vals.astype(bool)
+                vals = vals.astype(bool, copy=False)
 
             return vals.view(np.int8), bool
 
@@ -1550,11 +1557,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 return result.astype(inference, copy=False)
 
         return self._get_cythonized_result(
-            "group_any_all",
+            libgroupby.group_any_all,
             aggregate=True,
             numeric_only=False,
             cython_dtype=np.dtype(np.int8),
             needs_values=True,
+            needs_2d=True,
             needs_mask=True,
             needs_nullable=True,
             pre_processing=objs_to_bool,
@@ -1726,7 +1734,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Standard deviation of values within each group.
         """
         return self._get_cythonized_result(
-            "group_var",
+            libgroupby.group_var,
             aggregate=True,
             needs_counts=True,
             needs_values=True,
@@ -2142,7 +2150,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             limit = -1
 
         return self._get_cythonized_result(
-            "group_fillna_indexer",
+            libgroupby.group_fillna_indexer,
             numeric_only=False,
             needs_mask=True,
             cython_dtype=np.dtype(np.int64),
@@ -2458,7 +2466,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if is_scalar(q):
             return self._get_cythonized_result(
-                "group_quantile",
+                libgroupby.group_quantile,
                 aggregate=True,
                 numeric_only=False,
                 needs_values=True,
@@ -2472,7 +2480,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         else:
             results = [
                 self._get_cythonized_result(
-                    "group_quantile",
+                    libgroupby.group_quantile,
                     aggregate=True,
                     needs_values=True,
                     needs_mask=True,
@@ -2810,7 +2818,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     def _get_cythonized_result(
         self,
-        how: str,
+        base_func: Callable,
         cython_dtype: np.dtype,
         aggregate: bool = False,
         numeric_only: bool | lib.NoDefault = lib.no_default,
@@ -2832,7 +2840,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Parameters
         ----------
-        how : str, Cythonized function name to be called
+        base_func : callable, Cythonized function to be called
         cython_dtype : np.dtype
             Type of the array that will be modified by the Cython call.
         aggregate : bool, default False
@@ -2903,23 +2911,31 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         ids, _, ngroups = grouper.group_info
         output: dict[base.OutputKey, ArrayLike] = {}
 
-        base_func = getattr(libgroupby, how)
+        how = base_func.__name__
         base_func = partial(base_func, labels=ids)
         if needs_ngroups:
             base_func = partial(base_func, ngroups=ngroups)
         if min_count is not None:
             base_func = partial(base_func, min_count=min_count)
 
+        real_2d = how in ["group_any_all", "group_var"]
+
         def blk_func(values: ArrayLike) -> ArrayLike:
+            values = values.T
+            ncols = 1 if values.ndim == 1 else values.shape[1]
+
             if aggregate:
                 result_sz = ngroups
             else:
-                result_sz = len(values)
+                result_sz = values.shape[-1]
 
             result: ArrayLike
-            result = np.zeros(result_sz, dtype=cython_dtype)
+            result = np.zeros(result_sz * ncols, dtype=cython_dtype)
             if needs_2d:
-                result = result.reshape((-1, 1))
+                if real_2d:
+                    result = result.reshape((result_sz, ncols))
+                else:
+                    result = result.reshape(-1, 1)
             func = partial(base_func, out=result)
 
             inferences = None
@@ -2934,12 +2950,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     vals, inferences = pre_processing(vals)
 
                 vals = vals.astype(cython_dtype, copy=False)
-                if needs_2d:
+                if needs_2d and vals.ndim == 1:
                     vals = vals.reshape((-1, 1))
                 func = partial(func, values=vals)
 
             if needs_mask:
                 mask = isna(values).view(np.uint8)
+                if needs_2d and mask.ndim == 1:
+                    mask = mask.reshape(-1, 1)
                 func = partial(func, mask=mask)
 
             if needs_nullable:
@@ -2948,11 +2966,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             func(**kwargs)  # Call func to modify indexer values in place
 
-            if needs_2d:
-                result = result.reshape(-1)
-
             if result_is_index:
                 result = algorithms.take_nd(values, result, fill_value=fill_value)
+
+            if real_2d and values.ndim == 1:
+                assert result.shape[1] == 1, result.shape
+                # error: Invalid index type "Tuple[slice, int]" for
+                # "Union[ExtensionArray, ndarray[Any, Any]]"; expected type
+                # "Union[int, integer[Any], slice, Sequence[int], ndarray[Any, Any]]"
+                result = result[:, 0]  # type: ignore[index]
+                if needs_mask:
+                    mask = mask[:, 0]
 
             if post_processing:
                 pp_kwargs = {}
@@ -2961,7 +2985,31 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
                 result = post_processing(result, inferences, **pp_kwargs)
 
-            return result
+            if needs_2d and not real_2d:
+                if result.ndim == 2:
+                    assert result.shape[1] == 1
+                    # error: Invalid index type "Tuple[slice, int]" for
+                    # "Union[ExtensionArray, Any, ndarray[Any, Any]]"; expected
+                    # type "Union[int, integer[Any], slice, Sequence[int],
+                    # ndarray[Any, Any]]"
+                    result = result[:, 0]  # type: ignore[index]
+
+            return result.T
+
+        obj = self._obj_with_exclusions
+        if obj.ndim == 2 and self.axis == 0 and needs_2d and real_2d:
+            # Operate block-wise instead of column-by-column
+            mgr = obj._mgr
+            if numeric_only:
+                mgr = mgr.get_numeric_data()
+
+            # setting ignore_failures=False for troubleshooting
+            res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
+            output = type(obj)(res_mgr)
+            if aggregate:
+                return self._wrap_aggregated_output(output)
+            else:
+                return self._wrap_transformed_output(output)
 
         error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
@@ -3031,15 +3079,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis, fill_value))
 
-        return self._get_cythonized_result(
-            "group_shift_indexer",
-            numeric_only=False,
-            cython_dtype=np.dtype(np.int64),
-            needs_ngroups=True,
-            result_is_index=True,
-            periods=periods,
+        ids, _, ngroups = self.grouper.group_info
+        res_indexer = np.zeros(len(ids), dtype=np.int64)
+
+        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+
+        obj = self._obj_with_exclusions
+
+        res = obj._reindex_with_indexers(
+            {self.axis: (obj.axes[self.axis], res_indexer)},
             fill_value=fill_value,
+            allow_dups=True,
         )
+        return res
 
     @final
     @Substitution(name="groupby")
