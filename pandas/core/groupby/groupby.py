@@ -1123,7 +1123,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # Checking if the dataframe has numeric features for aggregation
 
                 cols_for_agg = set(self.obj.select_dtypes(
-                    include=[np.number, np.datetime64, np.timedelta64, 'category']).columns)
+                    include=[np.number, np.datetime64, np.timedelta64, 'category']
+                ).columns)
                 if len(cols_for_agg) > 0:
                     numeric_only = True
                 else:
