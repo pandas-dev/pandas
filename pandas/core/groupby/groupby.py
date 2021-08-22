@@ -1120,20 +1120,18 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             # i.e. not explicitly passed by user
             if self.obj.ndim == 2:
                 # i.e. DataFrameGroupBy
-                # Checking if the dataframe has non-numeric features
+                # Checking if the dataframe has numeric features for aggregation
 
-                non_num_cols = self.obj.select_dtypes(
-                    exclude=[np.number, np.datetime64, np.timedelta64]).columns
+                cols_for_agg = set(self.obj.select_dtypes(
+                    include=[np.number, np.datetime64, np.timedelta64]).columns)
+
                 if self.keys is not None:
-                    if len(set(non_num_cols) - set(self.keys)) > 0:
-                        numeric_only = False
-                    else:
-                        numeric_only = True
+                    cols_for_agg = cols_for_agg - set(self.keys)
+                  
+                if len(cols_for_agg) > 0:
+                    numeric_only = True
                 else:
-                    if len(non_num_cols) > 0:
-                        numeric_only = False
-                    else:
-                        numeric_only = True
+                    numeric_only = False 
             else:
                 numeric_only = False
 
