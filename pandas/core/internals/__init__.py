@@ -1,7 +1,4 @@
-from pandas.core.internals.api import (
-    create_block_manager_from_arrays,
-    make_block,
-)
+from pandas.core.internals.api import make_block
 from pandas.core.internals.array_manager import (
     ArrayManager,
     SingleArrayManager,
@@ -39,8 +36,7 @@ __all__ = [
     "SingleBlockManager",
     "SingleArrayManager",
     "concatenate_managers",
-    # those two are preserved here for downstream compatibility (GH-33892)
-    "create_block_manager_from_arrays",
+    # this is preserved here for downstream compatibility (GH-33892)
     "create_block_manager_from_blocks",
 ]
 
