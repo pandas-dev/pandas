@@ -365,8 +365,10 @@ class TestMerge:
         assert df["key_0"].dtype == "int64"
 
     def test_handle_join_key_pass_array(self):
+        # changed column `value` from np.arange to list
+        # to ensure same dtype of column `key` and variable `key`
         left = DataFrame(
-            {"key": [1, 1, 2, 2, 3], "value": np.arange(5)}, columns=["value", "key"]
+            {"key": [1, 1, 2, 2, 3], "value": [0, 1, 2, 3, 4]}, columns=["value", "key"]
         )
         right = DataFrame({"rvalue": np.arange(6)})
         key = np.array([1, 1, 2, 3, 4, 5])
@@ -1674,6 +1676,23 @@ class TestMergeDtypes:
         d2 = DataFrame([("b",)], columns=["id"], dtype=any_string_dtype)
         result = merge(d1, d2, how=how)
         expected = DataFrame(expected_data, columns=["id"], dtype=any_string_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "how, expected_data",
+        [
+            ("inner", [[True, 1, 4], [False, 5, 3]]),
+            ("outer", [[True, 1, 4], [False, 5, 3]]),
+            ("left", [[True, 1, 4], [False, 5, 3]]),
+            ("right", [[False, 5, 3], [True, 1, 4]]),
+        ],
+    )
+    def test_merge_bool_dtype(self, how, expected_data):
+        # GH#40073
+        df1 = DataFrame({"A": [True, False], "B": [1, 5]})
+        df2 = DataFrame({"A": [False, True], "C": [3, 4]})
+        result = merge(df1, df2, how=how)
+        expected = DataFrame(expected_data, columns=["A", "B", "C"])
         tm.assert_frame_equal(result, expected)
 
 
