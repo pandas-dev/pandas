@@ -1100,11 +1100,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
-    def is_empty_df(self):
-        if self.obj.empty:
-            return True
-        else:
-            return False
+    
 
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
         """
@@ -1127,7 +1123,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.obj.ndim == 2:
                 # i.e. DataFrameGroupBy
                 # Checking for empty object
-                if not is_empty_df(self):
+                if not self.obj.empty:
                     # Checking if the dataframe has numeric features for aggregation
                     cols_for_agg = set(self.obj.select_dtypes(
                         include=[np.number, np.datetime64, np.timedelta64]
