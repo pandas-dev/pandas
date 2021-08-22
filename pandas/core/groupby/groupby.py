@@ -1127,11 +1127,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
                 if self.keys is not None:
                     cols_for_agg = cols_for_agg - set(self.keys)
-                  
                 if len(cols_for_agg) > 0:
                     numeric_only = True
                 else:
-                    numeric_only = False 
+                    numeric_only = False
             else:
                 numeric_only = False
 
