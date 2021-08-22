@@ -1102,8 +1102,7 @@ def test_agg_multiple_mixed_no_warning():
 
 
 def test_agg_reduce(axis, float_frame):
-    axis = float_frame._get_axis_number(axis)
-    other_axis = 1 if axis == 0 else 0
+    other_axis = 1 if axis in {0, "index"} else 0
     name1, name2 = float_frame.axes[other_axis].unique()[:2].sort_values()
 
     # all reducers
@@ -1116,7 +1115,7 @@ def test_agg_reduce(axis, float_frame):
         axis=1,
     )
     expected.columns = ["mean", "max", "sum"]
-    expected = expected.T if axis == 0 else expected
+    expected = expected.T if axis in {0, "index"} else expected
 
     result = float_frame.agg(["mean", "max", "sum"], axis=axis)
     tm.assert_frame_equal(result, expected)
@@ -1142,7 +1141,7 @@ def test_agg_reduce(axis, float_frame):
             name2: Series([float_frame.loc(other_axis)[name2].sum()], index=["sum"]),
         }
     )
-    expected = expected.T if axis == 1 else expected
+    expected = expected.T if axis in {1, "columns"} else expected
     tm.assert_frame_equal(result, expected)
 
     # dict input with lists with multiple
@@ -1167,7 +1166,7 @@ def test_agg_reduce(axis, float_frame):
         },
         axis=1,
     )
-    expected = expected.T if axis == 1 else expected
+    expected = expected.T if axis in {1, "columns"} else expected
     tm.assert_frame_equal(result, expected)
 
 
