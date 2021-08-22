@@ -54,7 +54,7 @@ dependencies:
 
   # testing
   - boto3
-  - botocore>=1.11
+  - botocore>=1.11, <1.14.0
   - hypothesis>=5.5.3
   - moto  # mock S3
   - flask
