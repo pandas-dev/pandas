@@ -2323,6 +2323,7 @@ class DataFrame(NDFrame, OpsMixin):
         index,
         dtype: Dtype | None = None,
         verify_integrity: bool = True,
+        consolidate: bool = True,
     ) -> DataFrame:
         """
         Create DataFrame from a list of arrays corresponding to the columns.
@@ -2343,6 +2344,8 @@ class DataFrame(NDFrame, OpsMixin):
             stored in a block (numpy ndarray or ExtensionArray), have the same
             length as and are aligned with the index, and that `columns` and
             `index` are ensured to be an Index object.
+        consolidate : bool, default True
+            Whether to consolidate the resulting DataFrame.
 
         Returns
         -------
@@ -2362,8 +2365,9 @@ class DataFrame(NDFrame, OpsMixin):
             dtype=dtype,
             verify_integrity=verify_integrity,
             typ=manager,
+            consolidate=consolidate,
         )
-        return cls(mgr)
+        return cls._from_mgr(mgr)
 
     @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
