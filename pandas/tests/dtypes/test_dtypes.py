@@ -1099,8 +1099,7 @@ def test_period_dtype_compare_to_string():
 
 def test_compare_complex_dtypes():
     # GH 28050
-    arr = np.arange(5).astype(np.complex128)
-    df = pd.DataFrame(arr)
+    df = pd.DataFrame(np.arange(5).astype(np.complex128))
     msg = "'<' not supported between instances of 'complex' and 'complex'"
 
     with pytest.raises(TypeError, match=msg):
