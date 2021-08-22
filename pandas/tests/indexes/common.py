@@ -26,6 +26,7 @@ from pandas import (
     Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
@@ -34,7 +35,6 @@ from pandas import (
 )
 from pandas import UInt64Index  # noqa:F401
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

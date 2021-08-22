@@ -249,9 +249,9 @@ class TestFactorize:
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
-    def test_numeric_dtype_factorize(self, any_real_dtype):
+    def test_numeric_dtype_factorize(self, any_real_numpy_dtype):
         # GH41132
-        dtype = any_real_dtype
+        dtype = any_real_numpy_dtype
         data = np.array([1, 2, 2, 1], dtype=dtype)
         expected_codes = np.array([0, 1, 1, 0], dtype=np.intp)
         expected_uniques = np.array([1, 2], dtype=dtype)
