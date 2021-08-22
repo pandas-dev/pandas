@@ -115,7 +115,8 @@ The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead t
 
     pd.to_datetime(["31-12-2021"], dayfirst=False)
 
-Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value.
+Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
+the value is a delimited date string (e.g. ``31-12-2012``).
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
 
