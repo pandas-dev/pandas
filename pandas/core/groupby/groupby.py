@@ -1124,9 +1124,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
                 cols_for_agg = set(self.obj.select_dtypes(
                     include=[np.number, np.datetime64, np.timedelta64]).columns)
-
-                if self.keys is not None:
-                    cols_for_agg = cols_for_agg - set(self.keys)
                 if len(cols_for_agg) > 0:
                     numeric_only = True
                 else:
