@@ -1717,35 +1717,32 @@ def test_dayfirst_warnings():
 
     # CASE 1: valid input
     input = "date\n31/12/2014\n10/03/2011"
-    expected = DatetimeIndex(
+    expected_consistent = DatetimeIndex(
         ["2014-12-31", "2011-03-10"], dtype="datetime64[ns]", freq=None, name="date"
+    )
+    expected_inconsistent = DatetimeIndex(
+        ["2014-12-31", "2011-10-03"], dtype="datetime64[ns]", freq=None, name="date"
     )
 
     # A. dayfirst arg correct, no warning
     res1 = read_csv(
         StringIO(input), parse_dates=["date"], dayfirst=True, index_col="date"
     ).index
-    tm.assert_index_equal(expected, res1)
+    tm.assert_index_equal(expected_consistent, res1)
 
     # B. dayfirst arg incorrect, warning + incorrect output
     with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
         res2 = read_csv(
             StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
         ).index
-    with pytest.raises(AssertionError, match=None), tm.assert_produces_warning(
-        UserWarning, match=warning_msg_day_first
-    ):
-        tm.assert_index_equal(expected, res2)
+    tm.assert_index_equal(expected_inconsistent, res2)
 
     # C. dayfirst default arg, same as B
     with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
         res3 = read_csv(
             StringIO(input), parse_dates=["date"], dayfirst=False, index_col="date"
         ).index
-    with pytest.raises(AssertionError, match=None), tm.assert_produces_warning(
-        UserWarning, match=warning_msg_day_first
-    ):
-        tm.assert_index_equal(expected, res3)
+    tm.assert_index_equal(expected_inconsistent, res3)
 
     # D. infer_datetime_format=True overrides dayfirst default
     # no warning + correct result
@@ -1755,7 +1752,7 @@ def test_dayfirst_warnings():
         infer_datetime_format=True,
         index_col="date",
     ).index
-    tm.assert_index_equal(expected, res4)
+    tm.assert_index_equal(expected_consistent, res4)
 
     # CASE 2: invalid input
     # cannot consistently process with single format
