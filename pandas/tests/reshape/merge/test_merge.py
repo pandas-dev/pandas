@@ -370,7 +370,7 @@ class TestMerge:
         left = DataFrame(
             {"key": [1, 1, 2, 2, 3], "value": [0, 1, 2, 3, 4]}, columns=["value", "key"]
         )
-        right = DataFrame({"rvalue": np.arange(6)})
+        right = DataFrame({"rvalue": [0, 1, 2, 3, 4, 5]})
         key = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on="key", right_on=key, how="outer")
