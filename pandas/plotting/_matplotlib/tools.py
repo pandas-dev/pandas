@@ -229,8 +229,7 @@ def create_subplots(
                 )
             if sharex or sharey:
                 warnings.warn(
-                    "When passing multiple axes, sharex and sharey "
-                    "are ignored. These settings must be specified when creating axes",
+                    "When passing multiple axes, sharex and sharey are ignored. These settings must be specified when creating axes",
                     UserWarning,
                     stacklevel=4,
                 )
@@ -239,8 +238,7 @@ def create_subplots(
                 return fig, ax
             else:
                 raise ValueError(
-                    f"The number of passed axes must be {naxes}, the "
-                    "same as the output plot"
+                    f"The number of passed axes must be {naxes}, the same as the output plot"
                 )
 
         fig = ax.get_figure()
@@ -251,12 +249,7 @@ def create_subplots(
             else:
                 return fig, flatten_axes(ax)
         else:
-            warnings.warn(
-                "To output multiple subplots, the figure containing "
-                "the passed axes is being cleared",
-                UserWarning,
-                stacklevel=4,
-            )
+            warnings.warn("To output multiple subplots, the figure containing the passed axes is being cleared",UserWarning,stacklevel=4 )
             fig.clear()
 
     nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
