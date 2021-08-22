@@ -241,7 +241,8 @@ cdef inline bint does_string_look_like_time(str parse_string):
 def du_parse_with_warning(*args, **kwargs):
     warnings.warn(
         "Parsing datetime strings without a format specified, "
-        "please specify a format to avoid unexpected results"
+        "please specify a format to avoid unexpected results",
+        stacklevel=4,
     )
     return du_parse(*args, **kwargs)
 
