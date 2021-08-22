@@ -1010,7 +1010,7 @@ def test_agg_transform(axis, float_frame):
         # list-like
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
-        if axis == 0:
+        if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
         else:
             expected.index = MultiIndex.from_product([float_frame.index, ["sqrt"]])
@@ -1021,7 +1021,7 @@ def test_agg_transform(axis, float_frame):
         # functions per series and then concatting
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
         expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
-        if axis == 0:
+        if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product(
                 [float_frame.columns, ["absolute", "sqrt"]]
             )
