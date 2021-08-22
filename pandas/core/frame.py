@@ -1010,43 +1010,44 @@ class DataFrame(NDFrame, OpsMixin):
 
         Mainly for IPython notebook.
         """
-        if self._info_repr():
-            buf = StringIO("")
-            self.info(buf=buf)
-            # need to escape the <class>, should be the first line.
-            val = buf.getvalue().replace("<", r"&lt;", 1)
-            val = val.replace(">", r"&gt;", 1)
-            return "<pre>" + val + "</pre>"
-
-        if get_option("display.notebook_repr_html"):
-            max_rows = get_option("display.max_rows")
-            min_rows = get_option("display.min_rows")
-            max_cols = get_option("display.max_columns")
-            show_dimensions = get_option("display.show_dimensions")
-
-            formatter = fmt.DataFrameFormatter(
-                self,
-                columns=None,
-                col_space=None,
-                na_rep="NaN",
-                formatters=None,
-                float_format=None,
-                sparsify=None,
-                justify=None,
-                index_names=True,
-                header=True,
-                index=True,
-                bold_rows=True,
-                escape=True,
-                max_rows=max_rows,
-                min_rows=min_rows,
-                max_cols=max_cols,
-                show_dimensions=show_dimensions,
-                decimal=".",
-            )
-            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
-        else:
-            return None
+        return self.style._repr_html_()
+        # if self._info_repr():
+        #     buf = StringIO("")
+        #     self.info(buf=buf)
+        #     # need to escape the <class>, should be the first line.
+        #     val = buf.getvalue().replace("<", r"&lt;", 1)
+        #     val = val.replace(">", r"&gt;", 1)
+        #     return "<pre>" + val + "</pre>"
+        #
+        # if get_option("display.notebook_repr_html"):
+        #     max_rows = get_option("display.max_rows")
+        #     min_rows = get_option("display.min_rows")
+        #     max_cols = get_option("display.max_columns")
+        #     show_dimensions = get_option("display.show_dimensions")
+        #
+        #     formatter = fmt.DataFrameFormatter(
+        #         self,
+        #         columns=None,
+        #         col_space=None,
+        #         na_rep="NaN",
+        #         formatters=None,
+        #         float_format=None,
+        #         sparsify=None,
+        #         justify=None,
+        #         index_names=True,
+        #         header=True,
+        #         index=True,
+        #         bold_rows=True,
+        #         escape=True,
+        #         max_rows=max_rows,
+        #         min_rows=min_rows,
+        #         max_cols=max_cols,
+        #         show_dimensions=show_dimensions,
+        #         decimal=".",
+        #     )
+        #     return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
+        # else:
+        #     return None
 
     @Substitution(
         header_type="bool or sequence",
@@ -2750,6 +2751,8 @@ class DataFrame(NDFrame, OpsMixin):
     ):
         """
         Render a DataFrame as an HTML table.
+
+        .. deprecated:: 1.4.0
         %(shared_params)s
         bold_rows : bool, default True
             Make the row labels bold in the output.
@@ -2776,6 +2779,12 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         to_string : Convert DataFrame to a string.
         """
+        warnings.warn(
+            "this method is deprecated in favour of `DataFrame.style.to_html()`",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
 
