@@ -995,8 +995,7 @@ def test_consistency_for_boxed(box, int_frame_const_col):
 
 
 def test_agg_transform(axis, float_frame):
-    axis = float_frame._get_axis_number(axis)
-    other_axis = 1 if axis == 0 else 0
+    other_axis = 1 if axis in {0, "index"} else 0
 
     with np.errstate(all="ignore"):
 
