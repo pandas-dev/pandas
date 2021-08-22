@@ -54,7 +54,7 @@ class TestResetIndex:
         # GH 3950
         # reset_index with single level
         tz = tz_aware_fixture
-        idx = date_range("01/01/2011", periods=5, freq="D", tz=tz, name="idx")
+        idx = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx")
         df = DataFrame({"a": range(5), "b": ["A", "B", "C", "D", "E"]}, index=idx)
 
         expected = DataFrame(
@@ -320,82 +320,28 @@ class TestResetIndex:
         [
             None,
             "foo",
-        ],
-    )
-    def test_reset_index_with_datetimeindex_cols_with_user_warning(self, name):
-        # GH#5818
-        df = DataFrame(
-            [[1, 2], [3, 4]],
-            columns=date_range("01/01/2013", "01/02/2013"),
-            index=["A", "B"],
-        )
-        df.index.name = name
-
-        with tm.assert_produces_warning(UserWarning):
-            result = df.reset_index()
-
-        item = name if name is not None else "index"
-        columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
-        if isinstance(item, str) and item == "2012-12-31":
-            columns = columns.astype("datetime64[ns]")
-        else:
-            assert columns.dtype == object
-
-        expected = DataFrame(
-            [["A", 1, 2], ["B", 3, 4]],
-            columns=columns,
-        )
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "name",
-        [
             2,
             3.0,
             pd.Timedelta(6),
+            Timestamp("2012-12-30", tz="UTC"),
             "2012-12-31",
         ],
     )
     def test_reset_index_with_datetimeindex_cols(self, name):
         # GH#5818
+        warn = None
+        if isinstance(name, Timestamp) and name.tz is not None:
+            # _deprecate_mismatched_indexing
+            warn = FutureWarning
+
         df = DataFrame(
             [[1, 2], [3, 4]],
-            columns=date_range("01/01/2013", "01/02/2013"),
+            columns=date_range("1/1/2013", "1/2/2013"),
             index=["A", "B"],
         )
         df.index.name = name
 
-        result = df.reset_index()
-
-        item = name if name is not None else "index"
-        columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
-        if isinstance(item, str) and item == "2012-12-31":
-            columns = columns.astype("datetime64[ns]")
-        else:
-            assert columns.dtype == object
-
-        expected = DataFrame(
-            [["A", 1, 2], ["B", 3, 4]],
-            columns=columns,
-        )
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "name",
-        [
-            Timestamp("2012-12-30", tz="UTC"),
-        ],
-    )
-    def test_reset_index_with_datetimeindex_cols_with_future_warning(self, name):
-        # GH#5818
-        df = DataFrame(
-            [[1, 2], [3, 4]],
-            columns=date_range("01/01/2013", "01/02/2013"),
-            index=["A", "B"],
-        )
-        df.index.name = name
-
-        with tm.assert_produces_warning((FutureWarning, UserWarning)):
+        with tm.assert_produces_warning(warn):
             result = df.reset_index()
 
         item = name if name is not None else "index"
@@ -479,7 +425,7 @@ class TestResetIndex:
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
-        idx1 = date_range("01/01/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx = MultiIndex.from_arrays([idx1, idx2])
         df = DataFrame(
@@ -507,7 +453,7 @@ class TestResetIndex:
         tm.assert_frame_equal(df.reset_index(), expected)
 
         idx3 = date_range(
-            "01/01/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
+            "1/1/2012", periods=5, freq="MS", tz="Europe/Paris", name="idx3"
         )
         idx = MultiIndex.from_arrays([idx1, idx2, idx3])
         df = DataFrame(
@@ -669,7 +615,7 @@ class TestResetIndex:
     [
         (["a", "b"], object),
         (
-            pd.period_range("12-01-2000", periods=2, freq="Q-DEC"),
+            pd.period_range("12-1-2000", periods=2, freq="Q-DEC"),
             pd.PeriodDtype(freq="Q-DEC"),
         ),
     ],

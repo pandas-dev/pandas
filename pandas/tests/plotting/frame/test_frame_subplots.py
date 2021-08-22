@@ -259,7 +259,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             df.plot(subplots=True, layout=(3, 2))
 
             df = DataFrame(
-                np.random.randn(100, 4), index=date_range("01/01/2000", periods=100)
+                np.random.randn(100, 4), index=date_range("1/1/2000", periods=100)
             )
             df.plot(subplots=True, layout=(3, 2))
 
@@ -430,7 +430,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
 
         df = DataFrame(
             np.random.randn(10, 2),
-            index=date_range("01/01/2000", periods=10),
+            index=date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
 
