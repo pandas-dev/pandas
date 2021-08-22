@@ -210,6 +210,60 @@ cdef class BlockPlacement:
 
         return self._as_slice
 
+    cpdef BlockPlacement increment_above(self, Py_ssize_t loc):
+        """
+        Increment any entries of 'loc' or above by one.
+        """
+        cdef:
+            slice nv, s = self._ensure_has_slice()
+            Py_ssize_t other_int, start, stop, step, l
+            ndarray newarr
+
+        if s is not None:
+            # see if we are either all-above or all-below, each of which
+            #  have fastpaths available.
+
+            start, stop, step, l = slice_get_indices_ex(s)
+
+            if start < loc and stop <= loc:
+                # We are entirely below, nothing to increment
+                return self
+
+            if start >= loc and stop >= loc:
+                # We are entirely above, we can efficiently increment out slice
+                nv = slice(start + 1, stop + 1, step)
+                return BlockPlacement(nv)
+
+        if loc == 0:
+            # fastpath where we know everything is >= 0
+            newarr = self.as_array + 1
+            return BlockPlacement(newarr)
+
+        newarr = self.as_array.copy()
+        newarr[newarr >= loc] += 1
+        return BlockPlacement(newarr)
+
+    def tile_for_unstack(self, factor: int) -> np.ndarray:
+        """
+        Find the new mgr_locs for the un-stacked version of a Block.
+        """
+        cdef:
+            slice slc = self._ensure_has_slice()
+            slice new_slice
+            ndarray new_placement
+
+        if slc is not None and slc.step == 1:
+            new_slc = slice(slc.start * factor, slc.stop * factor, 1)
+            new_placement = np.arange(new_slc.start, new_slc.stop, dtype=np.intp)
+        else:
+            # Note: test_pivot_table_empty_aggfunc gets here with `slc is not None`
+            mapped = [
+                np.arange(x * factor, (x + 1) * factor, dtype=np.intp)
+                for x in self
+            ]
+            new_placement = np.concatenate(mapped)
+        return new_placement
+
 
 cdef slice slice_canonize(slice s):
     """
@@ -458,6 +512,35 @@ def get_blkno_placements(blknos, group: bool = True):
 
     for blkno, indexer in get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)
+
+
+cpdef update_blklocs_and_blknos(
+    ndarray[intp_t] blklocs, ndarray[intp_t] blknos, Py_ssize_t loc, intp_t nblocks
+):
+    """
+    Update blklocs and blknos when a new column is inserted at 'loc'.
+    """
+    cdef:
+        Py_ssize_t i
+        cnp.npy_intp length = len(blklocs) + 1
+        ndarray[intp_t] new_blklocs, new_blknos
+
+    # equiv: new_blklocs = np.empty(length, dtype=np.intp)
+    new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
+    new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
+
+    for i in range(loc):
+        new_blklocs[i] = blklocs[i]
+        new_blknos[i] = blknos[i]
+
+    new_blklocs[loc] = 0
+    new_blknos[loc] = nblocks
+
+    for i in range(loc, length - 1):
+        new_blklocs[i + 1] = blklocs[i]
+        new_blknos[i + 1] = blknos[i]
+
+    return new_blklocs, new_blknos
 
 
 @cython.freelist(64)
