@@ -130,6 +130,10 @@ class TestDataFrameDrop:
         with pytest.raises(KeyError, match=r"\['C'\] not found in axis"):
             simple.drop(["A", "C"], axis=1)
 
+        # GH 42881
+        with pytest.raises(KeyError, match=r"\['C', 'D', 'F'\] not found in axis"):
+            simple.drop(["C", "D", "F"], axis=1)
+
         # errors = 'ignore'
         tm.assert_frame_equal(simple.drop(5, errors="ignore"), simple)
         tm.assert_frame_equal(

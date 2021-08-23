@@ -44,7 +44,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_inferred_bool_dtype
@@ -85,6 +84,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
+    extract_pandas_array,
     maybe_coerce_values,
     new_block,
     to_native_types,
@@ -399,6 +399,8 @@ class BaseArrayManager(DataManager):
     ) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
+                # extract PandasArray for tests that patch PandasArray._typ
+                arr = np.asarray(arr)
                 return soft_convert_objects(
                     arr,
                     datetime=datetime,
@@ -699,6 +701,7 @@ class ArrayManager(BaseArrayManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            arrays = [extract_pandas_array(x, None, 1)[0] for x in arrays]
             self.arrays = [maybe_coerce_values(arr) for arr in arrays]
             self._verify_integrity()
 
@@ -1185,8 +1188,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
             arr = maybe_coerce_values(arr)
-            if isinstance(arr, ABCPandasArray):
-                arr = arr.to_numpy()
+            arr = extract_pandas_array(arr, None, 1)[0]
             self.arrays = [arr]
             self._verify_integrity()
 
@@ -1279,6 +1281,14 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         return type(self)([new_array], self._axes)
 
     def setitem(self, indexer, value):
+        """
+        Set values with indexer.
+
+        For SingleArrayManager, this backs s[indexer] = value
+
+        See `setitem_inplace` for a version that works inplace and doesn't
+        return a new Manager.
+        """
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:
