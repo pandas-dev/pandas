@@ -1391,6 +1391,25 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Names Methods
 
+    def get_default_index_names(self, names=None):
+
+        if names is not None and not isinstance(names, (tuple, list)):
+            raise ValueError("Names must be a tuple or list")
+
+        if not names:
+            names = [
+                (n if n is not None else f"level_{i}") for i, n in enumerate(self.names)
+            ]
+        else:
+            if len(names) != self.nlevels:
+                raise ValueError(
+                    f"The number of provided names "
+                    f"({len(names)}) does not match the number of "
+                    f"MultiIndex levels ({self.nlevels})"
+                )
+
+        return names
+
     def _get_names(self) -> FrozenList:
         return FrozenList(self._names)
 

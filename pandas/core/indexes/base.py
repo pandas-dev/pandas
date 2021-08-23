@@ -1559,6 +1559,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         return new_names
 
+    def get_default_index_names(self, df: DataFrame, names: str = None):
+
+        if names is not None and not isinstance(names, str):
+            raise ValueError("Names must be a string")
+
+        default = "index" if "index" not in self else "level_0"
+        if not names:
+            names = [default] if df.index.name is None else [df.index.name]
+        else:
+            names = [names]
+        return names
+
     def _get_names(self) -> FrozenList:
         return FrozenList((self.name,))
 
