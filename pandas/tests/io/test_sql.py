@@ -58,9 +58,9 @@ from pandas.io.sql import (
     SQLiteDatabase,
     _gt14,
     get_engine,
+    pandasSQL_builder,
     read_sql_query,
     read_sql_table,
-    pandasSQL_builder,
 )
 
 try:
@@ -380,7 +380,7 @@ def mysql_pymysql_engine(iris_path):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
-        "mysql+pymysql://root:cdma1993@localhost:3306/pandas",
+        "mysql+pymysql://root@localhost:3306/pandas",
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
     )
     check_target = sqlalchemy.inspect(engine) if _gt14() else engine
