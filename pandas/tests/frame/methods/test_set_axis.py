@@ -27,7 +27,6 @@ class SharedSetAxisTests:
     @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
     def test_set_axis_inplace_axis(self, axis, obj):
         # GH#14636
-       
         if obj.ndim == 1 and (axis == 1 or axis == "columns"):
             # Series only has [0, "index"]
             return
