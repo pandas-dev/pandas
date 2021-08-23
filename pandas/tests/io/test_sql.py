@@ -459,27 +459,39 @@ def sqlite_buildin_iris(sqlite_buildin, iris_path):
     return sqlite_buildin
 
 
-common_connections = [
+mysql_connectable = [
     "mysql_pymysql_engine",
     "mysql_pymysql_conn",
+]
+
+
+postgresql_connectable = [
     "postgresql_psycopg2_engine",
     "postgresql_psycopg2_conn",
 ]
 
-all_connections = common_connections + [
+sqlite_connectable = [
     "sqlite_engine",
     "sqlite_conn",
-    "sqlite_buildin",
 ]
 
-all_connections_iris = common_connections + [
+sqlite_iris_connectable = [
     "sqlite_iris_engine",
     "sqlite_iris_conn",
-    "sqlite_buildin_iris",
 ]
 
+sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
 
-@pytest.mark.parametrize("conn", all_connections)
+sqlalchemy_connectable_iris = (
+    mysql_connectable + postgresql_connectable + sqlite_iris_connectable
+)
+
+all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
+
+all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
+
+
+@pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -489,7 +501,7 @@ def test_to_sql(conn, method, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
-@pytest.mark.parametrize("conn", all_connections)
+@pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     conn = request.getfixturevalue(conn)
@@ -500,7 +512,7 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
     assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
 
 
-@pytest.mark.parametrize("conn", all_connections)
+@pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
@@ -512,7 +524,7 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
-@pytest.mark.parametrize("conn", all_connections_iris)
+@pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris(conn, request):
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
@@ -520,7 +532,7 @@ def test_read_iris(conn, request):
     check_iris_frame(iris_frame)
 
 
-@pytest.mark.parametrize("conn", all_connections)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_to_sql_callable(conn, test_frame1, request):
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
