@@ -777,7 +777,7 @@ def test_where_columns_casting():
     # GH 42295
 
     d1 = DataFrame({"a": [1.0, 2.0], 'b': [3, np.nan]})
-    result = d1.where(pd.notnull(d1), None).dtypes
+    result = d1.where(pd.notnull(d1), None)
     # make sure dtypes don't change
-    expected = d1.dtypes
-    tm.assert_series_equal(expected, result)
+    expected = d1
+    tm.assert_frame_equal(expected, result)
