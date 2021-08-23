@@ -675,3 +675,9 @@ def test_apply_map_header_render_mi(df, index, columns):
     """
     )
     assert (expected_columns in result) is columns
+
+
+def test_repr_option(styler):
+    assert "<style" in styler._repr_html_()[:6]
+    with option_context("styler.render.repr", "latex"):
+        assert "\\begin{tabular}" in styler._repr_html_()[:15]
