@@ -850,8 +850,8 @@ class ExtensionArray:
         Returns
         -------
         array of ints or int
-            If value is array-like, array of insertion points
-            If value is scalar, a single integer
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
 
         See Also
         --------
