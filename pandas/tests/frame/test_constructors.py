@@ -2222,8 +2222,7 @@ class TestDataFrameConstructors:
         # invalid (shape)
         msg = "|".join(
             [
-                r"Shape of passed values is \(6, 2\), indices imply \(3, 2\)",
-                "Passed arrays should have the same length as the rows Index",
+                r"Length of values \(6\) does not match length of index \(3\)",
             ]
         )
         msg2 = "will be changed to match the behavior"
@@ -2257,9 +2256,9 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize(
         "dtype",
-        tm.ALL_INT_DTYPES
-        + tm.ALL_EA_INT_DTYPES
-        + tm.FLOAT_DTYPES
+        tm.ALL_INT_NUMPY_DTYPES
+        + tm.ALL_INT_EA_DTYPES
+        + tm.FLOAT_NUMPY_DTYPES
         + tm.COMPLEX_DTYPES
         + tm.DATETIME64_DTYPES
         + tm.TIMEDELTA64_DTYPES
@@ -2428,14 +2427,14 @@ class TestDataFrameConstructors:
 
     @pytest.mark.parametrize("copy", [False, True])
     @td.skip_array_manager_not_yet_implemented
-    def test_dict_nocopy(self, copy, any_nullable_numeric_dtype, any_numpy_dtype):
+    def test_dict_nocopy(self, copy, any_numeric_ea_dtype, any_numpy_dtype):
         a = np.array([1, 2], dtype=any_numpy_dtype)
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
             # These get cast, making the checks below more cumbersome
             return
 
-        c = pd.array([1, 2], dtype=any_nullable_numeric_dtype)
+        c = pd.array([1, 2], dtype=any_numeric_ea_dtype)
         df = DataFrame({"a": a, "b": b, "c": c}, copy=copy)
 
         def get_base(obj):
@@ -2790,6 +2789,17 @@ class TestDataFrameConstructorWithDatetimeTZ:
         arr = np.arange(0, 12, dtype="datetime64[ns]").reshape(4, 3)
         df = DataFrame(arr)
         assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
+
+    def test_construction_from_ndarray_with_eadtype_mismatched_columns(self):
+        arr = np.random.randn(10, 2)
+        dtype = pd.array([2.0]).dtype
+        msg = r"len\(arrays\) must match len\(columns\)"
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr, columns=["foo"], dtype=dtype)
+
+        arr2 = pd.array([2.0, 3.0, 4.0])
+        with pytest.raises(ValueError, match=msg):
+            DataFrame(arr2, columns=["foo", "bar"])
 
 
 def get1(obj):
