@@ -20,6 +20,7 @@ from pandas._config.config import (
     is_int,
     is_nonnegative_int,
     is_one_of_factory,
+    is_str,
     is_text,
 )
 
@@ -762,6 +763,11 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_encoding = """
+: str
+    The encoding used for output HTML and LaTeX files.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
@@ -775,3 +781,5 @@ with cf.config_prefix("styler"):
         styler_max_elements,
         validator=is_nonnegative_int,
     )
+
+    cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)

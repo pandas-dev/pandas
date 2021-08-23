@@ -489,6 +489,7 @@ styler.sparse.columns                   True         "Sparsify" MultiIndex displ
                                                      in Styler output.
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
+styler.render.encoding                  utf-8        Default encoding for output HTML or LaTeX files.
 ======================================= ============ ==================================
 
 
