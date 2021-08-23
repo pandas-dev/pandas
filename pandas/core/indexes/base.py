@@ -242,6 +242,10 @@ def _new_Index(cls, d):
             # GH#23752 "labels" kwarg has been replaced with "codes"
             d["codes"] = d.pop("labels")
 
+    elif "dtype" not in d and "data" in d:
+        # Prevent Index.__new__ from conducting inference;
+        #  "data" key not in RangeIndex
+        d["dtype"] = d["data"].dtype
     return cls.__new__(cls, **d)
 
 
