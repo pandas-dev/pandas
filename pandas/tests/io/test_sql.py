@@ -249,6 +249,13 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
         conn.execute(stmt)
 
 
+def check_iris_frame(frame: DataFrame):
+    pytype = frame.dtypes[0].type
+    row = frame.iloc[0]
+    assert issubclass(pytype, np.floating)
+    tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
+
+
 def count_rows(conn, table_name: str):
     stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
     if isinstance(conn, sqlite3.Connection):
@@ -430,7 +437,7 @@ def sqlite_conn(sqlite_engine):
 
 @pytest.fixture
 def sqlite_iris_engine(sqlite_engine, iris_path):
-    create_and_load_iris(sqlite_engine, iris_path)
+    create_and_load_iris(sqlite_engine, iris_path, "sqlite")
     return sqlite_engine
 
 
@@ -454,14 +461,14 @@ def sqlite_buildin_iris(sqlite_buildin, iris_path):
 
 common_connections = [
     "mysql_pymysql_engine",
-    # "mysql_pymysql_conn",
+    "mysql_pymysql_conn",
     "postgresql_psycopg2_engine",
-    # "postgresql_psycopg2_conn",
+    "postgresql_psycopg2_conn",
 ]
 
 all_connections = common_connections + [
     "sqlite_engine",
-    # "sqlite_conn",
+    "sqlite_conn",
     "sqlite_buildin",
 ]
 
@@ -503,6 +510,14 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
     msg = "Table 'test_frame' already exists"
     with pytest.raises(ValueError, match=msg):
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
+
+
+@pytest.mark.parametrize("conn", all_connections_iris)
+def test_read_iris(conn, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    iris_frame = pandasSQL.read_query("SELECT * FROM iris")
+    check_iris_frame(iris_frame)
 
 
 class MixInBase:
@@ -592,92 +607,30 @@ class PandasSQLTest:
         else:
             create_and_load_types(self.conn, types_data, self.flavor)
 
-    def _check_iris_loaded_frame(self, iris_frame):
-        pytype = iris_frame.dtypes[0].type
-        row = iris_frame.iloc[0]
-
-        assert issubclass(pytype, np.floating)
-        tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
-
     def _read_sql_iris(self):
         iris_frame = self.pandasSQL.read_query("SELECT * FROM iris")
-        self._check_iris_loaded_frame(iris_frame)
+        check_iris_frame(iris_frame)
 
     def _read_sql_iris_parameter(self):
         query = SQL_STRINGS["read_parameters"][self.flavor]
         params = ["Iris-setosa", 5.1]
         iris_frame = self.pandasSQL.read_query(query, params=params)
-        self._check_iris_loaded_frame(iris_frame)
+        check_iris_frame(iris_frame)
 
     def _read_sql_iris_named_parameter(self):
         query = SQL_STRINGS["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
-        self._check_iris_loaded_frame(iris_frame)
+        check_iris_frame(iris_frame)
 
     def _read_sql_iris_no_parameter_with_percent(self):
         query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
         iris_frame = self.pandasSQL.read_query(query, params=None)
-        self._check_iris_loaded_frame(iris_frame)
-
-    def _to_sql(self, test_frame1, method=None):
-        self.drop_table("test_frame1")
-
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", method=method)
-        assert self.pandasSQL.has_table("test_frame1")
-
-        num_entries = len(test_frame1)
-        num_rows = count_rows(self.conn, "test_frame1")
-        assert num_rows == num_entries
-
-        # Nuke table
-        self.drop_table("test_frame1")
+        check_iris_frame(iris_frame)
 
     def _to_sql_empty(self, test_frame1):
         self.drop_table("test_frame1")
         self.pandasSQL.to_sql(test_frame1.iloc[:0], "test_frame1")
-
-    def _to_sql_fail(self, test_frame1):
-        self.drop_table("test_frame1")
-
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", if_exists="fail")
-        assert self.pandasSQL.has_table("test_frame1")
-
-        msg = "Table 'test_frame1' already exists"
-        with pytest.raises(ValueError, match=msg):
-            self.pandasSQL.to_sql(test_frame1, "test_frame1", if_exists="fail")
-
-        self.drop_table("test_frame1")
-
-    def _to_sql_replace(self, test_frame1):
-        self.drop_table("test_frame1")
-
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", if_exists="fail")
-        # Add to table again
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", if_exists="replace")
-        assert self.pandasSQL.has_table("test_frame1")
-
-        num_entries = len(test_frame1)
-        num_rows = count_rows(self.conn, "test_frame1")
-
-        assert num_rows == num_entries
-        self.drop_table("test_frame1")
-
-    def _to_sql_append(self, test_frame1):
-        # Nuke table just in case
-        self.drop_table("test_frame1")
-
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", if_exists="fail")
-
-        # Add to table again
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", if_exists="append")
-        assert self.pandasSQL.has_table("test_frame1")
-
-        num_entries = 2 * len(test_frame1)
-        num_rows = count_rows(self.conn, "test_frame1")
-
-        assert num_rows == num_entries
-        self.drop_table("test_frame1")
 
     def _to_sql_method_callable(self, test_frame1):
         check = []  # used to double check function below is really being used
@@ -813,13 +766,9 @@ class _TestSQLApi(PandasSQLTest):
     def load_test_data_and_sql(self):
         create_and_load_iris_view(self.conn)
 
-    def test_read_sql_iris(self):
-        iris_frame = sql.read_sql_query("SELECT * FROM iris", self.conn)
-        self._check_iris_loaded_frame(iris_frame)
-
     def test_read_sql_view(self):
         iris_frame = sql.read_sql_query("SELECT * FROM iris_view", self.conn)
-        self._check_iris_loaded_frame(iris_frame)
+        check_iris_frame(iris_frame)
 
     def test_read_sql_with_chunksize_no_result(self):
         query = "SELECT * FROM iris_view WHERE SepalLength < 0.0"
@@ -1587,32 +1536,14 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         except sqlalchemy.exc.OperationalError:
             pytest.skip(f"Can't connect to {self.flavor} server")
 
-    def test_read_sql(self):
-        self._read_sql_iris()
-
     def test_read_sql_parameter(self):
         self._read_sql_iris_parameter()
 
     def test_read_sql_named_parameter(self):
         self._read_sql_iris_named_parameter()
 
-    def test_to_sql(self, test_frame1):
-        self._to_sql(test_frame1)
-
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
-
-    def test_to_sql_fail(self, test_frame1):
-        self._to_sql_fail(test_frame1)
-
-    def test_to_sql_replace(self, test_frame1):
-        self._to_sql_replace(test_frame1)
-
-    def test_to_sql_append(self, test_frame1):
-        self._to_sql_append(test_frame1)
-
-    def test_to_sql_method_multi(self, test_frame1):
-        self._to_sql(test_frame1, method="multi")
 
     def test_to_sql_method_callable(self, test_frame1):
         self._to_sql_method_callable(test_frame1)
@@ -1667,7 +1598,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_read_table(self):
         iris_frame = sql.read_sql_table("iris", con=self.conn)
-        self._check_iris_loaded_frame(iris_frame)
+        check_iris_frame(iris_frame)
 
     def test_read_table_columns(self):
         iris_frame = sql.read_sql_table(
@@ -2578,33 +2509,14 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def setup_method(self, load_iris_data, load_types_data):
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
-    def test_read_sql(self):
-        self._read_sql_iris()
-
     def test_read_sql_parameter(self):
         self._read_sql_iris_parameter()
 
     def test_read_sql_named_parameter(self):
         self._read_sql_iris_named_parameter()
 
-    def test_to_sql(self, test_frame1):
-        self._to_sql(test_frame1)
-
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
-
-    def test_to_sql_fail(self, test_frame1):
-        self._to_sql_fail(test_frame1)
-
-    def test_to_sql_replace(self, test_frame1):
-        self._to_sql_replace(test_frame1)
-
-    def test_to_sql_append(self, test_frame1):
-        self._to_sql_append(test_frame1)
-
-    def test_to_sql_method_multi(self, test_frame1):
-        # GH 29921
-        self._to_sql(test_frame1, method="multi")
 
     def test_create_and_drop_table(self):
         temp_frame = DataFrame(
