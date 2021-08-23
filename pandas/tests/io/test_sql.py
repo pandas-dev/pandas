@@ -60,6 +60,7 @@ from pandas.io.sql import (
     get_engine,
     read_sql_query,
     read_sql_table,
+    pandasSQL_builder,
 )
 
 try:
@@ -365,6 +366,143 @@ def test_frame3():
         ("2000-01-06 00:00:00", -290867, 1.56762092543),
     ]
     return DataFrame(data, columns=columns)
+
+
+@pytest.fixture
+def mysql_pymysql_engine(iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    pymysql = pytest.importorskip("pymysql")
+    engine = sqlalchemy.create_engine(
+        "mysql+pymysql://root:cdma1993@localhost:3306/pandas",
+        connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
+    )
+    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
+    if not check_target.has_table("iris"):
+        create_and_load_iris(engine, iris_path, "mysql")
+    yield engine
+    with engine.connect() as conn:
+        with conn.begin():
+            stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
+            conn.execute(stmt)
+    engine.dispose()
+
+
+@pytest.fixture
+def mysql_pymysql_conn(mysql_pymysql_engine):
+    yield mysql_pymysql_engine.connect()
+
+
+@pytest.fixture
+def postgresql_psycopg2_engine(iris_path):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    _ = pytest.importorskip("psycopg2")
+    engine = sqlalchemy.create_engine(
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas"
+    )
+    check_target = sqlalchemy.inspect(engine) if _gt14() else engine
+    if not check_target.has_table("iris"):
+        create_and_load_iris(engine, iris_path, "postgresql")
+    yield engine
+    with engine.connect() as conn:
+        with conn.begin():
+            stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
+            conn.execute(stmt)
+    engine.dispose()
+
+
+@pytest.fixture
+def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
+    yield postgresql_psycopg2_engine.connect()
+
+
+@pytest.fixture
+def sqlite_engine():
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine("sqlite://")
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture
+def sqlite_conn(sqlite_engine):
+    yield sqlite_engine.connect()
+
+
+@pytest.fixture
+def sqlite_iris_engine(sqlite_engine, iris_path):
+    create_and_load_iris(sqlite_engine, iris_path)
+    return sqlite_engine
+
+
+@pytest.fixture
+def sqlite_iris_conn(sqlite_iris_engine):
+    yield sqlite_iris_engine.connect()
+
+
+@pytest.fixture
+def sqlite_buildin():
+    conn = sqlite3.connect(":memory:")
+    yield conn
+    conn.close()
+
+
+@pytest.fixture
+def sqlite_buildin_iris(sqlite_buildin, iris_path):
+    create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
+    return sqlite_buildin
+
+
+common_connections = [
+    "mysql_pymysql_engine",
+    # "mysql_pymysql_conn",
+    "postgresql_psycopg2_engine",
+    # "postgresql_psycopg2_conn",
+]
+
+all_connections = common_connections + [
+    "sqlite_engine",
+    # "sqlite_conn",
+    "sqlite_buildin",
+]
+
+all_connections_iris = common_connections + [
+    "sqlite_iris_engine",
+    "sqlite_iris_conn",
+    "sqlite_buildin_iris",
+]
+
+
+@pytest.mark.parametrize("conn", all_connections)
+@pytest.mark.parametrize("method", [None, "multi"])
+def test_to_sql(conn, method, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    pandasSQL.to_sql(test_frame1, "test_frame", method=method)
+    assert pandasSQL.has_table("test_frame")
+    assert count_rows(conn, "test_frame") == len(test_frame1)
+
+
+@pytest.mark.parametrize("conn", all_connections)
+@pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
+def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
+    pandasSQL.to_sql(test_frame1, "test_frame", if_exists=mode)
+    assert pandasSQL.has_table("test_frame")
+    assert count_rows(conn, "test_frame") == num_row_coef * len(test_frame1)
+
+
+@pytest.mark.parametrize("conn", all_connections)
+def test_to_sql_exist_fail(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
+    assert pandasSQL.has_table("test_frame")
+
+    msg = "Table 'test_frame' already exists"
+    with pytest.raises(ValueError, match=msg):
+        pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
 
 
 class MixInBase:
