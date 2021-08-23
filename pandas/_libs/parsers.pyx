@@ -1090,7 +1090,20 @@ cdef class TextReader:
 
         # we had a fallback parse on the dtype, so now try to cast
         # only allow safe casts, eg. with a nan you cannot safely cast to int
+        #floating casts are handled in this section
         if col_res is not None and col_dtype is not None:
+            if is_float_dtype(col_dtype) and col_res.dtype == np.bool_ :
+                mask = col_res.view(np.uint8) == na_values[np.uint8]
+                col_res = col_res.astype(col_dtype)
+                np.putmask(col_res, mask, np.nan)
+                return col_res, na_count
+            if is_integer_dtype(col_dtype) and col_res.dtype == np.bool_ :
+                if na_count > 0:
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{col_dtype} for {np.bool_} dtyped data in "
+                        f"column {i} as it is applicable only in the case of float values and not NA values")
+                pass
             try:
                 col_res = col_res.astype(col_dtype, casting='safe')
             except TypeError:

@@ -590,3 +590,22 @@ def test_nan_multi_index(all_parsers):
     )
 
     tm.assert_frame_equal(result, expected)
+
+def test_bool_and_nan_to_int(all_parsers):
+    p = all_parsers
+    test_data_val = """0 NaN True False"""
+    with pytest.raises(ValueError, match="convert"):        print(p.read_csv(StringIO(test_data_val), dtype = "int"))
+
+def test_bool_and_nan_to_float(all_parsers):
+    p = all_parsers
+    test_data_val = """0 NaN True False"""
+    result = p.read_csv(StringIO(test_data_val), dtype = "float")
+    expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
+    tm.assert_frame_equal(result, expected)
+
+def test_bool_and_nan_to_bool(all_parsers):
+    p = all_parsers
+    test_data_val = """0 NaN True False """
+    with pytest.raises(ValueError, match="NA values"):        p.read_csv(StringIO(test_data_val), dtype = "bool")
+
+
