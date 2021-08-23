@@ -122,10 +122,10 @@ class TestMultiIndexBasic:
 
     def test_rename_multiindex_with_duplicates(self):
         # GH 38015
-        idx = pd.Index([("A", "cat"), ("B", "cat"), ("B", "cat")])
-        df = pd.DataFrame(index=idx)
+        mi = pd.MultiIndex.from_tuples([("A", "cat"), ("B", "cat"), ("B", "cat")])
+        df = pd.DataFrame(index=mi)
         df = df.rename(index={"A": "Apple"}, level=0)
 
-        result = df.index
-        expected = pd.Index([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
-        tm.assert_index_equal(result, expected)
+        expected_mi = pd.MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
+        expected = pd.DataFrame(index=expected_mi)
+        tm.assert_frame_equal(df, expected)
