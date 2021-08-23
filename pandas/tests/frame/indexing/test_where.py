@@ -772,6 +772,7 @@ def test_where_non_keyword_deprecation():
     expected = DataFrame([10, 10, 2, 3, 4])
     tm.assert_frame_equal(expected, result)
 
+
 def test_where_columns_casting():
     # GH 42295
 
