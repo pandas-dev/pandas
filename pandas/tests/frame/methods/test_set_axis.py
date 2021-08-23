@@ -27,14 +27,15 @@ class SharedSetAxisTests:
     @pytest.mark.parametrize("axis", [0, "index", 1, "columns"])
     def test_set_axis_inplace_axis(self, axis, obj):
         # GH#14636
-        axis = obj._get_axis_number(axis)
-        if obj.ndim == 1 and axis == 1:
+       
+        if obj.ndim == 1 and (axis == 1 or axis == "columns"):
             # Series only has [0, "index"]
             return
 
         new_index = list("abcd")[: len(obj)]
 
         expected = obj.copy()
+        axis = obj._get_axis_number(axis)
         if axis == 0:
             expected.index = new_index
         else:
