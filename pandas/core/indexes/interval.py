@@ -648,12 +648,11 @@ class IntervalIndex(ExtensionIndex):
     ) -> npt.NDArray[np.intp]:
 
         if isinstance(target, IntervalIndex):
-            # non-overlapping -> at most one match per interval in target
+            # We only get here with not self.is_overlapping
+            # -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
-            left_indexer = self.left.get_indexer(target.left)
-            right_indexer = self.right.get_indexer(target.right)
-            indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+            indexer = self._get_indexer_unique_sides(target)
 
         elif not is_object_dtype(target.dtype):
             # homogeneous scalar index: use IntervalTree
@@ -678,6 +677,14 @@ class IntervalIndex(ExtensionIndex):
             #  -> no matches
             return self._get_indexer_non_comparable(target, None, unique=False)
 
+        elif isinstance(target, IntervalIndex):
+            if self.left.is_unique and self.right.is_unique:
+                # fastpath available even if we don't have self._index_as_unique
+                indexer = self._get_indexer_unique_sides(target)
+                missing = (indexer == -1).nonzero()[0]
+            else:
+                return self._get_indexer_pointwise(target)
+
         elif is_object_dtype(target.dtype) or not self._should_partial_index(target):
             # target might contain intervals: defer elementwise to get_loc
             return self._get_indexer_pointwise(target)
@@ -689,6 +696,18 @@ class IntervalIndex(ExtensionIndex):
             indexer, missing = self._engine.get_indexer_non_unique(target.values)
 
         return ensure_platform_int(indexer), ensure_platform_int(missing)
+
+    def _get_indexer_unique_sides(self, target: IntervalIndex) -> npt.NDArray[np.intp]:
+        """
+        _get_indexer specialized to the case where both of our sides are unique.
+        """
+        # Caller is responsible for checking
+        #  `self.left.is_unique and self.right.is_unique`
+
+        left_indexer = self.left.get_indexer(target.left)
+        right_indexer = self.right.get_indexer(target.right)
+        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+        return indexer
 
     def _get_indexer_pointwise(
         self, target: Index
