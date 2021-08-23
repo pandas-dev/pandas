@@ -126,6 +126,6 @@ class TestMultiIndexBasic:
         df = pd.DataFrame(index=mi)
         df = df.rename(index={"A": "Apple"}, level=0)
 
-        expected_mi = pd.MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
-        expected = pd.DataFrame(index=expected_mi)
+        mi2 = pd.MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
+        expected = pd.DataFrame(index=mi2)
         tm.assert_frame_equal(df, expected)
