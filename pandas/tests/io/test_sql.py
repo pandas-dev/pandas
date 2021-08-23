@@ -520,6 +520,24 @@ def test_read_iris(conn, request):
     check_iris_frame(iris_frame)
 
 
+@pytest.mark.parametrize("conn", all_connections)
+def test_to_sql_callable(conn, test_frame1, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+
+    check = []  # used to double check function below is really being used
+
+    def sample(pd_table, conn, keys, data_iter):
+        check.append(1)
+        data = [dict(zip(keys, row)) for row in data_iter]
+        conn.execute(pd_table.table.insert(), data)
+
+    pandasSQL.to_sql(test_frame1, "test_frame", method=sample)
+    assert pandasSQL.has_table("test_frame")
+    assert check == [1]
+    assert count_rows(conn, "test_frame") == len(test_frame1)
+
+
 class MixInBase:
     def teardown_method(self, method):
         # if setup fails, there may not be a connection to close.
@@ -607,10 +625,6 @@ class PandasSQLTest:
         else:
             create_and_load_types(self.conn, types_data, self.flavor)
 
-    def _read_sql_iris(self):
-        iris_frame = self.pandasSQL.read_query("SELECT * FROM iris")
-        check_iris_frame(iris_frame)
-
     def _read_sql_iris_parameter(self):
         query = SQL_STRINGS["read_parameters"][self.flavor]
         params = ["Iris-setosa", 5.1]
@@ -631,26 +645,6 @@ class PandasSQLTest:
     def _to_sql_empty(self, test_frame1):
         self.drop_table("test_frame1")
         self.pandasSQL.to_sql(test_frame1.iloc[:0], "test_frame1")
-
-    def _to_sql_method_callable(self, test_frame1):
-        check = []  # used to double check function below is really being used
-
-        def sample(pd_table, conn, keys, data_iter):
-            check.append(1)
-            data = [dict(zip(keys, row)) for row in data_iter]
-            conn.execute(pd_table.table.insert(), data)
-
-        self.drop_table("test_frame1")
-
-        self.pandasSQL.to_sql(test_frame1, "test_frame1", method=sample)
-        assert self.pandasSQL.has_table("test_frame1")
-
-        assert check == [1]
-        num_entries = len(test_frame1)
-        num_rows = count_rows(self.conn, "test_frame1")
-        assert num_rows == num_entries
-        # Nuke table
-        self.drop_table("test_frame1")
 
     def _to_sql_with_sql_engine(self, test_frame1, engine="auto", **engine_kwargs):
         """`to_sql` with the `engine` param"""
@@ -1544,9 +1538,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
-
-    def test_to_sql_method_callable(self, test_frame1):
-        self._to_sql_method_callable(test_frame1)
 
     def test_create_table(self):
         temp_conn = self.connect()
