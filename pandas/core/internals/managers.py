@@ -330,7 +330,10 @@ class BaseBlockManager(DataManager):
         if ignore_failures:
             return self._combine(result_blocks)
 
-        return type(self).from_blocks(result_blocks, self.axes)
+        out = type(self).from_blocks(result_blocks, self.axes)
+        out._blknos = self.blknos.copy()
+        out._blklocs = self.blklocs.copy()
+        return out
 
     def where(self: T, other, cond, align: bool, errors: str) -> T:
         if align:
