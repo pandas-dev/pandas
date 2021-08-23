@@ -1859,7 +1859,7 @@ def construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_func(tup):
+def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[bool, DtypeObj]:
     # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
     # raises instead of returning False. Once earlier numpy versions are dropped,
     # this can be simplified to `return tup[1].dtype`
