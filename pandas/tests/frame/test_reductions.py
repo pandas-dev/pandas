@@ -1686,10 +1686,10 @@ def test_minmax_extensionarray(method, numeric_only):
     tm.assert_series_equal(result, expected)
 
 
-def test_mad_nullable_integer():
+def test_mad_nullable_integer(any_signed_int_ea_dtype):
     # GH#33036
     df = DataFrame(np.random.randn(100, 4).astype(np.int64))
-    df2 = df.astype("Int64")
+    df2 = df.astype(any_signed_int_ea_dtype)
 
     result = df2.mad()
     expected = df.mad()
@@ -1714,14 +1714,14 @@ def test_mad_nullable_integer():
 
 
 @pytest.mark.xfail(reason="GH#42895 caused by lack of 2D EA")
-def test_mad_nullable_integer_all_na():
+def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
     # GH#33036
     df = DataFrame(np.random.randn(100, 4).astype(np.int64))
-    df2 = df.astype("Int64")
+    df2 = df.astype(any_signed_int_ea_dtype)
 
     # case with all-NA row/column
     df2.iloc[:, 1] = pd.NA  # FIXME: this doesn't operate in-place
-    df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype="Int64")
+    df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
     result = df2.mad()
     expected = df.mad()
     expected[1] = pd.NA
