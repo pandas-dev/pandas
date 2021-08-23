@@ -15,23 +15,26 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_where_unsafe_int(sint_dtype):
-    s = Series(np.arange(10), dtype=sint_dtype)
+def test_where_unsafe_int(any_signed_int_numpy_dtype):
+    s = Series(np.arange(10), dtype=any_signed_int_numpy_dtype)
     mask = s < 5
 
     s[mask] = range(2, 7)
-    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype=sint_dtype)
+    expected = Series(
+        list(range(2, 7)) + list(range(5, 10)),
+        dtype=any_signed_int_numpy_dtype,
+    )
 
     tm.assert_series_equal(s, expected)
 
 
-def test_where_unsafe_float(float_dtype):
-    s = Series(np.arange(10), dtype=float_dtype)
+def test_where_unsafe_float(float_numpy_dtype):
+    s = Series(np.arange(10), dtype=float_numpy_dtype)
     mask = s < 5
 
     s[mask] = range(2, 7)
     data = list(range(2, 7)) + list(range(5, 10))
-    expected = Series(data, dtype=float_dtype)
+    expected = Series(data, dtype=float_numpy_dtype)
 
     tm.assert_series_equal(s, expected)
 

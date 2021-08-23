@@ -16,7 +16,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)
 - Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
--
+- Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
 -
 
 .. ---------------------------------------------------------------------------

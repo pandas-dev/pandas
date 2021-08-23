@@ -139,8 +139,8 @@ class BaseBlockManager(DataManager):
 
     __slots__ = ()
 
-    _blknos: np.ndarray
-    _blklocs: np.ndarray
+    _blknos: npt.NDArray[np.intp]
+    _blklocs: npt.NDArray[np.intp]
     blocks: tuple[Block, ...]
     axes: list[Index]
 
@@ -156,7 +156,7 @@ class BaseBlockManager(DataManager):
         raise NotImplementedError
 
     @property
-    def blknos(self):
+    def blknos(self) -> npt.NDArray[np.intp]:
         """
         Suppose we want to find the array corresponding to our i'th column.
 
@@ -172,7 +172,7 @@ class BaseBlockManager(DataManager):
         return self._blknos
 
     @property
-    def blklocs(self):
+    def blklocs(self) -> npt.NDArray[np.intp]:
         """
         See blknos.__doc__
         """
@@ -1151,23 +1151,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         block = new_block(values=value, ndim=self.ndim, placement=slice(loc, loc + 1))
 
-        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
-            blk = self.blocks[blkno]
-            if count == len(blk.mgr_locs):
-                blk.mgr_locs = blk.mgr_locs.add(1)
-            else:
-                new_mgr_locs = blk.mgr_locs.as_array.copy()
-                new_mgr_locs[new_mgr_locs >= loc] += 1
-                blk.mgr_locs = BlockPlacement(new_mgr_locs)
-
-        # Accessing public blklocs ensures the public versions are initialized
-        if loc == self.blklocs.shape[0]:
-            # np.append is a lot faster, let's use it if we can.
-            self._blklocs = np.append(self._blklocs, 0)
-            self._blknos = np.append(self._blknos, len(self.blocks))
-        else:
-            self._blklocs = np.insert(self._blklocs, loc, 0)
-            self._blknos = np.insert(self._blknos, loc, len(self.blocks))
+        self._insert_update_mgr_locs(loc)
+        self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
         self.blocks += (block,)
@@ -1183,6 +1168,38 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 PerformanceWarning,
                 stacklevel=5,
             )
+
+    def _insert_update_mgr_locs(self, loc) -> None:
+        """
+        When inserting a new Block at location 'loc', we increment
+        all of the mgr_locs of blocks above that by one.
+        """
+        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
+            # .620 this way, .326 of which is in increment_above
+            blk = self.blocks[blkno]
+            blk._mgr_locs = blk._mgr_locs.increment_above(loc)
+
+    def _insert_update_blklocs_and_blknos(self, loc) -> None:
+        """
+        When inserting a new Block at location 'loc', we update our
+        _blklocs and _blknos.
+        """
+
+        # Accessing public blklocs ensures the public versions are initialized
+        if loc == self.blklocs.shape[0]:
+            # np.append is a lot faster, let's use it if we can.
+            self._blklocs = np.append(self._blklocs, 0)
+            self._blknos = np.append(self._blknos, len(self.blocks))
+        elif loc == 0:
+            # np.append is a lot faster, let's use it if we can.
+            self._blklocs = np.append(self._blklocs[::-1], 0)[::-1]
+            self._blknos = np.append(self._blknos[::-1], len(self.blocks))[::-1]
+        else:
+            new_blklocs, new_blknos = libinternals.update_blklocs_and_blknos(
+                self.blklocs, self.blknos, loc, len(self.blocks)
+            )
+            self._blklocs = new_blklocs
+            self._blknos = new_blknos
 
     def idelete(self, indexer) -> BlockManager:
         """
@@ -1363,10 +1380,16 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         new_blocks: list[Block] = []
         columns_mask: list[np.ndarray] = []
 
+        if len(self.items) == 0:
+            factor = 1
+        else:
+            fac = len(new_columns) / len(self.items)
+            assert fac == int(fac)
+            factor = int(fac)
+
         for blk in self.blocks:
-            blk_cols = self.items[blk.mgr_locs.indexer]
-            new_items = unstacker.get_new_columns(blk_cols)
-            new_placement = new_columns.get_indexer(new_items)
+            mgr_locs = blk.mgr_locs
+            new_placement = mgr_locs.tile_for_unstack(factor)
 
             blocks, mask = blk._unstack(
                 unstacker,
@@ -1785,22 +1808,25 @@ def create_block_manager_from_blocks(
     return mgr
 
 
-def create_block_manager_from_arrays(
-    arrays,
-    names: Index,
+def create_block_manager_from_column_arrays(
+    arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool = True,
 ) -> BlockManager:
-    # Assertions disabled for performance
-    # assert isinstance(names, Index)
+    # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
-
-    arrays = [extract_array(x, extract_numpy=True) for x in arrays]
+    # assert all(isinstance(x, (np.ndarray, ExtensionArray)) for x in arrays)
+    # assert all(type(x) is not PandasArray for x in arrays)
+    # assert all(x.ndim == 1 for x in arrays)
+    # assert all(len(x) == len(axes[1]) for x in arrays)
+    # assert len(arrays) == len(axes[0])
+    # These last three are sufficient to allow us to safely pass
+    #  verify_integrity=False below.
 
     try:
-        blocks = _form_blocks(arrays, names, axes, consolidate)
-        mgr = BlockManager(blocks, axes)
+        blocks = _form_blocks(arrays, consolidate)
+        mgr = BlockManager(blocks, axes, verify_integrity=False)
     except ValueError as e:
         raise construction_error(len(arrays), arrays[0].shape, axes, e)
     if consolidate:
@@ -1837,26 +1863,11 @@ def construction_error(
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(
-    arrays: list[ArrayLike], names: Index, axes: list[Index], consolidate: bool
-) -> list[Block]:
-    # put "leftover" items in float bucket, where else?
-    # generalize?
+def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
+
     items_dict: DefaultDict[str, list] = defaultdict(list)
-    extra_locs = []
 
-    names_idx = names
-    if names_idx.equals(axes[0]):
-        names_indexer = np.arange(len(names_idx))
-    else:
-        # Assertion disabled for performance
-        # assert names_idx.intersection(axes[0]).is_unique
-        names_indexer = names_idx.get_indexer_for(axes[0])
-
-    for i, name_idx in enumerate(names_indexer):
-        if name_idx == -1:
-            extra_locs.append(i)
-            continue
+    for i, name_idx in enumerate(range(len(arrays))):
 
         v = arrays[name_idx]
 
@@ -1865,13 +1876,13 @@ def _form_blocks(
 
     blocks: list[Block] = []
     if len(items_dict["NumericBlock"]):
-        numeric_blocks = _multi_blockify(
+        numeric_blocks = multi_blockify(
             items_dict["NumericBlock"], consolidate=consolidate
         )
         blocks.extend(numeric_blocks)
 
     if len(items_dict["DatetimeLikeBlock"]):
-        dtlike_blocks = _multi_blockify(
+        dtlike_blocks = multi_blockify(
             items_dict["DatetimeLikeBlock"], consolidate=consolidate
         )
         blocks.extend(dtlike_blocks)
@@ -1888,7 +1899,7 @@ def _form_blocks(
         blocks.extend(dttz_blocks)
 
     if len(items_dict["ObjectBlock"]) > 0:
-        object_blocks = _simple_blockify(
+        object_blocks = simple_blockify(
             items_dict["ObjectBlock"], np.object_, consolidate=consolidate
         )
         blocks.extend(object_blocks)
@@ -1908,20 +1919,10 @@ def _form_blocks(
 
         blocks.extend(external_blocks)
 
-    if len(extra_locs):
-        shape = (len(extra_locs),) + tuple(len(x) for x in axes[1:])
-
-        # empty items -> dtype object
-        block_values = np.empty(shape, dtype=object)
-        block_values.fill(np.nan)
-
-        na_block = new_block(block_values, placement=extra_locs, ndim=2)
-        blocks.append(na_block)
-
     return blocks
 
 
-def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
+def simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
     """
     return a single array of a block that has a single dtype; if dtype is
     not None, coerce to this dtype
@@ -1939,7 +1940,7 @@ def _simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
     return [block]
 
 
-def _multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
+def multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
     """return an array of blocks that potentially have different dtypes"""
 
     if not consolidate:
@@ -2044,11 +2045,13 @@ def _merge_blocks(
     return blocks
 
 
-def _fast_count_smallints(arr: np.ndarray) -> np.ndarray:
+def _fast_count_smallints(arr: npt.NDArray[np.intp]):
     """Faster version of set(arr) for sequences of small numbers."""
-    counts = np.bincount(arr.astype(np.int_))
+    counts = np.bincount(arr.astype(np.int_, copy=False))
     nz = counts.nonzero()[0]
-    return np.c_[nz, counts[nz]]
+    # Note: list(zip(...) outperforms list(np.c_[nz, counts[nz]]) here,
+    #  in one benchmark by a factor of 11
+    return zip(nz, counts[nz])
 
 
 def _preprocess_slice_or_indexer(
