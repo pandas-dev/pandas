@@ -54,7 +54,8 @@ def _levels_to_axis(
     valid_ilocs : numpy.ndarray
         Array of integer positions of valid values for the sparse matrix in ss.
     sort_labels : bool, default False
-        Sort the axis labels before forming the sparse matrix.
+        Sort the axis labels before forming the sparse matrix. When `levels`
+        refers to a single level, set to True for a faster execution.
 
     Returns
     -------
@@ -104,6 +105,8 @@ def _to_ijv(
     column_levels : tuple/list
     sort_labels : bool, default False
         Sort the row and column labels before forming the sparse matrix.
+        When `row_levels` and/or `column_levels` refer to a single level,
+        set to `True` for a faster execution.
 
     Returns
     -------
