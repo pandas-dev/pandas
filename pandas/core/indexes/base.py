@@ -959,9 +959,9 @@ class Index(IndexOpsMixin, PandasObject):
             nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
-        if not len(indices.shape) == 1:
-            raise TypeError(f"Expected indices to be 1D array")
-
+        if not indices.ndim == 1:
+            raise TypeError("Expected indices to be 1 dimensional")
+        
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
         # Note: we discard fill_value and use self._na_value, only relevant
@@ -969,7 +969,6 @@ class Index(IndexOpsMixin, PandasObject):
         taken = algos.take(
             self._values, indices, allow_fill=allow_fill, fill_value=self._na_value
         )
-
         return type(self)._simple_new(taken, name=self.name)
 
     @final
