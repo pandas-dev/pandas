@@ -1410,6 +1410,14 @@ def convert_dtypes(
     """
     inferred_dtype: str | DtypeObj
 
+    try:
+        # case of a byte_string
+        byte_check = input_array.decode()
+        inferred_dtype = type(input_array)
+        return inferred_dtype
+    except:
+        pass
+
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):

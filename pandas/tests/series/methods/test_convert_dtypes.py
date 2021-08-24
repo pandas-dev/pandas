@@ -226,3 +226,17 @@ class TestSeriesConvertDtypes:
         # GH32287
         df = pd.DataFrame({"A": pd.array([True])})
         tm.assert_frame_equal(df, df.convert_dtypes())
+
+    def test_convert_byte_string_dtype(self):
+        # https://github.com/pandas-dev/pandas/issues/43183 -> not recognising the byte_string dtype
+        byte_str = b'binary-string'
+        dataframe = pd.DataFrame(
+            data={
+                "data": byte_str,
+            },
+            index=[0]
+        )
+        converted_dtypes = dataframe.convert_dtypes()
+        #print(converted_dtypes['data'][0])
+        assert converted_dtypes['data'][0].decode('ascii') == "binary-string"
+        # no need for the tm module as we are just verifying the conversion of the string
