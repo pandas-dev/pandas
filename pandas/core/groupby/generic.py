@@ -308,9 +308,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = concat(
                 results.values(), axis=1, keys=[key.label for key in results.keys()]
             )
-            # error: Incompatible return value type (got "Union[DataFrame, Series]",
-            # expected "DataFrame")
-            return res_df  # type: ignore[return-value]
+            return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
@@ -547,9 +545,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(dtype=np.float64)
 
         result.name = self.obj.name
-        # error: Incompatible return value type (got "Union[DataFrame, Series]",
-        # expected "Series")
-        return result  # type: ignore[return-value]
+        return result
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
