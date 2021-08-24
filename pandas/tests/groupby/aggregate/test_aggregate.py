@@ -114,7 +114,7 @@ def test_groupby_aggregation_mixed_dtype():
     result = g[["v1", "v2"]].mean()
     tm.assert_frame_equal(result, expected)
 
-
+'''
 def test_groupby_aggregation_non_numeric_dtype():
 
     df = DataFrame([["M", [1]], ["M", [1]], ["W", [10]], ["W", [20]]],
@@ -129,7 +129,7 @@ def test_groupby_aggregation_non_numeric_dtype():
     g = df.groupby(by=["MW"])
     result = g.sum()
     tm.assert_frame_equal(result, expected)
-
+'''
 
 def test_groupby_aggregation_multi_level_column():
     # GH 29772
