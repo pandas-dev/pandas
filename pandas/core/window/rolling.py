@@ -444,7 +444,6 @@ class BaseWindow(SelectionMixin):
             res_values,
             index=obj.index,
             columns=obj.columns.take(taker),
-            consolidate=True,
             verify_integrity=False,
         )
 
