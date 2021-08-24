@@ -450,9 +450,9 @@ class BaseWindow(SelectionMixin):
         if self.axis == 1:
             df = df.T
 
-        if 0 != len(df.columns) != len(obj.columns):
+        if 0 != len(res_values) != len(obj.columns):
             # GH#42738 ignore_failures dropped nuisance columns
-            dropped = obj.columns.difference(df.columns)
+            dropped = obj.columns.difference(obj.columns.take(taker))
             warnings.warn(
                 "Dropping of nuisance columns in rolling operations "
                 "is deprecated; in a future version this will raise TypeError. "
