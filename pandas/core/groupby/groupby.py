@@ -1101,7 +1101,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         raise AbstractMethodError(self)
 
     
-
+    '''
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
@@ -1140,7 +1140,32 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # error: Incompatible return value type (got "Union[bool, NoDefault]",
         # expected "bool")
         return numeric_only  # type: ignore[return-value]
+    '''
+    
+    def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
+        """
+        Determine subclass-specific default value for 'numeric_only'.
+        For SeriesGroupBy we want the default to be False (to match Series behavior).
+        For DataFrameGroupBy we want it to be True (for backwards-compat).
+        Parameters
+        ----------
+        numeric_only : bool or lib.no_default
+        Returns
+        -------
+        bool
+        """
+        # GH#41291
+        if numeric_only is lib.no_default:
+            # i.e. not explicitly passed by user
+            if self.obj.ndim == 2:
+                # i.e. DataFrameGroupBy
+                numeric_only = True
+            else:
+                numeric_only = False
 
+        # error: Incompatible return value type (got "Union[bool, NoDefault]",
+        # expected "bool")
+        return numeric_only  # type: ignore[return-value]
     # -----------------------------------------------------------------
     # numba
 
