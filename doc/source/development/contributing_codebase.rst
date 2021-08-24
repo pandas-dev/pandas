@@ -181,7 +181,7 @@ run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
-Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
+Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
    git diff upstream/master --name-only -- "*.py" | xargs flake8
