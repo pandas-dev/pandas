@@ -8,11 +8,11 @@ from pandas import (
     Float64Index,
     Index,
     Int64Index,
+    NumericIndex,
     Series,
     UInt64Index,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.tests.indexes.common import NumericBase
 
 
@@ -136,9 +136,10 @@ class TestFloatNumericIndex(NumericBase):
 
         self.check_coerce(mixed_index, Index([1.5, 2, 3, 4, 5]))
         self.check_coerce(float_index, Index(np.arange(5) * 2.5))
-        self.check_coerce(
-            float_index, Index(np.array(np.arange(5) * 2.5, dtype=object))
-        )
+
+        with tm.assert_produces_warning(FutureWarning, match="will not infer"):
+            result = Index(np.array(np.arange(5) * 2.5, dtype=object))
+        self.check_coerce(float_index, result.astype("float64"))
 
     def test_constructor_explicit(self, mixed_index, float_index):
 
@@ -150,16 +151,16 @@ class TestFloatNumericIndex(NumericBase):
             mixed_index, Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
         )
 
-    def test_type_coercion_fail(self, any_int_dtype):
+    def test_type_coercion_fail(self, any_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
         with pytest.raises(ValueError, match=msg):
-            Index([1, 2, 3.5], dtype=any_int_dtype)
+            Index([1, 2, 3.5], dtype=any_int_numpy_dtype)
 
-    def test_type_coercion_valid(self, float_dtype):
+    def test_type_coercion_valid(self, float_numpy_dtype):
         # There is no Float32Index, so we always
         # generate Float64Index.
-        idx = Index([1, 2, 3.5], dtype=float_dtype)
+        idx = Index([1, 2, 3.5], dtype=float_numpy_dtype)
         tm.assert_index_equal(idx, Index([1, 2, 3.5]), exact=True)
 
     def test_equals_numeric(self):
@@ -478,24 +479,33 @@ class TestIntNumericIndex(NumericInt):
         index_cls = self._index_cls
 
         arr = np.array([1, 2, 3, 4], dtype=object)
+
         index = index_cls(arr, dtype=dtype)
         assert index.values.dtype == index.dtype
         if dtype == np.int64:
+
+            msg = "will not infer"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                without_dtype = Index(arr)
+
             exact = True if index_cls is Int64Index else "equiv"
-            tm.assert_index_equal(index, Index(arr), exact=exact)
+            tm.assert_index_equal(index, without_dtype, exact=exact)
 
         # preventing casting
         arr = np.array([1, "2", 3, "4"], dtype=object)
         with pytest.raises(TypeError, match="casting"):
             index_cls(arr, dtype=dtype)
 
-    def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
+    def test_constructor_coercion_signed_to_unsigned(
+        self,
+        any_unsigned_int_numpy_dtype,
+    ):
 
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
 
         with pytest.raises(OverflowError, match=msg):
-            Index([-1], dtype=uint_dtype)
+            Index([-1], dtype=any_unsigned_int_numpy_dtype)
 
     def test_coerce_list(self):
         # coerce things
