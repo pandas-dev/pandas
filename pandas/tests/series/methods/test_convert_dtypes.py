@@ -238,7 +238,8 @@ class TestSeriesConvertDtypes:
             index=[0]
         )
         converted_dtypes = dataframe.convert_dtypes()
-        #print(converted_dtypes['data'][0])
+        # print(converted_dtypes['data'][0])
+        # to check whether the type continues to remain a byte_string
         assert converted_dtypes['data'][0].decode('ascii') == "binary-string"
         # no need for the tm module as
         # we are just verifying the conversion of the string
