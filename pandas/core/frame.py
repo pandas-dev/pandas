@@ -2363,7 +2363,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls._from_mgr(mgr)
+        return cls(mgr)
 
     @doc(storage_options=generic._shared_docs["storage_options"])
     @deprecate_kwarg(old_arg_name="fname", new_arg_name="path")
