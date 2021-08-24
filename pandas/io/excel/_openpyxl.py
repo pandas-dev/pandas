@@ -437,12 +437,12 @@ class OpenpyxlWriter(ExcelWriter):
                         f"Sheet '{sheet_name}' already exists and "
                         f"if_sheet_exists is set to 'error'."
                     )
-                elif self.if_sheet_exists == "write_to":
+                elif self.if_sheet_exists == "overwrite_cells":
                     wks = self.sheets[sheet_name]
                 else:
                     raise ValueError(
                         f"'{self.if_sheet_exists}' is not valid for if_sheet_exists. "
-                        "Valid options are 'error', 'new', 'replace' and 'write_to'."
+                        "Valid options are 'error', 'new', 'replace' and 'overwrite_cells'."
                     )
             else:
                 wks = self.sheets[sheet_name]
