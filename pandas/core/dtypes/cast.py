@@ -1416,6 +1416,9 @@ def convert_dtypes(
         inferred_dtype = type(input_array)
         return inferred_dtype
     except:
+        # it is not a bare except, there is a pass statement
+        # In the event of an exception, it will not be
+        # a byte_string, so we process with other types
         pass
 
     if (
