@@ -232,7 +232,7 @@ class TestSeriesConvertDtypes:
         # not recognising the byte_string dtype
         byte_str = b'binary-string'
 
-        df= pd.DataFrame(
+        df = pd.DataFrame(
             data={
                 "A": byte_str,
             },
