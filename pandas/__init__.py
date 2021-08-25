@@ -207,7 +207,7 @@ def __getattr__(name):
         warnings.warn(
             "The pandas.np module is deprecated "
             "and will be removed from pandas in a future version. "
-            "Import numpy directly instead",
+            "Import numpy directly instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -218,7 +218,7 @@ def __getattr__(name):
     elif name in {"SparseSeries", "SparseDataFrame"}:
         warnings.warn(
             f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version",
+            "the top-level namespace will also be removed in the next version.",
             FutureWarning,
             stacklevel=2,
         )
