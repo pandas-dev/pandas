@@ -1057,7 +1057,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
-            obj = obj.T
+            transposed_dtype = find_common_type(obj.dtypes.tolist())
+            obj = obj.T.astype(transposed_dtype)
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
