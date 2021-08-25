@@ -395,7 +395,7 @@ authors to coordinate on the namespace.
 
 pandas by itself doesn't expose any type information to the user.
 This means that in pandas-dependent projects the type checkers like mypy won't perform like expected
-and will treat all pandas objects as they were of type ``Any``.
+and will treat all pandas objects as they were of type `Any`.
 Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
 [26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
 
