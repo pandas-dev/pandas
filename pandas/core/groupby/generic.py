@@ -41,6 +41,7 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -1597,7 +1598,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._mgr
+            transposed_dtype = find_common_type(obj.dtypes.tolist())
+            return obj.T.astype(transposed_dtype)._mgr
         else:
             return obj._mgr
 
