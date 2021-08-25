@@ -4447,7 +4447,9 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_indexer, right_indexer
 
     @final
-    def _join_monotonic(self, other: Index, how: str_t = "left"):
+    def _join_monotonic(
+        self, other: Index, how: str_t = "left"
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
