@@ -1418,7 +1418,7 @@ def convert_dtypes(
         if len(byte_list_set) == 1 and byte_list_set[0]:
             inferred_dtype = type(input_array[0])
             return inferred_dtype
-    except:
+    except (UnicodeDecodeError, AttributeError):
         # it is not a bare except, there is a pass statement
         # In the event of an exception, it will not be
         # a byte_string, so we process with other types
