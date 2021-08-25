@@ -575,3 +575,20 @@ Library            Accessor     Classes                              Description
 .. _composeml: https://github.com/alteryx/compose
 .. _datatest: https://datatest.readthedocs.io/
 .. _woodwork: https://github.com/alteryx/woodwork
+
+
+Type stubs
+----------------------------
+
+`pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas by itself doesn't expose any type information to the user.
+This means that in pandas-dependant projects the type checkers like Mypy won't perform like expected
+and will treat all pandas objects as they were of type ``Any``.
+Learn more by reading through these issues `14468 <https://github.com/pandas-dev/pandas/issues/14468>`_ ,
+`26766 <https://github.com/pandas-dev/pandas/issues/26766>`_, `28142 <https://github.com/pandas-dev/pandas/issues/28142>`_.
+
+pandas-stubs are meant to alleviate this issue by providing rudimentary type coverage of pandas API.
+After installing it using ``pip`` or ``conda``, the ``.pyi`` files will be
+placed alongside the pandas ``.py`` files and be available for the type checker.
