@@ -1859,7 +1859,7 @@ def construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_func(tup):
+def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[bool, DtypeObj]:
     # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
     # raises instead of returning False. Once earlier numpy versions are dropped,
     # this can be simplified to `return tup[1].dtype`
@@ -1909,49 +1909,6 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
             ]
             nbs.extend(dtype_blocks)
     return nbs
-
-
-def simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
-    """
-    return a single array of a block that has a single dtype; if dtype is
-    not None, coerce to this dtype
-    """
-    if not consolidate:
-        return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)
-
-    values, placement = _stack_arrays(tuples, dtype)
-
-    # TODO: CHECK DTYPE?
-    if dtype is not None and values.dtype != dtype:  # pragma: no cover
-        values = values.astype(dtype)
-
-    block = new_block(values, placement=BlockPlacement(placement), ndim=2)
-    return [block]
-
-
-def multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
-    """return an array of blocks that potentially have different dtypes"""
-
-    if not consolidate:
-        return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)
-
-    # group by dtype
-    grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
-
-    new_blocks = []
-    for dtype, tup_block in grouper:
-
-        # error: Argument 2 to "_stack_arrays" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "dtype[Any]"
-        values, placement = _stack_arrays(
-            list(tup_block), dtype  # type: ignore[arg-type]
-        )
-
-        block = new_block(values, placement=BlockPlacement(placement), ndim=2)
-        new_blocks.append(block)
-
-    return new_blocks
 
 
 def _tuples_to_blocks_no_consolidate(tuples, dtype: DtypeObj | None) -> list[Block]:
