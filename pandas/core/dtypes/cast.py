@@ -1412,9 +1412,12 @@ def convert_dtypes(
 
     try:
         # case of a byte_string
-        byte_check = input_array.decode()
-        inferred_dtype = type(input_array)
-        return inferred_dtype
+        # all(isinstance(x, bytes) for x in input_array)
+
+        byte_list_set = list(set([type(x) is bytes for x in input_array]))
+        if len(byte_list_set) == 1 and byte_list_set[0] == True:
+            inferred_dtype = type(input_array[0])
+            return inferred_dtype
     except:
         # it is not a bare except, there is a pass statement
         # In the event of an exception, it will not be
