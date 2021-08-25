@@ -942,7 +942,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
-            result = cls._empty(n, dtype=dtype)
+            result = cls._empty((n,), dtype=dtype)
         else:
             result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
