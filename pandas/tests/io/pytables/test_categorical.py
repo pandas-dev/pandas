@@ -83,8 +83,9 @@ def test_categorical(setup_path):
         # Make sure the metadata is OK
         info = store.info()
         assert "/df2   " in info
-        # assert '/df2/meta/values_block_0/meta' in info
-        assert "/df2/meta/values_block_1/meta" in info
+        # df2._mgr.blocks[0] and df2._mgr.blocks[2] are Categorical
+        assert "/df2/meta/values_block_0/meta" in info
+        assert "/df2/meta/values_block_2/meta" in info
 
         # unordered
         _maybe_remove(store, "s2")
