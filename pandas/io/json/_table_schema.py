@@ -97,7 +97,7 @@ def set_default_names(data):
             warnings.warn("Index name of 'index' is not round-trippable.")
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
             warnings.warn(
-                "Index names beginning with 'level_' are not " "round-trippable."
+                "Index names beginning with 'level_' are not round-trippable."
             )
         return data
 
