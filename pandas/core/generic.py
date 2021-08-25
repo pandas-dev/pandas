@@ -4816,7 +4816,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
-    @final
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
     ) -> FrameOrSeries:
@@ -8977,7 +8976,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
 
-    @final
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
