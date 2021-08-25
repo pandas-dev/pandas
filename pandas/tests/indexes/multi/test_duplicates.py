@@ -307,14 +307,21 @@ def test_duplicated_drop_duplicates():
 
 
 @pytest.mark.parametrize(
-    "array,expected",
+    "array,expected,dtype",
     [
         (
-            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
-            Series([False, False, True, False, False, False, True], dtype=bool),
+            [np.nan + np.nan * 1j, 0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j, np.nan, np.nan + np.nan * 1j],
+            Series([False, False, False, True, False, False, False, True, False, True], dtype=bool),
+            np.complex64
+        ),
+
+        (
+            [np.nan + np.nan * 1j, 0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j, np.nan, np.nan + np.nan * 1j],
+            Series([False, False, False, True, False, False, False, True, False, True], dtype=bool),
+            np.complex128
         )
     ],
 )
-def test_duplicated_series_complex_numbers(array, expected):
-    result = Series(array, dtype=np.complex64).duplicated()
+def test_duplicated_series_complex_numbers(array, expected, dtype):
+    result = Series(array, dtype=dtype).duplicated()
     tm.assert_series_equal(result, expected)
