@@ -164,12 +164,12 @@ class TestBetweenTime:
         stime, etime = ("08:00:00", "09:00:00")
         exp_len = 7
 
-        if axis in {0,'index'}  :
+        if axis in {'index',0}  :
             ts.index = rng
             assert len(ts.between_time(stime, etime)) == exp_len
             assert len(ts.between_time(stime, etime, axis=0)) == exp_len
 
-        if axis in {1,'columns'} :
+        if axis in {'columns',1} :
             ts.columns = rng
             selected = ts.between_time(stime, etime, axis=1).columns
             assert len(selected) == exp_len
@@ -183,14 +183,14 @@ class TestBetweenTime:
         stime, etime = ("08:00:00", "09:00:00")
 
         msg = "Index must be DatetimeIndex"
-        if axis in {1,'columns'}  :
+        if axis in {'columns',1}  :
             ts.index = mask
             with pytest.raises(TypeError, match=msg):
                 ts.between_time(stime, etime)
             with pytest.raises(TypeError, match=msg):
                 ts.between_time(stime, etime, axis=0)
 
-        if axis in {0,'index'} :
+        if axis in {'index',0} :
             ts.columns = mask
             with pytest.raises(TypeError, match=msg):
                 ts.between_time(stime, etime, axis=1)

@@ -485,10 +485,9 @@ def test_rolling_axis_sum(axis_frame):
 def test_rolling_axis_count(axis_frame):
     # see gh-26055
     df = DataFrame({"x": range(3), "y": range(3)})
+    axis=df._get_axis_number(axis_frame)
 
-
-
-    if df._get_axis_number(axis_frame)==0:
+    if axis in {0,'index'}:
         expected = DataFrame({"x": [1.0, 2.0, 2.0], "y": [1.0, 2.0, 2.0]})
     else:
         expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})

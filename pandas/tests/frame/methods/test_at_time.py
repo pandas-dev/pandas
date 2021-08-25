@@ -102,9 +102,9 @@ class TestAtTime:
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
 
-        if axis in {0,'index'} :
+        if axis in {'index',0} :
             expected = ts.loc[indices, :]
-        elif axis in {1,'columns'} :
+        elif axis in {'columns',1} :
             expected = ts.loc[:, indices]
 
         result = ts.at_time("9:30", axis=axis)
