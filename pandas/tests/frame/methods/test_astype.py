@@ -709,15 +709,13 @@ class TestAstypeCategorical:
         df["cats"] = df["cats"].astype("category")
         tm.assert_frame_equal(exp_df, df)
 
-    def test_categorical_astype_to_int(self, any_int_or_nullable_int_dtype):
+    def test_categorical_astype_to_int(self, any_int_dtype):
         # GH#39402
 
         df = DataFrame(data={"col1": pd.array([2.0, 1.0, 3.0])})
         df.col1 = df.col1.astype("category")
-        df.col1 = df.col1.astype(any_int_or_nullable_int_dtype)
-        expected = DataFrame(
-            {"col1": pd.array([2, 1, 3], dtype=any_int_or_nullable_int_dtype)}
-        )
+        df.col1 = df.col1.astype(any_int_dtype)
+        expected = DataFrame({"col1": pd.array([2, 1, 3], dtype=any_int_dtype)})
         tm.assert_frame_equal(df, expected)
 
     def test_astype_categorical_to_string_missing(self):

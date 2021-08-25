@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -287,7 +284,7 @@ class _Unstacker:
 
         return new_values, new_mask
 
-    def get_new_columns(self, value_columns):
+    def get_new_columns(self, value_columns: Index | None):
         if value_columns is None:
             if self.lift == 0:
                 return self.removed_level._rename(name=self.removed_name)
@@ -308,6 +305,16 @@ class _Unstacker:
             new_names = [value_columns.name, self.removed_name]
             new_codes = [propagator]
 
+        repeater = self._repeater
+
+        # The entire level is then just a repetition of the single chunk:
+        new_codes.append(np.tile(repeater, width))
+        return MultiIndex(
+            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+        )
+
+    @cache_readonly
+    def _repeater(self) -> np.ndarray:
         # The two indices differ only if the unstacked level had unused items:
         if len(self.removed_level_full) != len(self.removed_level):
             # In this case, we remap the new codes to the original level:
@@ -316,13 +323,10 @@ class _Unstacker:
                 repeater = np.insert(repeater, 0, -1)
         else:
             # Otherwise, we just use each level item exactly once:
+            stride = len(self.removed_level) + self.lift
             repeater = np.arange(stride) - self.lift
 
-        # The entire level is then just a repetition of the single chunk:
-        new_codes.append(np.tile(repeater, width))
-        return MultiIndex(
-            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
-        )
+        return repeater
 
     @cache_readonly
     def new_index(self):
@@ -1052,10 +1056,7 @@ def _get_dummies_1d(
             )
             sparse_series.append(Series(data=sarr, index=index, name=col))
 
-        out = concat(sparse_series, axis=1, copy=False)
-        # TODO: overload concat with Literal for axis
-        out = cast(DataFrame, out)
-        return out
+        return concat(sparse_series, axis=1, copy=False)
 
     else:
         # take on axis=1 + transpose to ensure ndarray layout is column-major
