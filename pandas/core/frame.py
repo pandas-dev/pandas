@@ -6837,6 +6837,31 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Examples
+        --------
+        >>> data = {
+        ...     "class": ["Mammals", "Mammals", "Reptiles"],
+        ...     "diet": ["Omnivore", "Carnivore", "Carnivore"],
+        ...     "species": ["Humans", "Dogs", "Snakes"],
+        ... }
+        >>> df = pd.DataFrame(data, columns=["class", "diet", "species"])
+        >>> df = df.set_index(["class", "diet"])
+        >>> df
+                                          species
+        class      diet
+        Mammals    Omnivore                Humans
+                   Carnivore                 Dogs
+        Reptiles   Carnivore               Snakes
+
+        Let's reorder the levels of the index:
+
+        >>> df.reorder_levels(["diet", "class"])
+                                          species
+        diet      class
+        Omnivore  Mammals                  Humans
+        Carnivore Mammals                    Dogs
+                  Reptiles                 Snakes
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover
