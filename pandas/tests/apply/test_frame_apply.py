@@ -995,7 +995,7 @@ def test_consistency_for_boxed(box, int_frame_const_col):
 
 
 def test_agg_transform(axis, float_frame):
-    other_axis = 1 if axis in {0,'index'} else 0
+    other_axis = 1 if axis in {0, 'index'} else 0
 
     with np.errstate(all="ignore"):
 
@@ -1010,7 +1010,7 @@ def test_agg_transform(axis, float_frame):
         # list-like
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
-        if axis in {0,'index'} :
+        if axis in {0, 'index'} :
             expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
         else:
             expected.index = MultiIndex.from_product([float_frame.index, ["sqrt"]])
@@ -1021,7 +1021,7 @@ def test_agg_transform(axis, float_frame):
         # functions per series and then concatting
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
         expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
-        if axis in {0,'index'} :
+        if axis in {0, 'index'} :
             expected.columns = MultiIndex.from_product(
                 [float_frame.columns, ["absolute", "sqrt"]]
             )
@@ -1102,7 +1102,7 @@ def test_agg_multiple_mixed_no_warning():
 
 
 def test_agg_reduce(axis, float_frame):
-    other_axis = 1 if axis in {0,'index'} else 0
+    other_axis = 1 if axis in {0, 'index'} else 0
     name1, name2 = float_frame.axes[other_axis].unique()[:2].sort_values()
 
     # all reducers
@@ -1115,7 +1115,7 @@ def test_agg_reduce(axis, float_frame):
         axis=1,
     )
     expected.columns = ["mean", "max", "sum"]
-    expected = expected.T if axis in {0,'index'} else expected
+    expected = expected.T if axis in {0, 'index'} else expected
 
     result = float_frame.agg(["mean", "max", "sum"], axis=axis)
     tm.assert_frame_equal(result, expected)
@@ -1141,7 +1141,7 @@ def test_agg_reduce(axis, float_frame):
             name2: Series([float_frame.loc(other_axis)[name2].sum()], index=["sum"]),
         }
     )
-    expected = expected.T if axis in {1,'columns'} else expected
+    expected = expected.T if axis in {1, 'columns'} else expected
     tm.assert_frame_equal(result, expected)
 
     # dict input with lists with multiple
@@ -1166,7 +1166,7 @@ def test_agg_reduce(axis, float_frame):
         },
         axis=1,
     )
-    expected = expected.T if axis in {1,'columns'} else expected
+    expected = expected.T if axis in {1, 'columns'} else expected
     tm.assert_frame_equal(result, expected)
 
 
