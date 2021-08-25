@@ -1186,7 +1186,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         warnings.warn(
             "Adding/subtracting object-dtype array to "
-            f"{type(self).__name__} not vectorized",
+            f"{type(self).__name__} not vectorized.",
             PerformanceWarning,
         )
 

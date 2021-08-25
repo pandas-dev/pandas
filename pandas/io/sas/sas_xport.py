@@ -393,7 +393,7 @@ class XportReader(ReaderBase, abc.Iterator):
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
-            warnings.warn("xport file may be corrupted")
+            warnings.warn("xport file may be corrupted.")
 
         if self.record_length > 80:
             self.filepath_or_buffer.seek(self.record_start)

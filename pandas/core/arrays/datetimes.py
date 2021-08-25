@@ -744,7 +744,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         except NotImplementedError:
             warnings.warn(
-                "Non-vectorized DateOffset being applied to Series or DatetimeIndex",
+                "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
@@ -1186,8 +1186,8 @@ default 'raise'
         # Deprecaation GH#34853
         warnings.warn(
             "to_perioddelta is deprecated and will be removed in a "
-            "future version.  "
-            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
+            "future version. "
+            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
             stacklevel=3,
@@ -1353,7 +1353,7 @@ default 'raise'
         warnings.warn(
             "weekofyear and week have been deprecated, please use "
             "DatetimeIndex.isocalendar().week instead, which returns "
-            "a Series.  To exactly reproduce the behavior of week and "
+            "a Series. To exactly reproduce the behavior of week and "
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,

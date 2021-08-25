@@ -1160,7 +1160,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
                 "Consider joining all columns at once using pd.concat(axis=1) "
-                "instead.  To get a de-fragmented frame, use `newframe = frame.copy()`",
+                "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
                 stacklevel=5,
             )

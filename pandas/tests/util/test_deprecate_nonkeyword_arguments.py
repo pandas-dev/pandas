@@ -69,7 +69,7 @@ def test_three_positional_argument_with_warning_message_analysis():
             assert actual_warning.category == FutureWarning
             assert str(actual_warning.message) == (
                 "Starting with pandas version 1.1 all arguments of g "
-                "except for the argument 'a' will be keyword-only"
+                "except for the argument 'a' will be keyword-only."
             )
 
 
@@ -97,7 +97,7 @@ def test_one_positional_argument_with_warning_message_analysis():
             assert actual_warning.category == FutureWarning
             assert str(actual_warning.message) == (
                 "Starting with pandas version 1.1 all arguments "
-                "of h will be keyword-only"
+                "of h will be keyword-only."
             )
 
 

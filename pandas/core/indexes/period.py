@@ -335,7 +335,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             warnings.warn(
                 "The 'how' keyword in PeriodIndex.astype is deprecated and "
                 "will be removed in a future version. "
-                "Use index.to_timestamp(how=how) instead",
+                "Use index.to_timestamp(how=how) instead.",
                 FutureWarning,
                 stacklevel=2,
             )

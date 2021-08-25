@@ -496,7 +496,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
-                    "is deprecated and will be removed in a future version.  "
+                    "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
                     stacklevel=2,
@@ -611,7 +611,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 msg = (
                     "Indexing a timezone-aware DatetimeIndex with a "
                     "timezone-naive datetime is deprecated and will "
-                    "raise KeyError in a future version.  "
+                    "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())

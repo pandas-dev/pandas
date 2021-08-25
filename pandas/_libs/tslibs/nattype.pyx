@@ -143,7 +143,7 @@ cdef class _NaT(datetime):
                 return True
             warnings.warn(
                 "Comparison of NaT with datetime.date is deprecated in "
-                "order to match the standard library behavior.  "
+                "order to match the standard library behavior. "
                 "In a future version these will be considered non-comparable.",
                 FutureWarning,
                 stacklevel=1,

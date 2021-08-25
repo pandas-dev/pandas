@@ -504,7 +504,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         else:
             stacklevel = find_stack_level()
             warnings.warn(
-                "convert_float is deprecated and will be removed in a future version",
+                "convert_float is deprecated and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=stacklevel,
             )

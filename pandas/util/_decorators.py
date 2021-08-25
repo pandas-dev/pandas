@@ -51,7 +51,7 @@ def deprecate(
     """
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead"
+    warning_msg = msg or f"{name} is deprecated, use {alt_name} instead."
 
     @wraps(alternative)
     def wrapper(*args, **kwargs) -> Callable[..., Any]:
@@ -186,20 +186,20 @@ def deprecate_kwarg(
                     msg = (
                         f"the {old_arg_name}={repr(old_arg_value)} keyword is "
                         "deprecated, use "
-                        f"{new_arg_name}={repr(new_arg_value)} instead"
+                        f"{new_arg_name}={repr(new_arg_value)} instead."
                     )
                 else:
                     new_arg_value = old_arg_value
                     msg = (
                         f"the {repr(old_arg_name)}' keyword is deprecated, "
-                        f"use {repr(new_arg_name)} instead"
+                        f"use {repr(new_arg_name)} instead."
                     )
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
                         f"Can only specify {repr(old_arg_name)} "
-                        f"or {repr(new_arg_name)}, not both"
+                        f"or {repr(new_arg_name)}, not both."
                     )
                     raise TypeError(msg)
                 else:
@@ -296,7 +296,7 @@ def deprecate_nonkeyword_arguments(
         num_allow_args = len(allow_args)
         msg = (
             f"{future_version_msg(version)} all arguments of "
-            f"{func.__qualname__}{{arguments}} will be keyword-only"
+            f"{func.__qualname__}{{arguments}} will be keyword-only."
         )
 
         @wraps(func)

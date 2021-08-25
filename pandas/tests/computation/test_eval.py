@@ -1110,7 +1110,7 @@ class TestAlignment:
                 expected = (
                     f"Alignment difference on axis 1 is larger "
                     f"than an order of magnitude on term 'df', "
-                    f"by more than {logged:.4g}; performance may suffer"
+                    f"by more than {logged:.4g}; performance may suffer."
                 )
                 assert msg == expected
 

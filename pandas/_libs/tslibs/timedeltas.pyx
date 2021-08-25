@@ -571,7 +571,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
         if unit in ["M", "Y", "y"]:
             warnings.warn(
                 "Units 'M', 'Y' and 'y' do not represent unambiguous "
-                "timedelta values and will be removed in a future version",
+                "timedelta values and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=2,
             )

@@ -113,7 +113,7 @@ def get_offset(name: str) -> DateOffset:
     """
     warnings.warn(
         "get_offset is deprecated and will be removed in a future version, "
-        "use to_offset instead",
+        "use to_offset instead.",
         FutureWarning,
         stacklevel=2,
     )

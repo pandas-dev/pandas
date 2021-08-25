@@ -302,8 +302,8 @@ def is_categorical(arr) -> bool:
     True
     """
     warnings.warn(
-        "is_categorical is deprecated and will be removed in a future version.  "
-        "Use is_categorical_dtype instead",
+        "is_categorical is deprecated and will be removed in a future version. "
+        "Use is_categorical_dtype instead.",
         FutureWarning,
         stacklevel=2,
     )
