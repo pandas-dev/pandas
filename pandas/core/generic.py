@@ -4816,7 +4816,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
-    @final
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
     ) -> FrameOrSeries:
@@ -5755,7 +5754,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         result.columns = self.columns
-        return result
+        # https://github.com/python/mypy/issues/8354
+        return cast(FrameOrSeries, result)
 
     @final
     def copy(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
@@ -6118,7 +6118,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
-                return concat(results, axis=1, copy=False)
+                # https://github.com/python/mypy/issues/8354
+                return cast(FrameOrSeries, concat(results, axis=1, copy=False))
             else:
                 return self.copy()
 
@@ -6312,10 +6313,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._mgr.fillna(
-                    value=value, limit=limit, inplace=inplace, downcast=downcast
-                )
+                if not self._mgr.is_single_block and axis == 1:
+
+                    result = self.T.fillna(value=value, limit=limit).T
+
+                    # need to downcast here because of all of the transposes
+                    result._mgr = result._mgr.downcast()
+
+                    new_data = result
+                else:
+
+                    new_data = self._mgr.fillna(
+                        value=value, limit=limit, inplace=inplace, downcast=downcast
+                    )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+
                 new_data = self.where(self.notna(), value)._data
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
@@ -8957,14 +8969,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
 
-    @final
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -8990,7 +9001,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -9183,7 +9194,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         msg = (
             "The 'slice_shift' method is deprecated "
             "and will be removed in a future version. "
-            "You can use DataFrame/Series.shift instead"
+            "You can use DataFrame/Series.shift instead."
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
@@ -10825,7 +10836,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         if center is not None:
             warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future",
+                "The `center` argument on `expanding` will be removed in the future.",
                 FutureWarning,
                 stacklevel=2,
             )

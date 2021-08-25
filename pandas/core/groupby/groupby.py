@@ -1960,7 +1960,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
 
-    @final
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with group_selection_context(self):
@@ -2918,7 +2917,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if min_count is not None:
             base_func = partial(base_func, min_count=min_count)
 
-        real_2d = how in ["group_any_all"]
+        real_2d = how in ["group_any_all", "group_var"]
 
         def blk_func(values: ArrayLike) -> ArrayLike:
             values = values.T
@@ -2999,7 +2998,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         obj = self._obj_with_exclusions
         if obj.ndim == 2 and self.axis == 0 and needs_2d and real_2d:
             # Operate block-wise instead of column-by-column
-
             mgr = obj._mgr
             if numeric_only:
                 mgr = mgr.get_numeric_data()
@@ -3094,7 +3092,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
         return res
 
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
