@@ -1491,9 +1491,21 @@ class TestSeriesMode:
     @pytest.mark.parametrize(
         "array,expected,dtype",
         [
-            ([0, 1j, 1, 1, 1 + 1j, 1 + 2j], Series([1], dtype=np.complex128), np.complex128),
-            ([0, 1j, 1, 1, 1 + 1j, 1 + 2j], Series([1], dtype=np.complex64), np.complex64),
-            ([1 + 1j, 2j, 1 + 1j], Series([1 + 1j], dtype=np.complex128), np.complex128),
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex64),
+                np.complex64,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j],
+                Series([1 + 1j], dtype=np.complex128),
+                np.complex128,
+            ),
         ],
     )
     def test_unimode_complex(self, array, expected, dtype):
@@ -1507,12 +1519,16 @@ class TestSeriesMode:
                 # no modes
                 [0, 1j, 1, 1 + 1j, 1 + 2j],
                 Series([0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j], dtype=np.complex128),
-                np.complex128
+                np.complex128,
             ),
-            ([1 + 1j, 2j, 1 + 1j, 2j, 3], Series([2j, 1 + 1j], dtype=np.complex64), np.complex64),
+            (
+                [1 + 1j, 2j, 1 + 1j, 2j, 3],
+                Series([2j, 1 + 1j], dtype=np.complex64),
+                np.complex64,
+            ),
         ],
     )
-    def test_multimode_complex(self, array, expected,dtype):
+    def test_multimode_complex(self, array, expected, dtype):
         # mode tries to sort multimodal series.
         # Complex numbers are sorted by their magnitude
         result = Series(array, dtype=dtype).mode()
