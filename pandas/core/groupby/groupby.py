@@ -1966,7 +1966,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
 
-    @final
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with group_selection_context(self):
@@ -3099,7 +3098,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
         return res
 
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
