@@ -317,11 +317,7 @@ class BaseWindow(SelectionMixin):
             # GH #12373 : rolling functions error on float32 data
             # make sure the data is coerced to float64
             try:
-                if hasattr(values, "to_numpy"):
-                    # GH 43016: ExtensionArray
-                    values = values.to_numpy(dtype=np.float64, na_value=np.nan)
-                else:
-                    values = ensure_float64(values)
+                values = ensure_float64(values)
             except (ValueError, TypeError) as err:
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 

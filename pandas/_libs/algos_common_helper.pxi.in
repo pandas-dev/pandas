@@ -37,27 +37,27 @@ def ensure_object(object arr):
 {{py:
 
 # name, c_type, dtype
-dtypes = [('float64', 'FLOAT64', 'float64'),
-          ('float32', 'FLOAT32', 'float32'),
-          ('int8', 'INT8', 'int8'),
-          ('int16', 'INT16', 'int16'),
-          ('int32', 'INT32', 'int32'),
-          ('int64', 'INT64', 'int64'),
-          ('uint8', 'UINT8', 'uint8'),
-          ('uint16', 'UINT16', 'uint16'),
-          ('uint32', 'UINT32', 'uint32'),
-          ('uint64', 'UINT64', 'uint64'),
-          # ('platform_int', 'INT', 'int_'),
-          # ('object', 'OBJECT', 'object_'),
+dtypes = [('float64', 'FLOAT64', 'float64', 'nan'),
+          ('float32', 'FLOAT32', 'float32', 'nan'),
+          ('int8', 'INT8', 'int8', None),
+          ('int16', 'INT16', 'int16', None),
+          ('int32', 'INT32', 'int32', None),
+          ('int64', 'INT64', 'int64', None),
+          ('uint8', 'UINT8', 'uint8', None),
+          ('uint16', 'UINT16', 'uint16', None),
+          ('uint32', 'UINT32', 'uint32', None),
+          ('uint64', 'UINT64', 'uint64', None),
+          # ('platform_int', 'INT', 'int_', None),
+          # ('object', 'OBJECT', 'object_', None),
 ]
 
 def get_dispatch(dtypes):
 
-    for name, c_type, dtype in dtypes:
-        yield name, c_type, dtype
+    for name, c_type, dtype, na_val in dtypes:
+        yield name, c_type, dtype, na_val
 }}
 
-{{for name, c_type, dtype in get_dispatch(dtypes)}}
+{{for name, c_type, dtype, na_val in get_dispatch(dtypes)}}
 
 
 def ensure_{{name}}(object arr, copy=True):
@@ -66,6 +66,10 @@ def ensure_{{name}}(object arr, copy=True):
             return arr
         else:
             return arr.astype(np.{{dtype}}, copy=copy)
+{{if na_val == "nan"}}
+    elif hasattr(arr, "to_numpy"):
+        return arr.to_numpy(np.{{dtype}}, copy=copy, na_value=np.{{na_val}})
+{{endif}}
     else:
         return np.array(arr, dtype=np.{{dtype}})
 
