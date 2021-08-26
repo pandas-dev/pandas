@@ -701,8 +701,14 @@ def to_datetime(
         Specify a date parse order if `arg` is str or its list-likes.
         If True, parses dates with the day first, eg 10/11/12 is parsed as
         2012-11-10.
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug, based on dateutil behavior).
+
+        .. warning::
+
+            dayfirst=True is not strict, but will prefer to parse
+            with day first. If a delimited date string cannot be parsed in
+            accordance with the given `dayfirst` option, e.g.
+            ``to_datetime(['31-12-2021'])``, then a warning will be shown.
+
     yearfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
 
@@ -711,8 +717,11 @@ def to_datetime(
         - If both dayfirst and yearfirst are True, yearfirst is preceded (same
           as dateutil).
 
-        Warning: yearfirst=True is not strict, but will prefer to parse
-        with year first (this is a known bug, based on dateutil behavior).
+        .. warning::
+
+            yearfirst=True is not strict, but will prefer to parse
+            with year first.
+
     utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).

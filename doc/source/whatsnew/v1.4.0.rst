@@ -103,10 +103,20 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_140.notable_bug_fixes.inconsistent_date_string_parsing:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Inconsistent date string parsing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to surprising behaviour:
+
+.. ipython:: python
+    :okwarning:
+
+    pd.to_datetime(["31-12-2021"], dayfirst=False)
+
+Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
+the value is a delimited date string (e.g. ``31-12-2012``).
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
 
@@ -253,6 +263,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+- :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
 -
 
 Timedelta
