@@ -209,19 +209,25 @@ class TestSeriesValueCounts:
         tm.assert_series_equal(out, exp)
 
     @pytest.mark.parametrize(
-        "input_array,expected",
+        "input_array,expected,dtype",
         [
             (
                 [1 + 1j, 0, 1 + 0j, 1j, 1 + 2j],
                 Series([1, 1, 1, 1, 1], index=[0, 1 + 0j, 1j, 1 + 1j, 1 + 2j]),
+                np.complex128
             ),
             (
                 [1 + 2j, 0, 1j, 1, 1j, 1 + 1j, 1 + 1j],
-                # index is sorted by value counts in descending order by default
                 Series([2, 1, 1, 2, 1], index=pd.Index([1j, 0, 1, 1 + 1j, 1 + 2j], dtype=np.complex128)),
+                np.complex128
+            ),
+            (
+                [1 + 2j, 0, 1j, 1, 1j, 1 + 1j, 1 + 1j],
+                Series([2, 1, 1, 2, 1], index=pd.Index([1j, 0, 1, 1 + 1j, 1 + 2j], dtype=np.complex64)),
+                np.complex64
             ),
         ],
     )
-    def test_value_counts_complex_numbers(self, input_array, expected):
-        result = pd.Series(input_array, dtype=np.complex128).value_counts()
+    def test_value_counts_complex_numbers(self, input_array, expected, dtype):
+        result = pd.Series(input_array, dtype=dtype).value_counts()
         tm.assert_series_equal(result, expected)
