@@ -77,7 +77,7 @@ class TestBetweenTime:
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inc_start, inc_end = close_open_fixture
+        inc_start, inc_end = close_open_fixture ## what is close_open_fixture
 
         filtered = ts.between_time(stime, etime, inc_start, inc_end)
         exp_len = 13 * 4 + 1
