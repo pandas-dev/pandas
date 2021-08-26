@@ -680,6 +680,7 @@ class TestSeriesFillNA:
     )
 
     def test_series_fill(self, fill_value, expected_output):
+        # GH#32414
         data = ["A", "B", np.nan, np.nan, "C"]
         ser = Series(Categorical(data, categories=["A", "B"]))
 
