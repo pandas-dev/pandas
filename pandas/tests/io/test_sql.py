@@ -376,7 +376,7 @@ def test_frame3():
 
 
 @pytest.fixture
-def mysql_pymysql_engine(iris_path):
+def mysql_pymysql_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
@@ -386,6 +386,10 @@ def mysql_pymysql_engine(iris_path):
     check_target = sqlalchemy.inspect(engine) if _gt14() else engine
     if not check_target.has_table("iris"):
         create_and_load_iris(engine, iris_path, "mysql")
+    if not check_target.has_table("types"):
+        for entry in types_data:
+            entry.pop("DateColWithTz")
+        create_and_load_types(engine, types_data, "mysql")
     yield engine
     with engine.connect() as conn:
         with conn.begin():
@@ -400,7 +404,7 @@ def mysql_pymysql_conn(mysql_pymysql_engine):
 
 
 @pytest.fixture
-def postgresql_psycopg2_engine(iris_path):
+def postgresql_psycopg2_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     _ = pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
@@ -409,6 +413,8 @@ def postgresql_psycopg2_engine(iris_path):
     check_target = sqlalchemy.inspect(engine) if _gt14() else engine
     if not check_target.has_table("iris"):
         create_and_load_iris(engine, iris_path, "postgresql")
+    if not check_target.has_table("types"):
+        create_and_load_types(engine, types_data, "postgresql")
     yield engine
     with engine.connect() as conn:
         with conn.begin():
@@ -550,6 +556,89 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_default_type_conversion(conn, request):
+    conn = request.getfixturevalue(conn)
+    df = sql.read_sql_table("types", conn)
+
+    assert issubclass(df.FloatCol.dtype.type, np.floating)
+    assert issubclass(df.IntCol.dtype.type, np.integer)
+
+    # MySQL has no real BOOL type (it's an alias for TINYINT)
+    assert issubclass(df.BoolCol.dtype.type, np.integer)
+
+    # Int column with NA values stays as float
+    assert issubclass(df.IntColWithNull.dtype.type, np.floating)
+
+    # Bool column with NA = int column with NA values => becomes float
+    assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
+
+
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_read_procedure(conn, request):
+    # GH 7324
+    # Although it is more an api test, it is added to the
+    # mysql tests as sqlite does not have stored procedures
+    from sqlalchemy import text
+    from sqlalchemy.engine import Engine
+
+    conn = request.getfixturevalue(conn)
+    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
+    df.to_sql("test_frame", conn, index=False)
+
+    proc = """DROP PROCEDURE IF EXISTS get_testdb;
+
+    CREATE PROCEDURE get_testdb ()
+
+    BEGIN
+        SELECT * FROM test_frame;
+    END"""
+    proc = text(proc)
+    if isinstance(conn, Engine):
+        with conn.connect() as engine_conn:
+            with engine_conn.begin():
+                engine_conn.execute(proc)
+    else:
+        conn.execute(proc)
+
+    res1 = sql.read_sql_query("CALL get_testdb();", conn)
+    tm.assert_frame_equal(df, res1)
+
+    # test delegation to read_sql_query
+    res2 = sql.read_sql("CALL get_testdb();", conn)
+    tm.assert_frame_equal(df, res2)
+
+
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_copy_from_callable_insertion_method(conn, request):
+    # GH 8953
+    # Example in io.rst found under _io.sql.method
+    # not available in sqlite, mysql
+    def psql_insert_copy(table, conn, keys, data_iter):
+        # gets a DBAPI connection that can provide a cursor
+        dbapi_conn = conn.connection
+        with dbapi_conn.cursor() as cur:
+            s_buf = StringIO()
+            writer = csv.writer(s_buf)
+            writer.writerows(data_iter)
+            s_buf.seek(0)
+
+            columns = ", ".join([f'"{k}"' for k in keys])
+            if table.schema:
+                table_name = f"{table.schema}.{table.name}"
+            else:
+                table_name = table.name
+
+            sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
+            cur.copy_expert(sql=sql_query, file=s_buf)
+
+    conn = request.getfixturevalue(conn)
+    expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
+    expected.to_sql("test_frame", conn, index=False, method=psql_insert_copy)
+    result = sql.read_sql_table("test_frame", conn)
+    tm.assert_frame_equal(result, expected)
+
+
 class MixInBase:
     def teardown_method(self, method):
         # if setup fails, there may not be a connection to close.
@@ -557,26 +646,6 @@ class MixInBase:
             for tbl in self._get_all_tables():
                 self.drop_table(tbl)
             self._close_conn()
-
-
-class MySQLMixIn(MixInBase):
-    def drop_table(self, table_name):
-        cur = self.conn.cursor()
-        cur.execute(f"DROP TABLE IF EXISTS {sql._get_valid_mysql_name(table_name)}")
-        self.conn.commit()
-
-    def _get_all_tables(self):
-        cur = self.conn.cursor()
-        cur.execute("SHOW TABLES")
-        return [table[0] for table in cur.fetchall()]
-
-    def _close_conn(self):
-        from pymysql.err import Error
-
-        try:
-            self.conn.close()
-        except Error:
-            pass
 
 
 class SQLiteMixIn(MixInBase):
@@ -2285,51 +2354,7 @@ class _TestMySQLAlchemy:
         cls.connect_args = {"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS}
 
     def test_default_type_conversion(self):
-        df = sql.read_sql_table("types", self.conn)
-
-        assert issubclass(df.FloatCol.dtype.type, np.floating)
-        assert issubclass(df.IntCol.dtype.type, np.integer)
-
-        # MySQL has no real BOOL type (it's an alias for TINYINT)
-        assert issubclass(df.BoolCol.dtype.type, np.integer)
-
-        # Int column with NA values stays as float
-        assert issubclass(df.IntColWithNull.dtype.type, np.floating)
-
-        # Bool column with NA = int column with NA values => becomes float
-        assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
-
-    def test_read_procedure(self):
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
-
-        # GH 7324
-        # Although it is more an api test, it is added to the
-        # mysql tests as sqlite does not have stored procedures
-        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-        df.to_sql("test_procedure", self.conn, index=False)
-
-        proc = """DROP PROCEDURE IF EXISTS get_testdb;
-
-        CREATE PROCEDURE get_testdb ()
-
-        BEGIN
-            SELECT * FROM test_procedure;
-        END"""
-        proc = text(proc)
-        if isinstance(self.conn, Engine):
-            with self.conn.connect() as conn:
-                with conn.begin():
-                    conn.execute(proc)
-        else:
-            self.conn.execute(proc)
-
-        res1 = sql.read_sql_query("CALL get_testdb();", self.conn)
-        tm.assert_frame_equal(df, res1)
-
-        # test delegation to read_sql_query
-        res2 = sql.read_sql("CALL get_testdb();", self.conn)
-        tm.assert_frame_equal(df, res2)
+        pass
 
 
 class _TestPostgreSQLAlchemy:
@@ -2423,35 +2448,6 @@ class _TestPostgreSQLAlchemy:
             res1 = sql.read_sql_table("test_schema_other2", self.conn, schema="other")
             res2 = pdsql.read_table("test_schema_other2")
             tm.assert_frame_equal(res1, res2)
-
-    def test_copy_from_callable_insertion_method(self):
-        # GH 8953
-        # Example in io.rst found under _io.sql.method
-        # not available in sqlite, mysql
-        def psql_insert_copy(table, conn, keys, data_iter):
-            # gets a DBAPI connection that can provide a cursor
-            dbapi_conn = conn.connection
-            with dbapi_conn.cursor() as cur:
-                s_buf = StringIO()
-                writer = csv.writer(s_buf)
-                writer.writerows(data_iter)
-                s_buf.seek(0)
-
-                columns = ", ".join([f'"{k}"' for k in keys])
-                if table.schema:
-                    table_name = f"{table.schema}.{table.name}"
-                else:
-                    table_name = table.name
-
-                sql_query = f"COPY {table_name} ({columns}) FROM STDIN WITH CSV"
-                cur.copy_expert(sql=sql_query, file=s_buf)
-
-        expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
-        expected.to_sql(
-            "test_copy_insert", self.conn, index=False, method=psql_insert_copy
-        )
-        result = sql.read_sql_table("test_copy_insert", self.conn)
-        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.single
