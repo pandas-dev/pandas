@@ -4816,7 +4816,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
-    @final
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
     ) -> FrameOrSeries:
@@ -9001,14 +9000,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
 
-    @final
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -9034,7 +9032,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -9227,7 +9225,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         msg = (
             "The 'slice_shift' method is deprecated "
             "and will be removed in a future version. "
-            "You can use DataFrame/Series.shift instead"
+            "You can use DataFrame/Series.shift instead."
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
@@ -10869,7 +10867,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         if center is not None:
             warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future",
+                "The `center` argument on `expanding` will be removed in the future.",
                 FutureWarning,
                 stacklevel=2,
             )
