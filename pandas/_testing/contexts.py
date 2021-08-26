@@ -255,7 +255,8 @@ def timeout(seconds):
             )
             has_alarm = False
 
-    signal.alarm(seconds)
+    if has_alarm:
+        signal.alarm(seconds)
     try:
         yield
     finally:
