@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import os
-from typing import List, Optional
 
 import pytest
 
-from pandas import read_csv, read_table
+from pandas import (
+    read_csv,
+    read_table,
+)
 
 
 class BaseParser:
-    engine: Optional[str] = None
+    engine: str | None = None
     low_memory = True
-    float_precision_choices: List[Optional[str]] = []
+    float_precision_choices: list[str | None] = []
 
     def update_kwargs(self, kwargs):
         kwargs = kwargs.copy()

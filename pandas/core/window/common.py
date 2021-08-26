@@ -1,44 +1,20 @@
 """Common utility functions for rolling operations"""
 from collections import defaultdict
 from typing import cast
-import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.indexes.api import MultiIndex
-from pandas.core.shared_docs import _shared_docs
-
-_shared_docs = dict(**_shared_docs)
-_doc_template = """
-        Returns
-        -------
-        Series or DataFrame
-            Return type is determined by the caller.
-
-        See Also
-        --------
-        pandas.Series.%(name)s : Calling object with Series data.
-        pandas.DataFrame.%(name)s : Calling object with DataFrame data.
-        pandas.Series.%(func_name)s : Similar method for Series.
-        pandas.DataFrame.%(func_name)s : Similar method for DataFrame.
-"""
 
 
 def flex_binary_moment(arg1, arg2, f, pairwise=False):
 
-    if not (
-        isinstance(arg1, (np.ndarray, ABCSeries, ABCDataFrame))
-        and isinstance(arg2, (np.ndarray, ABCSeries, ABCDataFrame))
-    ):
-        raise TypeError(
-            "arguments to moment function must be of type np.ndarray/Series/DataFrame"
-        )
-
-    if isinstance(arg1, (np.ndarray, ABCSeries)) and isinstance(
-        arg2, (np.ndarray, ABCSeries)
-    ):
+    if isinstance(arg1, ABCSeries) and isinstance(arg2, ABCSeries):
         X, Y = prep_binary(arg1, arg2)
         return f(X, Y)
 
@@ -56,7 +32,7 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
             if pairwise is False:
                 if arg1 is arg2:
                     # special case in order to handle duplicate column names
-                    for i, col in enumerate(arg1.columns):
+                    for i in range(len(arg1.columns)):
                         results[i] = f(arg1.iloc[:, i], arg2.iloc[:, i])
                     return dataframe_from_int_dict(results, arg1)
                 else:
@@ -64,23 +40,17 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                         raise ValueError("'arg1' columns are not unique")
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
-                    with warnings.catch_warnings(record=True):
-                        warnings.simplefilter("ignore", RuntimeWarning)
-                        X, Y = arg1.align(arg2, join="outer")
-                    X = X + 0 * Y
-                    Y = Y + 0 * X
-
-                    with warnings.catch_warnings(record=True):
-                        warnings.simplefilter("ignore", RuntimeWarning)
-                        res_columns = arg1.columns.union(arg2.columns)
+                    X, Y = arg1.align(arg2, join="outer")
+                    X, Y = prep_binary(X, Y)
+                    res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
                             results[col] = f(X[col], Y[col])
                     return DataFrame(results, index=X.index, columns=res_columns)
             elif pairwise is True:
                 results = defaultdict(dict)
-                for i, k1 in enumerate(arg1.columns):
-                    for j, k2 in enumerate(arg2.columns):
+                for i in range(len(arg1.columns)):
+                    for j in range(len(arg2.columns)):
                         if j < i and arg2 is arg1:
                             # Symmetric case
                             results[i][j] = results[j][i]
@@ -98,10 +68,10 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                     result = concat(
                         [
                             concat(
-                                [results[i][j] for j, c in enumerate(arg2.columns)],
+                                [results[i][j] for j in range(len(arg2.columns))],
                                 ignore_index=True,
                             )
-                            for i, c in enumerate(arg1.columns)
+                            for i in range(len(arg1.columns))
                         ],
                         ignore_index=True,
                         axis=1,
@@ -148,13 +118,10 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                 )
 
                 return result
-
-            else:
-                raise ValueError("'pairwise' is not True/False")
         else:
             results = {
                 i: f(*prep_binary(arg1.iloc[:, i], arg2))
-                for i, col in enumerate(arg1.columns)
+                for i in range(len(arg1.columns))
             }
             return dataframe_from_int_dict(results, arg1)
 
@@ -178,11 +145,7 @@ def zsqrt(x):
 
 
 def prep_binary(arg1, arg2):
-    if not isinstance(arg2, type(arg1)):
-        raise Exception("Input arrays must be of the same type!")
-
     # mask out values, this also makes a common index...
     X = arg1 + 0 * arg2
     Y = arg2 + 0 * arg1
-
     return X, Y

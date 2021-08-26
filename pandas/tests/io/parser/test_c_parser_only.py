@@ -5,7 +5,11 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
-from io import BytesIO, StringIO, TextIOWrapper
+from io import (
+    BytesIO,
+    StringIO,
+    TextIOWrapper,
+)
 import mmap
 import os
 import tarfile
@@ -17,7 +21,10 @@ from pandas.compat import IS64
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
 
-from pandas import DataFrame, concat
+from pandas import (
+    DataFrame,
+    concat,
+)
 import pandas._testing as tm
 
 
@@ -152,6 +159,7 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
 
 
 @td.skip_if_32bit
+@pytest.mark.slow
 def test_precise_conversion(c_parser_only):
     from decimal import Decimal
 
@@ -293,6 +301,7 @@ def test_tokenize_CR_with_quoting(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.slow
 def test_grow_boundary_at_cap(c_parser_only):
     # See gh-12494
     #
@@ -305,9 +314,9 @@ def test_grow_boundary_at_cap(c_parser_only):
     parser = c_parser_only
 
     def test_empty_header_read(count):
-        s = StringIO("," * count)
-        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-        df = parser.read_csv(s)
+        with StringIO("," * count) as s:
+            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+            df = parser.read_csv(s)
         tm.assert_frame_equal(df, expected)
 
     for cnt in range(1, 101):
@@ -489,7 +498,7 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
         header=None,
         delimiter="\\s+",
         skiprows=0,
-        error_bad_lines=False,
+        on_bad_lines="warn",
     )
     captured = capsys.readouterr()
     # skipped lines 2, 3, 4, 9

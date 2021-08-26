@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
 import operator
 import os
@@ -13,8 +14,6 @@ from typing import (
     ContextManager,
     Counter,
     Iterable,
-    List,
-    Type,
 )
 import warnings
 
@@ -31,9 +30,13 @@ from pandas._typing import Dtype
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetime64tz_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_period_dtype,
     is_sequence,
     is_timedelta64_dtype,
+    is_unsigned_integer_dtype,
+    pandas_dtype,
 )
 
 import pandas as pd
@@ -42,11 +45,15 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
+    Float64Index,
     Index,
+    Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     RangeIndex,
     Series,
+    UInt64Index,
     bdate_range,
 )
 from pandas._testing._io import (  # noqa:F401
@@ -88,6 +95,7 @@ from pandas._testing.asserters import (  # noqa:F401
     assert_timedelta_array_equal,
     raise_assert_detail,
 )
+from pandas._testing.compat import get_dtype  # noqa:F401
 from pandas._testing.contexts import (  # noqa:F401
     RNGContext,
     decompress_file,
@@ -98,36 +106,45 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.arrays import DatetimeArray, PeriodArray, TimedeltaArray, period_array
+from pandas.core.arrays import (
+    DatetimeArray,
+    PandasArray,
+    PeriodArray,
+    TimedeltaArray,
+    period_array,
+)
 
 if TYPE_CHECKING:
-    from pandas import PeriodIndex, TimedeltaIndex
+    from pandas import (
+        PeriodIndex,
+        TimedeltaIndex,
+    )
 
 _N = 30
 _K = 4
 
-UNSIGNED_INT_DTYPES: List[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES: List[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES: List[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES: List[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
-ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+UNSIGNED_INT_NUMPY_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_NUMPY_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_EA_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
+ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
 
-FLOAT_DTYPES: List[Dtype] = [float, "float32", "float64"]
-FLOAT_EA_DTYPES: List[Dtype] = ["Float32", "Float64"]
-COMPLEX_DTYPES: List[Dtype] = [complex, "complex64", "complex128"]
-STRING_DTYPES: List[Dtype] = [str, "str", "U"]
+FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
+FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
+COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
+STRING_DTYPES: list[Dtype] = [str, "str", "U"]
 
-DATETIME64_DTYPES: List[Dtype] = ["datetime64[ns]", "M8[ns]"]
-TIMEDELTA64_DTYPES: List[Dtype] = ["timedelta64[ns]", "m8[ns]"]
+DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
+TIMEDELTA64_DTYPES: list[Dtype] = ["timedelta64[ns]", "m8[ns]"]
 
-BOOL_DTYPES: List[Dtype] = [bool, "bool"]
-BYTES_DTYPES: List[Dtype] = [bytes, "bytes"]
-OBJECT_DTYPES: List[Dtype] = [object, "object"]
+BOOL_DTYPES: list[Dtype] = [bool, "bool"]
+BYTES_DTYPES: list[Dtype] = [bytes, "bytes"]
+OBJECT_DTYPES: list[Dtype] = [object, "object"]
 
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_REAL_NUMPY_DTYPES = FLOAT_NUMPY_DTYPES + ALL_INT_NUMPY_DTYPES
 ALL_NUMPY_DTYPES = (
-    ALL_REAL_DTYPES
+    ALL_REAL_NUMPY_DTYPES
     + COMPLEX_DTYPES
     + STRING_DTYPES
     + DATETIME64_DTYPES
@@ -137,7 +154,7 @@ ALL_NUMPY_DTYPES = (
     + BYTES_DTYPES
 )
 
-NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA]
+NULL_OBJECTS = [None, np.nan, pd.NaT, float("nan"), pd.NA, Decimal("NaN")]
 
 EMPTY_STRING_PATTERN = re.compile("^$")
 
@@ -196,18 +213,24 @@ def box_expected(expected, box_cls, transpose=True):
     subclass of box_cls
     """
     if box_cls is pd.array:
-        expected = pd.array(expected)
-    elif box_cls is pd.Index:
-        expected = pd.Index(expected)
-    elif box_cls is pd.Series:
-        expected = pd.Series(expected)
-    elif box_cls is pd.DataFrame:
-        expected = pd.Series(expected).to_frame()
+        if isinstance(expected, RangeIndex):
+            # pd.array would return an IntegerArray
+            expected = PandasArray(np.asarray(expected._values))
+        else:
+            expected = pd.array(expected)
+    elif box_cls is Index:
+        expected = Index._with_infer(expected)
+    elif box_cls is Series:
+        expected = Series(expected)
+    elif box_cls is DataFrame:
+        expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
-            #  vectors of the same length.
+            #  vectors of the same length. But convert to two rows to avoid
+            #  single-row special cases in datetime arithmetic
             expected = expected.T
+            expected = pd.concat([expected] * 2, ignore_index=True)
     elif box_cls is PeriodArray:
         # the PeriodArray constructor is not as flexible as period_array
         expected = period_array(expected)
@@ -256,7 +279,7 @@ def makeUnicodeIndex(k=10, name=None):
 
 
 def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
-    """ make a length k index or n categories """
+    """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n)
     return CategoricalIndex(
         Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
@@ -264,7 +287,7 @@ def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
 
 
 def makeIntervalIndex(k=10, name=None, **kwargs):
-    """ make a length k IntervalIndex """
+    """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
     return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
@@ -277,12 +300,32 @@ def makeBoolIndex(k=10, name=None):
     return Index([False, True] + [False] * (k - 2), name=name)
 
 
+def makeNumericIndex(k=10, name=None, *, dtype):
+    dtype = pandas_dtype(dtype)
+    assert isinstance(dtype, np.dtype)
+
+    if is_integer_dtype(dtype):
+        values = np.arange(k, dtype=dtype)
+        if is_unsigned_integer_dtype(dtype):
+            values += 2 ** (dtype.itemsize * 8 - 1)
+    elif is_float_dtype(dtype):
+        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values.sort()
+        values = values * (10 ** np.random.randint(0, 9))
+    else:
+        raise NotImplementedError(f"wrong dtype {dtype}")
+
+    return NumericIndex(values, dtype=dtype, name=name)
+
+
 def makeIntIndex(k=10, name=None):
-    return Index(list(range(k)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="int64")
+    return Int64Index(base_idx)
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2 ** 63 + i for i in range(k)], name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="uint64")
+    return UInt64Index(base_idx)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -290,8 +333,8 @@ def makeRangeIndex(k=10, name=None, **kwargs):
 
 
 def makeFloatIndex(k=10, name=None):
-    values = sorted(np.random.random_sample(k)) - np.random.random_sample(1)
-    return Index(values * (10 ** np.random.randint(0, 9)), name=name)
+    base_idx = makeNumericIndex(k, name=name, dtype="float64")
+    return Float64Index(base_idx)
 
 
 def makeDateIndex(k: int = 10, freq="B", name=None, **kwargs) -> DatetimeIndex:
@@ -388,7 +431,7 @@ def _make_timeseries(start="2000-01-01", end="2000-12-31", freq="1D", seed=None)
         "x": state.rand(n) * 2 - 1,
         "y": state.rand(n) * 2 - 1,
     }
-    df = pd.DataFrame(columns, index=index, columns=sorted(columns))
+    df = DataFrame(columns, index=index, columns=sorted(columns))
     if df.index[-1] == end:
         df = df.iloc[:-1]
     return df
@@ -416,7 +459,7 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
     ----------
     k: length of each of the index instances
     """
-    make_index_funcs: List[Callable[..., Index]] = [
+    make_index_funcs: list[Callable[..., Index]] = [
         makeDateIndex,
         makePeriodIndex,
         makeTimedeltaIndex,
@@ -548,7 +591,7 @@ def makeCustomIndex(
         names = [names]
 
     # specific 1D index type requested?
-    idx_func = {
+    idx_func_dict: dict[str, Callable[..., Index]] = {
         "i": makeIntIndex,
         "f": makeFloatIndex,
         "s": makeStringIndex,
@@ -556,10 +599,10 @@ def makeCustomIndex(
         "dt": makeDateIndex,
         "td": makeTimedeltaIndex,
         "p": makePeriodIndex,
-    }.get(idx_type)
+    }
+    idx_func = idx_func_dict.get(idx_type)
     if idx_func:
-        # pandas\_testing.py:2120: error: Cannot call function of unknown type
-        idx = idx_func(nentries)  # type: ignore[operator]
+        idx = idx_func(nentries)
         # but we need to fill in the name
         if names:
             idx.name = names[0]
@@ -679,7 +722,7 @@ def makeCustomDataframe(
     # 4-level multindex on rows with names provided, 2-level multindex
     # on columns with default labels and default names.
     >> a=makeCustomDataframe(5,3,r_idx_nlevels=4,
-                             r_idx_names=["FEE","FI","FO","FAM"],
+                             r_idx_names=["FEE","FIH","FOH","FUM"],
                              c_idx_nlevels=2)
 
     >> a=mkdf(5,3,r_idx_nlevels=2,c_idx_nlevels=4)
@@ -864,7 +907,7 @@ def _make_skipna_wrapper(alternative, skipna_alternative=None):
     return skipna_wrapper
 
 
-def convert_rows_list_to_csv_str(rows_list: List[str]):
+def convert_rows_list_to_csv_str(rows_list: list[str]):
     """
     Convert list of CSV rows to single CSV-formatted string for current OS.
 
@@ -884,7 +927,7 @@ def convert_rows_list_to_csv_str(rows_list: List[str]):
     return sep.join(rows_list) + sep
 
 
-def external_error_raised(expected_exception: Type[Exception]) -> ContextManager:
+def external_error_raised(expected_exception: type[Exception]) -> ContextManager:
     """
     Helper function to mark pytest.raises that have an external error message.
 
@@ -900,15 +943,15 @@ def external_error_raised(expected_exception: Type[Exception]) -> ContextManager
     """
     import pytest
 
-    return pytest.raises(expected_exception, match=None)
+    return pytest.raises(expected_exception, match=None)  # noqa: PDF010
 
 
-cython_table = pd.core.base.SelectionMixin._cython_table.items()
+cython_table = pd.core.common._cython_table.items()
 
 
 def get_cython_table_params(ndframe, func_names_and_expected):
     """
-    Combine frame, functions from SelectionMixin._cython_table
+    Combine frame, functions from com._cython_table
     keys and expected result.
 
     Parameters
@@ -940,7 +983,7 @@ def get_op_from_name(op_name: str) -> Callable:
 
     Parameters
     ----------
-    op_name : string
+    op_name : str
         The op name, in form of "add" or "__add__".
 
     Returns

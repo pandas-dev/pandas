@@ -3,11 +3,21 @@ Table Schema builders
 
 https://specs.frictionlessdata.io/json-table-schema/
 """
-from typing import TYPE_CHECKING, Any, Dict, Optional, cast
+from __future__ import annotations
+
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    cast,
+)
 import warnings
 
 import pandas._libs.json as json
-from pandas._typing import DtypeObj, FrameOrSeries, JSONSerializable
+from pandas._typing import (
+    DtypeObj,
+    FrameOrSeries,
+    JSONSerializable,
+)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -84,9 +94,11 @@ def set_default_names(data):
     if com.all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == "index":
-            warnings.warn("Index name of 'index' is not round-trippable")
+            warnings.warn("Index name of 'index' is not round-trippable.")
         elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
-            warnings.warn("Index names beginning with 'level_' are not round-trippable")
+            warnings.warn(
+                "Index names beginning with 'level_' are not round-trippable."
+            )
         return data
 
     data = data.copy()
@@ -107,7 +119,7 @@ def convert_pandas_type_to_json_field(arr):
         name = "values"
     else:
         name = arr.name
-    field: Dict[str, JSONSerializable] = {
+    field: dict[str, JSONSerializable] = {
         "name": name,
         "type": as_json_table_type(dtype),
     }
@@ -145,21 +157,25 @@ def convert_json_field_to_pandas_type(field):
 
     Examples
     --------
-    >>> convert_json_field_to_pandas_type({'name': 'an_int',
-                                           'type': 'integer'})
+    >>> convert_json_field_to_pandas_type({"name": "an_int", "type": "integer"})
     'int64'
-    >>> convert_json_field_to_pandas_type({'name': 'a_categorical',
-                                           'type': 'any',
-                                           'constraints': {'enum': [
-                                                          'a', 'b', 'c']},
-                                           'ordered': True})
-    'CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)'
-    >>> convert_json_field_to_pandas_type({'name': 'a_datetime',
-                                           'type': 'datetime'})
+
+    >>> convert_json_field_to_pandas_type(
+    ...     {
+    ...         "name": "a_categorical",
+    ...         "type": "any",
+    ...         "constraints": {"enum": ["a", "b", "c"]},
+    ...         "ordered": True,
+    ...     }
+    ... )
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)
+
+    >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'
-    >>> convert_json_field_to_pandas_type({'name': 'a_datetime_with_tz',
-                                           'type': 'datetime',
-                                           'tz': 'US/Central'})
+
+    >>> convert_json_field_to_pandas_type(
+    ...     {"name": "a_datetime_with_tz", "type": "datetime", "tz": "US/Central"}
+    ... )
     'datetime64[ns, US/Central]'
     """
     typ = field["type"]
@@ -192,9 +208,9 @@ def convert_json_field_to_pandas_type(field):
 def build_table_schema(
     data: FrameOrSeries,
     index: bool = True,
-    primary_key: Optional[bool] = None,
+    primary_key: bool | None = None,
     version: bool = True,
-) -> Dict[str, JSONSerializable]:
+) -> dict[str, JSONSerializable]:
     """
     Create a Table schema from ``data``.
 
@@ -235,17 +251,18 @@ def build_table_schema(
     ...      'C': pd.date_range('2016-01-01', freq='d', periods=3),
     ...     }, index=pd.Index(range(3), name='idx'))
     >>> build_table_schema(df)
-    {'fields': [{'name': 'idx', 'type': 'integer'},
-    {'name': 'A', 'type': 'integer'},
-    {'name': 'B', 'type': 'string'},
-    {'name': 'C', 'type': 'datetime'}],
-    'pandas_version': '0.20.0',
-    'primaryKey': ['idx']}
+    {'fields': \
+[{'name': 'idx', 'type': 'integer'}, \
+{'name': 'A', 'type': 'integer'}, \
+{'name': 'B', 'type': 'string'}, \
+{'name': 'C', 'type': 'datetime'}], \
+'primaryKey': ['idx'], \
+'pandas_version': '0.20.0'}
     """
     if index is True:
         data = set_default_names(data)
 
-    schema: Dict[str, Any] = {}
+    schema: dict[str, Any] = {}
     fields = []
 
     if index:
@@ -286,7 +303,7 @@ def parse_table_schema(json, precise_float):
     ----------
     json :
         A JSON table schema
-    precise_float : boolean
+    precise_float : bool
         Flag controlling precision when decoding string to double values, as
         dictated by ``read_json``
 

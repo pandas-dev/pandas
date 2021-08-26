@@ -1,10 +1,18 @@
+import inspect
 import pydoc
 
 import numpy as np
 import pytest
 
+from pandas.util._test_decorators import skip_if_no
+
 import pandas as pd
-from pandas import DataFrame, Index, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -93,7 +101,7 @@ class TestSeriesMisc:
     def test_not_hashable(self):
         s_empty = Series(dtype=object)
         s = Series([1])
-        msg = "'Series' objects are mutable, thus they cannot be hashed"
+        msg = "unhashable type: 'Series'"
         with pytest.raises(TypeError, match=msg):
             hash(s_empty)
         with pytest.raises(TypeError, match=msg):
@@ -167,3 +175,10 @@ class TestSeriesMisc:
         s.attrs["version"] = 1
         result = s + 1
         assert result.attrs == {"version": 1}
+
+    @skip_if_no("jinja2")
+    def test_inspect_getmembers(self):
+        # GH38782
+        ser = Series(dtype=object)
+        with tm.assert_produces_warning(None):
+            inspect.getmembers(ser)

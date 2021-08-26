@@ -1,6 +1,9 @@
 from functools import partial
 from importlib import reload
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import os
 from pathlib import Path
 import re
@@ -66,6 +69,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 
 
 @td.skip_if_no("bs4")
+@td.skip_if_no("html5lib")
 def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
 
@@ -85,6 +89,7 @@ def test_invalid_flavor():
 
 @td.skip_if_no("bs4")
 @td.skip_if_no("lxml")
+@td.skip_if_no("html5lib")
 def test_same_ordering(datapath):
     filename = datapath("io", "data", "html", "valid_markup.html")
     dfs_lxml = read_html(filename, index_col=0, flavor=["lxml"])
@@ -95,7 +100,7 @@ def test_same_ordering(datapath):
 @pytest.mark.parametrize(
     "flavor",
     [
-        pytest.param("bs4", marks=td.skip_if_no("bs4")),
+        pytest.param("bs4", marks=[td.skip_if_no("bs4"), td.skip_if_no("html5lib")]),
         pytest.param("lxml", marks=td.skip_if_no("lxml")),
     ],
     scope="class",

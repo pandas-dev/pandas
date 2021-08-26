@@ -73,7 +73,7 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         target = Categorical(["a", "b"], categories=["a", "b"])
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             target[mask] = other[mask]
 
     @pytest.mark.parametrize(
@@ -89,7 +89,7 @@ class TestCategoricalIndexingWithFactor(TestCategorical):
         target = Categorical(["a", "b"], categories=["a", "b"], ordered=True)
         mask = np.array([True, False])
         msg = "Cannot set a Categorical with another, without identical categories"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             target[mask] = other[mask]
 
     def test_setitem_tuple(self):
@@ -212,17 +212,25 @@ class TestCategoricalIndexing:
     # Combinations of missing/unique
     @pytest.mark.parametrize("key_values", [[1, 2], [1, 5], [1, 1], [5, 5]])
     @pytest.mark.parametrize("key_class", [Categorical, CategoricalIndex])
-    def test_get_indexer_non_unique(self, idx_values, key_values, key_class):
+    @pytest.mark.parametrize("dtype", [None, "category", "key"])
+    def test_get_indexer_non_unique(self, idx_values, key_values, key_class, dtype):
         # GH 21448
         key = key_class(key_values, categories=range(1, 5))
-        # Test for flat index and CategoricalIndex with same/different cats:
-        for dtype in [None, "category", key.dtype]:
-            idx = Index(idx_values, dtype=dtype)
-            expected, exp_miss = idx.get_indexer_non_unique(key_values)
-            result, res_miss = idx.get_indexer_non_unique(key)
 
-            tm.assert_numpy_array_equal(expected, result)
-            tm.assert_numpy_array_equal(exp_miss, res_miss)
+        if dtype == "key":
+            dtype = key.dtype
+
+        # Test for flat index and CategoricalIndex with same/different cats:
+        idx = Index(idx_values, dtype=dtype)
+        expected, exp_miss = idx.get_indexer_non_unique(key_values)
+        result, res_miss = idx.get_indexer_non_unique(key)
+
+        tm.assert_numpy_array_equal(expected, result)
+        tm.assert_numpy_array_equal(exp_miss, res_miss)
+
+        exp_unique = idx.unique().get_indexer(key_values)
+        res_unique = idx.unique().get_indexer(key)
+        tm.assert_numpy_array_equal(res_unique, exp_unique)
 
     def test_where_unobserved_nan(self):
         ser = Series(Categorical(["a", "b"]))
@@ -252,7 +260,7 @@ class TestCategoricalIndexing:
     def test_where_new_category_raises(self):
         ser = Series(Categorical(["a", "b", "c"]))
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             ser.where([True, False, True], "d")
 
     def test_where_ordered_differs_rasies(self):
@@ -262,7 +270,7 @@ class TestCategoricalIndexing:
         other = Categorical(
             ["b", "c", "a"], categories=["a", "c", "b", "d"], ordered=True
         )
-        with pytest.raises(ValueError, match="without identical categories"):
+        with pytest.raises(TypeError, match="without identical categories"):
             ser.where([True, False, True], other)
 
 

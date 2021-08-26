@@ -122,6 +122,31 @@ def test_series_groupby_value_counts_with_grouper():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_empty(columns):
+    # GH39172
+    df = DataFrame(columns=columns)
+    dfg = df.groupby(columns[:-1])
+
+    result = dfg[columns[-1]].value_counts()
+    expected = Series([], name=columns[-1], dtype=result.dtype)
+    expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_one_row(columns):
+    # GH42618
+    df = DataFrame(data=[range(len(columns))], columns=columns)
+    dfg = df.groupby(columns[:-1])
+
+    result = dfg[columns[-1]].value_counts()
+    expected = df.value_counts().rename(columns[-1])
+
+    tm.assert_series_equal(result, expected)
+
+
 def test_series_groupby_value_counts_on_categorical():
     # GH38672
 

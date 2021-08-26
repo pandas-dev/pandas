@@ -1,4 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import (
+    date,
+    datetime,
+    timedelta,
+)
 
 import numpy as np
 import pytest
@@ -26,20 +30,20 @@ def pandas_dtype(request):
     return request.param
 
 
-def test_infer_dtype_from_int_scalar(any_int_dtype):
+def test_infer_dtype_from_int_scalar(any_int_numpy_dtype):
     # Test that infer_dtype_from_scalar is
     # returning correct dtype for int and float.
-    data = np.dtype(any_int_dtype).type(12)
+    data = np.dtype(any_int_numpy_dtype).type(12)
     dtype, val = infer_dtype_from_scalar(data)
     assert dtype == type(data)
 
 
-def test_infer_dtype_from_float_scalar(float_dtype):
-    float_dtype = np.dtype(float_dtype).type
-    data = float_dtype(12)
+def test_infer_dtype_from_float_scalar(float_numpy_dtype):
+    float_numpy_dtype = np.dtype(float_numpy_dtype).type
+    data = float_numpy_dtype(12)
 
     dtype, val = infer_dtype_from_scalar(data)
-    assert dtype == float_dtype
+    assert dtype == float_numpy_dtype
 
 
 @pytest.mark.parametrize(
@@ -105,13 +109,11 @@ def test_infer_from_scalar_tz(tz, pandas_dtype):
 
     if pandas_dtype:
         exp_dtype = f"datetime64[ns, {tz}]"
-        exp_val = dt.value
     else:
         exp_dtype = np.object_
-        exp_val = dt
 
     assert dtype == exp_dtype
-    assert val == exp_val
+    assert val == dt
 
 
 @pytest.mark.parametrize(

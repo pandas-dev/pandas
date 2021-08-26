@@ -1,5 +1,11 @@
-from cpython.datetime cimport date, datetime
-from numpy cimport int32_t, int64_t
+from cpython.datetime cimport (
+    date,
+    datetime,
+)
+from numpy cimport (
+    int32_t,
+    int64_t,
+)
 
 
 cdef extern from "numpy/ndarrayobject.h":

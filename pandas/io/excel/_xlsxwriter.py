@@ -1,17 +1,22 @@
-from typing import Dict, List, Tuple
+from __future__ import annotations
+
+from typing import Any
 
 import pandas._libs.json as json
 from pandas._typing import StorageOptions
 
 from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 
 
 class _XlsxStyler:
     # Map from openpyxl-oriented styles to flatter xlsxwriter representation
     # Ordering necessary for both determinism and because some are keyed by
     # prefixes of others.
-    STYLE_MAPPING: Dict[str, List[Tuple[Tuple[str, ...], str]]] = {
+    STYLE_MAPPING: dict[str, list[tuple[tuple[str, ...], str]]] = {
         "font": [
             (("name",), "font_name"),
             (("sz",), "font_size"),
@@ -171,10 +176,14 @@ class XlsxWriter(ExcelWriter):
         datetime_format=None,
         mode: str = "w",
         storage_options: StorageOptions = None,
-        **engine_kwargs,
+        if_sheet_exists: str | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         # Use the xlsxwriter module as the Excel writer.
         from xlsxwriter import Workbook
+
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
         if mode == "a":
             raise ValueError("Append mode is not supported with xlsxwriter!")
@@ -186,7 +195,8 @@ class XlsxWriter(ExcelWriter):
             datetime_format=datetime_format,
             mode=mode,
             storage_options=storage_options,
-            **engine_kwargs,
+            if_sheet_exists=if_sheet_exists,
+            engine_kwargs=engine_kwargs,
         )
 
         self.book = Workbook(self.handles.handle, **engine_kwargs)

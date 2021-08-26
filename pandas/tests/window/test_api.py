@@ -16,7 +16,8 @@ import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 
-def test_getitem(frame):
+def test_getitem():
+    frame = DataFrame(np.random.randn(5, 5))
     r = frame.rolling(window=5)
     tm.assert_index_equal(r._selected_obj.columns, frame.columns)
 
@@ -67,7 +68,10 @@ def tests_skip_nuisance():
 def test_skip_sum_object_raises():
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3)
-    result = r.sum()
+    msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#42738
+        result = r.sum()
     expected = DataFrame(
         {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
         columns=list("AB"),
@@ -325,3 +329,17 @@ def test_is_datetimelike_deprecated():
     s = Series(range(1)).rolling(1)
     with tm.assert_produces_warning(FutureWarning):
         assert not s.is_datetimelike
+
+
+@pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
+def test_dont_modify_attributes_after_methods(
+    arithmetic_win_operators, closed, center, min_periods
+):
+    # GH 39554
+    roll_obj = Series(range(1)).rolling(
+        1, center=center, closed=closed, min_periods=min_periods
+    )
+    expected = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
+    getattr(roll_obj, arithmetic_win_operators)()
+    result = {attr: getattr(roll_obj, attr) for attr in roll_obj._attributes}
+    assert result == expected

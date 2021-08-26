@@ -9,7 +9,12 @@ from libc.string cimport strchr
 import cython
 from cython import Py_ssize_t
 
-from cpython.datetime cimport datetime, datetime_new, import_datetime, tzinfo
+from cpython.datetime cimport (
+    datetime,
+    datetime_new,
+    import_datetime,
+    tzinfo,
+)
 from cpython.object cimport PyObject_Str
 from cpython.version cimport PY_VERSION_HEX
 
@@ -31,7 +36,10 @@ cnp.import_array()
 
 # dateutil compat
 
-from dateutil.parser import DEFAULTPARSER, parse as du_parse
+from dateutil.parser import (
+    DEFAULTPARSER,
+    parse as du_parse,
+)
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
@@ -43,9 +51,15 @@ from dateutil.tz import (
 from pandas._config import get_option
 
 from pandas._libs.tslibs.ccalendar cimport c_MONTH_NUMBERS
-from pandas._libs.tslibs.nattype cimport c_NaT as NaT, c_nat_strings as nat_strings
+from pandas._libs.tslibs.nattype cimport (
+    c_NaT as NaT,
+    c_nat_strings as nat_strings,
+)
 from pandas._libs.tslibs.offsets cimport is_offset_object
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size, is_array
+from pandas._libs.tslibs.util cimport (
+    get_c_string_buf_and_size,
+    is_array,
+)
 
 
 cdef extern from "../src/headers/portable.h":
@@ -205,7 +219,7 @@ def parse_datetime_string(
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
-):
+) -> datetime:
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -267,7 +281,9 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
     Returns
     -------
-    datetime, datetime/dateutil.parser._result, str
+    datetime
+    str
+        Describing resolution of parsed string.
     """
     if is_offset_object(freq):
         freq = freq.rule_code
@@ -454,8 +470,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
     except ValueError:
         pass
 
-    if date_len == 6 and (freq == 'M' or
-                          getattr(freq, 'rule_code', None) == 'M'):
+    if date_len == 6 and freq == 'M':
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:
@@ -581,7 +596,7 @@ cdef dateutil_parse(
 
 def try_parse_dates(
     object[:] values, parser=None, bint dayfirst=False, default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -625,7 +640,7 @@ def try_parse_date_and_time(
     time_parser=None,
     bint dayfirst=False,
     default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -661,7 +676,9 @@ def try_parse_date_and_time(
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(object[:] years, object[:] months, object[:] days):
+def try_parse_year_month_day(
+    object[:] years, object[:] months, object[:] days
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -683,7 +700,7 @@ def try_parse_datetime_components(object[:] years,
                                   object[:] days,
                                   object[:] hours,
                                   object[:] minutes,
-                                  object[:] seconds):
+                                  object[:] seconds) -> np.ndarray:
 
     cdef:
         Py_ssize_t i, n
@@ -974,7 +991,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndarray:
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 

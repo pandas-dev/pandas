@@ -7,7 +7,14 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import Categorical, DataFrame, Index, MultiIndex, Series, concat
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+)
 import pandas._testing as tm
 
 

@@ -19,17 +19,12 @@ if missing_dependencies:
 del hard_dependencies, dependency, missing_dependencies
 
 # numpy compat
-from pandas.compat.numpy import (
-    np_version_under1p17 as _np_version_under1p17,
-    np_version_under1p18 as _np_version_under1p18,
-    is_numpy_dev as _is_numpy_dev,
-)
+from pandas.compat import is_numpy_dev as _is_numpy_dev
 
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
 except ImportError as e:  # pragma: no cover
-    # hack but overkill to use re
-    module = str(e).replace("cannot import name ", "")
+    module = e.name
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
@@ -79,6 +74,7 @@ from pandas.core.api import (
     UInt64Index,
     RangeIndex,
     Float64Index,
+    NumericIndex,
     MultiIndex,
     IntervalIndex,
     TimedeltaIndex,
@@ -167,6 +163,7 @@ from pandas.io.api import (
     read_feather,
     read_gbq,
     read_html,
+    read_xml,
     read_json,
     read_stata,
     read_sas,
@@ -180,7 +177,7 @@ import pandas.testing
 import pandas.arrays
 
 # use the closest tagged version if possible
-from ._version import get_versions
+from pandas._version import get_versions
 
 v = get_versions()
 __version__ = v.get("closest-tag", v["version"])
@@ -210,7 +207,7 @@ def __getattr__(name):
         warnings.warn(
             "The pandas.np module is deprecated "
             "and will be removed from pandas in a future version. "
-            "Import numpy directly instead",
+            "Import numpy directly instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -221,7 +218,7 @@ def __getattr__(name):
     elif name in {"SparseSeries", "SparseDataFrame"}:
         warnings.warn(
             f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version",
+            "the top-level namespace will also be removed in the next version.",
             FutureWarning,
             stacklevel=2,
         )

@@ -1,8 +1,16 @@
 """
 Module for formatting output data in Latex.
 """
-from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional, Sequence, Tuple, Type, Union
+from __future__ import annotations
+
+from abc import (
+    ABC,
+    abstractmethod,
+)
+from typing import (
+    Iterator,
+    Sequence,
+)
 
 import numpy as np
 
@@ -12,8 +20,8 @@ from pandas.io.formats.format import DataFrameFormatter
 
 
 def _split_into_full_short_caption(
-    caption: Optional[Union[str, Tuple[str, str]]]
-) -> Tuple[str, str]:
+    caption: str | tuple[str, str] | None
+) -> tuple[str, str]:
     """Extract full and short captions from caption string/tuple.
 
     Parameters
@@ -64,7 +72,7 @@ class RowStringConverter(ABC):
         self,
         formatter: DataFrameFormatter,
         multicolumn: bool = False,
-        multicolumn_format: Optional[str] = None,
+        multicolumn_format: str | None = None,
         multirow: bool = False,
     ):
         self.fmt = formatter
@@ -72,7 +80,7 @@ class RowStringConverter(ABC):
         self.multicolumn = multicolumn
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
-        self.clinebuf: List[List[int]] = []
+        self.clinebuf: list[list[int]] = []
         self.strcols = self._get_strcols()
         self.strrows = list(zip(*self.strcols))
 
@@ -129,7 +137,7 @@ class RowStringConverter(ABC):
             nlevels += 1
         return nlevels
 
-    def _get_strcols(self) -> List[List[str]]:
+    def _get_strcols(self) -> list[list[str]]:
         """String representation of the columns."""
         if self.fmt.frame.empty:
             strcols = [[self._empty_info_line]]
@@ -177,7 +185,7 @@ class RowStringConverter(ABC):
             f"Index: {self.frame.index}"
         )
 
-    def _preprocess_row(self, row: Sequence[str]) -> List[str]:
+    def _preprocess_row(self, row: Sequence[str]) -> list[str]:
         """Preprocess elements of the row."""
         if self.fmt.escape:
             crow = _escape_symbols(row)
@@ -187,7 +195,7 @@ class RowStringConverter(ABC):
             crow = _convert_to_bold(crow, self.index_levels)
         return crow
 
-    def _format_multicolumn(self, row: List[str]) -> List[str]:
+    def _format_multicolumn(self, row: list[str]) -> list[str]:
         r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
@@ -227,7 +235,7 @@ class RowStringConverter(ABC):
             append_col()
         return row2
 
-    def _format_multirow(self, row: List[str], i: int) -> List[str]:
+    def _format_multirow(self, row: list[str], i: int) -> list[str]:
         r"""
         Check following rows, whether row should be a multirow
 
@@ -320,14 +328,14 @@ class TableBuilderAbstract(ABC):
     def __init__(
         self,
         formatter: DataFrameFormatter,
-        column_format: Optional[str] = None,
+        column_format: str | None = None,
         multicolumn: bool = False,
-        multicolumn_format: Optional[str] = None,
+        multicolumn_format: str | None = None,
         multirow: bool = False,
-        caption: Optional[str] = None,
-        short_caption: Optional[str] = None,
-        label: Optional[str] = None,
-        position: Optional[str] = None,
+        caption: str | None = None,
+        short_caption: str | None = None,
+        label: str | None = None,
+        position: str | None = None,
     ):
         self.fmt = formatter
         self.column_format = column_format
@@ -466,7 +474,7 @@ class GenericTableBuilder(TableBuilderAbstract):
             multirow=self.multirow,
         )
 
-    def _select_iterator(self, over: str) -> Type[RowStringIterator]:
+    def _select_iterator(self, over: str) -> type[RowStringIterator]:
         """Select proper iterator over table rows."""
         if over == "header":
             return RowHeaderIterator
@@ -480,9 +488,8 @@ class GenericTableBuilder(TableBuilderAbstract):
 class LongTableBuilder(GenericTableBuilder):
     """Concrete table builder for longtable.
 
-    >>> from pandas import DataFrame
     >>> from pandas.io.formats import format as fmt
-    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
     >>> builder = LongTableBuilder(formatter, caption='a long table',
     ...                            label='tab:long', column_format='lrl')
@@ -570,9 +577,8 @@ class LongTableBuilder(GenericTableBuilder):
 class RegularTableBuilder(GenericTableBuilder):
     """Concrete table builder for regular table.
 
-    >>> from pandas import DataFrame
     >>> from pandas.io.formats import format as fmt
-    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
     >>> builder = RegularTableBuilder(formatter, caption='caption', label='lab',
     ...                               column_format='lrc')
@@ -617,9 +623,8 @@ class RegularTableBuilder(GenericTableBuilder):
 class TabularBuilder(GenericTableBuilder):
     """Concrete table builder for tabular environment.
 
-    >>> from pandas import DataFrame
     >>> from pandas.io.formats import format as fmt
-    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
     >>> builder = TabularBuilder(formatter, column_format='lrc')
     >>> table = builder.get_result()
@@ -685,13 +690,13 @@ class LatexFormatter:
         self,
         formatter: DataFrameFormatter,
         longtable: bool = False,
-        column_format: Optional[str] = None,
+        column_format: str | None = None,
         multicolumn: bool = False,
-        multicolumn_format: Optional[str] = None,
+        multicolumn_format: str | None = None,
         multirow: bool = False,
-        caption: Optional[Union[str, Tuple[str, str]]] = None,
-        label: Optional[str] = None,
-        position: Optional[str] = None,
+        caption: str | tuple[str, str] | None = None,
+        label: str | None = None,
+        position: str | None = None,
     ):
         self.fmt = formatter
         self.frame = self.fmt.frame
@@ -732,7 +737,7 @@ class LatexFormatter:
             position=self.position,
         )
 
-    def _select_builder(self) -> Type[TableBuilderAbstract]:
+    def _select_builder(self) -> type[TableBuilderAbstract]:
         """Select proper table builder."""
         if self.longtable:
             return LongTableBuilder
@@ -741,12 +746,12 @@ class LatexFormatter:
         return TabularBuilder
 
     @property
-    def column_format(self) -> Optional[str]:
+    def column_format(self) -> str | None:
         """Column format."""
         return self._column_format
 
     @column_format.setter
-    def column_format(self, input_column_format: Optional[str]) -> None:
+    def column_format(self, input_column_format: str | None) -> None:
         """Setter for column format."""
         if input_column_format is None:
             self._column_format = (
@@ -779,7 +784,7 @@ class LatexFormatter:
         return "l" * self.frame.index.nlevels if self.fmt.index else ""
 
 
-def _escape_symbols(row: Sequence[str]) -> List[str]:
+def _escape_symbols(row: Sequence[str]) -> list[str]:
     """Carry out string replacements for special symbols.
 
     Parameters
@@ -811,7 +816,7 @@ def _escape_symbols(row: Sequence[str]) -> List[str]:
     ]
 
 
-def _convert_to_bold(crow: Sequence[str], ilevels: int) -> List[str]:
+def _convert_to_bold(crow: Sequence[str], ilevels: int) -> list[str]:
     """Convert elements in ``crow`` to bold."""
     return [
         f"\\textbf{{{x}}}" if j < ilevels and x.strip() not in ["", "{}"] else x

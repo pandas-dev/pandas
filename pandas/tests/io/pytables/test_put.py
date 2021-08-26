@@ -1,6 +1,9 @@
 import datetime
 import re
-from warnings import catch_warnings, simplefilter
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest

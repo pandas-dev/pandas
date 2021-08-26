@@ -1,16 +1,15 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
-from pandas import Index, Series
+from pandas import (
+    Index,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import Timestamp
-
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestSeriesQuantile:
@@ -218,3 +217,9 @@ class TestSeriesQuantile:
         res = s.quantile([0.5])
         exp = Series([pd.NaT], index=[0.5])
         tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize("dtype", [int, float, "Int64"])
+    def test_quantile_dtypes(self, dtype):
+        result = Series([1, 2, 3], dtype=dtype).quantile(np.arange(0, 1, 0.25))
+        expected = Series(np.arange(1, 3, 0.5), index=np.arange(0, 1, 0.25))
+        tm.assert_series_equal(result, expected)

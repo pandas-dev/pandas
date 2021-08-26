@@ -6,7 +6,13 @@ import pytest
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import Categorical, DataFrame, NaT, Timestamp, date_range
+from pandas import (
+    Categorical,
+    DataFrame,
+    NaT,
+    Timestamp,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -72,6 +78,13 @@ class TestDataFrameSortValues:
         msg = r"Length of ascending \(5\) != length of by \(2\)"
         with pytest.raises(ValueError, match=msg):
             frame.sort_values(by=["A", "B"], axis=0, ascending=[True] * 5)
+
+    def test_sort_values_by_empty_list(self):
+        # https://github.com/pandas-dev/pandas/issues/40258
+        expected = DataFrame({"a": [1, 4, 2, 5, 3, 6]})
+        result = expected.sort_values(by=[])
+        tm.assert_frame_equal(result, expected)
+        assert result is not expected
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
@@ -323,7 +336,7 @@ class TestDataFrameSortValues:
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT))
+        int_values = (2, int(NaT.value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -579,6 +592,14 @@ class TestDataFrameSortValues:
 
         assert df.iloc[0, 0] == df["A"][0]
 
+    def test_sort_values_reshaping(self):
+        # GH 39426
+        values = list(range(21))
+        expected = DataFrame([values], columns=values)
+        df = expected.sort_values(expected.index[0], axis=1, ignore_index=True)
+
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
@@ -831,7 +852,39 @@ class TestSortValuesLevelAsStr:
         if len(levels) > 1:
             # Accessing multi-level columns that are not lexsorted raises a
             # performance warning
-            with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+            with tm.assert_produces_warning(PerformanceWarning):
                 tm.assert_frame_equal(result, expected)
         else:
             tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame\.sort_values "
+            r"except for the argument 'by' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.sort_values("a", 0)
+        expected = DataFrame({"a": [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_values_validate_ascending_for_value_error(self):
+        # GH41634
+        df = DataFrame({"D": [23, 7, 21]})
+
+        msg = 'For argument "ascending" expected type bool, received type str.'
+        with pytest.raises(ValueError, match=msg):
+            df.sort_values(by="D", ascending="False")
+
+    @pytest.mark.parametrize("ascending", [False, 0, 1, True])
+    def test_sort_values_validate_ascending_functional(self, ascending):
+        df = DataFrame({"D": [23, 7, 21]})
+        indexer = df["D"].argsort().values
+
+        if not ascending:
+            indexer = indexer[::-1]
+
+        expected = df.loc[df.index[indexer]]
+        result = df.sort_values(by="D", ascending=ascending)
+        tm.assert_frame_equal(result, expected)

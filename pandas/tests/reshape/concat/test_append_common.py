@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Categorical, DataFrame, Index, Series
+from pandas import (
+    Categorical,
+    DataFrame,
+    Index,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -366,7 +371,7 @@ class TestConcatAppendCommon:
         )
 
         res = dti1.append(dti3)
-        # tm.assert_index_equal(res, exp)
+        tm.assert_index_equal(res, exp)
 
         dts1 = Series(dti1)
         dts3 = Series(dti3)

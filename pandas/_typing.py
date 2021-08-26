@@ -1,5 +1,14 @@
-from datetime import datetime, timedelta, tzinfo
-from io import BufferedIOBase, RawIOBase, TextIOBase, TextIOWrapper
+from datetime import (
+    datetime,
+    timedelta,
+    tzinfo,
+)
+from io import (
+    BufferedIOBase,
+    RawIOBase,
+    TextIOBase,
+    TextIOWrapper,
+)
 from mmap import mmap
 from os import PathLike
 from typing import (
@@ -12,11 +21,12 @@ from typing import (
     Dict,
     Hashable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
     Tuple,
-    Type,
+    Type as type_t,
     TypeVar,
     Union,
 )
@@ -27,38 +37,51 @@ import numpy as np
 # and use a string literal forward reference to it in subsequent types
 # https://mypy.readthedocs.io/en/latest/common_issues.html#import-cycles
 if TYPE_CHECKING:
-    from typing import final
+    import numpy.typing as npt
 
-    from pandas._libs import Period, Timedelta, Timestamp
+    from pandas._libs import (
+        Period,
+        Timedelta,
+        Timestamp,
+    )
 
     from pandas.core.dtypes.dtypes import ExtensionDtype
 
     from pandas import Interval
-    from pandas.core.arrays.base import ExtensionArray  # noqa: F401
+    from pandas.core.arrays.base import ExtensionArray
     from pandas.core.frame import DataFrame
-    from pandas.core.generic import NDFrame  # noqa: F401
-    from pandas.core.groupby.generic import DataFrameGroupBy, SeriesGroupBy
+    from pandas.core.generic import NDFrame
+    from pandas.core.groupby.generic import (
+        DataFrameGroupBy,
+        GroupBy,
+        SeriesGroupBy,
+    )
     from pandas.core.indexes.base import Index
-    from pandas.core.internals import ArrayManager, BlockManager
+    from pandas.core.internals import (
+        ArrayManager,
+        BlockManager,
+        SingleArrayManager,
+        SingleBlockManager,
+    )
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+    from pandas.tseries.offsets import DateOffset
 else:
-    # typing.final does not exist until py38
-    final = lambda x: x
+    npt: Any = None
 
 
 # array-like
 
-AnyArrayLike = TypeVar("AnyArrayLike", "ExtensionArray", "Index", "Series", np.ndarray)
-ArrayLike = TypeVar("ArrayLike", "ExtensionArray", np.ndarray)
+ArrayLike = Union["ExtensionArray", np.ndarray]
+AnyArrayLike = Union[ArrayLike, "Index", "Series"]
 
 # scalars
 
 PythonScalar = Union[str, int, float, bool]
-DatetimeLikeScalar = TypeVar("DatetimeLikeScalar", "Period", "Timestamp", "Timedelta")
+DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
 
@@ -71,12 +94,6 @@ TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, int, np.int64, float, str
 ]
 Timezone = Union[str, tzinfo]
-
-# FrameOrSeriesUnion  means either a DataFrame or a Series. E.g.
-# `def func(a: FrameOrSeriesUnion) -> FrameOrSeriesUnion: ...` means that if a Series
-# is passed in, either a Series or DataFrame is returned, and if a DataFrame is passed
-# in, either a DataFrame or a Series is returned.
-FrameOrSeriesUnion = Union["DataFrame", "Series"]
 
 # FrameOrSeries is stricter and ensures that the same subclass of NDFrame always is
 # used. E.g. `def func(a: FrameOrSeries) -> FrameOrSeries: ...` means that if a
@@ -91,12 +108,21 @@ Shape = Tuple[int, ...]
 Suffixes = Tuple[str, str]
 Ordered = Optional[bool]
 JSONSerializable = Optional[Union[PythonScalar, List, Dict]]
-Axes = Collection
+Frequency = Union[str, "DateOffset"]
+Axes = Collection[Any]
+
+RandomState = Union[
+    int,
+    ArrayLike,
+    np.random.Generator,
+    np.random.BitGenerator,
+    np.random.RandomState,
+]
 
 # dtypes
 NpDtype = Union[str, np.dtype]
 Dtype = Union[
-    "ExtensionDtype", NpDtype, Type[Union[str, float, int, complex, bool, object]]
+    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
 ]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
@@ -129,6 +155,7 @@ AggFuncType = Union[
 AggObjType = Union[
     "Series",
     "DataFrame",
+    "GroupBy",
     "SeriesGroupBy",
     "DataFrameGroupBy",
     "BaseWindow",
@@ -139,8 +166,8 @@ PythonFuncType = Callable[[Any], Any]
 
 # filenames and file-like-objects
 Buffer = Union[IO[AnyStr], RawIOBase, BufferedIOBase, TextIOBase, TextIOWrapper, mmap]
-FileOrBuffer = Union[str, Buffer[T]]
-FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[T]]
+FileOrBuffer = Union[str, Buffer[AnyStr]]
+FilePathOrBuffer = Union["PathLike[str]", FileOrBuffer[AnyStr]]
 
 # for arbitrary kwargs passed during reading/writing files
 StorageOptions = Optional[Dict[str, Any]]
@@ -161,5 +188,23 @@ ColspaceArgType = Union[
     str, int, Sequence[Union[str, int]], Mapping[Hashable, Union[str, int]]
 ]
 
+# Arguments for fillna()
+FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+
 # internals
-Manager = Union["ArrayManager", "BlockManager"]
+Manager = Union[
+    "ArrayManager", "SingleArrayManager", "BlockManager", "SingleBlockManager"
+]
+SingleManager = Union["SingleArrayManager", "SingleBlockManager"]
+Manager2D = Union["ArrayManager", "BlockManager"]
+
+# indexing
+# PositionalIndexer -> valid 1D positional indexer, e.g. can pass
+# to ndarray.__getitem__
+# TODO: add Ellipsis, see
+# https://github.com/python/typing/issues/684#issuecomment-548203158
+# https://bugs.python.org/issue41810
+PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
+PositionalIndexer2D = Union[
+    PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
+]

@@ -3,9 +3,18 @@ import random
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.errors import (
+    PerformanceWarning,
+    UnsortedIndexError,
+)
 
-from pandas import CategoricalIndex, DataFrame, Index, MultiIndex, RangeIndex
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+    RangeIndex,
+)
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
 
