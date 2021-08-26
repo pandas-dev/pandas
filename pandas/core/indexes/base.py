@@ -4892,7 +4892,10 @@ class Index(IndexOpsMixin, PandasObject):
         np.putmask(values, mask, converted)
 
         if self._is_multi:
-            return type(self).from_tuples(values, name=self.name)
+            # error: "Type[Index]" has no attribute "from_tuples"
+            return type(self).from_tuples(  # type: ignore[attr-defined]
+                values, name=self.name
+            )
         return type(self)._simple_new(values, name=self.name)
 
     def equals(self, other: Any) -> bool:
