@@ -1150,3 +1150,17 @@ def test_doctest_example2():
         {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_dropna_with_indexed_same2(dropna):
+    # GH#43205
+    df = DataFrame(
+        {
+            "a": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            "b": [1, np.nan, 1, np.nan, 2, 1, 2, np.nan, 1],
+        }
+    )
+    result = df.groupby("b", dropna=dropna).apply(lambda x: x)
+    expected = df.dropna() if dropna else df
+    tm.assert_frame_equal(result, expected)
