@@ -213,11 +213,15 @@ class TestSeriesValueCounts:
         [
             (
                 [1 + 1j, 1 + 1j, 1, 3j, 3j, 3j],
-                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1])),
-            )
+                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1], dtype=np.complex128)),
+            ),
+            (
+                [1 + 1j, 1 + 1j, 1, 3j, 3j, 3j],
+                Series([3, 2, 1], index=pd.Index([3j, 1 + 1j, 1], dtype=np.complex64)),
+            ),
         ],
     )
     def test_value_counts_complex_numbers(self, input_array, expected):
         # Complex Index dtype is cast to object
         result = Series(input_array).value_counts()
-        tm.assert_series_equal(result, expected, check_index_type=False)
+        tm.assert_series_equal(result, expected)
