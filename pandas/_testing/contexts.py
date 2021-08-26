@@ -8,6 +8,7 @@ from shutil import rmtree
 import signal
 import string
 import tempfile
+import warnings
 from typing import (
     IO,
     Any,
@@ -244,10 +245,18 @@ def timeout(seconds):
     def timeout_handler(signum, frame):
         raise RuntimeError
 
-    orig_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    has_alarm = True
+    try:
+        orig_handler = signal.signal(signal.SIGALRM, timeout_handler)
+    except AttributeError:
+        if not hasattr(signal, 'SIGALRM') or not hasattr(signal, 'alarm'):
+            warnings.warn("SIGALRM not available on this platform, timeout will not be enforced")
+            has_alarm = False
+
     signal.alarm(seconds)
     try:
         yield
     finally:
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, orig_handler)
+        if has_alarm:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, orig_handler)
