@@ -1,6 +1,6 @@
 import pytest
 import pytz
-
+import itertools
 from pandas._libs.tslibs import timezones
 
 from pandas import (
@@ -9,6 +9,8 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    CategoricalDtype,
+    DataFrame
 )
 import pandas._testing as tm
 
@@ -41,6 +43,20 @@ class TestTZLocalize:
         result = ser.dt.tz_localize("US/Central", ambiguous=[False])
         tm.assert_series_equal(result, expected1)
 
+    def test_series_tz_localize_matching_index(self):
+        #Matching the index of the result with that of the original series
+        ts_list = date_range(start='2021-01-01T02:00:00', periods=3, freq='1D').to_list()
+        tz_list = date_range(start='2021-01-01T02:00:00', periods=3, freq='1D',tz='Europe/Berlin').to_list()
+        df = DataFrame(data=list(itertools.islice(itertools.cycle(ts_list), 9)),
+                  index=[2, 4, 5, 6, 7, 8, 11, 14, 15],
+                  columns=['pure_datetime'])
+        df['categorical_datetime'] = df['pure_datetime'].astype(CategoricalDtype())
+        ser = df['categorical_datetime']
+        expected = Series(data=list(itertools.islice(itertools.cycle(tz_list), 9)),
+                  index=[2, 4, 5, 6, 7, 8, 11, 14, 15],name='categorical_datetime')
+        result = ser.dt.tz_localize('Europe/Berlin')
+        tm.assert_series_equal(result, expected)
+    
     @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
     @pytest.mark.parametrize(
         "method, exp",
