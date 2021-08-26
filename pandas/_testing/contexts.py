@@ -8,11 +8,11 @@ from shutil import rmtree
 import signal
 import string
 import tempfile
-import warnings
 from typing import (
     IO,
     Any,
 )
+import warnings
 
 import numpy as np
 
@@ -249,8 +249,10 @@ def timeout(seconds):
     try:
         orig_handler = signal.signal(signal.SIGALRM, timeout_handler)
     except AttributeError:
-        if not hasattr(signal, 'SIGALRM') or not hasattr(signal, 'alarm'):
-            warnings.warn("SIGALRM not available on this platform, timeout will not be enforced")
+        if not hasattr(signal, "SIGALRM") or not hasattr(signal, "alarm"):
+            warnings.warn(
+                "SIGALRM not available on this platform, timeout will not be enforced"
+            )
             has_alarm = False
 
     signal.alarm(seconds)

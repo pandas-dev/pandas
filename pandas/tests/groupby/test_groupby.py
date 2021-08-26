@@ -2453,7 +2453,7 @@ def test_groupby_categorical_crossproduct():
     with timeout(1):
         assert g[1].sum().max() == 24
 
-        
+
 def test_rolling_wrong_param_min_period():
     # GH34037
     name_l = ["Alice"] * 5 + ["Bob"] * 5
