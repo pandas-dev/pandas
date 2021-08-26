@@ -18,7 +18,7 @@ dependencies:
   - html5lib
   - ipython
   - jinja2
-  - jedi<0.18.0
+  - jedi
   - lxml
   - matplotlib<3.3.0
   - moto

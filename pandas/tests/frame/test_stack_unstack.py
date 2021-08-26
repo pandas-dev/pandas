@@ -255,7 +255,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
         # Fill with non-category results in a ValueError
-        msg = r"'fill_value=d' is not present in"
+        msg = r"Cannot setitem on a Categorical with a new category \(d\)"
         with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
@@ -1283,6 +1283,21 @@ def test_stack_positional_level_duplicate_column_names():
     expected = DataFrame([[1, 1], [1, 1]], index=new_index, columns=new_columns)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_non_slice_like_blocks(using_array_manager):
+    # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
+
+    mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
+    df = DataFrame(np.random.randn(15, 4), index=mi)
+    df[1] = df[1].astype(np.int64)
+    if not using_array_manager:
+        assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
+
+    res = df.unstack()
+
+    expected = pd.concat([df[n].unstack() for n in range(4)], keys=range(4), axis=1)
+    tm.assert_frame_equal(res, expected)
 
 
 class TestStackUnstackMultiLevel:

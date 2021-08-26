@@ -22,6 +22,7 @@ dependencies:
   - matplotlib
   - moto>=1.3.14
   - flask
+  - numba
   - numexpr
   - numpy
   - openpyxl
@@ -30,6 +31,7 @@ dependencies:
   - python-dateutil
   - pytz
   - s3fs>=0.4.2
+  - aiobotocore<=1.3.3
   - scipy
   - sqlalchemy
   - xlrd

@@ -942,7 +942,7 @@ class TestTimeSeries:
         ]:
             tm.assert_index_equal(rng, expected)
 
-    def test_dti_constructor_small_int(self, any_int_dtype):
+    def test_dti_constructor_small_int(self, any_int_numpy_dtype):
         # see gh-13721
         exp = DatetimeIndex(
             [
@@ -952,7 +952,7 @@ class TestTimeSeries:
             ]
         )
 
-        arr = np.array([0, 10, 20], dtype=any_int_dtype)
+        arr = np.array([0, 10, 20], dtype=any_int_numpy_dtype)
         tm.assert_index_equal(DatetimeIndex(arr), exp)
 
     def test_ctor_str_intraday(self):
