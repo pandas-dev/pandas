@@ -8476,6 +8476,42 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         (left, right) : ({klass}, type of other)
             Aligned objects.
+
+        Examples
+        --------
+        >>> left = pd.DataFrame([[1,2,3,4], [6,7,8,9]],
+        ...                     columns=['D', 'B', 'E', 'A'],
+        ...                     index=[1,2])
+
+        >>> right = pd.DataFrame([[10,20,30,40], [60,70,80,90], [600,700,800,900]],
+        ...                      columns=['A', 'B', 'C', 'D'],
+        ...                      index=[2,3,4])
+
+        >>> left
+           D  B  E  A
+        1  1  2  3  4
+        2  6  7  8  9
+
+        >>> right
+            A    B    C    D
+        2   10   20   30   40
+        3   60   70   80   90
+        4  600  700  800  900
+
+        >>> a1, a2 = left.align(right,
+        ...                     join='outer',
+        ...                     axis=1)
+
+        >>> a1
+           A  B   C  D  E
+        1  4  2 NaN  1  3
+        2  9  7 NaN  6  8
+
+        >>> a2
+            A    B    C    D   E
+        2   10   20   30   40 NaN
+        3   60   70   80   90 NaN
+        4  600  700  800  900 NaN
         """
 
         method = missing.clean_fill_method(method)
