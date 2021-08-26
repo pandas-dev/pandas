@@ -110,7 +110,6 @@ class TestReindex:
             [Interval(0, 1, closed="right"), Interval(1, 2, closed="right")],
             ordered=True,
         )
-
         ci_add = CategoricalIndex(
             [
                 Interval(0, 1, closed="right"),
@@ -120,8 +119,6 @@ class TestReindex:
             ],
             ordered=True,
         )
-
         result, _ = ci.reindex(ci_add)
         expected = ci_add
-
         tm.assert_index_equal(expected, result)
