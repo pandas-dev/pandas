@@ -659,6 +659,7 @@ def read_table(
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    storage_options: StorageOptions = None,
 ):
     # locals() should never be modified
     kwds = locals().copy()
