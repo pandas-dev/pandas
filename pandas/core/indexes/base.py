@@ -636,9 +636,9 @@ class Index(IndexOpsMixin, PandasObject):
         Must be careful not to recurse.
         """
         try:
-            assert isinstance(values, np.ndarray), ('Expected ndarray, given: {0}'.format(type(values)))
+            assert isinstance(values, np.ndarray), ("""Expected ndarray, given: {0}
+                                                    """.format(type(values)))
         except AssertionError as e:
-            #print(e)
             raise TypeError(e)
 
         result = object.__new__(cls)
