@@ -12,6 +12,8 @@ from pandas.compat import is_platform_linux
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_float_parser(all_parsers):
     # see gh-9565

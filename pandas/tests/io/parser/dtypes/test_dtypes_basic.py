@@ -16,6 +16,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+# TODO(1.4): Change me into xfail at release time
+# and xfail individual tests
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])

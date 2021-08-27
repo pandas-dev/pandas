@@ -13,6 +13,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_iterator(all_parsers):
     # see gh-6607

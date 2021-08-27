@@ -13,6 +13,8 @@ from pandas.errors import ParserError
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize(
     "kwargs,msg",
