@@ -389,16 +389,64 @@ authors to coordinate on the namespace.
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
 
-## Type stubs
+## Development tools
 
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
 
-pandas by itself doesn't expose any type information to the user.
-This means that in pandas-dependent projects the type checkers like mypy won't perform like expected
-and will treat all pandas objects as they were of type `Any`.
+pandas doesn't expose any type information to the user by itself. 
+Install pandas-stubs to enable basic type coverage of pandas API.
+
 Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
 [26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
 
-pandas-stubs are meant to alleviate this issue by providing basic type coverage of pandas API.
-After installing it using `pip` or `conda`, the `.pyi` files will be
-placed alongside the pandas `.py` files and be available for the type checker.
+#### Installation
+
+Using pip:
+```
+pip install pandas-stubs
+```
+
+Using conda:
+
+```
+conda install -c conda-forge pandas-stubs 
+```
+
+Alternatively the manual install options are:
+
+* cloning the repository along with the files, or
+* including it as a submodule to your project repository,
+
+and then configuring a type checker with the correct paths.
+
+#### Usage
+
+Let’s take this piece of code as an example in file round.py
+
+```
+import pandas as pd
+
+decimals = pd.DataFrame({'TSLA': 3, 'AMZN': 2})
+prices = pd.DataFrame(data={'date': ['2021-08-13', '2021-08-07', '2021-08-21'],
+                            'TSLA': [720.13, 716.22, 731.22], 'AMZN': [3316.50, 3200.50, 3100.23]})
+sorted_prices = prices.round(decimals=decimals)
+```
+
+mypy won't see any issues with that but after installing pandas-stubs and running it again
+
+```
+mypy round.py
+```
+
+we get the following error message
+
+```
+round.py:6: error: Argument "decimals" to "round" of "DataFrame" has incompatible type "DataFrame"; expected "Union[int, Dict[Union[int, str], int], Series]"
+```
+
+And after confirming with the [docs](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.round.html)
+we can fix the code
+
+```
+decimals = pd.Series({'TSLA': 3, 'AMZN': 2})
+```
