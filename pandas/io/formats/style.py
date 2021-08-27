@@ -86,8 +86,11 @@ class Styler(StylerRenderer):
     ----------
     data : Series or DataFrame
         Data to be styled - either a Series or DataFrame.
-    precision : int
-        Precision to round floats to, defaults to pd.options.display.precision.
+    precision : int, optional
+        Precision to round floats to. If not given defaults to
+        ``pandas.options.styler.format.precision``.
+
+        .. versionchanged:: 1.4.0
     table_styles : list-like, default None
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
@@ -104,7 +107,8 @@ class Styler(StylerRenderer):
         number and ``<num_col>`` is the column number.
     na_rep : str, optional
         Representation for missing values.
-        If ``na_rep`` is None, no special formatting is applied.
+        If ``na_rep`` is None, no special formatting is applied, and falls back to
+        ``pandas.options.styler.format.na_rep``.
 
         .. versionadded:: 1.0.0
 
@@ -114,13 +118,15 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.2.0
 
-    decimal : str, default "."
-        Character used as decimal separator for floats, complex and integers
+    decimal : str, optional
+        Character used as decimal separator for floats, complex and integers. If not
+        given uses ``pandas.options.styler.format.decimal``.
 
         .. versionadded:: 1.3.0
 
     thousands : str, optional, default None
-        Character used as thousands separator for floats, complex and integers
+        Character used as thousands separator for floats, complex and integers. If not
+        given uses ``pandas.options.styler.format.thousands``.
 
         .. versionadded:: 1.3.0
 
@@ -129,9 +135,14 @@ class Styler(StylerRenderer):
         in cell display string with HTML-safe sequences.
         Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
         ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
-        LaTeX-safe sequences.
+        LaTeX-safe sequences. If not given uses ``pandas.options.styler.format.escape``
 
         .. versionadded:: 1.3.0
+    formatter : str, callable, dict, optional
+        Object to define how values are displayed. See ``Styler.format``. If not given
+        uses ``pandas.options.styler.format.formatter``.
+
+        .. versionadded:: 1.4.0
 
     Attributes
     ----------
