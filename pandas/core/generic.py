@@ -2645,7 +2645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               which may perform worse but allow more flexible operations
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
-              followed by fallback to "fixed"
+              followed by fallback to "fixed".
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
