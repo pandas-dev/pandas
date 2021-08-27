@@ -407,7 +407,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 if is_datetime64tz_dtype(data.dtype):
                     warnings.warn(
                         f"Creating SparseArray from {data.dtype} data "
-                        "loses timezone information.  Cast to object before "
+                        "loses timezone information. Cast to object before "
                         "sparse to retain timezone information.",
                         UserWarning,
                         stacklevel=2,

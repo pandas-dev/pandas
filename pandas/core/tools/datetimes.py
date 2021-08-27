@@ -705,10 +705,9 @@ def to_datetime(
         .. warning::
 
             dayfirst=True is not strict, but will prefer to parse
-            with day first (this is a known bug, based on dateutil behavior).
-            If a date string cannot be parsed in accordance with the given
-            `dayfirst` option (e.g. ``to_datetime(['31-12-2021'], dayfirst=False)``)
-            then a warning will be shown.
+            with day first. If a delimited date string cannot be parsed in
+            accordance with the given `dayfirst` option, e.g.
+            ``to_datetime(['31-12-2021'])``, then a warning will be shown.
 
     yearfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
@@ -721,7 +720,7 @@ def to_datetime(
         .. warning::
 
             yearfirst=True is not strict, but will prefer to parse
-            with year first (this is a known bug, based on dateutil behavior).
+            with year first.
 
     utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
@@ -1106,7 +1105,7 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> np.ndarray | None:
 def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     # GH#34145
     warnings.warn(
-        "`to_time` has been moved, should be imported from pandas.core.tools.times.  "
+        "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
         stacklevel=2,
