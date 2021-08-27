@@ -1,4 +1,4 @@
-import itertools
+
 
 import pytest
 import pytz
@@ -7,7 +7,6 @@ from pandas._libs.tslibs import timezones
 
 from pandas import (
     CategoricalDtype,
-    DataFrame,
     DatetimeIndex,
     NaT,
     Series,
@@ -47,25 +46,11 @@ class TestTZLocalize:
 
     def test_series_tz_localize_matching_index(self):
         # Matching the index of the result with that of the original series
-        ts_list = date_range(
-            start="2021-01-01T02:00:00", periods=3, freq="1D"
-        ).to_list()
-        tz_list = date_range(
-            start="2021-01-01T02:00:00", periods=3, freq="1D", tz="Europe/Berlin"
-        ).to_list()
-        df = DataFrame(
-            data=list(itertools.islice(itertools.cycle(ts_list), 9)),
-            index=[2, 4, 5, 6, 7, 8, 11, 14, 15],
-            columns=["pure_datetime"],
-        )
-        df["categorical_datetime"] = df["pure_datetime"].astype(CategoricalDtype())
-        ser = df["categorical_datetime"]
-        expected = Series(
-            data=list(itertools.islice(itertools.cycle(tz_list), 9)),
-            index=[2, 4, 5, 6, 7, 8, 11, 14, 15],
-            name="categorical_datetime",
-        )
-        result = ser.dt.tz_localize("Europe/Berlin")
+        # GH 43080
+        dt_series = Series(date_range(start="2021-01-01T02:00:00", periods=5, freq="1D"),index=[2,  6, 7, 8, 11])
+        cat_series = dt_series.astype(CategoricalDtype())
+        result = cat_series.dt.tz_localize('Europe/Berlin')
+        expected = Series(date_range(start="2021-01-01T02:00:00", periods=5, freq="1D",tz='Europe/Berlin'),index=[2,  6, 7, 8, 11])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("tz", ["Europe/Warsaw", "dateutil/Europe/Warsaw"])
