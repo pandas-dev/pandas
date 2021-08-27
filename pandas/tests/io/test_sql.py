@@ -2199,10 +2199,12 @@ class _TestSQLiteAlchemy:
             Integer,
             String,
         )
-        from sqlalchemy.orm import (
-            declarative_base,
-            sessionmaker,
-        )
+        from sqlalchemy.orm import sessionmaker
+
+        if _gt14():
+            from sqlalchemy.orm import declarative_base
+        else:
+            from sqlalchemy.ext.declarative import declarative_base
 
         BaseModel = declarative_base()
 
