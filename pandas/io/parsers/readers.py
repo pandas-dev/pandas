@@ -646,6 +646,7 @@ def read_table(
     escapechar=None,
     comment=None,
     encoding=None,
+    encoding_errors: str | None = "strict",
     dialect=None,
     # Error Handling
     error_bad_lines=None,
@@ -653,7 +654,6 @@ def read_table(
     # TODO (2.0): set on_bad_lines to "error".
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
-    encoding_errors: str | None = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
