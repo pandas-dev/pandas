@@ -1274,3 +1274,35 @@ def test_timeseries_groupby_agg():
 
     expected = DataFrame([[1.0]], index=[1])
     tm.assert_frame_equal(res, expected)
+
+
+def test_groupby_agg_column_names():
+    # GH42332
+
+    df = DataFrame(columns=["id1", "id2", "time", "values"], dtype="int").groupby(
+        ["id1", "id2"]
+    )
+
+    df_sum_idx = df.sum().index.names
+
+    df_agg1_idx = df.agg(
+        **{"start": pd.NamedAgg(column="time", aggfunc="min")}
+    ).index.names
+
+    df_agg2_idx = df.agg(
+        **{
+            "start": pd.NamedAgg(column="time", aggfunc="min"),
+            "peak_time": pd.NamedAgg(column="values", aggfunc="idxmax"),
+        }
+    ).index.names
+
+    df_agg3_idx = df.agg(
+        **{"peak_time": pd.NamedAgg(column="values", aggfunc="idxmax")}
+    ).index.names
+
+    expected = ["id1", "id2"]
+
+    assert df_sum_idx == expected
+    assert df_agg1_idx == expected
+    assert df_agg2_idx == expected
+    assert df_agg3_idx == expected
