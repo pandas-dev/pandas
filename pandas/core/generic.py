@@ -6278,10 +6278,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     value_map = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
-                    value = self.copy()
-                    modification_index = value.index.intersection(value_map.index)
-                    if not modification_index.empty:
-                        value.loc[modification_index] = value_map[modification_index]
+                    if self.dtype == "object":
+                        value = self.copy()
+                        modification_index = value.index.intersection(value_map.index)
+                        if not modification_index.empty:
+                            value.loc[modification_index] = value_map[
+                                modification_index
+                            ]
+                    else:
+                        value = value_map
+                        value = value.reindex(self.index, copy=False)
+                        value = value._values
                 elif not is_list_like(value):
                     pass
                 else:
