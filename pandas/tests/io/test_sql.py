@@ -2215,13 +2215,13 @@ class _TestSQLiteAlchemy:
         Session = sessionmaker(bind=self.conn)
         session = Session()
 
-        df = pd.DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
+        df = DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
         df.to_sql("test_Frame", con=self.conn, index=False, if_exists="replace")
 
         session.commit()
         foo = session.query(Test.id, Test.foo)
         print(foo)
-        df = pd.DataFrame(foo)
+        df = DataFrame(foo)
         session.close()
 
         assert list(df.columns) == ["id", "foo"]
