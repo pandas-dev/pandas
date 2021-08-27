@@ -271,7 +271,7 @@ def init_dev_clipboard_clipboard():
         text = _stringifyText(text)  # Converts non-str values to str.
         if text == "":
             warnings.warn(
-                "Pyperclip cannot copy a blank string to the clipboard on Cygwin."
+                "Pyperclip cannot copy a blank string to the clipboard on Cygwin. "
                 "This is effectively a no-op."
             )
         if "\r" in text:
@@ -518,7 +518,7 @@ def determine_clipboard():
         # see https://github.com/asweigart/pyperclip/issues/55
         if os.path.exists("/dev/clipboard"):
             warnings.warn(
-                "Pyperclip's support for Cygwin is not perfect,"
+                "Pyperclip's support for Cygwin is not perfect, "
                 "see https://github.com/asweigart/pyperclip/issues/55"
             )
             return init_dev_clipboard_clipboard()

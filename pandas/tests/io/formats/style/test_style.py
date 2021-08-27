@@ -42,7 +42,7 @@ def mi_styler(mi_df):
 def mi_styler_comp(mi_styler):
     # comprehensively add features to mi_styler
     mi_styler.uuid_len = 5
-    mi_styler.uuid = "abcde_"
+    mi_styler.uuid = "abcde"
     mi_styler.set_caption("capt")
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
@@ -550,6 +550,40 @@ class TestStyler:
         result._compute()
         assert result.ctx == expected
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_apply_series_return(self, axis):
+        # GH 42014
+        df = DataFrame([[1, 2], [3, 4]], index=["X", "Y"], columns=["X", "Y"])
+
+        # test Series return where len(Series) < df.index or df.columns but labels OK
+        func = lambda s: pd.Series(["color: red;"], index=["Y"])
+        result = df.style.apply(func, axis=axis)._compute().ctx
+        assert result[(1, 1)] == [("color", "red")]
+        assert result[(1 - axis, axis)] == [("color", "red")]
+
+        # test Series return where labels align but different order
+        func = lambda s: pd.Series(["color: red;", "color: blue;"], index=["Y", "X"])
+        result = df.style.apply(func, axis=axis)._compute().ctx
+        assert result[(0, 0)] == [("color", "blue")]
+        assert result[(1, 1)] == [("color", "red")]
+        assert result[(1 - axis, axis)] == [("color", "red")]
+        assert result[(axis, 1 - axis)] == [("color", "blue")]
+
+    @pytest.mark.parametrize("index", [False, True])
+    @pytest.mark.parametrize("columns", [False, True])
+    def test_apply_dataframe_return(self, index, columns):
+        # GH 42014
+        df = DataFrame([[1, 2], [3, 4]], index=["X", "Y"], columns=["X", "Y"])
+        idxs = ["X", "Y"] if index else ["Y"]
+        cols = ["X", "Y"] if columns else ["Y"]
+        df_styles = DataFrame("color: red;", index=idxs, columns=cols)
+        result = df.style.apply(lambda x: df_styles, axis=None)._compute().ctx
+
+        assert result[(1, 1)] == [("color", "red")]  # (Y,Y) styles always present
+        assert (result[(0, 1)] == [("color", "red")]) is index  # (X,Y) only if index
+        assert (result[(1, 0)] == [("color", "red")]) is columns  # (Y,X) only if cols
+        assert (result[(0, 0)] == [("color", "red")]) is (index and columns)  # (X,X)
+
     @pytest.mark.parametrize(
         "slice_",
         [
@@ -794,23 +828,27 @@ class TestStyler:
         style2.to_html()
 
     def test_bad_apply_shape(self):
-        df = DataFrame([[1, 2], [3, 4]])
-        msg = "returned the wrong shape"
-        with pytest.raises(ValueError, match=msg):
-            df.style._apply(lambda x: "x", subset=pd.IndexSlice[[0, 1], :])
+        df = DataFrame([[1, 2], [3, 4]], index=["A", "B"], columns=["X", "Y"])
 
+        msg = "resulted in the apply method collapsing to a Series."
         with pytest.raises(ValueError, match=msg):
-            df.style._apply(lambda x: [""], subset=pd.IndexSlice[[0, 1], :])
+            df.style._apply(lambda x: "x")
 
-        with pytest.raises(ValueError, match=msg):
+        msg = "created invalid {} labels"
+        with pytest.raises(ValueError, match=msg.format("index")):
+            df.style._apply(lambda x: [""])
+
+        with pytest.raises(ValueError, match=msg.format("index")):
             df.style._apply(lambda x: ["", "", "", ""])
 
-        with pytest.raises(ValueError, match=msg):
-            df.style._apply(lambda x: ["", "", ""], subset=1)
+        with pytest.raises(ValueError, match=msg.format("index")):
+            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["A", "C"]), axis=0)
 
-        msg = "Length mismatch: Expected axis has 3 elements"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=msg.format("columns")):
             df.style._apply(lambda x: ["", "", ""], axis=1)
+
+        with pytest.raises(ValueError, match=msg.format("columns")):
+            df.style._apply(lambda x: pd.Series(["a:v;", ""], index=["X", "Z"]), axis=1)
 
         msg = "returned ndarray with wrong shape"
         with pytest.raises(ValueError, match=msg):
@@ -828,12 +866,13 @@ class TestStyler:
         with pytest.raises(TypeError, match=msg):
             df.style._apply(f, axis=None)
 
-    def test_apply_bad_labels(self):
+    @pytest.mark.parametrize("axis", ["index", "columns"])
+    def test_apply_bad_labels(self, axis):
         def f(x):
-            return DataFrame(index=[1, 2], columns=["a", "b"])
+            return DataFrame(**{axis: ["bad", "labels"]})
 
         df = DataFrame([[1, 2], [3, 4]])
-        msg = "must have identical index and columns as the input"
+        msg = f"created invalid {axis} labels."
         with pytest.raises(ValueError, match=msg):
             df.style._apply(f, axis=None)
 
