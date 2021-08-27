@@ -233,7 +233,7 @@ def test_float_dtype_ewma(func, expected, float_numpy_dtype):
 
 
 def test_times_string_col_deprecated():
-    # GH
+    # GH 43265
     data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
