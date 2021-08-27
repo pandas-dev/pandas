@@ -4018,6 +4018,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-13          31.0      high
         2014-02-14          22.0    medium
         2014-02-15          35.0    medium
+
+        >>> df2 = df.get(["temp_celsius","temp_kelvin"], default = "default_value")
+
+        >>> df2
+                    'default_value'
         """
         try:
             return self[key]
