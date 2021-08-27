@@ -374,7 +374,7 @@ class Fillna:
 
     params = (
         [True, False],
-        ["pad", "bfill"],
+        [None, "pad", "bfill"],
         [
             "float64",
             "float32",
@@ -400,15 +400,19 @@ class Fillna:
             }
             self.df = DataFrame({f"col_{i}": data[dtype] for i in range(M)})
             self.df[::2] = None
+            self.value = (
+                dict(zip(self.df.columns, data[dtype][:M])) if not method else None
+            )
         else:
-            values = np.random.randn(N, M)
-            values[::2] = np.nan
+            data = np.random.randn(N, M)
             if dtype == "Int64":
-                values = values.round()
-            self.df = DataFrame(values, dtype=dtype)
+                data = data.round()
+            self.df = DataFrame({f"col_{i}": data[i] for i in range(M)})
+            self.df[::2] = None
+            self.value = dict(zip(self.df.columns, data[M])) if not method else None
 
     def time_frame_fillna(self, inplace, method, dtype):
-        self.df.fillna(inplace=inplace, method=method)
+        self.df.fillna(value=self.value, inplace=inplace, method=method)
 
 
 class Dropna:

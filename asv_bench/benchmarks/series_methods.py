@@ -6,6 +6,7 @@ from pandas import (
     NaT,
     Series,
     date_range,
+    timedelta_range,
 )
 
 from .pandas_vb_common import tm
@@ -40,6 +41,49 @@ class NSort:
 
     def time_nsmallest(self, keep):
         self.s.nsmallest(3, keep=keep)
+
+
+class Fillna:
+
+    params = (
+        [True, False],
+        [None, "pad", "bfill"],
+        [
+            "float64",
+            "float32",
+            "object",
+            "Int64",
+            "Float64",
+            "datetime64[ns]",
+            "datetime64[ns, tz]",
+            "timedelta64[ns]",
+        ],
+    )
+    param_names = ["inplace", "method", "dtype"]
+
+    def setup(self, inplace, method, dtype):
+        N = 10000
+        if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
+            data = {
+                "datetime64[ns]": date_range("2011-01-01", freq="H", periods=N),
+                "datetime64[ns, tz]": date_range(
+                    "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+                ),
+                "timedelta64[ns]": timedelta_range(start="1 day", periods=N, freq="1D"),
+            }
+            self.ser = Series(data[dtype])
+            self.ser[::2] = None
+            self.value = dict(zip(self.ser.index, data[dtype])) if not method else None
+        else:
+            data = np.random.randn(N)
+            if dtype == "Int64":
+                data = data.round()
+            self.ser = Series(data, dtype=dtype)
+            self.ser[::2] = None
+            self.value = dict(zip(self.ser.index, data)) if not method else None
+
+    def time_series_fillna(self, inplace, method, dtype):
+        self.ser.fillna(value=self.value, inplace=inplace, method=method)
 
 
 class Dropna:
