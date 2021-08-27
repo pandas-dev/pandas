@@ -7592,10 +7592,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Initial time as a time filter limit.
         end_time : datetime.time or str
             End time as a time filter limit.
-        include_start : bool, default True
-            Whether the start time needs to be included in the result.
-        include_end : bool, default True
-            Whether the end time needs to be included in the result.
+        inclusive: Include boundaries. Whether to set each bound as closed or open.
+            {"both", "neither", "left", "right"}, default "both"
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine range time on index or columns value.
 
