@@ -4011,8 +4011,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-15          35.0             95.0    medium
 
         >>> df1 = df.get(["temp_celsius","windspeed"])
-
-        >>> df1
                     temp_celsius windspeed
         2014-02-12          24.3      high
         2014-02-13          31.0      high
@@ -4020,9 +4018,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-15          35.0    medium
 
         >>> df2 = df.get(["temp_celsius","temp_kelvin"], default = "default_value")
-
-        >>> df2
-                    'default_value'
+        'default_value'
         """
         try:
             return self[key]
