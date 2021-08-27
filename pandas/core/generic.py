@@ -7649,9 +7649,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        # if old arguments ('include_start', 'include_end') have been passed
+        # if depreciated arguments ('include_start', 'include_end') have been passed
         if (include_start != 'bool_t') or (include_start != 'bool_t'): 
-            # print("\nasd ->\n", "inclusive=", inclusive, "\ninclude_start, _end = ", include_start, include_end)
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in"
                 "favour of `inclusive`.",
@@ -7662,7 +7661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 include_start = True
             if include_end == 'bool_t':
                 include_end = True
-        else: # if old args haven't been passed
+        else: # if depreciated args haven't been passed
             if inclusive == "both":
                 include_start = True
                 include_end = True
