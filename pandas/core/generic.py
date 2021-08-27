@@ -7661,7 +7661,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 include_start = True
             if include_end == 'bool_t':
                 include_end = True
-        else: # if depreciated args haven't been passed
+        else:  # if depreciated args haven't been passed
             if inclusive == "both":
                 include_start = True
                 include_end = True

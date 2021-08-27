@@ -82,9 +82,9 @@ class TestBetweenTime:
         filtered = ts.between_time(stime, etime, inclusive)
         exp_len = 13 * 4 + 1
 
-        if inclusive in ["right", "neither"]: 
+        if inclusive in ["right", "neither"]:
             exp_len -= 5
-        if inclusive in ["left", "neither"]:  
+        if inclusive in ["left", "neither"]:
             exp_len -= 4
 
         assert len(filtered) == exp_len
@@ -112,22 +112,22 @@ class TestBetweenTime:
         stime = time(22, 0)
         etime = time(9, 0)
 
-        filtered = ts.between_time(stime, etime, inclusive) 
+        filtered = ts.between_time(stime, etime, inclusive)
         exp_len = (12 * 11 + 1) * 4 + 1
-        if inclusive in ["right", "neither"]: 
+        if inclusive in ["right", "neither"]:
             exp_len -= 4
-        if inclusive in ["left", "neither"]: 
+        if inclusive in ["left", "neither"]:
             exp_len -= 4
 
         assert len(filtered) == exp_len
         for rs in filtered.index:
             t = rs.time()
-            if inclusive == "left" or inclusive == "both": 
+            if inclusive == "left" or inclusive == "both":
                 assert (t >= stime) or (t <= etime)
             else:
                 assert (t > stime) or (t <= etime)
 
-            if inclusive == "right" or inclusive == "both": 
+            if inclusive == "right" or inclusive == "both":
                 assert (t <= etime) or (t >= stime)
             else:
                 assert (t < etime) or (t >= stime)
