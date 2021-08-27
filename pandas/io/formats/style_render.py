@@ -107,7 +107,7 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        def_precision = get_option("display.precision")
+        def_precision = get_option("styler.format.precision")
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))

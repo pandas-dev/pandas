@@ -52,6 +52,7 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from pandas.io.formats.style_render import (
     CSSProperties,
     CSSStyles,
+    ExtFormatter,
     StylerRenderer,
     Subset,
     Tooltips,
@@ -184,9 +185,10 @@ class Styler(StylerRenderer):
         cell_ids: bool = True,
         na_rep: str | None = None,
         uuid_len: int = 5,
-        decimal: str = ".",
+        decimal: str | None = None,
         thousands: str | None = None,
         escape: str | None = None,
+        formatter: ExtFormatter | None = None,
     ):
         super().__init__(
             data=data,
@@ -199,10 +201,17 @@ class Styler(StylerRenderer):
         )
 
         # validate ordered args
+        thousands = thousands or get_option("styler.format.thousands")
+        decimal = decimal or get_option("styler.format.decimal")
+        na_rep = na_rep or get_option("styler.format.na_rep")
+        escape = escape or get_option("styler.format.escape")
+        formatter = formatter or get_option("styler.format.formatter")
+        # precision is handled by superclass as default for performance
+
         self.precision = precision  # can be removed on set_precision depr cycle
         self.na_rep = na_rep  # can be removed on set_na_rep depr cycle
         self.format(
-            formatter=None,
+            formatter=formatter,
             precision=precision,
             na_rep=na_rep,
             escape=escape,
