@@ -39,7 +39,6 @@ Bug fixes
 - :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
 - :meth:`.Styler.set_sticky` has amended CSS to control the column/index names and ensure the correct sticky positions (:issue:`42537`)
 - Bug in de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
-- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine="numba"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)
 
 .. ---------------------------------------------------------------------------
 
