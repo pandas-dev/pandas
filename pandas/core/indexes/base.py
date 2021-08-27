@@ -4890,8 +4890,7 @@ class Index(IndexOpsMixin, PandasObject):
             values, mask.sum(), converted  # type: ignore[arg-type]
         )
         np.putmask(values, mask, converted)
-
-        return type(self)._simple_new(values, name=self.name)
+        return self._shallow_copy(values)
 
     def equals(self, other: Any) -> bool:
         """
