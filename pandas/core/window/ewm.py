@@ -315,6 +315,15 @@ class ExponentialMovingWindow(BaseWindow):
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
             if isinstance(self.times, str):
+                warnings.warn(
+                    (
+                        "Specifying times as a string column label is deprecated "
+                        "and will be removed in a future version. Pass the column "
+                        "into times instead."
+                    ),
+                    FutureWarning,
+                    stacklevel=3,
+                )
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
