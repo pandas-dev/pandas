@@ -7650,7 +7650,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise TypeError("Index must be DatetimeIndex")
 
         # if depreciated arguments ('include_start', 'include_end') have been passed
-        if (include_start != 'bool_t') or (include_start != 'bool_t'): 
+        if (include_start != 'bool_t') or (include_start != 'bool_t'):
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in"
                 "favour of `inclusive`.",
