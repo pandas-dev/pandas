@@ -80,7 +80,6 @@ class TestBetweenTime:
         inclusive = close_open_fixture
 
         filtered = ts.between_time(stime, etime, inclusive)
-        print("\naa1", inclusive) 
         exp_len = 13 * 4 + 1
 
         if inclusive in ["right", "neither"]: 
@@ -114,7 +113,6 @@ class TestBetweenTime:
         etime = time(9, 0)
 
         filtered = ts.between_time(stime, etime, inclusive) 
-        print("bb1", inclusive)
         exp_len = (12 * 11 + 1) * 4 + 1
         if inclusive in ["right", "neither"]: 
             exp_len -= 4
