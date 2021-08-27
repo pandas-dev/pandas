@@ -23,6 +23,7 @@ from typing import (
 )
 import warnings
 import weakref
+from pandas import DataFrame
 
 import numpy as np
 

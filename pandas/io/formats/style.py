@@ -14,6 +14,7 @@ from typing import (
     Sequence,
 )
 import warnings
+from pandas import DataFrame
 
 import numpy as np
 
@@ -1148,9 +1149,9 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis in [0, "index"]:
-            result = data.apply(func, axis=0, **kwargs)
-        elif axis in [1, "columns"]:
+        if DataFrame()._get_axis_number(axis)==0:
+         result = data.apply(func, axis=0, **kwargs)
+        if DataFrame()._get_axis_number(axis)==1:
             result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
         else:
             result = func(data, **kwargs)

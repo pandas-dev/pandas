@@ -34,7 +34,7 @@ class SharedSetAxisTests:
         new_index = list("abcd")[: len(obj)]
 
         expected = obj.copy()
-        if axis in [0, "index"]:
+        if DataFrame()._get_axis_number(axis)==0:
             expected.index = new_index
         else:
             expected.columns = new_index
