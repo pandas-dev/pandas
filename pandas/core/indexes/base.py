@@ -128,7 +128,6 @@ from pandas.core.array_algos.putmask import (
 from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
-    PeriodArray,
 )
 from pandas.core.arrays.datetimes import (
     tz_to_dtype,
@@ -164,7 +163,6 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -173,6 +171,7 @@ if TYPE_CHECKING:
         RangeIndex,
         Series,
     )
+    from pandas.core.arrays import PeriodArray
 
 
 __all__ = ["Index"]
@@ -3794,8 +3793,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(self.dtype, PeriodDtype):
             # Note: we only get here with matching dtypes
-            own_values = cast(PeriodArray, self._data)._ndarray
-            target_values = cast(PeriodArray, target._data)._ndarray
+            own_values = cast("PeriodArray", self._data)._ndarray
+            target_values = cast("PeriodArray", target._data)._ndarray
             diff = own_values[indexer] - target_values
         else:
             # error: Unsupported left operand type for - ("ExtensionArray")
