@@ -7576,8 +7576,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         start_time,
         end_time,
         inclusive="both", 
-        include_start= 'bool_t',
-        include_end= 'bool_t', 
+        include_start="bool_t",
+        include_end="bool_t", 
         axis=None,
     ) -> FrameOrSeries:
         """
