@@ -132,6 +132,9 @@ Installing from PyPI
 pandas can be installed via pip from
 `PyPI <https://pypi.org/project/pandas>`__.
 
+.. note::
+    You must have ``pip>=19.3`` to install from PyPI.
+
 ::
 
     pip install pandas
