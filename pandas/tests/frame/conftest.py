@@ -11,7 +11,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture(params=product([True, False], [True, False]))
+@pytest.fixture(params=["both", "neither", "left", "right"])
 def close_open_fixture(request):
     return request.param
 

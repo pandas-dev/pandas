@@ -7575,9 +7575,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: FrameOrSeries,
         start_time,
         end_time,
+        inclusive="both", 
         include_start= 'bool_t',
-        include_end= 'bool_t', # iskey liye user ko warning kaise de ab? while mentaing original behvr
-        inclusive="both", # {"both", "neither", "left", "right"}
+        include_end= 'bool_t', 
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -7649,25 +7649,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        if include_start == 'bool_t' and include_start == 'bool_t': # old type of args not passed
-            if inclusive == "both":
-                include_start=True
-                include_end=True
-            elif inclusive == "neither":
-                include_start=False
-                include_end=False
-            elif inclusive == "left":
-                include_start=True
-                include_end=False
-            elif inclusive == "right":
-                include_start=False
-                include_end=True
-            else:
-                raise ValueError(
-                    "Inclusive has to be either string of 'both',"
-                    "'left', 'right', or 'neither'."
-                )
-        else: # old args passed
+        # if old arguments ('include_start', 'include_end') have been passed
+        if (include_start != 'bool_t') or (include_start != 'bool_t'): 
+            # print("\nasd ->\n", "inclusive=", inclusive, "\ninclude_start, _end = ", include_start, include_end)
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in"
                 "favour of `inclusive`.",
@@ -7678,7 +7662,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 include_start = True
             if include_end == 'bool_t':
                 include_end = True
-            
+        else: # if old args haven't been passed
+            if inclusive == "both":
+                include_start = True
+                include_end = True
+            elif inclusive == "neither":
+                include_start = False
+                include_end = False
+            elif inclusive == "left":
+                include_start = True
+                include_end = False
+            elif inclusive == "right":
+                include_start = False
+                include_end = True
+            else:
+                raise ValueError(
+                    "Inclusive has to be either string of 'both',"
+                    "'left', 'right', or 'neither'."
+                )
+
         indexer = index.indexer_between_time(
             start_time, end_time, include_start=include_start, include_end=include_end
         )

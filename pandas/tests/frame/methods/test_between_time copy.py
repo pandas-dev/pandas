@@ -69,19 +69,6 @@ class TestBetweenTime:
         with pytest.raises(ValueError, match=msg):
             obj.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
-    # def test_between_error_args(self): ## added by me (copy paste from pull rq)
-    #     series = Series(date_range("1/1/2000", periods=10))
-    #     left, right = series[[2, 7]]
-
-    #     value_error_msg = (
-    #         "Inclusive has to be either string of 'both',"
-    #         "'left', 'right', or 'neither'."
-    #     )
-
-    #     with pytest.raises(ValueError, match=value_error_msg):
-    #         series = Series(date_range("1/1/2000", periods=10))
-    #         series.between(left, right, inclusive="yes")
-
     def test_between_time(self, close_open_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
@@ -90,26 +77,24 @@ class TestBetweenTime:
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inclusive = close_open_fixture
+        inc_start, inc_end = close_open_fixture ## what is close_open_fixture
 
-        filtered = ts.between_time(stime, etime, inclusive)
-        print("\naa1", inclusive) 
+        filtered = ts.between_time(stime, etime, inc_start, inc_end)
         exp_len = 13 * 4 + 1
-
-        if inclusive in ["right", "neither"]: # if not inc_start 
+        if not inc_start:
             exp_len -= 5
-        if inclusive in ["left", "neither"]: # if not inc_end 
+        if not inc_end:
             exp_len -= 4
 
         assert len(filtered) == exp_len
         for rs in filtered.index:
             t = rs.time()
-            if inclusive in ["left", "both"]: # if inc_start: 
+            if inc_start:
                 assert t >= stime
             else:
                 assert t > stime
 
-            if inclusive in ["right", "both"]: # if inc_end: 
+            if inc_end:
                 assert t <= etime
             else:
                 assert t < etime
@@ -126,23 +111,22 @@ class TestBetweenTime:
         stime = time(22, 0)
         etime = time(9, 0)
 
-        filtered = ts.between_time(stime, etime, inclusive) ##
-        print("bb1", inclusive)
+        filtered = ts.between_time(stime, etime, inc_start, inc_end)
         exp_len = (12 * 11 + 1) * 4 + 1
-        if inclusive in ["right", "neither"]: # if not inc_start: 
+        if not inc_start:
             exp_len -= 4
-        if inclusive in ["left", "neither"]: # if not inc_end: 
+        if not inc_end:
             exp_len -= 4
 
         assert len(filtered) == exp_len
         for rs in filtered.index:
             t = rs.time()
-            if inclusive == "left" or inclusive == "both": # if inc_start: 
+            if inc_start:
                 assert (t >= stime) or (t <= etime)
             else:
                 assert (t > stime) or (t <= etime)
 
-            if inclusive == "right" or inclusive == "both": # if inc_end: 
+            if inc_end:
                 assert (t <= etime) or (t >= stime)
             else:
                 assert (t < etime) or (t >= stime)
