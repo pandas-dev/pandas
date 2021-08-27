@@ -767,7 +767,7 @@ def _try_cast(
                 f"Could not cast to {dtype}, falling back to object. This "
                 "behavior is deprecated. In a future version, when a dtype is "
                 "passed to 'DataFrame', either all columns will be cast to that "
-                "dtype, or a TypeError will be raised",
+                "dtype, or a TypeError will be raised.",
                 FutureWarning,
                 stacklevel=7,
             )

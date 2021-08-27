@@ -106,10 +106,20 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_140.notable_bug_fixes.inconsistent_date_string_parsing:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Inconsistent date string parsing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to surprising behaviour:
+
+.. ipython:: python
+    :okwarning:
+
+    pd.to_datetime(["31-12-2021"], dayfirst=False)
+
+Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
+the value is a delimited date string (e.g. ``31-12-2012``).
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
 
@@ -256,6 +266,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+- :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
 -
 
 Timedelta
@@ -306,7 +317,7 @@ Indexing
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
 -
 
 MultiIndex
@@ -368,6 +379,8 @@ Styler
 - Minor bug in :class:`.Styler` where the ``uuid`` at initialization maintained a floating underscore (:issue:`43037`)
 - Bug in :meth:`.Styler.to_html` where the ``Styler`` object was updated if the ``to_html`` method was called with some args (:issue:`43034`)
 - Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
+- Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
+-
 
 Other
 ^^^^^
