@@ -4010,14 +4010,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2014-02-14          22.0             71.6    medium
         2014-02-15          35.0             95.0    medium
 
-        >>> df1 = df.get(["temp_celsius","windspeed"])
+        >>> df.get(["temp_celsius","windspeed"])
                     temp_celsius windspeed
         2014-02-12          24.3      high
         2014-02-13          31.0      high
         2014-02-14          22.0    medium
         2014-02-15          35.0    medium
 
-        >>> df2 = df.get(["temp_celsius","temp_kelvin"], default = "default_value")
+        >>> df.get(["temp_celsius","temp_kelvin"], default = "default_value")
         'default_value'
         """
         try:
