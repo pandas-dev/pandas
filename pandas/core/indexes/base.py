@@ -628,18 +628,15 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _simple_new(cls: type[_IndexT], values, name: Hashable = None) -> _IndexT:
-        # import numpy as np
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
 
         Must be careful not to recurse.
         """
-        try:
-            assert isinstance(values, np.ndarray), ("""Expected ndarray, given: {0}
-                                                    """.format(type(values)))
-        except AssertionError as e:
-            raise TypeError(e)
+        
+        if not isinstance(values, np.ndarray):
+            raise TypeError(f"Expected ndarray, given {type(values)}")
 
         result = object.__new__(cls)
         result._data = values
