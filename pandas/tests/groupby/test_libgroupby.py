@@ -184,9 +184,9 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     tm.assert_numpy_array_equal(np_op(data), answer[:, 0], check_dtype=False)
 
 
-def test_cython_group_transform_cumsum(any_real_dtype):
+def test_cython_group_transform_cumsum(any_real_numpy_dtype):
     # see gh-4095
-    dtype = np.dtype(any_real_dtype).type
+    dtype = np.dtype(any_real_numpy_dtype).type
     pd_op, np_op = group_cumsum, np.cumsum
     _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
 

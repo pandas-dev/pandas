@@ -316,11 +316,11 @@ class TestDataFrameIndexingWhere:
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
-    def test_where_bug_mixed(self, sint_dtype):
+    def test_where_bug_mixed(self, any_signed_int_numpy_dtype):
         # see gh-2793
         df = DataFrame(
             {
-                "a": np.array([1, 2, 3, 4], dtype=sint_dtype),
+                "a": np.array([1, 2, 3, 4], dtype=any_signed_int_numpy_dtype),
                 "b": np.array([4.0, 3.0, 2.0, 1.0], dtype="float64"),
             }
         )
@@ -770,4 +770,14 @@ def test_where_non_keyword_deprecation():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = s.where(s > 1, 10, False)
     expected = DataFrame([10, 10, 2, 3, 4])
+    tm.assert_frame_equal(expected, result)
+
+
+def test_where_columns_casting():
+    # GH 42295
+
+    df = DataFrame({"a": [1.0, 2.0], "b": [3, np.nan]})
+    expected = df.copy()
+    result = df.where(pd.notnull(df), None)
+    # make sure dtypes don't change
     tm.assert_frame_equal(expected, result)

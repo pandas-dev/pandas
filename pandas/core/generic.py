@@ -164,9 +164,9 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
 
     from pandas.core.frame import DataFrame
+    from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.series import Series
-    from pandas.core.window.indexers import BaseIndexer
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2645,7 +2645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               which may perform worse but allow more flexible operations
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
-              followed by fallback to "fixed"
+              followed by fallback to "fixed".
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
@@ -3991,6 +3991,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         value : same type as items contained in object
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         [24.3, 75.7, "high"],
+        ...         [31, 87.8, "high"],
+        ...         [22, 71.6, "medium"],
+        ...         [35, 95, "medium"],
+        ...     ],
+        ...     columns=["temp_celsius", "temp_fahrenheit", "windspeed"],
+        ...     index=pd.date_range(start="2014-02-12", end="2014-02-15", freq="D"),
+        ... )
+
+        >>> df
+                    temp_celsius  temp_fahrenheit windspeed
+        2014-02-12          24.3             75.7      high
+        2014-02-13          31.0             87.8      high
+        2014-02-14          22.0             71.6    medium
+        2014-02-15          35.0             95.0    medium
+
+        >>> df.get(["temp_celsius", "windspeed"])
+                    temp_celsius windspeed
+        2014-02-12          24.3      high
+        2014-02-13          31.0      high
+        2014-02-14          22.0    medium
+        2014-02-15          35.0    medium
+
+        If the key isn't found, the default value will be used.
+
+        >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
+        'default_value'
         """
         try:
             return self[key]
@@ -4816,7 +4848,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
-    @final
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
     ) -> FrameOrSeries:
@@ -5755,7 +5786,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 19920: retain column metadata after concat
         result = concat(results, axis=1, copy=False)
         result.columns = self.columns
-        return result
+        # https://github.com/python/mypy/issues/8354
+        return cast(FrameOrSeries, result)
 
     @final
     def copy(self: FrameOrSeries, deep: bool_t = True) -> FrameOrSeries:
@@ -6118,7 +6150,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for col_name, col in self.items()
             ]
             if len(results) > 0:
-                return concat(results, axis=1, copy=False)
+                # https://github.com/python/mypy/issues/8354
+                return cast(FrameOrSeries, concat(results, axis=1, copy=False))
             else:
                 return self.copy()
 
@@ -6312,10 +6345,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return result if not inplace else None
 
             elif not is_list_like(value):
-                new_data = self._mgr.fillna(
-                    value=value, limit=limit, inplace=inplace, downcast=downcast
-                )
+                if not self._mgr.is_single_block and axis == 1:
+
+                    result = self.T.fillna(value=value, limit=limit).T
+
+                    # need to downcast here because of all of the transposes
+                    result._mgr = result._mgr.downcast()
+
+                    new_data = result
+                else:
+
+                    new_data = self._mgr.fillna(
+                        value=value, limit=limit, inplace=inplace, downcast=downcast
+                    )
             elif isinstance(value, ABCDataFrame) and self.ndim == 2:
+
                 new_data = self.where(self.notna(), value)._data
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
@@ -8957,14 +9001,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
 
-    @final
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -8990,7 +9033,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -9183,7 +9226,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         msg = (
             "The 'slice_shift' method is deprecated "
             "and will be removed in a future version. "
-            "You can use DataFrame/Series.shift instead"
+            "You can use DataFrame/Series.shift instead."
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
@@ -10825,7 +10868,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         if center is not None:
             warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future",
+                "The `center` argument on `expanding` will be removed in the future.",
                 FutureWarning,
                 stacklevel=2,
             )

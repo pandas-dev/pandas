@@ -265,6 +265,12 @@ on indexes or indexes on a column or columns, the index will be passed on.
 When performing a cross merge, no column specifications to merge on are
 allowed.
 
+.. warning::
+
+    If both key columns contain rows where the key is a null value, those
+    rows will be matched against each other. This is different from usual SQL
+    join behaviour and can lead to unexpected results.
+
 Parameters
 ----------%s
 right : DataFrame or named Series
@@ -700,7 +706,6 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays,
                         columns,
                         index,
-                        columns,
                         dtype=dtype,
                         typ=manager,
                     )
@@ -746,9 +751,7 @@ class DataFrame(NDFrame, OpsMixin):
                     construct_1d_arraylike_from_scalar(data, len(index), dtype)
                     for _ in range(len(columns))
                 ]
-                mgr = arrays_to_mgr(
-                    values, columns, index, columns, dtype=None, typ=manager
-                )
+                mgr = arrays_to_mgr(values, columns, index, dtype=None, typ=manager)
             else:
                 arr2d = construct_2d_arraylike_from_scalar(
                     data,
@@ -2019,9 +2022,31 @@ class DataFrame(NDFrame, OpsMixin):
         2      1     c
         3      0     d
         """
+        result_index = None
+
         # Make a copy of the input columns so we can modify it
         if columns is not None:
             columns = ensure_index(columns)
+
+        def maybe_reorder(
+            arrays: list[ArrayLike], arr_columns: Index, columns: Index, index
+        ) -> tuple[list[ArrayLike], Index, Index | None]:
+            """
+            If our desired 'columns' do not match the data's pre-existing 'arr_columns',
+            we re-order our arrays.  This is like a pre-emptive (cheap) reindex.
+            """
+            if len(arrays):
+                length = len(arrays[0])
+            else:
+                length = 0
+
+            result_index = None
+            if len(arrays) == 0 and index is None and length == 0:
+                # for backward compat use an object Index instead of RangeIndex
+                result_index = Index([])
+
+            arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns, length)
+            return arrays, arr_columns, result_index
 
         if is_iterator(data):
             if nrows == 0:
@@ -2061,7 +2086,9 @@ class DataFrame(NDFrame, OpsMixin):
                         arrays.append(v)
 
                 arr_columns = Index(arr_columns_list)
-                arrays, arr_columns = reorder_arrays(arrays, arr_columns, columns)
+                arrays, arr_columns, result_index = maybe_reorder(
+                    arrays, arr_columns, columns, index
+                )
 
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = to_arrays(data, columns)
@@ -2082,13 +2109,16 @@ class DataFrame(NDFrame, OpsMixin):
             arr_columns = ensure_index(arr_columns)
             if columns is None:
                 columns = arr_columns
+            else:
+                arrays, arr_columns, result_index = maybe_reorder(
+                    arrays, arr_columns, columns, index
+                )
 
         if exclude is None:
             exclude = set()
         else:
             exclude = set(exclude)
 
-        result_index = None
         if index is not None:
             if isinstance(index, str) or not hasattr(index, "__iter__"):
                 i = columns.get_loc(index)
@@ -2116,7 +2146,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns = columns.drop(exclude)
 
         manager = get_option("mode.data_manager")
-        mgr = arrays_to_mgr(arrays, arr_columns, result_index, columns, typ=manager)
+        mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
 
@@ -2323,11 +2353,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = get_option("mode.data_manager")
         columns = ensure_index(columns)
+        if len(columns) != len(arrays):
+            raise ValueError("len(columns) must match len(arrays)")
         mgr = arrays_to_mgr(
             arrays,
             columns,
             index,
-            columns,
             dtype=dtype,
             verify_integrity=verify_integrity,
             typ=manager,
@@ -4511,9 +4542,9 @@ class DataFrame(NDFrame, OpsMixin):
             The found values.
         """
         msg = (
-            "The 'lookup' method is deprecated and will be"
-            "removed in a future version."
-            "You can use DataFrame.melt and DataFrame.loc"
+            "The 'lookup' method is deprecated and will be "
+            "removed in a future version. "
+            "You can use DataFrame.melt and DataFrame.loc "
             "as a substitute."
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
@@ -6806,6 +6837,31 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
+
+        Examples
+        --------
+        >>> data = {
+        ...     "class": ["Mammals", "Mammals", "Reptiles"],
+        ...     "diet": ["Omnivore", "Carnivore", "Carnivore"],
+        ...     "species": ["Humans", "Dogs", "Snakes"],
+        ... }
+        >>> df = pd.DataFrame(data, columns=["class", "diet", "species"])
+        >>> df = df.set_index(["class", "diet"])
+        >>> df
+                                          species
+        class      diet
+        Mammals    Omnivore                Humans
+                   Carnivore                 Dogs
+        Reptiles   Carnivore               Snakes
+
+        Let's reorder the levels of the index:
+
+        >>> df.reorder_levels(["diet", "class"])
+                                          species
+        diet      class
+        Omnivore  Mammals                  Humans
+        Carnivore Mammals                    Dogs
+                  Reptiles                 Snakes
         """
         axis = self._get_axis_number(axis)
         if not isinstance(self._get_axis(axis), MultiIndex):  # pragma: no cover

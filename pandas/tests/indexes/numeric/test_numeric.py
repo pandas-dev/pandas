@@ -151,16 +151,16 @@ class TestFloatNumericIndex(NumericBase):
             mixed_index, Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
         )
 
-    def test_type_coercion_fail(self, any_int_dtype):
+    def test_type_coercion_fail(self, any_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
         with pytest.raises(ValueError, match=msg):
-            Index([1, 2, 3.5], dtype=any_int_dtype)
+            Index([1, 2, 3.5], dtype=any_int_numpy_dtype)
 
-    def test_type_coercion_valid(self, float_dtype):
+    def test_type_coercion_valid(self, float_numpy_dtype):
         # There is no Float32Index, so we always
         # generate Float64Index.
-        idx = Index([1, 2, 3.5], dtype=float_dtype)
+        idx = Index([1, 2, 3.5], dtype=float_numpy_dtype)
         tm.assert_index_equal(idx, Index([1, 2, 3.5]), exact=True)
 
     def test_equals_numeric(self):
@@ -496,13 +496,16 @@ class TestIntNumericIndex(NumericInt):
         with pytest.raises(TypeError, match="casting"):
             index_cls(arr, dtype=dtype)
 
-    def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
+    def test_constructor_coercion_signed_to_unsigned(
+        self,
+        any_unsigned_int_numpy_dtype,
+    ):
 
         # see gh-15832
         msg = "Trying to coerce negative values to unsigned integers"
 
         with pytest.raises(OverflowError, match=msg):
-            Index([-1], dtype=uint_dtype)
+            Index([-1], dtype=any_unsigned_int_numpy_dtype)
 
     def test_coerce_list(self):
         # coerce things
