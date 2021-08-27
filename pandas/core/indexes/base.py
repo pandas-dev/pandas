@@ -387,7 +387,7 @@ class Index(IndexOpsMixin, PandasObject):
             warnings.warn(
                 "Passing keywords other than 'data', 'dtype', 'copy', 'name', "
                 "'tupleize_cols' is deprecated and will raise TypeError in a "
-                "future version.  Use the specific Index subclass directly instead",
+                "future version.  Use the specific Index subclass directly instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -620,7 +620,7 @@ class Index(IndexOpsMixin, PandasObject):
             An ndarray with int64 dtype.
         """
         warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version",
+            "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2469,8 +2469,8 @@ class Index(IndexOpsMixin, PandasObject):
         Whether or not the index values only consist of dates.
         """
         warnings.warn(
-            "Index.is_all_dates is deprecated, will be removed in a future version.  "
-            "check index.inferred_type instead",
+            "Index.is_all_dates is deprecated, will be removed in a future version. "
+            "check index.inferred_type instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2835,7 +2835,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.__and__ operating as a set operation is deprecated, "
             "in the future this will be a logical operation matching "
-            "Series.__and__.  Use index.intersection(other) instead",
+            "Series.__and__.  Use index.intersection(other) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2846,7 +2846,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.__or__ operating as a set operation is deprecated, "
             "in the future this will be a logical operation matching "
-            "Series.__or__.  Use index.union(other) instead",
+            "Series.__or__.  Use index.union(other) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2857,7 +2857,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.__xor__ operating as a set operation is deprecated, "
             "in the future this will be a logical operation matching "
-            "Series.__xor__.  Use index.symmetric_difference(other) instead",
+            "Series.__xor__.  Use index.symmetric_difference(other) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -3455,7 +3455,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             f"Passing method to {type(self).__name__}.get_loc is deprecated "
             "and will raise in a future version. Use "
-            "index.get_indexer([item], method=...) instead",
+            "index.get_indexer([item], method=...) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -3607,7 +3607,7 @@ class Index(IndexOpsMixin, PandasObject):
         method: str_t | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
@@ -3686,7 +3686,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_fill_indexer(
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
 
         if self._is_multi:
             # TODO: get_indexer_with_fill docstring says values must be _sorted_
@@ -3713,7 +3713,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_fill_indexer_searchsorted(
         self, target: Index, method: str_t, limit: int | None = None
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Fallback pad/backfill get_indexer that works for monotonic decreasing
         indexes and non-monotonic targets.
@@ -3747,7 +3747,7 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _get_nearest_indexer(
         self, target: Index, limit: int | None, tolerance
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         """
         Get the indexer for the nearest index labels; requires an index with
         values that can be subtracted from each other (e.g., not strings or
@@ -3777,10 +3777,10 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _filter_indexer_tolerance(
         self,
-        target: Index | np.ndarray | ExtensionArray,
-        indexer: np.ndarray,
+        target: np.ndarray,
+        indexer: npt.NDArray[np.intp],
         tolerance,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.intp]:
         own_values = self._get_engine_target()
         distance = abs(own_values[indexer] - target)
         return np.where(distance <= tolerance, indexer, -1)
@@ -3964,7 +3964,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # GH#42568
                     warnings.warn(
                         "reindexing with a non-unique Index is deprecated and "
-                        "will raise in a future version",
+                        "will raise in a future version.",
                         FutureWarning,
                         stacklevel=2,
                     )
@@ -4695,7 +4695,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             "Index.is_type_compatible is deprecated and will be removed in a "
-            "future version",
+            "future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -5311,7 +5311,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             "get_value is deprecated and will be removed in a future version. "
-            "Use Series[key] instead",
+            "Use Series[key] instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -6861,7 +6861,7 @@ def _maybe_try_sort(result, sort):
             result = algos.safe_sort(result)
         except TypeError as err:
             warnings.warn(
-                f"{err}, sort order is undefined for incomparable objects",
+                f"{err}, sort order is undefined for incomparable objects.",
                 RuntimeWarning,
                 stacklevel=4,
             )
