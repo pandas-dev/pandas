@@ -8,36 +8,25 @@
 /* Main index page overview cards */
 
 .intro-card {
-  background: #fff;
-  border-radius: 0;
   padding: 30px 10px 20px 10px;
-  margin: 10px 0px;
 }
 
-.intro-card p.card-text {
-  margin: 0px;
-}
-
-.intro-card .card-img-top {
+.intro-card .sd-card-img-top {
   margin: 10px;
   height: 52px;
 }
 
-.intro-card .card-header {
-  border: none;
-  background-color:white;
-  color: #150458 !important;
+.intro-card .sd-card-title {
+  color: rgb(var(--pst-color-h1)) !important;
   font-size: var(--pst-font-size-h5);
-  font-weight: bold;
-  padding: 2.5rem 0rem 0.5rem 0rem;
+  padding: 1rem 0rem 0.5rem 0rem;
 }
 
-.intro-card .card-footer {
+.intro-card .sd-card-footer {
   border: none;
-  background-color:white;
 }
 
-.intro-card .card-footer p.card-text{
+.intro-card .sd-card-footer p.sd-card-text{
   max-width: 220px;
   margin-left: auto;
   margin-right: auto;
