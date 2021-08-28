@@ -138,7 +138,7 @@ More information can be found in the `IPython documentation
   import pandas as pd
 
   pd.set_option("display.max_rows", 999)
-  pd.set_option("precision", 5)
+  pd.set_option("display.precision", 5)
 
 .. _options.frequently_used:
 
@@ -253,9 +253,9 @@ This is only a suggestion.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(5, 5))
-   pd.set_option("precision", 7)
+   pd.set_option("display.precision", 7)
    df
-   pd.set_option("precision", 4)
+   pd.set_option("display.precision", 4)
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
