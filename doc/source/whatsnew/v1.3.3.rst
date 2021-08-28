@@ -21,6 +21,15 @@ Fixed regressions
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_133.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`DataFrame.__setitem__`
+-
+-
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_133.bug_fixes:
 
 Bug fixes
