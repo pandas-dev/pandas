@@ -24,11 +24,15 @@ jobs:
   parameters:
     name: macOS
     vmImage: macOS-10.15
+  timeoutInMinutes: 30
+  cancelTimeoutInMinutes: 2
 
 - template: ci/azure/windows.yml
   parameters:
     name: Windows
     vmImage: windows-2019
+  timeoutInMinutes: 30 
+  cancelTimeoutInMinutes: 2 
 
 - job: py38_32bit
   pool:
