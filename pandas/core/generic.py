@@ -8544,6 +8544,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   10   20   30   40 NaN
         3   60   70   80   90 NaN
         4  600  700  800  900 NaN
+
+        >>> a1, a2 = df1.align(df2,
+        ...                    join='right',
+        ...                    axis=0)
+
+        >>> a1
+            D    B    E    A
+        2  6.0  7.0  8.0  9.0
+        3  NaN  NaN  NaN  NaN
+        4  NaN  NaN  NaN  NaN
+
+        >>> a2
+            A    B    C    D
+        2   10   20   30   40
+        3   60   70   80   90
+        4  600  700  800  900
         """
 
         method = missing.clean_fill_method(method)
