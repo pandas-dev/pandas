@@ -817,14 +817,14 @@ with cf.config_prefix("styler"):
         "format.thousands",
         None,
         styler_thousands,
-        validator=is_one_of_factory([None, is_str]),
+        validator=is_instance_factory([type(None), str]),
     )
 
     cf.register_option(
         "format.na_rep",
         None,
         styler_na_rep,
-        validator=is_one_of_factory([None, is_str]),
+        validator=is_instance_factory([type(None), str]),
     )
 
     cf.register_option(

@@ -954,11 +954,9 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
         Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
-        if thousands:
-            return f"{x:,.{precision}f}"
-        return f"{x:.{precision}f}"
-    elif isinstance(x, int) and thousands:
-        return f"{x:,.0f}"
+        return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
+    elif isinstance(x, int):
+        return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
 
@@ -1022,7 +1020,7 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = get_option("display.precision") if precision is None else precision
+        precision = precision or get_option("styler.format.precision")
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )
