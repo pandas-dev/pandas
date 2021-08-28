@@ -1006,7 +1006,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             values = cast(np.ndarray, values)
             if values.ndim == 1:
                 # TODO(EA2D): special casing not needed with 2D EAs
-                result[mgr_locs.indexer] = values
+                result[mgr_locs[0]] = values
 
             else:
                 for i, loc in enumerate(mgr_locs):
