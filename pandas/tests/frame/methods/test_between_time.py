@@ -122,12 +122,12 @@ class TestBetweenTime:
         assert len(filtered) == exp_len
         for rs in filtered.index:
             t = rs.time()
-            if inclusive == "left" or inclusive == "both":
+            if inclusive in ["left", "both"]:
                 assert (t >= stime) or (t <= etime)
             else:
                 assert (t > stime) or (t <= etime)
 
-            if inclusive == "right" or inclusive == "both":
+            if inclusive in ["right", "both"]:
                 assert (t <= etime) or (t >= stime)
             else:
                 assert (t < etime) or (t >= stime)
