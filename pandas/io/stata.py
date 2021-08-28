@@ -1784,7 +1784,7 @@ the string values returned are correct."""
             replaced = concat(
                 [data.drop(replacement_df.columns, axis=1), replacement_df], axis=1
             )
-            data = replaced._getitem_view(columns)
+            data = replaced._getitems_view(columns)
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
