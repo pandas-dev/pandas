@@ -982,18 +982,28 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return values
 
     @property
-    def column_arrays(self) -> list[ArrayLike]:
+    def column_arrays(self) -> list[np.ndarray]:
         """
         Used in the JSON C code to access column arrays.
         This optimizes compared to using `iget_values` by converting each
         """
         # This is an optimized equivalent to
         #  result = [self.iget_values(i) for i in range(len(self.items))]
-        result: list[ArrayLike | None] = [None] * len(self.items)
+        result: list[np.ndarray | None] = [None] * len(self.items)
+
         for blk in self.blocks:
-            is_dtz = isinstance(blk, DatetimeTZBlock)
             mgr_locs = blk._mgr_locs
             values = blk.values
+            if isinstance(blk, DatetimeTZBlock):
+                # special casing datetimetz to avoid conversion through
+                #  object dtype
+                # Item "ndarray[Any, Any]" of "Union[ndarray[Any, Any],
+                # ExtensionArray]" has no attribute "_ndarray"
+                values = values._ndarray  # type: ignore[union-attr]
+            else:
+                values = np.asarray(values)
+
+            values = cast(np.ndarray, values)
             if values.ndim == 1:
                 # TODO(EA2D): special casing not needed with 2D EAs
                 result[mgr_locs.indexer] = values
@@ -1001,13 +1011,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 for i, loc in enumerate(mgr_locs):
                     result[loc] = values[i]
-                    if is_dtz:
-                        # special casing datetimetz to avoid conversion through
-                        #  object dtype
-                        # error: Item "ndarray[Any, Any]" of
-                        # "Optional[Union[ExtensionArray, ndarray[Any, Any]]]"
-                        # has no attribute "_ndarray"
-                        result[loc] = result[loc]._ndarray  # type: ignore[union-attr]
+
         # error: Incompatible return value type (got "List[None]",
         # expected "List[ndarray[Any, Any]]")
         return result  # type: ignore[return-value]
