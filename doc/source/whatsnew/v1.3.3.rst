@@ -25,8 +25,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with engine="numba" where index data was not being correctly passed into func (:issue:`43133`)
-- Fixed bug in :func:`__new__` of :class:`CombinedDatetimelikeProperties` maintains index of Categorical Datetime series (:issue:`43080`)
+- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine="numba"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)
+-
 
 .. ---------------------------------------------------------------------------
 
