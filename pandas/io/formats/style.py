@@ -209,6 +209,7 @@ class Styler(StylerRenderer):
             table_attributes=table_attributes,
             caption=caption,
             cell_ids=cell_ids,
+            precision=precision,
         )
 
         # validate ordered args
