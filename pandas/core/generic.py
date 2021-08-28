@@ -8511,13 +8511,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> left = pd.DataFrame([[1,2,3,4], [6,7,8,9]],
-        ...                     columns=['D', 'B', 'E', 'A'],
-        ...                     index=[1,2])
+        >>> left = pd.DataFrame(
+        ...     [[1, 2, 3, 4], [6, 7, 8, 9]], columns=["D", "B", "E", "A"], index=[1, 2]
+        ... )
 
-        >>> right = pd.DataFrame([[10,20,30,40], [60,70,80,90], [600,700,800,900]],
-        ...                      columns=['A', 'B', 'C', 'D'],
-        ...                      index=[2,3,4])
+        >>> right = pd.DataFrame(
+        ...     [[10, 20, 30, 40], [60, 70, 80, 90], [600, 700, 800, 900]],
+        ...     columns=["A", "B", "C", "D"],
+        ...     index=[2, 3, 4],
+        ... )
 
         >>> left
            D  B  E  A
@@ -8530,9 +8532,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   60   70   80   90
         4  600  700  800  900
 
-        >>> a1, a2 = left.align(right,
-        ...                     join='outer',
-        ...                     axis=1)
+        >>> a1, a2 = left.align(right, join="outer", axis=1)
 
         >>> a1
            A  B   C  D  E
@@ -8545,9 +8545,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   60   70   80   90 NaN
         4  600  700  800  900 NaN
 
-        >>> b1, b2 = left.align(right,
-        ...                    join='outer',
-        ...                    axis=0)
+        >>> b1, b2 = left.align(right, join="outer", axis=0)
 
         >>> b1
             D    B    E    A
