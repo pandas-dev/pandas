@@ -106,6 +106,7 @@ class TestReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_categorical_added_category(self):
+        # GH 42424
         ci = CategoricalIndex(
             [Interval(0, 1, closed="right"), Interval(1, 2, closed="right")],
             ordered=True,
