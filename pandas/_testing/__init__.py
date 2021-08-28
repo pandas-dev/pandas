@@ -353,7 +353,10 @@ def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
 
 
 def makeMultiIndex(k=10, names=None, **kwargs):
-    return MultiIndex.from_product((rands_array(nchars=10, size=k), randu_array(nchars=10, size=k)), names=names, **kwargs)
+    return MultiIndex.from_product(
+        (rands_array(nchars=10, size=k),
+         randu_array(nchars=10, size=k)),
+        names=names, **kwargs)
 
 
 _names = [
