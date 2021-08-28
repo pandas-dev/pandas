@@ -8511,50 +8511,54 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> left = pd.DataFrame(
+        >>> df = pd.DataFrame(
         ...     [[1, 2, 3, 4], [6, 7, 8, 9]], columns=["D", "B", "E", "A"], index=[1, 2]
         ... )
 
-        >>> right = pd.DataFrame(
+        >>> other = pd.DataFrame(
         ...     [[10, 20, 30, 40], [60, 70, 80, 90], [600, 700, 800, 900]],
         ...     columns=["A", "B", "C", "D"],
         ...     index=[2, 3, 4],
         ... )
 
-        >>> left
+        >>> df
            D  B  E  A
         1  1  2  3  4
         2  6  7  8  9
 
-        >>> right
+        >>> other
             A    B    C    D
         2   10   20   30   40
         3   60   70   80   90
         4  600  700  800  900
 
-        >>> a1, a2 = left.align(right, join="outer", axis=1)
+        Align on the column
 
-        >>> a1
+        >>> left, right = df.align(other, join="outer", axis=1)
+
+        >>> left
            A  B   C  D  E
         1  4  2 NaN  1  3
         2  9  7 NaN  6  8
 
-        >>> a2
+        >>> right
             A    B    C    D   E
         2   10   20   30   40 NaN
         3   60   70   80   90 NaN
         4  600  700  800  900 NaN
 
-        >>> b1, b2 = left.align(right, join="outer", axis=0)
+        We can also align on the index
 
-        >>> b1
+        >>> left, right = df.align(other, join="outer", axis=0)
+
+        >>> left
             D    B    E    A
         1  1.0  2.0  3.0  4.0
         2  6.0  7.0  8.0  9.0
         3  NaN  NaN  NaN  NaN
         4  NaN  NaN  NaN  NaN
 
-        >>> b2
+        >>> right
             A      B      C      D
         1    NaN    NaN    NaN    NaN
         2   10.0   20.0   30.0   40.0
