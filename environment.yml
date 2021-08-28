@@ -105,7 +105,7 @@ dependencies:
 
   - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
-  - aiobotocore<=1.3.3  # Remove when s3fs is at 2021.08.0
+  - aiobotocore
   - fsspec>=0.7.4, <2021.6.0  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql
