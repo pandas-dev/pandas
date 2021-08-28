@@ -1000,7 +1000,7 @@ cdef class TextReader:
                 if col_dtype is not None:
                     warnings.warn((f"Both a converter and dtype were specified "
                                    f"for column {name} - only the converter will "
-                                   f"be used"), ParserWarning,
+                                   f"be used."), ParserWarning,
                                   stacklevel=5)
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue

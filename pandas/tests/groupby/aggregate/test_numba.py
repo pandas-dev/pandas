@@ -173,3 +173,17 @@ def test_args_not_cached():
     result = grouped_x.agg(sum_last, 2, engine="numba")
     expected = Series([2.0] * 2, name="x", index=Index([0, 1], name="id"))
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba", "0.46.0")
+def test_index_data_correctly_passed():
+    # GH 43133
+    def f(values, index):
+        return np.mean(index)
+
+    df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
+    result = df.groupby("group").aggregate(f, engine="numba")
+    expected = DataFrame(
+        [-1.5, -3.0], columns=["v"], index=Index(["A", "B"], name="group")
+    )
+    tm.assert_frame_equal(result, expected)

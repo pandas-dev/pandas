@@ -1142,7 +1142,7 @@ class Styler(StylerRenderer):
 
     def _apply(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -1197,7 +1197,7 @@ class Styler(StylerRenderer):
 
     def apply(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -1292,7 +1292,7 @@ class Styler(StylerRenderer):
 
     def _apply_index(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
@@ -1327,7 +1327,7 @@ class Styler(StylerRenderer):
     )
     def apply_index(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -1413,7 +1413,7 @@ class Styler(StylerRenderer):
     )
     def applymap_index(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -2599,11 +2599,7 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {null_color};"
-        # error: Argument 1 to "apply" of "Styler" has incompatible type
-        # "Callable[[DataFrame, str], ndarray]"; expected "Callable[..., Styler]"
-        return self.apply(
-            f, axis=None, subset=subset, props=props  # type: ignore[arg-type]
-        )
+        return self.apply(f, axis=None, subset=subset, props=props)
 
     def highlight_max(
         self,
@@ -2647,10 +2643,8 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {color};"
-        # error: Argument 1 to "apply" of "Styler" has incompatible type
-        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            partial(_highlight_value, op="max"),  # type: ignore[arg-type]
+            partial(_highlight_value, op="max"),
             axis=axis,
             subset=subset,
             props=props,
@@ -2698,10 +2692,8 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {color};"
-        # error: Argument 1 to "apply" of "Styler" has incompatible type
-        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            partial(_highlight_value, op="min"),  # type: ignore[arg-type]
+            partial(_highlight_value, op="min"),
             axis=axis,
             subset=subset,
             props=props,
@@ -2807,7 +2799,7 @@ class Styler(StylerRenderer):
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            _highlight_between,  # type: ignore[arg-type]
+            _highlight_between,
             axis=axis,
             subset=subset,
             props=props,
@@ -2913,7 +2905,7 @@ class Styler(StylerRenderer):
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            _highlight_between,  # type: ignore[arg-type]
+            _highlight_between,
             axis=axis_apply,
             subset=subset,
             props=props,
