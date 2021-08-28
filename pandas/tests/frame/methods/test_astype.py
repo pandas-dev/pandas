@@ -691,38 +691,6 @@ class TestAstype:
         expected = df.iloc[index_slice]
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
-    )
-    def test_astype_ea_to_datetimetzdtype(self, dtype):
-        # GH37553
-        result = Series([4, 0, 9], dtype=dtype).astype(DatetimeTZDtype(tz="US/Pacific"))
-        expected = Series(
-            {
-                0: Timestamp("1969-12-31 16:00:00.000000004-08:00", tz="US/Pacific"),
-                1: Timestamp("1969-12-31 16:00:00.000000000-08:00", tz="US/Pacific"),
-                2: Timestamp("1969-12-31 16:00:00.000000009-08:00", tz="US/Pacific"),
-            }
-        )
-
-        if dtype in tm.FLOAT_EA_DTYPES:
-            expected = Series(
-                {
-                    0: Timestamp(
-                        "1970-01-01 00:00:00.000000004-08:00", tz="US/Pacific"
-                    ),
-                    1: Timestamp(
-                        "1970-01-01 00:00:00.000000000-08:00", tz="US/Pacific"
-                    ),
-                    2: Timestamp(
-                        "1970-01-01 00:00:00.000000009-08:00", tz="US/Pacific"
-                    ),
-                }
-            )
-
-        tm.assert_equal(result, expected)
-
 
 class TestAstypeCategorical:
     def test_astype_from_categorical3(self):
