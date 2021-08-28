@@ -3411,6 +3411,21 @@ class DataFrame(NDFrame, OpsMixin):
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
 
+    def _getitems_view(self, items: Index) -> DataFrame:
+        """
+        Similar to __getitem__, but only returning views, not copies.
+
+        Notes
+        -----
+        Assumes self.columns.is_unique.
+        """
+        indexer = self.columns.get_indexer(items)
+
+        new_mgr = self._mgr.reindex_indexer(
+            items, indexer, axis=0, consolidate=False, only_slice=True
+        )
+        return self._constructor(new_mgr)
+
     def __getitem__(self, key):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
