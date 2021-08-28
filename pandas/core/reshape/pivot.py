@@ -314,9 +314,7 @@ def _add_margins(
             row_margin[k] = grand_margin[k]
         else:
             row_margin[k] = grand_margin[k[0]]
-
-    from pandas import DataFrame
-
+            
     margin_dummy = DataFrame(row_margin, columns=[key]).T
 
     row_names = result.index.names
@@ -379,8 +377,6 @@ def _generate_marginal_results(
                 table_pieces.append(piece)
                 margin_keys.append(all_key)
         else:
-            from pandas import DataFrame
-
             cat_axis = 0
             for key, piece in table.groupby(level=0, axis=cat_axis, observed=observed):
                 if len(cols) > 1:
@@ -643,9 +639,6 @@ def crosstab(
         colnames_mapper,
         unique_colnames,
     ) = _build_names_mapper(rownames, colnames)
-
-    from pandas import DataFrame
-
     data = {
         **dict(zip(unique_rownames, index)),
         **dict(zip(unique_colnames, columns)),

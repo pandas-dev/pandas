@@ -1329,7 +1329,6 @@ default 'raise'
         2020-01-01     1
         Freq: D, Name: week, dtype: UInt32
         """
-        from pandas import DataFrame
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values)

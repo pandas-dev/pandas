@@ -1150,7 +1150,7 @@ class Styler(StylerRenderer):
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
         if DataFrame()._get_axis_number(axis)==0:
-         result = data.apply(func, axis=0, **kwargs)
+            result = data.apply(func, axis=0, **kwargs)
         if DataFrame()._get_axis_number(axis)==1:
             result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
         else:

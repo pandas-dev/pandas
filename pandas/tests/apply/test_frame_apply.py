@@ -1026,7 +1026,6 @@ def test_agg_transform(axis, float_frame):
             expected.columns = MultiIndex.from_product(
                 [float_frame.columns, ["absolute", "sqrt"]]
             )
-            
             expected.index = MultiIndex.from_product(
                 [float_frame.index, ["absolute", "sqrt"]]
             )
