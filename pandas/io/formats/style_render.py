@@ -687,6 +687,16 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
+        When instantiating a Styler, default formatting can be applied be setting the
+        ``pandas.options``:
+
+          - ``styler.format.formatter``: default None.
+          - ``styler.format.na_rep``: default None.
+          - ``styler.format.precision``: default 6.
+          - ``styler.format.decimal``: default ".".
+          - ``styler.format.thousands``: default None.
+          - ``styler.format.escape``: default None.
+
         Examples
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
