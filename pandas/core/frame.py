@@ -38,7 +38,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas._config import get_option
-from pandas.util._exceptions import find_stack_level
+
 from pandas._libs import (
     algos as libalgos,
     lib,
@@ -7622,18 +7622,7 @@ NaN 12.3   33.0
             )
         else:
             squeeze = False
-        if len(self.select_dtypes(
-                        include=[np.number, np.datetime64, np.timedelta64]
-                    ).columns) == 0:
-            warnings.warn(
-                (
-                    "The `numeric_only` parameter defaults to True in current version. "
-                    "Will be set according to the datatypes "
-                    "in a future version."
-                ),
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
         axis = self._get_axis_number(axis)

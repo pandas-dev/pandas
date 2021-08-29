@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import datetime
-
 from functools import (
     partial,
     wraps,
@@ -1100,48 +1099,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
-    
-    '''
-    def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
-        """
-        Determine subclass-specific default value for 'numeric_only'.
-
-        For SeriesGroupBy we want the default to be False (to match Series behavior).
-        For DataFrameGroupBy we want it to be True (for backwards-compat).
-
-        Parameters
-        ----------
-        numeric_only : bool or lib.no_default
-
-        Returns
-        -------
-        bool
-        """
-        # GH#41291
-        if numeric_only is lib.no_default:
-            # i.e. not explicitly passed by user
-            if self.obj.ndim == 2:
-                # i.e. DataFrameGroupBy
-                # Checking for empty object
-                if not self.obj.empty:
-                    # Checking if the dataframe has numeric features for aggregation
-                    cols_for_agg = set(self.obj.select_dtypes(
-                        include=[np.number, np.datetime64, np.timedelta64]
-                    ))
-                    if len(cols_for_agg) > 0:
-                        numeric_only = True
-                    else:
-                        numeric_only = False
-                else:
-                    numeric_only = True
-            else:
-                numeric_only = False
-
-        # error: Incompatible return value type (got "Union[bool, NoDefault]",
-        # expected "bool")
-        return numeric_only  # type: ignore[return-value]
-    '''
-    
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
         """
         Determine subclass-specific default value for 'numeric_only'.
@@ -1160,12 +1117,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.obj.ndim == 2:
                 # i.e. DataFrameGroupBy
                 numeric_only = True
+                obj = self._obj_with_exclusions
+                check = obj._get_numeric_data()
+                if len(obj.columns) and not len(check.columns):
+                    warnings.warn("... Explicitly pass numeric_only ...")
+                    numeric_only = False
+
             else:
                 numeric_only = False
+        return numeric_only
 
-        # error: Incompatible return value type (got "Union[bool, NoDefault]",
-        # expected "bool")
-        return numeric_only  # type: ignore[return-value]
     # -----------------------------------------------------------------
     # numba
 
