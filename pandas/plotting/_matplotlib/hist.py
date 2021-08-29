@@ -246,8 +246,7 @@ def _grouped_plot(
     if figsize == "default":
         # allowed to specify mpl default with 'default'
         raise ValueError(
-            "figsize='default' is no longer supported. "
-            "Specify figure size by tuple instead"
+            "figsize='default' is no longer supported.Specify figure size by tuple instead"
         )
 
     grouped = data.groupby(by)
@@ -401,8 +400,8 @@ def hist_series(
     else:
         if "figure" in kwds:
             raise ValueError(
-                "Cannot pass 'figure' when using the "
-                "'by' argument, since a new 'Figure' instance will be created"
+                "Cannot pass 'figure' when using the 
+                'by' argument, since a new 'Figure' instance will be created"
             )
         axes = _grouped_hist(
             self,
@@ -510,3 +509,4 @@ def hist_frame(
     maybe_adjust_figure(fig, wspace=0.3, hspace=0.3)
 
     return axes
+
