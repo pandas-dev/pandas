@@ -276,6 +276,30 @@ def test_multiindex_row_and_col(df):
     assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
 
 
+def test_multi_options(df):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    df.index, df.columns = ridx, cidx
+    styler = df.style.format(precision=2)
+
+    expected = dedent(
+        """\
+    {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
+    {} & {} & {a} & {b} & {c} \\\\
+    \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+    """
+    )
+    assert expected in styler.to_latex()
+
+    with option_context("styler.latex.multicol_align", "l"):
+        assert "{} & {} & \\multicolumn{2}{l}{Z} & {Y} \\\\" in styler.to_latex()
+
+    with option_context("styler.latex.multirow_align", "b"):
+        assert "\\multirow[b]{2}{*}{A} & a & 0 & -0.61 & ab \\\\" in styler.to_latex()
+
+
 def test_multiindex_columns_hidden():
     df = DataFrame([[1, 2, 3, 4]])
     df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
