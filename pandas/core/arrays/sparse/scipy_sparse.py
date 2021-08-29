@@ -3,11 +3,11 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
+from __future__ import annotations
+
 from typing import (
     TYPE_CHECKING,
     Iterable,
-    List,
-    Tuple,
 )
 
 import numpy as np
@@ -37,10 +37,10 @@ def _check_is_partition(parts: Iterable, whole: Iterable):
 
 def _levels_to_axis(
     ss,
-    levels: Tuple[int] | List[int],
-    valid_ilocs: np.ndarray,
+    levels: tuple[int] | list[int],
+    valid_ilocs: npt.NDArray[np.intp],
     sort_labels: bool = False,
-) -> Tuple[npt.NDArray[np.intp], List[IndexLabel]]:
+) -> tuple[npt.NDArray[np.intp], list[IndexLabel]]:
     """
     For a MultiIndexed sparse Series `ss`, return `ax_coords` and `ax_labels`,
     where `ax_coords` are the coordinates along one of the two axes of the
@@ -82,15 +82,15 @@ def _levels_to_axis(
 
 def _to_ijv(
     ss,
-    row_levels: Tuple[int] | List[int] = (0,),
-    column_levels: Tuple[int] | List[int] = (1,),
+    row_levels: tuple[int] | list[int] = (0,),
+    column_levels: tuple[int] | list[int] = (1,),
     sort_labels: bool = False,
-) -> Tuple[
+) -> tuple[
     np.ndarray,
     npt.NDArray[np.intp],
     npt.NDArray[np.intp],
-    List[IndexLabel],
-    List[IndexLabel],
+    list[IndexLabel],
+    list[IndexLabel],
 ]:
     """
     For an arbitrary MultiIndexed sparse Series return (v, i, j, ilabels,
@@ -141,7 +141,7 @@ def sparse_series_to_coo(
     row_levels: Iterable[int] = (0,),
     column_levels: Iterable[int] = (1,),
     sort_labels: bool = False,
-) -> Tuple[scipy.sparse.coo_matrix, List[IndexLabel], List[IndexLabel]]:
+) -> tuple[scipy.sparse.coo_matrix, list[IndexLabel], list[IndexLabel]]:
     """
     Convert a sparse Series to a scipy.sparse.coo_matrix using index
     levels row_levels, column_levels as the row and column
