@@ -175,7 +175,10 @@ def to_numeric(arg, errors="raise", downcast=None):
     if is_numeric_dtype(values_dtype):
         pass
     elif is_datetime_or_timedelta_dtype(values_dtype):
-        values = values.view(np.int64)
+        if pd.isnull(arg.values):
+            values = np.nan
+        else: 
+            values = pd.to_datetime(values).strftime("%Y%m%d").astype(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
@@ -236,7 +239,5 @@ def to_numeric(arg, errors="raise", downcast=None):
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy
         return pd.Index(values, name=arg.name)
-    elif is_scalars:
-        return values[0]
     else:
-        return values
+        return values[0]
