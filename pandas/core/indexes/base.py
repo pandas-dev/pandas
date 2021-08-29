@@ -2498,7 +2498,7 @@ class Index(IndexOpsMixin, PandasObject):
     """The expected NA value to use with this index."""
 
     @cache_readonly
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         """
         Return if each value is NaN.
         """
@@ -2521,7 +2521,7 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     @final
-    def isna(self) -> np.ndarray:
+    def isna(self) -> npt.NDArray[np.bool_]:
         """
         Detect missing values.
 
@@ -2579,7 +2579,7 @@ class Index(IndexOpsMixin, PandasObject):
     isnull = isna
 
     @final
-    def notna(self) -> np.ndarray:
+    def notna(self) -> npt.NDArray[np.bool_]:
         """
         Detect existing (non-missing) values.
 
@@ -2764,7 +2764,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return super().drop_duplicates(keep=keep)
 
-    def duplicated(self, keep: Literal["first", "last", False] = "first") -> np.ndarray:
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
         """
         Indicate duplicate index values.
 
@@ -5495,7 +5497,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return keyarr, indexer
 
-    def _raise_if_missing(self, key, indexer, axis_name: str_t):
+    def _raise_if_missing(self, key, indexer, axis_name: str_t) -> None:
         """
         Check that indexer can be used to return a result.
 
@@ -6119,7 +6121,9 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(self, start=None, end=None, step=None, kind=no_default):
+    def slice_locs(
+        self, start=None, end=None, step=None, kind=no_default
+    ) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6491,7 +6495,7 @@ class Index(IndexOpsMixin, PandasObject):
         return np.all(self.values)  # type: ignore[arg-type]
 
     @final
-    def _maybe_disable_logical_methods(self, opname: str_t):
+    def _maybe_disable_logical_methods(self, opname: str_t) -> None:
         """
         raise if this Index subclass does not support any or all.
         """
@@ -6606,7 +6610,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
 
-def ensure_index_from_sequences(sequences, names=None):
+def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
     Construct an index from sequences of data.
 
