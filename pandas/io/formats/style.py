@@ -830,7 +830,9 @@ class Styler(StylerRenderer):
         )
 
         encoding = encoding or get_option("styler.render.encoding")
-        return save_to_buffer(latex, buf=buf, encoding=encoding)
+        return save_to_buffer(
+            latex, buf=buf, encoding=None if buf is None else encoding
+        )
 
     def to_html(
         self,
