@@ -549,7 +549,7 @@ class ParserBase:
                     warnings.warn(
                         (
                             "Both a converter and dtype were specified "
-                            f"for column {c} - only the converter will be used"
+                            f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
                         stacklevel=7,
