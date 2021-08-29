@@ -14,6 +14,9 @@ Most of the examples will utilize the ``tips`` dataset found within pandas tests
 the data into a DataFrame called ``tips`` and assume we have a database table of the same name and
 structure.
 
+**Important Note: Readers are needed to set up a notebook and execute the code in it for their
+experience to be comparable to that of the tutorial.**
+
 .. ipython:: python
 
     url = (
