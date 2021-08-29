@@ -42,6 +42,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
 
 from pandas.io.common import validate_header_arg
+from pandas.io.parsers.arrow_parser_wrapper import ArrowParserWrapper
 from pandas.io.parsers.base_parser import (
     ParserBase,
     is_index_col,
@@ -143,9 +144,15 @@ dtype : Type name or dict of column -> type, optional
     to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
-engine : {{'c', 'python'}}, optional
-    Parser engine to use. The C engine is faster while the python engine is
-    currently more feature-complete.
+engine : {{'c', 'python', 'pyarrow'}}, optional
+    Parser engine to use. The C and pyarrow engines are faster, while the python engine
+    is currently more feature-complete. Multithreading is currently only supported by
+    the pyarrow engine.
+
+    .. versionadded:: 1.4.0
+
+        The "pyarrow" engine was added as an *experimental* engine, and some features
+        are unsupported, or may not work correctly, with this engine.
 converters : dict, optional
     Dict of functions for converting values in certain columns. Keys can either
     be integers or column labels.
@@ -406,6 +413,33 @@ _fwf_defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
+_pyarrow_unsupported = {
+    "skipfooter",
+    "float_precision",
+    "chunksize",
+    "comment",
+    "nrows",
+    "thousands",
+    "memory_map",
+    "dialect",
+    "warn_bad_lines",
+    "error_bad_lines",
+    # TODO(1.4)
+    # This doesn't error properly ATM, fix for release
+    # but not blocker for initial PR
+    # "on_bad_lines",
+    "delim_whitespace",
+    "quoting",
+    "lineterminator",
+    "converters",
+    "decimal",
+    "iterator",
+    "dayfirst",
+    "infer_datetime_format",
+    "verbose",
+    "skipinitialspace",
+    "low_memory",
+}
 
 _deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
 _deprecated_args: set[str] = {"error_bad_lines", "warn_bad_lines"}
@@ -472,7 +506,20 @@ def _read(filepath_or_buffer: FilePathOrBuffer, kwds):
 
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
-    chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+    chunksize = kwds.get("chunksize", None)
+    if kwds.get("engine") == "pyarrow":
+        if iterator:
+            raise ValueError(
+                "The 'iterator' option is not supported with the 'pyarrow' engine"
+            )
+
+        if chunksize is not None:
+            raise ValueError(
+                "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            )
+    else:
+        chunksize = validate_integer("chunksize", kwds.get("chunksize", None), 1)
+
     nrows = kwds.get("nrows", None)
 
     # Check for duplicates in names.
@@ -785,6 +832,10 @@ class TextFileReader(abc.Iterator):
 
         dialect = _extract_dialect(kwds)
         if dialect is not None:
+            if engine == "pyarrow":
+                raise ValueError(
+                    "The 'dialect' option is not supported with the 'pyarrow' engine"
+                )
             kwds = _merge_with_dialect_properties(dialect, kwds)
 
         if kwds.get("header", "infer") == "infer":
@@ -823,7 +874,17 @@ class TextFileReader(abc.Iterator):
             value = kwds.get(argname, default)
 
             # see gh-12935
-            if argname == "mangle_dupe_cols" and not value:
+            if (
+                engine == "pyarrow"
+                and argname in _pyarrow_unsupported
+                and value != default
+            ):
+                raise ValueError(
+                    f"The {repr(argname)} option is not supported with the "
+                    f"'pyarrow' engine"
+                )
+            elif argname == "mangle_dupe_cols" and value is False:
+                # GH12935
                 raise ValueError("Setting mangle_dupe_cols=False is not supported yet")
             else:
                 options[argname] = value
@@ -878,9 +939,9 @@ class TextFileReader(abc.Iterator):
         delim_whitespace = options["delim_whitespace"]
 
         if sep is None and not delim_whitespace:
-            if engine == "c":
+            if engine in ("c", "pyarrow"):
                 fallback_reason = (
-                    "the 'c' engine does not support "
+                    f"the '{engine}' engine does not support "
                     "sep=None with delim_whitespace=False"
                 )
                 engine = "python"
@@ -891,7 +952,7 @@ class TextFileReader(abc.Iterator):
             elif engine not in ("python", "python-fwf"):
                 # wait until regex engine integrated
                 fallback_reason = (
-                    "the 'c' engine does not support "
+                    f"the '{engine}' engine does not support "
                     "regex separators (separators > 1 char and "
                     r"different from '\s+' are interpreted as regex)"
                 )
@@ -910,7 +971,7 @@ class TextFileReader(abc.Iterator):
             if not encodeable and engine not in ("python", "python-fwf"):
                 fallback_reason = (
                     f"the separator encoded in {encoding} "
-                    "is > 1 char long, and the 'c' engine "
+                    f"is > 1 char long, and the '{engine}' engine "
                     "does not support such separators"
                 )
                 engine = "python"
@@ -925,7 +986,7 @@ class TextFileReader(abc.Iterator):
                 fallback_reason = (
                     "ord(quotechar) > 127, meaning the "
                     "quotechar is larger than one byte, "
-                    "and the 'c' engine does not support such quotechars"
+                    f"and the '{engine}' engine does not support such quotechars"
                 )
                 engine = "python"
 
@@ -1001,8 +1062,15 @@ class TextFileReader(abc.Iterator):
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
-        # c-engine, so only need for python parsers
-        if engine != "c":
+        # c-engine, so only need for python and pyarrow parsers
+        if engine == "pyarrow":
+            if not is_integer(skiprows) and skiprows is not None:
+                # pyarrow expects skiprows to be passed as an integer
+                raise ValueError(
+                    "skiprows argument must be an integer when using "
+                    "engine='pyarrow'"
+                )
+        else:
             if is_integer(skiprows):
                 skiprows = list(range(skiprows))
             if skiprows is None:
@@ -1030,6 +1098,7 @@ class TextFileReader(abc.Iterator):
         mapping: dict[str, type[ParserBase]] = {
             "c": CParserWrapper,
             "python": PythonParser,
+            "pyarrow": ArrowParserWrapper,
             "python-fwf": FixedWidthFieldParser,
         }
         if engine not in mapping:
@@ -1043,22 +1112,25 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = validate_integer("nrows", nrows)
-        index, columns, col_dict = self._engine.read(nrows)
-
-        if index is None:
-            if col_dict:
-                # Any column is actually fine:
-                new_rows = len(next(iter(col_dict.values())))
-                index = RangeIndex(self._currow, self._currow + new_rows)
-            else:
-                new_rows = 0
+        if self.engine == "pyarrow":
+            df = self._engine.read()
         else:
-            new_rows = len(index)
+            nrows = validate_integer("nrows", nrows)
+            index, columns, col_dict = self._engine.read(nrows)
 
-        df = DataFrame(col_dict, columns=columns, index=index)
+            if index is None:
+                if col_dict:
+                    # Any column is actually fine:
+                    new_rows = len(next(iter(col_dict.values())))
+                    index = RangeIndex(self._currow, self._currow + new_rows)
+                else:
+                    new_rows = 0
+            else:
+                new_rows = len(index)
 
-        self._currow += new_rows
+            df = DataFrame(col_dict, columns=columns, index=index)
+
+            self._currow += new_rows
 
         if self.squeeze and len(df.columns) == 1:
             return df[df.columns[0]].copy()
