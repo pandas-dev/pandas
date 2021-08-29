@@ -1423,7 +1423,7 @@ def convert_dtypes(
             if not convert_string:
                 return input_array.dtype
             else:
-                byte_list_set = list(set([type(x) is bytes for x in input_array]))
+                byte_list_set = list({type(x) is bytes for x in input_array})
                 if len(byte_list_set) == 1 and byte_list_set[0]:
                     inferred_dtype = type(input_array[0])
                     return inferred_dtype
