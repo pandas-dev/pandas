@@ -1410,20 +1410,6 @@ def convert_dtypes(
     """
     inferred_dtype: str | DtypeObj
 
-    try:
-        # case of a byte_string
-        # all(isinstance(x, bytes) for x in input_array)
-
-        byte_list_set = list(set([type(x) is bytes for x in input_array]))
-        if len(byte_list_set) == 1 and byte_list_set[0]:
-            inferred_dtype = type(input_array[0])
-            return inferred_dtype
-    except (UnicodeDecodeError, AttributeError):
-        # it is not a bare except, there is a pass statement
-        # In the event of an exception, it will not be
-        # a byte_string, so we process with other types
-        pass
-
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
@@ -1437,6 +1423,10 @@ def convert_dtypes(
             if not convert_string:
                 return input_array.dtype
             else:
+                byte_list_set = list(set([type(x) is bytes for x in input_array]))
+                if len(byte_list_set) == 1 and byte_list_set[0]:
+                    inferred_dtype = type(input_array[0])
+                    return inferred_dtype
                 return pandas_dtype("string")
 
         if convert_integer:
