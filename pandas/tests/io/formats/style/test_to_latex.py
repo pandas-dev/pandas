@@ -400,6 +400,12 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
     assert s.format(precision=2).to_latex(environment=environment) == expected
 
 
+def test_environment_option(styler):
+    with option_context("styler.latex.environment", "bar-env"):
+        assert "\\begin{bar-env}" in styler.to_latex()
+        assert "\\begin{foo-env}" in styler.to_latex(environment="foo-env")
+
+
 def test_parse_latex_table_styles(styler):
     styler.set_table_styles(
         [
