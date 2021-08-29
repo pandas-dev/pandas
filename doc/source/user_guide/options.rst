@@ -489,6 +489,10 @@ styler.sparse.columns                   True         "Sparsify" MultiIndex displ
                                                      in Styler output.
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
+styler.latex.multicol_align             r            Alignment of headers in a merged column due to sparsification. Can be in {"r", "c", "l"}.
+styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
+styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
+                                                     this will render with a specific "longtable" template with longtable features.
 ======================================= ============ ==================================
 
 
