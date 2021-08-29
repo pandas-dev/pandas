@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
@@ -322,7 +323,7 @@ class ExponentialMovingWindow(BaseWindow):
                         "into times instead."
                     ),
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=find_stack_level(),
                 )
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
