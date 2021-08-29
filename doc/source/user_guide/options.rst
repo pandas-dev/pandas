@@ -490,7 +490,7 @@ styler.sparse.columns                   True         "Sparsify" MultiIndex displ
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
 styler.html.mathjax                     True         If set to False will render specific CSS classes to
-                                                     cells that will prevent Mathjax from rendering
+                                                     table attributes that will prevent Mathjax from rendering
                                                      in Jupyter Notebook.
 ======================================= ============ ==================================
 

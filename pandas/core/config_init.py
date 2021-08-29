@@ -764,8 +764,8 @@ styler_max_elements = """
 
 styler_mathjax = """
 : bool
-    If False will render special CSS classes to cells that indicate Mathjax should not
-    be used for those elements in Jupyter Notebook.
+    If False will render special CSS classes to table attributes that indicate Mathjax
+    will not be used in Jupyter Notebook.
 """
 
 with cf.config_prefix("styler"):
