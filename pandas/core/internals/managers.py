@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from collections import defaultdict
 import itertools
 from typing import (
     Any,
     Callable,
-    DefaultDict,
     Hashable,
     Sequence,
     TypeVar,
@@ -67,9 +65,7 @@ from pandas.core.internals.base import (
 )
 from pandas.core.internals.blocks import (
     Block,
-    CategoricalBlock,
     DatetimeTZBlock,
-    ExtensionBlock,
     ensure_block_shape,
     extend_blocks,
     get_block_type,
@@ -1164,7 +1160,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 "DataFrame is highly fragmented.  This is usually the result "
                 "of calling `frame.insert` many times, which has poor performance.  "
                 "Consider joining all columns at once using pd.concat(axis=1) "
-                "instead.  To get a de-fragmented frame, use `newframe = frame.copy()`",
+                "instead. To get a de-fragmented frame, use `newframe = frame.copy()`",
                 PerformanceWarning,
                 stacklevel=5,
             )
@@ -1863,106 +1859,64 @@ def construction_error(
 # -----------------------------------------------------------------------
 
 
+def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
+    # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
+    # raises instead of returning False. Once earlier numpy versions are dropped,
+    # this can be simplified to `return tup[1].dtype`
+    dtype = tup[1].dtype
+
+    if is_1d_only_ea_dtype(dtype):
+        # We know these won't be consolidated, so don't need to group these.
+        # This avoids expensive comparisons of CategoricalDtype objects
+        sep = id(dtype)
+    else:
+        sep = 0
+
+    return sep, isinstance(dtype, np.dtype), dtype
+
+
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
-
-    items_dict: DefaultDict[str, list] = defaultdict(list)
-
-    for i, name_idx in enumerate(range(len(arrays))):
-
-        v = arrays[name_idx]
-
-        block_type = get_block_type(v)
-        items_dict[block_type.__name__].append((i, v))
-
-    blocks: list[Block] = []
-    if len(items_dict["NumericBlock"]):
-        numeric_blocks = multi_blockify(
-            items_dict["NumericBlock"], consolidate=consolidate
-        )
-        blocks.extend(numeric_blocks)
-
-    if len(items_dict["DatetimeLikeBlock"]):
-        dtlike_blocks = multi_blockify(
-            items_dict["DatetimeLikeBlock"], consolidate=consolidate
-        )
-        blocks.extend(dtlike_blocks)
-
-    if len(items_dict["DatetimeTZBlock"]):
-        dttz_blocks = [
-            DatetimeTZBlock(
-                ensure_block_shape(extract_array(array), 2),
-                placement=BlockPlacement(i),
-                ndim=2,
-            )
-            for i, array in items_dict["DatetimeTZBlock"]
-        ]
-        blocks.extend(dttz_blocks)
-
-    if len(items_dict["ObjectBlock"]) > 0:
-        object_blocks = simple_blockify(
-            items_dict["ObjectBlock"], np.object_, consolidate=consolidate
-        )
-        blocks.extend(object_blocks)
-
-    if len(items_dict["CategoricalBlock"]) > 0:
-        cat_blocks = [
-            CategoricalBlock(array, placement=BlockPlacement(i), ndim=2)
-            for i, array in items_dict["CategoricalBlock"]
-        ]
-        blocks.extend(cat_blocks)
-
-    if len(items_dict["ExtensionBlock"]):
-        external_blocks = [
-            ExtensionBlock(array, placement=BlockPlacement(i), ndim=2)
-            for i, array in items_dict["ExtensionBlock"]
-        ]
-
-        blocks.extend(external_blocks)
-
-    return blocks
-
-
-def simple_blockify(tuples, dtype, consolidate: bool) -> list[Block]:
-    """
-    return a single array of a block that has a single dtype; if dtype is
-    not None, coerce to this dtype
-    """
-    if not consolidate:
-        return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)
-
-    values, placement = _stack_arrays(tuples, dtype)
-
-    # TODO: CHECK DTYPE?
-    if dtype is not None and values.dtype != dtype:  # pragma: no cover
-        values = values.astype(dtype)
-
-    block = new_block(values, placement=BlockPlacement(placement), ndim=2)
-    return [block]
-
-
-def multi_blockify(tuples, dtype: DtypeObj | None = None, consolidate: bool = True):
-    """return an array of blocks that potentially have different dtypes"""
+    tuples = list(enumerate(arrays))
 
     if not consolidate:
-        return _tuples_to_blocks_no_consolidate(tuples, dtype=dtype)
+        nbs = _tuples_to_blocks_no_consolidate(tuples, dtype=None)
+        return nbs
 
     # group by dtype
-    grouper = itertools.groupby(tuples, lambda x: x[1].dtype)
+    grouper = itertools.groupby(tuples, _grouping_func)
 
-    new_blocks = []
-    for dtype, tup_block in grouper:
+    nbs = []
+    for (_, _, dtype), tup_block in grouper:
+        block_type = get_block_type(None, dtype)
 
-        # error: Argument 2 to "_stack_arrays" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "dtype[Any]"
-        values, placement = _stack_arrays(
-            list(tup_block), dtype  # type: ignore[arg-type]
-        )
+        if isinstance(dtype, np.dtype):
+            is_dtlike = dtype.kind in ["m", "M"]
 
-        block = new_block(values, placement=BlockPlacement(placement), ndim=2)
-        new_blocks.append(block)
+            if issubclass(dtype.type, (str, bytes)):
+                dtype = np.dtype(object)
 
-    return new_blocks
+            values, placement = _stack_arrays(list(tup_block), dtype)
+            if is_dtlike:
+                values = ensure_wrapped_if_datetimelike(values)
+            blk = block_type(values, placement=BlockPlacement(placement), ndim=2)
+            nbs.append(blk)
+
+        elif is_1d_only_ea_dtype(dtype):
+            dtype_blocks = [
+                block_type(x[1], placement=BlockPlacement(x[0]), ndim=2)
+                for x in tup_block
+            ]
+            nbs.extend(dtype_blocks)
+
+        else:
+            dtype_blocks = [
+                block_type(
+                    ensure_block_shape(x[1], 2), placement=BlockPlacement(x[0]), ndim=2
+                )
+                for x in tup_block
+            ]
+            nbs.extend(dtype_blocks)
+    return nbs
 
 
 def _tuples_to_blocks_no_consolidate(tuples, dtype: DtypeObj | None) -> list[Block]:
@@ -1970,11 +1924,16 @@ def _tuples_to_blocks_no_consolidate(tuples, dtype: DtypeObj | None) -> list[Blo
     if dtype is not None:
         return [
             new_block(
-                np.atleast_2d(x[1].astype(dtype, copy=False)), placement=x[0], ndim=2
+                ensure_block_shape(x[1].astype(dtype, copy=False), ndim=2),
+                placement=x[0],
+                ndim=2,
             )
             for x in tuples
         ]
-    return [new_block(np.atleast_2d(x[1]), placement=x[0], ndim=2) for x in tuples]
+    return [
+        new_block(ensure_block_shape(x[1], ndim=2), placement=x[0], ndim=2)
+        for x in tuples
+    ]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
