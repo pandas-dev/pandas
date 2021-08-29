@@ -15,7 +15,7 @@ the data into a DataFrame called ``tips`` and assume we have a database table of
 structure.
 
 **Important Note: Readers are needed to set up a notebook and execute the code in it for their
-experience to be comparable to that of the tutorial.**
+experience to be similar to that of the tutorial.**
 
 .. ipython:: python
 
