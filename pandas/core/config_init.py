@@ -762,6 +762,22 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_multirow_align = """
+: {"c", "t", "b"}
+    The specifier for vertical alignment of sparsified LaTeX multirows.
+"""
+
+styler_multicol_align = """
+: {"r", "c", "l"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+"""
+
+styler_environment = """
+: str
+    The environment to replace ``\\begin{table}``. If "longtable" is used results
+    in a specific longtable environment format.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
@@ -774,4 +790,25 @@ with cf.config_prefix("styler"):
         2 ** 18,
         styler_max_elements,
         validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "latex.multirow_align",
+        "c",
+        styler_multirow_align,
+        validator=is_one_of_factory(["c", "t", "b"]),
+    )
+
+    cf.register_option(
+        "latex.multicol_align",
+        "r",
+        styler_multicol_align,
+        validator=is_one_of_factory(["r", "c", "l"]),
+    )
+
+    cf.register_option(
+        "latex.environment",
+        None,
+        styler_environment,
+        validator=is_instance_factory([type(None), str]),
     )
