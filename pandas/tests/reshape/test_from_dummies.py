@@ -69,8 +69,12 @@ def test_from_dummies_to_series_dropped_first():
 def test_from_dummies_to_series_wrong_dropped_first():
     dummies = DataFrame({"a": [1, 0, 1], "b": [0, 1, 1]})
     with pytest.raises(
-        ValueError,
-        match=r"Only one dropped first value possible in 1D dummy DataFrame.",
+        TypeError,
+        match=(
+            r"Only one dropped first value possible in 1D dummy DataFrame: "
+            r"'dropped_first' should be of type 'str'; "
+            r"Received 'dropped_first' of type: list"
+        ),
     ):
         from_dummies(dummies, to_series=True, dropped_first=["c", "d"])
 
@@ -216,6 +220,18 @@ def test_from_dummies_to_df_dropped_first_list_not_complete(dummies_with_unassig
         ),
     ):
         from_dummies(dummies_with_unassigned, dropped_first=["x"])
+
+
+def test_from_dummies_to_df_dropped_first_wrong_type(dummies_with_unassigned):
+
+    with pytest.raises(
+        TypeError,
+        match=(
+            r"Expected 'dropped_first' to be of type 'str', 'list', or 'dict'; "
+            r"Received 'dropped_first' of type: tuple"
+        ),
+    ):
+        from_dummies(dummies_with_unassigned, dropped_first=("x", "y"))
 
 
 def test_from_dummies_to_df_dropped_first_dict(dummies_with_unassigned):

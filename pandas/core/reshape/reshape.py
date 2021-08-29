@@ -1222,9 +1222,14 @@ def from_dummies(
         elif isinstance(dropped_first, list):
             check_len(dropped_first, "dropped_first")
             dropped_first = dict(zip(variables_slice, dropped_first))
-        else:
+        elif isinstance(dropped_first, str):
             dropped_first = dict(
                 zip(variables_slice, [dropped_first] * len(variables_slice))
+            )
+        else:
+            raise TypeError(
+                f"Expected 'dropped_first' to be of type 'str', 'list', or 'dict'; "
+                f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
             )
 
     cat_data = {}
@@ -1266,7 +1271,11 @@ def _from_dummies_1d(
     from pandas.core.reshape.concat import concat
 
     if dropped_first and not isinstance(dropped_first, str):
-        raise ValueError("Only one dropped first value possible in 1D dummy DataFrame.")
+        raise TypeError(
+            f"Only one dropped first value possible in 1D dummy DataFrame: "
+            f"'dropped_first' should be of type 'str'; "
+            f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
+        )
 
     data = data.astype("boolean")
     cats = data.columns.tolist()
