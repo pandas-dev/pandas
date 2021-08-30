@@ -18,6 +18,17 @@ Fixed regressions
 - Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
 - Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
 - Fixed regression in :meth:`merge` where ``on`` columns with few data types (``ExtensionDtype`` and ``bool``) was cast to ``object`` in ``right`` merge (:issue:`40073`)
+- Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`DataFrame.__setitem__` when the key or value is not a :class:`DataFrame`, or key is not list-like (:issue:`43274`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -26,6 +37,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`merge` where ``on`` columns with few data types (``ExtensionDtype`` and ``bool``) was cast to ``object`` in ``outer`` merge (:issue:`40073`)
+- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine="numba"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)
 -
 
 .. ---------------------------------------------------------------------------
