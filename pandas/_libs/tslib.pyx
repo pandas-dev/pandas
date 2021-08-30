@@ -248,7 +248,7 @@ def array_with_unit_to_datetime(
         # if we have nulls that are not type-compat
         # then need to iterate
 
-        if values.dtype.kind == "i" or values.dtype.kind == "f":
+        if values.dtype.kind in ["i", "f", "u"]:
             iresult = values.astype("i8", copy=False)
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
@@ -263,7 +263,7 @@ def array_with_unit_to_datetime(
             ):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            if values.dtype.kind == "i":
+            if values.dtype.kind in ["i", "u"]:
                 result = (iresult * m).astype("M8[ns]")
 
             elif values.dtype.kind == "f":
