@@ -2424,7 +2424,7 @@ def test_rolling_wrong_param_min_period():
 @pytest.mark.parametrize(
     "func, expected, dtype, result_dtype",
     [
-        ("sum", [5, 7, 9], int, int),
+        ("sum", [5, 7, 9], int, "int64"),
         ("std", [4.5 ** 0.5] * 3, int, float),
         ("var", [4.5] * 3, int, float),
         ("sum", [5, 7, 9], "Int64", "Int64"),
