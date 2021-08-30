@@ -457,11 +457,21 @@ def maybe_operate_rowwise(func):
 
     @functools.wraps(func)
     def newfunc(values: np.ndarray, *, axis: int | None = None, **kwargs):
-        if axis == 1:
-            if values.ndim == 2 and values.flags["C_CONTIGUOUS"]:
-                arrs = list(values)
+        if (
+            axis == 1
+            and values.ndim == 2
+            and values.flags["C_CONTIGUOUS"]
+            and values.dtype != object
+        ):
+            arrs = list(values)
+            if kwargs.get("mask") is not None:
+                mask = kwargs.pop("mask")
+                results = [
+                    func(arrs[i], mask=mask[i], **kwargs) for i in range(len(arrs))
+                ]
+            else:
                 results = [func(x, **kwargs) for x in arrs]
-                return np.array(results)
+            return np.array(results)
 
         return func(values, axis=axis, **kwargs)
 
