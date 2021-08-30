@@ -671,7 +671,7 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({left.columns.nlevels} levels on the left,"
+                f"in a future version. ({left.columns.nlevels} levels on the left, "
                 f"{right.columns.nlevels} on the right)"
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
@@ -1204,7 +1204,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1214,7 +1214,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
