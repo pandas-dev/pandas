@@ -4,7 +4,6 @@ import pytz
 from pandas._libs.tslibs import timezones
 
 from pandas import (
-    CategoricalDtype,
     DatetimeIndex,
     NaT,
     Series,
