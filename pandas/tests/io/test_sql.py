@@ -27,7 +27,6 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
-import warnings
 
 import numpy as np
 import pytest
@@ -55,6 +54,8 @@ import pandas._testing as tm
 import pandas.io.sql as sql
 from pandas.io.sql import (
     SQLAlchemyEngine,
+    SQLDatabase,
+    SQLiteDatabase,
     _gt14,
     get_engine,
     read_sql_query,
@@ -151,7 +152,8 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         stmt = insert(iris).values(params)
         if isinstance(conn, Engine):
             with conn.connect() as conn:
-                conn.execute(stmt)
+                with conn.begin():
+                    conn.execute(stmt)
         else:
             conn.execute(stmt)
 
@@ -168,7 +170,8 @@ def create_and_load_iris_view(conn):
         stmt = text(stmt)
         if isinstance(conn, Engine):
             with conn.connect() as conn:
-                conn.execute(stmt)
+                with conn.begin():
+                    conn.execute(stmt)
         else:
             conn.execute(stmt)
 
@@ -239,7 +242,8 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
     stmt = insert(types).values(types_data)
     if isinstance(conn, Engine):
         with conn.connect() as conn:
-            conn.execute(stmt)
+            with conn.begin():
+                conn.execute(stmt)
     else:
         conn.execute(stmt)
 
@@ -602,13 +606,24 @@ class PandasSQLTest:
 
     def _transaction_test(self):
         with self.pandasSQL.run_transaction() as trans:
-            trans.execute("CREATE TABLE test_trans (A INT, B TEXT)")
+            stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
+            if isinstance(self.pandasSQL, SQLiteDatabase):
+                trans.execute(stmt)
+            else:
+                from sqlalchemy import text
+
+                stmt = text(stmt)
+                trans.execute(stmt)
 
         class DummyException(Exception):
             pass
 
         # Make sure when transaction is rolled back, no rows get inserted
         ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        if isinstance(self.pandasSQL, SQLDatabase):
+            from sqlalchemy import text
+
+            ins_sql = text(ins_sql)
         try:
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
@@ -1128,21 +1143,24 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_not_reflect_all_tables(self):
         from sqlalchemy import text
+        from sqlalchemy.engine import Engine
 
         # create invalid table
-        qry = text("CREATE TABLE invalid (x INTEGER, y UNKNOWN);")
-        self.conn.execute(qry)
-        qry = text("CREATE TABLE other_table (x INTEGER, y INTEGER);")
-        self.conn.execute(qry)
+        query_list = [
+            text("CREATE TABLE invalid (x INTEGER, y UNKNOWN);"),
+            text("CREATE TABLE other_table (x INTEGER, y INTEGER);"),
+        ]
+        for query in query_list:
+            if isinstance(self.conn, Engine):
+                with self.conn.connect() as conn:
+                    with conn.begin():
+                        conn.execute(query)
+            else:
+                self.conn.execute(query)
 
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            # Trigger a warning.
+        with tm.assert_produces_warning(None):
             sql.read_sql_table("other_table", self.conn)
             sql.read_sql_query("SELECT * FROM other_table", self.conn)
-            # Verify some things
-            assert len(w) == 0
 
     def test_warning_case_insensitive_table_name(self, test_frame1):
         # see gh-7815
@@ -1150,13 +1168,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # We can't test that this warning is triggered, a the database
         # configuration would have to be altered. But here we test that
         # the warning is certainly NOT triggered in a normal case.
-        with warnings.catch_warnings(record=True) as w:
-            # Cause all warnings to always be triggered.
-            warnings.simplefilter("always")
-            # This should not trigger a Warning
+        with tm.assert_produces_warning(None):
             test_frame1.to_sql("CaseSensitive", self.conn)
-            # Verify some things
-            assert len(w) == 0
 
     def _get_index_columns(self, tbl_name):
         from sqlalchemy.engine import reflection
@@ -1357,7 +1370,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
         # GH 6798
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b "])  # has a space
         # warns on create table with spaces in names
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning):
             sql.to_sql(df, "test_frame3_legacy", self.conn, index=False)
 
     def test_get_schema2(self, test_frame1):
@@ -1869,7 +1882,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         create_sql = text(create_sql)
         if isinstance(self.conn, Engine):
             with self.conn.connect() as conn:
-                conn.execute(create_sql)
+                with conn.begin():
+                    conn.execute(create_sql)
         else:
             self.conn.execute(create_sql)
         returned_df = sql.read_sql_table(tbl, self.conn)
@@ -2172,10 +2186,8 @@ class _TestSQLiteAlchemy:
         df = DataFrame({"a": [1, 2]}, dtype="int64")
         df.to_sql("test_bigintwarning", self.conn, index=False)
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
-            assert len(w) == 0
 
 
 class _TestMySQLAlchemy:
@@ -2216,11 +2228,11 @@ class _TestMySQLAlchemy:
         assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
     def test_read_procedure(self):
-        import pymysql
         from sqlalchemy import text
         from sqlalchemy.engine import Engine
 
-        # see GH7324. Although it is more an api test, it is added to the
+        # GH 7324
+        # Although it is more an api test, it is added to the
         # mysql tests as sqlite does not have stored procedures
         df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
         df.to_sql("test_procedure", self.conn, index=False)
@@ -2233,14 +2245,12 @@ class _TestMySQLAlchemy:
             SELECT * FROM test_procedure;
         END"""
         proc = text(proc)
-        connection = self.conn.connect() if isinstance(self.conn, Engine) else self.conn
-        trans = connection.begin()
-        try:
-            _ = connection.execute(proc)
-            trans.commit()
-        except pymysql.Error:
-            trans.rollback()
-            raise
+        if isinstance(self.conn, Engine):
+            with self.conn.connect() as conn:
+                with conn.begin():
+                    conn.execute(proc)
+        else:
+            self.conn.execute(proc)
 
         res1 = sql.read_sql_query("CALL get_testdb();", self.conn)
         tm.assert_frame_equal(df, res1)
@@ -2748,7 +2758,8 @@ class TestXSQLite:
         sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)', self.conn)
         self.conn.close()
 
-        with tm.external_error_raised(sqlite3.ProgrammingError):
+        msg = "Cannot operate on a closed database."
+        with pytest.raises(sqlite3.ProgrammingError, match=msg):
             tquery("select * from test", con=self.conn)
 
     def test_keyword_as_column_names(self):

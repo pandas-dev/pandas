@@ -214,7 +214,7 @@ def _bool_arith_fallback(op_str, a, b):
             warnings.warn(
                 f"evaluating in Python space because the {repr(op_str)} "
                 "operator is not supported by numexpr for the bool dtype, "
-                f"use {repr(_BOOL_OP_UNSUPPORTED[op_str])} instead"
+                f"use {repr(_BOOL_OP_UNSUPPORTED[op_str])} instead."
             )
             return True
     return False
