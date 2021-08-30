@@ -1653,6 +1653,8 @@ class DataFrame(NDFrame, OpsMixin):
                [2, 4.5, Timestamp('2000-01-02 00:00:00')]], dtype=object)
         """
         self._consolidate_inplace()
+        if dtype is not None:
+            dtype = np.dtype(dtype)
         result = self._mgr.as_array(
             transpose=self._AXIS_REVERSED, dtype=dtype, copy=copy, na_value=na_value
         )
