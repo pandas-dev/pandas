@@ -101,8 +101,12 @@ class TestAtTime:
         ts.index, ts.columns = rng, rng
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
-        axis = self.data._get_axis_number(axis)
-        expected = ts.loc[indices, :] if axis == 0 else ts.loc[:, indices]
+
+        if axis in ["index", 0]:
+            expected = ts.loc[indices, :]
+        elif axis in ["columns", 1]:
+            expected = ts.loc[:, indices]
+
         result = ts.at_time("9:30", axis=axis)
 
         # Without clearing freq, result has freq 1440T and expected 5T
