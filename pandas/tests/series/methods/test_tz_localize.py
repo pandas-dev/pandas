@@ -46,12 +46,8 @@ class TestTZLocalize:
         # GH 43080
         dt_series = Series(
             date_range(start="2021-01-01T02:00:00", periods=5, freq="1D"),
-<<<<<<< HEAD
             index=[2, 6, 7, 8, 11],
-            astype="category",
-=======
-            index=[2, 6, 7, 8, 11], dtype="category"
->>>>>>> 444372a3285ccf9c18ef40b4f83a0ee3342cc3f5
+            dtype="category",
         )
         result = dt_series.dt.tz_localize("Europe/Berlin")
         expected = Series(
