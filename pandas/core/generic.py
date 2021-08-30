@@ -4932,6 +4932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         like: str | None = None,
         regex: str | None = None,
         axis=None,
+        multi="all"
     ) -> FrameOrSeries:
         """
         Subset the dataframe rows or columns according to the specified index labels.
@@ -5007,25 +5008,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._info_axis_name
         labels = self._get_axis(axis)
 
-        if items is not None:
-            name = self._get_axis_name(axis)
-            return self.reindex(**{name: [r for r in items if r in labels]})
-        elif like:
+        if multi not in ['any', 'all']:
+            raise TypeError("Only any or all arguments allowed for multi")
 
+        if items or like or regex:
             def f(x) -> bool_t:
-                assert like is not None  # needed for mypy
-                return like in ensure_str(x)
+                if type(x) == tuple:   # for MultiIndex
+                    tuple_values = map(f, x)
+                    if multi == 'all':
+                        return all(tuple_values)
+                    elif multi == 'any':
+                        return any(tuple_values)
+                else:
+                    if items:
+                        return x in items
+                    if like:
+                        assert like is not None  # needed for mypy
+                        return like in ensure_str(x)
+                    if regex:
+                        return matcher.search(ensure_str(x)) is not None
 
+            if regex:
+                matcher = re.compile(regex)
             values = labels.map(f)
             return self.loc(axis=axis)[values]
-        elif regex:
 
-            def f(x) -> bool_t:
-                return matcher.search(ensure_str(x)) is not None
-
-            matcher = re.compile(regex)
-            values = labels.map(f)
-            return self.loc(axis=axis)[values]
         else:
             raise TypeError("Must pass either `items`, `like`, or `regex`")
 
