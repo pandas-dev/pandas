@@ -78,9 +78,8 @@ repos:
     rev: v1.2.3
     hooks:
     -   id: yesqa
-        additional_dependencies:
+        additional_dependencies: *version_check_dependencies
             - flake8==3.9.2
-            - *version_check_dependencies
 -   repo: local
     hooks:
     -   id: flake8-rst
