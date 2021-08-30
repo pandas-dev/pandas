@@ -2,18 +2,27 @@ from __future__ import annotations
 
 from datetime import timedelta
 import operator
+import warnings
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Hashable,
-    List,
+    Iterable,
+    Iterator,
+    NoReturn,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
     cast,
+    overload,
+    
 )
-import warnings
+
 
 import numpy as np
+import pandas.api.extensions
+from typing_extensions import Literal
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
@@ -432,7 +441,7 @@ class RangeIndex(NumericIndex):
         return self._int64index.delete(loc)
 
     def take(
-        self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
+        self, indices, axis: int = 0, allow_fill: bool = False, fill_value=None, **kwargs
     ) -> Int64Index:
         with rewrite_exception("Int64Index", type(self).__name__):
             return self._int64index.take(
