@@ -78,10 +78,13 @@ Styler
 
 There are also bug fixes and deprecations listed below.
 
-.. _whatsnew_140.enhancements.enhancement2:
+.. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
-enhancement2
-^^^^^^^^^^^^
+Multithreaded CSV reading with a new CSV Engine based on pyarrow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
+with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 .. _whatsnew_140.enhancements.other:
 
@@ -242,7 +245,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
--
+- Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 
 .. ---------------------------------------------------------------------------
 
@@ -322,6 +325,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` where the first level is a :class:`DatetimeIndex` and a string key is passed (:issue:`42465`)
 - Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
+- Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
 -
 
 I/O
