@@ -102,18 +102,22 @@ def to_numeric(arg, errors="raise", downcast=None):
     1    2
     2   -3
     dtype: int8
-    >>> s = pd.Series(['apple', '1.0', '2', -3])
+    >>> s = pd.Series(['apple', '1.0', '2', -3, pd.to_datetime(0), pd.NaT])
     >>> pd.to_numeric(s, errors='ignore')
-    0    apple
-    1      1.0
-    2        2
-    3       -3
+    0                  apple
+    1                    1.0
+    2                      2
+    3                     -3
+    4    1970-01-01 00:00:00
+    5                    NaT
     dtype: object
     >>> pd.to_numeric(s, errors='coerce')
     0    NaN
     1    1.0
     2    2.0
     3   -3.0
+    4    NaN
+    5    NaN
     dtype: float64
 
     Downcasting of nullable integer and floating dtypes is supported:
