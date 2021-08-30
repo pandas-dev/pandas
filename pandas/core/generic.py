@@ -5011,7 +5011,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if multi not in ['any', 'all']:
             raise TypeError("Only any or all arguments allowed for multi")
 
-        if items or like or regex:
+        if items is not None or like or regex:
             def f(x) -> bool_t:
                 if type(x) == tuple:   # for MultiIndex
                     tuple_values = map(f, x)
@@ -5020,7 +5020,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     elif multi == 'any':
                         return any(tuple_values)
                 else:
-                    if items:
+                    if items is not None:
                         return x in items
                     if like:
                         assert like is not None  # needed for mypy
