@@ -620,10 +620,10 @@ Let’s take this piece of code as an example in file round.py
 
     import pandas as pd
 
-    decimals = pd.DataFrame({'TSLA': 3, 'AMZN': 2})
+    decimals = pd.DataFrame({'TSLA': 2, 'AMZN': 1})
     prices = pd.DataFrame(data={'date': ['2021-08-13', '2021-08-07', '2021-08-21'],
                               'TSLA': [720.13, 716.22, 731.22], 'AMZN': [3316.50, 3200.50, 3100.23]})
-    sorted_prices = prices.round(decimals=decimals)
+    rounded_prices = prices.round(decimals=decimals)
 
 
 mypy won't see any issues with that but after installing pandas-stubs and running it again
@@ -646,4 +646,4 @@ we can fix the code
 
 .. code:: python
 
-    decimals = pd.Series({'TSLA': 3, 'AMZN': 2})
+    decimals = pd.Series({'TSLA': 2, 'AMZN': 1})
