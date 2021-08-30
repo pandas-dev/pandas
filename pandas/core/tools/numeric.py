@@ -130,6 +130,19 @@ def to_numeric(arg, errors="raise", downcast=None):
     1    2.1
     2    3.0
     dtype: Float32
+
+    Datetime dTypes is supported
+
+    >>> s = pd.to_numeric(datetime(2021, 8, 22), errors="coerce")
+    0 20210822
+    dtype: Int64
+    >>> s = pd.to_numeric(pd.NaT, errors="coerce")
+    nan
+    >>> s = pd.to_numeric(pd.Series(datetime(2021, 8, 22)), errors="coerce")
+    0 20210822
+    dtype: Int64
+    >>> s = pd.to_numeric(pd.Series(pd.NaT), errors="coerce")
+    NaN
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
@@ -157,6 +170,11 @@ def to_numeric(arg, errors="raise", downcast=None):
             return float(arg)
         if is_number(arg):
             return arg
+        if isinstance(arg , datetime):
+            if pd.isnull(arg):
+                return  np.NaN
+            else:
+                return int(pd.to_datetime(arg).strftime("%Y%m%d"))
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
@@ -175,10 +193,7 @@ def to_numeric(arg, errors="raise", downcast=None):
     if is_numeric_dtype(values_dtype):
         pass
     elif is_datetime_or_timedelta_dtype(values_dtype):
-        if pd.isnull(arg.values):
-            values = np.nan
-        else: 
-            values = pd.to_datetime(values).strftime("%Y%m%d").astype(np.int64)
+        
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
@@ -239,5 +254,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         # because we want to coerce to numeric if possible,
         # do not use _shallow_copy
         return pd.Index(values, name=arg.name)
-    else:
+    elif is_scalars:
         return values[0]
+    else:
+        return values
