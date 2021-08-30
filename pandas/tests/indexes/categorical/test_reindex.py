@@ -6,6 +6,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    Interval,
     Series,
 )
 import pandas._testing as tm
@@ -103,3 +104,22 @@ class TestReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_reindex_categorical_added_category(self):
+        # GH 42424
+        ci = CategoricalIndex(
+            [Interval(0, 1, closed="right"), Interval(1, 2, closed="right")],
+            ordered=True,
+        )
+        ci_add = CategoricalIndex(
+            [
+                Interval(0, 1, closed="right"),
+                Interval(1, 2, closed="right"),
+                Interval(2, 3, closed="right"),
+                Interval(3, 4, closed="right"),
+            ],
+            ordered=True,
+        )
+        result, _ = ci.reindex(ci_add)
+        expected = ci_add
+        tm.assert_index_equal(expected, result)
