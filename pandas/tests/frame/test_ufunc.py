@@ -251,7 +251,7 @@ def test_alignment_deprecation():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_alignment_deprecation_many_inputs():
     # https://github.com/pandas-dev/pandas/issues/39184
     # test that the deprecation also works with > 2 inputs -> using a numba
