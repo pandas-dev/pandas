@@ -1148,25 +1148,22 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis in [0, "index"]:
-            result = data.apply(func, axis=0, **kwargs)
-        elif axis in [1, "columns"]:
-            result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
-        else:
-            result = func(data, **kwargs)
-            if not isinstance(result, DataFrame):
-                if not isinstance(result, np.ndarray):
-                    raise TypeError(
-                        f"Function {repr(func)} must return a DataFrame or ndarray "
-                        f"when passed to `Styler.apply` with axis=None"
-                    )
-                if not (data.shape == result.shape):
-                    raise ValueError(
-                        f"Function {repr(func)} returned ndarray with wrong shape.\n"
-                        f"Result has shape: {result.shape}\n"
-                        f"Expected shape: {data.shape}"
-                    )
-                result = DataFrame(result, index=data.index, columns=data.columns)
+        axis = self.data._get_axis_number(axis)
+        result = data.apply(func, axis=0, **kwargs) if axis == 0 else (data.T.apply(func, axis=0,**kwargs).T if axis == 1 else func(data, **kwargs))
+
+        if not isinstance(result, DataFrame):
+            if not isinstance(result, np.ndarray):
+                raise TypeError(
+                    f"Function {repr(func)} must return a DataFrame or ndarray "
+                    f"when passed to `Styler.apply` with axis=None"
+                )
+            if not (data.shape == result.shape):
+                raise ValueError(
+                    f"Function {repr(func)} returned ndarray with wrong shape.\n"
+                    f"Result has shape: {result.shape}\n"
+                    f"Expected shape: {data.shape}"
+                )
+            result = DataFrame(result, index=data.index, columns=data.columns)
 
         if isinstance(result, Series):
             raise ValueError(
