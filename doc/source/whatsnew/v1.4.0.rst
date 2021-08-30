@@ -78,10 +78,13 @@ Styler
 
 There are also bug fixes and deprecations listed below.
 
-.. _whatsnew_140.enhancements.enhancement2:
+.. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
-enhancement2
-^^^^^^^^^^^^
+Multithreaded CSV reading with a new CSV Engine based on pyarrow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
+with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 .. _whatsnew_140.enhancements.other:
 
