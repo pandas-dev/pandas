@@ -78,8 +78,11 @@ repos:
     rev: v1.2.3
     hooks:
     -   id: yesqa
-        additional_dependencies: *version_check_dependencies
+        additional_dependencies:
             - flake8==3.9.2
+            - flake8-comprehensions==3.1.0
+            - flake8-bugbear==21.3.2
+            - pandas-dev-flaker==0.2.0
 -   repo: local
     hooks:
     -   id: flake8-rst
