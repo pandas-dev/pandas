@@ -386,7 +386,9 @@ def ndarray_to_mgr(
     if len(columns) == 0:
         block_values = []
 
-    return create_block_manager_from_blocks(block_values, [columns, index])
+    return create_block_manager_from_blocks(
+        block_values, [columns, index], verify_integrity=False
+    )
 
 
 def _check_values_indices_shape_match(
