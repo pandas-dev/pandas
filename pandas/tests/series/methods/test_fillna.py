@@ -679,18 +679,13 @@ class TestSeriesFillNA:
         ],
     )
 
-    def test_series_fill(fill_value, expected_output):
+    def test_series_fill(self, fill_value, expected_output):
         # GH#32414
         data = ["A", "B", np.nan, np.nan, "C"]
-        ser = Series(Categorical(data, categories=["A", "B", "C"]))
-
-        # msg = "Element not present in categories. Cannot be filled in series."
-        # with pytest.raises(TypeError, match=msg):
-        #     ser.fillna("D")
-
-        exp = Series(Categorical(expected_output, categories=["A", "B", "C"]))
-        result = ser.fillna(fill_value)
-        tm.assert_almost_equal(result, exp)
+        series = Series(Categorical(data, categories=["A", "B", "C"]))
+        expected = Series(Categorical(expected_output, categories=["A", "B", "C"]))
+        result = series.fillna(fill_value)
+        tm.assert_almost_equal(result, expected)
 
 
     def test_fillna_categorical_raises(self):
