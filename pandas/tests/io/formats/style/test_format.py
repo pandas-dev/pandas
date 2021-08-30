@@ -5,6 +5,7 @@ from pandas import (
     NA,
     DataFrame,
     IndexSlice,
+    MultiIndex,
     NaT,
     Timestamp,
 )
@@ -233,9 +234,39 @@ def test_format_with_precision(precision, expected):
         assert ctx["head"][0][col + 1]["display_value"] == exp  # format_index test
 
 
-def test_format_index_level():
-    # TODO
-    pass
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize(
+    "level, expected",
+    [
+        (0, ["X", "X", "_", "_"]),  # level int
+        ("zero", ["X", "X", "_", "_"]),  # level name
+        (1, ["_", "_", "X", "X"]),  # other level int
+        ("one", ["_", "_", "X", "X"]),  # other level name
+        ([0, 1], ["X", "X", "X", "X"]),  # both levels
+        ([0, "zero"], ["X", "X", "_", "_"]),  # level int and name simultaneous
+        ([0, "one"], ["X", "X", "X", "X"]),  # both levels as int and name
+        (["one", "zero"], ["X", "X", "X", "X"]),  # both level names, reversed
+    ],
+)
+def test_format_index_level(axis, level, expected):
+    midx = MultiIndex.from_arrays([["_", "_"], ["_", "_"]], names=["zero", "one"])
+    df = DataFrame([[1, 2], [3, 4]])
+    if axis == 0:
+        df.index = midx
+    else:
+        df.columns = midx
+
+    styler = df.style.format_index(lambda v: "X", level=level, axis=axis)
+    ctx = styler._translate(True, True)
+
+    if axis == 0:  # compare index
+        result = [ctx["body"][s][0]["display_value"] for s in range(2)]
+        result += [ctx["body"][s][1]["display_value"] for s in range(2)]
+    else:  # compare columns
+        result = [ctx["head"][0][s + 1]["display_value"] for s in range(2)]
+        result += [ctx["head"][1][s + 1]["display_value"] for s in range(2)]
+
+    assert expected == result
 
 
 def test_format_subset():
