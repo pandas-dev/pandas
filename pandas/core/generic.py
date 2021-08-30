@@ -4932,7 +4932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         like: str | None = None,
         regex: str | None = None,
         axis=None,
-        multi="all"
+        level=None
     ) -> FrameOrSeries:
         """
         Subset the dataframe rows or columns according to the specified index labels.
@@ -5008,17 +5008,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._info_axis_name
         labels = self._get_axis(axis)
 
-        if multi not in ['any', 'all']:
-            raise TypeError("Only any or all arguments allowed for multi")
-
         if items is not None or like or regex:
             def f(x) -> bool_t:
                 if type(x) == tuple:   # for MultiIndex
+                    if level is None:
+                        raise TypeError("Need level arg for MultiIndex")
+                    if level >= len(x):
+                        raise TypeError("Level does not exist")
                     tuple_values = map(f, x)
-                    if multi == 'all':
-                        return all(tuple_values)
-                    elif multi == 'any':
-                        return any(tuple_values)
+                    return list(tuple_values)[level]
                 else:
                     if items is not None:
                         return x in items
