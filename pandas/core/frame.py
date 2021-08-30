@@ -3622,9 +3622,11 @@ class DataFrame(NDFrame, OpsMixin):
             self._setitem_array(key, value)
         elif isinstance(value, DataFrame):
             self._set_item_frame_value(key, value)
-        elif is_list_like(value) and 1 < len(
-            self.columns.get_indexer_for([key])
-        ) == len(value):
+        elif (
+            is_list_like(value)
+            and not self.columns.is_unique
+            and 1 < len(self.columns.get_indexer_for([key])) == len(value)
+        ):
             # Column to set is duplicated
             self._setitem_array([key], value)
         else:
