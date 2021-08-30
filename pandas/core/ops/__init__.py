@@ -296,7 +296,7 @@ def align_method_FRAME(
             if not left.axes[axis].equals(right.index):
                 warnings.warn(
                     "Automatic reindexing on DataFrame vs Series comparisons "
-                    "is deprecated and will raise ValueError in a future version.  "
+                    "is deprecated and will raise ValueError in a future version. "
                     "Do `left, right = left.align(right, axis=1, copy=False)` "
                     "before e.g. `left == right`",
                     FutureWarning,

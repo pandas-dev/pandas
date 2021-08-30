@@ -24,8 +24,7 @@ from pandas.compat import is_numpy_dev as _is_numpy_dev
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
 except ImportError as e:  # pragma: no cover
-    # hack but overkill to use re
-    module = str(e).replace("cannot import name ", "")
+    module = e.name
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
@@ -208,7 +207,7 @@ def __getattr__(name):
         warnings.warn(
             "The pandas.np module is deprecated "
             "and will be removed from pandas in a future version. "
-            "Import numpy directly instead",
+            "Import numpy directly instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -219,7 +218,7 @@ def __getattr__(name):
     elif name in {"SparseSeries", "SparseDataFrame"}:
         warnings.warn(
             f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version",
+            "the top-level namespace will also be removed in the next version.",
             FutureWarning,
             stacklevel=2,
         )
