@@ -233,10 +233,10 @@ class TestSeriesConvertDtypes:
         byte_str = b"binary-string"
 
         df = pd.DataFrame(
-            data = {
+            data={
                 "A": byte_str,
             },
-            index = [0],
+            index=[0],
         )
 
         df_convert = df.convert_dtypes()
