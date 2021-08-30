@@ -137,6 +137,11 @@ def to_numeric(arg, errors="raise", downcast=None):
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
 
+    # Handle inputs of "date" type as objects
+    arg_dtype = getattr(arg, "dtype", None)
+    if is_datetime_or_timedelta_dtype(arg_dtype):
+        arg = arg._constructor(arg, dtype="O")
+
     is_series = False
     is_index = False
     is_scalars = False
