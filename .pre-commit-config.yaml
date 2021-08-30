@@ -3,6 +3,11 @@ exclude: ^LICENSES/|\.(html|csv|svg)$
 ci:
     autofix_prs: false
 repos:
+    additional_dependencies:  &version_check_dependencies [
+        flake8-comprehensions==3.1.0,
+        flake8-bugbear==21.3.2,
+        pandas-dev-flaker==0.2.0,
+    ]
 -   repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.0
     hooks:
@@ -39,10 +44,7 @@ repos:
     rev: 3.9.2
     hooks:
     -   id: flake8
-        additional_dependencies:
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+        additional_dependencies: *version_check_dependencies
     -   id: flake8
         alias: flake8-cython
         name: flake8 (cython)
@@ -78,9 +80,7 @@ repos:
     -   id: yesqa
         additional_dependencies:
             - flake8==3.9.2
-            - flake8-comprehensions==3.1.0
-            - flake8-bugbear==21.3.2
-            - pandas-dev-flaker==0.2.0
+            - *version_check_dependencies
 -   repo: local
     hooks:
     -   id: flake8-rst
