@@ -702,7 +702,11 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value
 
-            return self.const_type(res(*new_args, **kwargs), self.env)
+            if self.engine == "numexpr":
+                name = self.env.add_tmp(res(*new_args, **kwargs))
+                return self.term_type(name=name, env=self.env)
+            else:
+                return self.const_type(res(*new_args, **kwargs), self.env)
 
     def translate_In(self, op):
         return op
