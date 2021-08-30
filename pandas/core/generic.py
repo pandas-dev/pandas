@@ -7608,8 +7608,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         start_time,
         end_time,
         inclusive="both",
-        include_start=bool_t,
-        include_end=bool_t,
+        include_start=lib.no_default,
+        include_end=lib.no_default,
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -7679,17 +7679,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        # if depreciated arguments ('include_start', 'include_end') have been passed
-        if (include_start != bool_t) or (include_start != bool_t):
+        # if any of the depreciated arguments ('include_start', 'include_end')
+        # have been passed
+        if (include_start != lib.no_default) or (include_end != lib.no_default):
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in"
                 "favour of `inclusive`.",
                 FutureWarning,
                 stacklevel=2,
             )
-            if include_start == bool_t:
+            if include_start == lib.no_default:
                 include_start = True
-            if include_end == bool_t:
+            if include_end == lib.no_default:
                 include_end = True
         else:  # if depreciated args haven't been passed
             if inclusive == "both":
