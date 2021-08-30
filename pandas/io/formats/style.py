@@ -212,11 +212,15 @@ class Styler(StylerRenderer):
 
     def _repr_html_(self) -> str:
         """
-        Hooks into Jupyter notebook rich display system.
+        Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
+        default if an object is returned at the end of a cell.
         """
         if get_option("styler.render.repr") == "latex":
-            return self.to_latex()
+            return self._repr_latex_()
         return self.to_html()
+
+    def _repr_latex_(self) -> str:
+        return self.to_latex()
 
     def render(
         self,
