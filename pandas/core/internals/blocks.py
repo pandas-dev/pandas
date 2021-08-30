@@ -624,7 +624,11 @@ class Block(PandasObject):
         -------
         bool
         """
-        return is_dtype_equal(value.dtype, self.dtype)
+        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
+        try:
+            return value.dtype == self.dtype
+        except TypeError:
+            return False
 
     @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
