@@ -988,17 +988,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         for blk in self.blocks:
             mgr_locs = blk._mgr_locs
-            values = blk.values
-            if isinstance(blk, DatetimeTZBlock):
-                # special casing datetimetz to avoid conversion through
-                #  object dtype
-                # Item "ndarray[Any, Any]" of "Union[ndarray[Any, Any],
-                # ExtensionArray]" has no attribute "_ndarray"
-                values = values._ndarray  # type: ignore[union-attr]
-            else:
-                values = np.asarray(values)
-
-            values = cast(np.ndarray, values)
+            values = blk.values_for_json()
             if values.ndim == 1:
                 # TODO(EA2D): special casing not needed with 2D EAs
                 result[mgr_locs[0]] = values
