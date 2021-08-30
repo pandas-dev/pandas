@@ -1023,7 +1023,8 @@ class Styler(StylerRenderer):
             )
 
         for cn in attrs.columns:
-            for rn, c in attrs[[cn]].itertuples():
+            ser = attrs[cn]
+            for rn, c in ser.items():
                 if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
