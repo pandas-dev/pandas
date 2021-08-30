@@ -647,5 +647,3 @@ we can fix the code
 .. code:: python
 
     decimals = pd.Series({'TSLA': 3, 'AMZN': 2})
-
-
