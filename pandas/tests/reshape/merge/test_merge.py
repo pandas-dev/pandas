@@ -9,7 +9,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -366,7 +369,9 @@ class TestMerge:
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how="outer")
         assert df["key_0"].dtype == "int64"
 
-    @pytest.mark.skipif(not is_platform_windows(), reason="GH#40073: fail on Windows")
+    @pytest.mark.skipif(
+        not (is_platform_windows() or IS64), reason="GH#40073: fail on Windows"
+    )
     def test_handle_join_key_pass_array(self):
         left = DataFrame(
             {"key": [1, 1, 2, 2, 3], "value": np.arange(5)}, columns=["value", "key"]
