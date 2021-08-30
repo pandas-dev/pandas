@@ -245,7 +245,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
--
+- Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 
 .. ---------------------------------------------------------------------------
 
