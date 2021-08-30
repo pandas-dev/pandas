@@ -31,8 +31,9 @@ import operator
 import os
 
 from dateutil.tz import (
-    tzlocal,
+    
     tzutc,
+    tzlocal,
 )
 import hypothesis
 from hypothesis import strategies as st
