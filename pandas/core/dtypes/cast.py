@@ -1423,8 +1423,7 @@ def convert_dtypes(
             if not convert_string:
                 return input_array.dtype
             else:
-                byte_list_set = list({type(x) is bytes for x in input_array})
-                if len(byte_list_set) == 1 and byte_list_set[0]:
+                if inferred_dtype is "bytes":
                     return pandas_dtype("bytes")
 
                 return pandas_dtype("string")
