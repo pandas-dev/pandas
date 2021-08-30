@@ -25,7 +25,7 @@ Fixed regressions
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement for :meth:`DataFrame.__setitem__` with dataframes containing unique columns
+- Performance improvement for :meth:`DataFrame.__setitem__` with dataframes containing unique columns (:issue:`43274`)
 -
 -
 .. ---------------------------------------------------------------------------
