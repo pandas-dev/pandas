@@ -1149,7 +1149,9 @@ class Styler(StylerRenderer):
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
         axis = self.data._get_axis_number(axis)
-        result = data.apply(func, axis=0, **kwargs) if axis == 0 else (data.T.apply(func, axis=0,**kwargs).T if axis == 1 else func(data, **kwargs))
+        result = data.apply(func, axis=0, **kwargs) if axis == 0 \
+            else (data.T.apply(func, axis=0, **kwargs).T if axis == 1
+                  else func(data, **kwargs))
 
         if not isinstance(result, DataFrame):
             if not isinstance(result, np.ndarray):
