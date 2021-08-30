@@ -19,7 +19,7 @@ class TestDataFrameFilter:
 
         # Other axis
         idx = float_frame.index[0:4]
-        filtered = float_frame.filter(idx, axis="index") # fails test
+        filtered = float_frame.filter(idx, axis="index")
         expected = float_frame.reindex(index=idx)
         tm.assert_frame_equal(filtered, expected)
 
@@ -124,7 +124,7 @@ class TestDataFrameFilter:
     def test_filter_corner(self):
         empty = DataFrame()
 
-        result = empty.filter([])  # test fails
+        result = empty.filter([])
         tm.assert_frame_equal(result, empty)
 
         result = empty.filter(like="foo")
@@ -148,28 +148,28 @@ class TestDataFrameFilter:
         #  testing items for any and all
         items = ["bare", "on", "bar"]
 
-        result = df.filter(items, axis=0, multi="any");
+        result = df.filter(items, axis=0, multi="any")
         expected = df.loc[:]
         tm.assert_frame_equal(result, expected)
 
-        result = df.filter(items, axis=0, multi="all");
+        result = df.filter(items, axis=0, multi="all")
         expected = df.loc[['bare']]
         tm.assert_frame_equal(result, expected)
 
         # testing for like condition for any and all
-        result = df.filter(like='bar', axis=0, multi="any");
+        result = df.filter(like='bar', axis=0, multi="any")
         expected = df.loc[:]
         tm.assert_frame_equal(result, expected)
 
-        result = df.filter(like='r', axis=0, multi="all");
+        result = df.filter(like='r', axis=0, multi="all")
         expected = df.loc[['bar']]
         tm.assert_frame_equal(result, expected)
 
         # testing for regex condition for any and all
-        result = df.filter(regex='e$', axis=0, multi="any");
+        result = df.filter(regex='e$', axis=0, multi="any")
         expected = df.loc[['bare']]
         tm.assert_frame_equal(result, expected)
 
-        result = df.filter(regex='r$', axis=0, multi="all");
+        result = df.filter(regex='r$', axis=0, multi="all")
         expected = df.loc[['bar']]
         tm.assert_frame_equal(result, expected)
