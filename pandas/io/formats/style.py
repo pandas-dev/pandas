@@ -2097,9 +2097,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hrows = self.index.get_indexer_for(hide.index)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_rows = hrows  # type: ignore[assignment]
+            self.hidden_rows = hrows
         return self
 
     def hide_columns(
@@ -2209,9 +2207,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hcols = self.columns.get_indexer_for(hide.columns)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_columns = hcols  # type: ignore[assignment]
+            self.hidden_columns = hcols
         return self
 
     # -----------------------------------------------------------------------
@@ -3166,14 +3162,10 @@ def _highlight_between(
     Return an array of css props based on condition of data values within given range.
     """
     if np.iterable(left) and not isinstance(left, str):
-        left = _validate_apply_axis_arg(
-            left, "left", None, data  # type: ignore[arg-type]
-        )
+        left = _validate_apply_axis_arg(left, "left", None, data)
 
     if np.iterable(right) and not isinstance(right, str):
-        right = _validate_apply_axis_arg(
-            right, "right", None, data  # type: ignore[arg-type]
-        )
+        right = _validate_apply_axis_arg(right, "right", None, data)
 
     # get ops with correct boundary attribution
     if inclusive == "both":
