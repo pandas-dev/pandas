@@ -75,6 +75,7 @@ Styler
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index`` and ``sparse_columns`` (:issue:`41946`)
   - Keyword argument ``level`` is added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
+  - Global options have been extended to configure default ``Styler`` properties including formatting options (:issue:`41395`)
 
 There are also bug fixes and deprecations listed below.
 

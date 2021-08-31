@@ -20,6 +20,7 @@ from pandas._config.config import (
     is_int,
     is_nonnegative_int,
     is_one_of_factory,
+    is_str,
     is_text,
 )
 
@@ -762,6 +763,36 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_precision = """
+: int
+    The precision for floats and complex numbers.
+"""
+
+styler_decimal = """
+: str
+    The character representation for the decimal separator for floats and complex.
+"""
+
+styler_thousands = """
+: str, optional
+    The character representation for thousands separator for floats, int and complex.
+"""
+
+styler_na_rep = """
+: str, optional
+    The string representation for values identified as missing.
+"""
+
+styler_escape = """
+: str, optional
+    Whether to escape certain characters according to the given context; html or latex.
+"""
+
+styler_formatter = """
+: str, callable, dict, optional
+    A formatter object to be used as default within ``Styler.format``.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
@@ -774,4 +805,38 @@ with cf.config_prefix("styler"):
         2 ** 18,
         styler_max_elements,
         validator=is_nonnegative_int,
+    )
+
+    cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
+
+    cf.register_option(
+        "format.precision", 6, styler_precision, validator=is_nonnegative_int
+    )
+
+    cf.register_option(
+        "format.thousands",
+        None,
+        styler_thousands,
+        validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.na_rep",
+        None,
+        styler_na_rep,
+        validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.escape",
+        None,
+        styler_escape,
+        validator=is_one_of_factory([None, "html", "latex"]),
+    )
+
+    cf.register_option(
+        "format.formatter",
+        None,
+        styler_formatter,
+        validator=is_instance_factory([type(None), dict, callable, str]),
     )
