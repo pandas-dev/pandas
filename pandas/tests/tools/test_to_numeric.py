@@ -138,7 +138,10 @@ def test_error(data, msg):
     "data,msg",
     [
         ([22.06, "-86", pd.NaT], "Invalid object type at position 2"),
-        ([pd.to_datetime(0), 22.06, "-86", pd.NaT], "Invalid object type at position 0"),
+        (
+            [pd.to_datetime(0), 22.06, "-86", pd.NaT],
+            "Invalid object type at position 0"
+        ),
     ],
 )
 def test_type_error(data, msg):
