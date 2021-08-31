@@ -1041,11 +1041,13 @@ class Styler(StylerRenderer):
             )
 
         for cn in attrs.columns:
-            for rn, c in attrs[[cn]].itertuples():
+            j = self.columns.get_loc(cn)
+            ser = attrs[cn]
+            for rn, c in ser.items():
                 if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
-                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                i = self.index.get_loc(rn)
                 self.ctx[(i, j)].extend(css_list)
 
     def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
@@ -1065,7 +1067,8 @@ class Styler(StylerRenderer):
             Identifies whether the ctx object being updated is the index or columns
         """
         for j in attrs.columns:
-            for i, c in attrs[[j]].itertuples():
+            ser = attrs[j]
+            for i, c in ser.items():
                 if not c:
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
@@ -1158,7 +1161,7 @@ class Styler(StylerRenderer):
 
     def _apply(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -1166,11 +1169,7 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis in [0, "index"]:
-            result = data.apply(func, axis=0, **kwargs)
-        elif axis in [1, "columns"]:
-            result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
-        else:
+        if axis is None:
             result = func(data, **kwargs)
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
@@ -1185,6 +1184,12 @@ class Styler(StylerRenderer):
                         f"Expected shape: {data.shape}"
                     )
                 result = DataFrame(result, index=data.index, columns=data.columns)
+        else:
+            axis = self.data._get_axis_number(axis)
+            if axis == 0:
+                result = data.apply(func, axis=0, **kwargs)
+            else:
+                result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
 
         if isinstance(result, Series):
             raise ValueError(
@@ -1213,7 +1218,7 @@ class Styler(StylerRenderer):
 
     def apply(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: Axis | None = 0,
         subset: Subset | None = None,
         **kwargs,
@@ -1308,7 +1313,7 @@ class Styler(StylerRenderer):
 
     def _apply_index(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
         method: str = "apply",
@@ -1343,7 +1348,7 @@ class Styler(StylerRenderer):
     )
     def apply_index(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -1429,7 +1434,7 @@ class Styler(StylerRenderer):
     )
     def applymap_index(
         self,
-        func: Callable[..., Styler],
+        func: Callable,
         axis: int | str = 0,
         level: Level | list[Level] | None = None,
         **kwargs,
@@ -2615,11 +2620,7 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {null_color};"
-        # error: Argument 1 to "apply" of "Styler" has incompatible type
-        # "Callable[[DataFrame, str], ndarray]"; expected "Callable[..., Styler]"
-        return self.apply(
-            f, axis=None, subset=subset, props=props  # type: ignore[arg-type]
-        )
+        return self.apply(f, axis=None, subset=subset, props=props)
 
     def highlight_max(
         self,
@@ -2663,10 +2664,8 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {color};"
-        # error: Argument 1 to "apply" of "Styler" has incompatible type
-        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            partial(_highlight_value, op="max"),  # type: ignore[arg-type]
+            partial(_highlight_value, op="max"),
             axis=axis,
             subset=subset,
             props=props,
@@ -2714,10 +2713,8 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {color};"
-        # error: Argument 1 to "apply" of "Styler" has incompatible type
-        # "Callable[[FrameOrSeries, str], ndarray]"; expected "Callable[..., Styler]"
         return self.apply(
-            partial(_highlight_value, op="min"),  # type: ignore[arg-type]
+            partial(_highlight_value, op="min"),
             axis=axis,
             subset=subset,
             props=props,
@@ -2823,7 +2820,7 @@ class Styler(StylerRenderer):
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            _highlight_between,  # type: ignore[arg-type]
+            _highlight_between,
             axis=axis,
             subset=subset,
             props=props,
@@ -2929,7 +2926,7 @@ class Styler(StylerRenderer):
         if props is None:
             props = f"background-color: {color};"
         return self.apply(
-            _highlight_between,  # type: ignore[arg-type]
+            _highlight_between,
             axis=axis_apply,
             subset=subset,
             props=props,
