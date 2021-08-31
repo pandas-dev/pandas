@@ -189,7 +189,7 @@ def test_render_trimming_mi():
 
 def test_render_empty_mi():
     # GH 43305
-    df = DataFrame(index=MultiIndex.from_arrays([["A", "A"], [1, 2]]))
+    df = DataFrame(index=MultiIndex.from_product([["A"], [0, 1]], names=[None, "one"]))
     df.style.to_html()
 
 
