@@ -335,7 +335,7 @@ I/O
 - Bug in :func:`json_normalize` where ``errors=ignore`` could fail to ignore missing values of ``meta`` when ``record_path`` has a length greater than one (:issue:`41876`)
 - Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
 - Bug in :func:`Series.to_json` and :func:`DataFrame.to_json` where some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
-- Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's `Row` object (:issue:`40682`)
+- Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
 -
 
 Period
