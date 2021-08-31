@@ -124,9 +124,7 @@ def ignore_na(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[pytest.param("numba", marks=td.skip_if_no("numba", "0.46.0")), "cython"]
-)
+@pytest.fixture(params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"])
 def engine(request):
     """engine keyword argument for rolling.apply"""
     return request.param
@@ -134,7 +132,7 @@ def engine(request):
 
 @pytest.fixture(
     params=[
-        pytest.param(("numba", True), marks=td.skip_if_no("numba", "0.46.0")),
+        pytest.param(("numba", True), marks=td.skip_if_no("numba")),
         ("cython", True),
         ("cython", False),
     ]
