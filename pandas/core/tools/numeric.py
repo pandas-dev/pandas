@@ -180,7 +180,10 @@ def to_numeric(arg, errors="raise", downcast=None):
     if is_numeric_dtype(values_dtype):
         pass
     elif is_datetime_or_timedelta_dtype(values_dtype):
-        
+        if pd.isnull(arg.values):
+            values = np.nan
+        else: 
+            values = pd.to_datetime(values).strftime("%Y%m%d").astype(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")

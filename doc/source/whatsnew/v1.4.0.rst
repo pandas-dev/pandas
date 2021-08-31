@@ -267,7 +267,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
 - :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
--Bug in :class:'Series' to_numeric as inconsistent behaviour for datatime object (:issue:'43280')
+-Bug in :class:'Series and scalar' to_numeric as inconsistent behaviour for datatime object (:issue:'43280')
 
 Timedelta
 ^^^^^^^^^
