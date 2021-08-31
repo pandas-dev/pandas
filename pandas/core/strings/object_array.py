@@ -36,7 +36,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
         """
-        Map a callable over valid element of the array.
+        Map a callable over valid elements of the array.
 
         Parameters
         ----------
@@ -413,6 +413,30 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_rstrip(self, to_strip=None):
         return self._str_map(lambda x: x.rstrip(to_strip))
+
+    def _str_removeprefix(self, prefix):
+        # outstanding question on whether to use native methods for users
+        # on Python 3.9+ https://git.io/JE9QK, in which case we could do
+        # return self._str_map(str.removeprefix)
+
+        def removeprefix(text: str) -> str:
+            if text.startswith(prefix):
+                return text[len(prefix) :]
+            return text
+
+        return self._str_map(removeprefix)
+
+    def _str_removesuffix(self, suffix):
+        # this could be used on Python 3.9+
+        # f = lambda x: x.removesuffix(suffix)
+        # return self._str_map(str.removesuffix)
+
+        def removesuffix(text: str) -> str:
+            if text.endswith(suffix):
+                return text[: len(suffix)]
+            return text
+
+        return self._str_map(removesuffix)
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)

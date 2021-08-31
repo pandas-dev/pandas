@@ -224,6 +224,14 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def _str_removeprefix(self, prefix):
+        pass
+
+    @abc.abstractmethod
+    def _str_removesuffix(self, suffix):
+        pass
+
+    @abc.abstractmethod
     def _str_split(self, pat=None, n=-1, expand=False):
         pass
 

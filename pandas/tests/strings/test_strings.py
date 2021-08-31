@@ -535,6 +535,26 @@ def test_strip_lstrip_rstrip_args(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_remove_suffix_prefix(any_string_dtype):
+    ser = Series(["xxABCxx", "xx BNSD", "LDFJH xx"], dtype=any_string_dtype)
+
+    result = ser.str.removeprefix("x")
+    expected = Series(["xABCxx", "x BNSD", "LDFJH xx"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.removeprefix("xx ")
+    expected = Series(["xxABCxx", "BNSD", "LDFJH xx"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.removesuffix("x")
+    expected = Series(["xxABCx", "xx BNSD", "LDFJH x"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.removesuffix(" xx")
+    expected = Series(["xxABCxx", "xx BNSD", "LDFJH"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_string_slice_get_syntax(any_string_dtype):
     ser = Series(
         ["YYY", "B", "C", "YYYYYYbYYY", "BYYYcYYY", np.nan, "CYYYBYYY", "dog", "cYYYt"],
