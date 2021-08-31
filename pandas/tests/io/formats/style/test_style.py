@@ -1146,9 +1146,9 @@ class TestStyler:
         assert ctx["body"][0][0]["is_visible"]
         # data
         assert ctx["body"][1][2]["is_visible"]
-        assert ctx["body"][1][2]["display_value"] == 3
+        assert ctx["body"][1][2]["display_value"] == "3"
         assert ctx["body"][1][3]["is_visible"]
-        assert ctx["body"][1][3]["display_value"] == 4
+        assert ctx["body"][1][3]["display_value"] == "4"
 
         # hide top column level, which hides both columns
         ctx = df.style.hide_columns("b")._translate(True, True)
@@ -1164,7 +1164,7 @@ class TestStyler:
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
         assert ctx["body"][1][3]["is_visible"]
-        assert ctx["body"][1][3]["display_value"] == 4
+        assert ctx["body"][1][3]["display_value"] == "4"
 
         # hide second column and index
         ctx = df.style.hide_columns([("b", 1)]).hide_index()._translate(True, True)
@@ -1175,7 +1175,7 @@ class TestStyler:
         assert not ctx["head"][1][2]["is_visible"]  # 1
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
-        assert ctx["body"][1][2]["display_value"] == 3
+        assert ctx["body"][1][2]["display_value"] == "3"
 
         # hide top row level, which hides both rows
         ctx = df.style.hide_index("a")._translate(True, True)
