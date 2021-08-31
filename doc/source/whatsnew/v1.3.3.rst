@@ -21,6 +21,16 @@ Fixed regressions
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_133.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`DataFrame.__setitem__` when the key or value is not a :class:`DataFrame`, or key is not list-like (:issue:`43274`)
+-
+-
+
+.. ---------------------------------------------------------------------------
+
 .. _whatsnew_133.bug_fixes:
 
 Bug fixes
