@@ -1011,43 +1011,6 @@ class DataFrame(NDFrame, OpsMixin):
         Mainly for IPython notebook.
         """
         return self.style._repr_html_()
-        # if self._info_repr():
-        #     buf = StringIO("")
-        #     self.info(buf=buf)
-        #     # need to escape the <class>, should be the first line.
-        #     val = buf.getvalue().replace("<", r"&lt;", 1)
-        #     val = val.replace(">", r"&gt;", 1)
-        #     return "<pre>" + val + "</pre>"
-        #
-        # if get_option("display.notebook_repr_html"):
-        #     max_rows = get_option("display.max_rows")
-        #     min_rows = get_option("display.min_rows")
-        #     max_cols = get_option("display.max_columns")
-        #     show_dimensions = get_option("display.show_dimensions")
-        #
-        #     formatter = fmt.DataFrameFormatter(
-        #         self,
-        #         columns=None,
-        #         col_space=None,
-        #         na_rep="NaN",
-        #         formatters=None,
-        #         float_format=None,
-        #         sparsify=None,
-        #         justify=None,
-        #         index_names=True,
-        #         header=True,
-        #         index=True,
-        #         bold_rows=True,
-        #         escape=True,
-        #         max_rows=max_rows,
-        #         min_rows=min_rows,
-        #         max_cols=max_cols,
-        #         show_dimensions=show_dimensions,
-        #         decimal=".",
-        #     )
-        #     return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
-        # else:
-        #     return None
 
     @Substitution(
         header_type="bool or sequence",
@@ -2715,27 +2678,23 @@ class DataFrame(NDFrame, OpsMixin):
             **kwargs,
         )
 
-    @Substitution(
-        header_type="bool",
-        header="Whether to print column labels, default True",
-        col_space_type="str or int, list or dict of int or str",
-        col_space="The minimum width of each column in CSS length "
-        "units.  An int is assumed to be px units.\n\n"
-        "            .. versionadded:: 0.25.0\n"
-        "                Ability to use str",
-    )
-    @Substitution(shared_params=fmt.common_docstring, returns=fmt.return_docstring)
+    @Substitution(returns=fmt.return_docstring)
     def to_html(
         self,
         buf: FilePathOrBuffer[str] | None = None,
-        columns: Sequence[str] | None = None,
-        col_space: ColspaceArgType | None = None,
-        header: bool | Sequence[str] = True,
+        *,
+        table_id: str | None = None,
+        table_attributes: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        header: bool = True,
         index: bool = True,
+        columns: Sequence[IndexLabel] | None = None,
+        encoding: str | None = None,
+        doctype_html: bool = False,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
         float_format: FloatFormatType | None = None,
-        sparsify: bool | None = None,
         index_names: bool = True,
         justify: str | None = None,
         max_rows: int | None = None,
@@ -2743,81 +2702,134 @@ class DataFrame(NDFrame, OpsMixin):
         show_dimensions: bool | str = False,
         decimal: str = ".",
         bold_rows: bool = True,
-        classes: str | list | tuple | None = None,
         escape: bool = True,
+        col_space: ColspaceArgType | None = None,
         notebook: bool = False,
         border: int | None = None,
-        table_id: str | None = None,
         render_links: bool = False,
-        encoding: str | None = None,
+        classes: str | list | tuple | None = None,
+        sparsify: bool | None = None,
     ):
         """
         Render a DataFrame as an HTML table.
 
-        .. deprecated:: 1.4.0
-        %(shared_params)s
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        table_id : str, optional
+            Id attribute assigned to the <table> HTML element in the format:
+
+            ``<table id="T_<table_uuid>" ..>``
+        table_attributes : str, optional
+            Attributes to assign within the `<table>` HTML element in the format:
+
+            ``<table .. <table_attributes> >``
+
+            .. versionadded:: 1.4.0
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+
+            .. versionadded:: 1.4.0
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+
+            .. versionadded:: 1.4.0
+        header : bool
+            Whether to print column headers.
+
+            .. versionchanged:: 1.4.0
+        index : bool
+            Whether to print index labels.
+        columns : sequence, optional
+            Subset of columns to write. Writes all columns by default.
+        col_space : str or int, list or dict of int or str, optional
+            The minimum width of each column in CSS length units. An int is assumed to
+            be px units.
+
+            .. versionchanged:: 1.4.0
+        encoding : str, optional
+            Character encoding setting for file output, and HTML meta tags,
+            defaults to "utf-8" if None.
+
+
+
         bold_rows : bool, default True
             Make the row labels bold in the output.
-        classes : str or list or tuple, default None
-            CSS class(es) to apply to the resulting html table.
         escape : bool, default True
             Convert the characters <, >, and & to HTML-safe sequences.
+
+
+        classes : str or list or tuple, default None
+            Deprecated in favour of using ``table_attributes='class="param"'`` instead.
+
+            .. deprecated:: 1.4.0
         notebook : {True, False}, default False
-            Whether the generated HTML is for IPython Notebook.
+            Deprecated in favour of universal HTML format.
+
+            .. deprecated:: 1.4.0
         border : int
-            A ``border=border`` attribute is included in the opening
-            `<table>` tag. Default ``pd.options.display.html.border``.
-        encoding : str, default "utf-8"
-            Set character encoding.
+            Deprecated due to deprecated HTML. Use ``Styler`` and configure CSS border
+            properties for *table*, *th* and *td* elements instead.
 
-            .. versionadded:: 1.0
+            .. deprecated:: 1.4.0
+        sparsify : bool
+            Deprecated in favour of ``sparse_columns`` and ``sparse_index``.
 
-        table_id : str, optional
-            A css id is included in the opening `<table>` tag if specified.
+            .. deprecated:: 1.4.0
         render_links : bool, default False
-            Convert URLs to HTML links.
+            Deprecated Convert URLs to HTML links.
         %(returns)s
         See Also
         --------
         to_string : Convert DataFrame to a string.
         """
-        warnings.warn(
-            "this method is deprecated in favour of `DataFrame.style.to_html()`",
-            FutureWarning,
-            stacklevel=2,
-        )
+        from pandas.io.formats.style import Styler
 
-        if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
-            raise ValueError("Invalid value for justify parameter")
+        exclude_styles = True  # try to remain true to legacy DataFrame.to_html
 
-        formatter = fmt.DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
-            na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            justify=justify,
-            index_names=index_names,
-            escape=escape,
-            decimal=decimal,
-            max_rows=max_rows,
-            max_cols=max_cols,
-            show_dimensions=show_dimensions,
-        )
-        # TODO: a generic formatter wld b in DataFrameFormatter
-        return fmt.DataFrameRenderer(formatter).to_html(
+        styler = Styler(self, uuid=table_id)
+        styler.set_table_attributes(table_attributes)
+        if not header:
+            styler.hide_columns()
+        if not index:
+            styler.hide_index()
+        if columns:
+            hidden = [col for col in styler.columns if col not in columns]
+            styler.hide_columns(hidden)
+
+        if col_space:
+            exclude_styles = False  # CSS styles needed for col_space
+            props = lambda v: f"min-width: {f'{v}px' if isinstance(v, int) else v}"
+
+            if isinstance(col_space, (int, str)):
+                styles = [
+                    {"selector": f".col{i}", "props": props(col_space)}
+                    for i in range(len(styler.columns))
+                ]
+            elif isinstance(col_space, list):
+                styles = [
+                    {"selector": f".col{i}", "props": props(cs)}
+                    for i, cs in enumerate(col_space)
+                ]
+            elif isinstance(col_space, dict):
+                styles = {
+                    k: [{"selector": "", "props": props(v)}]
+                    for k, v in col_space.items()
+                }
+            styler.set_table_styles(styles, overwrite=False)
+
+        return styler.to_html(
             buf=buf,
-            classes=classes,
-            notebook=notebook,
-            border=border,
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
             encoding=encoding,
-            table_id=table_id,
-            render_links=render_links,
+            doctype_html=doctype_html,
+            exclude_styles=exclude_styles,
         )
 
     @doc(storage_options=generic._shared_docs["storage_options"])
