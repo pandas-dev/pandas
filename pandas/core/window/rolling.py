@@ -50,6 +50,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import (
     DataError,
     SelectionMixin,
@@ -317,7 +318,10 @@ class BaseWindow(SelectionMixin):
             # GH #12373 : rolling functions error on float32 data
             # make sure the data is coerced to float64
             try:
-                values = ensure_float64(values)
+                if isinstance(values, ExtensionArray):
+                    values = values.to_numpy(np.float64, na_value=np.nan)
+                else:
+                    values = ensure_float64(values)
             except (ValueError, TypeError) as err:
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
