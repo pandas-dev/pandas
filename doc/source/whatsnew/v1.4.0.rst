@@ -245,7 +245,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
--
+- Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 
 .. ---------------------------------------------------------------------------
 
@@ -325,6 +325,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` where the first level is a :class:`DatetimeIndex` and a string key is passed (:issue:`42465`)
 - Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
+- Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
 -
 
 I/O
