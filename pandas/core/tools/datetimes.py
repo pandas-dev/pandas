@@ -226,7 +226,7 @@ def _box_as_indexlike(
     if is_datetime64_dtype(dt_array):
         tz = "utc" if utc else None
         return DatetimeIndex(dt_array, tz=tz, name=name)
-    return Index(dt_array, name=name)
+    return Index(dt_array, name=name, dtype=dt_array.dtype)
 
 
 def _convert_and_box_cache(
@@ -517,7 +517,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
     """
     to_datetime specalized to the case where a 'unit' is passed.
     """
-    arg = getattr(arg, "_values", arg)
+    arg = getattr(arg, "_values", arg)  # TODO: extract_array
 
     # GH#30050 pass an ndarray to tslib.array_with_unit_to_datetime
     # because it expects an ndarray argument
@@ -529,7 +529,7 @@ def _to_datetime_with_unit(arg, unit, name, tz, errors: str) -> Index:
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-        result = Index(arr, name=name)
+        result = Index._with_infer(arr, name=name)
     else:
         result = DatetimeIndex(arr, name=name)
 
@@ -701,8 +701,14 @@ def to_datetime(
         Specify a date parse order if `arg` is str or its list-likes.
         If True, parses dates with the day first, eg 10/11/12 is parsed as
         2012-11-10.
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug, based on dateutil behavior).
+
+        .. warning::
+
+            dayfirst=True is not strict, but will prefer to parse
+            with day first. If a delimited date string cannot be parsed in
+            accordance with the given `dayfirst` option, e.g.
+            ``to_datetime(['31-12-2021'])``, then a warning will be shown.
+
     yearfirst : bool, default False
         Specify a date parse order if `arg` is str or its list-likes.
 
@@ -711,8 +717,11 @@ def to_datetime(
         - If both dayfirst and yearfirst are True, yearfirst is preceded (same
           as dateutil).
 
-        Warning: yearfirst=True is not strict, but will prefer to parse
-        with year first (this is a known bug, based on dateutil behavior).
+        .. warning::
+
+            yearfirst=True is not strict, but will prefer to parse
+            with year first.
+
     utc : bool, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
         datetime.datetime objects as well).
@@ -1096,7 +1105,7 @@ def _attempt_YYYYMMDD(arg: np.ndarray, errors: str) -> np.ndarray | None:
 def to_time(arg, format=None, infer_time_format=False, errors="raise"):
     # GH#34145
     warnings.warn(
-        "`to_time` has been moved, should be imported from pandas.core.tools.times.  "
+        "`to_time` has been moved, should be imported from pandas.core.tools.times. "
         "This alias will be removed in a future version.",
         FutureWarning,
         stacklevel=2,

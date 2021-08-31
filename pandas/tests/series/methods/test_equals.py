@@ -93,7 +93,7 @@ def test_equals_matching_nas():
     left = Series([np.float64("NaN")], dtype=object)
     right = Series([np.float64("NaN")], dtype=object)
     assert left.equals(right)
-    assert Index(left).equals(Index(right))
+    assert Index(left, dtype=left.dtype).equals(Index(right, dtype=right.dtype))
     assert left.array.equals(right.array)
 
 
@@ -123,5 +123,5 @@ def test_equals_none_vs_nan():
     ser2 = Series([1, np.nan], dtype=object)
 
     assert ser.equals(ser2)
-    assert Index(ser).equals(Index(ser2))
+    assert Index(ser, dtype=ser.dtype).equals(Index(ser2, dtype=ser2.dtype))
     assert ser.array.equals(ser2.array)

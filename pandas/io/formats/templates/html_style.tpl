@@ -12,12 +12,14 @@
 {% endblock table_styles %}
 {% block before_cellstyle %}{% endblock before_cellstyle %}
 {% block cellstyle %}
-{% for s in cellstyle %}
-{% for selector in s.selectors %}{% if not loop.first %}, {% endif %}#T_{{uuid}}{{selector}}{% endfor %} {
+{% for cs in [cellstyle, cellstyle_index, cellstyle_columns] %}
+{% for s in cs %}
+{% for selector in s.selectors %}{% if not loop.first %}, {% endif %}#T_{{uuid}}_{{selector}}{% endfor %} {
 {% for p,val in s.props %}
   {{p}}: {{val}};
 {% endfor %}
 }
+{% endfor %}
 {% endfor %}
 {% endblock cellstyle %}
 </style>

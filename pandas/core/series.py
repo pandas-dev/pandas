@@ -475,7 +475,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(pandas_dtype(dtype))
+            values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             keys = index
         else:
             keys, values = (), []
@@ -519,8 +519,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def _can_hold_na(self) -> bool:
         return self._mgr._can_hold_na
 
-    _index: Index | None = None
-
     def _set_axis(self, axis: int, labels, fastpath: bool = False) -> None:
         """
         Override generic, we want to set the _typ here.
@@ -549,7 +547,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # or not be a DatetimeIndex
                     pass
 
-        object.__setattr__(self, "_index", labels)
         if not fastpath:
             # The ensure_index call above ensures we have an Index object
             self._mgr.set_axis(axis, labels)
@@ -5091,7 +5088,7 @@ Keep all original rows and also all original values
         """
         if inclusive is True or inclusive is False:
             warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
                 stacklevel=2,

@@ -10,6 +10,8 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])
 def test_comment(all_parsers, na_values):
