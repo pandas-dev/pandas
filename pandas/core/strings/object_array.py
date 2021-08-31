@@ -6,6 +6,7 @@ import textwrap
 import unicodedata
 
 import numpy as np
+import numpy.typing as npt
 
 import pandas._libs.lib as lib
 import pandas._libs.missing as libmissing
@@ -414,7 +415,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_rstrip(self, to_strip=None):
         return self._str_map(lambda x: x.rstrip(to_strip))
 
-    def _str_removeprefix(self, prefix):
+    def _str_removeprefix(self, prefix: str) -> npt.NDArray[np.str_]:
         # outstanding question on whether to use native methods for users
         # on Python 3.9+ https://git.io/JE9QK, in which case we could do
         # return self._str_map(str.removeprefix)
@@ -426,7 +427,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(removeprefix)
 
-    def _str_removesuffix(self, suffix):
+    def _str_removesuffix(self, suffix: str) -> npt.NDArray[np.str_]:
         # this could be used on Python 3.9+
         # f = lambda x: x.removesuffix(suffix)
         # return self._str_map(str.removesuffix)
