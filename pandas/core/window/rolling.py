@@ -1409,6 +1409,14 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="quantile", **kwargs)
 
+    def rank(self, pct: bool = False, **kwargs):
+        window_func = partial(
+            window_aggregations.roll_rank,
+            percentile=pct,
+        )
+
+        return self._apply(window_func, name="rank", **kwargs)
+
     def cov(
         self,
         other: DataFrame | Series | None = None,

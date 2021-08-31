@@ -1500,3 +1500,21 @@ def test_rolling_numeric_dtypes():
         dtype="float64",
     )
     tm.assert_frame_equal(result, expected)
+
+def test_rank():
+    window = 3
+    ser = Series(data=np.random.rand(50))
+
+    result = Series(data=[ser[max(0, i - window + 1):i + 1].rank().iloc[-1] for i in range(50)])
+    expected = ser.rolling(window).rank()
+
+    tm.assert_series_equal(result, expected)
+
+def test_percentile_rank():
+    window = 3
+    ser = Series(data=np.random.rand(50))
+
+    result = Series(data=[ser[max(0, i - window + 1):i + 1].rank(pct=True).iloc[-1] for i in range(50)])
+    expected = ser.rolling(window).rank(pct=True)
+
+    tm.assert_series_equal(result, expected)

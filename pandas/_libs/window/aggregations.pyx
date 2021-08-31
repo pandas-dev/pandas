@@ -795,7 +795,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j]
                     if notnan(val):
                         nobs += 1
-                        err = skiplist_insert(sl, val) != 1
+                        err = skiplist_insert(sl, val) == -1
                         if err:
                             break
 
@@ -806,7 +806,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j]
                     if notnan(val):
                         nobs += 1
-                        err = skiplist_insert(sl, val) != 1
+                        err = skiplist_insert(sl, val) == -1
                         if err:
                             break
 
@@ -1133,6 +1133,75 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
                         output[i] = NaN
             else:
                 output[i] = NaN
+
+    skiplist_destroy(skiplist)
+
+    return output
+
+def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
+                  ndarray[int64_t] end, int64_t minp, bint percentile) -> np.ndarray:
+    """
+    O(N log(window)) implementation using skip list
+    """
+    cdef:
+        Py_ssize_t i, j, s, e, N = len(values), idx
+        int ret = 0, rank = 0
+        int64_t nobs = 0, win
+        float64_t val
+        float64_t vlow, vhigh
+        skiplist_t *skiplist
+        ndarray[float64_t] output
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    # we use the Fixed/Variable Indexer here as the
+    # actual skiplist ops outweigh any window computation costs
+    output = np.empty(N, dtype=np.float64)
+
+    win = (end - start).max()
+    if win == 0:
+        output[:] = NaN
+        return output
+    skiplist = skiplist_init(<int>win)
+    if skiplist == NULL:
+        raise MemoryError("skiplist_init failed")
+
+    with nogil:
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds:
+                if not is_monotonic_increasing_bounds:
+                    nobs = 0
+                    skiplist = skiplist_init(<int>win)
+
+                # setup
+                for j in range(s, e):
+                    val = values[j]
+                    if notnan(val):
+                        nobs += 1
+                        rank = skiplist_insert(skiplist, val)
+
+            else:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j]
+                    if notnan(val):
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j]
+                    if notnan(val):
+                        nobs += 1
+                        rank = skiplist_insert(skiplist, val)
+            if percentile:
+                output[i] = <float64_t>(rank + 1) / nobs if rank != -1 else NaN
+            else:
+                output[i] = rank + 1 if rank != -1 else NaN
 
     skiplist_destroy(skiplist)
 

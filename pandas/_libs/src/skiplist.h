@@ -183,7 +183,7 @@ PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
 PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
     node_t *node, *prevnode, *newnode, *next_at_level;
     int *steps_at_level;
-    int size, steps, level;
+    int size, steps, level, rank = 0;
     node_t **chain;
 
     chain = skp->tmp_chain;
@@ -197,6 +197,7 @@ PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
         next_at_level = node->next[level];
         while (_node_cmp(next_at_level, value) >= 0) {
             steps_at_level[level] += node->width[level];
+            rank += node->width[level];
             node = next_at_level;
             next_at_level = node->next[level];
         }
@@ -230,7 +231,7 @@ PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
 
     ++(skp->size);
 
-    return 1;
+    return rank;
 }
 
 PANDAS_INLINE int skiplist_remove(skiplist_t *skp, double value) {
