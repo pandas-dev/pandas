@@ -330,7 +330,8 @@ class BaseBlockManager(DataManager):
         if ignore_failures:
             return self._combine(result_blocks)
 
-        return type(self).from_blocks(result_blocks, self.axes)
+        out = type(self).from_blocks(result_blocks, self.axes)
+        return out
 
     def where(self: T, other, cond, align: bool, errors: str) -> T:
         if align:
@@ -595,7 +596,13 @@ class BaseBlockManager(DataManager):
             new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
+
         res.axes = new_axes
+
+        if self.ndim > 1:
+            # Avoid needing to re-compute these
+            res._blknos = self.blknos.copy()
+            res._blklocs = self.blklocs.copy()
 
         if deep:
             res._consolidate_inplace()
