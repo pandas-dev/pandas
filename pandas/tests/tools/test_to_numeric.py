@@ -450,7 +450,6 @@ def test_errors_invalid_value():
     [
         ["1", 2, 3],
         [1, 2, 3],
-        np.array(["1970-01-02", "1970-01-03", "1970-01-04"], dtype="datetime64[D]"),
     ],
 )
 @pytest.mark.parametrize(
@@ -478,7 +477,6 @@ def test_downcast_basic(data, kwargs, exp_dtype):
     [
         ["1", 2, 3],
         [1, 2, 3],
-        np.array(["1970-01-02", "1970-01-03", "1970-01-04"], dtype="datetime64[D]"),
     ],
 )
 def test_signed_downcast(data, signed_downcast):
