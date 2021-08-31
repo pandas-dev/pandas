@@ -417,39 +417,6 @@ def test_str(data, exp, transform_assert_equal):
     assert_equal(result, expected)
 
 
-def test_datetime_like(tz_naive_fixture, transform_assert_equal):
-    transform, assert_equal = transform_assert_equal
-    idx = pd.date_range("20130101", periods=3, tz=tz_naive_fixture)
-
-    result = to_numeric(transform(idx))
-    expected = transform(idx.asi8)
-    assert_equal(result, expected)
-
-
-def test_timedelta(transform_assert_equal):
-    transform, assert_equal = transform_assert_equal
-    idx = pd.timedelta_range("1 days", periods=3, freq="D")
-
-    result = to_numeric(transform(idx))
-    expected = transform(idx.asi8)
-    assert_equal(result, expected)
-
-
-def test_period(transform_assert_equal):
-    transform, assert_equal = transform_assert_equal
-
-    idx = pd.period_range("2011-01", periods=3, freq="M", name="")
-    inp = transform(idx)
-
-    if isinstance(inp, Index):
-        result = to_numeric(inp)
-        expected = transform(idx.asi8)
-        assert_equal(result, expected)
-    else:
-        # TODO: PeriodDtype, so support it in to_numeric.
-        pytest.skip("Missing PeriodDtype support in to_numeric")
-
-
 @pytest.mark.parametrize(
     "errors,expected",
     [
