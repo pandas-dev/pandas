@@ -1183,7 +1183,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    Py_ssize_t min_count=-1,
                    bint is_datetimelike=False,
                    bint compute_max=True,
-                   const uint8_t[:, ::1] mask_in=None,
+                   const uint8_t[:, ::1] mask=None,
                    uint8_t[:, ::1] result_mask=None):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
@@ -1205,7 +1205,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
         True if `values` contains datetime-like entries.
     compute_max : bint, default True
         True to compute group-wise max, False to compute min
-    mask_in : ndarray[bool, ndim=2], optional
+    mask : ndarray[bool, ndim=2], optional
         If not None, indices represent missing values,
         otherwise the mask will not be used
     result_mask : ndarray[bool, ndim=2], optional
@@ -1223,7 +1223,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
         ndarray[groupby_t, ndim=2] group_min_or_max
         bint runtime_error = False
         int64_t[:, ::1] nobs
-        bint uses_mask = mask_in is not None
+        bint uses_mask = mask is not None
         bint isna_entry
 
     # TODO(cython 3.0):
@@ -1260,7 +1260,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
                 val = values[i, j]
 
                 if uses_mask:
-                    isna_entry = mask_in[i, j]
+                    isna_entry = mask[i, j]
                 else:
                     isna_entry = _treat_as_na(val, is_datetimelike)
 
@@ -1312,7 +1312,7 @@ def group_max(groupby_t[:, ::1] out,
         min_count=min_count,
         is_datetimelike=is_datetimelike,
         compute_max=True,
-        mask_in=mask,
+        mask=mask,
         result_mask=result_mask,
     )
 
@@ -1336,7 +1336,7 @@ def group_min(groupby_t[:, ::1] out,
         min_count=min_count,
         is_datetimelike=is_datetimelike,
         compute_max=False,
-        mask_in=mask,
+        mask=mask,
         result_mask=result_mask,
     )
 
