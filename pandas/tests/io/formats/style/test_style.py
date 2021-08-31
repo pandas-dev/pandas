@@ -1,5 +1,6 @@
 import copy
 import re
+from textwrap import dedent
 
 import numpy as np
 import pytest
@@ -185,6 +186,23 @@ def test_render_trimming_mi():
 
     assert len(ctx["head"][0]) == 5  # 2 indexes + 2 column headers + trimming col
     assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
+
+
+def test_render_empty_mi():
+    # GH 43305
+    df = DataFrame(index=MultiIndex.from_product([["A"], [0, 1]], names=[None, "one"]))
+    expected = dedent(
+        """\
+    >
+      <thead>
+        <tr>
+          <th class="index_name level0" >&nbsp;</th>
+          <th class="index_name level1" >one</th>
+        </tr>
+      </thead>
+    """
+    )
+    assert expected in df.style.to_html()
 
 
 @pytest.mark.parametrize("comprehensive", [True, False])
