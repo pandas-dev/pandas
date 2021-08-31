@@ -78,6 +78,30 @@ def test_series(last_val):
 
 
 @pytest.mark.parametrize(
+    "list_data,kwargs",
+    [
+        (["-3.14", 7], {}),
+        (
+            ["-3.14", 7, pd.to_datetime(0), pd.NaT, ["30", -10]],
+            {"errors": "coerce"}
+        ),
+        (
+            ["-3.14", 7, pd.to_datetime(0), pd.NaT, ["30", -10]],
+            {"errors": "ignore"}
+        ),
+    ]
+)
+def test_list_series(list_data, kwargs):
+    lis = list_data
+    ser = Series(list_data)
+
+    result = to_numeric(lis, **kwargs)
+    expected = to_numeric(ser, **kwargs).values
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "data",
     [
         [1, 3, 4, 5],
