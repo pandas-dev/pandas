@@ -2209,7 +2209,7 @@ class _TestSQLiteAlchemy:
         BaseModel = declarative_base()
 
         class Test(BaseModel):
-            __tablename__ = "test_Frame"
+            __tablename__ = "test_frame"
             id = Column(Integer, primary_key=True)
             foo = Column(String(50))
 
@@ -2218,11 +2218,10 @@ class _TestSQLiteAlchemy:
         session = Session()
 
         df = DataFrame({"id": [0, 1], "foo": ["hello", "world"]})
-        df.to_sql("test_Frame", con=self.conn, index=False, if_exists="replace")
+        df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
 
         session.commit()
         foo = session.query(Test.id, Test.foo)
-        print(foo)
         df = DataFrame(foo)
         session.close()
 
