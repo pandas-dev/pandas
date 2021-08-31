@@ -369,7 +369,7 @@ class TestMerge:
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how="outer")
         assert df["key_0"].dtype == "int64"
 
-    @pytest.mark.skipif(
+    @pytest.mark.xfail(
         (is_platform_windows() or not IS64), reason="GH#40073: fail on Windows/32bit"
     )
     def test_handle_join_key_pass_array(self):
