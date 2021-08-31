@@ -187,6 +187,12 @@ def test_render_trimming_mi():
     assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
 
 
+def test_render_empty_mi():
+    # GH 43305
+    df = DataFrame(index=MultiIndex.from_arrays([["A", "A"], [1, 2]]))
+    df.style.to_html()
+
+
 @pytest.mark.parametrize("comprehensive", [True, False])
 @pytest.mark.parametrize("render", [True, False])
 @pytest.mark.parametrize("deepcopy", [True, False])
