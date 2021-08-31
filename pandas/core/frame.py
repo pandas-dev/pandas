@@ -2690,9 +2690,14 @@ class DataFrame(NDFrame, OpsMixin):
         header: bool = True,
         index: bool = True,
         columns: Sequence[IndexLabel] | None = None,
+        col_space: ColspaceArgType | None = None,
+        formatter: None = None,
+        na_rep: str = "NaN",
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: bool = True,
         encoding: str | None = None,
         doctype_html: bool = False,
-        na_rep: str = "NaN",
         formatters: FormattersType | None = None,
         float_format: FloatFormatType | None = None,
         index_names: bool = True,
@@ -2700,10 +2705,7 @@ class DataFrame(NDFrame, OpsMixin):
         max_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool | str = False,
-        decimal: str = ".",
         bold_rows: bool = True,
-        escape: bool = True,
-        col_space: ColspaceArgType | None = None,
         notebook: bool = False,
         border: int | None = None,
         render_links: bool = False,
@@ -2757,13 +2759,47 @@ class DataFrame(NDFrame, OpsMixin):
             defaults to "utf-8" if None.
 
 
-
         bold_rows : bool, default True
             Make the row labels bold in the output.
-        escape : bool, default True
-            Convert the characters <, >, and & to HTML-safe sequences.
 
+        formatter : str, callable, dict, optional
+            Object to define how values are displayed. See notes for ``Styler.format``
 
+            .. versionadded:: 1.4.0
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+
+            .. versionchanged:: 1.4.0
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+
+            .. versionadded:: 1.4.0
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+
+            .. versionadded:: 1.4.0
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
+
+            .. versionadded:: 1.4.0
+        escape : bool,
+            Replaces the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Escaping is done before ``formatter``.
+
+            .. versionchanged:: 1.4.0
+
+        formatters : list, tuple or dict of one-param. functions, optional
+            Deprecated in favour of using ``formatter`` which is an argument to
+            ``Styler.format``.
+
+            .. deprecated:: 1.4.0
+        float_format : one-parameter function, optional, default None
+            Deprecated in favour of using arguments native to ``Styler.format``
+
+            .. deprecated:: 1.4.0
         classes : str or list or tuple, default None
             Deprecated in favour of using ``table_attributes='class="param"'`` instead.
 
@@ -2792,7 +2828,17 @@ class DataFrame(NDFrame, OpsMixin):
 
         exclude_styles = True  # try to remain true to legacy DataFrame.to_html
 
-        styler = Styler(self, uuid=table_id)
+        styler = Styler(
+            self,
+            uuid=table_id,
+            formatter=formatter,
+            na_rep=na_rep,
+            precision=precision,
+            decimal=decimal,
+            thousands=thousands,
+            escape="html" if escape else None,
+        )
+
         styler.set_table_attributes(table_attributes)
         if not header:
             styler.hide_columns()
