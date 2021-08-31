@@ -370,7 +370,7 @@ class TestMerge:
         assert df["key_0"].dtype == "int64"
 
     @pytest.mark.skipif(
-        not (is_platform_windows() or IS64), reason="GH#40073: fail on Windows"
+        not (is_platform_windows() and IS64), reason="GH#40073: fail on Windows/32bit"
     )
     def test_handle_join_key_pass_array(self):
         left = DataFrame(
