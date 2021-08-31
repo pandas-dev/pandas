@@ -393,7 +393,9 @@ class StylerRenderer:
                 for c, name in enumerate(self.data.index.names)
             ]
 
-            if len(self.data.columns) <= max_cols:
+            if not clabels:
+                blank_len = 0
+            elif len(self.data.columns) <= max_cols:
                 blank_len = len(clabels[0])
             else:
                 blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
