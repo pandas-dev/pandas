@@ -247,7 +247,7 @@ Performance improvements
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
 - Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 - Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
-- 
+-
 
 .. ---------------------------------------------------------------------------
 
