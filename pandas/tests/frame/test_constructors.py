@@ -1204,6 +1204,12 @@ class TestDataFrameConstructors:
         df_casted = DataFrame(float_frame, dtype=np.int64)
         assert df_casted.values.dtype == np.int64
 
+    def test_constructor_empty_dataframe(self):
+        # GH 20624
+        actual = DataFrame(DataFrame(), dtype="object")
+        expected = DataFrame([], dtype="object")
+        tm.assert_frame_equal(actual, expected)
+
     def test_constructor_more(self, float_frame):
         # used to be in test_matrix.py
         arr = np.random.randn(10)
