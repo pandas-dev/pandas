@@ -144,7 +144,11 @@ def to_numeric(arg, errors="raise", downcast=None):
     # Handle inputs of "date" type as objects
     arg_dtype = getattr(arg, "dtype", None)
     if is_datetime_or_timedelta_dtype(arg_dtype):
-        arg = arg._constructor(arg, dtype="O")
+        try:
+            arg = arg._constructor(arg, dtype="O")
+        except AttributeError:
+            # when `arg` is a a numpy array
+            arg = arg.astype("O")
 
     is_series = False
     is_index = False
@@ -155,10 +159,7 @@ def to_numeric(arg, errors="raise", downcast=None):
         values = arg.values
     elif isinstance(arg, ABCIndex):
         is_index = True
-        if needs_i8_conversion(arg.dtype):
-            values = arg.asi8
-        else:
-            values = arg.values
+        values = arg.values
     elif isinstance(arg, (list, tuple)):
         values = np.array(arg, dtype="O")
     elif is_scalar(arg):
