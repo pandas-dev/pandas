@@ -263,7 +263,7 @@ Create a plot of the :math:`NO_2` values in the different stations from the 20th
     :okwarning:
 
     @savefig 09_time_section.png
-    no_2["2019-05-20":"2019-05-21"].plot();
+    no_2.loc["2019-05-20":"2019-05-21"].plot();
 
 By providing a **string that parses to a datetime**, a specific subset of the data can be selected on a ``DatetimeIndex``.
 
