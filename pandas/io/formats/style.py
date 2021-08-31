@@ -1639,7 +1639,7 @@ class Styler(StylerRenderer):
         self.table_attributes = attributes
         return self
 
-    def export(self) -> dict(str, Any):
+    def export(self) -> dict[str, Any]:
         """
         Export the styles applied to the current Styler.
 
@@ -1685,7 +1685,7 @@ class Styler(StylerRenderer):
             "hide_columns": self.hide_columns_,
         }
 
-    def use(self, styles: dict(str, Any)) -> Styler:
+    def use(self, styles: dict[str, Any]) -> Styler:
         """
         Set the styles on the current Styler.
 
