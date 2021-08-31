@@ -7607,10 +7607,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: FrameOrSeries,
         start_time,
         end_time,
-        inclusive="both",
         include_start=lib.no_default,
         include_end=lib.no_default,
         axis=None,
+        inclusive="both",
     ) -> FrameOrSeries:
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
