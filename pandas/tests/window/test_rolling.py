@@ -1501,22 +1501,30 @@ def test_rolling_numeric_dtypes():
     )
     tm.assert_frame_equal(result, expected)
 
+
 @pytest.mark.parametrize("window", [1, 3, 10, 1000])
 def test_rank(window):
     length = 1000
     ser = Series(data=np.random.rand(length))
 
-    result = Series(data=[ser[i - window + 1:i + 1].rank().iloc[-1] if i - window + 1 >= 0 else np.NaN for i in range(length)])
+    result = Series([
+        ser[i - window:i].rank().iloc[-1] if i - window >= 0 else np.NaN
+        for i in range(1, length + 1)
+    ])
     expected = ser.rolling(window).rank()
 
     tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize("window", [1, 3, 10, 1000])
 def test_percentile_rank(window):
     length = 1000
     ser = Series(data=np.random.rand(length))
 
-    result = Series(data=[ser[i - window + 1:i + 1].rank(pct=True).iloc[-1] if i - window + 1 >= 0 else np.NaN for i in range(length)])
+    result = Series([
+        ser[i - window:i].rank(pct=True).iloc[-1] if i - window >= 0 else np.NaN
+        for i in range(1, length + 1)
+    ])
     expected = ser.rolling(window).rank(pct=True)
 
     tm.assert_series_equal(result, expected)
