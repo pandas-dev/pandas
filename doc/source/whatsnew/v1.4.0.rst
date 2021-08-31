@@ -381,7 +381,7 @@ Styler
 - Bug in :meth:`.Styler.to_html` where the ``Styler`` object was updated if the ``to_html`` method was called with some args (:issue:`43034`)
 - Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
--
+- Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
 
 Other
 ^^^^^
