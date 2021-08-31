@@ -130,19 +130,6 @@ def to_numeric(arg, errors="raise", downcast=None):
     1    2.1
     2    3.0
     dtype: Float32
-
-    Datetime dTypes is supported
-
-    >>> s = pd.to_numeric(datetime(2021, 8, 22), errors="coerce")
-    0 20210822
-    dtype: Int64
-    >>> s = pd.to_numeric(pd.NaT, errors="coerce")
-    nan
-    >>> s = pd.to_numeric(pd.Series(datetime(2021, 8, 22)), errors="coerce")
-    0 20210822
-    dtype: Int64
-    >>> s = pd.to_numeric(pd.Series(pd.NaT), errors="coerce")
-    NaN
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")

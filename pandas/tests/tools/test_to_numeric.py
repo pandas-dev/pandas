@@ -789,3 +789,29 @@ def test_to_numeric_scientific_notation():
     result = to_numeric("1.7e+308")
     expected = np.float64(1.7e308)
     assert result == expected
+
+
+def test_to_numeric_series_date():
+    #GH 43280
+    result = pd.to_numeric(pd.Series(datetime(2021, 8, 22)), errors="coerce")
+    expected = np.Int64(20210822)
+    assert result == expected
+
+def test_to_numeric_series_nat():
+    #GH 43280
+    result = pd.to_numeric(pd.Series(pd.NaT), errors="coerce")
+    expected = np.float64(NaN)
+    assert result == expected
+
+def test_to_numeric_scalar_date():
+    #GH 43280
+    result = pd.to_numeric(datetime(2021, 8, 22), errors="coerce")
+    expected = np.Int64(20210822)
+    assert result == expected
+
+def test_to_numeric_scalar_nat():
+    #GH 43280
+    result = pd.to_numeric(pd.NaT, errors="coerce")
+    expected = np.float64(NaN)
+    assert result == expected
+
