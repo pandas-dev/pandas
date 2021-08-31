@@ -399,12 +399,14 @@ class ChainIndexing:
 
     def setup(self, mode):
         self.N = 1000000
+        self.df = DataFrame({"A": np.arange(self.N), "B": "foo"})
 
     def time_chained_indexing(self, mode):
+        df = self.df
+        N = self.N
         with warnings.catch_warnings(record=True):
             with option_context("mode.chained_assignment", mode):
-                df = DataFrame({"A": np.arange(self.N), "B": "foo"})
-                df2 = df[df.A > self.N // 2]
+                df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
 
 
