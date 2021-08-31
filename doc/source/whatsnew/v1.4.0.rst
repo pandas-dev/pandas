@@ -78,10 +78,13 @@ Styler
 
 There are also bug fixes and deprecations listed below.
 
-.. _whatsnew_140.enhancements.enhancement2:
+.. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
-enhancement2
-^^^^^^^^^^^^
+Multithreaded CSV reading with a new CSV Engine based on pyarrow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
+with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 .. _whatsnew_140.enhancements.other:
 
@@ -103,10 +106,20 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_140.notable_bug_fixes.inconsistent_date_string_parsing:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Inconsistent date string parsing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to surprising behaviour:
+
+.. ipython:: python
+    :okwarning:
+
+    pd.to_datetime(["31-12-2021"], dayfirst=False)
+
+Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
+the value is a delimited date string (e.g. ``31-12-2012``).
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
 
@@ -232,8 +245,9 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
+- Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 - Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
--
+- 
 
 .. ---------------------------------------------------------------------------
 
@@ -254,6 +268,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+- :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
 -
 
 Timedelta
@@ -312,6 +327,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` where the first level is a :class:`DatetimeIndex` and a string key is passed (:issue:`42465`)
 - Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
+- Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
 -
 
 I/O

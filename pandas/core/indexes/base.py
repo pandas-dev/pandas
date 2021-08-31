@@ -387,7 +387,7 @@ class Index(IndexOpsMixin, PandasObject):
             warnings.warn(
                 "Passing keywords other than 'data', 'dtype', 'copy', 'name', "
                 "'tupleize_cols' is deprecated and will raise TypeError in a "
-                "future version.  Use the specific Index subclass directly instead",
+                "future version.  Use the specific Index subclass directly instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -620,7 +620,7 @@ class Index(IndexOpsMixin, PandasObject):
             An ndarray with int64 dtype.
         """
         warnings.warn(
-            "Index.asi8 is deprecated and will be removed in a future version",
+            "Index.asi8 is deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2469,8 +2469,8 @@ class Index(IndexOpsMixin, PandasObject):
         Whether or not the index values only consist of dates.
         """
         warnings.warn(
-            "Index.is_all_dates is deprecated, will be removed in a future version.  "
-            "check index.inferred_type instead",
+            "Index.is_all_dates is deprecated, will be removed in a future version. "
+            "check index.inferred_type instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2498,7 +2498,7 @@ class Index(IndexOpsMixin, PandasObject):
     """The expected NA value to use with this index."""
 
     @cache_readonly
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         """
         Return if each value is NaN.
         """
@@ -2521,7 +2521,7 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     @final
-    def isna(self) -> np.ndarray:
+    def isna(self) -> npt.NDArray[np.bool_]:
         """
         Detect missing values.
 
@@ -2579,7 +2579,7 @@ class Index(IndexOpsMixin, PandasObject):
     isnull = isna
 
     @final
-    def notna(self) -> np.ndarray:
+    def notna(self) -> npt.NDArray[np.bool_]:
         """
         Detect existing (non-missing) values.
 
@@ -2764,7 +2764,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         return super().drop_duplicates(keep=keep)
 
-    def duplicated(self, keep: Literal["first", "last", False] = "first") -> np.ndarray:
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
         """
         Indicate duplicate index values.
 
@@ -2835,7 +2837,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.__and__ operating as a set operation is deprecated, "
             "in the future this will be a logical operation matching "
-            "Series.__and__.  Use index.intersection(other) instead",
+            "Series.__and__.  Use index.intersection(other) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2846,7 +2848,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.__or__ operating as a set operation is deprecated, "
             "in the future this will be a logical operation matching "
-            "Series.__or__.  Use index.union(other) instead",
+            "Series.__or__.  Use index.union(other) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -2857,7 +2859,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             "Index.__xor__ operating as a set operation is deprecated, "
             "in the future this will be a logical operation matching "
-            "Series.__xor__.  Use index.symmetric_difference(other) instead",
+            "Series.__xor__.  Use index.symmetric_difference(other) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -3455,7 +3457,7 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn(
             f"Passing method to {type(self).__name__}.get_loc is deprecated "
             "and will raise in a future version. Use "
-            "index.get_indexer([item], method=...) instead",
+            "index.get_indexer([item], method=...) instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -3964,7 +3966,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # GH#42568
                     warnings.warn(
                         "reindexing with a non-unique Index is deprecated and "
-                        "will raise in a future version",
+                        "will raise in a future version.",
                         FutureWarning,
                         stacklevel=2,
                     )
@@ -4695,7 +4697,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             "Index.is_type_compatible is deprecated and will be removed in a "
-            "future version",
+            "future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -4890,8 +4892,7 @@ class Index(IndexOpsMixin, PandasObject):
             values, mask.sum(), converted  # type: ignore[arg-type]
         )
         np.putmask(values, mask, converted)
-
-        return type(self)._simple_new(values, name=self.name)
+        return self._shallow_copy(values)
 
     def equals(self, other: Any) -> bool:
         """
@@ -5311,7 +5312,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         warnings.warn(
             "get_value is deprecated and will be removed in a future version. "
-            "Use Series[key] instead",
+            "Use Series[key] instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -5496,7 +5497,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return keyarr, indexer
 
-    def _raise_if_missing(self, key, indexer, axis_name: str_t):
+    def _raise_if_missing(self, key, indexer, axis_name: str_t) -> None:
         """
         Check that indexer can be used to return a result.
 
@@ -6120,7 +6121,9 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(self, start=None, end=None, step=None, kind=no_default):
+    def slice_locs(
+        self, start=None, end=None, step=None, kind=no_default
+    ) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6492,7 +6495,7 @@ class Index(IndexOpsMixin, PandasObject):
         return np.all(self.values)  # type: ignore[arg-type]
 
     @final
-    def _maybe_disable_logical_methods(self, opname: str_t):
+    def _maybe_disable_logical_methods(self, opname: str_t) -> None:
         """
         raise if this Index subclass does not support any or all.
         """
@@ -6607,7 +6610,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
 
-def ensure_index_from_sequences(sequences, names=None):
+def ensure_index_from_sequences(sequences, names=None) -> Index:
     """
     Construct an index from sequences of data.
 
@@ -6861,7 +6864,7 @@ def _maybe_try_sort(result, sort):
             result = algos.safe_sort(result)
         except TypeError as err:
             warnings.warn(
-                f"{err}, sort order is undefined for incomparable objects",
+                f"{err}, sort order is undefined for incomparable objects.",
                 RuntimeWarning,
                 stacklevel=4,
             )

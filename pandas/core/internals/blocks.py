@@ -190,7 +190,7 @@ class Block(PandasObject):
         warnings.warn(
             "Block.is_categorical is deprecated and will be removed in a "
             "future version.  Use isinstance(block.values, Categorical) "
-            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -624,7 +624,11 @@ class Block(PandasObject):
         -------
         bool
         """
-        return is_dtype_equal(value.dtype, self.dtype)
+        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
+        try:
+            return value.dtype == self.dtype
+        except TypeError:
+            return False
 
     @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
