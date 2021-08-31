@@ -69,7 +69,8 @@ class TestBetweenTime:
         with pytest.raises(ValueError, match=msg):
             obj.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
-    def test_between_time(self, close_open_fixture, frame_or_series):
+    @pytest.mark.parametrize("inclusive", ["both", "neither", "left", "right"])
+    def test_between_time(self, inclusive, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         if frame_or_series is not DataFrame:
@@ -77,7 +78,6 @@ class TestBetweenTime:
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inclusive = close_open_fixture
 
         filtered = ts.between_time(stime, etime, inclusive=inclusive)
         exp_len = 13 * 4 + 1
@@ -210,7 +210,9 @@ class TestBetweenTime:
         assert len(result) == 12
 
     # GH40245
-    def test_between_time_warn(self, close_open_fixture_warn, frame_or_series):
+    @pytest.mark.parametrize("inc_start", (True, False))
+    @pytest.mark.parametrize("inc_end", (True, False))
+    def test_between_time_warn(self, inc_start, inc_end, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         if frame_or_series is not DataFrame:
@@ -218,7 +220,6 @@ class TestBetweenTime:
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inc_start, inc_end = close_open_fixture_warn
 
         with tm.assert_produces_warning(FutureWarning):
             _ = ts.between_time(
