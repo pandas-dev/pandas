@@ -1023,11 +1023,13 @@ class Styler(StylerRenderer):
             )
 
         for cn in attrs.columns:
-            for rn, c in attrs[[cn]].itertuples():
+            j = self.columns.get_loc(cn)
+            ser = attrs[cn]
+            for rn, c in ser.items():
                 if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
-                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                i = self.index.get_loc(rn)
                 self.ctx[(i, j)].extend(css_list)
 
     def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
@@ -1047,7 +1049,8 @@ class Styler(StylerRenderer):
             Identifies whether the ctx object being updated is the index or columns
         """
         for j in attrs.columns:
-            for i, c in attrs[[j]].itertuples():
+            ser = attrs[j]
+            for i, c in ser.items():
                 if not c:
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
@@ -1148,11 +1151,7 @@ class Styler(StylerRenderer):
         subset = slice(None) if subset is None else subset
         subset = non_reducing_slice(subset)
         data = self.data.loc[subset]
-        if axis in [0, "index"]:
-            result = data.apply(func, axis=0, **kwargs)
-        elif axis in [1, "columns"]:
-            result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
-        else:
+        if axis is None:
             result = func(data, **kwargs)
             if not isinstance(result, DataFrame):
                 if not isinstance(result, np.ndarray):
@@ -1167,6 +1166,12 @@ class Styler(StylerRenderer):
                         f"Expected shape: {data.shape}"
                     )
                 result = DataFrame(result, index=data.index, columns=data.columns)
+        else:
+            axis = self.data._get_axis_number(axis)
+            if axis == 0:
+                result = data.apply(func, axis=0, **kwargs)
+            else:
+                result = data.T.apply(func, axis=0, **kwargs).T  # see GH 42005
 
         if isinstance(result, Series):
             raise ValueError(
