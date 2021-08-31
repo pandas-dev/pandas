@@ -1058,7 +1058,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._selected_obj
         if self.axis == 1:
             transposed_dtype = find_common_type(obj.dtypes.tolist())
-            obj = obj.T.astype(transposed_dtype)
+            obj = obj.T.astype(transposed_dtype, copy=False)
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
@@ -1600,7 +1600,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         obj = self._obj_with_exclusions
         if self.axis == 1:
             transposed_dtype = find_common_type(obj.dtypes.tolist())
-            return obj.T.astype(transposed_dtype)._mgr
+            return obj.T.astype(transposed_dtype, copy=False)._mgr
         else:
             return obj._mgr
 
