@@ -1294,7 +1294,7 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
 def refactor_levels(
     level: Level | list[Level] | None,
     obj: Index,
-) -> list[Level]:
+) -> list[int]:
     """
     Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
 
@@ -1310,7 +1310,7 @@ def refactor_levels(
     list : refactored arg with a list of levels to hide
     """
     if level is None:
-        levels_: list[Level] = list(range(obj.nlevels))
+        levels_: list[int] = list(range(obj.nlevels))
     elif isinstance(level, int):
         levels_ = [level]
     elif isinstance(level, str):
