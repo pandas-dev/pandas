@@ -844,7 +844,7 @@ def _get_trimming_maximums(
     max_rows=None,
     max_cols=None,
     scaling_factor=0.8,
-):
+) -> tuple[int, int]:
     """
     Recursively reduce the number of rows and columns to satisfy max elements.
 
