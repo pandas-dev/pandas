@@ -191,14 +191,14 @@ class _Unstacker:
 
     @cache_readonly
     def mask_all(self) -> bool:
-        return self.mask.all()
+        return bool(self.mask.all())
 
     @cache_readonly
-    def arange_result(self) -> np.ndarray:
+    def arange_result(self) -> tuple[npt.NDArray[np.intp], bool]:
         # We cache this for re-use in ExtensionBlock._unstack
         dummy_arr = np.arange(len(self.index), dtype=np.intp)
         new_values, mask = self.get_new_values(dummy_arr, fill_value=-1)
-        return new_values, mask.any(0)
+        return new_values, bool(mask.any(0))
         # TODO: in all tests we have mask.any(0).all(); can we rely on that?
 
     def get_result(self, values, value_columns, fill_value):
