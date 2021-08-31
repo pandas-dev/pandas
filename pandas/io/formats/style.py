@@ -1023,12 +1023,13 @@ class Styler(StylerRenderer):
             )
 
         for cn in attrs.columns:
+            j = self.columns.get_loc(cn)
             ser = attrs[cn]
             for rn, c in ser.items():
                 if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
-                i, j = self.index.get_loc(rn), self.columns.get_loc(cn)
+                i = self.index.get_loc(rn)
                 self.ctx[(i, j)].extend(css_list)
 
     def _update_ctx_header(self, attrs: DataFrame, axis: int) -> None:
@@ -1048,7 +1049,8 @@ class Styler(StylerRenderer):
             Identifies whether the ctx object being updated is the index or columns
         """
         for j in attrs.columns:
-            for i, c in attrs[[j]].itertuples():
+            ser = attrs[j]
+            for i, c in ser.items():
                 if not c:
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
