@@ -1199,10 +1199,13 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                     if notnan(val):
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)
-            if percentile:
-                output[i] = <float64_t>(rank + 1) / nobs if rank != -1 else NaN
+            if nobs >= minp:
+                if percentile:
+                    output[i] = <float64_t>(rank + 1) / nobs if rank != -1 else NaN
+                else:
+                    output[i] = rank + 1 if rank != -1 else NaN
             else:
-                output[i] = rank + 1 if rank != -1 else NaN
+                output[i] = NaN
 
     skiplist_destroy(skiplist)
 

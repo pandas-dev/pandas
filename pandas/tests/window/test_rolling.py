@@ -1506,7 +1506,7 @@ def test_rank(window):
     length = 1000
     ser = Series(data=np.random.rand(length))
 
-    result = Series(data=[ser[max(0, i - window + 1):i + 1].rank().iloc[-1] for i in range(length)])
+    result = Series(data=[ser[i - window + 1:i + 1].rank().iloc[-1] if i - window + 1 >= 0 else np.NaN for i in range(length)])
     expected = ser.rolling(window).rank()
 
     tm.assert_series_equal(result, expected)
@@ -1516,7 +1516,7 @@ def test_percentile_rank(window):
     length = 1000
     ser = Series(data=np.random.rand(length))
 
-    result = Series(data=[ser[max(0, i - window + 1):i + 1].rank(pct=True).iloc[-1] for i in range(length)])
+    result = Series(data=[ser[i - window + 1:i + 1].rank(pct=True).iloc[-1] if i - window + 1 >= 0 else np.NaN for i in range(length)])
     expected = ser.rolling(window).rank(pct=True)
 
     tm.assert_series_equal(result, expected)
