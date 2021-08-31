@@ -111,10 +111,28 @@ def test_error(data, msg):
 
 
 @pytest.mark.parametrize(
-    "errors,exp_data", [("ignore", [1, -3.14, "apple"]), ("coerce", [1, -3.14, np.nan])]
+    "data,msg",
+    [
+        ([22.06, "-86", pd.NaT], "Invalid object type at position 2"),
+        ([pd.to_datetime(0), 22.06, "-86", pd.NaT], "Invalid object type at position 0"),
+    ],
+)
+def test_type_error(data, msg):
+    ser = Series(data)
+
+    with pytest.raises(TypeError, match=msg):
+        to_numeric(ser, errors="raise")
+
+
+@pytest.mark.parametrize(
+    "errors,exp_data",
+    [
+        ("ignore", [1, -3.14, "apple", pd.to_datetime(0), pd.NaT]),
+        ("coerce", [1, -3.14, np.nan, np.nan, np.nan])
+    ],
 )
 def test_ignore_error(errors, exp_data):
-    ser = Series([1, -3.14, "apple"])
+    ser = Series([1, -3.14, "apple", pd.to_datetime(0), pd.NaT])
     result = to_numeric(ser, errors=errors)
 
     expected = Series(exp_data)
