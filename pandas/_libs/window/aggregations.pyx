@@ -1139,16 +1139,17 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     return output
 
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
-                  ndarray[int64_t] end, int64_t minp, bint percentile) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint percentile) -> np.ndarray:
     """
     O(N log(window)) implementation using skip list
+
+    derived from roll_quantile
     """
     cdef:
         Py_ssize_t i, j, s, e, N = len(values), idx
-        int ret = 0, rank = 0
+        int rank = 0
         int64_t nobs = 0, win
         float64_t val
-        float64_t vlow, vhigh
         skiplist_t *skiplist
         ndarray[float64_t] output
 
