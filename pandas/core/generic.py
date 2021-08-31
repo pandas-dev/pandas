@@ -7712,7 +7712,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
 
         indexer = index.indexer_between_time(
-            start_time, end_time, include_start=include_start, include_end=include_end
+            start_time, end_time, include_start=inclusive in ["both", "left"], include_end=inclusive in ["both", "right"]
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
