@@ -63,6 +63,13 @@ def roll_quantile(
     quantile: float,  # float64_t
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
 ) -> np.ndarray: ...  # np.ndarray[float]
+def roll_rank(
+    values: np.ndarray,
+    start: np.ndarray,
+    end: np.ndarray,
+    minp: int,
+    bint percentile,
+) -> np.ndarray: ...  # np.ndarray[float]
 def roll_apply(
     obj: object,
     start: np.ndarray,  # np.ndarray[np.int64]
