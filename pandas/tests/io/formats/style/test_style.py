@@ -207,6 +207,10 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
+        "template_latex",  # render templates are class level
+        "template_html",
+        "template_html_style",
+        "template_html_table",
     ]
     if not deepcopy:  # check memory locations are equal for all included attributes
         for attr in [a for a in styler.__dict__ if (not callable(a) and a not in excl)]:
@@ -259,6 +263,10 @@ def test_clear(mi_styler_comp):
         "cellstyle_map_index",  # execution time only
         "precision",  # deprecated
         "na_rep",  # deprecated
+        "template_latex",  # render templates are class level
+        "template_html",
+        "template_html_style",
+        "template_html_table",
     ]
     # tests vars are not same vals on obj and clean copy before clear (except for excl)
     for attr in [a for a in styler.__dict__ if not (callable(a) or a in excl)]:

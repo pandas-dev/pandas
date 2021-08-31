@@ -1715,8 +1715,11 @@ class Styler(StylerRenderer):
         Styler.export : Export the non data dependent attributes to the current Styler.
         """
         self._todo.extend(styles.get("apply", []))
-        self.set_table_attributes(styles.get("table_attributes", ""))
-        self.set_table_styles(styles.get("table_styles", []))
+        table_attributes = self.table_attributes or ""
+        table_attributes += styles.get("table_attributes", "")
+        self.set_table_attributes(table_attributes)
+        if styles.get("table_styles"):
+            self.set_table_styles(styles.get("table_styles"), overwrite=False)
         self.hide_index_ = styles.get("hide_index", False)
         self.hide_columns_ = styles.get("hide_columns", False)
         return self
