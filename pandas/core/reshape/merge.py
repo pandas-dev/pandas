@@ -748,7 +748,7 @@ class _MergeOperation:
         self, result: DataFrame, cross_col: str | None
     ) -> None:
         if cross_col is not None:
-            result.drop(columns=cross_col, inplace=True)
+            del result[cross_col]
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
