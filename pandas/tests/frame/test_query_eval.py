@@ -736,7 +736,8 @@ class TestDataFrameQueryNumExprPandas:
         n = 10
         df = pd.DataFrame({"a": 2 * np.random.rand(n), "b": np.random.rand(n)})
         expected = df[df["a"].astype("int") == 0]
-        result = df.query("a.astype('int') == 0", engine=self.engine, parser=self.parser)
+        result = df.query("a.astype('int') == 0",
+                          engine=self.engine, parser=self.parser)
         tm.assert_frame_equal(result, expected)
 
         df = pd.DataFrame({
