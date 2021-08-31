@@ -526,7 +526,13 @@ class BaseBlockManager(DataManager):
         copy : bool, default False
             Whether to copy the blocks
         """
-        return self._combine([b for b in self.blocks if b.is_numeric], copy)
+        numeric_blocks = [blk for blk in self.blocks if blk.is_numeric]
+        if len(numeric_blocks) == len(self.blocks):
+            # Avoid somewhat expensive _combine
+            if copy:
+                return self.copy(deep=True)
+            return self
+        return self._combine(numeric_blocks, copy)
 
     def _combine(
         self: T, blocks: list[Block], copy: bool = True, index: Index | None = None
@@ -941,22 +947,17 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         n = len(self)
         if isinstance(dtype, ExtensionDtype):
-            # we'll eventually construct an ExtensionArray.
-            result = np.empty(n, dtype=object)
-            # TODO: let's just use dtype.empty?
+            cls = dtype.construct_array_type()
+            result = cls._empty((n,), dtype=dtype)
         else:
             result = np.empty(n, dtype=dtype)
-
-        result = ensure_wrapped_if_datetimelike(result)
+            result = ensure_wrapped_if_datetimelike(result)
 
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
-
-        if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
         return result
 
@@ -1010,7 +1011,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
         """
-        value = extract_array(value, extract_numpy=True)
+
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
         if self._blklocs is None and self.ndim > 1:
@@ -1558,6 +1559,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return self._is_consolidated
 
     def _consolidate_check(self) -> None:
+        if len(self.blocks) == 1:
+            # fastpath
+            self._is_consolidated = True
+            self._known_consolidated = True
+            return
         dtypes = [blk.dtype for blk in self.blocks if blk._can_consolidate]
         self._is_consolidated = len(dtypes) == len(set(dtypes))
         self._known_consolidated = True
@@ -1780,10 +1786,20 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
 
 
 def create_block_manager_from_blocks(
-    blocks: list[Block], axes: list[Index], consolidate: bool = True
+    blocks: list[Block],
+    axes: list[Index],
+    consolidate: bool = True,
+    verify_integrity: bool = True,
 ) -> BlockManager:
+    # If verify_integrity=False, then caller is responsible for checking
+    #  all(x.shape[-1] == len(axes[1]) for x in blocks)
+    #  sum(x.shape[0] for x in blocks) == len(axes[0])
+    #  set(x for for blk in blocks for x in blk.mgr_locs) == set(range(len(axes[0])))
+    #  all(blk.ndim == 2 for blk in blocks)
+    # This allows us to safely pass verify_integrity=False
+
     try:
-        mgr = BlockManager(blocks, axes)
+        mgr = BlockManager(blocks, axes, verify_integrity=verify_integrity)
 
     except ValueError as err:
         arrays = [blk.values for blk in blocks]
