@@ -7693,19 +7693,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if include_end == lib.no_default:
                 include_end = True
         else:  # if depreciated args haven't been passed
-            if inclusive == "both":
-                include_start = True
-                include_end = True
-            elif inclusive == "neither":
-                include_start = False
-                include_end = False
-            elif inclusive == "left":
-                include_start = True
-                include_end = False
-            elif inclusive == "right":
-                include_start = False
-                include_end = True
-            else:
+            if inclusive not in ["both", "neither", "left", "right"]:
                 raise ValueError(
                     "Inclusive has to be either string of 'both',"
                     "'left', 'right', or 'neither'."
