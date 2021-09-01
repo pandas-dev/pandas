@@ -250,8 +250,7 @@ class StylerRenderer:
             d.update({k: map})
 
         table_attr = self.table_attributes
-        use_mathjax = get_option("display.html.use_mathjax")
-        if not use_mathjax:
+        if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')

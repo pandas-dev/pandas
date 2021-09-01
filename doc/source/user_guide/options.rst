@@ -499,6 +499,9 @@ styler.format.thousands                 None         String representation for t
                                                      integers, and floating point and complex numbers.
 styler.format.escape                    None         Whether to escape "html" or "latex" special
                                                      characters in the display representation.
+styler.html.mathjax                     True         If set to False will render specific CSS classes to
+                                                     table attributes that will prevent Mathjax from rendering
+                                                     in Jupyter Notebook.
 styler.latex.multicol_align             r            Alignment of headers in a merged column due to sparsification. Can be in {"r", "c", "l"}.
 styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
 styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
