@@ -3385,7 +3385,7 @@ class DataFrame(NDFrame, OpsMixin):
                 new_arr,
                 index=self.columns,
                 columns=self.index,
-                dtype=find_common_type(dtypes),
+                dtype=find_common_type(dtypes) if len(dtypes) > 0 else None,
             )
 
         return result.__finalize__(self, method="transpose")
