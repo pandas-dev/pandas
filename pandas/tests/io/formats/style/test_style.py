@@ -402,10 +402,10 @@ class TestStyler:
         self.styler._repr_html_()
 
     def test_repr_html_mathjax(self):
-        # gh-19824
+        # gh-19824 / 41395
         assert "tex2jax_ignore" not in self.styler._repr_html_()
 
-        with pd.option_context("display.html.use_mathjax", False):
+        with pd.option_context("styler.html.mathjax", False):
             assert "tex2jax_ignore" in self.styler._repr_html_()
 
     def test_update_ctx(self):
