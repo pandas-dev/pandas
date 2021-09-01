@@ -809,6 +809,11 @@ styler_environment = """
     in a specific longtable environment format.
 """
 
+styler_encoding = """
+: str
+    The encoding used for output HTML and LaTeX files.
+"""
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
@@ -822,6 +827,8 @@ with cf.config_prefix("styler"):
         styler_max_elements,
         validator=is_nonnegative_int,
     )
+
+    cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
 
     cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
 
