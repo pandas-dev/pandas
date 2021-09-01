@@ -18,6 +18,8 @@ from pandas._typing import (
     npt,
 )
 
+from pandas.core.dtypes.missing import notna
+
 from pandas.core.algorithms import factorize
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
@@ -120,10 +122,12 @@ def _to_ijv(
     """
     # index and column levels must be a partition of the index
     _check_is_partition([row_levels, column_levels], range(ss.index.nlevels))
-    # from the sparse Series: get the labels and data for non-null entries
-    values = ss.array._valid_sp_values
-
-    valid_ilocs = np.where(ss.notnull())[0]
+    # From the sparse Series, get the integer indices and data for valid sparse
+    # entries.
+    sp_vals = ss.array.sp_values
+    na_mask = notna(sp_vals)
+    values = sp_vals[na_mask]
+    valid_ilocs = ss.array.sp_index.indices[na_mask]
 
     i_coords, i_labels = _levels_to_axis(
         ss, row_levels, valid_ilocs, sort_labels=sort_labels

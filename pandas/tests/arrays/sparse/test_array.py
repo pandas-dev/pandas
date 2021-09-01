@@ -1217,10 +1217,8 @@ class TestAccessor:
     ):
         import scipy.sparse
 
-        s = pd.Series([np.nan] * 6)
-        s[2] = 1
-        s[5] = 3
-        s.index = pd.MultiIndex.from_tuples(
+        values = SparseArray([0, np.nan, 1, 0, None, 3], fill_value=0)
+        index = pd.MultiIndex.from_tuples(
             [
                 ("b", 2, "z", 1),
                 ("a", 2, "z", 2),
@@ -1230,7 +1228,7 @@ class TestAccessor:
                 ("a", 1, "z", 0),
             ]
         )
-        ss = s.astype("Sparse")
+        ss = pd.Series(values, index=index)
 
         expected_A = np.zeros((4, 4))
         for value, (row, col) in expected_values_pos.items():
@@ -1240,7 +1238,7 @@ class TestAccessor:
             row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
         )
         assert isinstance(A, scipy.sparse.coo.coo_matrix)
-        assert np.all(A.toarray() == expected_A)
+        np.testing.assert_array_equal(A.toarray(), expected_A)
         assert rows == expected_rows
         assert cols == expected_cols
 
