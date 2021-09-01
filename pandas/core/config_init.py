@@ -793,6 +793,22 @@ styler_formatter = """
     A formatter object to be used as default within ``Styler.format``.
 """
 
+styler_multirow_align = """
+: {"c", "t", "b"}
+    The specifier for vertical alignment of sparsified LaTeX multirows.
+"""
+
+styler_multicol_align = """
+: {"r", "c", "l"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+"""
+
+styler_environment = """
+: str
+    The environment to replace ``\\begin{table}``. If "longtable" is used results
+    in a specific longtable environment format.
+"""
+
 styler_encoding = """
 : str
     The encoding used for output HTML and LaTeX files.
@@ -855,3 +871,24 @@ with cf.config_prefix("styler"):
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
+
+    cf.register_option(
+        "latex.multirow_align",
+        "c",
+        styler_multirow_align,
+        validator=is_one_of_factory(["c", "t", "b"]),
+    )
+
+    cf.register_option(
+        "latex.multicol_align",
+        "r",
+        styler_multicol_align,
+        validator=is_one_of_factory(["r", "c", "l"]),
+    )
+
+    cf.register_option(
+        "latex.environment",
+        None,
+        styler_environment,
+        validator=is_instance_factory([type(None), str]),
+    )

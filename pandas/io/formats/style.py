@@ -458,8 +458,8 @@ class Styler(StylerRenderer):
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
-        multirow_align: str = "c",
-        multicol_align: str = "r",
+        multirow_align: str | None = None,
+        multicol_align: str | None = None,
         siunitx: bool = False,
         environment: str | None = None,
         encoding: str | None = None,
@@ -512,18 +512,21 @@ class Styler(StylerRenderer):
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
-        multirow_align : {"c", "t", "b"}
+        multirow_align : {"c", "t", "b"}, optional
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
-            at the top or bottom.
-        multicol_align : {"r", "c", "l"}
+            at the top or bottom. If not given defaults to
+            ``pandas.options.styler.latex.multirow_align``
+        multicol_align : {"r", "c", "l"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
-            the left, centrally, or at the right.
+            the left, centrally, or at the right. If not given defaults to
+            ``pandas.options.styler.latex.multicol_align``
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
-            rendered.
+            rendered. If not given defaults to
+            ``pandas.options.styler.latex.environment``.
 
             .. versionadded:: 1.4.0
         encoding : str, optional
@@ -840,7 +843,9 @@ class Styler(StylerRenderer):
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
-
+        environment = environment or get_option("styler.latex.environment")
+        multicol_align = multicol_align or get_option("styler.latex.multicol_align")
+        multirow_align = multirow_align or get_option("styler.latex.multirow_align")
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
