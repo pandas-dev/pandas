@@ -42,20 +42,19 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 
-_num_index_shared_docs = {}
 
-
-_num_index_shared_docs[
-    "class_descr"
-] = """
+class NumericIndex(Index):
+    """
     Immutable sequence used for indexing and alignment. The basic object
-    storing axis labels for all pandas objects. %(klass)s is a special case
-    of `Index` with purely %(ltype)s labels. %(extra)s.
+    storing axis labels for all pandas objects. NumericIndex is a special case
+    of `Index` with purely numpy int/uint/float labels.
+
+    .. versionadded:: 1.4.0
 
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: %(dtype)s)
+    dtype : NumPy dtype (default: None)
     copy : bool
         Make a copy of input ndarray.
     name : object
@@ -66,27 +65,29 @@ _num_index_shared_docs[
     None
 
     Methods
-    -------
+    ----------
     None
 
     See Also
     --------
     Index : The base pandas Index type.
+    Int64Index : Index of purely int64 labels (deprecated).
+    UInt64Index : Index of purely uint64 labels (deprecated).
+    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects.
-"""
+    An NumericIndex instance can **only** contain numpy int64/32/16/8, uint64/32/16/8 or
+    float64/32/16 dtype. In particular, ``NumericIndex`` *can not* hold Pandas numeric
+    dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
 
-
-class NumericIndex(Index):
-    _index_descr_args = {
-        "klass": "NumericIndex",
-        "ltype": "integer or float",
-        "dtype": "inferred",
-        "extra": "",
-    }
-    __doc__ = _num_index_shared_docs["class_descr"] % _index_descr_args
+    Examples
+    --------
+    >>> pd.NumericIndex([1, 2, 3], dtype="int8")
+    NumericIndex([1, 2, 3], dtype='int8')
+    >>> pd.NumericIndex([1, 2, 3], dtype="float32")
+    NumericIndex([1.0, 2.0, 3.0], dtype='float32')
+    """
 
     _typ = "numericindex"
     _values: np.ndarray
@@ -358,6 +359,48 @@ class NumericIndex(Index):
             quoting=quoting,
             **kwargs,
         )
+
+
+_num_index_shared_docs = {}
+
+
+_num_index_shared_docs[
+    "class_descr"
+] = """
+    Immutable sequence used for indexing and alignment. The basic object
+    storing axis labels for all pandas objects. %(klass)s is a special case
+    of `Index` with purely %(ltype)s labels. %(extra)s.
+
+    .. deprecated:: 1.4.0
+        In pandas v2.0 %(klass)s will be removed and :class:`NumericIndex` used instead.
+        %(klass)s will remain fully functional for the duration of pandas 1.x.
+
+    Parameters
+    ----------
+    data : array-like (1-dimensional)
+    dtype : NumPy dtype (default: %(dtype)s)
+    copy : bool
+        Make a copy of input ndarray.
+    name : object
+        Name to be stored in the index.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    ----------
+    None
+
+    See Also
+    --------
+    Index : The base pandas Index type.
+    NumericIndex : Index of numpy int/uint/float data.
+
+    Notes
+    -----
+    An Index instance can **only** contain hashable objects.
+"""
 
 
 class IntegerIndex(NumericIndex):

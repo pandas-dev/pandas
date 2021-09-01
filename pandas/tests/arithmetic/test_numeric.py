@@ -14,18 +14,20 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
-    UInt64Index,
     array,
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.computation import expressions as expr
 
 
