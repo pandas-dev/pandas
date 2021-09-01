@@ -14,7 +14,6 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     NaT,
@@ -22,12 +21,15 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
     date_range,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestIndexConstructorInference:
