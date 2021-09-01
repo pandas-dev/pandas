@@ -61,15 +61,15 @@ class TestToLatex:
 
     def test_to_latex_tabular_with_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -78,15 +78,15 @@ class TestToLatex:
 
     def test_to_latex_tabular_without_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(index=False)
+        result = df.to_latex(index=False, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{rl}
             \toprule
-             a &  b \\
+            {a} & {b} \\
             \midrule
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \bottomrule
             \end{tabular}
             """
