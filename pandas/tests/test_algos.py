@@ -1518,11 +1518,13 @@ class TestDuplicated:
         [
             (
                 [1 + 1j, 0, 1, 1j, 1 + 2j, 1 + 2j],
+                # Should return a complex dtype in the future
                 np.array([(1 + 1j), 0j, (1 + 0j), 1j, (1 + 2j)], dtype=object),
             )
         ],
     )
     def test_unique_complex_numbers(self, array, expected):
+        # GH 17927
         result = pd.unique(array)
         tm.assert_numpy_array_equal(result, expected)
 

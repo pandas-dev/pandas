@@ -198,5 +198,6 @@ def test_isin_large_series_mixed_dtypes_and_nan():
     ],
 )
 def test_isin_complex_numbers(array, expected):
+    # GH 17927
     result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
     tm.assert_series_equal(result, expected)

@@ -1508,7 +1508,7 @@ class TestSeriesMode:
             ),
         ],
     )
-    def test_unimode_complex(self, array, expected, dtype):
+    def test_single_mode_value_complex(self, array, expected, dtype):
         result = Series(array, dtype=dtype).mode()
         tm.assert_series_equal(result, expected)
 
@@ -1529,6 +1529,7 @@ class TestSeriesMode:
         ],
     )
     def test_multimode_complex(self, array, expected, dtype):
+        # GH 17927
         # mode tries to sort multimodal series.
         # Complex numbers are sorted by their magnitude
         result = Series(array, dtype=dtype).mode()

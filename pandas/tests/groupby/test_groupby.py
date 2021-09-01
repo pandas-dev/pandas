@@ -1009,33 +1009,27 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "frame,expected",
-    [
-        (
-            DataFrame(
-                [
-                    {"a": 1, "b": 1 + 1j},
-                    {"a": 1, "b": 1 + 2j},
-                    {"a": 4, "b": 1},
-                ]
-            ),
-            DataFrame(
-                np.array([1, 1, 1], dtype=np.int64),
-                index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
-                columns=Index(["a"], dtype="object"),
-            ),
-        )
-    ],
-)
-def test_groupby_complex_numbers(frame, expected):
-    result = frame.groupby("b", sort=False).count()
+def test_groupby_complex_numbers():
+    # GH 17927
+    df = DataFrame(
+        [
+            {"a": 1, "b": 1 + 1j},
+            {"a": 1, "b": 1 + 2j},
+            {"a": 4, "b": 1},
+        ]
+    )
+    expected = DataFrame(
+        np.array([1, 1, 1], dtype=np.int64),
+        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
+        columns=Index(["a"], dtype="object"),
+    )
+    result = df.groupby("b", sort=False).count()
     tm.assert_frame_equal(result, expected)
 
     # Sorted by the magnitude of the complex numbers
     # Complex Index dtype is cast to object
     expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], dtype="object", name="b")
-    result = frame.groupby("b", sort=True).count()
+    result = df.groupby("b", sort=True).count()
     tm.assert_frame_equal(result, expected)
 
 
