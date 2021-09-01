@@ -108,7 +108,9 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        precision = precision or get_option("styler.format.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
@@ -1032,7 +1034,9 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = precision or get_option("styler.format.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )
