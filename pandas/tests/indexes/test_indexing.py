@@ -71,6 +71,12 @@ class TestTake:
         with pytest.raises(TypeError):
             index.take(scalar_index, match=msg)
 
+        non_1d_index = [1, 2]
+        msg = "Expected indices to be 1 dimensional"
+        with pytest.raises(TypeError):
+            index.take(non_1d_index, match=msg)
+
+
     def test_take_minus1_without_fill(self, index):
         # -1 does not get treated as NA unless allow_fill=True is passed
         if len(index) == 0:
