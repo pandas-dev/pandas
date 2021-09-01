@@ -385,6 +385,7 @@ class StylerRenderer:
             and com.any_not_none(*self.data.index.names)
             and not all(self.hide_index_)
             and not all(self.hide_columns_)
+            and not self.hide_index_names
         ):
             index_names = [
                 _element(

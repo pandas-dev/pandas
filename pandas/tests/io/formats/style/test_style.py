@@ -1402,3 +1402,39 @@ class TestStyler:
         with tm.assert_produces_warning(warn, match=msg):
             result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
+
+
+def test_hidden_index_names(mi_df):
+    mi_df.index.names = ["Lev0", "Lev1"]
+    mi_styler = mi_df.style
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 3  # 2 column index levels + 1 index names row
+
+    mi_styler.hide_index(names=True)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is unparsed
+    for i in range(4):
+        assert ctx["body"][0][i]["is_visible"]  # 2 index levels + 2 data values visible
+
+    mi_styler.hide_index(level=1)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is still hidden
+    assert ctx["body"][0][0]["is_visible"] is True
+    assert ctx["body"][0][1]["is_visible"] is False
+
+
+def test_hidden_column_names(mi_df):
+    mi_df.columns.names = ["Lev0", "Lev1"]
+    mi_styler = mi_df.style
+    ctx = mi_styler._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "Lev0"
+    assert ctx["head"][1][0]["display_value"] == "Lev1"
+
+    mi_styler.hide_columns(names=True)
+    ctx = mi_styler._translate(True, True)
+
+    mi_styler.hide_index(level=1)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is still hidden
+    assert ctx["body"][0][0]["is_visible"] is True
+    assert ctx["body"][0][1]["is_visible"] is False
