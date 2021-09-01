@@ -982,7 +982,7 @@ NumericIndex
 
     In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
     instead of :class:`Int64Index`, :class:`Float64Index` and :class:`UInt64Index` and those index types
-    are therefore deprecated and will be removed in a futureversion.
+    are therefore deprecated and will be removed in a future version.
     :class:`RangeIndex` will not be removed as it represents an optimized version of an integer index.
 
 :class:`NumericIndex` is an index type that can hold data of any numpy int/uint/float dtype. For example:
