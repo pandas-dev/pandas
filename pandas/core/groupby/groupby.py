@@ -1120,7 +1120,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 obj = self._obj_with_exclusions
                 check = obj._get_numeric_data()
                 if len(obj.columns) and not len(check.columns) and not obj.empty:
-                    warnings.warn("... Explicitly pass numeric_only ...")
                     numeric_only = False
 
             else:
