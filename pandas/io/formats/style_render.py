@@ -77,6 +77,7 @@ class StylerRenderer:
         table_attributes: str | None = None,
         caption: str | tuple | None = None,
         cell_ids: bool = True,
+        precision: int | None = None,
     ):
 
         # validate ordered args
@@ -89,8 +90,8 @@ class StylerRenderer:
         self.columns: Index = data.columns
         if not isinstance(uuid_len, int) or not uuid_len >= 0:
             raise TypeError("``uuid_len`` must be an integer in range [0, 32].")
-        self.uuid_len = min(32, uuid_len)
-        self.uuid = uuid or uuid4().hex[: self.uuid_len]
+        self.uuid = uuid or uuid4().hex[: min(32, uuid_len)]
+        self.uuid_len = len(self.uuid)
         self.table_styles = table_styles
         self.table_attributes = table_attributes
         self.caption = caption
@@ -107,10 +108,10 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        def_precision = get_option("display.precision")
+        precision = precision or get_option("styler.format.precision")
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
     def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
@@ -393,7 +394,9 @@ class StylerRenderer:
                 for c, name in enumerate(self.data.index.names)
             ]
 
-            if len(self.data.columns) <= max_cols:
+            if not clabels:
+                blank_len = 0
+            elif len(self.data.columns) <= max_cols:
                 blank_len = len(clabels[0])
             else:
                 blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
@@ -681,10 +684,20 @@ class StylerRenderer:
         to. If the ``formatter`` argument is given in dict form but does not include
         all columns within the subset then these columns will have the default formatter
         applied. Any columns in the formatter dict excluded from the subset will
-        raise a ``KeyError``.
+        be ignored.
 
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
+
+        When instantiating a Styler, default formatting can be applied be setting the
+        ``pandas.options``:
+
+          - ``styler.format.formatter``: default None.
+          - ``styler.format.na_rep``: default None.
+          - ``styler.format.precision``: default 6.
+          - ``styler.format.decimal``: default ".".
+          - ``styler.format.thousands``: default None.
+          - ``styler.format.escape``: default None.
 
         Examples
         --------
@@ -954,11 +967,9 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
         Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
-        if thousands:
-            return f"{x:,.{precision}f}"
-        return f"{x:.{precision}f}"
-    elif isinstance(x, int) and thousands:
-        return f"{x:,.0f}"
+        return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
+    elif isinstance(x, int):
+        return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
 
@@ -1022,7 +1033,7 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = get_option("display.precision") if precision is None else precision
+        precision = precision or get_option("styler.format.precision")
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )

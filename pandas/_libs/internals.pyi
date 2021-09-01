@@ -10,6 +10,7 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     T,
+    npt,
 )
 
 from pandas import Index
@@ -25,6 +26,12 @@ def get_blkno_placements(
     blknos: np.ndarray,
     group: bool = ...,
 ) -> Iterator[tuple[int, BlockPlacement]]: ...
+def update_blklocs_and_blknos(
+    blklocs: npt.NDArray[np.intp],
+    blknos: npt.NDArray[np.intp],
+    loc: int,
+    nblocks: int,
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 
 class BlockPlacement:
     def __init__(self, val: int | slice | np.ndarray): ...
@@ -44,6 +51,7 @@ class BlockPlacement:
     def __len__(self) -> int: ...
     def delete(self, loc) -> BlockPlacement: ...
     def append(self, others: list[BlockPlacement]) -> BlockPlacement: ...
+    def tile_for_unstack(self, factor: int) -> np.ndarray: ...
 
 class SharedBlock:
     _mgr_locs: BlockPlacement
