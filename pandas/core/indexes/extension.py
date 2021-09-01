@@ -31,7 +31,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -322,21 +321,6 @@ class ExtensionIndex(Index):
     def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
         # overriding IndexOpsMixin improves performance GH#38083
         return self._data.searchsorted(value, side=side, sorter=sorter)
-
-    def putmask(self, mask, value) -> Index:
-        mask, noop = validate_putmask(self._data, mask)
-        if noop:
-            return self.copy()
-
-        try:
-            self._validate_fill_value(value)
-        except (ValueError, TypeError):
-            dtype = self._find_common_type_compat(value)
-            return self.astype(dtype).putmask(mask, value)
-
-        arr = self._data.copy()
-        arr.putmask(mask, value)
-        return type(self)._simple_new(arr, name=self.name)
 
     # ---------------------------------------------------------------------
 
