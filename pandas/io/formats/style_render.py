@@ -833,7 +833,7 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        axis : int, str
+        axis : {0, "index", 1, "columns"}
             Whether to apply the formatter to the index or column headers.
         level : int, str, list
             The level(s) over which to apply the generic formatter.
