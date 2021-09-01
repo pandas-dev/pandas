@@ -1151,7 +1151,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
         int64_t nobs = 0, win
         float64_t val
         skiplist_t *skiplist
-        ndarray[float64_t] output
+        float64_t[::1] output = None
 
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
@@ -1169,13 +1169,14 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
         raise MemoryError("skiplist_init failed")
 
     with nogil:
-        for i in range(0, N):
+        for i in range(N):
             s = start[i]
             e = end[i]
 
             if i == 0 or not is_monotonic_increasing_bounds:
                 if not is_monotonic_increasing_bounds:
                     nobs = 0
+                    skiplist_destroy(skiplist)
                     skiplist = skiplist_init(<int>win)
 
                 # setup
@@ -1184,6 +1185,8 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                     if notnan(val):
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)
+                        if rank == -1:
+                            raise MemoryError("skiplist_insert failed")
 
             else:
                 # calculate deletes
@@ -1199,17 +1202,16 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                     if notnan(val):
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)
+                        if rank == -1:
+                            raise MemoryError("skiplist_insert failed")
             if nobs >= minp:
-                if percentile:
-                    output[i] = <float64_t>(rank + 1) / nobs if rank != -1 else NaN
-                else:
-                    output[i] = rank + 1 if rank != -1 else NaN
+                output[i] = <float64_t>(rank + 1) / nobs if percentile else rank + 1
             else:
                 output[i] = NaN
 
     skiplist_destroy(skiplist)
 
-    return output
+    return np.asarray(output)
 
 
 def roll_apply(object obj,

@@ -68,7 +68,7 @@ def roll_rank(
     start: np.ndarray,
     end: np.ndarray,
     minp: int,
-    bint percentile,
+    percentile: bool,
 ) -> np.ndarray: ...  # np.ndarray[float]
 def roll_apply(
     obj: object,

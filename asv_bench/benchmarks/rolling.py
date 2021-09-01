@@ -180,6 +180,24 @@ class Quantile:
         self.roll.quantile(percentile, interpolation=interpolation)
 
 
+class Rank:
+    params = (
+        ["DataFrame", "Series"],
+        [10, 1000],
+        ["int", "float"],
+        [True, False],
+    )
+    param_names = ["constructor", "window", "dtype", "percentile"]
+
+    def setup(self, constructor, window, dtype, percentile):
+        N = 10 ** 5
+        arr = np.random.random(N).astype(dtype)
+        self.roll = getattr(pd, constructor)(arr).rolling(window)
+
+    def time_rank(self, constructor, window, dtype, percentile):
+        self.roll.rank(percentile)
+
+
 class PeakMemFixedWindowMinMax:
 
     params = ["min", "max"]
