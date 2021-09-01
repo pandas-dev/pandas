@@ -77,6 +77,8 @@ Styler
   - Keyword argument ``level`` is added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
   - Global options have been extended to configure default ``Styler`` properties including formatting and mathjax options (:issue:`41395`)
 
+Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
+
 There are also bug fixes and deprecations listed below.
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
