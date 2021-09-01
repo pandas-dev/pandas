@@ -1145,8 +1145,6 @@ cdef enum RankType:
     AVERAGE,
     MIN,
     MAX,
-    FIRST,
-    DENSE
 
 
 rank_types = {
