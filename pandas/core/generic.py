@@ -7610,7 +7610,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         include_start=lib.no_default,
         include_end=lib.no_default,
         axis=None,
-        inclusive: str = "",
+        inclusive=None,
     ) -> FrameOrSeries:
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
@@ -7682,7 +7682,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # If user has passed any of the depreciated arguments
         # ('include_start', 'include_end') AND the new argument ('inclusive')
         if (include_start != lib.no_default or include_end != lib.no_default) and (
-            inclusive != ""
+            inclusive is not None
         ):
             raise ValueError(
                 "`inclusive` cannot be passed if either or both of `include_start`,"
@@ -7702,7 +7702,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if include_end == lib.no_default:
                 include_end = True
         else:  # if depreciated args haven't been passed
-            if inclusive == "":
+            if inclusive is None:
                 inclusive = "both"
             elif inclusive not in ["both", "neither", "left", "right"]:
                 raise ValueError(
