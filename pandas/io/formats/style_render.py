@@ -98,6 +98,8 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
+        self.hide_index_names: bool = False
+        self.hide_column_names: bool = False
         self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols

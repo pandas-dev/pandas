@@ -1109,6 +1109,8 @@ class Styler(StylerRenderer):
         shallow = [  # simple string or boolean immutables
             "hide_index_",
             "hide_columns_",
+            "hide_column_names",
+            "hide_index_names",
             "table_attributes",
             "cell_ids",
             "caption",
@@ -2019,6 +2021,7 @@ class Styler(StylerRenderer):
         self,
         subset: Subset | None = None,
         level: Level | list[Level] | None = None,
+        names: bool = False,
     ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
@@ -2041,6 +2044,11 @@ class Styler(StylerRenderer):
         level : int, str, list
             The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
             used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
+        names : bool
+            Whether to hide the index name(s), in the case the index or part of it
+            is visible.
 
             .. versionadded:: 1.4.0
 
@@ -2109,6 +2117,11 @@ class Styler(StylerRenderer):
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
+            if level is None and names:
+                # this combination implies user shows the index and hides just names
+                self.hide_index_names = True
+                return self
+
             levels_ = _refactor_levels(level, self.index)
             self.hide_index_ = [
                 True if lev in levels_ else False for lev in range(self.index.nlevels)
@@ -2121,12 +2134,16 @@ class Styler(StylerRenderer):
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
             self.hidden_rows = hrows  # type: ignore[assignment]
+
+        if names:
+            self.hide_index_names = True
         return self
 
     def hide_columns(
         self,
         subset: Subset | None = None,
         level: Level | list[Level] | None = None,
+        names: bool = False,
     ) -> Styler:
         """
         Hide the column headers or specific keys in the columns from rendering.
@@ -2149,6 +2166,11 @@ class Styler(StylerRenderer):
         level : int, str, list
             The level(s) to hide in a MultiIndex if hiding the entire column headers
             row. Cannot be used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
+        names : bool
+            Whether to hide the column index name(s), in the case all column headers,
+            or some levels, are visible.
 
             .. versionadded:: 1.4.0
 
@@ -2221,6 +2243,11 @@ class Styler(StylerRenderer):
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
+            if level is None and names:
+                # this combination implies user shows the column headers but hides names
+                self.hide_column_names = True
+                return self
+
             levels_ = _refactor_levels(level, self.columns)
             self.hide_columns_ = [
                 True if lev in levels_ else False for lev in range(self.columns.nlevels)
@@ -2233,6 +2260,9 @@ class Styler(StylerRenderer):
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
             self.hidden_columns = hcols  # type: ignore[assignment]
+
+        if names:
+            self.hide_column_names = True
         return self
 
     # -----------------------------------------------------------------------

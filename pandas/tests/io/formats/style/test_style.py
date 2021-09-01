@@ -48,8 +48,10 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
     mi_styler.hide_columns([("c0", "c1_a")])
+    mi_styler.hide_columns(names=True)
     mi_styler.hide_index()
     mi_styler.hide_index([("i0", "i1_a")])
+    mi_styler.hide_index(names=True)
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
@@ -239,6 +241,8 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
             "cell_ids",
             "hide_index_",
             "hide_columns_",
+            "hide_index_names",
+            "hide_column_names",
             "table_attributes",
         ]
         for attr in shallow:
