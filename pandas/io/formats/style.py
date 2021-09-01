@@ -528,7 +528,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
-            to ``pandas.options.styler.render.encoding`` value.
+            to ``pandas.options.styler.render.encoding`` value of "utf-8".
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
@@ -903,7 +903,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags.
-            Defaults to ``pandas.options.styler.render.encoding`` value.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
