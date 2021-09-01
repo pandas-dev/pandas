@@ -17,10 +17,8 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    Int64Index,
     MultiIndex,
     Series,
-    Timedelta,
     concat,
 )
 import pandas._testing as tm

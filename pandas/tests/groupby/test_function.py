@@ -10,8 +10,10 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    Int64Index,
     MultiIndex,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
 )
@@ -275,11 +277,9 @@ class TestNumericOnly:
             index=Index(["M", "W"], dtype="object", name="MW"),
         )
 
-        
         gb = df.groupby(by=["MW"])
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
-
 
     def test_groupby_aggregation_multi_non_numeric_dtype():
         # GH #42395
@@ -299,11 +299,9 @@ class TestNumericOnly:
             index=Int64Index([0, 1], dtype="int64", name="x"),
         )
 
-        
         gb = df.groupby(by=["x"])
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
-
 
     def test_groupby_aggregation_numeric_with_non_numeric_dtype():
         # GH #43108
@@ -323,7 +321,6 @@ class TestNumericOnly:
         gb = df.groupby(by=["x"])
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
-
 
 
 class TestGroupByNonCythonPaths:
