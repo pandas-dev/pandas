@@ -264,7 +264,7 @@ class TestNumericOnly:
 
         tm.assert_index_equal(result.columns, expected_columns)
 
-    def test_groupby_aggregation_non_numeric_dtype():
+    def test_groupby_aggregation_non_numeric_dtype(self):
         # GH #43108
         df = DataFrame(
             [["M", [1]], ["M", [1]], ["W", [10]], ["W", [20]]], columns=["MW", "v"]
@@ -281,7 +281,7 @@ class TestNumericOnly:
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_aggregation_multi_non_numeric_dtype():
+    def test_groupby_aggregation_multi_non_numeric_dtype(self):
         # GH #42395
         df = DataFrame(
             {
@@ -303,7 +303,7 @@ class TestNumericOnly:
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_aggregation_numeric_with_non_numeric_dtype():
+    def test_groupby_aggregation_numeric_with_non_numeric_dtype(self):
         # GH #43108
         df = DataFrame(
             {
