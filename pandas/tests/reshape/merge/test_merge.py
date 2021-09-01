@@ -9,11 +9,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
@@ -369,15 +364,14 @@ class TestMerge:
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how="outer")
         assert df["key_0"].dtype == "int64"
 
-    @pytest.mark.xfail(
-        (is_platform_windows() or not IS64), reason="GH#40073: fail on Windows/32bit"
-    )
     def test_handle_join_key_pass_array(self):
         left = DataFrame(
-            {"key": [1, 1, 2, 2, 3], "value": np.arange(5)}, columns=["value", "key"]
+            {"key": [1, 1, 2, 2, 3], "value": np.arange(5)},
+            columns=["value", "key"],
+            dtype="int64",
         )
-        right = DataFrame({"rvalue": np.arange(6)})
-        key = np.array([1, 1, 2, 3, 4, 5])
+        right = DataFrame({"rvalue": np.arange(6)}, dtype="int64")
+        key = np.array([1, 1, 2, 3, 4, 5], dtype="int64")
 
         merged = merge(left, right, left_on="key", right_on=key, how="outer")
         merged2 = merge(right, left, left_on=key, right_on="key", how="outer")
