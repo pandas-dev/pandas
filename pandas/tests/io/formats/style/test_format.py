@@ -298,3 +298,15 @@ def test_format_options():
     with option_context("styler.format.formatter", {"int": "{:,.2f}"}):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][1]["display_value"] == "2,000.00"
+
+
+def test_format_options_validator():
+    df = DataFrame([[9]])
+    with option_context("styler.format.formatter", lambda x: f"{x:.3f}"):
+        assert " 9.000 " in df.style.to_latex()
+    with option_context("styler.format.formatter", "{:.2f}"):
+        assert " 9.00 " in df.style.to_latex()
+    with option_context("styler.format.formatter", {0: "{:.1f}"}):
+        assert " 9.0 " in df.style.to_latex()
+    with option_context("styler.format.formatter", None):
+        assert " 9 " in df.style.to_latex()

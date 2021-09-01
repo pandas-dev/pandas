@@ -793,6 +793,12 @@ styler_formatter = """
     A formatter object to be used as default within ``Styler.format``.
 """
 
+
+def _is_formatter(x):
+    if not (x is None or callable(x) or isinstance(x, (dict, str))):
+        return ValueError("Value must have type 'callable, dict, str' or None.")
+
+
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
 
@@ -838,5 +844,5 @@ with cf.config_prefix("styler"):
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, callable, str]),
+        validator=_is_formatter,
     )
