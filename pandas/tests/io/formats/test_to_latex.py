@@ -109,15 +109,15 @@ class TestToLatex:
 
     def test_to_latex_column_format(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(column_format="lcr")
+        result = df.to_latex(column_format="lcr", hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lcr}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
