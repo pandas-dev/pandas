@@ -3381,7 +3381,12 @@ class DataFrame(NDFrame, OpsMixin):
             new_arr = self.values.T
             if copy:
                 new_arr = new_arr.copy()
-            result = self._constructor(new_arr, index=self.columns, columns=self.index)
+            result = self._constructor(
+                new_arr,
+                index=self.columns,
+                columns=self.index,
+                dtype=find_common_type(dtypes),
+            )
 
         return result.__finalize__(self, method="transpose")
 
