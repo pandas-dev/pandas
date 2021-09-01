@@ -757,6 +757,11 @@ styler_sparse_columns_doc = """
     display each explicit level element in a hierarchical key for each column.
 """
 
+styler_render_repr = """
+: str
+    Determine which output to use in Jupyter Notebook in {"html", "latex"}.
+"""
+
 styler_max_elements = """
 : int
     The maximum number of data-cell (<td>) elements that will be rendered before
@@ -825,6 +830,13 @@ with cf.config_prefix("styler"):
 
     cf.register_option(
         "sparse.columns", True, styler_sparse_columns_doc, validator=is_bool
+    )
+
+    cf.register_option(
+        "render.repr",
+        "html",
+        styler_render_repr,
+        validator=is_one_of_factory(["html", "latex"]),
     )
 
     cf.register_option(
