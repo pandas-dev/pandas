@@ -717,6 +717,10 @@ def test_ops_not_as_index(reduction_func):
         expected = expected.rename("size")
     expected = expected.reset_index()
 
+    if reduction_func != "size":
+        # 32 bit compat -> groupby preserves dtype whereas reset_index casts to int64
+        expected["a"] = expected["a"].astype(df["a"].dtype)
+
     g = df.groupby("a", as_index=False)
 
     result = getattr(g, reduction_func)()
@@ -2403,3 +2407,15 @@ def test_datetime_categorical_multikey_groupby_indices():
         ("c", Timestamp("2018-03-01 00:00:00")): np.array([2]),
     }
     assert result == expected
+
+
+def test_rolling_wrong_param_min_period():
+    # GH34037
+    name_l = ["Alice"] * 5 + ["Bob"] * 5
+    val_l = [np.nan, np.nan, 1, 2, 3] + [np.nan, 1, 2, 3, 4]
+    test_df = DataFrame([name_l, val_l]).T
+    test_df.columns = ["name", "val"]
+
+    result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
+    with pytest.raises(TypeError, match=result_error_msg):
+        test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()

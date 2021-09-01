@@ -53,7 +53,6 @@ from pandas import (
     DatetimeIndex,
     NaT,
     Timestamp,
-    concat,
     isna,
     to_datetime,
     to_timedelta,
@@ -160,15 +159,30 @@ DataFrame.to_stata: Export Stata data files.
 
 Examples
 --------
+
+Creating a dummy stata for this example
+>>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon',
+...                              'parrot'],
+...                   'speed': [350, 18, 361, 15]}})
+>>> df.to_stata('animals.dta')
+
 Read a Stata dta file:
 
->>> df = pd.read_stata('filename.dta')
+>>> df = pd.read_stata('animals.dta')
 
 Read a Stata dta file in 10,000 line chunks:
+>>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")
+>>> df = pd.DataFrame(values, columns=["i"])
+>>> df.to_stata('filename.dta')
 
 >>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
-...     do_something(chunk)
+...    # Operate on a single chunk, e.g., chunk.mean()
+...    pass
+
+>>> import os
+>>> os.remove("./filename.dta")
+>>> os.remove("./animals.dta")
 """
 
 _read_method_doc = f"""\
@@ -1648,7 +1662,7 @@ the string values returned are correct."""
         # restarting at 0 for each chunk.
         if index_col is None:
             ix = np.arange(self._lines_read - read_lines, self._lines_read)
-            data = data.set_index(ix)
+            data.index = ix  # set attr instead of set_index to avoid copy
 
         if columns is not None:
             try:
@@ -1742,7 +1756,10 @@ the string values returned are correct."""
             fmt = cast(str, fmt)  # only strs in VALID_RANGE
             nmin, nmax = self.VALID_RANGE[fmt]
             series = data[colname]
-            missing = np.logical_or(series < nmin, series > nmax)
+
+            # appreciably faster to do this with ndarray instead of Series
+            svals = series._values
+            missing = (svals < nmin) | (svals > nmax)
 
             if not missing.any():
                 continue
@@ -1761,15 +1778,18 @@ the string values returned are correct."""
                 if dtype not in (np.float32, np.float64):
                     dtype = np.float64
                 replacement = Series(series, dtype=dtype)
-                replacement[missing] = np.nan
+                if not replacement._values.flags["WRITEABLE"]:
+                    # only relevant for ArrayManager; construction
+                    #  path for BlockManager ensures writeability
+                    replacement = replacement.copy()
+                # Note: operating on ._values is much faster than directly
+                # TODO: can we fix that?
+                replacement._values[missing] = np.nan
             replacements[colname] = replacement
+
         if replacements:
-            columns = data.columns
-            replacement_df = DataFrame(replacements)
-            replaced = concat(
-                [data.drop(replacement_df.columns, axis=1), replacement_df], axis=1
-            )
-            data = replaced[columns]
+            for col in replacements:
+                data[col] = replacements[col]
         return data
 
     def _insert_strls(self, data: DataFrame) -> DataFrame:
@@ -1886,7 +1906,7 @@ The repeated labels are:
                 cat_converted_data.append((col, cat_series))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame.from_dict(dict(cat_converted_data))
+        data = DataFrame(dict(cat_converted_data), copy=False)
         return data
 
     @property

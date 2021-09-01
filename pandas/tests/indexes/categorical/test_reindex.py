@@ -6,6 +6,7 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
+    Interval,
     Series,
 )
 import pandas._testing as tm
@@ -13,26 +14,32 @@ import pandas._testing as tm
 
 class TestReindex:
     def test_reindex_dtype(self):
-        c = CategoricalIndex(["a", "b", "c", "a"])
-        res, indexer = c.reindex(["a", "c"])
+        # GH#11586
+        ci = CategoricalIndex(["a", "b", "c", "a"])
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            res, indexer = ci.reindex(["a", "c"])
+
         tm.assert_index_equal(res, Index(["a", "a", "c"]), exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-        c = CategoricalIndex(["a", "b", "c", "a"])
-        res, indexer = c.reindex(Categorical(["a", "c"]))
+        ci = CategoricalIndex(["a", "b", "c", "a"])
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            res, indexer = ci.reindex(Categorical(["a", "c"]))
 
         exp = CategoricalIndex(["a", "a", "c"], categories=["a", "c"])
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-        c = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
-        res, indexer = c.reindex(["a", "c"])
+        ci = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            res, indexer = ci.reindex(["a", "c"])
         exp = Index(["a", "a", "c"], dtype="object")
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
 
-        c = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
-        res, indexer = c.reindex(Categorical(["a", "c"]))
+        ci = CategoricalIndex(["a", "b", "c", "a"], categories=["a", "b", "c", "d"])
+        with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+            res, indexer = ci.reindex(Categorical(["a", "c"]))
         exp = CategoricalIndex(["a", "a", "c"], categories=["a", "c"])
         tm.assert_index_equal(res, exp, exact=True)
         tm.assert_numpy_array_equal(indexer, np.array([0, 3, 2], dtype=np.intp))
@@ -97,3 +104,22 @@ class TestReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_reindex_categorical_added_category(self):
+        # GH 42424
+        ci = CategoricalIndex(
+            [Interval(0, 1, closed="right"), Interval(1, 2, closed="right")],
+            ordered=True,
+        )
+        ci_add = CategoricalIndex(
+            [
+                Interval(0, 1, closed="right"),
+                Interval(1, 2, closed="right"),
+                Interval(2, 3, closed="right"),
+                Interval(3, 4, closed="right"),
+            ],
+            ordered=True,
+        )
+        result, _ = ci.reindex(ci_add)
+        expected = ci_add
+        tm.assert_index_equal(expected, result)

@@ -673,7 +673,7 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({left.columns.nlevels} levels on the left,"
+                f"in a future version. ({left.columns.nlevels} levels on the left, "
                 f"{right.columns.nlevels} on the right)"
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
@@ -748,7 +748,7 @@ class _MergeOperation:
         self, result: DataFrame, cross_col: str | None
     ) -> None:
         if cross_col is not None:
-            result.drop(columns=cross_col, inplace=True)
+            del result[cross_col]
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
@@ -1201,7 +1201,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1211,7 +1211,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1776,16 +1776,26 @@ class _AsOfMerge(_OrderedMerge):
             raise MergeError("missing right_by")
 
         # GH#29130 Check that merge keys do not have dtype object
-        lo_dtype = (
-            self.left[self.left_on[0]].dtype
-            if not self.left_index
-            else self.left.index.dtype
-        )
-        ro_dtype = (
-            self.right[self.right_on[0]].dtype
-            if not self.right_index
-            else self.right.index.dtype
-        )
+        if not self.left_index:
+            left_on = self.left_on[0]
+            lo_dtype = (
+                self.left[left_on].dtype
+                if left_on in self.left.columns
+                else self.left.index.get_level_values(left_on)
+            )
+        else:
+            lo_dtype = self.left.index.dtype
+
+        if not self.right_index:
+            right_on = self.right_on[0]
+            ro_dtype = (
+                self.right[right_on].dtype
+                if right_on in self.right.columns
+                else self.right.index.get_level_values(right_on)
+            )
+        else:
+            ro_dtype = self.right.index.dtype
+
         if is_object_dtype(lo_dtype) or is_object_dtype(ro_dtype):
             raise MergeError(
                 f"Incompatible merge dtype, {repr(ro_dtype)} and "

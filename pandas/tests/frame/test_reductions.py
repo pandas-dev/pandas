@@ -1067,7 +1067,7 @@ class TestDataFrameAnalytics:
         result = getattr(df, op)()
         expected = DataFrame(
             {"value": expected_value},
-            index=Index([100, 200], dtype="object", name="ID"),
+            index=Index([100, 200], name="ID"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1683,6 +1683,48 @@ def test_minmax_extensionarray(method, numeric_only):
     expected = Series(
         [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_mad_nullable_integer(any_signed_int_ea_dtype):
+    # GH#33036
+    df = DataFrame(np.random.randn(100, 4).astype(np.int64))
+    df2 = df.astype(any_signed_int_ea_dtype)
+
+    result = df2.mad()
+    expected = df.mad()
+    tm.assert_series_equal(result, expected)
+
+    result = df2.mad(axis=1)
+    expected = df.mad(axis=1)
+    tm.assert_series_equal(result, expected)
+
+    # case with NAs present
+    df2.iloc[::2, 1] = pd.NA
+
+    result = df2.mad()
+    expected = df.mad()
+    expected[1] = df.iloc[1::2, 1].mad()
+    tm.assert_series_equal(result, expected)
+
+    result = df2.mad(axis=1)
+    expected = df.mad(axis=1)
+    expected[::2] = df.T.loc[[0, 2, 3], ::2].mad()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="GH#42895 caused by lack of 2D EA")
+def test_mad_nullable_integer_all_na(any_signed_int_ea_dtype):
+    # GH#33036
+    df = DataFrame(np.random.randn(100, 4).astype(np.int64))
+    df2 = df.astype(any_signed_int_ea_dtype)
+
+    # case with all-NA row/column
+    df2.iloc[:, 1] = pd.NA  # FIXME: this doesn't operate in-place
+    df2.iloc[:, 1] = pd.array([pd.NA] * len(df2), dtype=any_signed_int_ea_dtype)
+    result = df2.mad()
+    expected = df.mad()
+    expected[1] = pd.NA
     tm.assert_series_equal(result, expected)
 
 

@@ -49,6 +49,7 @@ def create_valid_python_identifier(name: str) -> str:
             "!": "_EXCLAMATIONMARK_",
             "$": "_DOLLARSIGN_",
             "€": "_EUROSIGN_",
+            "°": "_DEGREESIGN_",
             # Including quotes works, but there are exceptions.
             "'": "_SINGLEQUOTE_",
             '"': "_DOUBLEQUOTE_",

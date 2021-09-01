@@ -15,9 +15,9 @@ class TestDataFrameConcat:
     def test_concat_multiple_frames_dtypes(self):
 
         # GH#2759
-        A = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
-        B = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
-        results = concat((A, B), axis=1).dtypes
+        df1 = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
+        df2 = DataFrame(data=np.ones((10, 2)), dtype=np.float32)
+        results = concat((df1, df2), axis=1).dtypes
         expected = Series(
             [np.dtype("float64")] * 2 + [np.dtype("float32")] * 2,
             index=["foo", "bar", 0, 1],
@@ -180,3 +180,28 @@ class TestDataFrameConcat:
         result = concat([df1, df2])
         expected = concat([df1.astype("int64"), df2])
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_duplicates_in_index_with_keys(self):
+        # GH#42651
+        index = [1, 1, 3]
+        data = [1, 2, 3]
+
+        df = DataFrame(data=data, index=index)
+        result = concat([df], keys=["A"], names=["ID", "date"])
+        mi = pd.MultiIndex.from_product([["A"], index], names=["ID", "date"])
+        expected = DataFrame(data=data, index=mi)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))
+
+    @pytest.mark.parametrize("ignore_index", [True, False])
+    @pytest.mark.parametrize("order", ["C", "F"])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_concat_copies(self, axis, order, ignore_index):
+        # based on asv ConcatDataFrames
+        df = DataFrame(np.zeros((10000, 200), dtype=np.float32, order=order))
+
+        res = concat([df] * 5, axis=axis, ignore_index=ignore_index, copy=True)
+
+        for arr in res._iter_column_arrays():
+            for arr2 in df._iter_column_arrays():
+                assert not np.shares_memory(arr, arr2)
