@@ -3117,29 +3117,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         buf=None,
         *,
         encoding=None,
+        sparse_index=None,
+        sparse_columns=None,
         header=True,
         index=True,
         columns=None,
+        column_format=None,
+        position=None,
+        position_float=None,
+        hrules=False,
+        label=None,
+        caption=None,
+        multirow_align="c",
+        multicol_align="r",
+        siunitx=False,
+        environment=None,
         formatter=None,
         na_rep=None,
         precision=None,
         decimal=".",
         thousands=None,
         escape=False,
-        index_names=True,
-        bold_rows=False,
-        column_format=None,
+        bold_headers=False,
         longtable=None,
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
-        caption=None,
-        label=None,
-        position=None,
+        index_names=True,
         col_space=None,
         formatters=None,
         float_format=None,
         sparsify=None,
+        bold_rows=False,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -3183,7 +3192,71 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether to print index labels.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
+        column_format : str, optional
+            The LaTeX column specification placed in location:
 
+            \\begin{{tabular}}{{<column_format>}}
+
+            Defaults to 'l' for index and
+            non-numeric data columns, and, for numeric data columns,
+            to 'r' by default, or 'S' if ``siunitx`` is ``True``.
+
+            .. versionchanged:: 1.4.0
+        position : str, optional
+            The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
+
+            \\begin{{table}}[<position>]
+
+            .. versionchanged:: 1.2.0
+        position_float : {{"centering", "raggedleft", "raggedright"}}, optional
+            The LaTeX float command placed in location:
+
+            \\begin{{table}}[<position>]
+
+            \\<position_float>
+
+            Cannot be used if ``environment`` is "longtable".
+
+            .. versionadded:: 1.4.0
+        hrules : bool, default False
+            Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
+            {{booktabs}} LaTeX package.
+
+            .. versionadded:: 1.4.0
+        label : str, optional
+            The LaTeX label included as: \\label{{<label>}}.
+            This is used with \\ref{{<label>}} in the main .tex file.
+
+            .. versionadded:: 1.0.0
+        caption : str, tuple, optional
+            If string, the LaTeX table caption included as: \\caption{{<caption>}}.
+            If tuple, i.e ("full caption", "short caption"), the caption included
+            as: \\caption[<caption[1]>]{{<caption[0]>}}.
+
+            .. versionadded:: 1.0.0
+
+            .. versionchanged:: 1.2.0
+               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
+        multirow_align : {{"c", "t", "b"}}
+            If sparsifying hierarchical MultiIndexes whether to align text centrally,
+            at the top or bottom.
+
+            .. versionadded:: 1.4.0
+        multicol_align : {{"r", "c", "l"}}
+            If sparsifying hierarchical MultiIndex columns whether to align text at
+            the left, centrally, or at the right.
+
+            .. versionadded:: 1.4.0
+        siunitx : bool, default False
+            Set to ``True`` to structure LaTeX compatible with the {{siunitx}} package.
+
+            .. versionadded:: 1.4.0
+        environment : str, optional
+            If given, the environment that will replace 'table' in ``\\begin{{table}}``.
+            If 'longtable' is specified then a more suitable template is
+            rendered.
+
+            .. versionadded:: 1.4.0
         formatter : str, callable, dict, optional
             Object to define how values are displayed. See notes for ``Styler.format``
 
@@ -3213,6 +3286,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Escaping is done before ``formatter``.
 
             .. versionchanged:: 1.4.0
+        bold_headers : bool, default False
+            Make the row labels bold in the output, using
+            command ``\\textbf{{<value>}}``
+
+            .. versionchanged:: 1.4.0
         formatters : list, tuple or dict of one-param. functions, optional
 
             .. deprecated:: 1.4.0
@@ -3225,61 +3303,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. deprecated:: 1.4.0
                Remove the names of indexes before rendering.
-        bold_rows : bool, default False
-            Make the row labels bold in the output.
-        column_format : str, optional
-            The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g. 'rcl' for 3
-            columns. By default, 'l' will be used for all columns except
-            columns of numbers, which default to 'r'.
-        longtable : bool, optional
-            By default, the value will be read from the pandas config
-            module. Use a longtable environment instead of tabular. Requires
-            adding a \usepackage{{longtable}} to your LaTeX preamble.
-        escape : bool, optional
-            By default, the value will be read from the pandas config
-            module. When set to False prevents from escaping latex special
-            characters in column names.
-
         multicolumn : bool, default True
-            Use \multicolumn to enhance MultiIndex columns.
-            The default will be read from the config module.
+
+            ..deprecated:: 1.4.0
+              Use alternative ``sparse_columns`` and ``multicol_align`` arguments.
         multicolumn_format : str, default 'l'
-            The alignment for multicolumns, similar to `column_format`
-            The default will be read from the config module.
+
+            ..deprecated:: 1.4.0
+              Use alternative ``sparse_columns`` and ``multicol_align`` arguments.
         multirow : bool, default False
-            Use \multirow to enhance MultiIndex rows. Requires adding a
-            \usepackage{{multirow}} to your LaTeX preamble. Will print
-            centered labels (instead of top-aligned) across the contained
-            rows, separating groups via clines. The default will be read
-            from the pandas config module.
-        caption : str or tuple, optional
-            Tuple (full_caption, short_caption),
-            which results in ``\caption[short_caption]{{full_caption}}``;
-            if a single string is passed, no short caption will be set.
+            ..deprecated:: 1.4.0
+              Use alternative ``sparse_index`` and ``multirow_align`` arguments.
+        longtable : bool
 
-            .. versionadded:: 1.0.0
-
-            .. versionchanged:: 1.2.0
-               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
-        label : str, optional
-            The LaTeX label to be placed inside ``\label{{}}`` in the output.
-            This is used with ``\ref{{}}`` in the main ``.tex`` file.
-
-            .. versionadded:: 1.0.0
-        position : str, optional
-            The LaTeX positional argument for tables, to be placed after
-            ``\begin{{}}`` in the output.
-
-            .. versionadded:: 1.2.0
+            .. deprecated:: 1.4.0
+               Use ``environment='longtable'`` instead.
         sparsify : bool
 
             .. deprecated:: 1.4.0
-               Use ``sparse_columns`` and ``sparse_rows``instead.
+               Use ``sparse_columns`` and ``sparse_rows`` instead.
         col_space : int, optional
 
             .. deprecated:: 1.4.0
                Adding LaTeX styling commands renders spacing not applicable.
+        bold_rows : bool, default False
+
+            .. deprecated:: 1.4.0
+               Use ``bold_headers`` instead.
 
         {returns}
         See Also
@@ -3328,10 +3378,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if columns:
             hidden = [col for col in styler.columns if col not in columns]
             styler.hide_columns(hidden)
+        if bold_headers:
+            styler.applymap_index(lambda val: "textbf: --rwrap;")
+            styler.applymap_index(lambda val: "textbf: --rwrap;", axis=1)
 
         return styler.to_latex(
             buf=buf,
             encoding=encoding,
+            sparse_index=sparse_index,
+            sparse_columns=sparse_columns,
+            column_format=column_format,
+            position=position,
+            position_float=position_float,
+            hrules=hrules,
+            label=label,
+            caption=caption,
+            multirow_align=multirow_align,
+            multicol_align=multicol_align,
+            environment=environment,
+            siunitx=siunitx,
         )
 
     @final
