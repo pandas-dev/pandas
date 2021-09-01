@@ -1428,13 +1428,14 @@ def test_hidden_column_names(mi_df):
     mi_styler = mi_df.style
     ctx = mi_styler._translate(True, True)
     assert ctx["head"][0][1]["display_value"] == "Lev0"
-    assert ctx["head"][1][0]["display_value"] == "Lev1"
+    assert ctx["head"][1][1]["display_value"] == "Lev1"
 
     mi_styler.hide_columns(names=True)
     ctx = mi_styler._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "&nbsp;"
+    assert ctx["head"][1][1]["display_value"] == "&nbsp;"
 
-    mi_styler.hide_index(level=1)
+    mi_styler.hide_columns(level=0)
     ctx = mi_styler._translate(True, True)
-    assert len(ctx["head"]) == 2  # index names row is still hidden
-    assert ctx["body"][0][0]["is_visible"] is True
-    assert ctx["body"][0][1]["is_visible"] is False
+    assert len(ctx["head"]) == 1  # no index names and only one visible column headers
+    assert ctx["head"][0][1]["display_value"] == "&nbsp;"

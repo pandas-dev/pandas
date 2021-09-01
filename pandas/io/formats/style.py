@@ -2053,7 +2053,7 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.4.0
         names : bool
             Whether to hide the index name(s), in the case the index or part of it
-            is visible.
+            remains visible.
 
             .. versionadded:: 1.4.0
 
@@ -2108,7 +2108,7 @@ class Styler(StylerRenderer):
 
         Hide a specific level:
 
-        >>> df.style.format("{:,.1f").hide_index(level=1)  # doctest: +SKIP
+        >>> df.style.format("{:,.1f}").hide_index(level=1)  # doctest: +SKIP
                              x                    y
                a      b      c      a      b      c
         x    0.1    0.0    0.4    1.3    0.6   -1.4
@@ -2117,6 +2117,19 @@ class Styler(StylerRenderer):
         y    0.4    1.0   -0.2   -0.8   -1.2    1.1
             -0.6    1.2    1.8    1.9    0.3    0.3
              0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hiding just the index level names:
+
+        >>> df.index.names = ["lev0", "lev1"]
+        >>> df.style.format("{:,.1f}").hide_index(names=True)
+                                 x                    y
+                   a      b      c      a      b      c
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
+            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
+            c    0.8    0.5   -0.3    1.2    2.2   -0.8
         """
         if level is not None and subset is not None:
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
@@ -2237,6 +2250,19 @@ class Styler(StylerRenderer):
 
         >>> df.style.format("{:.1f}").hide_columns(level=1)  # doctest: +SKIP
                    x                    y
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
+            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
+            c    0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hiding just the column level names:
+
+        >>> df.columns.names = ["lev0", "lev1"]
+        >>> df.style.format("{:.1f").hide_columns(names=True)  # doctest: +SKIP
+                   x                    y
+                   a      b      c      a      b      c
         x   a    0.1    0.0    0.4    1.3    0.6   -1.4
             b    0.7    1.0    1.3    1.5   -0.0   -0.2
             c    1.4   -0.8    1.6   -0.2   -0.4   -0.3

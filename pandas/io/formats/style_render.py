@@ -336,7 +336,9 @@ class StylerRenderer:
                     _element(
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
-                        name if name is not None else blank_value,
+                        name
+                        if (name is not None and not self.hide_column_names)
+                        else blank_value,
                         not all(self.hide_index_),
                     )
                 ]
