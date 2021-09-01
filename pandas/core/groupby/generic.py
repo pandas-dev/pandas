@@ -1057,6 +1057,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
+            # To be removed post #GH #43337 fix
             transposed_dtype = find_common_type(obj.dtypes.tolist())
             obj = obj.T.astype(transposed_dtype, copy=False)
 
@@ -1599,6 +1600,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
+            # To be removed post #GH #43337 fix
             transposed_dtype = find_common_type(obj.dtypes.tolist())
             return obj.T.astype(transposed_dtype, copy=False)._mgr
         else:
