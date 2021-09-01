@@ -576,74 +576,16 @@ Library            Accessor     Classes                              Description
 .. _datatest: https://datatest.readthedocs.io/
 .. _woodwork: https://github.com/alteryx/woodwork
 
-
 Development tools
 ----------------------------
 
 `pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pandas doesn't expose any type information to the user by itself.
+While pandas repository is partially typed, the package itself doesn't expose this information for external use.
 Install pandas-stubs to enable basic type coverage of pandas API.
 
 Learn more by reading through these issues `14468 <https://github.com/pandas-dev/pandas/issues/14468>`_,
 `26766 <https://github.com/pandas-dev/pandas/issues/26766>`_, `28142 <https://github.com/pandas-dev/pandas/issues/28142>`_.
 
-Installation
-^^^^^^^^^^^^
-
-Using pip:
-
-.. code:: bash
-
-    pip install pandas-stubs
-
-Using conda:
-
-.. code:: bash
-
-    conda install -c conda-forge pandas-stubs
-
-Alternatively the manual options are:
-
-* cloning the repository along with the files, or
-* including it as a submodule to your project repository,
-
-and then configuring a type checker with the correct paths.
-
-Usage
-^^^^^
-
-Let’s take this piece of code as an example in file round.py
-
-.. code:: python
-
-    import pandas as pd
-
-    decimals = pd.DataFrame({'TSLA': 2, 'AMZN': 1})
-    prices = pd.DataFrame(data={'date': ['2021-08-13', '2021-08-07', '2021-08-21'],
-                              'TSLA': [720.13, 716.22, 731.22], 'AMZN': [3316.50, 3200.50, 3100.23]})
-    rounded_prices = prices.round(decimals=decimals)
-
-
-mypy won't see any issues with that but after installing pandas-stubs and running it again
-
-.. code:: bash
-
-    mypy round.py
-
-
-we get the following error message
-
-.. code:: bash
-
-    round.py:6: error: Argument "decimals" to "round" of "DataFrame" has incompatible type "DataFrame";
-    expected "Union[int, Dict[Union[int, str], int], Series]"
-
-
-And after confirming with the `docs <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.round.html>`_
-we can fix the code
-
-.. code:: python
-
-    decimals = pd.Series({'TSLA': 2, 'AMZN': 1})
+See installation and usage instructions on the `github page <https://github.com/VirtusLab/pandas-stubs>`__.
