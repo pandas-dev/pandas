@@ -677,7 +677,7 @@ cdef class BlockManager:
         Update mgr._blknos / mgr._blklocs.
         """
         cdef:
-            intp_t blkno
+            intp_t blkno, i, j
             cnp.npy_intp length = self.shape[0]
             SharedBlock blk
             BlockPlacement bp
@@ -690,8 +690,12 @@ cdef class BlockManager:
 
         for blkno, blk in enumerate(self.blocks):
             bp = blk.mgr_locs
-            new_blknos[bp.indexer] = blkno
-            new_blklocs[bp.indexer] = np.arange(len(bp))
+            # Iterating over `bp` is a faster equivalent to
+            #  new_blknos[bp.indexer] = blkno
+            #  new_blklocs[bp.indexer] = np.arange(len(bp))
+            for i, j in enumerate(bp):
+                new_blknos[j] = blkno
+                new_blklocs[j] = i
 
         for blkno in new_blknos:
             # If there are any -1s remaining, this indicates that our mgr_locs
