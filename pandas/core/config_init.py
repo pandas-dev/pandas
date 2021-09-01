@@ -798,11 +798,17 @@ styler_encoding = """
     The encoding used for output HTML and LaTeX files.
 """
 
+styler_mathjax = """
+: bool
+    If False will render special CSS classes to table attributes that indicate Mathjax
+    will not be used in Jupyter Notebook.
+"""
+
 with cf.config_prefix("styler"):
-    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=is_bool)
 
     cf.register_option(
-        "sparse.columns", True, styler_sparse_columns_doc, validator=bool
+        "sparse.columns", True, styler_sparse_columns_doc, validator=is_bool
     )
 
     cf.register_option(
@@ -847,3 +853,5 @@ with cf.config_prefix("styler"):
         styler_formatter,
         validator=is_instance_factory([type(None), dict, callable, str]),
     )
+
+    cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
