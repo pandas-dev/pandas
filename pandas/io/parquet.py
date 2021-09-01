@@ -311,7 +311,7 @@ class FastParquetImpl(BaseImpl):
     ):
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
-        if Version(self.api.__version__) >= Version("0.7.0"):
+        if Version(self.api.__version__) >= Version("0.7.1"):
             # We are disabling nullable dtypes for fastparquet pending discussion
             parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
