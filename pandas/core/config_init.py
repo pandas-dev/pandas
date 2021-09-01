@@ -793,6 +793,11 @@ styler_formatter = """
     A formatter object to be used as default within ``Styler.format``.
 """
 
+styler_encoding = """
+: str
+    The encoding used for output HTML and LaTeX files.
+"""
+
 styler_mathjax = """
 : bool
     If False will render special CSS classes to table attributes that indicate Mathjax
@@ -812,6 +817,8 @@ with cf.config_prefix("styler"):
         styler_max_elements,
         validator=is_nonnegative_int,
     )
+
+    cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
 
     cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
 
