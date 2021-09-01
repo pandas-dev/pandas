@@ -127,15 +127,15 @@ class TestToLatex:
     def test_to_latex_float_format_object_col(self):
         # GH#40024
         ser = Series([1000.0, "test"])
-        result = ser.to_latex(float_format="{:,.0f}".format)
+        result = ser.to_latex(precision=0, thousands=",", hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &     0 \\
+            {} & {0} \\
             \midrule
             0 & 1,000 \\
-            1 &  test \\
+            1 & test \\
             \bottomrule
             \end{tabular}
             """
@@ -144,14 +144,12 @@ class TestToLatex:
 
     def test_to_latex_empty_tabular(self):
         df = DataFrame()
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{l}
             \toprule
-            Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            \midrule
             \bottomrule
             \end{tabular}
             """
@@ -160,16 +158,16 @@ class TestToLatex:
 
     def test_to_latex_series(self):
         s = Series(["a", "b", "c"])
-        result = s.to_latex()
+        result = s.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  0 \\
+            {} & {0} \\
             \midrule
-            0 &  a \\
-            1 &  b \\
-            2 &  c \\
+            0 & a \\
+            1 & b \\
+            2 & c \\
             \bottomrule
             \end{tabular}
             """
@@ -180,15 +178,15 @@ class TestToLatex:
         # GH 18326
         df = DataFrame({"a": [1, 2]})
         df.index.name = "foo"
-        result = df.to_latex(index_names=False)
+        result = df.to_latex(index_names=False, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &  a \\
+            {} & {a} \\
             \midrule
-            0 &  1 \\
-            1 &  2 \\
+            0 & 1 \\
+            1 & 2 \\
             \bottomrule
             \end{tabular}
             """
