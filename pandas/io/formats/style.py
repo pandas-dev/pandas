@@ -863,6 +863,8 @@ class Styler(StylerRenderer):
         table_attributes: str | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
+        bold_headers: bool = False,
+        caption: str | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -901,6 +903,14 @@ class Styler(StylerRenderer):
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
 
             .. versionadded:: 1.4.0
+        bold_headers : bool, optional
+            Adds "font-weight: bold;" as a CSS property to table style header cells.
+
+            .. versionadded:: 1.4.0
+        caption : str, optional
+            Set, or overwrite, the caption on Styler before rendering.
+
+            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting for file output, and HTML meta tags.
             Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
@@ -937,6 +947,14 @@ class Styler(StylerRenderer):
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
+
+        if bold_headers:
+            obj.set_table_styles(
+                [{"selector": "th", "props": "font-weight: bold;"}], overwrite=False
+            )
+
+        if caption is not None:
+            obj.set_caption(caption)
 
         encoding = encoding or get_option("styler.render.encoding")
         # Build HTML string..
