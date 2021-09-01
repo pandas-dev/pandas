@@ -3115,27 +3115,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def to_latex(
         self,
         buf=None,
-        columns=None,
-        col_space=None,
+        *,
+        encoding=None,
         header=True,
         index=True,
-        na_rep="NaN",
-        formatters=None,
-        float_format=None,
-        sparsify=None,
+        columns=None,
+        formatter=None,
+        na_rep=None,
+        precision=None,
+        decimal=".",
+        thousands=None,
+        escape=False,
         index_names=True,
         bold_rows=False,
         column_format=None,
         longtable=None,
-        escape=None,
-        encoding=None,
-        decimal=".",
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
         caption=None,
         label=None,
         position=None,
+        col_space=None,
+        formatters=None,
+        float_format=None,
+        sparsify=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -3150,35 +3154,77 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. versionchanged:: 1.2.0
            Added position argument, changed meaning of caption argument.
 
+        .. versionchanged:: 1.4.0
+           Now uses ``Styler.to_latex`` implementation via jinja2 templating.
+
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional, default None
             Buffer to write to. If None, the output is returned as a string.
+        encoding : str, optional
+            Character encoding setting for file output, defaults to "utf-8" if None.
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+
+            .. versionadded:: 1.4.0
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+            .. versionadded:: 1.4.0
+
+        header : bool
+            Whether to print column headers.
+
+            .. versionchanged:: 1.4.0
+        index : bool
+            Whether to print index labels.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
-        col_space : int, optional
-            The minimum width of each column.
-        header : bool or list of str, default True
-            Write out the column names. If a list of strings is given,
-            it is assumed to be aliases for the column names.
-        index : bool, default True
-            Write row names (index).
-        na_rep : str, default 'NaN'
-            Missing data representation.
-        formatters : list of functions or dict of {{str: function}}, optional
-            Formatter functions to apply to columns' elements by position or
-            name. The result of each function must be a unicode string.
-            List must be of length equal to the number of columns.
-        float_format : one-parameter function or str, optional, default None
-            Formatter for floating point numbers. For example
-            ``float_format="%.2f"`` and ``float_format="{{:0.2f}}".format`` will
-            both result in 0.1234 being formatted as 0.12.
-        sparsify : bool, optional
-            Set to False for a DataFrame with a hierarchical index to print
-            every multiindex key at each row. By default, the value will be
-            read from the config module.
+
+        formatter : str, callable, dict, optional
+            Object to define how values are displayed. See notes for ``Styler.format``
+
+            .. versionadded:: 1.4.0
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+
+            .. versionchanged:: 1.4.0
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+
+            .. versionadded:: 1.4.0
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+
+            .. versionadded:: 1.4.0
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
+
+            .. versionadded:: 1.4.0
+        escape : bool,
+            Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{{``, ``}}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+
+            .. versionchanged:: 1.4.0
+        formatters : list, tuple or dict of one-param. functions, optional
+
+            .. deprecated:: 1.4.0
+               Use ``formatter`` instead, which is passed to ``Styler.format``.
+        float_format : one-parameter function, optional, default None
+
+            .. deprecated:: 1.4.0
+               Deprecated in favour of using arguments native to ``Styler.format``
         index_names : bool, default True
-            Prints the names of the indexes.
+
+            .. deprecated:: 1.4.0
+               Remove the names of indexes before rendering.
         bold_rows : bool, default False
             Make the row labels bold in the output.
         column_format : str, optional
@@ -3194,11 +3240,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             By default, the value will be read from the pandas config
             module. When set to False prevents from escaping latex special
             characters in column names.
-        encoding : str, optional
-            A string representing the encoding to use in the output file,
-            defaults to 'utf-8'.
-        decimal : str, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe.
+
         multicolumn : bool, default True
             Use \multicolumn to enhance MultiIndex columns.
             The default will be read from the config module.
@@ -3220,7 +3262,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 1.2.0
                Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
-
         label : str, optional
             The LaTeX label to be placed inside ``\label{{}}`` in the output.
             This is used with ``\ref{{}}`` in the main ``.tex`` file.
@@ -3231,6 +3272,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``\begin{{}}`` in the output.
 
             .. versionadded:: 1.2.0
+        sparsify : bool
+
+            .. deprecated:: 1.4.0
+               Use ``sparse_columns`` and ``sparse_rows``instead.
+        col_space : int, optional
+
+            .. deprecated:: 1.4.0
+               Adding LaTeX styling commands renders spacing not applicable.
+
         {returns}
         See Also
         --------
@@ -3253,53 +3303,35 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{{tabular}}
         """
-        warnings.warn(
-            "this method is deprecated in favour of `Styler.to_latex()`",
-            FutureWarning,
-            stacklevel=2,
-        )
+        # warnings.warn(
+        #     "this method is deprecated in favour of `Styler.to_latex()`",
+        #     FutureWarning,
+        #     stacklevel=2,
+        # )
+        from pandas.io.formats.style import Styler
 
-        # Get defaults from the pandas config
-        if self.ndim == 1:
-            self = self.to_frame()
-        if longtable is None:
-            longtable = config.get_option("display.latex.longtable")
-        if escape is None:
-            escape = config.get_option("display.latex.escape")
-        if multicolumn is None:
-            multicolumn = config.get_option("display.latex.multicolumn")
-        if multicolumn_format is None:
-            multicolumn_format = config.get_option("display.latex.multicolumn_format")
-        if multirow is None:
-            multirow = config.get_option("display.latex.multirow")
-
-        self = cast("DataFrame", self)
-        formatter = DataFrameFormatter(
-            self,
-            columns=columns,
-            col_space=col_space,
+        styler = Styler(
+            self if self.ndim > 1 else self.to_frame(),
+            uuid="",
+            formatter=formatter,
             na_rep=na_rep,
-            header=header,
-            index=index,
-            formatters=formatters,
-            float_format=float_format,
-            bold_rows=bold_rows,
-            sparsify=sparsify,
-            index_names=index_names,
-            escape=escape,
+            precision=precision,
             decimal=decimal,
+            thousands=thousands,
+            escape="latex" if escape else None,
         )
-        return DataFrameRenderer(formatter).to_latex(
+
+        if not header:
+            styler.hide_columns()
+        if not index:
+            styler.hide_index()
+        if columns:
+            hidden = [col for col in styler.columns if col not in columns]
+            styler.hide_columns(hidden)
+
+        return styler.to_latex(
             buf=buf,
-            column_format=column_format,
-            longtable=longtable,
             encoding=encoding,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
         )
 
     @final
