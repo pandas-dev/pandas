@@ -303,8 +303,8 @@ def test_duplicated_drop_duplicates():
 @pytest.mark.parametrize(
     "dtype",
     [
-        (np.complex64,),
-        (np.complex128,),
+        np.complex64,
+        np.complex128,
     ],
 )
 def test_duplicated_series_complex_numbers(dtype):
