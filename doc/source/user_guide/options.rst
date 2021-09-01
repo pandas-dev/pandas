@@ -499,6 +499,9 @@ styler.format.thousands                 None         String representation for t
                                                      integers, and floating point and complex numbers.
 styler.format.escape                    None         Whether to escape "html" or "latex" special
                                                      characters in the display representation.
+styler.html.mathjax                     True         If set to False will render specific CSS classes to
+                                                     table attributes that will prevent Mathjax from rendering
+                                                     in Jupyter Notebook.
 ======================================= ============ ==================================
 
 
