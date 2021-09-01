@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
+from pandas import RangeIndex
+import pandas._testing as tm
+from pandas.core.api import (
     Float64Index,
     Int64Index,
-    RangeIndex,
     UInt64Index,
 )
-import pandas._testing as tm
 from pandas.core.computation import expressions as expr
 
 
