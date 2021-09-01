@@ -83,7 +83,11 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                         # mypy needs to know columns is a MultiIndex, Index doesn't
                         # have levels attribute
                         arg2.columns = cast(MultiIndex, arg2.columns)
-                        # GH 21157
+                        # GH 21157: Equivalent to MultiIndex.from_product(
+                        # <unique combinations of arg2.columns.levels>, [result_index]
+                        # )
+                        # A normal MultiIndex.from_product will produce too many
+                        # combinations.
                         idx_codes, idx_uniques = result_index.factorize()
                         result_levels = list(arg2.columns.levels) + [idx_uniques]
                         result_codes = [
