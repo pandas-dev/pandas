@@ -45,15 +45,12 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     NumericIndex,
     RangeIndex,
     Series,
-    UInt64Index,
     bdate_range,
 )
 from pandas._testing._io import (  # noqa:F401
@@ -105,6 +102,11 @@ from pandas._testing.contexts import (  # noqa:F401
     set_timezone,
     use_numexpr,
     with_csv_dialect,
+)
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
 )
 from pandas.core.arrays import (
     DatetimeArray,

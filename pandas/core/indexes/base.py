@@ -276,9 +276,10 @@ class Index(IndexOpsMixin, PandasObject):
     DatetimeIndex : Index of datetime64 data.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
-    Int64Index : A special case of :class:`Index` with purely integer labels.
-    UInt64Index : A special case of :class:`Index` with purely unsigned integer labels.
-    Float64Index : A special case of :class:`Index` with purely float labels.
+    NumericIndex : Index of numpy int/uint/float data.
+    Int64Index : Index of purely int64 labels (deprecated).
+    UInt64Index : Index of purely uint64 labels (deprecated).
+    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
@@ -571,15 +572,15 @@ class Index(IndexOpsMixin, PandasObject):
             return TimedeltaIndex
 
         elif is_float_dtype(dtype):
-            from pandas import Float64Index
+            from pandas.core.api import Float64Index
 
             return Float64Index
         elif is_unsigned_integer_dtype(dtype):
-            from pandas import UInt64Index
+            from pandas.core.api import UInt64Index
 
             return UInt64Index
         elif is_signed_integer_dtype(dtype):
-            from pandas import Int64Index
+            from pandas.core.api import Int64Index
 
             return Int64Index
 

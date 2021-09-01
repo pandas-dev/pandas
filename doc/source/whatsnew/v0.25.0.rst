@@ -473,10 +473,12 @@ considered commutative, such that ``A.union(B) == B.union(A)`` (:issue:`23525`).
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: python
 
-    pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
-    pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
+    In [3]: pd.period_range('19910905', periods=2).union(pd.Int64Index([1, 2, 3]))
+    Out[3]: Index([1991-09-05, 1991-09-06, 1, 2, 3], dtype='object')
+    In [4]: pd.Index([], dtype=object).union(pd.Index([1, 2, 3]))
+    Out[4]: Index([1, 2, 3], dtype='object')
 
 Note that integer- and floating-dtype indexes are considered "compatible". The integer
 values are coerced to floating point, which may result in loss of precision. See
