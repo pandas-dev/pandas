@@ -204,6 +204,7 @@ If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
+   :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
@@ -211,9 +212,10 @@ you can pass the ``dayfirst`` flag:
 
 .. warning::
 
-   You see in the above example that ``dayfirst`` isn't strict, so if a date
+   You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False.
+   ``dayfirst`` were False, and in the case of parsing delimited date strings
+   (e.g. ``31-12-2012``) then a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
