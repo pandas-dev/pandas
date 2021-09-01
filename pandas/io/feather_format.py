@@ -9,12 +9,12 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-from pandas import (
+from pandas.core import generic
+from pandas.core.api import (
     DataFrame,
     Int64Index,
     RangeIndex,
 )
-from pandas.core import generic
 
 from pandas.io.common import get_handle
 

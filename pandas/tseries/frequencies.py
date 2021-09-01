@@ -153,7 +153,12 @@ def infer_freq(index, warn: bool = True) -> str | None:
     >>> pd.infer_freq(idx)
     'D'
     """
-    import pandas as pd
+    from pandas.core.api import (
+        DatetimeIndex,
+        Float64Index,
+        Index,
+        Int64Index,
+    )
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -182,15 +187,15 @@ def infer_freq(index, warn: bool = True) -> str | None:
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 
-    if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
-        if isinstance(index, (pd.Int64Index, pd.Float64Index)):
+    if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
+        if isinstance(index, (Int64Index, Float64Index)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
         index = index._values
 
-    if not isinstance(index, pd.DatetimeIndex):
-        index = pd.DatetimeIndex(index)
+    if not isinstance(index, DatetimeIndex):
+        index = DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()

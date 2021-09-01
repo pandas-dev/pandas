@@ -276,6 +276,30 @@ def test_multiindex_row_and_col(df):
     assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
 
 
+def test_multi_options(df):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    df.index, df.columns = ridx, cidx
+    styler = df.style.format(precision=2)
+
+    expected = dedent(
+        """\
+    {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
+    {} & {} & {a} & {b} & {c} \\\\
+    \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+    """
+    )
+    assert expected in styler.to_latex()
+
+    with option_context("styler.latex.multicol_align", "l"):
+        assert "{} & {} & \\multicolumn{2}{l}{Z} & {Y} \\\\" in styler.to_latex()
+
+    with option_context("styler.latex.multirow_align", "b"):
+        assert "\\multirow[b]{2}{*}{A} & a & 0 & -0.61 & ab \\\\" in styler.to_latex()
+
+
 def test_multiindex_columns_hidden():
     df = DataFrame([[1, 2, 3, 4]])
     df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
@@ -374,6 +398,12 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 """
     ).replace("table", environment if environment else "table")
     assert s.format(precision=2).to_latex(environment=environment) == expected
+
+
+def test_environment_option(styler):
+    with option_context("styler.latex.environment", "bar-env"):
+        assert "\\begin{bar-env}" in styler.to_latex()
+        assert "\\begin{foo-env}" in styler.to_latex(environment="foo-env")
 
 
 def test_parse_latex_table_styles(styler):
@@ -675,3 +705,11 @@ def test_apply_map_header_render_mi(df, index, columns):
     """
     )
     assert (expected_columns in result) is columns
+
+
+def test_repr_option(styler):
+    assert "<style" in styler._repr_html_()[:6]
+    assert styler._repr_latex_() is None
+    with option_context("styler.render.repr", "latex"):
+        assert "\\begin{tabular}" in styler._repr_latex_()[:15]
+        assert styler._repr_html_() is None

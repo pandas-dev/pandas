@@ -65,7 +65,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    Int64Index,
     MultiIndex,
     PeriodIndex,
     Series,
@@ -73,6 +72,7 @@ from pandas import (
     concat,
     isna,
 )
+from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
