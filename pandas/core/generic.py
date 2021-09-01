@@ -3153,7 +3153,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
 
-        Requires ``\usepackage{{booktabs}}``.  The output can be copy/pasted
+        The output can be copy/pasted
         into a main LaTeX document or read from an external file
         with ``\input{{table.tex}}``.
 
@@ -3172,24 +3172,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Buffer to write to. If None, the output is returned as a string.
         encoding : str, optional
             Character encoding setting for file output, defaults to "utf-8" if None.
-        sparse_index : bool, optional
-            Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_index, sparse_columns : bool, optional
+            Whether to sparsify the display of hierarchical indexes. Setting to False
+            will display each explicit level element in a hierarchical key for each row
+            or column respectively.
+            Defaults to ``pandas.options.styler.sparse.index`` and
+            ``pandas.options.styler.sparse.columns`` values.
 
             .. versionadded:: 1.4.0
-        sparse_columns : bool, optional
-            Whether to sparsify the display of a hierarchical index. Setting to False
-            will display each explicit level element in a hierarchical key for each
-            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
-            .. versionadded:: 1.4.0
-
-        header : bool
-            Whether to print column headers.
+        index, header : bool
+            Whether to print index labels and/or column headers respectively.
 
             .. versionchanged:: 1.4.0
-        index : bool
-            Whether to print index labels.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
         column_format : str, optional
@@ -3273,8 +3267,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionadded:: 1.4.0
         decimal : str, default "."
             Character used as decimal separator for floats, complex and integers
-
-            .. versionadded:: 1.4.0
         thousands : str, optional, default None
             Character used as thousands separator for floats, complex and integers
 
@@ -3290,7 +3282,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Make the row labels bold in the output, using
             command ``\\textbf{{<value>}}``
 
-            .. versionchanged:: 1.4.0
+            .. versionadded:: 1.4.0
         formatters : list, tuple or dict of one-param. functions, optional
 
             .. deprecated:: 1.4.0
@@ -3298,21 +3290,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         float_format : one-parameter function, optional, default None
 
             .. deprecated:: 1.4.0
-               Deprecated in favour of using arguments native to ``Styler.format``
+               Deprecated in favour of using arguments native to ``Styler.format``,
+               such as ``precision``, ``decimal``, and ``thousands``.
         index_names : bool, default True
 
             .. deprecated:: 1.4.0
                Remove the names of indexes before rendering.
         multicolumn : bool, default True
 
-            ..deprecated:: 1.4.0
+            .. deprecated:: 1.4.0
               Use alternative ``sparse_columns`` and ``multicol_align`` arguments.
         multicolumn_format : str, default 'l'
 
-            ..deprecated:: 1.4.0
+            .. deprecated:: 1.4.0
               Use alternative ``sparse_columns`` and ``multicol_align`` arguments.
         multirow : bool, default False
-            ..deprecated:: 1.4.0
+
+            .. deprecated:: 1.4.0
               Use alternative ``sparse_index`` and ``multirow_align`` arguments.
         longtable : bool
 
@@ -3334,6 +3328,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {returns}
         See Also
         --------
+        Styler.to_latex : Render a Styler to LaTeX.
         DataFrame.to_string : Render a DataFrame to a console-friendly
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
