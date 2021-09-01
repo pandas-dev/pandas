@@ -217,27 +217,6 @@ class BaseBlockManager(DataManager):
         # Assumes we are 2D; overridden by SingleBlockManager
         return len(self.blocks) == 1
 
-    def _rebuild_blknos_and_blklocs(self) -> None:
-        """
-        Update mgr._blknos / mgr._blklocs.
-        """
-        new_blknos = np.empty(self.shape[0], dtype=np.intp)
-        new_blklocs = np.empty(self.shape[0], dtype=np.intp)
-        new_blknos.fill(-1)
-        new_blklocs.fill(-1)
-
-        for blkno, blk in enumerate(self.blocks):
-            rl = blk.mgr_locs
-            new_blknos[rl.indexer] = blkno
-            new_blklocs[rl.indexer] = np.arange(len(rl))
-
-        if (new_blknos == -1).any():
-            # TODO: can we avoid this?  it isn't cheap
-            raise AssertionError("Gaps in blk ref_locs")
-
-        self._blknos = new_blknos
-        self._blklocs = new_blklocs
-
     @property
     def items(self) -> Index:
         return self.axes[0]
@@ -1405,9 +1384,15 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_blocks.extend(blocks)
             columns_mask.extend(mask)
 
+            # Block._unstack should ensure this holds,
+            assert mask.sum() == sum(len(nb._mgr_locs) for nb in blocks)
+            # In turn this ensures that in the BlockManager call below
+            #  we have len(new_columns) == sum(x.shape[0] for x in new_blocks)
+            #  which suffices to allow us to pass verify_inegrity=False
+
         new_columns = new_columns[columns_mask]
 
-        bm = BlockManager(new_blocks, [new_columns, new_index])
+        bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
     def to_dict(self, copy: bool = True):
@@ -1710,7 +1695,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         blk = self._block
         array = blk._slice(slobj)
         bp = BlockPlacement(slice(0, len(array)))
-        block = blk.make_block_same_class(array, placement=bp)
+        block = type(blk)(array, placement=bp, ndim=1)
         new_index = self.index._getitem_slice(slobj)
         return type(self)(block, new_index)
 

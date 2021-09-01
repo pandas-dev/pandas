@@ -18,6 +18,7 @@ Fixed regressions
 - Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
 - Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
 - Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
+- Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
 
 .. ---------------------------------------------------------------------------
 
