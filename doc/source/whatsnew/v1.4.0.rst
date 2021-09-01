@@ -276,7 +276,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
-- Bug in :meth:`dt.tz_convert` resetting index in a :class:`Series` with :class:`CategoricalIndex` (:issue:`43080`)
+- Bug in :meth:`Series.dt.tz_convert` resetting index in a :class:`Series` with :class:`CategoricalIndex` (:issue:`43080`)
 -
 
 Numeric
