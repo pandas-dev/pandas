@@ -191,6 +191,14 @@ def test_doctype(styler):
     assert "<head>" not in result
 
 
+def test_doctype_encoding(styler):
+    with option_context("styler.render.encoding", "ASCII"):
+        result = styler.to_html(doctype_html=True)
+        assert '<meta charset="ASCII">' in result
+        result = styler.to_html(doctype_html=True, encoding="ANSI")
+        assert '<meta charset="ANSI">' in result
+
+
 def test_bold_headers_arg(styler):
     result = styler.to_html(bold_headers=True)
     assert "th {\n  font-weight: bold;\n}" in result

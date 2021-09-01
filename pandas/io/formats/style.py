@@ -526,8 +526,9 @@ class Styler(StylerRenderer):
             rendered.
 
             .. versionadded:: 1.4.0
-        encoding : str, default "utf-8"
-            Character encoding setting.
+        encoding : str, optional
+            Character encoding setting. Defaults
+            to ``pandas.options.styler.render.encoding`` value of "utf-8".
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
@@ -849,7 +850,10 @@ class Styler(StylerRenderer):
             convert_css=convert_css,
         )
 
-        return save_to_buffer(latex, buf=buf, encoding=encoding)
+        encoding = encoding or get_option("styler.render.encoding")
+        return save_to_buffer(
+            latex, buf=buf, encoding=None if buf is None else encoding
+        )
 
     def to_html(
         self,
@@ -908,8 +912,8 @@ class Styler(StylerRenderer):
 
             .. versionadded:: 1.4.0
         encoding : str, optional
-            Character encoding setting for file output, and HTML meta tags,
-            defaults to "utf-8" if None.
+            Character encoding setting for file output, and HTML meta tags.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
@@ -952,12 +956,13 @@ class Styler(StylerRenderer):
         if caption is not None:
             obj.set_caption(caption)
 
+        encoding = encoding or get_option("styler.render.encoding")
         # Build HTML string..
         html = obj._render_html(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding if encoding else "utf-8",
+            encoding=encoding,
             doctype_html=doctype_html,
             **kwargs,
         )
