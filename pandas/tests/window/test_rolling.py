@@ -1502,23 +1502,18 @@ def test_rolling_numeric_dtypes():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("window", [1, 3, 10, 1000])
-def test_rank(window):
+@pytest.mark.parametrize("window", [1, 3, 10, 50, 1000])
+@pytest.mark.parametrize("method", ["min", "max", "average"])
+@pytest.mark.parametrize("pct", [True, False])
+@pytest.mark.parametrize("dups", [True, False])
+def test_rank(window, method, pct, dups):
     length = 1000
-    ser = Series(data=np.random.rand(length))
+    if dups:
+        ser = Series(data=np.random.choice(3, length))
+    else:
+        ser = Series(data=np.random.rand(length))
 
-    expected = ser.rolling(window).apply(lambda x: x.rank().iloc[-1])
-    result = ser.rolling(window).rank()
-
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("window", [1, 3, 10, 1000])
-def test_percentile_rank(window):
-    length = 1000
-    ser = Series(data=np.random.rand(length))
-
-    expected = ser.rolling(window).apply(lambda x: x.rank(pct=True).iloc[-1])
-    result = ser.rolling(window).rank(pct=True)
+    expected = ser.rolling(window).apply(lambda x: x.rank(method=method, pct=pct).iloc[-1])
+    result = ser.rolling(window).rank(method=method, pct=pct)
 
     tm.assert_series_equal(result, expected)

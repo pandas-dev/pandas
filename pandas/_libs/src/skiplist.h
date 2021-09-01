@@ -180,6 +180,39 @@ PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
     return node->value;
 }
 
+PANDAS_INLINE int skiplist_min_rank(skiplist_t *skp, double value) {
+    node_t *node;
+    int level, rank = 0;
+
+    node = skp->head;
+    for (level = skp->maxlevels - 1; level >= 0; --level) {
+        while (_node_cmp(node->next[level], value) > 0) {
+            rank += node->width[level];
+            node = node->next[level];
+        }
+    }
+
+    return rank + 1;
+}
+
+/*PANDAS_INLINE int skiplist_max_rank(skiplist_t *skp, double value) {
+    node_t *node;
+    int level, rank = 0;
+
+    node = skp->head;
+    for (level = skp->maxlevels - 1; level >= 0; --level) {
+        while (_node_cmp(node->next[level], value) >= 0) {
+            rank += node->width[level];
+            node = node->next[level];
+        }
+    }
+
+    return rank;
+}*/
+
+// Returns the rank of the inserted element. When there are duplicates, `rank` is the highest of
+// the group, i.e. the 'max' method of
+// https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.rank.html
 PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
     node_t *node, *prevnode, *newnode, *next_at_level;
     int *steps_at_level;
@@ -231,7 +264,7 @@ PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
 
     ++(skp->size);
 
-    return rank;
+    return rank + 1;
 }
 
 PANDAS_INLINE int skiplist_remove(skiplist_t *skp, double value) {

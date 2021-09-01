@@ -50,6 +50,9 @@ cdef extern from "../src/skiplist.h":
     double skiplist_get(skiplist_t*, int, int*) nogil
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
+    int skiplist_rank(skiplist_t*, double) nogil
+    int skiplist_min_rank(skiplist_t*, double) nogil
+    int skiplist_max_rank(skiplist_t*, double) nogil
 
 cdef:
     float32_t MINfloat32 = np.NINF
@@ -1138,8 +1141,26 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
 
     return output
 
+
+cdef enum RankType:
+    AVERAGE,
+    MIN,
+    MAX,
+    FIRST,
+    DENSE
+
+
+rank_types = {
+    'average': AVERAGE,
+    'min': MIN,
+    'max': MAX,
+    'first': FIRST,
+    'dense': DENSE,
+}
+
+
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp, bint percentile) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint percentile, str method) -> np.ndarray:
     """
     O(N log(window)) implementation using skip list
 
@@ -1147,11 +1168,17 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         Py_ssize_t i, j, s, e, N = len(values), idx
-        int rank = 0
+        float64_t rank_min = 0, rank = 0
         int64_t nobs = 0, win
         float64_t val
         skiplist_t *skiplist
         float64_t[::1] output = None
+        RankType rank_type
+
+    try:
+        rank_type = rank_types[method]
+    except KeyError:
+        raise ValueError(f"Method '{method}' is not supported")
 
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
@@ -1163,7 +1190,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
     win = (end - start).max()
     if win == 0:
         output[:] = NaN
-        return output
+        return np.asarray(output)
     skiplist = skiplist_init(<int>win)
     if skiplist == NULL:
         raise MemoryError("skiplist_init failed")
@@ -1187,6 +1214,11 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                         rank = skiplist_insert(skiplist, val)
                         if rank == -1:
                             raise MemoryError("skiplist_insert failed")
+                        if rank_type == AVERAGE:
+                            rank_min = skiplist_min_rank(skiplist, val)
+                            rank = ((rank * (rank + 1) / 2) - ((rank_min - 1) * rank_min / 2)) / (rank - rank_min + 1)
+                        elif rank_type == MIN:
+                            rank = skiplist_min_rank(skiplist, val)
 
             else:
                 # calculate deletes
@@ -1204,8 +1236,13 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                         rank = skiplist_insert(skiplist, val)
                         if rank == -1:
                             raise MemoryError("skiplist_insert failed")
+                        if rank_type == AVERAGE:
+                            rank_min = skiplist_min_rank(skiplist, val)
+                            rank = ((rank * (rank + 1) / 2) - ((rank_min - 1) * rank_min / 2)) / (rank - rank_min + 1)
+                        elif rank_type == MIN:
+                            rank = skiplist_min_rank(skiplist, val)
             if nobs >= minp:
-                output[i] = <float64_t>(rank + 1) / nobs if percentile else rank + 1
+                output[i] = <float64_t>(rank) / nobs if percentile else rank
             else:
                 output[i] = NaN
 

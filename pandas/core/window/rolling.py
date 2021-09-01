@@ -1409,10 +1409,11 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="quantile", **kwargs)
 
-    def rank(self, pct: bool = False, **kwargs):
+    def rank(self, pct: bool = False, method: str = "average", **kwargs):
         window_func = partial(
             window_aggregations.roll_rank,
             percentile=pct,
+            method=method,
         )
 
         return self._apply(window_func, name="rank", **kwargs)
