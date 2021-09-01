@@ -310,3 +310,8 @@ def test_format_options_validator():
         assert " 9.0 " in df.style.to_latex()
     with option_context("styler.format.formatter", None):
         assert " 9 " in df.style.to_latex()
+
+    msg = "Value must have type"
+    with pytest.raises(ValueError, match=msg):
+        with option_context("styler.format.formatter", ["bad", "type"]):
+            df.style.to_latex()

@@ -796,7 +796,7 @@ styler_formatter = """
 
 def _is_formatter(x):
     if not (x is None or callable(x) or isinstance(x, (dict, str))):
-        return ValueError("Value must have type 'callable, dict, str' or None.")
+        raise ValueError("Value must have type 'callable, dict, str' or None.")
 
 
 with cf.config_prefix("styler"):
