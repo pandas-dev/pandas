@@ -98,6 +98,8 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
+        self.hide_index_names: bool = False
+        self.hide_column_names: bool = False
         self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
@@ -108,7 +110,9 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        precision = precision or get_option("styler.format.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
@@ -250,8 +254,7 @@ class StylerRenderer:
             d.update({k: map})
 
         table_attr = self.table_attributes
-        use_mathjax = get_option("display.html.use_mathjax")
-        if not use_mathjax:
+        if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
@@ -334,7 +337,9 @@ class StylerRenderer:
                     _element(
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
-                        name if name is not None else blank_value,
+                        name
+                        if (name is not None and not self.hide_column_names)
+                        else blank_value,
                         not all(self.hide_index_),
                     )
                 ]
@@ -383,6 +388,7 @@ class StylerRenderer:
             and com.any_not_none(*self.data.index.names)
             and not all(self.hide_index_)
             and not all(self.hide_columns_)
+            and not self.hide_index_names
         ):
             index_names = [
                 _element(
@@ -1033,7 +1039,9 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = precision or get_option("styler.format.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )

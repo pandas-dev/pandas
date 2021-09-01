@@ -233,9 +233,17 @@ class Styler(StylerRenderer):
 
     def _repr_html_(self) -> str:
         """
-        Hooks into Jupyter notebook rich display system.
+        Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
+        default if an object is returned at the end of a cell.
         """
-        return self.to_html()
+        if get_option("styler.render.repr") == "html":
+            return self.to_html()
+        return None
+
+    def _repr_latex_(self) -> str:
+        if get_option("styler.render.repr") == "latex":
+            return self.to_latex()
+        return None
 
     def render(
         self,
@@ -458,8 +466,8 @@ class Styler(StylerRenderer):
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
-        multirow_align: str = "c",
-        multicol_align: str = "r",
+        multirow_align: str | None = None,
+        multicol_align: str | None = None,
         siunitx: bool = False,
         environment: str | None = None,
         encoding: str | None = None,
@@ -512,22 +520,26 @@ class Styler(StylerRenderer):
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
-        multirow_align : {"c", "t", "b"}
+        multirow_align : {"c", "t", "b"}, optional
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
-            at the top or bottom.
-        multicol_align : {"r", "c", "l"}
+            at the top or bottom. If not given defaults to
+            ``pandas.options.styler.latex.multirow_align``
+        multicol_align : {"r", "c", "l"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
-            the left, centrally, or at the right.
+            the left, centrally, or at the right. If not given defaults to
+            ``pandas.options.styler.latex.multicol_align``
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
-            rendered.
+            rendered. If not given defaults to
+            ``pandas.options.styler.latex.environment``.
 
             .. versionadded:: 1.4.0
-        encoding : str, default "utf-8"
-            Character encoding setting.
+        encoding : str, optional
+            Character encoding setting. Defaults
+            to ``pandas.options.styler.render.encoding`` value of "utf-8".
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
@@ -839,7 +851,9 @@ class Styler(StylerRenderer):
             sparse_index = get_option("styler.sparse.index")
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
-
+        environment = environment or get_option("styler.latex.environment")
+        multicol_align = multicol_align or get_option("styler.latex.multicol_align")
+        multirow_align = multirow_align or get_option("styler.latex.multirow_align")
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
@@ -849,7 +863,10 @@ class Styler(StylerRenderer):
             convert_css=convert_css,
         )
 
-        return save_to_buffer(latex, buf=buf, encoding=encoding)
+        encoding = encoding or get_option("styler.render.encoding")
+        return save_to_buffer(
+            latex, buf=buf, encoding=None if buf is None else encoding
+        )
 
     def to_html(
         self,
@@ -859,6 +876,8 @@ class Styler(StylerRenderer):
         table_attributes: str | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
+        bold_headers: bool = False,
+        caption: str | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -897,9 +916,17 @@ class Styler(StylerRenderer):
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
 
             .. versionadded:: 1.4.0
+        bold_headers : bool, optional
+            Adds "font-weight: bold;" as a CSS property to table style header cells.
+
+            .. versionadded:: 1.4.0
+        caption : str, optional
+            Set, or overwrite, the caption on Styler before rendering.
+
+            .. versionadded:: 1.4.0
         encoding : str, optional
-            Character encoding setting for file output, and HTML meta tags,
-            defaults to "utf-8" if None.
+            Character encoding setting for file output, and HTML meta tags.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
             HTML elements, or just the core ``<style>`` and ``<table>`` elements.
@@ -908,7 +935,7 @@ class Styler(StylerRenderer):
             ``class`` and ``id`` identifiers, or solely the ``<table>`` element without
             styling identifiers.
         **kwargs
-            Any additional keyword arguments are passed through to the jinj2
+            Any additional keyword arguments are passed through to the jinja2
             ``self.template.render`` process. This is useful when you need to provide
             additional variables for a custom template.
 
@@ -934,12 +961,21 @@ class Styler(StylerRenderer):
         if sparse_columns is None:
             sparse_columns = get_option("styler.sparse.columns")
 
+        if bold_headers:
+            obj.set_table_styles(
+                [{"selector": "th", "props": "font-weight: bold;"}], overwrite=False
+            )
+
+        if caption is not None:
+            obj.set_caption(caption)
+
+        encoding = encoding or get_option("styler.render.encoding")
         # Build HTML string..
         html = obj._render_html(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
             exclude_styles=exclude_styles,
-            encoding=encoding if encoding else "utf-8",
+            encoding=encoding,
             doctype_html=doctype_html,
             **kwargs,
         )
@@ -1109,6 +1145,8 @@ class Styler(StylerRenderer):
         shallow = [  # simple string or boolean immutables
             "hide_index_",
             "hide_columns_",
+            "hide_column_names",
+            "hide_index_names",
             "table_attributes",
             "cell_ids",
             "caption",
@@ -2019,6 +2057,7 @@ class Styler(StylerRenderer):
         self,
         subset: Subset | None = None,
         level: Level | list[Level] | None = None,
+        names: bool = False,
     ) -> Styler:
         """
         Hide the entire index, or specific keys in the index from rendering.
@@ -2041,6 +2080,11 @@ class Styler(StylerRenderer):
         level : int, str, list
             The level(s) to hide in a MultiIndex if hiding the entire index. Cannot be
             used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
+        names : bool
+            Whether to hide the index name(s), in the case the index or part of it
+            remains visible.
 
             .. versionadded:: 1.4.0
 
@@ -2095,7 +2139,7 @@ class Styler(StylerRenderer):
 
         Hide a specific level:
 
-        >>> df.style.format("{:,.1f").hide_index(level=1)  # doctest: +SKIP
+        >>> df.style.format("{:,.1f}").hide_index(level=1)  # doctest: +SKIP
                              x                    y
                a      b      c      a      b      c
         x    0.1    0.0    0.4    1.3    0.6   -1.4
@@ -2104,11 +2148,29 @@ class Styler(StylerRenderer):
         y    0.4    1.0   -0.2   -0.8   -1.2    1.1
             -0.6    1.2    1.8    1.9    0.3    0.3
              0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hiding just the index level names:
+
+        >>> df.index.names = ["lev0", "lev1"]
+        >>> df.style.format("{:,.1f}").hide_index(names=True)  # doctest: +SKIP
+                                 x                    y
+                   a      b      c      a      b      c
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
+            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
+            c    0.8    0.5   -0.3    1.2    2.2   -0.8
         """
         if level is not None and subset is not None:
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
+            if level is None and names:
+                # this combination implies user shows the index and hides just names
+                self.hide_index_names = True
+                return self
+
             levels_ = _refactor_levels(level, self.index)
             self.hide_index_ = [
                 True if lev in levels_ else False for lev in range(self.index.nlevels)
@@ -2121,12 +2183,16 @@ class Styler(StylerRenderer):
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
             self.hidden_rows = hrows  # type: ignore[assignment]
+
+        if names:
+            self.hide_index_names = True
         return self
 
     def hide_columns(
         self,
         subset: Subset | None = None,
         level: Level | list[Level] | None = None,
+        names: bool = False,
     ) -> Styler:
         """
         Hide the column headers or specific keys in the columns from rendering.
@@ -2149,6 +2215,11 @@ class Styler(StylerRenderer):
         level : int, str, list
             The level(s) to hide in a MultiIndex if hiding the entire column headers
             row. Cannot be used simultaneously with ``subset``.
+
+            .. versionadded:: 1.4.0
+        names : bool
+            Whether to hide the column index name(s), in the case all column headers,
+            or some levels, are visible.
 
             .. versionadded:: 1.4.0
 
@@ -2216,11 +2287,29 @@ class Styler(StylerRenderer):
         y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
             b   -0.6    1.2    1.8    1.9    0.3    0.3
             c    0.8    0.5   -0.3    1.2    2.2   -0.8
+
+        Hiding just the column level names:
+
+        >>> df.columns.names = ["lev0", "lev1"]
+        >>> df.style.format("{:.1f").hide_columns(names=True)  # doctest: +SKIP
+                   x                    y
+                   a      b      c      a      b      c
+        x   a    0.1    0.0    0.4    1.3    0.6   -1.4
+            b    0.7    1.0    1.3    1.5   -0.0   -0.2
+            c    1.4   -0.8    1.6   -0.2   -0.4   -0.3
+        y   a    0.4    1.0   -0.2   -0.8   -1.2    1.1
+            b   -0.6    1.2    1.8    1.9    0.3    0.3
+            c    0.8    0.5   -0.3    1.2    2.2   -0.8
         """
         if level is not None and subset is not None:
             raise ValueError("`subset` and `level` cannot be passed simultaneously")
 
         if subset is None:
+            if level is None and names:
+                # this combination implies user shows the column headers but hides names
+                self.hide_column_names = True
+                return self
+
             levels_ = _refactor_levels(level, self.columns)
             self.hide_columns_ = [
                 True if lev in levels_ else False for lev in range(self.columns.nlevels)
@@ -2233,6 +2322,9 @@ class Styler(StylerRenderer):
             # error: Incompatible types in assignment (expression has type
             # "ndarray", variable has type "Sequence[int]")
             self.hidden_columns = hcols  # type: ignore[assignment]
+
+        if names:
+            self.hide_column_names = True
         return self
 
     # -----------------------------------------------------------------------
