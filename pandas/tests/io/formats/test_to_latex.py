@@ -787,7 +787,7 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_default(self, df_with_symbols):
-        result = df_with_symbols.to_latex()  # default: escape=True
+        result = df_with_symbols.to_latex(hrules=True)  # default: escape=True
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
@@ -804,7 +804,7 @@ class TestToLatexEscape:
 
     def test_to_latex_special_escape(self):
         df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
@@ -823,7 +823,7 @@ class TestToLatexEscape:
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
         df = DataFrame(data=special_characters)
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
@@ -1066,7 +1066,7 @@ class TestToLatexMultiindex:
         # GH 18669
         mi = pd.MultiIndex.from_product([[1, 2]], names=[""])
         df = DataFrame(-1, index=mi, columns=range(4))
-        observed = df.to_latex()
+        observed = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrr}
@@ -1084,7 +1084,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multiindex_column_tabular(self):
         df = DataFrame({("x", "y"): ["a"]})
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
@@ -1101,7 +1101,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multiindex_small_tabular(self):
         df = DataFrame({("x", "y"): ["a"]}).T
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
@@ -1116,7 +1116,7 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multiindex_tabular(self, multiindex_frame):
-        result = multiindex_frame.to_latex()
+        result = multiindex_frame.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{llrrrr}
@@ -1138,7 +1138,7 @@ class TestToLatexMultiindex:
         # GH 14184
         df = multiindex_frame.T
         df.columns.names = ["a", "b"]
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
@@ -1159,7 +1159,7 @@ class TestToLatexMultiindex:
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.set_index(["a", "b"]).to_latex()
+        result = df.set_index(["a", "b"]).to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1180,7 +1180,7 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex()
+        result = df.groupby("a").describe().to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
@@ -1208,7 +1208,7 @@ class TestToLatexMultiindex:
         df = DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
@@ -1224,7 +1224,7 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multicolumn_default(self, multicolumn_frame):
-        result = multicolumn_frame.to_latex()
+        result = multicolumn_frame.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
@@ -1330,7 +1330,7 @@ class TestToLatexMultiindex:
         )
         placeholder = "{}" if any(names) and 1 in axes else " "
         col_names = [n if (bool(n) and 1 in axes) else placeholder for n in names]
-        observed = df.to_latex()
+        observed = df.to_latex(hrules=True)
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
   & %s & \multicolumn{2}{l}{1} & \multicolumn{2}{l}{2} \\
@@ -1353,7 +1353,7 @@ class TestToLatexMultiindex:
         df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
-        observed = df.set_index(["a", "b"]).to_latex()
+        observed = df.set_index(["a", "b"]).to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1375,13 +1375,13 @@ class TestToLatexMultiindex:
     def test_to_latex_non_string_index(self):
         # GH 19981
         df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
-        result = df.to_latex()
+        result = df.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
             \toprule
-              &   &  2 \\
-            0 & 1 &    \\
+            {} & {} & {2} \\
+            {0} & {1} & {} \\
             \midrule
             1 & 2 &  3 \\
               & 2 &  3 \\
