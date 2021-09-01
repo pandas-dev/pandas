@@ -325,10 +325,6 @@ def test_to_string_na_rep_and_float_format(na_rep):
             "   col1  col2\n0     1     3\n1     2     4",
         ),
         (
-            {"col1": [0, 2, 4], "col2": [3, 4, 5]},
-            "   col1  col2\n0     0     3\n1     2     4\n2     4     5",
-        ),
-        (
             {"col1": ["Abc", 0.756], "col2": [np.nan, 4.5435]},
             "    col1    col2\n0    Abc     NaN\n1  0.756  4.5435",
         ),
@@ -341,5 +337,4 @@ def test_to_string_na_rep_and_float_format(na_rep):
 def test_to_string_max_rows_zero(data, expected):
     # GH35394
     result = DataFrame(data=data).to_string(max_rows=0)
-
     assert result == expected
