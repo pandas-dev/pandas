@@ -52,7 +52,6 @@ cdef extern from "../src/skiplist.h":
     int skiplist_remove(skiplist_t*, double) nogil
     int skiplist_rank(skiplist_t*, double) nogil
     int skiplist_min_rank(skiplist_t*, double) nogil
-    int skiplist_max_rank(skiplist_t*, double) nogil
 
 cdef:
     float32_t MINfloat32 = np.NINF
@@ -1154,13 +1153,11 @@ rank_types = {
     'average': AVERAGE,
     'min': MIN,
     'max': MAX,
-    'first': FIRST,
-    'dense': DENSE,
 }
 
 
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp, bint percentile, str method) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint percentile, str method, bint ascending) -> np.ndarray:
     """
     O(N log(window)) implementation using skip list
 
@@ -1208,7 +1205,7 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
 
                 # setup
                 for j in range(s, e):
-                    val = values[j]
+                    val = values[j] if ascending else -values[j]
                     if notnan(val):
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)
@@ -1223,14 +1220,14 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
             else:
                 # calculate deletes
                 for j in range(start[i - 1], s):
-                    val = values[j]
+                    val = values[j] if ascending else -values[j]
                     if notnan(val):
                         skiplist_remove(skiplist, val)
                         nobs -= 1
 
                 # calculate adds
                 for j in range(end[i - 1], e):
-                    val = values[j]
+                    val = values[j] if ascending else -values[j]
                     if notnan(val):
                         nobs += 1
                         rank = skiplist_insert(skiplist, val)

@@ -1505,15 +1505,18 @@ def test_rolling_numeric_dtypes():
 @pytest.mark.parametrize("window", [1, 3, 10, 50, 1000])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
-@pytest.mark.parametrize("dups", [True, False])
-def test_rank(window, method, pct, dups):
+@pytest.mark.parametrize("ascending", [True, False])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
+def test_rank(window, method, pct, ascending, test_data):
     length = 1000
-    if dups:
-        ser = Series(data=np.random.choice(3, length))
-    else:
+    if test_data == "default":
         ser = Series(data=np.random.rand(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.choice(3, length))
+    elif test_data == "nans":
+        ser = Series(data=np.random.choice([1.0, 0.25, 0.75, np.nan], length))
 
-    expected = ser.rolling(window).apply(lambda x: x.rank(method=method, pct=pct).iloc[-1])
-    result = ser.rolling(window).rank(method=method, pct=pct)
+    expected = ser.rolling(window).apply(lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1])
+    result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
 
     tm.assert_series_equal(result, expected)
