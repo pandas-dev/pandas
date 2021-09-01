@@ -2121,7 +2121,7 @@ class Styler(StylerRenderer):
         Hiding just the index level names:
 
         >>> df.index.names = ["lev0", "lev1"]
-        >>> df.style.format("{:,.1f}").hide_index(names=True)
+        >>> df.style.format("{:,.1f}").hide_index(names=True)  # doctest: +SKIP
                                  x                    y
                    a      b      c      a      b      c
         x   a    0.1    0.0    0.4    1.3    0.6   -1.4
