@@ -10,7 +10,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -437,7 +440,7 @@ class ExtensionIndex(Index):
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     @cache_readonly
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         # error: Incompatible return value type (got "ExtensionArray", expected
         # "ndarray")
         return self._data.isna()  # type: ignore[return-value]
