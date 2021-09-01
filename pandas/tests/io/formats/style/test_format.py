@@ -300,6 +300,13 @@ def test_format_options():
         assert ctx_with_op["body"][0][1]["display_value"] == "2,000.00"
 
 
+def test_precision_zero(df):
+    styler = Styler(df, precision=0)
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][2]["display_value"] == "-1"
+    assert ctx["body"][1][2]["display_value"] == "-1"
+
+
 def test_format_options_validator():
     df = DataFrame([[9]])
     with option_context("styler.format.formatter", lambda x: f"{x:.3f}"):
