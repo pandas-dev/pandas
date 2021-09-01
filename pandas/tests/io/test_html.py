@@ -136,28 +136,36 @@ class TestReadHtml:
 
     @tm.network
     def test_banklist_url_positional_match(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html" # noqa E501
+        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         # Passing match argument as positional should cause a FutureWarning.
         with tm.assert_produces_warning(FutureWarning):
             df1 = self.read_html(
                 # lxml cannot find attrs leave out for now
-                url, "First Federal Bank of Florida", # attrs={"class": "dataTable"}
+                url,
+                "First Federal Bank of Florida",  # attrs={"class": "dataTable"}
             )
         with tm.assert_produces_warning(FutureWarning):
             # lxml cannot find attrs leave out for now
-            df2 = self.read_html(url, "Metcalf Bank",) #attrs={"class": "dataTable"})
+            df2 = self.read_html(
+                url,
+                "Metcalf Bank",
+            )  # attrs={"class": "dataTable"})
 
         assert_framelist_equal(df1, df2)
 
     @tm.network
     def test_banklist_url(self):
-        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html" # noqa E501
+        url = "http://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
         df1 = self.read_html(
             # lxml cannot find attrs leave out for now
-            url, match="First Federal Bank of Florida", # attrs={"class": "dataTable"}
+            url,
+            match="First Federal Bank of Florida",  # attrs={"class": "dataTable"}
         )
         # lxml cannot find attrs leave out for now
-        df2 = self.read_html(url, match="Metcalf Bank",) #attrs={"class": "dataTable"})
+        df2 = self.read_html(
+            url,
+            match="Metcalf Bank",
+        )  # attrs={"class": "dataTable"})
 
         assert_framelist_equal(df1, df2)
 
