@@ -190,7 +190,7 @@ class Block(PandasObject):
         warnings.warn(
             "Block.is_categorical is deprecated and will be removed in a "
             "future version.  Use isinstance(block.values, Categorical) "
-            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -624,7 +624,11 @@ class Block(PandasObject):
         -------
         bool
         """
-        return is_dtype_equal(value.dtype, self.dtype)
+        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
+        try:
+            return value.dtype == self.dtype
+        except TypeError:
+            return False
 
     @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
@@ -1281,6 +1285,10 @@ class Block(PandasObject):
         mask = mask.any(0)
         # TODO: in all tests we have mask.all(); can we rely on that?
 
+        # Note: these next two lines ensure that
+        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
+        #  which the calling function needs in order to pass verify_integrity=False
+        #  to the BlockManager constructor
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
@@ -1652,13 +1660,21 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         mask = mask.any(0)
         # TODO: in all tests we have mask.all(); can we rely on that?
 
+        # Note: these next two lines ensure that
+        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
+        #  which the calling function needs in order to pass verify_integrity=False
+        #  to the BlockManager constructor
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
+
         blocks = [
             # TODO: could cast to object depending on fill_value?
-            self.make_block_same_class(
+            type(self)(
                 self.values.take(indices, allow_fill=allow_fill, fill_value=fill_value),
                 BlockPlacement(place),
+                ndim=2,
             )
-            for indices, place in zip(new_values.T, new_placement)
+            for indices, place in zip(new_values, new_placement)
         ]
         return blocks, mask
 

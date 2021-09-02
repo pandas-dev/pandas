@@ -7,7 +7,7 @@ MultiIndex / advanced indexing
 ******************************
 
 This section covers :ref:`indexing with a MultiIndex <advanced.hierarchical>`
-and :ref:`other advanced indexing features <indexing.index_types>`.
+and :ref:`other advanced indexing features <advanced.index_types>`.
 
 See the :ref:`Indexing and Selecting Data <indexing>` for general indexing documentation.
 
@@ -738,7 +738,7 @@ faster than fancy indexing.
    %timeit ser.iloc[indexer]
    %timeit ser.take(indexer)
 
-.. _indexing.index_types:
+.. _advanced.index_types:
 
 Index types
 -----------
@@ -749,7 +749,7 @@ and documentation about ``TimedeltaIndex`` is found :ref:`here <timedeltas.index
 
 In the following sub-sections we will highlight some other index types.
 
-.. _indexing.categoricalindex:
+.. _advanced.categoricalindex:
 
 CategoricalIndex
 ~~~~~~~~~~~~~~~~
@@ -846,10 +846,17 @@ values **not** in the categories, similarly to how you can reindex **any** panda
       In [1]: pd.concat([df4, df5])
       TypeError: categories must match existing categories when appending
 
-.. _indexing.rangeindex:
+.. _advanced.rangeindex:
 
 Int64Index and RangeIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. deprecated:: 1.4.0
+    In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
+    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
+    are therefore deprecated and will be removed in a futire version.
+    See :ref:`here <advanced.numericindex>` for more.
+    ``RangeIndex`` will not be removed, as it represents an optimized version of an integer index.
 
 :class:`Int64Index` is a fundamental basic index in pandas. This is an immutable array
 implementing an ordered, sliceable set.
@@ -857,10 +864,17 @@ implementing an ordered, sliceable set.
 :class:`RangeIndex` is a sub-class of ``Int64Index``  that provides the default index for all ``NDFrame`` objects.
 ``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
-.. _indexing.float64index:
+.. _advanced.float64index:
 
 Float64Index
 ~~~~~~~~~~~~
+
+.. deprecated:: 1.4.0
+    :class:`NumericIndex` will become the default index type for numeric types in the future
+    instead of ``Int64Index``, ``Float64Index`` and ``UInt64Index`` and those index types
+    are therefore deprecated and will be removed in a future version of Pandas.
+    See :ref:`here <advanced.numericindex>` for more.
+    ``RangeIndex`` will not be removed as it represents an optimized version of an integer index.
 
 By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
 This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
@@ -955,6 +969,38 @@ If you need integer based selection, you should use ``iloc``:
 .. ipython:: python
 
    dfir.iloc[0:5]
+
+
+.. _advanced.numericindex:
+
+NumericIndex
+~~~~~~~~~~~~
+
+.. versionadded:: 1.4.0
+
+.. note::
+
+    In pandas 2.0, :class:`NumericIndex` will become the default index type for numeric types
+    instead of :class:`Int64Index`, :class:`Float64Index` and :class:`UInt64Index` and those index types
+    are therefore deprecated and will be removed in a future version.
+    :class:`RangeIndex` will not be removed as it represents an optimized version of an integer index.
+
+:class:`NumericIndex` is an index type that can hold data of any numpy int/uint/float dtype. For example:
+
+.. ipython:: python
+
+   idx = pd.NumericIndex([1, 2, 4, 5], dtype="int8")
+   idx
+   ser = pd.Series(range(4), index=idx)
+   ser
+
+``NumericIndex`` works the same way as the existing ``Int64Index``, ``Float64Index`` and
+``UInt64Index`` except that it can hold any numpy int, uint or float dtype.
+
+Until Pandas 2.0, you will have to call ``NumericIndex`` explicitly in order to use it, like in the example above.
+In the future, ``NumericIndex`` will become the default pandas numeric index type and will automatically be used where appropriate.
+
+Please notice that ``NumericIndex`` *can not* hold Pandas numeric dtypes (:class:`Int64Dtype`, :class:`Int32Dtype` etc.).
 
 .. _advanced.intervalindex:
 

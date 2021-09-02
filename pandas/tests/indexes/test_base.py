@@ -21,20 +21,23 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
     date_range,
     isna,
     period_range,
 )
 import pandas._testing as tm
+from pandas.api.types import is_float_dtype
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -713,6 +716,12 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
+        elif index._is_backward_compat_public_numeric_index:
+            if is_float_dtype(index.dtype):
+                exp_dtype = np.float64
+            else:
+                exp_dtype = np.int64
+            expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 

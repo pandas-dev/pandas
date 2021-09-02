@@ -4,7 +4,6 @@ import pytest
 import pandas as pd
 from pandas import (
     Index,
-    Int64Index,
     MultiIndex,
 )
 import pandas._testing as tm
@@ -222,7 +221,7 @@ def test_pivot_multiindexed_rows_and_cols(using_array_manager):
         columns=MultiIndex.from_tuples(
             [(0, 1, 0), (0, 1, 1)], names=["col_L0", "col_L1", "idx_L1"]
         ),
-        index=Int64Index([0, 1], dtype="int64", name="idx_L0"),
+        index=Index([0, 1], dtype="int64", name="idx_L0"),
     )
     if not using_array_manager:
         # BlockManager does not preserve the dtypes

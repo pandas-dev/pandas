@@ -21,6 +21,7 @@ from pandas.util._decorators import doc
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -215,7 +216,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             warnings.warn(
                 "Constructing a CategoricalIndex without passing data is "
                 "deprecated and will raise in a future version. "
-                "Use CategoricalIndex([], ...) instead",
+                "Use CategoricalIndex([], ...) instead.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -279,6 +280,30 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                 )
 
         return other
+
+    @doc(Index.astype)
+    def astype(self, dtype: Dtype, copy: bool = True) -> Index:
+        from pandas import NumericIndex
+
+        dtype = pandas_dtype(dtype)
+
+        categories = self.categories
+        # the super method always returns Int64Index, UInt64Index and Float64Index
+        # but if the categories are a NumericIndex with dtype float32, we want to
+        # return an index with the same dtype as self.categories.
+        if categories._is_backward_compat_public_numeric_index:
+            assert isinstance(categories, NumericIndex)  # mypy complaint fix
+            try:
+                categories._validate_dtype(dtype)
+            except ValueError:
+                pass
+            else:
+                new_values = self._data.astype(dtype, copy=copy)
+                # pass copy=False because any copying has been done in the
+                #  _data.astype call above
+                return categories._constructor(new_values, name=self.name, copy=False)
+
+        return super().astype(dtype, copy=copy)
 
     def equals(self, other: object) -> bool:
         """
@@ -401,6 +426,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             missing = np.array([], dtype=np.intp)
         else:
             indexer, missing = self.get_indexer_non_unique(target)
+            if not self.is_unique:
+                # GH#42568
+                warnings.warn(
+                    "reindexing with a non-unique Index is deprecated and will "
+                    "raise in a future version.",
+                    FutureWarning,
+                    stacklevel=2,
+                )
 
         if len(self) and indexer is not None:
             new_target = self.take(indexer)
@@ -471,7 +504,8 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     def take_nd(self, *args, **kwargs):
         """Alias for `take`"""
         warnings.warn(
-            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take instead",
+            "CategoricalIndex.take_nd is deprecated, use CategoricalIndex.take "
+            "instead.",
             FutureWarning,
             stacklevel=2,
         )
