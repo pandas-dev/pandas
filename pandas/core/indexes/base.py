@@ -3621,7 +3621,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             tgt_values = target._get_engine_target()
             if target._is_multi and self._is_multi:
-                tgt_values = target
+                # error: Incompatible types in assignment (expression has type
+                # "Index", variable has type "ndarray[Any, Any]")
+                tgt_values = target  # type: ignore[assignment]
             indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
