@@ -11,6 +11,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import isna
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.arrays.sparse import (
     SparseArray,
     SparseDtype,
@@ -511,10 +512,10 @@ class TestSparseArray:
         )
         tm.assert_sp_array_equal(result, expected)
 
-    def test_astype_all(self, any_real_dtype):
+    def test_astype_all(self, any_real_numpy_dtype):
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
-        typ = np.dtype(any_real_dtype)
+        typ = np.dtype(any_real_numpy_dtype)
         res = arr.astype(typ)
         assert res.dtype == SparseDtype(typ, 1)
         assert res.sp_values.dtype == typ
@@ -1309,7 +1310,7 @@ def test_dropna(fill_value):
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})
-    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=pd.Int64Index([1]))
+    expected_df = pd.DataFrame({"a": [1], "b": exp}, index=Int64Index([1]))
     tm.assert_equal(df.dropna(), expected_df)
 
 

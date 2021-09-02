@@ -14,18 +14,20 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
-    UInt64Index,
     array,
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.computation import expressions as expr
 
 
@@ -391,9 +393,14 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, switch_numexpr_min_elements, dtype1, any_real_dtype):
+    def test_ser_div_ser(
+        self,
+        switch_numexpr_min_elements,
+        dtype1,
+        any_real_numpy_dtype,
+    ):
         # no longer do integer div for any ops, but deal with the 0's
-        dtype2 = any_real_dtype
+        dtype2 = any_real_numpy_dtype
 
         first = Series([3, 4, 5, 8], name="first").astype(dtype1)
         second = Series([0, 0, 0, 3], name="second").astype(dtype2)
@@ -416,9 +423,9 @@ class TestDivisionByZero:
         assert not result.equals(second / first)
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_divmod_zero(self, dtype1, any_real_dtype):
+    def test_ser_divmod_zero(self, dtype1, any_real_numpy_dtype):
         # GH#26987
-        dtype2 = any_real_dtype
+        dtype2 = any_real_numpy_dtype
         left = Series([1, 1]).astype(dtype1)
         right = Series([0, 2]).astype(dtype2)
 

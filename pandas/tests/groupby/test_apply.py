@@ -7,8 +7,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -18,6 +16,7 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_apply_issues():
@@ -84,40 +83,6 @@ def test_apply_trivial_fail():
     result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(lambda x: df)
 
     tm.assert_frame_equal(result, expected)
-
-
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
-def test_fast_apply():
-    # make sure that fast apply is correctly called
-    # rather than raising any kind of error
-    # otherwise the python path will be callsed
-    # which slows things down
-    N = 1000
-    labels = np.random.randint(0, 2000, size=N)
-    labels2 = np.random.randint(0, 3, size=N)
-    df = DataFrame(
-        {
-            "key": labels,
-            "key2": labels2,
-            "value1": np.random.randn(N),
-            "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
-        }
-    )
-
-    def f(g):
-        return 1
-
-    g = df.groupby(["key", "key2"])
-
-    grouper = g.grouper
-
-    splitter = grouper._get_splitter(g._selected_obj, axis=g.axis)
-    group_keys = grouper._get_group_keys()
-    sdata = splitter.sorted_data
-
-    values, mutated = splitter.fast_apply(f, sdata, group_keys)
-
-    assert not mutated
 
 
 @pytest.mark.parametrize(
@@ -216,8 +181,6 @@ def test_group_apply_once_per_group2(capsys):
     assert result == expected
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
-@pytest.mark.xfail(reason="GH-34998")
 def test_apply_fast_slow_identical():
     # GH 31613
 
@@ -237,16 +200,13 @@ def test_apply_fast_slow_identical():
     tm.assert_frame_equal(fast_df, slow_df)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fast_apply not used
 @pytest.mark.parametrize(
     "func",
     [
         lambda x: x,
-        pytest.param(lambda x: x[:], marks=pytest.mark.xfail(reason="GH-34998")),
+        lambda x: x[:],
         lambda x: x.copy(deep=False),
-        pytest.param(
-            lambda x: x.copy(deep=True), marks=pytest.mark.xfail(reason="GH-34998")
-        ),
+        lambda x: x.copy(deep=True),
     ],
 )
 def test_groupby_apply_identity_maybecopy_index_identical(func):
@@ -826,10 +786,10 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
     expected = Series(
-        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
     )
 
     tm.assert_series_equal(result, expected)

@@ -99,7 +99,7 @@ def test_w3_html_format(styler):
         #T_ th {
           att2: v2;
         }
-        #T_row0_col0, #T_row1_col0 {
+        #T__row0_col0, #T__row1_col0 {
           att1: v1;
         }
         </style>
@@ -108,44 +108,41 @@ def test_w3_html_format(styler):
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th class="col_heading level0 col0" >A</th>
+              <th id="T__level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <th id="T_level0_row0" class="row_heading level0 row0" >a</th>
-              <td id="T_row0_col0" class="data row0 col0 my-cls2" >2.6</td>
+              <th id="T__level0_row0" class="row_heading level0 row0" >a</th>
+              <td id="T__row0_col0" class="data row0 col0 my-cls2" >2.6</td>
             </tr>
             <tr>
-              <th id="T_level0_row1" class="row_heading level0 row1" >b</th>
-              <td id="T_row1_col0" class="data row1 col0" >2.7</td>
+              <th id="T__level0_row1" class="row_heading level0 row1" >b</th>
+              <td id="T__row1_col0" class="data row1 col0" >2.7</td>
             </tr>
           </tbody>
         </table>
         """
     )
-    assert expected == styler.render()
+    assert expected == styler.to_html()
 
 
 def test_colspan_w3():
     # GH 36223
     df = DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.render()
+    assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.to_html()
 
 
 def test_rowspan_w3():
     # GH 38533
     df = DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
     styler = Styler(df, uuid="_", cell_ids=False)
-    assert (
-        '<th id="T___level0_row0" class="row_heading '
-        'level0 row0" rowspan="2">l0</th>' in styler.render()
-    )
+    assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.to_html()
 
 
 def test_styles(styler):
-    styler.set_uuid("abc_")
+    styler.set_uuid("abc")
     styler.set_table_styles([{"selector": "td", "props": "color: red;"}])
     result = styler.to_html(doctype_html=True)
     expected = dedent(
@@ -155,17 +152,17 @@ def test_styles(styler):
         <head>
         <meta charset="utf-8">
         <style type="text/css">
-        #T_abc_ td {
+        #T_abc td {
           color: red;
         }
         </style>
         </head>
         <body>
-        <table id="T_abc_">
+        <table id="T_abc">
           <thead>
             <tr>
               <th class="blank level0" >&nbsp;</th>
-              <th class="col_heading level0 col0" >A</th>
+              <th id="T_abc_level0_col0" class="col_heading level0 col0" >A</th>
             </tr>
           </thead>
           <tbody>
@@ -192,6 +189,28 @@ def test_doctype(styler):
     assert "<body>" not in result
     assert "<!DOCTYPE html>" not in result
     assert "<head>" not in result
+
+
+def test_doctype_encoding(styler):
+    with option_context("styler.render.encoding", "ASCII"):
+        result = styler.to_html(doctype_html=True)
+        assert '<meta charset="ASCII">' in result
+        result = styler.to_html(doctype_html=True, encoding="ANSI")
+        assert '<meta charset="ANSI">' in result
+
+
+def test_bold_headers_arg(styler):
+    result = styler.to_html(bold_headers=True)
+    assert "th {\n  font-weight: bold;\n}" in result
+    result = styler.to_html()
+    assert "th {\n  font-weight: bold;\n}" not in result
+
+
+def test_caption_arg(styler):
+    result = styler.to_html(caption="foo bar")
+    assert "<caption>foo bar</caption>" in result
+    result = styler.to_html()
+    assert "<caption>foo bar</caption>" not in result
 
 
 def test_block_names(tpl_style, tpl_table):
@@ -241,7 +260,7 @@ def test_from_custom_template_table(tmpdir):
     assert result.env is not Styler.env
     assert result.template_html_table is not Styler.template_html_table
     styler = result(DataFrame({"A": [1, 2]}))
-    assert "<h1>My Title</h1>\n\n\n<table" in styler.render(custom_title="My Title")
+    assert "<h1>My Title</h1>\n\n\n<table" in styler.to_html(custom_title="My Title")
 
 
 def test_from_custom_template_style(tmpdir):
@@ -263,12 +282,12 @@ def test_from_custom_template_style(tmpdir):
     assert result.env is not Styler.env
     assert result.template_html_style is not Styler.template_html_style
     styler = result(DataFrame({"A": [1, 2]}))
-    assert '<link rel="stylesheet" href="mystyle.css">\n\n<style' in styler.render()
+    assert '<link rel="stylesheet" href="mystyle.css">\n\n<style' in styler.to_html()
 
 
 def test_caption_as_sequence(styler):
     styler.set_caption(("full cap", "short cap"))
-    assert "<caption>full cap</caption>" in styler.render()
+    assert "<caption>full cap</caption>" in styler.to_html()
 
 
 @pytest.mark.parametrize("index", [False, True])
@@ -282,26 +301,32 @@ def test_sticky_basic(styler, index, columns, index_name):
     if columns:
         styler.set_sticky(axis=1)
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: 0px;\n  z-index: {1};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  z-index: {2};\n{3}}}"
+    )
+
     res = styler.set_uuid("").to_html()
 
-    css_for_index = (
-        "tr th:first-child {\n  position: sticky;\n  background-color: white;\n  "
-        "left: 0px;\n  z-index: 1;\n}"
-    )
-    assert (css_for_index in res) is index
+    # test index stickys over thead and tbody
+    assert (left_css.format("thead tr th:nth-child(1)", "3 !important") in res) is index
+    assert (left_css.format("tbody tr th:nth-child(1)", "1") in res) is index
 
-    css_for_cols_1 = (
-        "thead tr:first-child {\n  position: sticky;\n  background-color: white;\n  "
-        "top: 0px;\n  z-index: 2;\n"
+    # test column stickys including if name row
+    assert (
+        top_css.format("thead tr:nth-child(1) th", "0", "2", "  height: 25px;\n") in res
+    ) is (columns and index_name)
+    assert (
+        top_css.format("thead tr:nth-child(2) th", "25", "2", "  height: 25px;\n")
+        in res
+    ) is (columns and index_name)
+    assert (top_css.format("thead tr:nth-child(1) th", "0", "2", "") in res) is (
+        columns and not index_name
     )
-    css_for_cols_1 += "  height: 25px;\n}" if index_name else "}"
-    assert (css_for_cols_1 in res) is columns
-
-    css_for_cols_2 = (
-        "thead tr:nth-child(2) {\n  position: sticky;\n  background-color: white;\n  "
-        "top: 25px;\n  z-index: 2;\n  height: 25px;\n}"
-    )
-    assert (css_for_cols_2 in res) is (index_name and columns)
 
 
 @pytest.mark.parametrize("index", [False, True])
@@ -312,73 +337,30 @@ def test_sticky_mi(styler_mi, index, columns):
     if columns:
         styler_mi.set_sticky(axis=1)
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
+    )
+
     res = styler_mi.set_uuid("").to_html()
+
+    # test the index stickys for thead and tbody over both levels
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level0 {
-          position: sticky;
-          left: 0px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
+        left_css.format("thead tr th:nth-child(1)", "0", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level0", "0", "1") in res) is index
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level1 {
-          position: sticky;
-          left: 75px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level0 {
-          position: sticky;
-          top: 0px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level1 {
-          position: sticky;
-          top: 25px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
+        left_css.format("thead tr th:nth-child(2)", "75", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level1", "75", "1") in res) is index
+
+    # test the column stickys for each level row
+    assert (top_css.format("thead tr:nth-child(1) th", "0", "2") in res) is columns
+    assert (top_css.format("thead tr:nth-child(2) th", "25", "2") in res) is columns
 
 
 @pytest.mark.parametrize("index", [False, True])
@@ -389,46 +371,32 @@ def test_sticky_levels(styler_mi, index, columns):
     if columns:
         styler_mi.set_sticky(axis=1, levels=[1])
 
+    left_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  left: {1}px;\n  min-width: 75px;\n  max-width: 75px;\n  z-index: {2};\n}}"
+    )
+    top_css = (
+        "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
+        "  top: {1}px;\n  height: 25px;\n  z-index: {2};\n}}"
+    )
+
     res = styler_mi.set_uuid("").to_html()
-    assert "#T_ tbody th.level0 {" not in res
-    assert "#T_ thead th.level0 {" not in res
+
+    # test no sticking of level0
+    assert "#T_ thead tr th:nth-child(1)" not in res
+    assert "#T_ tbody tr th.level0" not in res
+    assert "#T_ thead tr:nth-child(1) th" not in res
+
+    # test sticking level1
     assert (
-        (
-            dedent(
-                """\
-        #T_ tbody th.level1 {
-          position: sticky;
-          left: 0px;
-          min-width: 75px;
-          max-width: 75px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is index
-    )
-    assert (
-        (
-            dedent(
-                """\
-        #T_ thead th.level1 {
-          position: sticky;
-          top: 0px;
-          height: 25px;
-          background-color: white;
-        }
-        """
-            )
-            in res
-        )
-        is columns
-    )
+        left_css.format("thead tr th:nth-child(2)", "0", "3 !important") in res
+    ) is index
+    assert (left_css.format("tbody tr th.level1", "0", "1") in res) is index
+    assert (top_css.format("thead tr:nth-child(2) th", "0", "2") in res) is columns
 
 
 def test_sticky_raises(styler):
-    with pytest.raises(ValueError, match="`axis` must be"):
+    with pytest.raises(ValueError, match="No axis named bad for object type DataFrame"):
         styler.set_sticky(axis="bad")
 
 
@@ -451,3 +419,36 @@ def test_sparse_options(sparse_index, sparse_columns):
         assert (html1 == default_html) is (sparse_index and sparse_columns)
     html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=sparse_columns)
     assert html1 == html2
+
+
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize("columns", [True, False])
+def test_applymap_header_cell_ids(styler, index, columns):
+    # GH 41893
+    func = lambda v: "attr: val;"
+    styler.uuid, styler.cell_ids = "", False
+    if index:
+        styler.applymap_index(func, axis="index")
+    if columns:
+        styler.applymap_index(func, axis="columns")
+
+    result = styler.to_html()
+
+    # test no data cell ids
+    assert '<td class="data row0 col0" >2.610000</td>' in result
+    assert '<td class="data row1 col0" >2.690000</td>' in result
+
+    # test index header ids where needed and css styles
+    assert (
+        '<th id="T__level0_row0" class="row_heading level0 row0" >a</th>' in result
+    ) is index
+    assert (
+        '<th id="T__level0_row1" class="row_heading level0 row1" >b</th>' in result
+    ) is index
+    assert ("#T__level0_row0, #T__level0_row1 {\n  attr: val;\n}" in result) is index
+
+    # test column header ids where needed and css styles
+    assert (
+        '<th id="T__level0_col0" class="col_heading level0 col0" >A</th>' in result
+    ) is columns
+    assert ("#T__level0_col0 {\n  attr: val;\n}" in result) is columns

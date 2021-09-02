@@ -83,17 +83,17 @@ class TestComparisonOps(BaseOpsUtil):
         result = data + 1
         assert np.shares_memory(result._mask, data._mask) is False
 
-    def test_compare_to_string(self, any_nullable_int_dtype):
+    def test_compare_to_string(self, any_int_ea_dtype):
         # GH 28930
-        s = pd.Series([1, None], dtype=any_nullable_int_dtype)
+        s = pd.Series([1, None], dtype=any_int_ea_dtype)
         result = s == "a"
         expected = pd.Series([False, pd.NA], dtype="boolean")
 
         self.assert_series_equal(result, expected)
 
-    def test_compare_to_int(self, any_nullable_int_dtype, all_compare_operators):
+    def test_compare_to_int(self, any_int_ea_dtype, all_compare_operators):
         # GH 28930
-        s1 = pd.Series([1, None, 3], dtype=any_nullable_int_dtype)
+        s1 = pd.Series([1, None, 3], dtype=any_int_ea_dtype)
         s2 = pd.Series([1, None, 3], dtype="float")
 
         method = getattr(s1, all_compare_operators)
