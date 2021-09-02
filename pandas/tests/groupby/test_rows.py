@@ -6,6 +6,7 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+
 @pytest.fixture()
 def small_df():
     data = [
@@ -54,7 +55,7 @@ def test_slice(small_df):
 @pytest.mark.parametrize(
     "arg, expected_rows",
     [
-        [[0,2], [0, 1, 4, 5]],
+        [[0, 2], [0, 1, 4, 5]],
         [[0, 2, -1], [0, 1, 3, 4, 5, 7]],
         [range(0, 3, 2), [0, 1, 4, 5]],
         [{0, 2}, [0, 1, 4, 5]],
