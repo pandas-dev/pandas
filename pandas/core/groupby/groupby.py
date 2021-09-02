@@ -95,7 +95,7 @@ from pandas.core.groupby import (
     numba_,
     ops,
 )
-from pandas.core.groupby.groupbyindexing import GroupByIndexingMixin
+from pandas.core.groupby.indexing import GroupByIndexingMixin
 from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
