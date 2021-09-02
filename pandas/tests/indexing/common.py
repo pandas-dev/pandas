@@ -5,13 +5,15 @@ import numpy as np
 
 from pandas import (
     DataFrame,
-    Float64Index,
     MultiIndex,
     Series,
-    UInt64Index,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    UInt64Index,
+)
 
 
 def _mklbl(prefix, n):

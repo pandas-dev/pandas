@@ -1,7 +1,9 @@
 import numpy as np
 
+from pandas._typing import npt
+
 def hash_object_array(
-    arr: np.ndarray,  # np.ndarray[object]
+    arr: npt.NDArray[np.object_],
     key: str,
     encoding: str = ...,
-) -> np.ndarray: ...  # np.ndarray[np.uint64]
+) -> npt.NDArray[np.uint64]: ...

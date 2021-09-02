@@ -248,11 +248,12 @@ or purely non-negative, integers. Previously, handling these integers would
 result in improper rounding or data-type casting, leading to incorrect results.
 Notably, a new numerical index, ``UInt64Index``, has been created (:issue:`14937`)
 
-.. ipython:: python
+.. code-block:: ipython
 
-   idx = pd.UInt64Index([1, 2, 3])
-   df = pd.DataFrame({'A': ['a', 'b', 'c']}, index=idx)
-   df.index
+   In [1]: idx = pd.UInt64Index([1, 2, 3])
+   In [2]: df = pd.DataFrame({'A': ['a', 'b', 'c']}, index=idx)
+   In [3]: df.index
+   Out[3]: UInt64Index([1, 2, 3], dtype='uint64')
 
 - Bug in converting object elements of array-like objects to unsigned 64-bit integers (:issue:`4471`, :issue:`14982`)
 - Bug in ``Series.unique()`` in which unsigned 64-bit integers were causing overflow (:issue:`14721`)
