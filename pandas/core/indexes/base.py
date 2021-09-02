@@ -639,11 +639,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
-        # _index_data is a (temporary?) fix to ensure that the direct data
-        # manipulation we do in `_libs/reduction.pyx` continues to work.
-        # We need access to the actual ndarray, since we're messing with
-        # data buffers and strides.
-        result._index_data = values
         result._name = name
         result._cache = {}
         result._reset_identity()
