@@ -3122,6 +3122,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header=True,
         index=True,
         columns=None,
+        index_names=True,
         column_format=None,
         position=None,
         position_float=None,
@@ -3143,7 +3144,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
-        index_names=True,
         col_space=None,
         formatters=None,
         float_format=None,
@@ -3180,12 +3180,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``pandas.options.styler.sparse.columns`` values.
 
             .. versionadded:: 1.4.0
-        index, header : bool
-            Whether to print index labels and/or column headers respectively.
+        index : bool
+            Whether to print index labels.
 
             .. versionchanged:: 1.4.0
+        header : bool or list of str
+            Whether to print column headers. If a list of strings is given is assumed
+            to be aliases for the column names.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
+        index_names : bool, default True
+            Remove the names of indexes before rendering.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -3292,10 +3297,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. deprecated:: 1.4.0
                Deprecated in favour of using arguments native to ``Styler.format``,
                such as ``precision``, ``decimal``, and ``thousands``.
-        index_names : bool, default True
-
-            .. deprecated:: 1.4.0
-               Remove the names of indexes before rendering.
         multicolumn : bool, default True
 
             .. deprecated:: 1.4.0
@@ -3366,10 +3367,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             escape="latex" if escape else None,
         )
 
-        if not header:
+        if header is False:
             styler.hide_columns()
+        elif isinstance(header, (list, tuple)):
+            if len(header) != len(styler.columns):
+                raise ValueError(
+                    f"`header` gave {len(header)} aliases for {len(styler.columns)} "
+                    f"columns."
+                )
+            for i, val in enumerate(header):
+
+                def disp(x, v):
+                    return f"{v}"
+
+                styler._display_funcs_columns[(0, i)] = functools.partial(disp, v=val)
+            if isinstance(styler.columns, MultiIndex):
+                styler.hide_columns(
+                    level=[i for i in range(styler.columns.nlevels) if i != 0]
+                )
         if not index:
             styler.hide_index()
+        if not index_names:
+            styler.hide_index(names=True)
+            styler.hide_columns(names=True)
         if columns:
             hidden = [col for col in styler.columns if col not in columns]
             styler.hide_columns(hidden)

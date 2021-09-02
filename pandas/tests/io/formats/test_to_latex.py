@@ -99,7 +99,7 @@ class TestToLatex:
     )
     def test_to_latex_bad_column_format(self, bad_column_format):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = r"column_format must be str or unicode"
+        msg = r"`column_format` must be a string"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(column_format=bad_column_format)
 
@@ -197,14 +197,15 @@ class TestToLatex:
 class TestToLatexLongtable:
     def test_to_latex_empty_longtable(self):
         df = DataFrame()
-        result = df.to_latex(longtable=True)
+        result = df.to_latex(environment="longtable")
         expected = _dedent(
             r"""
             \begin{longtable}{l}
-            \toprule
-            Empty DataFrame
-            Columns: Index([], dtype='object')
-            Index: Index([], dtype='object') \\
+            \endfirsthead
+            \endhead
+            \multicolumn{1}{r}{Continued on next page} \\
+            \endfoot
+            \endlastfoot
             \end{longtable}
             """
         )
@@ -212,28 +213,26 @@ class TestToLatexLongtable:
 
     def test_to_latex_longtable_with_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(longtable=True)
+        result = df.to_latex(environment="longtable", hrules=True)
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endfirsthead
-
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -241,28 +240,26 @@ class TestToLatexLongtable:
 
     def test_to_latex_longtable_without_index(self):
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(index=False, longtable=True)
+        result = df.to_latex(index=False, environment="longtable", hrules=True)
         expected = _dedent(
             r"""
             \begin{longtable}{rl}
             \toprule
-             a &  b \\
+            {a} & {b} \\
             \midrule
             \endfirsthead
-
             \toprule
-             a &  b \\
+            {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{2}{r}{{Continued on next page}} \\
+            \multicolumn{2}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \end{longtable}
             """
         )
@@ -277,7 +274,7 @@ class TestToLatexLongtable:
         ],
     )
     def test_to_latex_longtable_continued_on_next_page(self, df, expected_number):
-        result = df.to_latex(index=False, longtable=True)
+        result = df.to_latex(index=False, environment="longtable")
         assert fr"\multicolumn{{{expected_number}}}" in result
 
 
@@ -285,13 +282,14 @@ class TestToLatexHeader:
     def test_to_latex_no_header_with_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=False)
+        result = df.to_latex(header=False, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrl}
             \toprule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            \midrule
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -301,11 +299,12 @@ class TestToLatexHeader:
     def test_to_latex_no_header_without_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(index=False, header=False)
+        result = df.to_latex(index=False, header=False, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{rl}
             \toprule
+            \midrule
             1 & b1 \\
             2 & b2 \\
             \bottomrule
@@ -317,15 +316,15 @@ class TestToLatexHeader:
     def test_to_latex_specified_header_with_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=["AA", "BB"])
+        result = df.to_latex(header=["AA", "BB"], hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & AA &  BB \\
+            {} & {AA} & {BB} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -335,15 +334,15 @@ class TestToLatexHeader:
     def test_to_latex_specified_header_without_index(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=["AA", "BB"], index=False)
+        result = df.to_latex(header=["AA", "BB"], index=False, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{rl}
             \toprule
-            AA & BB \\
+            {AA} & {BB} \\
             \midrule
-             1 & b1 \\
-             2 & b2 \\
+            1 & b1 \\
+            2 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -366,7 +365,7 @@ class TestToLatexHeader:
     ):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        msg = f"Writing 2 cols but got {num_aliases} aliases"
+        msg = f"`header` gave {num_aliases} aliases for 2 columns."
         with pytest.raises(ValueError, match=msg):
             df.to_latex(header=header)
 

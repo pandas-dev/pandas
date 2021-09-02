@@ -780,6 +780,8 @@ class Styler(StylerRenderer):
         )
 
         if column_format is not None:
+            if not isinstance(column_format, str):
+                raise ValueError("`column_format` must be a string.")
             # add more recent setting to table_styles
             obj.set_table_styles(
                 [{"selector": "column_format", "props": f":{column_format}"}],
