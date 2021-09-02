@@ -4304,7 +4304,6 @@ class Index(IndexOpsMixin, PandasObject):
         # "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
         right = other._values.take(right_idx)  # type: ignore[arg-type]
 
-        # TODO: just use Index.putmask once GH#43212 is fixed
         if isinstance(join_array, np.ndarray):
             np.putmask(join_array, mask, right)
         else:
