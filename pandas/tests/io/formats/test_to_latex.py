@@ -490,7 +490,12 @@ class TestToLatexCaptionLabel:
 
     def test_to_latex_caption_and_label(self, df_short, caption_table, label_table):
         # GH 25436
-        result = df_short.to_latex(caption=caption_table, label=label_table)
+        result = df_short.to_latex(
+            caption=caption_table,
+            label=label_table,
+            hrules=True,
+            position_float="centering",
+        )
         expected = _dedent(
             r"""
             \begin{table}
@@ -499,10 +504,10 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -516,7 +521,11 @@ class TestToLatexCaptionLabel:
         caption_table,
         short_caption,
     ):
-        result = df_short.to_latex(caption=(caption_table, short_caption))
+        result = df_short.to_latex(
+            caption=(caption_table, short_caption),
+            hrules=True,
+            position_float="centering",
+        )
         expected = _dedent(
             r"""
             \begin{table}
@@ -524,10 +533,10 @@ class TestToLatexCaptionLabel:
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -552,6 +561,8 @@ class TestToLatexCaptionLabel:
         result = df_short.to_latex(
             caption=(caption_table, short_caption),
             label=label_table,
+            hrules=True,
+            position_float="centering",
         )
         expected = _dedent(
             r"""
@@ -561,10 +572,10 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -585,14 +596,16 @@ class TestToLatexCaptionLabel:
     def test_to_latex_bad_caption_raises(self, bad_caption):
         # test that wrong number of params is raised
         df = DataFrame({"a": [1]})
-        msg = "caption must be either a string or a tuple of two strings"
+        msg = "`caption` must be either a string or 2-tuple of strings."
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=bad_caption)
 
     def test_to_latex_two_chars_caption(self, df_short):
         # test that two chars caption is handled correctly
         # it must not be unpacked into long_caption, short_caption.
-        result = df_short.to_latex(caption="xy")
+        result = df_short.to_latex(
+            caption="xy", hrules=True, position_float="centering"
+        )
         expected = _dedent(
             r"""
             \begin{table}
@@ -600,10 +613,10 @@ class TestToLatexCaptionLabel:
             \caption{xy}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -615,29 +628,30 @@ class TestToLatexCaptionLabel:
         # GH 25436
         # test when no caption and no label is provided
         # is performed by test_to_latex_longtable()
-        result = df_short.to_latex(longtable=True, caption=caption_longtable)
+        result = df_short.to_latex(
+            environment="longtable", caption=caption_longtable, hrules=True
+        )
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
-            \caption{a table in a \texttt{longtable} environment}\\
+            \caption{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -645,29 +659,29 @@ class TestToLatexCaptionLabel:
 
     def test_to_latex_longtable_label_only(self, df_short, label_longtable):
         # GH 25436
-        result = df_short.to_latex(longtable=True, label=label_longtable)
+        result = df_short.to_latex(
+            environment="longtable", label=label_longtable, hrules=True
+        )
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
             \label{tab:longtable}\\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endfirsthead
-
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -691,23 +705,23 @@ class TestToLatexCaptionLabel:
             \caption{a table in a \texttt{longtable} environment}
             \label{tab:longtable}\\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -722,9 +736,10 @@ class TestToLatexCaptionLabel:
     ):
         # test when the caption, the short_caption and the label are provided
         result = df_short.to_latex(
-            longtable=True,
+            environment="longtable",
             caption=(caption_longtable, short_caption),
             label=label_longtable,
+            hrules=True,
         )
         expected = _dedent(
             r"""
@@ -732,23 +747,23 @@ class TestToLatexCaptionLabel:
             \caption[a table]{a table in a \texttt{longtable} environment}
             \label{tab:longtable}\\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endfirsthead
-            \caption[]{a table in a \texttt{longtable} environment} \\
+            \caption[]{a table in a \texttt{longtable} environment}\\
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
@@ -869,10 +884,10 @@ class TestToLatexPosition:
             \centering
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -888,23 +903,23 @@ class TestToLatexPosition:
             r"""
             \begin{longtable}[t]{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endfirsthead
 
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
             \endhead
             \midrule
-            \multicolumn{3}{r}{{Continued on next page}} \\
+            \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
 
             \bottomrule
             \endlastfoot
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \end{longtable}
             """
         )
