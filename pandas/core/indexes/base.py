@@ -276,9 +276,10 @@ class Index(IndexOpsMixin, PandasObject):
     DatetimeIndex : Index of datetime64 data.
     TimedeltaIndex : Index of timedelta64 data.
     PeriodIndex : Index of Period data.
-    Int64Index : A special case of :class:`Index` with purely integer labels.
-    UInt64Index : A special case of :class:`Index` with purely unsigned integer labels.
-    Float64Index : A special case of :class:`Index` with purely float labels.
+    NumericIndex : Index of numpy int/uint/float data.
+    Int64Index : Index of purely int64 labels (deprecated).
+    UInt64Index : Index of purely uint64 labels (deprecated).
+    Float64Index : Index of  purely float64 labels (deprecated).
 
     Notes
     -----
@@ -571,15 +572,15 @@ class Index(IndexOpsMixin, PandasObject):
             return TimedeltaIndex
 
         elif is_float_dtype(dtype):
-            from pandas import Float64Index
+            from pandas.core.api import Float64Index
 
             return Float64Index
         elif is_unsigned_integer_dtype(dtype):
-            from pandas import UInt64Index
+            from pandas.core.api import UInt64Index
 
             return UInt64Index
         elif is_signed_integer_dtype(dtype):
-            from pandas import Int64Index
+            from pandas.core.api import Int64Index
 
             return Int64Index
 
@@ -4857,6 +4858,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = concat_compat(to_concat_vals)
         return Index._with_infer(result, name=name)
 
+    @final
     def putmask(self, mask, value) -> Index:
         """
         Return a new Index of the values set with the mask.
@@ -4879,19 +4881,24 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             converted = self._validate_fill_value(value)
         except (ValueError, TypeError) as err:
-            if is_object_dtype(self):
+            if is_object_dtype(self):  # pragma: no cover
                 raise err
 
             dtype = self._find_common_type_compat(value)
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
-        # error: Argument 1 to "setitem_datetimelike_compat" has incompatible type
-        # "Union[ExtensionArray, ndarray]"; expected "ndarray"
-        converted = setitem_datetimelike_compat(
-            values, mask.sum(), converted  # type: ignore[arg-type]
-        )
-        np.putmask(values, mask, converted)
+
+        if isinstance(values, np.ndarray):
+            converted = setitem_datetimelike_compat(values, mask.sum(), converted)
+            np.putmask(values, mask, converted)
+
+        else:
+            # Note: we use the original value here, not converted, as
+            #  _validate_fill_value is not idempotent
+            # error: "ExtensionArray" has no attribute "putmask"
+            values.putmask(mask, value)  # type: ignore[attr-defined]
+
         return self._shallow_copy(values)
 
     def equals(self, other: Any) -> bool:
