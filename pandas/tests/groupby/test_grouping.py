@@ -14,6 +14,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 from pandas.core.groupby.grouper import Grouping
 
 # selection
@@ -634,11 +638,11 @@ class TestGrouping:
             ),
             (
                 "agg",
-                Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+                Series(name=2, dtype=np.float64, index=Float64Index([], name=1)),
             ),
             (
                 "apply",
-                Series(name=2, dtype=np.float64, index=pd.Float64Index([], name=1)),
+                Series(name=2, dtype=np.float64, index=Float64Index([], name=1)),
             ),
         ],
     )
@@ -702,7 +706,7 @@ class TestGrouping:
         empty = df[df.value < 0]
         result = empty.groupby("id").sum()
         expected = DataFrame(
-            dtype="float64", columns=["value"], index=pd.Int64Index([], name="id")
+            dtype="float64", columns=["value"], index=Int64Index([], name="id")
         )
         tm.assert_frame_equal(result, expected)
 

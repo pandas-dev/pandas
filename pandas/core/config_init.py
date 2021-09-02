@@ -757,6 +757,11 @@ styler_sparse_columns_doc = """
     display each explicit level element in a hierarchical key for each column.
 """
 
+styler_render_repr = """
+: str
+    Determine which output to use in Jupyter Notebook in {"html", "latex"}.
+"""
+
 styler_max_elements = """
 : int
     The maximum number of data-cell (<td>) elements that will be rendered before
@@ -793,11 +798,45 @@ styler_formatter = """
     A formatter object to be used as default within ``Styler.format``.
 """
 
+styler_multirow_align = """
+: {"c", "t", "b"}
+    The specifier for vertical alignment of sparsified LaTeX multirows.
+"""
+
+styler_multicol_align = """
+: {"r", "c", "l"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+"""
+
+styler_environment = """
+: str
+    The environment to replace ``\\begin{table}``. If "longtable" is used results
+    in a specific longtable environment format.
+"""
+
+styler_encoding = """
+: str
+    The encoding used for output HTML and LaTeX files.
+"""
+
+styler_mathjax = """
+: bool
+    If False will render special CSS classes to table attributes that indicate Mathjax
+    will not be used in Jupyter Notebook.
+"""
+
 with cf.config_prefix("styler"):
-    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=bool)
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=is_bool)
 
     cf.register_option(
-        "sparse.columns", True, styler_sparse_columns_doc, validator=bool
+        "sparse.columns", True, styler_sparse_columns_doc, validator=is_bool
+    )
+
+    cf.register_option(
+        "render.repr",
+        "html",
+        styler_render_repr,
+        validator=is_one_of_factory(["html", "latex"]),
     )
 
     cf.register_option(
@@ -806,6 +845,8 @@ with cf.config_prefix("styler"):
         styler_max_elements,
         validator=is_nonnegative_int,
     )
+
+    cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
 
     cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
 
@@ -839,4 +880,27 @@ with cf.config_prefix("styler"):
         None,
         styler_formatter,
         validator=is_instance_factory([type(None), dict, callable, str]),
+    )
+
+    cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
+
+    cf.register_option(
+        "latex.multirow_align",
+        "c",
+        styler_multirow_align,
+        validator=is_one_of_factory(["c", "t", "b"]),
+    )
+
+    cf.register_option(
+        "latex.multicol_align",
+        "r",
+        styler_multicol_align,
+        validator=is_one_of_factory(["r", "c", "l"]),
+    )
+
+    cf.register_option(
+        "latex.environment",
+        None,
+        styler_environment,
+        validator=is_instance_factory([type(None), str]),
     )
