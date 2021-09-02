@@ -7701,7 +7701,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 include_start = True
             if include_end == lib.no_default:
                 include_end = True
-        else:  # if depreciated args haven't been passed
+        else:  # On arg removal inclusive can default to "both"
             if inclusive is None:
                 inclusive = "both"
             elif inclusive not in ["both", "neither", "left", "right"]:
