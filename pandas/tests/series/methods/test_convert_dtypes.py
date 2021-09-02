@@ -231,7 +231,7 @@ class TestSeriesConvertDtypes:
         # GH43183
         byte_str = b"binary-string"
 
-        df = pd.DataFrame(data={"A": byte_str, }, index=[0],)
+        df = pd.DataFrame(data={"A": byte_str}, index=[0])
         df_convert = df.convert_dtypes()
 
         assert df_convert["A"][0].decode("ascii") == "binary-string"
