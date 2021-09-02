@@ -189,7 +189,14 @@ class Rank:
         [True, False],
         ["min", "max", "average"],
     )
-    param_names = ["constructor", "window", "dtype", "percentile", "ascending", "method"]
+    param_names = [
+        "constructor",
+        "window",
+        "dtype",
+        "percentile",
+        "ascending",
+        "method",
+    ]
 
     def setup(self, constructor, window, dtype, percentile, ascending, method):
         N = 10 ** 5

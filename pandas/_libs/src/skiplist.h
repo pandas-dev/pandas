@@ -195,8 +195,8 @@ PANDAS_INLINE int skiplist_min_rank(skiplist_t *skp, double value) {
     return rank + 1;
 }
 
-// Returns the rank of the inserted element. When there are duplicates, `rank` is the highest of
-// the group, i.e. the 'max' method of
+// Returns the rank of the inserted element. When there are duplicates,
+// `rank` is the highest of the group, i.e. the 'max' method of
 // https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.rank.html
 PANDAS_INLINE int skiplist_insert(skiplist_t *skp, double value) {
     node_t *node, *prevnode, *newnode, *next_at_level;

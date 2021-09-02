@@ -1155,7 +1155,8 @@ rank_types = {
 
 
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp, bint percentile, str method, bint ascending) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint percentile,
+              str method, bint ascending) -> np.ndarray:
     """
     O(N log(window)) implementation using skip list
 
@@ -1211,7 +1212,9 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                             raise MemoryError("skiplist_insert failed")
                         if rank_type == AVERAGE:
                             rank_min = skiplist_min_rank(skiplist, val)
-                            rank = ((rank * (rank + 1) / 2) - ((rank_min - 1) * rank_min / 2)) / (rank - rank_min + 1)
+                            rank = ((rank * (rank + 1) / 2)
+                                    - ((rank_min - 1) * rank_min / 2)) \
+                                / (rank - rank_min + 1)
                         elif rank_type == MIN:
                             rank = skiplist_min_rank(skiplist, val)
 
@@ -1233,7 +1236,9 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                             raise MemoryError("skiplist_insert failed")
                         if rank_type == AVERAGE:
                             rank_min = skiplist_min_rank(skiplist, val)
-                            rank = ((rank * (rank + 1) / 2) - ((rank_min - 1) * rank_min / 2)) / (rank - rank_min + 1)
+                            rank = ((rank * (rank + 1) / 2)
+                                    - ((rank_min - 1) * rank_min / 2)) \
+                                / (rank - rank_min + 1)
                         elif rank_type == MIN:
                             rank = skiplist_min_rank(skiplist, val)
             if nobs >= minp:
