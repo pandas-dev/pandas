@@ -150,6 +150,13 @@ def test_is_list_like_recursion():
         foo()
 
 
+def test_is_list_like_iter_is_none():
+    class NotListLike:
+        __iter__ = None
+
+    assert not inference.is_list_like(NotListLike())
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))

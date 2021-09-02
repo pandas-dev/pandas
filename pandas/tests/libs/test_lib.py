@@ -206,10 +206,3 @@ def test_no_default_pickle():
     # GH#40397
     obj = tm.round_trip_pickle(lib.no_default)
     assert obj is lib.no_default
-
-
-def test_is_list_like_iter_is_none():
-    class NotListLike:
-        __iter__ = None
-
-    assert not lib.is_list_like(NotListLike())
