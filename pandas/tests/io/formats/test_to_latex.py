@@ -813,16 +813,16 @@ class TestToLatexEscape:
 
     def test_to_latex_special_escape(self):
         df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
-        result = df.to_latex(hrules=True)
+        result = df.to_latex(hrules=True, escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &       0 \\
+            {} & {0} \\
             \midrule
-            0 &   a\textbackslash b\textbackslash c \\
-            1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
-            2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+            0 & a\textbackslash b\textbackslash c \\
+            1 & \textasciicircum a\textasciicircum b\textasciicircum c \\
+            2 & \textasciitilde a\textasciitilde b\textasciitilde c \\
             \bottomrule
             \end{tabular}
             """
