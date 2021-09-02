@@ -832,23 +832,23 @@ class TestToLatexEscape:
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
         df = DataFrame(data=special_characters)
-        result = df.to_latex(hrules=True)
+        result = df.to_latex(hrules=True, escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  0 \\
+            {} & {0} \\
             \midrule
-            0 &  \& \\
-            1 &  \% \\
-            2 &  \$ \\
-            3 &  \# \\
-            4 &  \_ \\
-            5 &  \{ \\
-            6 &  \} \\
-            7 &  \textasciitilde  \\
-            8 &  \textasciicircum  \\
-            9 &  \textbackslash  \\
+            0 & \& \\
+            1 & \% \\
+            2 & \$ \\
+            3 & \# \\
+            4 & \_ \\
+            5 & \{ \\
+            6 & \} \\
+            7 & \textasciitilde  \\
+            8 & \textasciicircum  \\
+            9 & \textbackslash  \\
             \bottomrule
             \end{tabular}
             """
