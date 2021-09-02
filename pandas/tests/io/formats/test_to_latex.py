@@ -968,12 +968,12 @@ class TestToLatexFormatters:
     def test_to_latex_float_format_no_fixed_width_3decimals(self):
         # GH 21625
         df = DataFrame({"x": [0.19999]})
-        result = df.to_latex(float_format="%.3f")
+        result = df.to_latex(formatter="{:.3f}", hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &     x \\
+            {} & {x} \\
             \midrule
             0 & 0.200 \\
             \bottomrule
@@ -985,12 +985,12 @@ class TestToLatexFormatters:
     def test_to_latex_float_format_no_fixed_width_integer(self):
         # GH 22270
         df = DataFrame({"x": [100.0]})
-        result = df.to_latex(float_format="%.0f")
+        result = df.to_latex(formatter="{:.0f}", hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} &   x \\
+            {} & {x} \\
             \midrule
             0 & 100 \\
             \bottomrule
@@ -1008,15 +1008,15 @@ class TestToLatexFormatters:
             ],
             columns=["Group", "Data"],
         )
-        result = df.to_latex(na_rep=na_rep, float_format="{:.2f}".format)
+        result = df.to_latex(na_rep=na_rep, precision=2, hrules=True)
         expected = _dedent(
             fr"""
             \begin{{tabular}}{{llr}}
             \toprule
-            {{}} & Group &  Data \\
+            {{}} & {{Group}} & {{Data}} \\
             \midrule
-            0 &     A &  1.22 \\
-            1 &     A &   {na_rep} \\
+            0 & A & 1.22 \\
+            1 & A & {na_rep} \\
             \bottomrule
             \end{{tabular}}
             """
