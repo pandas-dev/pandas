@@ -2422,18 +2422,16 @@ def test_rolling_wrong_param_min_period():
 
 
 @pytest.mark.parametrize("method", ["first", "last", "nth"])
-@pytest.mark.parametrize("nans", [None, np.nan])
-def test_groupby_last_first_nth_with_none(method, nans):
+def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     # GH29645
-    expected = Series([True])
-    data = (
-        Series([nans, "x", nans, "y", nans], index=[0, 0, 0, 0, 0])
-        .isna()
-        .groupby(level=0)
-    )
+    expected = Series(["y"])
+    data = Series(
+        [nulls_fixture, nulls_fixture, nulls_fixture, "y", nulls_fixture],
+        index=[0, 0, 0, 0, 0],
+    ).groupby(level=0)
 
     if method == "nth":
-        result = getattr(data, method)(2)
+        result = getattr(data, method)(3)
     else:
         result = getattr(data, method)()
 
