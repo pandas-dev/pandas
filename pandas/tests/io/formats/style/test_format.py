@@ -307,18 +307,23 @@ def test_precision_zero(df):
     assert ctx["body"][1][2]["display_value"] == "-1"
 
 
-def test_format_options_validator():
+@pytest.mark.parametrize(
+    "formatter, exp",
+    [
+        (lambda x: f"{x:.3f}", "9.000"),
+        ("{:.2f}", "9.00"),
+        ({0: "{:.1f}"}, "9.0"),
+        (None, "9"),
+    ],
+)
+def test_formatter_options_validator(formatter, exp):
     df = DataFrame([[9]])
-    with option_context("styler.format.formatter", lambda x: f"{x:.3f}"):
-        assert " 9.000 " in df.style.to_latex()
-    with option_context("styler.format.formatter", "{:.2f}"):
-        assert " 9.00 " in df.style.to_latex()
-    with option_context("styler.format.formatter", {0: "{:.1f}"}):
-        assert " 9.0 " in df.style.to_latex()
-    with option_context("styler.format.formatter", None):
-        assert " 9 " in df.style.to_latex()
+    with option_context("styler.format.formatter", formatter):
+        assert f" {exp} " in df.style.to_latex()
 
+
+def test_formatter_options_raises():
     msg = "Value must have type"
     with pytest.raises(ValueError, match=msg):
         with option_context("styler.format.formatter", ["bad", "type"]):
-            df.style.to_latex()
+            DataFrame().style.to_latex()
