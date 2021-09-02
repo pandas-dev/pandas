@@ -2429,6 +2429,7 @@ def test_rolling_wrong_param_min_period():
         ("var", [4.5] * 3, int, float),
         ("sum", [5, 7, 9], "Int64", "Int64"),
         # result_dtype should ideally be Float64
+        # GH#43330
         ("std", [4.5 ** 0.5] * 3, "Int64", float),
         ("var", [4.5] * 3, "Int64", "Float64"),
     ],
