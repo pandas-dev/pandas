@@ -1653,12 +1653,9 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         # converting to a 2-D ndarray of objects.
         # Instead, we unstack an ndarray of integer positions, followed by
         # a `take` on the actual values.
-        n_rows = self.shape[-1]
-        dummy_arr = np.arange(n_rows)
 
-        new_values, mask = unstacker.get_new_values(dummy_arr, fill_value=-1)
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
+        # Caller is responsible for ensuring self.shape[-1] == len(unstacker.index)
+        new_values, mask = unstacker.arange_result
 
         # Note: these next two lines ensure that
         #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
