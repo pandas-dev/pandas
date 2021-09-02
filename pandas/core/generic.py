@@ -7685,8 +7685,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inclusive is not None
         ):
             raise ValueError(
-                "`inclusive` cannot be passed if either or both of `include_start`,"
-                "`include_end` is passed."
+                "Depreciated arguments `include_start` and `include_end`"
+                "cannot be passed if `inclusive` has been given."
             )
         # If any of the depreciated arguments ('include_start', 'include_end')
         # have been passed
