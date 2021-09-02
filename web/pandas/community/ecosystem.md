@@ -392,7 +392,7 @@ authors to coordinate on the namespace.
 
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
 
-While pandas repository is partially typed, the package itself doesn't expose this information for external use. 
+While pandas repository is partially typed, the package itself doesn't expose this information for external use.
 Install pandas-stubs to enable basic type coverage of pandas API.
 
 Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
