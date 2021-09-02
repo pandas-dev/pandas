@@ -38,6 +38,7 @@ from pandas._libs.tslibs import (
     to_offset,
     tzconversion,
 )
+from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
@@ -656,7 +657,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @dtl.ravel_compat
     def _format_native_types(
         self, na_rep="NaT", date_format=None, **kwargs
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
         fmt = get_format_datetime64_from_values(self, date_format)
@@ -1045,7 +1046,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self) -> np.ndarray:
+    def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.
@@ -1262,7 +1263,7 @@ default 'raise'
         return result
 
     @property
-    def time(self) -> np.ndarray:
+    def time(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1274,7 +1275,7 @@ default 'raise'
         return ints_to_pydatetime(timestamps, box="time")
 
     @property
-    def timetz(self) -> np.ndarray:
+    def timetz(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of datetime.time also containing timezone
         information. The time part of the Timestamps.
@@ -1282,7 +1283,7 @@ default 'raise'
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
-    def date(self) -> np.ndarray:
+    def date(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).

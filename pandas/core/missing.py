@@ -23,6 +23,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     F,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -57,7 +58,7 @@ def check_value_size(value, mask: np.ndarray, length: int):
     return value
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
+def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
