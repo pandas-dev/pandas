@@ -17,12 +17,12 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    UInt64Index,
     concat,
     date_range,
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.api import UInt64Index
 from pandas.core.arrays.integer import coerce_to_array
 
 
