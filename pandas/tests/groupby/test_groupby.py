@@ -2419,3 +2419,27 @@ def test_rolling_wrong_param_min_period():
     result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
     with pytest.raises(TypeError, match=result_error_msg):
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
+
+
+@pytest.mark.parametrize("method", ["first", "last", "nth"])
+def test_groupby_last_first_nth_with_none(method):
+    # GH29645
+    s1 = (
+        Series([None, "x", None, "y", None], index=[0, 0, 0, 0, 0])
+        .isna()
+        .groupby(level=0)
+    )
+    s2 = (
+        Series([np.nan, "x", np.nan, "y", np.nan], index=[0, 0, 0, 0, 0])
+        .isna()
+        .groupby(level=0)
+    )
+
+    if method == "nth":
+        s_none = getattr(s1, method)(2)
+        s_nan = getattr(s2, method)(2)
+    else:
+        s_none = getattr(s1, method)()
+        s_nan = getattr(s2, method)()
+
+    tm.assert_series_equal(s_none, s_nan)
