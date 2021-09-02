@@ -3139,7 +3139,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal=".",
         thousands=None,
         escape=False,
-        bold_headers=False,
+        bold_header="none",
         longtable=None,
         multicolumn=None,
         multicolumn_format=None,
@@ -3283,8 +3283,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Escaping is done before ``formatter``.
 
             .. versionchanged:: 1.4.0
-        bold_headers : bool, default False
-            Make the row labels bold in the output, using
+        bold_header : {{"none", "index", "columns", "both"}}
+            Make the row labels and/or column headers bold in the output, using
             command ``\\textbf{{<value>}}``
 
             .. versionadded:: 1.4.0
@@ -3324,7 +3324,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         bold_rows : bool, default False
 
             .. deprecated:: 1.4.0
-               Use ``bold_headers`` instead.
+               Use ``bold_header`` instead.
 
         {returns}
         See Also
@@ -3393,8 +3393,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if columns:
             hidden = [col for col in styler.columns if col not in columns]
             styler.hide_columns(hidden)
-        if bold_headers:
+        if bold_header in ["index", "both"]:
             styler.applymap_index(lambda val: "textbf: --rwrap;")
+        if bold_header in ["columns", "both"]:
             styler.applymap_index(lambda val: "textbf: --rwrap;", axis=1)
 
         return styler.to_latex(

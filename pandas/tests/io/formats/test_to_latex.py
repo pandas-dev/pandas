@@ -372,15 +372,15 @@ class TestToLatexHeader:
     def test_to_latex_decimal(self):
         # GH 12031
         df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
-        result = df.to_latex(decimal=",")
+        result = df.to_latex(decimal=",", precision=1, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} &    a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1,0 &  b1 \\
-            1 &  2,1 &  b2 \\
+            0 & 1,0 & b1 \\
+            1 & 2,1 & b2 \\
             \bottomrule
             \end{tabular}
             """
@@ -389,38 +389,28 @@ class TestToLatexHeader:
 
 
 class TestToLatexBold:
-    def test_to_latex_bold_rows(self):
+    @pytest.mark.parametrize("bold_header", ["both", "none", "index", "columns"])
+    def test_to_latex_bold_rows(self, bold_header):
         # GH 16707
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(bold_rows=True)
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            \textbf{0} &  1 &  b1 \\
-            \textbf{1} &  2 &  b2 \\
-            \bottomrule
-            \end{tabular}
-            """
+        cols = (
+            "{\\textbf{a}} & {\\textbf{b}}"
+            if bold_header in ["both", "columns"]
+            else "{a} & {b}"
         )
-        assert result == expected
-
-    def test_to_latex_no_bold_rows(self):
-        # GH 16707
+        idx1 = "\\textbf{0}" if bold_header in ["both", "index"] else "0"
+        idx2 = "\\textbf{1}" if bold_header in ["both", "index"] else "1"
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(bold_rows=False)
+        result = df.to_latex(bold_header=bold_header, hrules=True)
         expected = _dedent(
-            r"""
-            \begin{tabular}{lrl}
-            \toprule
-            {} &  a &   b \\
-            \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
-            \bottomrule
-            \end{tabular}
+            f"""
+            \\begin{{tabular}}{{lrl}}
+            \\toprule
+            {{}} & {cols} \\\\
+            \\midrule
+            {idx1} & 1 & b1 \\\\
+            {idx2} & 2 & b2 \\\\
+            \\bottomrule
+            \\end{{tabular}}
             """
         )
         assert result == expected
@@ -454,7 +444,9 @@ class TestToLatexCaptionLabel:
 
     def test_to_latex_caption_only(self, df_short, caption_table):
         # GH 25436
-        result = df_short.to_latex(caption=caption_table)
+        result = df_short.to_latex(
+            caption=caption_table, hrules=True, position_float="centering"
+        )
         expected = _dedent(
             r"""
             \begin{table}
@@ -462,10 +454,10 @@ class TestToLatexCaptionLabel:
             \caption{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
@@ -475,7 +467,9 @@ class TestToLatexCaptionLabel:
 
     def test_to_latex_label_only(self, df_short, label_table):
         # GH 25436
-        result = df_short.to_latex(label=label_table)
+        result = df_short.to_latex(
+            label=label_table, position_float="centering", hrules=True
+        )
         expected = _dedent(
             r"""
             \begin{table}
@@ -483,10 +477,10 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} &  a &   b \\
+            {} & {a} & {b} \\
             \midrule
-            0 &  1 &  b1 \\
-            1 &  2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             \end{table}
