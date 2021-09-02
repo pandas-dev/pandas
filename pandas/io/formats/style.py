@@ -525,6 +525,8 @@ class Styler(StylerRenderer):
             at the top or bottom using the multirow package. If not given defaults to
             ``pandas.options.styler.latex.multirow_align``. If "naive" is given renders
             without multirow.
+
+            .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
