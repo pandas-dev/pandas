@@ -1330,28 +1330,32 @@ class TestToLatexMultiindex:
         for idx in axes:
             df.axes[idx].names = names
 
-        idx_names = tuple(n or "{}" for n in names)
-        idx_names_row = (
-            f"{idx_names[0]} & {idx_names[1]} &    &    &    &    \\\\\n"
-            if (0 in axes and any(names))
+        index_names_row = (
+            f"{{{name0 if name0 else ''}}} & {{{name1 if name1 else ''}}} & {{}} & "
+            f"{{}} & {{}} & {{}} \\\\\n"
+            if (0 in axes and (name0 is not None or name1 is not None))
             else ""
         )
-        placeholder = "{}" if any(names) and 1 in axes else " "
-        col_names = [n if (bool(n) and 1 in axes) else placeholder for n in names]
-        observed = df.to_latex(hrules=True)
-        expected = r"""\begin{tabular}{llrrrr}
-\toprule
-  & %s & \multicolumn{2}{l}{1} & \multicolumn{2}{l}{2} \\
-  & %s &  3 &  4 &  3 &  4 \\
-%s\midrule
-1 & 3 & -1 & -1 & -1 & -1 \\
-  & 4 & -1 & -1 & -1 & -1 \\
-2 & 3 & -1 & -1 & -1 & -1 \\
-  & 4 & -1 & -1 & -1 & -1 \\
-\bottomrule
-\end{tabular}
-""" % tuple(
-            list(col_names) + [idx_names_row]
+        column_name0 = f"{{{name0 if (name0 and 1 in axes) else ''}}}"
+        column_name1 = f"{{{name1 if (name1 and 1 in axes) else ''}}}"
+
+        observed = df.to_latex(
+            hrules=True, multicol_align="l", sparse_columns=False, sparse_index=False
+        )
+        expected = dedent(
+            f"""\
+\\begin{{tabular}}{{llrrrr}}
+\\toprule
+{{}} & {column_name0} & {{1}} & {{1}} & {{2}} & {{2}} \\\\
+{{}} & {column_name1} & {{3}} & {{4}} & {{3}} & {{4}} \\\\
+{index_names_row}\\midrule
+1 & 3 & -1 & -1 & -1 & -1 \\\\
+1 & 4 & -1 & -1 & -1 & -1 \\\\
+2 & 3 & -1 & -1 & -1 & -1 \\\\
+2 & 4 & -1 & -1 & -1 & -1 \\\\
+\\bottomrule
+\\end{{tabular}}
+"""
         )
         assert observed == expected
 
