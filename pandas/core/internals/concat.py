@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
+    is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import (
@@ -412,12 +413,14 @@ class JoinUnit:
 
         if values.ndim == 1:
             # TODO(EA2D): no need for special case with 2D EAs
-            if not isna(values[0]):
+            val = values[0]
+            if not is_scalar(val) or not isna(val):
                 # ideally isna_all would do this short-circuiting
                 return False
             return isna_all(values)
         else:
-            if not isna(values[0][0]):
+            val = values[0][0]
+            if not is_scalar(val) or not isna(val):
                 # ideally isna_all would do this short-circuiting
                 return False
             return all(isna_all(row) for row in values)
