@@ -858,15 +858,15 @@ class TestToLatexEscape:
     def test_to_latex_specified_header_special_chars_without_escape(self):
         # GH 7124
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(header=["$A$", "$B$"], escape=False)
+        result = df.to_latex(header=["$A$", "$B$"], escape=False, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & $A$ & $B$ \\
+            {} & {$A$} & {$B$} \\
             \midrule
-            0 &   1 &  b1 \\
-            1 &   2 &  b2 \\
+            0 & 1 & b1 \\
+            1 & 2 & b2 \\
             \bottomrule
             \end{tabular}
             """
