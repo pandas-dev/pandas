@@ -241,6 +241,25 @@ def test_multiindex_row(df):
     assert expected == s.to_latex(sparse_index=False)
 
 
+def test_multirow_naive(df):
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    df.index = ridx
+    expected = dedent(
+        """\
+        \\begin{tabular}{llrrl}
+        {} & {} & {A} & {B} & {C} \\\\
+        A & a & 0 & -0.61 & ab \\\\
+         & b & 1 & -1.22 & cd \\\\
+        B & c & 2 & -2.22 & de \\\\
+        \\end{tabular}
+        """
+    )
+    s = df.style.format(precision=2)
+    assert expected == s.to_latex(multirow_align="naive")
+
+
 def test_multiindex_row_and_col(df):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
