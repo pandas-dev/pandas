@@ -878,7 +878,9 @@ class TestToLatexPosition:
     def test_to_latex_position(self):
         the_position = "h"
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(position=the_position)
+        result = df.to_latex(
+            position=the_position, position_float="centering", hrules=True
+        )
         expected = _dedent(
             r"""
             \begin{table}[h]
