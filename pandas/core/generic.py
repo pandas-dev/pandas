@@ -3367,6 +3367,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             escape="latex" if escape else None,
         )
 
+        if escape:
+            styler.format_index(escape="latex", axis=0)
+            styler.format_index(escape="latex", axis=1)
+
         if header is False:
             styler.hide_columns()
         elif isinstance(header, (list, tuple)):

@@ -779,31 +779,32 @@ class TestToLatexEscape:
         yield DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
 
     def test_to_latex_escape_false(self, df_with_symbols):
-        result = df_with_symbols.to_latex(escape=False)
+        result = df_with_symbols.to_latex(hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & co$e^x$ & co^l1 \\
+            {} & {co$e^x$} & {co^l1} \\
             \midrule
-            a &       a &     a \\
-            b &       b &     b \\
+            a & a & a \\
+            b & b & b \\
             \bottomrule
             \end{tabular}
             """
         )
         assert result == expected
 
-    def test_to_latex_escape_default(self, df_with_symbols):
-        result = df_with_symbols.to_latex(hrules=True)  # default: escape=True
+    def test_to_latex_escape_true(self, df_with_symbols):
+        # note default changed with 1.4.0
+        result = df_with_symbols.to_latex(hrules=True, escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
+            {} & {co\$e\textasciicircum x\$} & {co\textasciicircum l1} \\
             \midrule
-            a &       a &     a \\
-            b &       b &     b \\
+            a & a & a \\
+            b & b & b \\
             \bottomrule
             \end{tabular}
             """
