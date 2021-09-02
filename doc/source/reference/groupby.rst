@@ -67,12 +67,12 @@ Computations / descriptive stats
    GroupBy.min
    GroupBy.ngroup
    GroupBy.nth
-   GroupBy.iloc
    GroupBy.ohlc
    GroupBy.pad
    GroupBy.prod
    GroupBy.rank
    GroupBy.pct_change
+   GroupBy.rows
    GroupBy.size
    GroupBy.sem
    GroupBy.std
