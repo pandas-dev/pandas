@@ -679,13 +679,17 @@ class TestSeriesFillNA:
         ],
     )
 
-    def test_series_fill(self, fill_value, expected_output):
-        # GH#32414
+    def test_series_fill(fill_value, expected_output):
+        # GH32414
         data = ["A", "B", np.nan, np.nan, "C"]
-        series = Series(Categorical(data, categories=["A", "B", "C"]))
-        expected = Series(Categorical(expected_output, categories=["A", "B", "C"]))
-        result = series.fillna(fill_value)
-        tm.assert_almost_equal(result, expected)
+        cat = Categorical(data, categories=["A", "B", "C"])
+        ser = Series(cat)
+        exp = Categorical(expected_output, categories=["A", "B", "C"])
+        exp_ser = Series(exp)
+        result = ser.fillna(fill_value)
+        filled = cat.fillna(fill_value)
+        tm.assert_almost_equal(result, exp_ser)
+        tm.assert_almost_equal(filled, exp)
 
 
     def test_fillna_categorical_raises(self):
