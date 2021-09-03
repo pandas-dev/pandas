@@ -29,8 +29,8 @@ It is now possible to create an index of any numpy int/uint/float dtype using th
     pd.NumericIndex([1, 2, 3], dtype="uint32")
     pd.NumericIndex([1, 2, 3], dtype="float32")
 
-In order to maintain backwards compatibility, calls to the base :class:`Index` will in
-pandas 1.x. return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`.
+In order to maintain backwards compatibility, calls to the base :class:`Index` will currently
+return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`, where relevant.
 For example, the code below returns an ``Int64Index`` with dtype ``int64``:
 
 .. code-block:: ipython
@@ -38,11 +38,12 @@ For example, the code below returns an ``Int64Index`` with dtype ``int64``:
     In [1]: pd.Index([1, 2, 3], dtype="int8")
     Int64Index([1, 2, 3], dtype='int64')
 
-For the duration of Pandas 1.x, in order to maintain backwards compatibility, all
-operations that until now have returned :class:`Int64Index`, :class:`UInt64Index` and
-:class:`Float64Index` will continue to so. This means, that in order to use
-``NumericIndex``, you will have to call ``NumericIndex`` explicitly. For example the below series
-will have an ``Int64Index``:
+but will in a future version return a :class:`NumericIndex` with dtype ``int8``.
+
+More generally, currently, all operations that until now have
+returned :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` will
+continue to so. This means, that in order to use ``NumericIndex`` in the current version, you
+will have to call ``NumericIndex`` explicitly. For example the below series will have an ``Int64Index``:
 
 .. code-block:: ipython
 
@@ -50,7 +51,7 @@ will have an ``Int64Index``:
     In [3]: ser.index
     Int64Index([1, 2, 3], dtype='int64')
 
-Instead if you want to use a ``NumericIndex``, you should do:
+Instead, if you want to use a ``NumericIndex``, you should do:
 
 .. ipython:: python
 
@@ -58,10 +59,11 @@ Instead if you want to use a ``NumericIndex``, you should do:
     ser = pd.Series([1, 2, 3], index=idx)
     ser.index
 
-In Pandas 2.0, :class:`NumericIndex` will become the default numeric index type and
-``Int64Index``, ``UInt64Index`` and ``Float64Index`` will be removed.
+In a future version of Pandas, :class:`NumericIndex` will become the default numeric index type and
+``Int64Index``, ``UInt64Index`` and ``Float64Index`` are therefore deprecated and will
+be removed in the future, see :ref:`here <whatsnew_140.deprecations.int64_uint64_float64index>` for more.
 
-See :ref:`here <advanced.numericindex>` for more.
+See :ref:`here <advanced.numericindex>` for more about :class:`NumericIndex`.
 
 .. _whatsnew_140.enhancements.styler:
 
@@ -73,9 +75,11 @@ Styler
   - Styling of indexing has been added, with :meth:`.Styler.apply_index` and :meth:`.Styler.applymap_index`. These mirror the signature of the methods already used to style data values, and work with both HTML and LaTeX format (:issue:`41893`).
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
-  - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index`` and ``sparse_columns`` (:issue:`41946`)
+  - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption`` (:issue:`41946`, :issue:`43149`).
   - Keyword argument ``level`` is added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
-  - Global options have been extended to configure default ``Styler`` properties including formatting options (:issue:`41395`)
+  - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
+
+Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
 
 There are also bug fixes and deprecations listed below.
 
@@ -222,6 +226,41 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. _whatsnew_140.deprecations.int64_uint64_float64index:
+
+Deprecated Int64Index, UInt64Index & Float64Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` have been deprecated
+in favor of the new :class:`NumericIndex` and will be removed in Pandas 2.0 (:issue:`43028`).
+
+Currently, in order to maintain backward compatibility, calls to
+:class:`Index` will continue to return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`
+when given numeric data, but in the future, a :class:`NumericIndex` will be returned.
+
+*Current behavior*:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index([1, 2, 3], dtype="int32")
+    Out [1]: Int64Index([1, 2, 3], dtype='int64')
+    In [1]: pd.Index([1, 2, 3], dtype="uint64")
+    Out [1]: UInt64Index([1, 2, 3], dtype='uint64')
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [3]: pd.Index([1, 2, 3], dtype="int32")
+    Out [3]: NumericIndex([1, 2, 3], dtype='int32')
+    In [4]: pd.Index([1, 2, 3], dtype="uint64")
+    Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
+
+
+.. _whatsnew_140.deprecations.other:
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 - Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 - Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)
