@@ -276,6 +276,27 @@ def test_multiindex_row_and_col(df):
     assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
 
 
+@pytest.mark.parametrize(
+    "multicol_align, exp", [("naive-l", "{A} & &"), ("naive-r", "& & {A}")]
+)
+def test_multicol_naive(df, multicol_align, exp):
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")])
+    df = df.astype({"A": int})
+    df.columns = ridx
+    expected = dedent(
+        f"""\
+        \\begin{{tabular}}{{lrrl}}
+        {{}} & {exp} \\\\
+        {{}} & {{a}} & {{b}} & {{c}} \\\\
+        0 & 0 & -0.61 & ab \\\\
+        1 & 1 & -1.22 & cd \\\\
+        \\end{{tabular}}
+        """
+    )
+    s = df.style.format(precision=2)
+    assert expected == s.to_latex(multicol_align=multicol_align)
+
+
 def test_multi_options(df):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
