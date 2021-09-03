@@ -897,9 +897,8 @@ class TestToLatexPosition:
         assert result == expected
 
     def test_to_latex_longtable_position(self):
-        the_position = "t"
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-        result = df.to_latex(longtable=True, position=the_position)
+        result = df.to_latex(environment="longtable", position="t", hrules=True)
         expected = _dedent(
             r"""
             \begin{longtable}[t]{lrl}
@@ -907,7 +906,6 @@ class TestToLatexPosition:
             {} & {a} & {b} \\
             \midrule
             \endfirsthead
-
             \toprule
             {} & {a} & {b} \\
             \midrule
@@ -916,7 +914,6 @@ class TestToLatexPosition:
             \multicolumn{3}{r}{Continued on next page} \\
             \midrule
             \endfoot
-
             \bottomrule
             \endlastfoot
             0 & 1 & b1 \\
