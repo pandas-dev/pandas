@@ -160,9 +160,15 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the Python engine is
-  currently more feature-complete.
+engine : {``'c'``, ``'python'``, ``'pyarrow'``}
+  Parser engine to use. The C and pyarrow engines are faster, while the python engine
+  is currently more feature-complete. Multithreading is currently only supported by
+  the pyarrow engine.
+
+  .. versionadded:: 1.4.0
+
+     The "pyarrow" engine was added as an *experimental* engine, and some features
+     are unsupported, or may not work correctly, with this engine.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -1622,11 +1628,17 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a Python implementation which is currently more feature-complete. Where
-possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to Python if C-unsupported options are specified. Currently, C-unsupported
-options include:
+Pandas currently supports three engines, the C engine, the python engine, and an experimental
+pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads and is equivalent in speed to the C engine on most other workloads.
+The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
+the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
+Python engine.
+
+Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
+back to Python if C-unsupported options are specified.
+
+Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
@@ -1634,6 +1646,32 @@ options include:
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Options that are unsupported by the pyarrow engine which are not covered by the list above include:
+
+* ``float_precision``
+* ``chunksize``
+* ``comment``
+* ``nrows``
+* ``thousands``
+* ``memory_map``
+* ``dialect``
+* ``warn_bad_lines``
+* ``error_bad_lines``
+* ``on_bad_lines``
+* ``delim_whitespace``
+* ``quoting``
+* ``lineterminator``
+* ``converters``
+* ``decimal``
+* ``iterator``
+* ``dayfirst``
+* ``infer_datetime_format``
+* ``verbose``
+* ``skipinitialspace``
+* ``low_memory``
+
+Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
 .. _io.remote:
 
@@ -2464,14 +2502,16 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = (
-       "https://raw.githubusercontent.com/pandas-dev/pandas/master/"
-       "pandas/tests/io/data/html/spam.html"
-   )
+   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    dfs = pd.read_html(url)
    dfs
 
-Read in the content of the "banklist.html" file and pass it to ``read_html``
+.. note::
+
+   The data from the above URL changes every Monday so the resulting data above
+   and the data below may be slightly different.
+
+Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 
 .. ipython:: python

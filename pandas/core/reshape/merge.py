@@ -673,7 +673,7 @@ class _MergeOperation:
         if _left.columns.nlevels != _right.columns.nlevels:
             msg = (
                 "merging between different levels is deprecated and will be removed "
-                f"in a future version. ({left.columns.nlevels} levels on the left,"
+                f"in a future version. ({left.columns.nlevels} levels on the left, "
                 f"{right.columns.nlevels} on the right)"
             )
             # stacklevel chosen to be correct when this is reached via pd.merge
@@ -748,7 +748,7 @@ class _MergeOperation:
         self, result: DataFrame, cross_col: str | None
     ) -> None:
         if cross_col is not None:
-            result.drop(columns=cross_col, inplace=True)
+            del result[cross_col]
 
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
@@ -931,17 +931,16 @@ class _MergeOperation:
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
 
-    def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
+    def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
-        # Both returned ndarrays are np.intp
         return get_join_indexers(
             self.left_join_keys, self.right_join_keys, sort=self.sort, how=self.how
         )
 
     def _get_join_info(
         self,
-    ) -> tuple[Index, np.ndarray | None, np.ndarray | None]:
-        # Both returned ndarrays are np.intp (if not None)
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+
         left_ax = self.left.axes[self.axis]
         right_ax = self.right.axes[self.axis]
 
@@ -1201,7 +1200,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1211,7 +1210,7 @@ class _MergeOperation:
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
-                            "are not equal to their int representation",
+                            "are not equal to their int representation.",
                             UserWarning,
                         )
                     continue
@@ -1892,8 +1891,7 @@ class _AsOfMerge(_OrderedMerge):
 
         return left_join_keys, right_join_keys, join_names
 
-    def _get_join_indexers(self) -> tuple[np.ndarray, np.ndarray]:
-        # Both returned ndarrays are np.intp
+    def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
 
         def flip(xs) -> np.ndarray:
@@ -1987,8 +1985,7 @@ class _AsOfMerge(_OrderedMerge):
 
 def _get_multiindex_indexer(
     join_keys, index: MultiIndex, sort: bool
-) -> tuple[np.ndarray, np.ndarray]:
-    # Both returned ndarrays are np.intp
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
     # left & right join labels and num. of levels at each location
     mapped = (
@@ -2026,8 +2023,7 @@ def _get_multiindex_indexer(
 
 def _get_single_indexer(
     join_key, index: Index, sort: bool = False
-) -> tuple[np.ndarray, np.ndarray]:
-    # Both returned ndarrays are np.intp
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     left_key, right_key, count = _factorize_keys(join_key, index._values, sort=sort)
 
     return libjoin.left_outer_join(left_key, right_key, count, sort=sort)
@@ -2035,8 +2031,7 @@ def _get_single_indexer(
 
 def _left_join_on_index(
     left_ax: Index, right_ax: Index, join_keys, sort: bool = False
-) -> tuple[Index, np.ndarray | None, np.ndarray]:
-    # Both returned ndarrays are np.intp (if not None)
+) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
     if len(join_keys) > 1:
         if not (
             isinstance(right_ax, MultiIndex) and len(join_keys) == right_ax.nlevels
@@ -2205,8 +2200,7 @@ def _factorize_keys(
 
 def _sort_labels(
     uniques: np.ndarray, left: np.ndarray, right: np.ndarray
-) -> tuple[np.ndarray, np.ndarray]:
-    # Both returned ndarrays are np.intp
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
 
     llength = len(left)
     labels = np.concatenate([left, right])
