@@ -552,6 +552,57 @@ def test_numeric_dtype(all_parsers, dtype):
     tm.assert_frame_equal(expected, result)
 
 
+def test_dtype_coerce(all_parsers):
+    parser = all_parsers
+    data = """a,b\n1,2\na,3"""
+    result = parser.read_csv(
+        StringIO(data), dtype={"a": (float, "coerce"), "b": np.int64}
+    )
+    expected = DataFrame({"a": [1.0, np.nan], "b": [2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_coerce_with_int_raises(all_parsers):
+    parser = all_parsers
+    data = """a,b\n1,2\na,3"""
+    with pytest.raises(ValueError, match="Can only coerce when dtype is a float type"):
+        parser.read_csv(
+            StringIO(data), dtype={"a": (float, "coerce"), "b": (int, "coerce")}
+        )
+
+
+def test_dtype_coerce_invalid_name_raises(all_parsers):
+    parser = all_parsers
+    data = """a,b\n1,2\na,3"""
+    msg = (
+        "could not convert string to float: 'a'"
+        if parser.engine == "c"
+        else "Unable to convert column a to type <class 'float'>"
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), dtype={"a": (float, "fail")})
+
+
+@pytest.mark.parametrize(
+    "na_values,expected",
+    [
+        ({8200.0}, DataFrame({"a": [np.nan, np.nan], "b": [2, 3]})),
+        ({"B"}, DataFrame({"a": [8200.0, np.nan], "b": [2, 3]})),
+    ],
+)
+def test_dtype_coerce_with_nas(all_parsers, na_values, expected):
+    parser = all_parsers
+    data = """a|b\n8,200.0|2\nB|3"""
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": (float, "coerce")},
+        sep="|",
+        thousands=",",
+        na_values=na_values,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_boolean_dtype(all_parsers):
     parser = all_parsers
     data = "\n".join(

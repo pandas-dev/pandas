@@ -38,6 +38,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_file_like,
     is_float,
+    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -1661,8 +1662,14 @@ class ParserBase:
         result = {}
         for c, values in dct.items():
             conv_f = None if converters is None else converters.get(c, None)
+            coerce_float = False
             if isinstance(dtypes, dict):
                 cast_type = dtypes.get(c, None)
+                if isinstance(cast_type, tuple):
+                    cast_type, coerce = cast_type
+                    coerce_float = coerce == "coerce"
+                    if coerce_float and not is_float_dtype(cast_type):
+                        raise ValueError("Can only coerce when dtype is a float type")
             else:
                 # single dtype or None
                 cast_type = dtypes
@@ -1706,7 +1713,10 @@ class ParserBase:
 
                 # general type inference and conversion
                 cvals, na_count = self._infer_types(
-                    values, set(col_na_values) | col_na_fvalues, try_num_bool
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    try_num_bool,
+                    coerce_float,
                 )
 
                 # type specified in dtype param or cast_type is an EA
@@ -1731,7 +1741,7 @@ class ParserBase:
                 print(f"Filled {na_count} NA values in column {c!s}")
         return result
 
-    def _infer_types(self, values, na_values, try_num_bool=True):
+    def _infer_types(self, values, na_values, try_num_bool=True, coerce_float=False):
         """
         Infer types of values, possibly casting
 
@@ -1741,6 +1751,8 @@ class ParserBase:
         na_values : set
         try_num_bool : bool, default try
            try to cast values to numeric (first preference) or boolean
+        coerce_float : bool, default False
+           coerce values that cannot be converted to NaN
 
         Returns
         -------
@@ -1760,7 +1772,9 @@ class ParserBase:
         if try_num_bool and is_object_dtype(values.dtype):
             # exclude e.g DatetimeIndex here
             try:
-                result = lib.maybe_convert_numeric(values, na_values, False)
+                result = lib.maybe_convert_numeric(
+                    values, na_values, False, coerce_float
+                )
             except (ValueError, TypeError):
                 # e.g. encountering datetime string gets ValueError
                 #  TypeError can be raised in floatify
