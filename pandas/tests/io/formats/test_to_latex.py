@@ -1372,19 +1372,21 @@ class TestToLatexMultiindex:
         df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
-        observed = df.set_index(["a", "b"]).to_latex(hrules=True)
+        observed = df.set_index(["a", "b"]).to_latex(
+            hrules=True, na_rep="NaN", precision=1
+        )
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
             \toprule
-                &   &  c \\
-            a & b &    \\
+            {} & {} & {c} \\
+            {a} & {b} & {} \\
             \midrule
-            NaN & 2 &  4 \\
+            NaN & 2 & 4 \\
             """
         )
         if not one_row:
-            expected += r"""1.0 & 3 &  5 \\
+            expected += r"""1.0 & 3 & 5 \\
 """
         expected += r"""\bottomrule
 \end{tabular}
