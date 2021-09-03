@@ -1127,18 +1127,18 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multiindex_tabular(self, multiindex_frame):
-        result = multiindex_frame.to_latex(hrules=True)
+        result = multiindex_frame.to_latex(hrules=True, multirow_align="naive")
         expected = _dedent(
             r"""
             \begin{tabular}{llrrrr}
             \toprule
-               &   &  0 &  1 &  2 &  3 \\
+            {} & {} & {0} & {1} & {2} & {3} \\
             \midrule
-            c1 & 0 &  0 &  1 &  2 &  3 \\
-               & 1 &  4 &  5 &  6 &  7 \\
-            c2 & 0 &  0 &  1 &  2 &  3 \\
-               & 1 &  4 &  5 &  6 &  7 \\
-            c3 & 0 &  0 &  1 &  2 &  3 \\
+            c1 & 0 & 0 & 1 & 2 & 3 \\
+             & 1 & 4 & 5 & 6 & 7 \\
+            c2 & 0 & 0 & 1 & 2 & 3 \\
+             & 1 & 4 & 5 & 6 & 7 \\
+            c3 & 0 & 0 & 1 & 2 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1149,18 +1149,18 @@ class TestToLatexMultiindex:
         # GH 14184
         df = multiindex_frame.T
         df.columns.names = ["a", "b"]
-        result = df.to_latex(hrules=True)
+        result = df.to_latex(hrules=True, multicol_align="l")
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-            b &  0 &  1 &  0 &  1 &  0 \\
+            {a} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & {c3} \\
+            {b} & {0} & {1} & {0} & {1} & {0} \\
             \midrule
-            0 &  0 &  4 &  0 &  4 &  0 \\
-            1 &  1 &  5 &  1 &  5 &  1 \\
-            2 &  2 &  6 &  2 &  6 &  2 \\
-            3 &  3 &  7 &  3 &  7 &  3 \\
+            0 & 0 & 4 & 0 & 4 & 0 \\
+            1 & 1 & 5 & 1 & 5 & 1 \\
+            2 & 2 & 6 & 2 & 6 & 2 \\
+            3 & 3 & 7 & 3 & 7 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1170,18 +1170,18 @@ class TestToLatexMultiindex:
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.set_index(["a", "b"]).to_latex(hrules=True)
+        result = df.set_index(["a", "b"]).to_latex(hrules=True, multirow_align="naive")
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
             \toprule
-              &   &  c \\
-            a & b &    \\
+            {} & {} & {c} \\
+            {a} & {b} & {} \\
             \midrule
-            0 & a &  1 \\
-              & b &  2 \\
-            1 & a &  3 \\
-              & b &  4 \\
+            0 & a & 1 \\
+             & b & 2 \\
+            1 & a & 3 \\
+             & b & 4 \\
             \bottomrule
             \end{tabular}
             """
@@ -1191,17 +1191,26 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex(hrules=True)
+        result = (
+            df.groupby("a")
+            .describe()
+            .to_latex(
+                hrules=True,
+                formatter={("c", "std"): "{:.6f}"},
+                precision=1,
+                escape=True,
+            )
+        )
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
             \toprule
-            {} & \multicolumn{8}{l}{c} \\
-            {} & count & mean &       std &  min &   25\% &  50\% &   75\% &  max \\
-            a &       &      &           &      &       &      &       &      \\
+            {} & \multicolumn{8}{r}{c} \\
+            {} & {count} & {mean} & {std} & {min} & {25\%} & {50\%} & {75\%} & {max} \\
+            {a} & {} & {} & {} & {} & {} & {} & {} & {} \\
             \midrule
-            0 &   2.0 &  1.5 &  0.707107 &  1.0 &  1.25 &  1.5 &  1.75 &  2.0 \\
-            1 &   2.0 &  3.5 &  0.707107 &  3.0 &  3.25 &  3.5 &  3.75 &  4.0 \\
+            0 & 2.0 & 1.5 & 0.707107 & 1.0 & 1.2 & 1.5 & 1.8 & 2.0 \\
+            1 & 2.0 & 3.5 & 0.707107 & 3.0 & 3.2 & 3.5 & 3.8 & 4.0 \\
             \bottomrule
             \end{tabular}
             """
@@ -1219,15 +1228,15 @@ class TestToLatexMultiindex:
         df = DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
-        result = df.to_latex(hrules=True)
+        result = df.to_latex(hrules=True, na_rep="NaN")
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
             \toprule
-              &   &  col \\
+            {} & {} & {col} \\
             \midrule
-            A & c &  NaN \\
-            B & c &  NaN \\
+            A & c & NaN \\
+            B & c & NaN \\
             \bottomrule
             \end{tabular}
             """
@@ -1240,14 +1249,14 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-            {} &  0 &  1 &  0 &  1 &  0 \\
+            {} & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & {c3} \\
+            {} & {0} & {1} & {0} & {1} & {0} \\
             \midrule
-            0 &  0 &  5 &  0 &  5 &  0 \\
-            1 &  1 &  6 &  1 &  6 &  1 \\
-            2 &  2 &  7 &  2 &  7 &  2 \\
-            3 &  3 &  8 &  3 &  8 &  3 \\
-            4 &  4 &  9 &  4 &  9 &  4 \\
+            0 & 0 & 5 & 0 & 5 & 0 \\
+            1 & 1 & 6 & 1 & 6 & 1 \\
+            2 & 2 & 7 & 2 & 7 & 2 \\
+            3 & 3 & 8 & 3 & 8 & 3 \\
+            4 & 4 & 9 & 4 & 9 & 4 \\
             \bottomrule
             \end{tabular}
             """
@@ -1255,19 +1264,19 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multicolumn_false(self, multicolumn_frame):
-        result = multicolumn_frame.to_latex(multicolumn=False)
+        result = multicolumn_frame.to_latex(multicol_align="naive-l", hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & c1 &    & c2 &    & c3 \\
-            {} &  0 &  1 &  0 &  1 &  0 \\
+            {} & {c1} & & {c2} & & {c3} \\
+            {} & {0} & {1} & {0} & {1} & {0} \\
             \midrule
-            0 &  0 &  5 &  0 &  5 &  0 \\
-            1 &  1 &  6 &  1 &  6 &  1 \\
-            2 &  2 &  7 &  2 &  7 &  2 \\
-            3 &  3 &  8 &  3 &  8 &  3 \\
-            4 &  4 &  9 &  4 &  9 &  4 \\
+            0 & 0 & 5 & 0 & 5 & 0 \\
+            1 & 1 & 6 & 1 & 6 & 1 \\
+            2 & 2 & 7 & 2 & 7 & 2 \\
+            3 & 3 & 8 & 3 & 8 & 3 \\
+            4 & 4 & 9 & 4 & 9 & 4 \\
             \bottomrule
             \end{tabular}
             """
