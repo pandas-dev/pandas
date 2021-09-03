@@ -1396,7 +1396,7 @@ class TestToLatexMultiindex:
     def test_to_latex_non_string_index(self):
         # GH 19981
         df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
-        result = df.to_latex(hrules=True)
+        result = df.to_latex(hrules=True, multirow_align="naive")
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1404,8 +1404,8 @@ class TestToLatexMultiindex:
             {} & {} & {2} \\
             {0} & {1} & {} \\
             \midrule
-            1 & 2 &  3 \\
-              & 2 &  3 \\
+            1 & 2 & 3 \\
+             & 2 & 3 \\
             \bottomrule
             \end{tabular}
             """
@@ -1418,32 +1418,25 @@ class TestToLatexMultiindex:
             [[0.0, 1.0], [3.0, 2.0, 1.0], ["0", "1"]], names=["i", "val0", "val1"]
         )
         df = DataFrame(index=mi)
-        result = df.to_latex(multirow=True, escape=False)
+        result = df.to_latex(escape=False, precision=1, hrules=True)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
             \toprule
-                &     &   \\
-            i & val0 & val1 \\
+            {i} & {val0} & {val1} \\
             \midrule
-            \multirow{6}{*}{0.0} & \multirow{2}{*}{3.0} & 0 \\
-                &     & 1 \\
-            \cline{2-3}
-                & \multirow{2}{*}{2.0} & 0 \\
-                &     & 1 \\
-            \cline{2-3}
-                & \multirow{2}{*}{1.0} & 0 \\
-                &     & 1 \\
-            \cline{1-3}
-            \cline{2-3}
-            \multirow{6}{*}{1.0} & \multirow{2}{*}{3.0} & 0 \\
-                &     & 1 \\
-            \cline{2-3}
-                & \multirow{2}{*}{2.0} & 0 \\
-                &     & 1 \\
-            \cline{2-3}
-                & \multirow{2}{*}{1.0} & 0 \\
-                &     & 1 \\
+            \multirow[c]{6}{*}{0.0} & \multirow[c]{2}{*}{3.0} & 0 \\
+             &  & 1 \\
+             & \multirow[c]{2}{*}{2.0} & 0 \\
+             &  & 1 \\
+             & \multirow[c]{2}{*}{1.0} & 0 \\
+             &  & 1 \\
+            \multirow[c]{6}{*}{1.0} & \multirow[c]{2}{*}{3.0} & 0 \\
+             &  & 1 \\
+             & \multirow[c]{2}{*}{2.0} & 0 \\
+             &  & 1 \\
+             & \multirow[c]{2}{*}{1.0} & 0 \\
+             &  & 1 \\
             \bottomrule
             \end{tabular}
             """
