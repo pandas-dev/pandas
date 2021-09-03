@@ -64,9 +64,6 @@ cdef class _BaseGrouper:
 
     cdef inline _update_cached_objs(self, object cached_series, object cached_index,
                                     Slider islider, Slider vslider):
-        # See the comment in indexes/base.py about _index_data.
-        # We need this for EA-backed indexes that have a reference
-        # to a 1-d ndarray like datetime / timedelta / period.
         cached_index._engine.clear_mapping()
         cached_index._cache.clear()  # e.g. inferred_freq must go
         cached_series._mgr.set_values(vslider.buf)
