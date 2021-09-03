@@ -702,7 +702,7 @@ class TestSeriesDatetimeValues:
             [0, 1, 2, 3, 4],
             index=[2, 6, 7, 8, 11],
         )
-        tm.assert_frame_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesPeriodValuesDtAccessor:
