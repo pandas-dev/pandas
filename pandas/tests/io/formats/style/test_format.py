@@ -309,6 +309,7 @@ def test_precision_zero(df):
 
 
 def test_1level_multiindex():
+    # GH 43383
     midx = MultiIndex.from_product([[1, 2]], names=[""])
     df = DataFrame(-1, index=midx, columns=[0, 1])
     ctx = df.style._translate(True, True)
