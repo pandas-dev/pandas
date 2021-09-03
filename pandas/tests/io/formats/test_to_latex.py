@@ -1117,9 +1117,9 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-              &   &  0 \\
+            {} & {} & {0} \\
             \midrule
-            x & y &  a \\
+            x & y & a \\
             \bottomrule
             \end{tabular}
             """
