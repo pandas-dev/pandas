@@ -7640,7 +7640,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 each bound as close or open.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine range time on index or columns value.
-        inclusive: {"both", "neither", "left", "right"}, default "both"
+        inclusive : {"both", "neither", "left", "right"}, default "both"
             Include boundaries; whether to set each bound as closed or open.
 
         Returns
