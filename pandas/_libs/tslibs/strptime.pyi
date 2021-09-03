@@ -1,7 +1,9 @@
 import numpy as np
 
+from pandas._typing import npt
+
 def array_strptime(
-    values: np.ndarray,  # np.ndarray[object]
+    values: npt.NDArray[np.object_],
     fmt: str | None,
     exact: bool = True,
     errors: str = "raise",
