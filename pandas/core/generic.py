@@ -3367,7 +3367,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             escape="latex" if escape else None,
         )
 
-        for ax in [0, 1]:
+        for ax in [0, 1]:  #
+            fmt: callable | str | None = None
+            if isinstance(formatter, dict):
+                fmt = formatter.get("__index__" if ax == 0 else "__columns__")
             styler.format_index(
                 axis=ax,
                 escape="latex" if escape else None,
@@ -3375,6 +3378,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 decimal=decimal,
                 precision=precision,
                 thousands=thousands,
+                formatter=fmt,
             )
 
         if header is False:

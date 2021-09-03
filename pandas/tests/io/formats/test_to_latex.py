@@ -951,17 +951,17 @@ class TestToLatexFormatters:
             "object": lambda x: f"-{x!s}-",
             "__index__": lambda x: f"index: {x}",
         }
-        result = df.to_latex(formatters=dict(formatters))
+        result = df.to_latex(formatter=formatters, hrules=True)
 
         expected = _dedent(
             r"""
             \begin{tabular}{llrrl}
             \toprule
-            {} & datetime64 &  float & int &    object \\
+            {} & {datetime64} & {float} & {int} & {object} \\
             \midrule
-            index: 0 &    2016-01 & [ 1.0] & 0x1 &  -(1, 2)- \\
-            index: 1 &    2016-02 & [ 2.0] & 0x2 &    -True- \\
-            index: 2 &    2016-03 & [ 3.0] & 0x3 &   -False- \\
+            index: 0 & 2016-01 & [ 1.0] & 0x1 & -(1, 2)- \\
+            index: 1 & 2016-02 & [ 2.0] & 0x2 & -True- \\
+            index: 2 & 2016-03 & [ 3.0] & 0x3 & -False- \\
             \bottomrule
             \end{tabular}
             """
