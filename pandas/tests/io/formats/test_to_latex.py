@@ -1082,8 +1082,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrr}
             \toprule
-              &  0 &  1 &  2 &  3 \\
-            {} &    &    &    &    \\
+            {} & {0} & {1} & {2} & {3} \\
+            {} & {} & {} & {} & {} \\
             \midrule
             1 & -1 & -1 & -1 & -1 \\
             2 & -1 & -1 & -1 & -1 \\
@@ -1100,10 +1100,10 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} &  x \\
-            {} &  y \\
+            {} & {x} \\
+            {} & {y} \\
             \midrule
-            0 &  a \\
+            0 & a \\
             \bottomrule
             \end{tabular}
             """
