@@ -70,6 +70,7 @@ from pandas import (
     Categorical,
     Index,
     MultiIndex,
+    Series,
 )
 from pandas.core import groupby
 import pandas.core.algorithms as algos
@@ -81,10 +82,7 @@ from pandas.core.internals import concatenate_managers
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
+    from pandas import DataFrame
     from pandas.core.arrays import DatetimeArray
 
 
@@ -904,17 +902,22 @@ class _MergeOperation:
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 if mask_left.all():  # type: ignore[union-attr]
                     key_col = Index(rvals)
+                    result_dtype = rvals.dtype
                 # error: Item "bool" of "Union[Any, bool]" has no attribute "all"
                 elif (
                     right_indexer is not None
                     and mask_right.all()  # type: ignore[union-attr]
                 ):
                     key_col = Index(lvals)
+                    result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
+                    result_dtype = lvals.dtype
 
                 if result._is_label_reference(name):
-                    result[name] = key_col
+                    result[name] = Series(
+                        key_col, dtype=result_dtype, index=result.index
+                    )
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
