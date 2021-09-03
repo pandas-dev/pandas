@@ -1955,7 +1955,7 @@ def test_chunked_categorical_partial(dirpath):
                 if i < 2:
                     idx = pd.Index(["a", "b"])
                 else:
-                    idx = pd.Float64Index([3.0])
+                    idx = pd.Index([3.0], dtype="float64")
                 tm.assert_index_equal(block.cats.cat.categories, idx)
     with tm.assert_produces_warning(CategoricalConversionWarning):
         with StataReader(dta_file, chunksize=5) as reader:
