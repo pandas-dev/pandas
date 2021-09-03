@@ -743,29 +743,27 @@ class TestToLatexCaptionLabel:
         )
         expected = _dedent(
             r"""
-            \begin{longtable}{lrl}
-            \caption[a table]{a table in a \texttt{longtable} environment}
-            \label{tab:longtable}\\
-            \toprule
-            {} & {a} & {b} \\
-            \midrule
-            \endfirsthead
-            \caption[]{a table in a \texttt{longtable} environment}\\
-            \toprule
-            {} & {a} & {b} \\
-            \midrule
-            \endhead
-            \midrule
-            \multicolumn{3}{r}{Continued on next page} \\
-            \midrule
-            \endfoot
-
-            \bottomrule
-            \endlastfoot
-            0 & 1 & b1 \\
-            1 & 2 & b2 \\
-            \end{longtable}
-            """
+\begin{longtable}{lrl}
+\caption[a table]{a table in a \texttt{longtable} environment} \label{tab:longtable} \\
+\toprule
+{} & {a} & {b} \\
+\midrule
+\endfirsthead
+\caption[]{a table in a \texttt{longtable} environment} \\
+\toprule
+{} & {a} & {b} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r}{Continued on next page} \\
+\midrule
+\endfoot
+\bottomrule
+\endlastfoot
+0 & 1 & b1 \\
+1 & 2 & b2 \\
+\end{longtable}
+"""
         )
         assert result == expected
 
@@ -1307,12 +1305,13 @@ class TestToLatexMultiindex:
         result = multicolumn_frame.T.to_latex(
             multirow_align="t",
             multicol_align="c",
+            hrules=True,
         )
         expected = _dedent(
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-            {} & {} & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
+            {} & {} & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & {c3} \\
             {} & {} & {0} & {1} & {0} & {1} & {0} \\
             \midrule
             \multirow[t]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
