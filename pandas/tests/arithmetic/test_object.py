@@ -341,7 +341,6 @@ class MyIndex(pd.Index):
     def _simple_new(cls, values, name=None, dtype=None):
         result = object.__new__(cls)
         result._data = values
-        result._index_data = values
         result._name = name
         result._calls = 0
         result._reset_identity()
@@ -350,7 +349,7 @@ class MyIndex(pd.Index):
 
     def __add__(self, other):
         self._calls += 1
-        return self._simple_new(self._index_data)
+        return self._simple_new(self._data)
 
     def __radd__(self, other):
         return self.__add__(other)
