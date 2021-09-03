@@ -1155,7 +1155,7 @@ def test_doctest_example2():
 @pytest.mark.parametrize("dropna", [True, False])
 def test_apply_na(dropna):
     # GH#28984
-    df = pd.DataFrame(
+    df = DataFrame(
         {"grp": [1, 1, 2, 2], "y": [1, 0, 2, 5], "z": [1, 2, np.nan, np.nan]}
     )
     dfgrp = df.groupby("grp", dropna=dropna)
