@@ -4,10 +4,12 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeIndex,
     Series,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 class TestDataFrameTruncate:
@@ -116,13 +118,13 @@ class TestDataFrameTruncate:
         "before, after, indices",
         [(1, 2, [2, 1]), (None, 2, [2, 1, 0]), (1, None, [3, 2, 1])],
     )
-    @pytest.mark.parametrize("klass", [pd.Int64Index, pd.DatetimeIndex])
+    @pytest.mark.parametrize("klass", [Int64Index, DatetimeIndex])
     def test_truncate_decreasing_index(
         self, before, after, indices, klass, frame_or_series
     ):
         # https://github.com/pandas-dev/pandas/issues/33756
         idx = klass([3, 2, 1, 0])
-        if klass is pd.DatetimeIndex:
+        if klass is DatetimeIndex:
             before = pd.Timestamp(before) if before is not None else None
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]

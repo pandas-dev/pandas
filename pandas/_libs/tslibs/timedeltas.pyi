@@ -7,6 +7,7 @@ from typing import (
 )
 
 import numpy as np
+from pands._typing import npt
 
 from pandas._libs.tslibs import (
     NaTType,
@@ -16,11 +17,11 @@ from pandas._libs.tslibs import (
 _S = TypeVar("_S")
 
 def ints_to_pytimedelta(
-    arr: np.ndarray,  # const int64_t[:]
+    arr: npt.NDArray[np.int64],  # const int64_t[:]
     box: bool = ...,
-) -> np.ndarray: ...  # np.ndarray[object]
+) -> npt.NDArray[np.object_]: ...
 def array_to_timedelta64(
-    values: np.ndarray,  # ndarray[object]
+    values: npt.NDArray[np.object_],
     unit: str | None = ...,
     errors: str = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
