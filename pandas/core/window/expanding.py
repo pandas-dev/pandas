@@ -592,7 +592,7 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """
-        >>> s = pd.Series([1,4,2,3,5,3])
+        >>> s = pd.Series([1, 4, 2, 3, 5, 3])
         >>> s.expanding().rank()
         0    1.0
         1    2.0

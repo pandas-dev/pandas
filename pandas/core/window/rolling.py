@@ -2204,7 +2204,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """
-        >>> s = pd.Series([1,4,2,3,5,3])
+        >>> s = pd.Series([1, 4, 2, 3, 5, 3])
         >>> s.rolling(3).rank()
         0    NaN
         1    NaN
