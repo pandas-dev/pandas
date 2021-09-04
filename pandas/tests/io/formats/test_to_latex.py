@@ -667,7 +667,7 @@ class TestToLatexCaptionLabel:
         expected = _dedent(
             r"""
             \begin{longtable}{lrl}
-            \label{tab:longtable}\\
+            \label{tab:longtable} \\
             \toprule
              & a & b \\
             \midrule
@@ -1079,7 +1079,7 @@ class TestToLatexMultiindex:
             \begin{tabular}{lrrrr}
             \toprule
              & 0 & 1 & 2 & 3 \\
-             &  &  &  & \\
+             &  &  &  &  \\
             \midrule
             1 & -1 & -1 & -1 & -1 \\
             2 & -1 & -1 & -1 & -1 \\
@@ -1172,7 +1172,7 @@ class TestToLatexMultiindex:
             \begin{tabular}{llr}
             \toprule
              &  & c \\
-            a & b & \\
+            a & b &  \\
             \midrule
             0 & a & 1 \\
              & b & 2 \\
