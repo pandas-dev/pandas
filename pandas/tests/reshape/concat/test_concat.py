@@ -597,6 +597,15 @@ def test_concat_preserves_extension_int64_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+def test_concat_bool_boolean():
+    # GH 42800
+    ser_bool = Series([True, False], dtype="boolean")
+    ser_boolean = Series([pd.NA, False], dtype="boolean")
+    result = concat([ser_bool, ser_boolean], ignore_index=True)
+    expected = Series([True, False, pd.NA, False], dtype="boolean")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     ("keys", "integrity"),
     [

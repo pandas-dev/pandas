@@ -13,6 +13,7 @@ from pandas._libs import (
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
     type_t,
 )
 from pandas.compat.numpy import function as nv
@@ -146,6 +147,18 @@ class BooleanDtype(BaseMaskedDtype):
             )
         else:
             return BooleanArray._concat_same_type(results)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # Handle only boolean + np.bool_ -> boolean, since other cases like
+        # Int64 + boolean -> Int64 will be handled by the other type
+        if all(
+            isinstance(t, BooleanDtype)
+            or (isinstance(t, np.dtype) and (np.issubdtype(t, np.bool_)))
+            for t in dtypes
+        ):
+            return BooleanDtype()
+        else:
+            return None
 
 
 def coerce_to_array(
