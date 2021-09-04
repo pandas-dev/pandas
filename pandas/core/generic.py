@@ -7628,9 +7628,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether the start time needs to be included in the result.
 
             .. deprecated:: 1.4.0
-                Arguments `include_start` and `include_end` have been deprecated
-                to standardize boundary inputs. Use `inclusive` instead, to set
-                each bound as close or open.
+               Arguments `include_start` and `include_end` have been deprecated
+               to standardize boundary inputs. Use `inclusive` instead, to set
+               each bound as close or open.
         include_end : bool
             Whether the end time needs to be included in the result.
 
