@@ -221,7 +221,11 @@ class TestBetweenTime:
         stime = time(0, 0)
         etime = time(1, 0)
 
-        with tm.assert_produces_warning(FutureWarning):
+        match = (
+            "`include_start` and `include_end` "
+            "are deprecated infavour of `inclusive`."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=match):
             _ = ts.between_time(
                 stime, etime, include_start=inc_start, include_end=inc_end
             )
