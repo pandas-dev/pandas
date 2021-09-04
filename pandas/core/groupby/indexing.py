@@ -37,12 +37,12 @@ class GroupByIndexingMixin:
         The behaviour is different from GroupBy.nth:
 
         - Input to rows can include one or more slices whereas nth just handles
-        a list of indexes.
+          a list of indexes.
         - Output from rows is in the same order as the original grouped DataFrame
-        or Series.
+          or Series.
         - Output from rows has the same index columns as the original grouped DataFrame
-        or Series. (nth behaves like an aggregator and removes the non-grouped
-        indexes.)
+          or Series. (nth behaves like an aggregator and removes the non-grouped
+          indexes.)
         - GroupBy.rows can  define a slice relative to the last row of each group.
         - GroupBy.rows is faster than nth.
         - GroupBy.rows does not handle dropna.
