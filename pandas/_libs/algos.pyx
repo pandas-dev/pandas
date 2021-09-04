@@ -15,6 +15,8 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    NPY_COMPLEX64,
+    NPY_COMPLEX128,
     NPY_FLOAT32,
     NPY_FLOAT64,
     NPY_INT8,
