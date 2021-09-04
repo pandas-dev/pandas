@@ -972,7 +972,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} & {x} \\
+             & x \\
             \midrule
             0 & 0.200 \\
             \bottomrule
@@ -1060,7 +1060,7 @@ class TestToLatexMultiindex:
             \begin{tabular}{llrr}
             \toprule
              &  & r1 & r2 \\
-            a & b &  & \\
+            a & b &  &  \\
             \midrule
             0 & 1 & 2 & 3 \\
             \bottomrule
