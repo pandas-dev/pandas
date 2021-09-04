@@ -1034,27 +1034,6 @@ class ArrayManager(BaseArrayManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
-    def apply_2d(
-        self: ArrayManager, f, ignore_failures: bool = False, **kwargs
-    ) -> ArrayManager:
-        """
-        Variant of `apply`, but where the function should not be applied to
-        each column independently, but to the full data as a 2D array.
-        """
-        values = self.as_array()
-        try:
-            result = f(values, **kwargs)
-        except (TypeError, NotImplementedError):
-            if not ignore_failures:
-                raise
-            result_arrays = []
-            new_axes = [self._axes[0], self.axes[1].take([])]
-        else:
-            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
-            new_axes = self._axes
-
-        return type(self)(result_arrays, new_axes)
-
     # ----------------------------------------------------------------
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
@@ -1281,6 +1260,14 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         return type(self)([new_array], self._axes)
 
     def setitem(self, indexer, value):
+        """
+        Set values with indexer.
+
+        For SingleArrayManager, this backs s[indexer] = value
+
+        See `setitem_inplace` for a version that works inplace and doesn't
+        return a new Manager.
+        """
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:

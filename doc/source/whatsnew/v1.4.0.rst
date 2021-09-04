@@ -15,15 +15,81 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_140.enhancements.enhancement1:
+.. _whatsnew_140.enhancements.numeric_index:
 
-enhancement1
-^^^^^^^^^^^^
+More flexible numeric dtypes for indexes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_140.enhancements.enhancement2:
+Until now, it has only been possible to create numeric indexes with int64/float64/uint64 dtypes.
+It is now possible to create an index of any numpy int/uint/float dtype using the new :class:`NumericIndex` index type (:issue:`41153`):
 
-enhancement2
-^^^^^^^^^^^^
+.. ipython:: python
+
+    pd.NumericIndex([1, 2, 3], dtype="int8")
+    pd.NumericIndex([1, 2, 3], dtype="uint32")
+    pd.NumericIndex([1, 2, 3], dtype="float32")
+
+In order to maintain backwards compatibility, calls to the base :class:`Index` will currently
+return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`, where relevant.
+For example, the code below returns an ``Int64Index`` with dtype ``int64``:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index([1, 2, 3], dtype="int8")
+    Int64Index([1, 2, 3], dtype='int64')
+
+but will in a future version return a :class:`NumericIndex` with dtype ``int8``.
+
+More generally, currently, all operations that until now have
+returned :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` will
+continue to so. This means, that in order to use ``NumericIndex`` in the current version, you
+will have to call ``NumericIndex`` explicitly. For example the below series will have an ``Int64Index``:
+
+.. code-block:: ipython
+
+    In [2]: ser = pd.Series([1, 2, 3], index=[1, 2, 3])
+    In [3]: ser.index
+    Int64Index([1, 2, 3], dtype='int64')
+
+Instead, if you want to use a ``NumericIndex``, you should do:
+
+.. ipython:: python
+
+    idx = pd.NumericIndex([1, 2, 3], dtype="int8")
+    ser = pd.Series([1, 2, 3], index=idx)
+    ser.index
+
+In a future version of Pandas, :class:`NumericIndex` will become the default numeric index type and
+``Int64Index``, ``UInt64Index`` and ``Float64Index`` are therefore deprecated and will
+be removed in the future, see :ref:`here <whatsnew_140.deprecations.int64_uint64_float64index>` for more.
+
+See :ref:`here <advanced.numericindex>` for more about :class:`NumericIndex`.
+
+.. _whatsnew_140.enhancements.styler:
+
+Styler
+^^^^^^
+
+:class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
+
+  - Styling of indexing has been added, with :meth:`.Styler.apply_index` and :meth:`.Styler.applymap_index`. These mirror the signature of the methods already used to style data values, and work with both HTML and LaTeX format (:issue:`41893`).
+  - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
+  - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
+  - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption`` (:issue:`41946`, :issue:`43149`).
+  - Keyword argument ``level`` is added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
+  - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
+
+Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
+
+There are also bug fixes and deprecations listed below.
+
+.. _whatsnew_140.enhancements.pyarrow_csv_engine:
+
+Multithreaded CSV reading with a new CSV Engine based on pyarrow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
+with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
 .. _whatsnew_140.enhancements.other:
 
@@ -32,14 +98,9 @@ Other enhancements
 - :class:`DataFrameGroupBy` operations with ``as_index=False`` now correctly retain ``ExtensionDtype`` dtypes for columns being grouped on (:issue:`41373`)
 - Add support for assigning values to ``by`` argument in :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box` (:issue:`15079`)
 - :meth:`Series.sample`, :meth:`DataFrame.sample`, and :meth:`.GroupBy.sample` now accept a ``np.random.Generator`` as input to ``random_state``. A generator will be more performant, especially with ``replace=False`` (:issue:`38100`)
--  Additional options added to :meth:`.Styler.bar` to control alignment and display, with keyword only arguments (:issue:`26070`, :issue:`36419`)
-- :meth:`Styler.bar` now validates the input argument ``width`` and ``height`` (:issue:`42511`)
-- Add keyword ``levels`` to :meth:`.Styler.hide_index` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
-- Added ``sparse_index`` and ``sparse_columns`` keyword arguments to :meth:`.Styler.to_html` (:issue:`41946`)
-- Added keyword argument ``environment`` to :meth:`.Styler.to_latex` also allowing a specific "longtable" entry with a separate jinja2 template (:issue:`41866`)
 - :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
--
+- :meth:`read_table` now supports the argument ``storage_options`` (:issue:`39167`)
 
 .. ---------------------------------------------------------------------------
 
@@ -50,10 +111,20 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_140.notable_bug_fixes.inconsistent_date_string_parsing:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+Inconsistent date string parsing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead to surprising behaviour:
+
+.. ipython:: python
+    :okwarning:
+
+    pd.to_datetime(["31-12-2021"], dayfirst=False)
+
+Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
+the value is a delimited date string (e.g. ``31-12-2012``).
 
 .. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
 
@@ -155,6 +226,41 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. _whatsnew_140.deprecations.int64_uint64_float64index:
+
+Deprecated Int64Index, UInt64Index & Float64Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index` have been deprecated
+in favor of the new :class:`NumericIndex` and will be removed in Pandas 2.0 (:issue:`43028`).
+
+Currently, in order to maintain backward compatibility, calls to
+:class:`Index` will continue to return :class:`Int64Index`, :class:`UInt64Index` and :class:`Float64Index`
+when given numeric data, but in the future, a :class:`NumericIndex` will be returned.
+
+*Current behavior*:
+
+.. code-block:: ipython
+
+    In [1]: pd.Index([1, 2, 3], dtype="int32")
+    Out [1]: Int64Index([1, 2, 3], dtype='int64')
+    In [1]: pd.Index([1, 2, 3], dtype="uint64")
+    Out [1]: UInt64Index([1, 2, 3], dtype='uint64')
+
+*Future behavior*:
+
+.. code-block:: ipython
+
+    In [3]: pd.Index([1, 2, 3], dtype="int32")
+    Out [3]: NumericIndex([1, 2, 3], dtype='int32')
+    In [4]: pd.Index([1, 2, 3], dtype="uint64")
+    Out [4]: NumericIndex([1, 2, 3], dtype='uint64')
+
+
+.. _whatsnew_140.deprecations.other:
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
 - Deprecated :meth:`Index.is_type_compatible` (:issue:`42113`)
 - Deprecated ``method`` argument in :meth:`Index.get_loc`, use ``index.get_indexer([label], method=...)`` instead (:issue:`42269`)
 - Deprecated treating integer keys in :meth:`Series.__setitem__` as positional when the index is a :class:`Float64Index` not containing the key, a :class:`IntervalIndex` with no entries containing the key, or a :class:`MultiIndex` with leading :class:`Float64Index` level not containing the key (:issue:`33469`)
@@ -162,7 +268,9 @@ Deprecations
 - Deprecated ignoring missing labels when indexing with a sequence of labels on a level of a MultiIndex (:issue:`42351`)
 - Creating an empty Series without a dtype will now raise a more visible ``FutureWarning`` instead of a ``DeprecationWarning`` (:issue:`30017`)
 - Deprecated the 'kind' argument in :meth:`Index.get_slice_bound`, :meth:`Index.slice_indexer`, :meth:`Index.slice_locs`; in a future version passing 'kind' will raise (:issue:`42857`)
--
+- Deprecated dropping of nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`EWM` aggregations (:issue:`42738`)
+- Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
+- Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
 
 .. ---------------------------------------------------------------------------
 
@@ -175,7 +283,9 @@ Performance improvements
 - Performance improvement in constructing :class:`DataFrame` objects (:issue:`42631`)
 - Performance improvement in :meth:`GroupBy.shift` when ``fill_value`` argument is provided (:issue:`26615`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method=pearson`` on data without missing values (:issue:`40956`)
--
+- Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
+- Performance improvement in :func:`read_stata` (:issue:`43059`)
+- Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 
 .. ---------------------------------------------------------------------------
 
@@ -196,6 +306,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+- :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
 -
 
 Timedelta
@@ -217,6 +328,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :class:`UInt64Index` constructor when passing a list containing both positive integers small enough to cast to int64 and integers too large too hold in int64 (:issue:`42201`)
+- Bug in :class:`Series` constructor returning 0 for missing values with dtype ``int64`` and ``False`` for dtype ``bool`` (:issue:`43017`, :issue:`43018`)
 -
 
 Strings
@@ -232,6 +344,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.truncate` and :meth:`Series.truncate` when the object's Index has a length greater than one but only one unique value (:issue:`42365`)
+- Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` with a :class:`MultiIndex` when indexing with a tuple in which one of the levels is also a tuple (:issue:`27591`)
 - Bug in :meth:`Series.loc` when with a :class:`MultiIndex` whose first level contains only ``np.nan`` values (:issue:`42055`)
 - Bug in indexing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` when passing a string, the return type depended on whether the index was monotonic (:issue:`24892`)
 - Bug in indexing on a :class:`MultiIndex` failing to drop scalar levels when the indexer is a tuple containing a datetime-like string (:issue:`42476`)
@@ -239,11 +352,12 @@ Indexing
 - Bug in updating values of :class:`pandas.Series` using boolean index, created by using :meth:`pandas.DataFrame.pop` (:issue:`42530`)
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.nan`` (:issue:`35392`)
 - Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, used in an expression to query a dataframe (:issue:`42826`)
+- Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
 -
 
 Missing
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
 -
 
 MultiIndex
@@ -251,6 +365,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.get_loc` where the first level is a :class:`DatetimeIndex` and a string key is passed (:issue:`42465`)
 - Bug in :meth:`MultiIndex.reindex` when passing a ``level`` that corresponds to an ``ExtensionDtype`` level (:issue:`42043`)
 - Bug in :meth:`MultiIndex.get_loc` raising ``TypeError`` instead of ``KeyError`` on nested tuple (:issue:`42440`)
+- Bug in :meth:`MultiIndex.putmask` where the other value was also a :class:`MultiIndex` (:issue:`43212`)
 -
 
 I/O
@@ -258,6 +373,8 @@ I/O
 - Bug in :func:`read_excel` attempting to read chart sheets from .xlsx files (:issue:`41448`)
 - Bug in :func:`json_normalize` where ``errors=ignore`` could fail to ignore missing values of ``meta`` when ``record_path`` has a length greater than one (:issue:`41876`)
 - Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
+- Bug in :func:`read_fwf`, where difference in lengths of ``colspecs`` and ``names`` was not raising ``ValueError`` (:issue:`40830`)
+- Bug in :func:`Series.to_json` and :func:`DataFrame.to_json` where some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
 -
 
 Period
@@ -279,6 +396,8 @@ Groupby/resample/rolling
 - Bug in :meth:`SeriesGroupBy.nlargest` and :meth:`SeriesGroupBy.nsmallest` would have an inconsistent index when the input Series was sorted and ``n`` was greater than or equal to all group sizes (:issue:`15272`, :issue:`16345`, :issue:`29129`)
 - Bug in :meth:`pandas.DataFrame.ewm`, where non-float64 dtypes were silently failing (:issue:`42452`)
 - Bug in :meth:`pandas.DataFrame.rolling` operation along rows (``axis=1``) incorrectly omits columns containing ``float16`` and ``float32`` (:issue:`41779`)
+- Bug in :meth:`Resampler.aggregate` did not allow the use of Named Aggregation (:issue:`32803`)
+- Bug in :meth:`Series.rolling` when the :class:`Series` ``dtype`` was ``Int64`` (:issue:`43016`)
 
 Reshaping
 ^^^^^^^^^
@@ -299,8 +418,11 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
--
+- Minor bug in :class:`.Styler` where the ``uuid`` at initialization maintained a floating underscore (:issue:`43037`)
+- Bug in :meth:`.Styler.to_html` where the ``Styler`` object was updated if the ``to_html`` method was called with some args (:issue:`43034`)
+- Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
+- Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
+- Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
 
 Other
 ^^^^^

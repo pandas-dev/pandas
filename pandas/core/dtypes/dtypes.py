@@ -529,7 +529,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
         elif not isinstance(categories, ABCIndex):
-            categories = Index(categories, tupleize_cols=False)
+            categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
 
@@ -936,7 +936,18 @@ class PeriodDtype(dtypes.PeriodDtypeBase, PandasExtensionDtype):
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
-        return isinstance(other, PeriodDtype) and self.freq == other.freq
+        elif isinstance(other, PeriodDtype):
+
+            # For freqs that can be held by a PeriodDtype, this check is
+            # equivalent to (and much faster than) self.freq == other.freq
+            sfreq = self.freq
+            ofreq = other.freq
+            return (
+                sfreq.n == ofreq.n
+                and sfreq._period_dtype_code == ofreq._period_dtype_code
+            )
+
+        return False
 
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)

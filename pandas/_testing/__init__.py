@@ -45,14 +45,12 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     RangeIndex,
     Series,
-    UInt64Index,
     bdate_range,
 )
 from pandas._testing._io import (  # noqa:F401
@@ -105,7 +103,11 @@ from pandas._testing.contexts import (  # noqa:F401
     use_numexpr,
     with_csv_dialect,
 )
-from pandas.core.api import NumericIndex
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.arrays import (
     DatetimeArray,
     PandasArray,
@@ -123,14 +125,14 @@ if TYPE_CHECKING:
 _N = 30
 _K = 4
 
-UNSIGNED_INT_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
-UNSIGNED_EA_INT_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
-SIGNED_INT_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
-SIGNED_EA_INT_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
-ALL_EA_INT_DTYPES = UNSIGNED_EA_INT_DTYPES + SIGNED_EA_INT_DTYPES
+UNSIGNED_INT_NUMPY_DTYPES: list[Dtype] = ["uint8", "uint16", "uint32", "uint64"]
+UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
+SIGNED_INT_NUMPY_DTYPES: list[Dtype] = [int, "int8", "int16", "int32", "int64"]
+SIGNED_INT_EA_DTYPES: list[Dtype] = ["Int8", "Int16", "Int32", "Int64"]
+ALL_INT_NUMPY_DTYPES = UNSIGNED_INT_NUMPY_DTYPES + SIGNED_INT_NUMPY_DTYPES
+ALL_INT_EA_DTYPES = UNSIGNED_INT_EA_DTYPES + SIGNED_INT_EA_DTYPES
 
-FLOAT_DTYPES: list[Dtype] = [float, "float32", "float64"]
+FLOAT_NUMPY_DTYPES: list[Dtype] = [float, "float32", "float64"]
 FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
 STRING_DTYPES: list[Dtype] = [str, "str", "U"]
@@ -142,9 +144,9 @@ BOOL_DTYPES: list[Dtype] = [bool, "bool"]
 BYTES_DTYPES: list[Dtype] = [bytes, "bytes"]
 OBJECT_DTYPES: list[Dtype] = [object, "object"]
 
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_REAL_NUMPY_DTYPES = FLOAT_NUMPY_DTYPES + ALL_INT_NUMPY_DTYPES
 ALL_NUMPY_DTYPES = (
-    ALL_REAL_DTYPES
+    ALL_REAL_NUMPY_DTYPES
     + COMPLEX_DTYPES
     + STRING_DTYPES
     + DATETIME64_DTYPES
@@ -219,7 +221,7 @@ def box_expected(expected, box_cls, transpose=True):
         else:
             expected = pd.array(expected)
     elif box_cls is Index:
-        expected = Index(expected)
+        expected = Index._with_infer(expected)
     elif box_cls is Series:
         expected = Series(expected)
     elif box_cls is DataFrame:

@@ -1856,7 +1856,7 @@ class TestPivotTable:
             observed=observed,
             aggfunc="sum",
         )
-        expected_columns = pd.Int64Index([2013, 2014], name="Year")
+        expected_columns = Index([2013, 2014], name="Year", dtype="int64")
         expected_index = pd.CategoricalIndex(
             months, categories=months, ordered=False, name="Month"
         )

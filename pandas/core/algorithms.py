@@ -11,6 +11,7 @@ from typing import (
     Literal,
     Union,
     cast,
+    final,
 )
 from warnings import warn
 
@@ -432,7 +433,7 @@ def unique(values):
 unique1d = unique
 
 
-def isin(comps: AnyArrayLike, values: AnyArrayLike) -> np.ndarray:
+def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
 
@@ -902,7 +903,7 @@ def value_counts_arraylike(values, dropna: bool):
 
 def duplicated(
     values: ArrayLike, keep: Literal["first", "last", False] = "first"
-) -> np.ndarray:
+) -> npt.NDArray[np.bool_]:
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -1031,8 +1032,8 @@ def rank(
 def checked_add_with_arr(
     arr: np.ndarray,
     b,
-    arr_mask: np.ndarray | None = None,
-    b_mask: np.ndarray | None = None,
+    arr_mask: npt.NDArray[np.bool_] | None = None,
+    b_mask: npt.NDArray[np.bool_] | None = None,
 ) -> np.ndarray:
     """
     Perform array addition that checks for underflow and overflow.
@@ -1209,12 +1210,15 @@ class SelectN:
     def compute(self, method: str) -> DataFrame | Series:
         raise NotImplementedError
 
+    @final
     def nlargest(self):
         return self.compute("nlargest")
 
+    @final
     def nsmallest(self):
         return self.compute("nsmallest")
 
+    @final
     @staticmethod
     def is_valid_dtype_n_method(dtype: DtypeObj) -> bool:
         """
@@ -1252,6 +1256,18 @@ class SelectNSeries(SelectN):
             return self.obj[[]]
 
         dropped = self.obj.dropna()
+
+        if is_extension_array_dtype(dropped.dtype):
+            # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
+            #  numpy logic.
+            from pandas.core.arrays import BaseMaskedArray
+
+            arr = dropped._values
+            if isinstance(arr, BaseMaskedArray):
+                ser = type(dropped)(arr._data, index=dropped.index, name=dropped.name)
+
+                result = type(self)(ser, n=self.n, keep=self.keep).compute(method)
+                return result.astype(arr.dtype)
 
         # slow method
         if n >= len(self.obj):
@@ -1318,7 +1334,7 @@ class SelectNFrame(SelectN):
 
     def compute(self, method: str) -> DataFrame:
 
-        from pandas import Int64Index
+        from pandas.core.api import Int64Index
 
         n = self.n
         frame = self.obj
