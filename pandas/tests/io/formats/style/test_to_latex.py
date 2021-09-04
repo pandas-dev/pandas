@@ -297,24 +297,31 @@ def test_multiindex_row_and_col(df):
 
 
 @pytest.mark.parametrize(
-    "multicol_align, exp", [("naive-l", "{A} & &"), ("naive-r", "& & {A}")]
+    "multicol_align, siunitx, exp",
+    [
+        ("naive-l", False, " & A & &"),
+        ("naive-r", False, " & & & A"),
+        ("naive-l", True, "{} & {A} & {} & {}"),
+        ("naive-r", True, "{} & {} & {} & {A}"),
+    ],
 )
-def test_multicol_naive(df, multicol_align, exp):
+def test_multicol_naive(df, multicol_align, siunitx, exp):
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")])
     df = df.astype({"A": int})
     df.columns = ridx
+    level1 = " & a & b & c" if not siunitx else "{} & {a} & {b} & {c}"
     expected = dedent(
         f"""\
-        \\begin{{tabular}}{{lrrl}}
-        {{}} & {exp} \\\\
-        {{}} & {{a}} & {{b}} & {{c}} \\\\
+        \\begin{{tabular}}{{l{"SS" if siunitx else "rr"}l}}
+        {exp} \\\\
+        {level1} \\\\
         0 & 0 & -0.61 & ab \\\\
         1 & 1 & -1.22 & cd \\\\
         \\end{{tabular}}
         """
     )
     s = df.style.format(precision=2)
-    assert expected == s.to_latex(multicol_align=multicol_align)
+    assert expected == s.to_latex(multicol_align=multicol_align, siunitx=siunitx)
 
 
 def test_multi_options(df):
