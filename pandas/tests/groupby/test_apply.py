@@ -16,6 +16,7 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 
 
 def test_apply_issues():
@@ -785,10 +786,10 @@ def test_apply_with_mixed_types():
 
 def test_func_returns_object():
     # GH 28652
-    df = DataFrame({"a": [1, 2]}, index=pd.Int64Index([1, 2]))
+    df = DataFrame({"a": [1, 2]}, index=Int64Index([1, 2]))
     result = df.groupby("a").apply(lambda g: g.index)
     expected = Series(
-        [pd.Int64Index([1]), pd.Int64Index([2])], index=pd.Int64Index([1, 2], name="a")
+        [Int64Index([1]), Int64Index([2])], index=Int64Index([1, 2], name="a")
     )
 
     tm.assert_series_equal(result, expected)
