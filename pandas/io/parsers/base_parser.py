@@ -111,6 +111,8 @@ parser_defaults = {
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": "error",
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
 }
 
 
