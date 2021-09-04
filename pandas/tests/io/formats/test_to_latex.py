@@ -66,7 +66,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -83,7 +83,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{rl}
             \toprule
-            {a} & {b} \\
+            a & b \\
             \midrule
             1 & b1 \\
             2 & b2 \\
@@ -114,7 +114,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{lcr}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -132,7 +132,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} & {0} \\
+             & 0 \\
             \midrule
             0 & 1,000 \\
             1 & test \\
@@ -163,7 +163,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} & {0} \\
+             & 0 \\
             \midrule
             0 & a \\
             1 & b \\
@@ -183,7 +183,7 @@ class TestToLatex:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} & {a} \\
+             & a \\
             \midrule
             0 & 1 \\
             1 & 2 \\
@@ -218,11 +218,11 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endfirsthead
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -245,11 +245,11 @@ class TestToLatexLongtable:
             r"""
             \begin{longtable}{rl}
             \toprule
-            {a} & {b} \\
+            a & b \\
             \midrule
             \endfirsthead
             \toprule
-            {a} & {b} \\
+            a & b \\
             \midrule
             \endhead
             \midrule
@@ -321,7 +321,7 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & {AA} & {BB} \\
+             & AA & BB \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -339,7 +339,7 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{rl}
             \toprule
-            {AA} & {BB} \\
+            AA & BB \\
             \midrule
             1 & b1 \\
             2 & b2 \\
@@ -377,7 +377,7 @@ class TestToLatexHeader:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1,0 & b1 \\
             1 & 2,1 & b2 \\
@@ -393,9 +393,9 @@ class TestToLatexBold:
     def test_to_latex_bold_rows(self, bold_header):
         # GH 16707
         cols = (
-            "{\\textbf{a}} & {\\textbf{b}}"
+            "\\textbf{a} & \\textbf{b}"
             if bold_header in ["both", "columns"]
-            else "{a} & {b}"
+            else "a & b"
         )
         idx1 = "\\textbf{0}" if bold_header in ["both", "index"] else "0"
         idx2 = "\\textbf{1}" if bold_header in ["both", "index"] else "1"
@@ -405,7 +405,7 @@ class TestToLatexBold:
             f"""
             \\begin{{tabular}}{{lrl}}
             \\toprule
-            {{}} & {cols} \\\\
+             & {cols} \\\\
             \\midrule
             {idx1} & 1 & b1 \\\\
             {idx2} & 2 & b2 \\\\
@@ -454,7 +454,7 @@ class TestToLatexCaptionLabel:
             \caption{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -477,7 +477,7 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -504,7 +504,7 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -533,7 +533,7 @@ class TestToLatexCaptionLabel:
             \caption[a table]{a table in a \texttt{table/tabular} environment}
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -572,7 +572,7 @@ class TestToLatexCaptionLabel:
             \label{tab:table_tabular}
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -615,7 +615,7 @@ class TestToLatexCaptionLabel:
             \caption{xy}
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -638,12 +638,12 @@ class TestToLatexCaptionLabel:
             \begin{longtable}{lrl}
             \caption{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endfirsthead
             \caption[]{a table in a \texttt{longtable} environment} \\
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -669,11 +669,11 @@ class TestToLatexCaptionLabel:
             \begin{longtable}{lrl}
             \label{tab:longtable}\\
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endfirsthead
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -707,12 +707,12 @@ class TestToLatexCaptionLabel:
         \begin{longtable}{lrl}
         \caption{a table in a \texttt{longtable} environment} \label{tab:longtable} \\
         \toprule
-        {} & {a} & {b} \\
+         & a & b \\
         \midrule
         \endfirsthead
         \caption[]{a table in a \texttt{longtable} environment} \\
         \toprule
-        {} & {a} & {b} \\
+         & a & b \\
         \midrule
         \endhead
         \midrule
@@ -747,12 +747,12 @@ class TestToLatexCaptionLabel:
 \begin{longtable}{lrl}
 \caption[a table]{a table in a \texttt{longtable} environment} \label{tab:longtable} \\
 \toprule
-{} & {a} & {b} \\
+ & a & b \\
 \midrule
 \endfirsthead
 \caption[]{a table in a \texttt{longtable} environment} \\
 \toprule
-{} & {a} & {b} \\
+ & a & b \\
 \midrule
 \endhead
 \midrule
@@ -783,7 +783,7 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & {co$e^x$} & {co^l1} \\
+             & co$e^x$ & co^l1 \\
             \midrule
             a & a & a \\
             b & b & b \\
@@ -800,7 +800,7 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & {co\$e\textasciicircum x\$} & {co\textasciicircum l1} \\
+             & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
             \midrule
             a & a & a \\
             b & b & b \\
@@ -817,7 +817,7 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} & {0} \\
+             & 0 \\
             \midrule
             0 & a\textbackslash b\textbackslash c \\
             1 & \textasciicircum a\textasciicircum b\textasciicircum c \\
@@ -836,7 +836,7 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} & {0} \\
+             & 0 \\
             \midrule
             0 & \& \\
             1 & \% \\
@@ -862,7 +862,7 @@ class TestToLatexEscape:
             r"""
             \begin{tabular}{lrl}
             \toprule
-            {} & {$A$} & {$B$} \\
+             & $A$ & $B$ \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -886,7 +886,7 @@ class TestToLatexPosition:
             \centering
             \begin{tabular}{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             0 & 1 & b1 \\
             1 & 2 & b2 \\
@@ -904,11 +904,11 @@ class TestToLatexPosition:
             r"""
             \begin{longtable}[t]{lrl}
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endfirsthead
             \toprule
-            {} & {a} & {b} \\
+             & a & b \\
             \midrule
             \endhead
             \midrule
@@ -953,7 +953,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{llrrl}
             \toprule
-            {} & {datetime64} & {float} & {int} & {object} \\
+             & datetime64 & float & int & object \\
             \midrule
             index: 0 & 2016-01 & [ 1.0] & 0x1 & -(1, 2)- \\
             index: 1 & 2016-02 & [ 2.0] & 0x2 & -True- \\
@@ -989,7 +989,7 @@ class TestToLatexFormatters:
             r"""
             \begin{tabular}{lr}
             \toprule
-            {} & {x} \\
+             & x \\
             \midrule
             0 & 100 \\
             \bottomrule
@@ -1012,7 +1012,7 @@ class TestToLatexFormatters:
             fr"""
             \begin{{tabular}}{{llr}}
             \toprule
-            {{}} & {{Group}} & {{Data}} \\
+             & Group & Data \\
             \midrule
             0 & A & 1.22 \\
             1 & A & {na_rep} \\
@@ -1059,8 +1059,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrr}
             \toprule
-            {} & {} & {r1} & {r2} \\
-            {a} & {b} & {} & {} \\
+             &  & r1 & r2 \\
+            a & b &  & \\
             \midrule
             0 & 1 & 2 & 3 \\
             \bottomrule
@@ -1078,8 +1078,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrr}
             \toprule
-            {} & {0} & {1} & {2} & {3} \\
-            {} & {} & {} & {} & {} \\
+             & 0 & 1 & 2 & 3 \\
+             &  &  &  & \\
             \midrule
             1 & -1 & -1 & -1 & -1 \\
             2 & -1 & -1 & -1 & -1 \\
@@ -1096,8 +1096,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{ll}
             \toprule
-            {} & {x} \\
-            {} & {y} \\
+             & x \\
+             & y \\
             \midrule
             0 & a \\
             \bottomrule
@@ -1113,7 +1113,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & {} & {0} \\
+             &  & 0 \\
             \midrule
             x & y & a \\
             \bottomrule
@@ -1128,7 +1128,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrr}
             \toprule
-            {} & {} & {0} & {1} & {2} & {3} \\
+             &  & 0 & 1 & 2 & 3 \\
             \midrule
             c1 & 0 & 0 & 1 & 2 & 3 \\
              & 1 & 4 & 5 & 6 & 7 \\
@@ -1150,8 +1150,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {a} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & {c3} \\
-            {b} & {0} & {1} & {0} & {1} & {0} \\
+            a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+            b & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 4 & 0 & 4 & 0 \\
             1 & 1 & 5 & 1 & 5 & 1 \\
@@ -1171,8 +1171,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llr}
             \toprule
-            {} & {} & {c} \\
-            {a} & {b} & {} \\
+             &  & c \\
+            a & b & \\
             \midrule
             0 & a & 1 \\
              & b & 2 \\
@@ -1201,9 +1201,9 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrrrrr}
             \toprule
-            {} & \multicolumn{8}{r}{c} \\
-            {} & {count} & {mean} & {std} & {min} & {25\%} & {50\%} & {75\%} & {max} \\
-            {a} & {} & {} & {} & {} & {} & {} & {} & {} \\
+             & \multicolumn{8}{r}{c} \\
+             & count & mean & std & min & 25\% & 50\% & 75\% & max \\
+            a &  &  &  &  &  &  &  &  \\
             \midrule
             0 & 2.0 & 1.5 & 0.707107 & 1.0 & 1.2 & 1.5 & 1.8 & 2.0 \\
             1 & 2.0 & 3.5 & 0.707107 & 3.0 & 3.2 & 3.5 & 3.8 & 4.0 \\
@@ -1229,7 +1229,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {} & {} & {col} \\
+             &  & col \\
             \midrule
             A & c & NaN \\
             B & c & NaN \\
@@ -1245,8 +1245,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & {c3} \\
-            {} & {0} & {1} & {0} & {1} & {0} \\
+             & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
+             & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 5 & 0 & 5 & 0 \\
             1 & 1 & 6 & 1 & 6 & 1 \\
@@ -1265,8 +1265,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            {} & {c1} & & {c2} & & {c3} \\
-            {} & {0} & {1} & {0} & {1} & {0} \\
+             & c1 & & c2 & & c3 \\
+             & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 5 & 0 & 5 & 0 \\
             1 & 1 & 6 & 1 & 6 & 1 \\
@@ -1285,7 +1285,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-            {} & {} & {0} & {1} & {2} & {3} & {4} \\
+             &  & 0 & 1 & 2 & 3 & 4 \\
             \midrule
             \multirow[c]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
              & 1 & 5 & 6 & 7 & 8 & 9 \\
@@ -1309,8 +1309,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llrrrrr}
             \toprule
-            {} & {} & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & {c3} \\
-            {} & {} & {0} & {1} & {0} & {1} & {0} \\
+             &  & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
+             &  & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             \multirow[t]{2}{*}{c1} & 0 & 0 & 1 & 2 & 3 & 4 \\
              & 1 & 5 & 6 & 7 & 8 & 9 \\
@@ -1344,11 +1344,15 @@ class TestToLatexMultiindex:
         column_name1 = f"{{{name1 if (name1 and 1 in axes) else ''}}}"
 
         observed = df.to_latex(
-            hrules=True, multicol_align="l", sparse_columns=False, sparse_index=False
+            hrules=True,
+            multicol_align="l",
+            sparse_columns=False,
+            sparse_index=False,
+            siunitx=True,
         )
         expected = dedent(
             f"""\
-\\begin{{tabular}}{{llrrrr}}
+\\begin{{tabular}}{{llSSSS}}
 \\toprule
 {{}} & {column_name0} & {{1}} & {{1}} & {{2}} & {{2}} \\\\
 {{}} & {column_name1} & {{3}} & {{4}} & {{3}} & {{4}} \\\\
@@ -1376,8 +1380,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llr}
             \toprule
-            {} & {} & {c} \\
-            {a} & {b} & {} \\
+             &  & c \\
+            a & b &  \\
             \midrule
             NaN & 2 & 4 \\
             """
@@ -1398,8 +1402,8 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{llr}
             \toprule
-            {} & {} & {2} \\
-            {0} & {1} & {} \\
+             &  & 2 \\
+            0 & 1 &  \\
             \midrule
             1 & 2 & 3 \\
              & 2 & 3 \\
@@ -1420,7 +1424,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lll}
             \toprule
-            {i} & {val0} & {val1} \\
+            i & val0 & val1 \\
             \midrule
             \multirow[c]{6}{*}{0.0} & \multirow[c]{2}{*}{3.0} & 0 \\
              &  & 1 \\
