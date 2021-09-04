@@ -225,3 +225,15 @@ class TestBetweenTime:
             _ = ts.between_time(
                 stime, etime, include_start=inc_start, include_end=inc_end
             )
+
+    # GH40245
+    def test_between_time_incorr_arg_inclusive(self):
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+
+        stime = time(0, 0)
+        etime = time(1, 0)
+        inclusive = "neeither"
+        msg = "Inclusive has to be either string of 'both','left', 'right', or 'neither'. Got neeither."
+        with pytest.raises(ValueError, match=msg):
+            ts.between_time(stime, etime, inclusive=inclusive)
