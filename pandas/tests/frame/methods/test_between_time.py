@@ -255,7 +255,7 @@ class TestBetweenTime:
         inclusive = "left"
         include_start = True
         msg = (
-            "Deprecated arguments `include_start` and `include_end`cannot be "
+            "Deprecated arguments `include_start` and `include_end` cannot be "
             "passed if `inclusive` has been given."
         )
         with pytest.raises(ValueError, match=msg):

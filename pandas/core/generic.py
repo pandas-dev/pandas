@@ -7699,7 +7699,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inclusive is not None
         ):
             raise ValueError(
-                "Deprecated arguments `include_start` and `include_end`"
+                "Deprecated arguments `include_start` and `include_end` "
                 "cannot be passed if `inclusive` has been given."
             )
         # If any of the deprecated arguments ('include_start', 'include_end')
