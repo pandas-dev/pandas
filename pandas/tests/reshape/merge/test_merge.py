@@ -1653,12 +1653,12 @@ class TestMergeDtypes:
             ([1], "left"),
         ],
     )
-    def test_merge_EA_dtype(self, any_numeric_ea_dtype, how, expected_data):
+    def test_merge_EA_dtype(self, any_nullable_numeric_dtype, how, expected_data):
         # GH#40073
-        d1 = DataFrame([(1,)], columns=["id"], dtype=any_numeric_ea_dtype)
-        d2 = DataFrame([(2,)], columns=["id"], dtype=any_numeric_ea_dtype)
+        d1 = DataFrame([(1,)], columns=["id"], dtype=any_nullable_numeric_dtype)
+        d2 = DataFrame([(2,)], columns=["id"], dtype=any_nullable_numeric_dtype)
         result = merge(d1, d2, how=how)
-        expected = DataFrame(expected_data, columns=["id"], dtype=any_numeric_ea_dtype)
+        expected = DataFrame(expected_data, columns=["id"], dtype=any_nullable_numeric_dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
