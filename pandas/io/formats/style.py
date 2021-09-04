@@ -861,6 +861,7 @@ class Styler(StylerRenderer):
             multicol_align=multicol_align,
             environment=environment,
             convert_css=convert_css,
+            siunitx=siunitx,
         )
 
         encoding = encoding or get_option("styler.render.encoding")
