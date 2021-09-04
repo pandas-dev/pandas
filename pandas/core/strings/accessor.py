@@ -322,7 +322,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index._with_infer(result, name=name)
         else:
             index = self._orig.index
             # This is a mess.

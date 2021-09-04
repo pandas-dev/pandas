@@ -551,12 +551,12 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     @property
     def _has_complex_internals(self) -> bool:
         # used to avoid libreduction code paths, which raise or require conversion
-        return False
+        return True
 
     def is_type_compatible(self, kind: str) -> bool:
         warnings.warn(
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
-            "removed in a future version",
+            "removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )

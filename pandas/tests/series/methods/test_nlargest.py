@@ -166,20 +166,20 @@ class TestSeriesNLargestNSmallest:
         expected = ser.sort_values().head(n)
         tm.assert_series_equal(result, expected)
 
-    def test_nlargest_boundary_integer(self, nselect_method, any_int_dtype):
+    def test_nlargest_boundary_integer(self, nselect_method, any_int_numpy_dtype):
         # GH#21426
-        dtype_info = np.iinfo(any_int_dtype)
+        dtype_info = np.iinfo(any_int_numpy_dtype)
         min_val, max_val = dtype_info.min, dtype_info.max
         vals = [min_val, min_val + 1, max_val - 1, max_val]
-        assert_check_nselect_boundary(vals, any_int_dtype, nselect_method)
+        assert_check_nselect_boundary(vals, any_int_numpy_dtype, nselect_method)
 
-    def test_nlargest_boundary_float(self, nselect_method, float_dtype):
+    def test_nlargest_boundary_float(self, nselect_method, float_numpy_dtype):
         # GH#21426
-        dtype_info = np.finfo(float_dtype)
+        dtype_info = np.finfo(float_numpy_dtype)
         min_val, max_val = dtype_info.min, dtype_info.max
-        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=float_dtype)
+        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=float_numpy_dtype)
         vals = [min_val, min_2nd, max_2nd, max_val]
-        assert_check_nselect_boundary(vals, float_dtype, nselect_method)
+        assert_check_nselect_boundary(vals, float_numpy_dtype, nselect_method)
 
     @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
     def test_nlargest_boundary_datetimelike(self, nselect_method, dtype):
@@ -210,4 +210,20 @@ class TestSeriesNLargestNSmallest:
         ser = Series(data)
         result = ser.nlargest(1)
         expected = Series(expected)
+        tm.assert_series_equal(result, expected)
+
+    def test_nlargest_nullable(self, any_numeric_ea_dtype):
+        # GH#42816
+        dtype = any_numeric_ea_dtype
+        arr = np.random.randn(10).astype(dtype.lower(), copy=False)
+
+        ser = Series(arr.copy(), dtype=dtype)
+        ser[1] = pd.NA
+        result = ser.nlargest(5)
+
+        expected = (
+            Series(np.delete(arr, 1), index=ser.index.delete(1))
+            .nlargest(5)
+            .astype(dtype)
+        )
         tm.assert_series_equal(result, expected)

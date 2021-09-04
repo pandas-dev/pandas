@@ -308,9 +308,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = concat(
                 results.values(), axis=1, keys=[key.label for key in results.keys()]
             )
-            # error: Incompatible return value type (got "Union[DataFrame, Series]",
-            # expected "DataFrame")
-            return res_df  # type: ignore[return-value]
+            return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
@@ -455,7 +453,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                index = Index(keys, name=self.grouper.names[0])
+                index = Index._with_infer(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], dict):
@@ -547,9 +545,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(dtype=np.float64)
 
         result.name = self.obj.name
-        # error: Incompatible return value type (got "Union[DataFrame, Series]",
-        # expected "Series")
-        return result  # type: ignore[return-value]
+        return result
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
@@ -1634,12 +1630,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         DataFrame
         """
-        indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index([key.label for key in output])
-        columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
+        if isinstance(output, DataFrame):
+            result = output
+        else:
+            indexed_output = {key.position: val for key, val in output.items()}
+            columns = Index([key.label for key in output])
+            columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
 
-        result = self.obj._constructor(indexed_output)
-        result.columns = columns
+            result = self.obj._constructor(indexed_output)
+            result.columns = columns
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)

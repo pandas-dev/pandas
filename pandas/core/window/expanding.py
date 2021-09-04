@@ -18,6 +18,11 @@ if TYPE_CHECKING:
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    ExpandingIndexer,
+    GroupbyIndexer,
+)
 from pandas.core.window.doc import (
     _shared_docs,
     args_compat,
@@ -29,11 +34,6 @@ from pandas.core.window.doc import (
     template_see_also,
     window_agg_numba_parameters,
     window_apply_parameters,
-)
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    ExpandingIndexer,
-    GroupbyIndexer,
 )
 from pandas.core.window.rolling import (
     BaseWindowGroupby,

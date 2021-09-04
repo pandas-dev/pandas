@@ -267,6 +267,7 @@ class TestSeriesLogicalOps:
         result = op(ser, idx2)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:passing object-dtype arraylike:FutureWarning")
     def test_reversed_xor_with_index_returns_index(self):
         # GH#22092, GH#19792
         ser = Series([True, True, False, False])
@@ -281,7 +282,9 @@ class TestSeriesLogicalOps:
         tm.assert_index_equal(result, expected)
 
         expected = Index.symmetric_difference(idx2, ser)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             result = idx2 ^ ser
         tm.assert_index_equal(result, expected)
 

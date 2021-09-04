@@ -26,20 +26,20 @@ cdef extern from "khash_python.h":
         double imag
 
     bint are_equivalent_khcomplex128_t \
-    "kh_complex_hash_equal" (khcomplex128_t a, khcomplex128_t b) nogil
+        "kh_complex_hash_equal" (khcomplex128_t a, khcomplex128_t b) nogil
 
     ctypedef struct khcomplex64_t:
         float real
         float imag
 
     bint are_equivalent_khcomplex64_t \
-    "kh_complex_hash_equal" (khcomplex64_t a, khcomplex64_t b) nogil
+        "kh_complex_hash_equal" (khcomplex64_t a, khcomplex64_t b) nogil
 
     bint are_equivalent_float64_t \
-    "kh_floats_hash_equal" (float64_t a, float64_t b) nogil
+        "kh_floats_hash_equal" (float64_t a, float64_t b) nogil
 
     bint are_equivalent_float32_t \
-    "kh_floats_hash_equal" (float32_t a, float32_t b) nogil
+        "kh_floats_hash_equal" (float32_t a, float32_t b) nogil
 
     uint32_t kh_python_hash_func(object key)
     bint kh_python_hash_equal(object a, object b)

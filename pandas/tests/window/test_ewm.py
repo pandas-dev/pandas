@@ -116,8 +116,10 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
-    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    with tm.assert_produces_warning(FutureWarning, match="nuisance columns"):
+        # GH#42738
+        result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
+        expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -219,11 +221,11 @@ def test_ewma_times_adjust_false_raises():
         ],
     ],
 )
-def test_float_dtype_ewma(func, expected, float_dtype):
+def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     # GH#42452
 
     df = DataFrame(
-        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_dtype
+        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_numpy_dtype
     )
     e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()
