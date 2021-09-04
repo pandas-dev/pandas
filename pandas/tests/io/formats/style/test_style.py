@@ -1,5 +1,6 @@
 import copy
 import re
+from textwrap import dedent
 
 import numpy as np
 import pytest
@@ -47,8 +48,10 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
     mi_styler.hide_columns([("c0", "c1_a")])
+    mi_styler.hide_columns(names=True)
     mi_styler.hide_index()
     mi_styler.hide_index([("i0", "i1_a")])
+    mi_styler.hide_index(names=True)
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
@@ -187,6 +190,23 @@ def test_render_trimming_mi():
     assert {"attributes": 'colspan="2"'}.items() <= ctx["head"][0][2].items()
 
 
+def test_render_empty_mi():
+    # GH 43305
+    df = DataFrame(index=MultiIndex.from_product([["A"], [0, 1]], names=[None, "one"]))
+    expected = dedent(
+        """\
+    >
+      <thead>
+        <tr>
+          <th class="index_name level0" >&nbsp;</th>
+          <th class="index_name level1" >one</th>
+        </tr>
+      </thead>
+    """
+    )
+    assert expected in df.style.to_html()
+
+
 @pytest.mark.parametrize("comprehensive", [True, False])
 @pytest.mark.parametrize("render", [True, False])
 @pytest.mark.parametrize("deepcopy", [True, False])
@@ -221,6 +241,8 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
             "cell_ids",
             "hide_index_",
             "hide_columns_",
+            "hide_index_names",
+            "hide_column_names",
             "table_attributes",
         ]
         for attr in shallow:
@@ -384,10 +406,10 @@ class TestStyler:
         self.styler._repr_html_()
 
     def test_repr_html_mathjax(self):
-        # gh-19824
+        # gh-19824 / 41395
         assert "tex2jax_ignore" not in self.styler._repr_html_()
 
-        with pd.option_context("display.html.use_mathjax", False):
+        with pd.option_context("styler.html.mathjax", False):
             assert "tex2jax_ignore" in self.styler._repr_html_()
 
     def test_update_ctx(self):
@@ -1128,9 +1150,9 @@ class TestStyler:
         assert ctx["body"][0][0]["is_visible"]
         # data
         assert ctx["body"][1][2]["is_visible"]
-        assert ctx["body"][1][2]["display_value"] == 3
+        assert ctx["body"][1][2]["display_value"] == "3"
         assert ctx["body"][1][3]["is_visible"]
-        assert ctx["body"][1][3]["display_value"] == 4
+        assert ctx["body"][1][3]["display_value"] == "4"
 
         # hide top column level, which hides both columns
         ctx = df.style.hide_columns("b")._translate(True, True)
@@ -1146,7 +1168,7 @@ class TestStyler:
         assert not ctx["head"][1][2]["is_visible"]  # 0
         assert not ctx["body"][1][2]["is_visible"]  # 3
         assert ctx["body"][1][3]["is_visible"]
-        assert ctx["body"][1][3]["display_value"] == 4
+        assert ctx["body"][1][3]["display_value"] == "4"
 
         # hide second column and index
         ctx = df.style.hide_columns([("b", 1)]).hide_index()._translate(True, True)
@@ -1157,7 +1179,7 @@ class TestStyler:
         assert not ctx["head"][1][2]["is_visible"]  # 1
         assert not ctx["body"][1][3]["is_visible"]  # 4
         assert ctx["body"][1][2]["is_visible"]
-        assert ctx["body"][1][2]["display_value"] == 3
+        assert ctx["body"][1][2]["display_value"] == "3"
 
         # hide top row level, which hides both rows
         ctx = df.style.hide_index("a")._translate(True, True)
@@ -1380,3 +1402,40 @@ class TestStyler:
         with tm.assert_produces_warning(warn, match=msg):
             result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
+
+
+def test_hidden_index_names(mi_df):
+    mi_df.index.names = ["Lev0", "Lev1"]
+    mi_styler = mi_df.style
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 3  # 2 column index levels + 1 index names row
+
+    mi_styler.hide_index(names=True)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is unparsed
+    for i in range(4):
+        assert ctx["body"][0][i]["is_visible"]  # 2 index levels + 2 data values visible
+
+    mi_styler.hide_index(level=1)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is still hidden
+    assert ctx["body"][0][0]["is_visible"] is True
+    assert ctx["body"][0][1]["is_visible"] is False
+
+
+def test_hidden_column_names(mi_df):
+    mi_df.columns.names = ["Lev0", "Lev1"]
+    mi_styler = mi_df.style
+    ctx = mi_styler._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "Lev0"
+    assert ctx["head"][1][1]["display_value"] == "Lev1"
+
+    mi_styler.hide_columns(names=True)
+    ctx = mi_styler._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "&nbsp;"
+    assert ctx["head"][1][1]["display_value"] == "&nbsp;"
+
+    mi_styler.hide_columns(level=0)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 1  # no index names and only one visible column headers
+    assert ctx["head"][0][1]["display_value"] == "&nbsp;"

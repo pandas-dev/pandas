@@ -1141,9 +1141,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+        sorted_index_data = data.index.take(sorted_index).to_numpy()
 
         starts, ends = lib.generate_slices(sorted_ids, ngroups)
-        return starts, ends, sorted_index, sorted_data
+        return (
+            starts,
+            ends,
+            sorted_index_data,
+            sorted_data,
+        )
 
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
@@ -1960,7 +1966,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
 
-    @final
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with group_selection_context(self):
@@ -3093,7 +3098,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
         return res
 
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
