@@ -35,6 +35,7 @@ Rolling window functions
    Rolling.aggregate
    Rolling.quantile
    Rolling.sem
+   Rolling.rank
 
 .. _api.functions_window:
 
@@ -75,6 +76,7 @@ Expanding window functions
    Expanding.aggregate
    Expanding.quantile
    Expanding.sem
+   Expanding.rank
 
 .. _api.functions_ewm:
 

@@ -87,6 +87,53 @@ Multithreaded CSV reading with a new CSV Engine based on pyarrow
 :func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
 with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
+.. _whatsnew_140.enhancements.window_rank:
+
+Rank function for rolling and expanding windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Added ``rank`` function to :class:`Rolling` and :class:`Expanding`. The new function supports the ``method``, ``ascending``, and ``pct`` flags of :meth:`DataFrame.rank`. The ``method`` argument supports ``min``, ``max``, and ``average`` ranking methods.
+Example:
+
+.. ipython:: python
+
+    >>> s = pd.Series([1,4,2,3,5,3])
+    >>> s.rolling(3).rank()
+    0    NaN
+    1    NaN
+    2    2.0
+    3    2.0
+    4    3.0
+    5    1.5
+    dtype: float64
+
+    >>> s.rolling(3).rank(method="max")
+    0    NaN
+    1    NaN
+    2    2.0
+    3    2.0
+    4    3.0
+    5    2.0
+    dtype: float64
+
+    >>> s.expanding().rank()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    3.0
+    4    5.0
+    5    3.5
+    dtype: float64
+
+    >>> s.expanding().rank(method="max")
+    0    1.0
+    1    2.0
+    2    2.0
+    3    3.0
+    4    5.0
+    5    4.0
+    dtype: float64
+
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
