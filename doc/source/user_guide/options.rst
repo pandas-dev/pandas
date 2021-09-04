@@ -487,8 +487,11 @@ styler.sparse.index                     True         "Sparsify" MultiIndex displ
                                                      elements in outer levels within groups).
 styler.sparse.columns                   True         "Sparsify" MultiIndex display for columns
                                                      in Styler output.
+styler.render.repr                      html         Standard output format for Styler rendered in Jupyter Notebook.
+                                                     Should be one of "html" or "latex".
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
+styler.render.encoding                  utf-8        Default encoding for output HTML or LaTeX files.
 styler.format.formatter                 None         Object to specify formatting functions to ``Styler.format``.
 styler.format.na_rep                    None         String representation for missing data.
 styler.format.precision                 6            Precision to display floating point and complex numbers.
@@ -498,6 +501,13 @@ styler.format.thousands                 None         String representation for t
                                                      integers, and floating point and complex numbers.
 styler.format.escape                    None         Whether to escape "html" or "latex" special
                                                      characters in the display representation.
+styler.html.mathjax                     True         If set to False will render specific CSS classes to
+                                                     table attributes that will prevent Mathjax from rendering
+                                                     in Jupyter Notebook.
+styler.latex.multicol_align             r            Alignment of headers in a merged column due to sparsification. Can be in {"r", "c", "l"}.
+styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
+styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
+                                                     this will render with a specific "longtable" template with longtable features.
 ======================================= ============ ==================================
 
 

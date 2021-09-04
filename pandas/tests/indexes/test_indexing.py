@@ -21,9 +21,7 @@ from pandas.errors import InvalidIndexError
 
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     NaT,
@@ -31,9 +29,13 @@ from pandas import (
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestTake:

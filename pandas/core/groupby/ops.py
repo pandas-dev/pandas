@@ -932,6 +932,11 @@ class BaseGrouper:
             # Preempt TypeError in _aggregate_series_fast
             result = self._aggregate_series_pure_python(obj, func)
 
+        elif isinstance(self, BinGrouper):
+            # Not yet able to remove the BaseGrouper aggregate_series_fast,
+            #  as test_crosstab.test_categorical breaks without it
+            result = self._aggregate_series_pure_python(obj, func)
+
         else:
             result = self._aggregate_series_fast(obj, func)
 
@@ -942,9 +947,7 @@ class BaseGrouper:
             out = npvalues
         return out
 
-    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
-        # -> np.ndarray[object]
-
+    def _aggregate_series_fast(self, obj: Series, func: F) -> npt.NDArray[np.object_]:
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -962,8 +965,9 @@ class BaseGrouper:
         return result
 
     @final
-    def _aggregate_series_pure_python(self, obj: Series, func: F) -> np.ndarray:
-        # -> np.ndarray[object]
+    def _aggregate_series_pure_python(
+        self, obj: Series, func: F
+    ) -> npt.NDArray[np.object_]:
         ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -1149,15 +1153,9 @@ class BinGrouper(BaseGrouper):
 
     def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
         # -> np.ndarray[object]
-
-        # At this point we have already checked that
-        #  - obj.index is not a MultiIndex
-        #  - obj is backed by an ndarray, not ExtensionArray
-        #  - ngroups != 0
-        #  - len(self.bins) > 0
-        sbg = libreduction.SeriesBinGrouper(obj, func, self.bins)
-        result, _ = sbg.get_result()
-        return result
+        raise NotImplementedError(
+            "This should not be reached; use _aggregate_series_pure_python"
+        )
 
 
 def _is_indexed_like(obj, axes, axis: int) -> bool:
@@ -1191,12 +1189,12 @@ class DataSplitter(Generic[FrameOrSeries]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
+    def slabels(self) -> npt.NDArray[np.intp]:
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
     @cache_readonly
-    def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
+    def _sort_idx(self) -> npt.NDArray[np.intp]:
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 

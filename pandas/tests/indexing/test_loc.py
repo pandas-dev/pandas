@@ -36,6 +36,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import Base
 
 
@@ -1838,7 +1839,7 @@ class TestLocSetitemWithExpansion:
         df.loc[0, np.inf] = 3
 
         result = df.columns
-        expected = pd.Float64Index([0, 1, np.inf])
+        expected = Float64Index([0, 1, np.inf])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
