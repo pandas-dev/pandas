@@ -202,9 +202,7 @@ def names_compat(meth: F) -> F:
 
         return meth(self_or_cls, *args, **kwargs)
 
-    # error: Incompatible return value type (got "Callable[[Any, VarArg(Any),
-    # KwArg(Any)], Any]", expected "F")
-    return new_meth  # type: ignore[return-value]
+    return cast(F, new_meth)
 
 
 class MultiIndex(Index):

@@ -8,7 +8,10 @@ from datetime import (
     tzinfo,
 )
 import functools
-from typing import Any
+from typing import (
+    Any,
+    cast,
+)
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -87,9 +90,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
         with pandas_converters():
             return func(*args, **kwargs)
 
-    # error: Incompatible return value type (got "Callable[[VarArg(Any), KwArg(Any)],
-    # Any]", expected "F")
-    return wrapper  # type: ignore[return-value]
+    return cast(F, wrapper)
 
 
 @contextlib.contextmanager

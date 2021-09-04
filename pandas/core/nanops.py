@@ -475,9 +475,7 @@ def maybe_operate_rowwise(func: F) -> F:
 
         return func(values, axis=axis, **kwargs)
 
-    # error: Incompatible return value type (got "Callable[[ndarray[Any, Any],
-    # DefaultNamedArg(Optional[int], 'axis'), KwArg(Any)], Any]", expected "F")
-    return newfunc  # type: ignore[return-value]
+    return cast(F, newfunc)
 
 
 def nanany(
