@@ -7711,16 +7711,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=2,
             )
-            if (include_start == lib.no_default and include_end == lib.no_default) or (
-                include_start is True and include_end is True
-            ):
-                inclusive = "both"
-            elif include_start is False and include_end is False:
-                inclusive = "neither"
-            elif include_start is True and include_end is False:
-                inclusive = "left"
-            elif include_start is False and include_end is True:
-                inclusive = "right"
+            left = 1 if include_start == lib.no_default else int(include_start)
+            right = 1 if include_end == lib.no_default else int(include_end)
+            inc_dict = {
+                (1, 1): "both",
+                (1, 0): "left",
+                (0, 1): "right",
+                (0, 0): "neither",
+            }
+            inclusive = inc_dict[(left, right)]
         else:  # On arg removal inclusive can default to "both"
             if inclusive is None:
                 inclusive = "both"
