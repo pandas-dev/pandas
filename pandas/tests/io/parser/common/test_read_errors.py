@@ -21,6 +21,8 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 def test_empty_decimal_marker(all_parsers):
     data = """A|B|C

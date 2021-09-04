@@ -97,6 +97,8 @@ ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
+ensure_complex64 = algos.ensure_complex64
+ensure_complex128 = algos.ensure_complex128
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
@@ -302,8 +304,8 @@ def is_categorical(arr) -> bool:
     True
     """
     warnings.warn(
-        "is_categorical is deprecated and will be removed in a future version.  "
-        "Use is_categorical_dtype instead",
+        "is_categorical is deprecated and will be removed in a future version. "
+        "Use is_categorical_dtype instead.",
         FutureWarning,
         stacklevel=2,
     )
