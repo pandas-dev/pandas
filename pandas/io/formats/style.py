@@ -1776,8 +1776,12 @@ class Styler(StylerRenderer):
         """
         self._todo.extend(styles.get("apply", []))
         table_attributes = self.table_attributes or ""
-        table_attributes += styles.get("table_attributes", "")
-        self.set_table_attributes(table_attributes)
+        obj_table_atts = (
+            ""
+            if styles.get("table_attributes") is None
+            else styles.get("table_attributes")
+        )
+        self.set_table_attributes((table_attributes + " " + obj_table_atts).strip())
         if styles.get("table_styles"):
             self.set_table_styles(styles.get("table_styles"), overwrite=False)
         self.hide_index_ = styles.get("hide_index", False)
