@@ -5,8 +5,6 @@ import dateutil
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -198,8 +196,12 @@ class TestAppend:
         ser = Series([7, 8], index=ser_index, name=2)
         result = df.append(ser)
         expected = DataFrame(
-            [[1.0, 2.0, 3.0], [4, 5, 6], [7, 8, np.nan]], index=[0, 1, 2], columns=index
+            [[1, 2, 3.0], [4, 5, 6], [7, 8, np.nan]], index=[0, 1, 2], columns=index
         )
+        # integer dtype is preserved for columns present in ser.index
+        assert expected.dtypes.iloc[0].kind == "i"
+        assert expected.dtypes.iloc[1].kind == "i"
+
         tm.assert_frame_equal(result, expected)
 
         # ser wider than df
@@ -301,14 +303,10 @@ class TestAppend:
         assert appended["A"].dtype == "f8"
         assert appended["B"].dtype == "O"
 
-    # TODO(ArrayManager) DataFrame.append reindexes a Series itself (giving
-    # float dtype) -> delay reindexing until concat_array_managers which properly
-    # takes care of all-null dtype inference
-    @td.skip_array_manager_not_yet_implemented
     def test_append_empty_frame_to_series_with_dateutil_tz(self):
         # GH 23682
         date = Timestamp("2018-10-24 07:30:00", tz=dateutil.tz.tzutc())
-        ser = Series({"date": date, "a": 1.0, "b": 2.0})
+        ser = Series({"a": 1.0, "b": 2.0, "date": date})
         df = DataFrame(columns=["c", "d"])
         result_a = df.append(ser, ignore_index=True)
         expected = DataFrame(
@@ -327,8 +325,6 @@ class TestAppend:
         result_b = result_a.append(ser, ignore_index=True)
         tm.assert_frame_equal(result_b, expected)
 
-        # column order is different
-        expected = expected[["c", "d", "date", "a", "b"]]
         result = df.append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
