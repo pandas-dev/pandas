@@ -26,8 +26,8 @@
 {% else %}
 {%- set label = parse_table(table_styles, 'label') %}
 {%- if label is not none %}
- \label{{label}} \\
-{%- endif %}
+\label{{label}} \\
+{% endif %}
 {% endif %}
 {% set toprule = parse_table(table_styles, 'toprule') %}
 {% if toprule is not none %}
