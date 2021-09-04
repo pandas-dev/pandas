@@ -3494,7 +3494,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         raise AbstractMethodError(self)
 
     def _maybe_update_cacher(
-        self, clear: bool_t = False, verify_is_copy: bool_t = True
+        self,
+        clear: bool_t = False,
+        verify_is_copy: bool_t = True,
+        inplace: bool_t = False,
     ) -> None:
         """
         See if we need to update our parent cacher if clear, then clear our

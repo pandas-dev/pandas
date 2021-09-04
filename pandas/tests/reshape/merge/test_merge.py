@@ -308,21 +308,8 @@ class TestMerge:
 
         merged = merge(left, right, left_index=True, right_index=True, copy=False)
 
-        if using_array_manager:
-            # With ArrayManager, setting a column doesn't change the values inplace
-            # and thus does not propagate the changes to the original left/right
-            # dataframes -> need to check that no copy was made in a different way
-            # TODO(ArrayManager) we should be able to simplify this with a .loc
-            #  setitem test: merged.loc[0, "a"] = 10; assert left.loc[0, "a"] == 10
-            #  but this currently replaces the array (_setitem_with_indexer_split_path)
-            assert merged._mgr.arrays[0] is left._mgr.arrays[0]
-            assert merged._mgr.arrays[2] is right._mgr.arrays[0]
-        else:
-            merged["a"] = 6
-            assert (left["a"] == 6).all()
-
-            merged["d"] = "peekaboo"
-            assert (right["d"] == "peekaboo").all()
+        assert np.shares_memory(merged["a"]._values, left["a"]._values)
+        assert np.shares_memory(merged["d"]._values, right["d"]._values)
 
     def test_intelligently_handle_join_key(self):
         # #733, be a bit more 1337 about not returning unconsolidated DataFrame

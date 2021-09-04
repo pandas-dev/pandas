@@ -992,7 +992,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             result.append(values)
         return result
 
-    def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
+    def iset(
+        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+    ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1047,7 +1049,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         for blkno, val_locs in libinternals.get_blkno_placements(blknos, group=True):
             blk = self.blocks[blkno]
             blk_locs = blklocs[val_locs.indexer]
-            if blk.should_store(value):
+            if inplace and blk.should_store(value):
                 blk.set_inplace(blk_locs, value_getitem(val_locs))
             else:
                 unfit_mgr_locs.append(blk.mgr_locs.as_array[blk_locs])

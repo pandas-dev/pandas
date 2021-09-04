@@ -1028,12 +1028,6 @@ class TestDataFrameSetitemCopyViewSemantics:
     )
     def test_setitem_same_dtype_not_inplace(self, value, using_array_manager, request):
         # GH#39510
-        if not using_array_manager:
-            mark = pytest.mark.xfail(
-                reason="Setitem with same dtype still changing inplace"
-            )
-            request.node.add_marker(mark)
-
         cols = ["A", "B"]
         df = DataFrame(0, index=[0, 1], columns=cols)
         df_copy = df.copy()
