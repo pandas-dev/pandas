@@ -694,12 +694,6 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
         extra_indexers[0] = extra_indexers[0][length:]
         join_unit.indexers[0] = join_unit.indexers[0][:length]
 
-    if join_unit.block is None:
-        extra_block = None
-    else:
-        extra_block = join_unit.block.getitem_block(slice(length, None))
-        join_unit.block = join_unit.block.getitem_block(slice(length))
-
     extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]
     join_unit.shape = (length,) + join_unit.shape[1:]
 
