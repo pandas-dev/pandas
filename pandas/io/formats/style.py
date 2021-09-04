@@ -1723,7 +1723,7 @@ class Styler(StylerRenderer):
         The following items are exported since they are not generally data dependent:
 
           - Styling functions added by the ``apply`` and ``applymap``
-          - Whether axes are hidden from the display
+          - Whether axes and names are hidden from the display
           - Table attributes
           - Table styles
 
@@ -1743,6 +1743,8 @@ class Styler(StylerRenderer):
             "table_styles": self.table_styles,
             "hide_index": self.hide_index_,
             "hide_columns": self.hide_columns_,
+            "hide_index_names": self.hide_index_names,
+            "hide_column_names": self.hide_column_names,
         }
 
     def use(self, styles: dict[str, Any]) -> Styler:
@@ -1765,6 +1767,8 @@ class Styler(StylerRenderer):
                 ``hide_index``.
               - "hide_columns": whether column headers are hidden, typically added with
                 ``hide_columns``.
+              - "hide_index_names": whether index names are hidden.
+              - "hide_column_names" whether column header names are hidden.
 
         Returns
         -------
@@ -1786,6 +1790,8 @@ class Styler(StylerRenderer):
             self.set_table_styles(styles.get("table_styles"), overwrite=False)
         self.hide_index_ = styles.get("hide_index", False)
         self.hide_columns_ = styles.get("hide_columns", False)
+        self.hide_index_names = styles.get("hide_index_names", False)
+        self.hide_column_names = styles.get("hide_column_names", False)
         return self
 
     def set_uuid(self, uuid: str) -> Styler:
