@@ -27,6 +27,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
+from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -228,11 +229,11 @@ class _FrequencyInferer:
         )
 
     @cache_readonly
-    def deltas(self):
+    def deltas(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.i8values)
 
     @cache_readonly
-    def deltas_asi8(self):
+    def deltas_asi8(self) -> npt.NDArray[np.int64]:
         # NB: we cannot use self.i8values here because we may have converted
         #  the tz in __init__
         return unique_deltas(self.index.asi8)
@@ -300,7 +301,7 @@ class _FrequencyInferer:
         return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
-    def fields(self):
+    def fields(self) -> np.ndarray:  # structured array of fields
         return build_field_sarray(self.i8values)
 
     @cache_readonly
@@ -311,12 +312,12 @@ class _FrequencyInferer:
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
-    def mdiffs(self):
+    def mdiffs(self) -> npt.NDArray[np.int64]:
         nmonths = self.fields["Y"] * 12 + self.fields["M"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
-    def ydiffs(self):
+    def ydiffs(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.fields["Y"].astype("i8"))
 
     def _infer_daily_rule(self) -> str | None:
