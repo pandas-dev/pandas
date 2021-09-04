@@ -3,12 +3,14 @@ from __future__ import annotations
 import abc
 from collections.abc import Callable  # noqa: PDF001
 import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._typing import Scalar
 
-from pandas.core.series import Series
+if TYPE_CHECKING:
+    from pandas import Series
 
 
 class BaseStringArrayMethods(abc.ABC):

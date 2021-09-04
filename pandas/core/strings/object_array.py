@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable  # noqa: PDF001
 import re
 import textwrap
+from typing import TYPE_CHECKING
 import unicodedata
 
 import numpy as np
@@ -18,8 +19,10 @@ from pandas._typing import (
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.series import Series
 from pandas.core.strings.base import BaseStringArrayMethods
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 
 class ObjectStringArrayMixin(BaseStringArrayMethods):
