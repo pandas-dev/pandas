@@ -152,6 +152,9 @@ def test_is_list_like_recursion():
 
 def test_is_list_like_iter_is_none():
     class NotListLike:
+        def __getitem__(self, item):
+            return self
+
         __iter__ = None
 
     assert not inference.is_list_like(NotListLike())
