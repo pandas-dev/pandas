@@ -1658,7 +1658,9 @@ class TestMergeDtypes:
         d1 = DataFrame([(1,)], columns=["id"], dtype=any_nullable_numeric_dtype)
         d2 = DataFrame([(2,)], columns=["id"], dtype=any_nullable_numeric_dtype)
         result = merge(d1, d2, how=how)
-        expected = DataFrame(expected_data, columns=["id"], dtype=any_nullable_numeric_dtype)
+        expected = DataFrame(
+            expected_data, columns=["id"], dtype=any_nullable_numeric_dtype
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
