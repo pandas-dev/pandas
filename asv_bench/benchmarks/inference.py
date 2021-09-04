@@ -115,18 +115,26 @@ class MaybeConvertObjects:
 class ToDatetimeFromIntsFloats:
     def setup(self):
         self.ts_sec = Series(range(1521080307, 1521685107), dtype="int64")
+        self.ts_sec_uint = Series(range(1521080307, 1521685107), dtype="uint64")
         self.ts_sec_float = self.ts_sec.astype("float64")
 
         self.ts_nanosec = 1_000_000 * self.ts_sec
+        self.ts_nanosec_uint = 1_000_000 * self.ts_sec_uint
         self.ts_nanosec_float = self.ts_nanosec.astype("float64")
 
-    # speed of int64 and float64 paths should be comparable
+    # speed of int64, uint64 and float64 paths should be comparable
 
     def time_nanosec_int64(self):
         to_datetime(self.ts_nanosec, unit="ns")
 
+    def time_nanosec_uint64(self):
+        to_datetime(self.ts_nanosec_uint, unit="ns")
+
     def time_nanosec_float64(self):
         to_datetime(self.ts_nanosec_float, unit="ns")
+
+    def time_sec_uint64(self):
+        to_datetime(self.ts_sec_uint, unit="s")
 
     def time_sec_int64(self):
         to_datetime(self.ts_sec, unit="s")

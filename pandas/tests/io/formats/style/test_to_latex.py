@@ -276,6 +276,30 @@ def test_multiindex_row_and_col(df):
     assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
 
 
+def test_multi_options(df):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    df.index, df.columns = ridx, cidx
+    styler = df.style.format(precision=2)
+
+    expected = dedent(
+        """\
+    {} & {} & \\multicolumn{2}{r}{Z} & {Y} \\\\
+    {} & {} & {a} & {b} & {c} \\\\
+    \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
+    """
+    )
+    assert expected in styler.to_latex()
+
+    with option_context("styler.latex.multicol_align", "l"):
+        assert "{} & {} & \\multicolumn{2}{l}{Z} & {Y} \\\\" in styler.to_latex()
+
+    with option_context("styler.latex.multirow_align", "b"):
+        assert "\\multirow[b]{2}{*}{A} & a & 0 & -0.61 & ab \\\\" in styler.to_latex()
+
+
 def test_multiindex_columns_hidden():
     df = DataFrame([[1, 2, 3, 4]])
     df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
@@ -376,6 +400,12 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
     assert s.format(precision=2).to_latex(environment=environment) == expected
 
 
+def test_environment_option(styler):
+    with option_context("styler.latex.environment", "bar-env"):
+        assert "\\begin{bar-env}" in styler.to_latex()
+        assert "\\begin{foo-env}" in styler.to_latex(environment="foo-env")
+
+
 def test_parse_latex_table_styles(styler):
     styler.set_table_styles(
         [
@@ -414,16 +444,19 @@ def test_parse_latex_cell_styles_braces(wrap_arg, expected):
 
 
 def test_parse_latex_header_span():
-    cell = {"attributes": 'colspan="3"', "display_value": "text"}
+    cell = {"attributes": 'colspan="3"', "display_value": "text", "cellstyle": []}
     expected = "\\multicolumn{3}{Y}{text}"
     assert _parse_latex_header_span(cell, "X", "Y") == expected
 
-    cell = {"attributes": 'rowspan="5"', "display_value": "text"}
+    cell = {"attributes": 'rowspan="5"', "display_value": "text", "cellstyle": []}
     expected = "\\multirow[X]{5}{*}{text}"
     assert _parse_latex_header_span(cell, "X", "Y") == expected
 
-    cell = {"display_value": "text"}
+    cell = {"display_value": "text", "cellstyle": []}
     assert _parse_latex_header_span(cell, "X", "Y") == "text"
+
+    cell = {"display_value": "text", "cellstyle": [("bfseries", "--rwrap")]}
+    assert _parse_latex_header_span(cell, "X", "Y") == "\\bfseries{text}"
 
 
 def test_parse_latex_table_wrapping(styler):
@@ -635,3 +668,48 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
     assert expected in styler.to_latex(
         environment="longtable", caption=caption, label=label
     )
+
+
+@pytest.mark.parametrize("index", [True, False])
+@pytest.mark.parametrize("columns", [True, False])
+def test_apply_map_header_render_mi(df, index, columns):
+    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    df.index, df.columns = ridx, cidx
+    styler = df.style
+
+    func = lambda v: "bfseries: --rwrap" if "A" in v or "Z" in v or "c" in v else None
+
+    if index:
+        styler.applymap_index(func, axis="index")
+    if columns:
+        styler.applymap_index(func, axis="columns")
+
+    result = styler.to_latex()
+
+    expected_index = dedent(
+        """\
+    \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
+     & b & 1 & -1.220000 & cd \\\\
+    B & \\bfseries{c} & 2 & -2.220000 & de \\\\
+    """
+    )
+    assert (expected_index in result) is index
+
+    expected_columns = dedent(
+        """\
+    {} & {} & \\multicolumn{2}{r}{\\bfseries{Z}} & {Y} \\\\
+    {} & {} & {a} & {b} & {\\bfseries{c}} \\\\
+    """
+    )
+    assert (expected_columns in result) is columns
+
+
+def test_repr_option(styler):
+    assert "<style" in styler._repr_html_()[:6]
+    assert styler._repr_latex_() is None
+    with option_context("styler.render.repr", "latex"):
+        assert "\\begin{tabular}" in styler._repr_latex_()[:15]
+        assert styler._repr_html_() is None

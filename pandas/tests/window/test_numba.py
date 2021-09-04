@@ -14,7 +14,7 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
@@ -150,7 +150,7 @@ class TestEngine:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 class TestEWMMean:
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
@@ -170,26 +170,39 @@ class TestEWMMean:
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
-    @pytest.mark.parametrize(
-        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
-    )
+    @pytest.mark.parametrize("grouper", ["None", "groupby"])
     def test_cython_vs_numba(
         self, grouper, nogil, parallel, nopython, ignore_na, adjust
     ):
+        if grouper == "None":
+            grouper = lambda x: x
+            warn = FutureWarning
+        else:
+            grouper = lambda x: x.groupby("A")
+            warn = None
+
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = ewm.mean(engine="cython")
+        with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
+            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+            expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
-    )
+    @pytest.mark.parametrize("grouper", ["None", "groupby"])
     def test_cython_vs_numba_times(self, grouper, nogil, parallel, nopython, ignore_na):
         # GH 40951
+
+        if grouper == "None":
+            grouper = lambda x: x
+            warn = FutureWarning
+        else:
+            grouper = lambda x: x.groupby("A")
+            warn = None
+
         halflife = "23 days"
         times = to_datetime(
             [
@@ -207,13 +220,16 @@ class TestEWMMean:
         )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = ewm.mean(engine="cython")
+
+        with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
+            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+            expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
@@ -225,7 +241,7 @@ def test_use_global_config():
     tm.assert_series_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
     with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
@@ -233,7 +249,7 @@ def test_invalid_kwargs_nopython():
         )
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba

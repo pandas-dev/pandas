@@ -26,6 +26,11 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common  # noqa: PDF018
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+)
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
@@ -38,11 +43,6 @@ from pandas.core.window.doc import (
     template_returns,
     template_see_also,
     window_agg_numba_parameters,
-)
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    ExponentialMovingWindowIndexer,
-    GroupbyIndexer,
 )
 from pandas.core.window.numba_ import (
     generate_ewma_numba_table_func,
@@ -474,12 +474,14 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
             nv.validate_window_func("mean", args, kwargs)
+
+            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewma,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=deltas,
             )
             return self._apply(window_func)
         else:

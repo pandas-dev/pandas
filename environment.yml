@@ -99,12 +99,13 @@ dependencies:
   - xlwt
   - odfpy
 
-  - fastparquet>=0.4.0, <0.7.0  # pandas.read_parquet, DataFrame.to_parquet
+  - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
   - pyarrow>=0.17.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather
   - python-snappy  # required by pyarrow
 
   - pytables>=3.6.1  # pandas.read_hdf, DataFrame.to_hdf
   - s3fs>=0.4.0  # file IO when using 's3://...' path
+  - aiobotocore
   - fsspec>=0.7.4, <2021.6.0  # for generic remote file operations
   - gcsfs>=0.6.0  # file IO when using 'gcs://...' path
   - sqlalchemy  # pandas.read_sql, DataFrame.to_sql

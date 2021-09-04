@@ -572,7 +572,7 @@ class TestPeriodMethods:
 
         with tm.assert_produces_warning(FutureWarning):
             p = Period("1/1/2005", freq="A").to_timestamp(freq="A", tz=tzstr)
-        exp = Timestamp("31/12/2005", tz="UTC").tz_convert(tzstr)
+        exp = Timestamp(day=31, month=12, year=2005, tz="UTC").tz_convert(tzstr)
         exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp

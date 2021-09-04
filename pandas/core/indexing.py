@@ -1345,7 +1345,7 @@ class _iLocIndexer(_LocationIndexer):
 
         if isinstance(indexer, ABCDataFrame):
             warnings.warn(
-                "DataFrame indexer for .iloc is deprecated and will be removed in"
+                "DataFrame indexer for .iloc is deprecated and will be removed in "
                 "a future version.\n"
                 "consider using .loc with a DataFrame indexer for automatic alignment.",
                 FutureWarning,
@@ -1696,6 +1696,10 @@ class _iLocIndexer(_LocationIndexer):
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
                 # We get here in one case via .loc with a all-False mask
                 pass
+
+            elif self._is_scalar_access(indexer):
+                # We are setting nested data
+                self._setitem_single_column(indexer[1], value, pi)
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.

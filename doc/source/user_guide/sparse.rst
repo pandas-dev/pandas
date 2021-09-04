@@ -294,7 +294,7 @@ To convert back to sparse SciPy matrix in COO format, you can use the :meth:`Dat
 
    sdf.sparse.to_coo()
 
-meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a :class:`MultiIndex` to a :class:`scipy.sparse.coo_matrix`.
+:meth:`Series.sparse.to_coo` is implemented for transforming a ``Series`` with sparse values indexed by a :class:`MultiIndex` to a :class:`scipy.sparse.coo_matrix`.
 
 The method requires a ``MultiIndex`` with two or more levels.
 
