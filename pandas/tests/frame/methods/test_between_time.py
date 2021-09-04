@@ -234,6 +234,25 @@ class TestBetweenTime:
         stime = time(0, 0)
         etime = time(1, 0)
         inclusive = "neeither"
-        msg = "Inclusive has to be either string of 'both','left', 'right', or 'neither'. Got neeither."
+        msg = (
+            "Inclusive has to be either string of 'both','left', 'right', "
+            "or 'neither'. Got neeither."
+        )
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, inclusive=inclusive)
+
+    # GH40245
+    def test_between_time_incompatiable_args_given_together(self):
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+
+        stime = time(0, 0)
+        etime = time(1, 0)
+        inclusive = "left"
+        include_start = True
+        msg = (
+            "Depreciated arguments `include_start` and `include_end`cannot be "
+            "passed if `inclusive` has been given."
+        )
+        with pytest.raises(ValueError, match=msg):
+            ts.between_time(stime, etime, include_start, inclusive=inclusive)
