@@ -5,9 +5,10 @@ from collections.abc import Callable  # noqa: PDF001
 import re
 
 import numpy as np
-import numpy.typing as npt
 
 from pandas._typing import Scalar
+
+from pandas.core.series import Series
 
 
 class BaseStringArrayMethods(abc.ABC):
@@ -225,11 +226,11 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_removeprefix(self, prefix: str) -> npt.NDArray[np.str_]:
+    def _str_removeprefix(self, prefix: str) -> Series:
         pass
 
     @abc.abstractmethod
-    def _str_removesuffix(self, suffix: str) -> npt.NDArray[np.str_]:
+    def _str_removesuffix(self, suffix: str) -> Series:
         pass
 
     @abc.abstractmethod
