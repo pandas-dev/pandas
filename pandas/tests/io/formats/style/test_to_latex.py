@@ -731,3 +731,8 @@ def test_repr_option(styler):
     with option_context("styler.render.repr", "latex"):
         assert "\\begin{tabular}" in styler._repr_latex_()[:15]
         assert styler._repr_html_() is None
+
+
+def test_siunitx_basic_headers(styler):
+    assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
+    assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
