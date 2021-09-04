@@ -30,18 +30,19 @@ class GroupByIndexingMixin:
 
         The effect of ``grouped.rows[i:j]`` is similar to
 
-            grouped.apply(lambda x: x.iloc[i:j])
+            ``grouped.apply(lambda x: x.iloc[i:j])``
 
         but very much faster and preserving the original index and order.
 
         The behaviour is different from GroupBy.nth:
+
         - Input to rows can include one or more slices whereas nth just handles
-          a list of indexes.
-        - Output from rows is:
-            - In the same order as the original grouped DataFrame or Series.
-            - Has the same index columns as the original grouped DataFrame or
-              Series. (nth behaves like an aggregator and removes the non-grouped
-              indexes)
+        a list of indexes.
+        - Output from rows is in the same order as the original grouped DataFrame
+        or Series.
+        - Output from rows has the same index columns as the original grouped DataFrame
+        or Series. (nth behaves like an aggregator and removes the non-grouped
+        indexes.)
         - GroupBy.rows can  define a slice relative to the last row of each group.
         - GroupBy.rows is faster than nth.
         - GroupBy.rows does not handle dropna.
@@ -51,14 +52,14 @@ class GroupByIndexingMixin:
         order for each Date.
         To reduce the DataFrame to a middle slice of each Date:
 
-            df.groupby("Date").rows[5:-5]
+            ``df.groupby("Date").rows[5:-5]``
 
         This returns a subset of df containing just the middle rows for each Date
         and with its original order and indexing preserved.
 
         To reduce the DataFrame to the remaining rows:
 
-            df.groupby("Date").rows[:5, -5:]
+            ``df.groupby("Date").rows[:5, -5:]``
 
         Returns
         -------
@@ -84,11 +85,13 @@ class GroupByIndexingMixin:
                A  B
             1  a  2
             4  b  5
+
             >>> df.groupby("A").rows[1, -1]
                A  B
             1  a  2
             2  a  3
             4  b  5
+
         """
         return _rowsGroupByIndexer(self)
 
@@ -125,9 +128,12 @@ class _rowsGroupByIndexer:
                     "integers and slices"
                 )
 
-            mask = self._handle_list(list(arg))
+            mask = self._handle_list(list_arg)
 
-        return self.grouped._selected_obj.iloc[slice(None) if mask is None else mask]
+        if mask is None or mask is True:
+            mask = slice(None)
+
+        return self.grouped._selected_obj.iloc[mask]
 
     def _handle_int(self, arg):
         if arg >= 0:
@@ -163,8 +169,7 @@ class _rowsGroupByIndexer:
 
             else:
                 raise ValueError(
-                    f"Invalid argument {type(arg)}. "
-                    "Should be int or slice."
+                    f"Invalid argument {type(arg)}. Should be int or slice."
                 )
 
         return mask
@@ -175,11 +180,9 @@ class _rowsGroupByIndexer:
         step = arg.step
 
         if step is not None and step < 0:
-            raise ValueError(
-                f"Invalid step {step}. Must be non-negative"
-            )
+            raise ValueError(f"Invalid step {step}. Must be non-negative")
 
-        mask = None
+        mask = True
         if step is None:
             step = 1
 
@@ -209,18 +212,10 @@ class _rowsGroupByIndexer:
 
         if stop is not None:
             if stop >= 0:
-                if mask is None:
-                    mask = self._ascending_count < stop
-
-                else:
-                    mask &= self._ascending_count < stop
+                mask &= self._ascending_count < stop
 
             else:
-                if mask is None:
-                    mask = self._descending_count >= -stop
-
-                else:
-                    mask &= self._descending_count >= -stop
+                mask &= self._descending_count >= -stop
 
         return mask
 
