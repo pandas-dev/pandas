@@ -186,3 +186,18 @@ def test_isin_large_series_mixed_dtypes_and_nan():
     result = ser.isin({"foo", "bar"})
     expected = Series([False] * 3 * 1_000_000)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "array,expected",
+    [
+        (
+            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
+            Series([False, True, True, False, True, True, True], dtype=bool),
+        )
+    ],
+)
+def test_isin_complex_numbers(array, expected):
+    # GH 17927
+    result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
+    tm.assert_series_equal(result, expected)
