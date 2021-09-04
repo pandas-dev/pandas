@@ -3,6 +3,7 @@
 import random
 
 import pytest
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -32,7 +33,7 @@ def small_df():
         [-1, [3, 4, 7]],
         [-2, [1, 6]],
         [-6, []],
-    ]
+    ],
 )
 def test_int(small_df, arg, expected_rows):
     """Test single integer"""
@@ -65,7 +66,7 @@ def test_slice(small_df):
         "negative",
         "range",
         "set",
-    ]
+    ],
 )
 def test_list(small_df, arg, expected_rows):
     """Test lists of integers and integer valued iterables"""
@@ -113,9 +114,7 @@ def test_doc_examples():
     grouped = df.groupby("A")
 
     result = grouped.rows[1:2]
-    expected = pd.DataFrame(
-        [["a", 2], ["b", 5]], columns=["A", "B"], index=[1, 4]
-    )
+    expected = pd.DataFrame([["a", 2], ["b", 5]], columns=["A", "B"], index=[1, 4])
 
     tm.assert_frame_equal(result, expected)
 
@@ -164,15 +163,9 @@ def test_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "arg", [1, 5, 30, 1000]
-)
-@pytest.mark.parametrize(
-    "method", ["head", "tail"]
-)
-@pytest.mark.parametrize(
-    "simulated", [True, False]
-)
+@pytest.mark.parametrize("arg", [1, 5, 30, 1000])
+@pytest.mark.parametrize("method", ["head", "tail"])
+@pytest.mark.parametrize("simulated", [True, False])
 def test_against_head_and_tail(arg, method, simulated):
     """Test gives the same results as grouped head and tail"""
 
@@ -225,15 +218,9 @@ def test_against_head_and_tail(arg, method, simulated):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "start", [None, 0, 1, 10, -1, -10]
-)
-@pytest.mark.parametrize(
-    "stop", [None, 0, 1, 10, -1, -10]
-)
-@pytest.mark.parametrize(
-    "step", [None, 1, 5]
-)
+@pytest.mark.parametrize("start", [None, 0, 1, 10, -1, -10])
+@pytest.mark.parametrize("stop", [None, 0, 1, 10, -1, -10])
+@pytest.mark.parametrize("step", [None, 1, 5])
 def test_against_df_iloc(start, stop, step):
     """Test that a single group gives the same results as DataFame.iloc"""
 
@@ -263,9 +250,7 @@ def test_series():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "step", [1, 2, 3, 4, 5]
-)
+@pytest.mark.parametrize("step", [1, 2, 3, 4, 5])
 def test_step(step):
     """Test slice with various step values"""
 
