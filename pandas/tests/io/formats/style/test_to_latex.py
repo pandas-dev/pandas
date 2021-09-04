@@ -109,10 +109,11 @@ def test_position(styler):
     assert "\\end{table}" in styler.to_latex()
 
 
-def test_label(styler):
-    assert "\\label{text}" in styler.to_latex(label="text")
+@pytest.mark.parametrize("env", [None, "longtable"])
+def test_label(styler, env):
+    assert "\n\\label{text}" in styler.to_latex(label="text", environment=env)
     styler.set_table_styles([{"selector": "label", "props": ":{more §text}"}])
-    assert "\\label{more :text}" in styler.to_latex()
+    assert "\n\\label{more :text}" in styler.to_latex(environment=env)
 
 
 def test_position_float_raises(styler):
@@ -771,3 +772,8 @@ def test_repr_option(styler):
     with option_context("styler.render.repr", "latex"):
         assert "\\begin{tabular}" in styler._repr_latex_()[:15]
         assert styler._repr_html_() is None
+
+
+def test_siunitx_basic_headers(styler):
+    assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
+    assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
