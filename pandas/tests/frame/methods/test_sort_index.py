@@ -456,7 +456,7 @@ class TestDataFrameSortIndex:
         self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
         # GH 30114, this is to test ignore_index on MulitIndex of index
-        mi = MultiIndex.from_tuples(((2, 1), (2, 4)), names=list("AB"))
+        mi = MultiIndex.from_tuples(((2, 1), (3, 4)), names=list("AB"))
         df = DataFrame(original_dict, index=mi)
         expected_df = DataFrame(sorted_dict, index=output_index)
 
