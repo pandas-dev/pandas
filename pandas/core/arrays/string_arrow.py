@@ -307,9 +307,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             if not len(item):
                 return type(self)(pa.chunked_array([], type=pa.string()))
             elif is_integer_dtype(item.dtype):
-                # error: Argument 1 to "take" of "ArrowStringArray" has incompatible
-                # type "ndarray"; expected "Sequence[int]"
-                return self.take(item)  # type: ignore[arg-type]
+                return self.take(item)
             elif is_bool_dtype(item.dtype):
                 return type(self)(self._data.filter(item))
             else:
@@ -513,7 +511,10 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
                 self[k] = v
 
     def take(
-        self, indices: Sequence[int], allow_fill: bool = False, fill_value: Any = None
+        self,
+        indices: PositionalIndexer,
+        allow_fill: bool = False,
+        fill_value: Any = None,
     ):
         """
         Take elements from an array.

@@ -1076,7 +1076,7 @@ class ExtensionArray:
 
     def take(
         self: ExtensionArrayT,
-        indices: Sequence[int],
+        indices: PositionalIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,

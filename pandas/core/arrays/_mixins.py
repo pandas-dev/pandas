@@ -17,6 +17,7 @@ from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
+    PositionalIndexer,
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
@@ -101,7 +102,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def take(
         self: NDArrayBackedExtensionArrayT,
-        indices: Sequence[int],
+        indices: PositionalIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
@@ -112,9 +113,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         new_data = take(
             self._ndarray,
-            # error: Argument 2 to "take" has incompatible type "Sequence[int]";
-            # expected "ndarray"
-            indices,  # type: ignore[arg-type]
+            indices,
             allow_fill=allow_fill,
             fill_value=fill_value,
             axis=axis,
