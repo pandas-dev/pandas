@@ -34,17 +34,18 @@ body:
         ARM64 (M1)
     validations:
       required: true
-  - type: textarea
+  - type: dropdown
     id: method
     attributes:
       label: Installation Method
       description: >
-        Please describe how you tried to install pandas
-      placeholder: >
-        pip install
-        conda install
-        apt-get install
-        Built from source
+        Please provide how you tried to install pandas.
+      options:
+        - pip install
+        - conda install
+        - apt-get install
+        - Built from source
+        - Other
     validations:
       required: true
   - type: textarea
