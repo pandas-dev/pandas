@@ -63,6 +63,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -2453,6 +2454,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             elif is_timedelta64_dtype(vals.dtype):
                 inference = np.dtype("timedelta64[ns]")
                 out = np.asarray(vals).astype(float)
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+                inference = np.dtype(np.float64)
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
                 out = np.asarray(vals)
 
