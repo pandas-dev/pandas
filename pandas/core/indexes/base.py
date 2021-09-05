@@ -3618,7 +3618,12 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            indexer = self._engine.get_indexer(target._get_engine_target())
+            tgt_values = target._get_engine_target()
+            if target._is_multi and self._is_multi:
+                # error: Incompatible types in assignment (expression has type
+                # "Index", variable has type "ndarray[Any, Any]")
+                tgt_values = target  # type: ignore[assignment]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -5459,6 +5464,8 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: _maybe_promote ensures we never get here with MultiIndex
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
+        if self._is_multi and target._is_multi:
+            tgt_values = target
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
