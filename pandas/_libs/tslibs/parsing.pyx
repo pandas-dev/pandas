@@ -892,6 +892,8 @@ def guess_datetime_format(
     if not isinstance(dt_str, str):
         return None
 
+    valid_am_pm = ['am', 'pm', 'a', 'p']
+
     day_attribute_and_format = (('day',), '%d', 2)
 
     # attr name, format, padding (if any)
@@ -946,6 +948,11 @@ def guess_datetime_format(
                     tokens[i] = token_filled
                     found_attrs.update(attrs)
                     break
+
+    # Final formatting is required if the dt_string contains AM/PM.
+    if tokens[i].lower() in valid_am_pm:
+        format_guess = ["%I" if guess == "%H" else guess for guess in format_guess]
+        format_guess[i] = "%p"
 
     # Only consider it a valid guess if we have a year, month and day
     if len({'year', 'month', 'day'} & found_attrs) != 3:
