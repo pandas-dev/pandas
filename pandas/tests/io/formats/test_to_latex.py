@@ -583,24 +583,22 @@ class TestToLatexCaptionLabel:
         )
         assert result == expected
 
-    # DUCK TYPING - CAPTIONS RENDERS IF POSSIBLE ELSE IGNORED
-
-    # @pytest.mark.parametrize(
-    #     "bad_caption",
-    #     [
-    #         ("full_caption", "short_caption", "extra_string"),
-    #         ("full_caption", "short_caption", 1),
-    #         ("full_caption", "short_caption", None),
-    #         ("full_caption",),
-    #         (None,),
-    #     ],
-    # )
-    # def test_to_latex_bad_caption_raises(self, bad_caption):
-    #     # test that wrong number of params is raised
-    #     df = DataFrame({"a": [1]})
-    #     msg = "`caption` must be either a string or 2-tuple of strings."
-    #     with pytest.raises(ValueError, match=msg):
-    #         df.to_latex(caption=bad_caption)
+    @pytest.mark.parametrize(
+        "bad_caption",
+        [
+            ("full_caption", "short_caption", "extra_string"),
+            ("full_caption", "short_caption", 1),
+            ("full_caption", "short_caption", None),
+            ("full_caption",),
+            (None,),
+        ],
+    )
+    def test_to_latex_bad_caption_raises(self, bad_caption):
+        # test that wrong number of params is raised
+        df = DataFrame({"a": [1]})
+        msg = "`caption` must be either a string or 2-tuple of strings."
+        with pytest.raises(ValueError, match=msg):
+            df.to_latex(caption=bad_caption)
 
     def test_to_latex_two_chars_caption(self, df_short):
         # test that two chars caption is handled correctly
