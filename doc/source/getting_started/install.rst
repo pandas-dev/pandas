@@ -227,7 +227,7 @@ Package                                                          Minimum support
 `NumPy <https://numpy.org>`__                                    1.18.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
-`jinja2 <https://jinja.pocoo.org>`__                             2.11
+`Jinja2 <https://jinja.pocoo.org>`__                             2.11
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
