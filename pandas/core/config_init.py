@@ -10,6 +10,7 @@ module is imported, register them here rather than in the module.
 
 """
 import os
+from typing import Callable
 import warnings
 
 import pandas._config.config as cf
@@ -826,11 +827,6 @@ styler_mathjax = """
 """
 
 
-def _is_formatter(x):
-    if not (x is None or callable(x) or isinstance(x, (dict, str))):
-        raise ValueError("Value must have type 'callable, dict, str' or None.")
-
-
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=is_bool)
 
@@ -885,7 +881,7 @@ with cf.config_prefix("styler"):
         "format.formatter",
         None,
         styler_formatter,
-        validator=_is_formatter,
+        validator=is_instance_factory([type(None), dict, Callable, str]),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
