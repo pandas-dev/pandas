@@ -1099,7 +1099,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
-        if not len(new_mgr) and len(self._selected_obj):
+        if not len(new_mgr) and len(self._selected_obj) == 0:
             raise DataError("No numeric types to aggregate")
 
         if len(new_mgr) < len(data):
