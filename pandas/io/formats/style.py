@@ -872,9 +872,9 @@ class Styler(StylerRenderer):
 
         encoding = (
             (encoding or get_option("styler.render.encoding"))
-            if isinstance(buf, str)
+            if isinstance(buf, str)  # i.e. a filepath
             else encoding
-        )  # if hasattr(buf, "write") encoding is not used
+        )
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     def to_html(
