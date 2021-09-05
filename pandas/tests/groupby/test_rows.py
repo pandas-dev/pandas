@@ -234,7 +234,7 @@ def test_against_df_iloc(start, stop, step):
     grouped = df.groupby("group")
 
     result = grouped.rows[start:stop:step]
-    expected = df.iloc[start:stop:step, :]
+    expected = df.iloc[start:stop:step]
 
     tm.assert_frame_equal(result, expected)
 
