@@ -826,7 +826,6 @@ styler_mathjax = """
     will not be used in Jupyter Notebook.
 """
 
-
 with cf.config_prefix("styler"):
     cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=is_bool)
 
