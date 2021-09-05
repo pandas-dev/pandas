@@ -606,6 +606,7 @@ def test_read_csv_multiindex_columns(all_parsers):
     tm.assert_frame_equal(df2, expected)
 
 
+@skip_pyarrow
 def test_read_csv_multi_header_length_check(all_parsers):
     # GH#43102
     parser = all_parsers
