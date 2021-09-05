@@ -1908,14 +1908,14 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs[
-        "str_remove"
+        "str_removefix"
     ] = r"""
     Remove a %(side)s from an object series. If the %(side)s is not present,
     the original string will be returned.
 
     Parameters
     ----------
-    %(side)s: str
+    %(side)s : str
         %(side)s to remove.
 
     Returns
@@ -1923,7 +1923,7 @@ class StringMethods(NoNewAttributesMixin):
     Series/Index: object
         The Series or Index with given %(side)s removed.
 
-    See also
+    See Also
     --------
     Series.str.remove%(other_side)s : Remove a %(other_side)s from an object series.
 
@@ -1954,13 +1954,17 @@ class StringMethods(NoNewAttributesMixin):
     dtype: object
     """
 
-    @Appender(_shared_docs["str_remove"] % {"side": "prefix", "other_side": "suffix"})
+    @Appender(
+        _shared_docs["str_removefix"] % {"side": "prefix", "other_side": "suffix"}
+    )
     @forbid_nonstring_types(["bytes"])
     def removeprefix(self, prefix):
         result = self._data.array._str_removeprefix(prefix)
         return self._wrap_result(result)
 
-    @Appender(_shared_docs["str_remove"] % {"side": "suffix", "other_side": "prefix"})
+    @Appender(
+        _shared_docs["str_removefix"] % {"side": "suffix", "other_side": "prefix"}
+    )
     @forbid_nonstring_types(["bytes"])
     def removesuffix(self, suffix):
         result = self._data.array._str_removesuffix(suffix)
