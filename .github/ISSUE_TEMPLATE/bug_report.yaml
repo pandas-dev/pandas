@@ -23,13 +23,14 @@ body:
       label: Reproducible Example
       description: >
         Please follow [this guide](https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports) on how to
-        provide a copy-pastable example that can be run on a Python REPL.
+        provide a minimal, copy-pastable example.
       placeholder: >
         import pandas as pd
 
         df = pd.DataFrame(range(5))
 
         ...
+      render: python
     validations:
       required: true
   - type: textarea
@@ -37,7 +38,7 @@ body:
     attributes:
       label: Issue Description
       description: >
-        Please provide a description of the issue with the reproducible example.
+        Please provide a description of the issue shown in the reproducible example.
     validations:
       required: true
   - type: textarea
@@ -54,5 +55,6 @@ body:
       label: Installed Versions
       description: >
         Please paste the output of ``pd.show_versions()``
+      render: shell
     validations:
       required: true

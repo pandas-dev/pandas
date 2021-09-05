@@ -11,7 +11,7 @@ body:
         - label: >
             I have read the [installation guide](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-pandas).
           required: true
-  - type: textarea
+  - type: input
     id: operating-system
     attributes:
       label: Operating System
@@ -25,7 +25,7 @@ body:
         Ubuntu 18.04 LTS
     validations:
       required: true
-  - type: textarea
+  - type: input
     id: platform
     attributes:
       label: Platform
@@ -42,7 +42,7 @@ body:
     attributes:
       label: Installation Method
       description: >
-        Please provide how you tried to install pandas.
+        Please provide how you tried to install pandas from a clean environment.
       options:
         - pip install
         - conda install
@@ -51,7 +51,7 @@ body:
         - Other
     validations:
       required: true
-  - type: textarea
+  - type: input
     id: python
     attributes:
       label: Python Version
