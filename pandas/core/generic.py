@@ -3148,7 +3148,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         formatters=None,
         float_format=None,
         sparsify=None,
-        bold_rows=False,
+        bold_rows=None,
     ):
         r"""
         Render object to a LaTeX tabular, longtable, or nested table/tabular.
@@ -3349,11 +3349,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         \bottomrule
         \end{{tabular}}
         """
-        # warnings.warn(
-        #     "this method is deprecated in favour of `Styler.to_latex()`",
-        #     FutureWarning,
-        #     stacklevel=2,
-        # )
+        kwargs = locals()
+        deprecated_args = {
+            "longtable": '`environment="longtable"`',
+            "multicolumn": "`multicol_align`",
+            "multicolumn_format": "`multicol_align`",
+            "multirow": "`multirow_align`",
+            "col_space": None,
+            "formatters": "`formatter`, `precision`, `decimal`, `thousands`",
+            "float_format": "`precision`, `decimal`, `thousands`, `formatter`",
+            "sparsify": "`sparse_index`, `sparse_columns`",
+            "bold_rows": "`bold_header`",
+        }
+        for k, v in deprecated_args.items():
+            if kwargs[k] is not None:
+                warnings.warn(
+                    f"`{k}` is deprecated after transition to `Styler.to_latex()` "
+                    f"signature." + ("" if v is None else f" Consider {v} instead."),
+                    FutureWarning,
+                    stacklevel=2,
+                )
+
         from pandas.io.formats.style import Styler
 
         styler = Styler(

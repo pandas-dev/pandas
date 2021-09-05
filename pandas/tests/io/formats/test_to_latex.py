@@ -1525,3 +1525,24 @@ class TestRowStringConverter:
         )
 
         assert row_string_converter.get_strrow(row_num=row_num) == expected
+
+
+@pytest.mark.parametrize(
+    "deprecated",
+    [
+        "longtable",
+        "multicolumn",
+        "multicolumn_format",
+        "multirow",
+        "col_space",
+        "formatters",
+        "float_format",
+        "sparsify",
+        "bold_rows",
+    ],
+)
+def test_deprecation_warning(deprecated):
+    df = DataFrame([[1]])
+    msg = f"`{deprecated}` is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_latex(**{deprecated: "some_value_not_None"})
