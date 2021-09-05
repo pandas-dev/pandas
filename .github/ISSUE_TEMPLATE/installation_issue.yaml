@@ -18,8 +18,8 @@ body:
       description: >
         Please provide the operating system you are running.
       placeholder: >
-        Windows 10 \n
-        macOS 11 Big Sur \n
+        Windows 10 >
+        macOS 11 Big Sur >
         Ubuntu 18.04 LTS
     validations:
       required: true
@@ -30,7 +30,7 @@ body:
       description: >
         Please provide the hardware platform you are running.
       placeholder: >
-        x86-64 \n
+        x86-64 >
         ARM64 (M1)
     validations:
       required: true
