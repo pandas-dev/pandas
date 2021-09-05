@@ -3385,8 +3385,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         from pandas.io.formats.style import Styler
 
+        # error: Argument 1 to "Styler" has incompatible type "NDFrame"; expected
+        # "Union[DataFrame, Series]"
         styler = Styler(
-            self if self.ndim > 1 else self.to_frame(),
+            self,  # type: ignore[arg-type]
             uuid="",
             formatter=formatter,
             na_rep=na_rep,
@@ -3397,7 +3399,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
         for ax in [0, 1]:  #
-            fmt: callable | str | None = None
+            fmt: Callable | str | None = None
             if isinstance(formatter, dict):
                 fmt = formatter.get("__index__" if ax == 0 else "__columns__")
             styler.format_index(
