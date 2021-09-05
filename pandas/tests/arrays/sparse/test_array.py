@@ -1196,16 +1196,52 @@ class TestAccessor:
         tm.assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
-    def test_to_coo(self):
+    @pytest.mark.parametrize(
+        "sort_labels, expected_rows, expected_cols, expected_values_pos",
+        [
+            (
+                False,
+                [("b", 2), ("a", 2), ("b", 1), ("a", 1)],
+                [("z", 1), ("z", 2), ("x", 2), ("z", 0)],
+                {1: (1, 0), 3: (3, 3)},
+            ),
+            (
+                True,
+                [("a", 1), ("a", 2), ("b", 1), ("b", 2)],
+                [("x", 2), ("z", 0), ("z", 1), ("z", 2)],
+                {1: (1, 2), 3: (0, 1)},
+            ),
+        ],
+    )
+    def test_to_coo(
+        self, sort_labels, expected_rows, expected_cols, expected_values_pos
+    ):
         import scipy.sparse
 
-        ser = pd.Series(
-            [1, 2, 3],
-            index=pd.MultiIndex.from_product([[0], [1, 2, 3]], names=["a", "b"]),
-            dtype="Sparse[int]",
+        values = SparseArray([0, np.nan, 1, 0, None, 3], fill_value=0)
+        index = pd.MultiIndex.from_tuples(
+            [
+                ("b", 2, "z", 1),
+                ("a", 2, "z", 2),
+                ("a", 2, "z", 1),
+                ("a", 2, "x", 2),
+                ("b", 1, "z", 1),
+                ("a", 1, "z", 0),
+            ]
         )
-        A, _, _ = ser.sparse.to_coo()
+        ss = pd.Series(values, index=index)
+
+        expected_A = np.zeros((4, 4))
+        for value, (row, col) in expected_values_pos.items():
+            expected_A[row, col] = value
+
+        A, rows, cols = ss.sparse.to_coo(
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
+        )
         assert isinstance(A, scipy.sparse.coo.coo_matrix)
+        np.testing.assert_array_equal(A.toarray(), expected_A)
+        assert rows == expected_rows
+        assert cols == expected_cols
 
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])

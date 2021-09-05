@@ -67,16 +67,28 @@ class FromCoo:
 
 
 class ToCoo:
-    def setup(self):
+    params = [True, False]
+    param_names = ["sort_labels"]
+
+    def setup(self, sort_labels):
         s = Series([np.nan] * 10000)
         s[0] = 3.0
         s[100] = -1.0
         s[999] = 12.1
-        s.index = MultiIndex.from_product([range(10)] * 4)
-        self.ss = s.astype("Sparse")
 
-    def time_sparse_series_to_coo(self):
-        self.ss.sparse.to_coo(row_levels=[0, 1], column_levels=[2, 3], sort_labels=True)
+        s_mult_lvl = s.set_axis(MultiIndex.from_product([range(10)] * 4))
+        self.ss_mult_lvl = s_mult_lvl.astype("Sparse")
+
+        s_two_lvl = s.set_axis(MultiIndex.from_product([range(100)] * 2))
+        self.ss_two_lvl = s_two_lvl.astype("Sparse")
+
+    def time_sparse_series_to_coo(self, sort_labels):
+        self.ss_mult_lvl.sparse.to_coo(
+            row_levels=[0, 1], column_levels=[2, 3], sort_labels=sort_labels
+        )
+
+    def time_sparse_series_to_coo_single_level(self, sort_labels):
+        self.ss_two_lvl.sparse.to_coo(sort_labels=sort_labels)
 
 
 class Arithmetic:
