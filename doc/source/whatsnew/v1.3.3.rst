@@ -18,7 +18,21 @@ Fixed regressions
 - Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
 - Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
 - Fixed regression in :meth:`.GroupBy.agg` where it was failing silently with mixed data types along ``axis=1`` and :class:`MultiIndex` (:issue:`43209`)
+- Fixed regression in :meth:`.GroupBy.quantile` which was failing with ``pandas.NA`` (:issue:`42849`)
+- Fixed regression in :meth:`merge` where ``on`` columns with ``ExtensionDtype`` or ``bool`` data types were cast to ``object`` in ``right`` and ``outer`` merge (:issue:`40073`)
 - Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
+- Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
+- Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`DataFrame.__setitem__` when the key or value is not a :class:`DataFrame`, or key is not list-like (:issue:`43274`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 
