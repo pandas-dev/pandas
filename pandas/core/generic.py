@@ -26,7 +26,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import config
+from pandas._config import (
+    config,
+    get_option,
+)
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -3116,38 +3119,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf=None,
         *,
-        encoding=None,
-        sparse_index=None,
-        sparse_columns=None,
-        header=True,
-        index=True,
+        hrules=False,
         columns=None,
-        index_names="all",
         column_format=None,
         position=None,
         position_float=None,
-        hrules=False,
-        label=None,
         caption=None,
-        multirow_align="c",
-        multicol_align="r",
+        label=None,
+        index=True,
+        header=True,
+        index_names="all",
+        sparse_index=None,
+        sparse_columns=None,
+        multirow_align=None,
+        multicol_align=None,
         siunitx=False,
         environment=None,
         formatter=None,
-        na_rep=None,
         precision=None,
-        decimal=".",
+        na_rep=None,
+        decimal=None,
         thousands=None,
-        escape=False,
+        escape=None,
         bold_header="none",
-        longtable=None,
+        encoding=None,
+        formatters=None,
+        float_format=None,
         multicolumn=None,
         multicolumn_format=None,
         multirow=None,
-        col_space=None,
-        formatters=None,
-        float_format=None,
+        longtable=None,
         sparsify=None,
+        col_space=None,
         bold_rows=None,
     ):
         r"""
@@ -3165,32 +3168,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. versionchanged:: 1.4.0
            Now uses ``Styler.to_latex`` implementation via jinja2 templating.
+           Significant changes to arguments. See Notes.
 
         Parameters
         ----------
-        buf : str, Path or StringIO-like, optional, default None
+        buf : str, Path or StringIO-like, optional
             Buffer to write to. If None, the output is returned as a string.
-        encoding : str, optional
-            Character encoding setting for file output, defaults to "utf-8" if None.
-        sparse_index, sparse_columns : bool, optional
-            Whether to sparsify the display of hierarchical indexes. Setting to False
-            will display each explicit level element in a hierarchical key for each row
-            or column respectively.
-            Defaults to ``pandas.options.styler.sparse.index`` and
-            ``pandas.options.styler.sparse.columns`` values.
+        hrules : bool
+            Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
+            {{booktabs}} LaTeX package.
 
             .. versionadded:: 1.4.0
-        index : bool
-            Whether to print index labels.
-
-            .. versionchanged:: 1.4.0
-        header : bool or list of str
-            Whether to print column headers. If a list of strings is given is assumed
-            to be aliases for the column names.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
-        index_names : {{"all", "index", "columns", "none"}}, bool, default "all"
-            Whether to print the names of the indexes before rendering.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -3198,7 +3188,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Defaults to 'l' for index and
             non-numeric data columns, and, for numeric data columns,
-            to 'r' by default, or 'S' if ``siunitx`` is ``True``.
+            to 'r' by default, or 'S' if ``siunitx`` is `True`.
 
             .. versionchanged:: 1.4.0
         position : str, optional
@@ -3217,18 +3207,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Cannot be used if ``environment`` is "longtable".
 
             .. versionadded:: 1.4.0
-        hrules : bool, default False
-            Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
-            {{booktabs}} LaTeX package.
-
-            .. versionadded:: 1.4.0
-        label : str, optional
-            The LaTeX label included as: \\label{{<label>}}.
-            This is used with \\ref{{<label>}} in the main .tex file.
-
-            .. versionadded:: 1.0.0
         caption : str, tuple, optional
-            If string, the LaTeX table caption included as: \\caption{{<caption>}}.
+            If string, then table caption included as: \\caption{{<caption>}}.
             If tuple, i.e ("full caption", "short caption"), the caption included
             as: \\caption[<caption[1]>]{{<caption[0]>}}.
 
@@ -3236,44 +3216,80 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionchanged:: 1.2.0
                Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
-        multirow_align : {{"c", "t", "b"}}
-            If sparsifying hierarchical MultiIndexes whether to align text centrally,
-            at the top or bottom.
+        label : str, optional
+            The LaTeX label included as: \\label{{<label>}}.
+            This is used with \\ref{{<label>}} in the main .tex file.
+
+            .. versionadded:: 1.0.0
+        index : bool
+            Whether to print index labels.
+
+            .. versionchanged:: 1.4.0
+        header : bool or list of str
+            Whether to print column headers. If a list of strings is given is assumed
+            to be aliases for the column names.
+        index_names : {{"all", "index", "columns", "none"}}, bool
+            Whether to print the names of the indexes before rendering.
+
+            .. versionchanged:: 1.4.0
+
+
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index``, which is `True`.
 
             .. versionadded:: 1.4.0
-        multicol_align : {{"r", "c", "l"}}
-            If sparsifying hierarchical MultiIndex columns whether to align text at
-            the left, centrally, or at the right.
+        sparse_columns : bool, optional
+            Equivalent to ``sparse_index`` applied to column headers.
+            Defaults to ``pandas.options.styler.sparse.columns``, which is `True`.
+
+            .. versionadded:: 1.4.0
+        multirow_align : {{"c", "t", "b", "naive"}}
+            If sparsifying hierarchical MultiIndexes, whether to align text centrally,
+            at the top or bottom. If "naive" is given will not use `multirow` package.
+            Defaults to ``pandas.options.styler.latex.multirow_align``, which is "c".
+
+            .. versionadded:: 1.4.0
+        multicol_align : {{"r", "c", "l", "naive-l", "naive-r"}}
+            If sparsifying hierarchical MultiIndex columns, whether to align text at
+            the left, centrally, or at the right. If a "naive" entry is given will not
+            use `multicolumn` package.
+            Defaults to ``pandas.options.styler.latex.multicol_align``, which is "r".
 
             .. versionadded:: 1.4.0
         siunitx : bool, default False
-            Set to ``True`` to structure LaTeX compatible with the {{siunitx}} package.
+            Set to `True` to structure LaTeX compatible with the `siunitx` package.
 
             .. versionadded:: 1.4.0
         environment : str, optional
-            If given, the environment that will replace 'table' in ``\\begin{{table}}``.
-            If 'longtable' is specified then a more suitable template is
+            If given, the environment that will replace "table" in `\\begin{{table}}`.
+            If "longtable" is specified then a more suitable template is
             rendered.
 
             .. versionadded:: 1.4.0
         formatter : str, callable, dict, optional
-            Object to define how values are displayed. See notes for ``Styler.format``
+            Object to define how values are displayed. See notes for ``Styler.format``.
+            Defaults to ``pandas.options.styler.format.formatter``, which is `None`.
+
+            .. versionadded:: 1.4.0
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``. Defaults to
+            ``pandas.options.styler.format.precision``, which is 6.
 
             .. versionadded:: 1.4.0
         na_rep : str, optional
             Representation for missing values.
-            If ``na_rep`` is None, no special formatting is applied.
+            Defaults to ``pandas.options.styler.format.na_rep``, which is `None`.
 
             .. versionchanged:: 1.4.0
-        precision : int, optional
-            Floating point precision to use for display purposes, if not determined by
-            the specified ``formatter``.
-
-            .. versionadded:: 1.4.0
         decimal : str, default "."
-            Character used as decimal separator for floats, complex and integers
+            Character used as decimal separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.decimal``, which is ".".
         thousands : str, optional, default None
-            Character used as thousands separator for floats, complex and integers
+            Character used as thousands separator for floats, complex and integers.
+            Defaults to ``pandas.options.styler.format.thousands``, which is `None`.
 
             .. versionadded:: 1.4.0
         escape : bool,
@@ -3281,13 +3297,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``{{``, ``}}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
+            Defaults to ``pandas.options.styler.format.escape`` is "latex", which
+            is `False`.
 
             .. versionchanged:: 1.4.0
         bold_header : {{"none", "index", "columns", "both"}}
             Make the row labels and/or column headers bold in the output, using
-            command ``\\textbf{{<value>}}``
+            command `\\textbf{{<value>}}`.
 
             .. versionadded:: 1.4.0
+        encoding : str, optional
+            Character encoding setting for file output, defaults to
+            ``pandas.options.styler.render.encoding``, which is "utf-8", if None.
         formatters : list, tuple or dict of one-param. functions, optional
 
             .. deprecated:: 1.4.0
@@ -3337,7 +3358,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
 
-        .. info::
+        .. note::
            As of version 1.4.0 this method was changed to use the implementation of
            `Styler.to_latex()` via jinja2 templating, and no longer uses the pandas
            internal `LatexFormatter` class. This is the reason for many of the
@@ -3385,6 +3406,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         from pandas.io.formats.style import Styler
 
+        escape = (
+            escape
+            if escape is not None
+            else get_option("styler.format.escape") == "latex"
+        )
         # error: Argument 1 to "Styler" has incompatible type "NDFrame"; expected
         # "Union[DataFrame, Series]"
         styler = Styler(
@@ -3395,7 +3421,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             precision=precision,
             decimal=decimal,
             thousands=thousands,
-            escape="latex" if escape else None,
+            escape=escape,
         )
 
         for ax in [0, 1]:  #
