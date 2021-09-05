@@ -98,7 +98,7 @@ class Redis_IO:
 
             redis_conn = redis.StrictRedis(host="your host", port=6379, db=0)
 
-            df.redis.to_redis(redis_conn, alias="test")
+            df.to_redis(redis_conn, alias="test")
 
             alias = df.redis.alias
 

@@ -108,7 +108,7 @@ We've added Redis to our supported IO capabilities. This allows one to serialize
     
     redis_conn = redis.StrictRedis(host="your host", port=6379, db=0)
 
-    df.redis.to_redis(redis_conn, alias="test")
+    df.to_redis(redis_conn, alias="test")
 
 .. _whatsnew_140.enhancements.other:
 
