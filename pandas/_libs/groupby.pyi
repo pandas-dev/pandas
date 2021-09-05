@@ -123,6 +123,8 @@ def group_max(
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_min(
     out: np.ndarray,  # groupby_t[:, ::1]
@@ -130,6 +132,8 @@ def group_min(
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
     labels: np.ndarray,  # const int64_t[:]
     min_count: int = ...,
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cummin(
     out: np.ndarray,  # groupby_t[:, ::1]

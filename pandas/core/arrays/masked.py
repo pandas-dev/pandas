@@ -123,6 +123,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("values must be a 1D array")
         if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
+        if values.shape != mask.shape:
+            raise ValueError("values and mask must have same shape")
 
         if copy:
             values = values.copy()
