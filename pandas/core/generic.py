@@ -3122,7 +3122,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header=True,
         index=True,
         columns=None,
-        index_names=True,
+        index_names="all",
         column_format=None,
         position=None,
         position_float=None,
@@ -3189,8 +3189,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             to be aliases for the column names.
         columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
-        index_names : bool, default True
-            Remove the names of indexes before rendering.
+        index_names : {{"all", "index", "columns", "none"}}, bool, default "all"
+            Whether to print the names of the indexes before rendering.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -3432,8 +3432,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
         if not index:
             styler.hide_index()
-        if not index_names:
+        if index_names is False or index_names in ["none", "columns"]:
             styler.hide_index(names=True)
+        if index_names is False or index_names in ["none", "index"]:
             styler.hide_columns(names=True)
         if columns:
             hidden = [col for col in styler.columns if col not in columns]

@@ -250,7 +250,7 @@ def test_multirow_naive(df):
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
-        {} & {} & {A} & {B} & {C} \\\\
+         &  & A & B & C \\\\
         A & a & 0 & -0.61 & ab \\\\
          & b & 1 & -1.22 & cd \\\\
         B & c & 2 & -2.22 & de \\\\
