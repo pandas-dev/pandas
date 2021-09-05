@@ -15,7 +15,7 @@ body:
     id: operating-system
     attributes:
       label: Operating System
-      descrption: >
+      description: >
         Please provide the operating system are you running.
       placeholder: >
         Windows 10
