@@ -3406,11 +3406,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         from pandas.io.formats.style import Styler
 
-        escape = (
-            escape
-            if escape is not None
-            else get_option("styler.format.escape") == "latex"
-        )
+        if (
+            escape is None and get_option("styler.format.escape") == "latex"
+        ) or escape is True:
+            escape = "latex"
+        else:
+            escape = None
         # error: Argument 1 to "Styler" has incompatible type "NDFrame"; expected
         # "Union[DataFrame, Series]"
         styler = Styler(
@@ -3428,6 +3429,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             fmt: Callable | str | None = None
             if isinstance(formatter, dict):
                 fmt = formatter.get("__index__" if ax == 0 else "__columns__")
+            decimal = decimal or get_option("styler.format.decimal")
             styler.format_index(
                 axis=ax,
                 escape="latex" if escape else None,
