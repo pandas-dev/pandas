@@ -12,23 +12,11 @@ body:
             I have read the [installation guide](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-pandas).
           required: true
   - type: input
-    id: operating-system
-    attributes:
-      label: Operating System
-      description: >
-        Please provide the operating system you are running.
-      placeholder: >
-        e.g. Windows 10, macOS 11 Big Sur, Ubuntu 18.04 LTS
-    validations:
-      required: true
-  - type: input
     id: platform
     attributes:
       label: Platform
       description: >
-        Please provide the hardware platform you are running.
-      placeholder: >
-        e.g. x86-64, ARM64 (M1)
+        Please provide the output of ``import platform; print(platform.platform())``
     validations:
       required: true
   - type: dropdown
@@ -43,6 +31,14 @@ body:
         - apt-get install
         - Built from source
         - Other
+    validations:
+      required: true
+  - type: input
+    id: pandas
+    attributes:
+      label: pandas Version
+      description: >
+        Please provide the version of pandas you are trying to install.
     validations:
       required: true
   - type: input
