@@ -870,10 +870,12 @@ class Styler(StylerRenderer):
             siunitx=siunitx,
         )
 
-        encoding = encoding or get_option("styler.render.encoding")
-        return save_to_buffer(
-            latex, buf=buf, encoding=None if buf is None else encoding
-        )
+        encoding = (
+            (encoding or get_option("styler.render.encoding"))
+            if isinstance(buf, str)
+            else encoding
+        )  # if hasattr(buf, "write") encoding is not used
+        return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     def to_html(
         self,
