@@ -408,13 +408,12 @@ class TestGrouping:
             [Timestamp(2021, 7, 28 + i) for i in range(4)],
         ],
     )
-    @pytest.mark.parametrize("box", [Series, DataFrame])
-    def test_groupby_series_named_with_tuple(self, box, index):
+    def test_groupby_series_named_with_tuple(self, frame_or_series, index):
         # GH 42731
-        obj = box([1, 2, 3, 4], index=index)
+        obj = frame_or_series([1, 2, 3, 4], index=index)
         groups = Series([1, 0, 1, 0], index=index, name=("a", "a"))
         result = obj.groupby(groups).last()
-        expected = box([4, 3])
+        expected = frame_or_series([4, 3])
         expected.index.name = ("a", "a")
         tm.assert_equal(result, expected)
 
