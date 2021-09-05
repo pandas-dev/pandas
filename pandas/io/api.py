@@ -38,3 +38,5 @@ from pandas.io.sql import (
 )
 from pandas.io.stata import read_stata
 from pandas.io.xml import read_xml
+
+from pandas.io.redis import read_redis

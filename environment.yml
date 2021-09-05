@@ -63,6 +63,8 @@ dependencies:
   - pytest-xdist>=1.31
   - pytest-asyncio
   - pytest-instafail
+  #redis IO testing
+  - fakeredis
 
   # downstream tests
   - seaborn
@@ -98,6 +100,9 @@ dependencies:
   - xlsxwriter
   - xlwt
   - odfpy
+
+  #pd.read_redis, DataFrame.to_redis
+  - redis
 
   - fastparquet>=0.4.0  # pandas.read_parquet, DataFrame.to_parquet
   - pyarrow>=0.17.0  # pandas.read_parquet, DataFrame.to_parquet, pandas.read_feather, DataFrame.to_feather

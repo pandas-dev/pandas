@@ -165,6 +165,7 @@ from pandas.io.api import (
     read_stata,
     read_sas,
     read_spss,
+    read_redis,
 )
 
 from pandas.io.json import _json_normalize as json_normalize

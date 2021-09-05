@@ -157,6 +157,14 @@ ORC
    :toctree: api/
 
    read_orc
+   
+Redis
+~~~~
+.. autosummary::
+   :toctree: api/
+
+   read_redis
+   DataFrame.to_redis
 
 SAS
 ~~~
