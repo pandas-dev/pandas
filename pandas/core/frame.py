@@ -2335,27 +2335,25 @@ class DataFrame(NDFrame, OpsMixin):
 
         Parameters
         ----------
-        :param redis_conn: Redis connection object created by the python-redis library
-        :type redis_conn: redis.client.Redis
-        :param alias: String used to reference the cached dataframe in redis, defaults to a randomly generated UUID. This can be accessed after caching via df.redis.alias
-        :type alias: str, optional
-        :param if_exists: How to handle an alias that already exists, options are "Overwrite", "Append", "Duplicate", "Quit". Note that duplicate will generate a UUID alias for the new cached DataFrame, defaults to "Overwrite"
-        :type if_exists: str, optional
+        redis_conn: redis.client.Redis
+            Redis connection object created by the python-redis library
+        alias: str, default None
+            String used to reference the cached dataframe in redis, defaults to a randomly generated UUID. This can be accessed after caching via df.redis.alias
+        if_exists: str, default "Overwrite"
+             How to handle an alias that already exists, options are "Overwrite", "Append", "Duplicate", "Quit". Note that duplicate will generate a UUID alias for the new cached DataFrame, defaults to "Overwrite"
 
-        .. highlight::
+        Example
+        -------
+         >>> import pandas as pd
+         >>> import redis
 
-            import pandas as pd
-            import redis
+         >>> df = pd.DataFrame(data=[1.2.3], columns=['A'. 'B', 'C'])
 
-            df = pd.DataFrame(data=[1.2.3], columns=['A'. 'B', 'C'])
+         >>> redis_conn = redis.StrictRedis(host="your host", port=6379, db=0)
 
-            redis_conn = redis.StrictRedis(host="your host", port=6379, db=0)
+         >>> df.redis.to_redis(redis_conn, alias="test")
 
-            df.redis.to_redis(redis_conn, alias="test")
-
-            alias = df.redis.alias
-
-        .. highlight::
+         >>> alias = df.redis.alias
 
         See Also
         --------
