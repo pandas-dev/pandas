@@ -15,7 +15,7 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_correct_function_signature():
     def incorrect_function(x):
         return sum(x) * 2.7
@@ -31,7 +31,7 @@ def test_correct_function_signature():
         data.groupby("key")["data"].agg(incorrect_function, engine="numba")
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_check_nopython_kwargs():
     def incorrect_function(x, **kwargs):
         return sum(x) * 2.7
@@ -47,7 +47,7 @@ def test_check_nopython_kwargs():
         data.groupby("key")["data"].agg(incorrect_function, engine="numba", a=1)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
@@ -76,7 +76,7 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython):
     tm.assert_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
@@ -121,7 +121,7 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     tm.assert_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def func_1(values, index):
         return np.mean(values) - 3.4
@@ -136,7 +136,7 @@ def test_use_global_config():
     tm.assert_frame_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.parametrize(
     "agg_func",
     [
@@ -158,7 +158,7 @@ def test_multifunc_notimplimented(agg_func):
         grouped[1].agg(agg_func, engine="numba")
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_args_not_cached():
     # GH 41647
     def sum_last(values, index, n):
@@ -173,3 +173,17 @@ def test_args_not_cached():
     result = grouped_x.agg(sum_last, 2, engine="numba")
     expected = Series([2.0] * 2, name="x", index=Index([0, 1], name="id"))
     tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+def test_index_data_correctly_passed():
+    # GH 43133
+    def f(values, index):
+        return np.mean(index)
+
+    df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
+    result = df.groupby("group").aggregate(f, engine="numba")
+    expected = DataFrame(
+        [-1.5, -3.0], columns=["v"], index=Index(["A", "B"], name="group")
+    )
+    tm.assert_frame_equal(result, expected)

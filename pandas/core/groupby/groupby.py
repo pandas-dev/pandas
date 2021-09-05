@@ -63,6 +63,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -1141,9 +1142,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
+        sorted_index_data = data.index.take(sorted_index).to_numpy()
 
         starts, ends = lib.generate_slices(sorted_ids, ngroups)
-        return starts, ends, sorted_index, sorted_data
+        return (
+            starts,
+            ends,
+            sorted_index_data,
+            sorted_data,
+        )
 
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
@@ -1960,7 +1967,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             lambda x: x.ohlc(), self._obj_with_exclusions
         )
 
-    @final
     @doc(DataFrame.describe)
     def describe(self, **kwargs):
         with group_selection_context(self):
@@ -2448,6 +2454,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             elif is_timedelta64_dtype(vals.dtype):
                 inference = np.dtype("timedelta64[ns]")
                 out = np.asarray(vals).astype(float)
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+                inference = np.dtype(np.float64)
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
                 out = np.asarray(vals)
 
@@ -3093,7 +3102,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
         return res
 
-    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
