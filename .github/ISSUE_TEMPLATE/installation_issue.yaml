@@ -55,3 +55,10 @@ body:
       label: Installation Logs
       description: >
         If possible, please copy and paste the installation logs when attempting to install pandas.
+      value: >
+        <details>
+
+        Replace this line with the installation logs.
+
+        </details>
+      render: html

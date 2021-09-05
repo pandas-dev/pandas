@@ -55,6 +55,12 @@ body:
       label: Installed Versions
       description: >
         Please paste the output of ``pd.show_versions()``
-      render: shell
+      value: >
+        <details>
+
+        Replace this line with the output of pd.show_versions()
+
+        </details>
+      render: html
     validations:
       required: true
