@@ -597,12 +597,21 @@ def test_concat_preserves_extension_int64_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_bool_boolean():
+@pytest.mark.parametrize(
+    "dtype1,dtype2,expected_dtype",
+    [
+        ("bool", "bool", "bool"),
+        ("boolean", "bool", "boolean"),
+        ("bool", "boolean", "boolean"),
+        ("boolean", "boolean", "boolean"),
+    ],
+)
+def test_concat_bool_types(dtype1, dtype2, expected_dtype):
     # GH 42800
-    ser_bool = Series([True, False], dtype="boolean")
-    ser_boolean = Series([pd.NA, False], dtype="boolean")
-    result = concat([ser_bool, ser_boolean], ignore_index=True)
-    expected = Series([True, False, pd.NA, False], dtype="boolean")
+    ser1 = Series([True, False], dtype=dtype1)
+    ser2 = Series([False, True], dtype=dtype2)
+    result = concat([ser1, ser2], ignore_index=True)
+    expected = Series([True, False, False, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
