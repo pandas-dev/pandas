@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas.compat.numpy import np_version_under1p19
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -1850,6 +1851,7 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
         ({1: 1}, np.array([[1]], dtype=int)),
     ],
 )
+@pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
