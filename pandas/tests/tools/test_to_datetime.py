@@ -1966,6 +1966,41 @@ class TestToDatetimeInferFormat:
             tm.assert_series_equal(no_infer, yes_infer)
 
     @pytest.mark.parametrize("cache", [True, False])
+    @pytest.mark.parametrize("errors", ["ignore", "coerce", "raise"])
+    def test_to_datetime_infer_datetime_consistent_formats_error_types(
+        self, cache, errors
+    ):
+        # GH#43414
+        s = Series(date_range("20000101", periods=50, freq="H"))
+        begin_timerange_condition = s.dt.hour >= 7
+        end_timerange_condition = s.dt.hour <= 13
+        s = s.loc[begin_timerange_condition & end_timerange_condition]
+
+        test_formats = [
+            "%m-%d-%Y",
+            "%m/%d/%Y %H:%M:%S.%f",
+            "%m/%d/%Y %I:%M:%S%p",
+            "%m/%d/%Y %I:%M:%S %p",
+            "%Y-%m-%dT%H:%M:%S.%f",
+            "%Y-%m-%dT%I:%M:%S%p",
+            "%Y-%m-%dT%I:%M:%S %p",
+            "%Y-%m-%d %H:%M:%S.%f",
+            "%Y-%m-%d %I:%M:%S%p",
+            "%Y-%m-%d %I:%M:%S %p",
+        ]
+
+        for test_format in test_formats:
+            s_as_dt_strings = s.apply(lambda x: x.strftime(test_format))
+
+            explicit_format = to_datetime(
+                s_as_dt_strings, errors=errors, format=test_format, cache=cache
+            )
+            inferred_format = to_datetime(
+                s_as_dt_strings, errors=errors, infer_datetime_format=True, cache=cache
+            )
+            tm.assert_series_equal(explicit_format, inferred_format)
+
+    @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_infer_datetime_format_inconsistent_format(self, cache):
         s = Series(
             np.array(
