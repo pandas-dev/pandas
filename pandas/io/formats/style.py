@@ -1773,6 +1773,16 @@ class Styler(StylerRenderer):
         -------
         self : Styler
         """
+        msg = "`caption` must be either a string or 2-tuple of strings."
+        if isinstance(caption, tuple):
+            if (
+                len(caption) != 2
+                or not isinstance(caption[0], str)
+                or not isinstance(caption[1], str)
+            ):
+                raise ValueError(msg)
+        elif not isinstance(caption, str):
+            raise ValueError(msg)
         self.caption = caption
         return self
 
