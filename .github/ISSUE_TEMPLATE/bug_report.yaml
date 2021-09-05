@@ -58,9 +58,10 @@ body:
       value: >
         <details>
 
+
         Replace this line with the output of pd.show_versions()
 
+
         </details>
-      render: html
     validations:
       required: true

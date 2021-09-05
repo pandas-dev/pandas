@@ -58,7 +58,8 @@ body:
       value: >
         <details>
 
+
         Replace this line with the installation logs.
 
+
         </details>
-      render: html
