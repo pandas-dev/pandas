@@ -42,7 +42,7 @@ def test_max_min_object_multiple_columns(using_array_manager):
             "C": ["a", "b", "c", "d", "e"],
         }
     )
-    df._consolidate_inplace()  # should already be consolidate, but double-check
+    df._consolidate_inplace()  # should already be consolidated, but double-check
     if not using_array_manager:
         assert len(df._mgr.blocks) == 2
 

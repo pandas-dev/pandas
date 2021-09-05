@@ -535,7 +535,7 @@ class TestDataFrameIndexing:
         with pytest.raises(KeyError, match=r"^3$"):
             df2.loc[3:11] = 0
 
-    @td.skip_array_manager_invalid_test  # already covered in test_iloc_col_slice_view
+    @td.skip_array_manager_not_yet_implemented  # Doesn't issue SettingWithCopyError
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
         sliced = float_string_frame.iloc[:, -3:]
         assert sliced["D"].dtype == np.float64

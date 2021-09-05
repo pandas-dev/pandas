@@ -62,13 +62,12 @@ class TestDataFrameReshape:
         expected = expected[["a", "b"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_unstack_not_consolidated(self, using_array_manager):
+    def test_unstack_not_consolidated(self):
         # Gh#34708
         df = DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
         df2 = df[["x"]]
         df2["y"] = df["y"]
-        if not using_array_manager:
-            assert len(df2._mgr.blocks) == 2
+        assert len(df2._mgr.arrays) == 2
 
         res = df2.unstack()
         expected = df.unstack()
@@ -1948,8 +1947,7 @@ Thu,Lunch,Yes,51.51,17"""
 
         # add another int column to get 2 blocks
         df["is_"] = 1
-        if not using_array_manager:
-            assert len(df._mgr.blocks) == 2
+        assert len(df._mgr.arrays) == 2
 
         result = df.unstack("b")
         result[("is_", "ca")] = result[("is_", "ca")].fillna(0)

@@ -652,7 +652,6 @@ class TestSeriesConstructors:
             assert x[0] == 2.0
             assert y[0] == 1.0
 
-    @td.skip_array_manager_invalid_test  # TODO(ArrayManager) rewrite test
     @pytest.mark.parametrize(
         "index",
         [
@@ -669,10 +668,10 @@ class TestSeriesConstructors:
     def test_constructor_limit_copies(self, index):
         # GH 17449
         # limit copies of input
-        s = Series(index)
+        ser = Series(index)
 
         # we make 1 copy; this is just a smoke test here
-        assert s._mgr.blocks[0].values is not index
+        assert ser._mgr.arrays[0] is not index
 
     def test_constructor_pass_none(self):
         with tm.assert_produces_warning(FutureWarning):
