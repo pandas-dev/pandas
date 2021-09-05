@@ -16,10 +16,10 @@ body:
     attributes:
       label: Operating System
       description: >
-        Please provide the operating system are you running.
+        Please provide the operating system you are running.
       placeholder: >
-        Windows 10
-        macOS 11 Big Sur
+        Windows 10 \n
+        macOS 11 Big Sur \n
         Ubuntu 18.04 LTS
     validations:
       required: true
@@ -28,9 +28,9 @@ body:
     attributes:
       label: Platform
       description: >
-        Please provide the hardware platform are you running.
+        Please provide the hardware platform you are running.
       placeholder: >
-        x86-64
+        x86-64 \n
         ARM64 (M1)
     validations:
       required: true
