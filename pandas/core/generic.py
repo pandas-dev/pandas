@@ -3334,18 +3334,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             tabular output.
         DataFrame.to_html : Render a DataFrame as an HTML table.
 
+        Notes
+        -----
+
+        .. info::
+           As of version 1.4.0 this method was changed to use the implementation of
+           `Styler.to_latex()` via jinja2 templating, and no longer uses the pandas
+           internal `LatexFormatter` class. This is the reason for many of the
+           altered arguments in the method signature.
+
+           The Styler implementation has extended functionality and performance and
+           further information is available in its own documentation relevant for this
+           method.
+
         Examples
         --------
         >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
         ...                   mask=['red', 'purple'],
         ...                   weapon=['sai', 'bo staff']))
-        >>> print(df.to_latex(index=False))  # doctest: +NORMALIZE_WHITESPACE
+        >>> print(df.to_latex(index=False, hrules=True))
         \begin{{tabular}}{{lll}}
-         \toprule
-               name &    mask &    weapon \\
-         \midrule
-            Raphael &     red &       sai \\
-          Donatello &  purple &  bo staff \\
+        \toprule
+        name & mask & weapon \\
+        \midrule
+        Raphael & red & sai \\
+        Donatello & purple & bo staff \\
         \bottomrule
         \end{{tabular}}
         """
