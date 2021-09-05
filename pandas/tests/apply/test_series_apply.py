@@ -92,6 +92,19 @@ def test_apply_args():
     assert isinstance(result[0], list)
 
 
+@pytest.mark.parametrize(
+    "args, kwargs", [(tuple(), {}), (tuple(), {"a": 1}), ((1,), {"c": 2})]
+)
+def test_agg_args(args, kwargs):
+    def f(x, a=0, b=0, c=0):
+        return x + a + b + c
+
+    s = Series([1, 2])
+    result = s.agg(f, 0, *args, **kwargs)
+    expected = s + sum(args) + sum(kwargs.values())
+    tm.assert_series_equal(result, expected)
+
+
 def test_series_map_box_timestamps():
     # GH#2689, GH#2627
     ser = Series(pd.date_range("1/1/2000", periods=10))

@@ -1044,8 +1044,8 @@ class SeriesApply(NDFrameApply):
     def agg(self):
         result = super().agg()
         if result is None:
+            # super().agg() handles list/dict-likes, so args and kwargs already curried
             f = self.f
-            args = self.args
             kwargs = self.kwargs
 
             # string, list-like, and dict-like are entirely handled in super
@@ -1064,9 +1064,9 @@ class SeriesApply(NDFrameApply):
             # then .agg and .apply would have different semantics if the
             # operation is actually defined on the Series, e.g. str
             try:
-                result = self.obj.apply(f, *args, **kwargs)
+                result = self.obj.apply(f)
             except (ValueError, AttributeError, TypeError):
-                result = f(self.obj, *args, **kwargs)
+                result = f(self.obj)
 
         return result
 
