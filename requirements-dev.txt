@@ -41,6 +41,7 @@ pytest-cov
 pytest-xdist>=1.31
 pytest-asyncio
 pytest-instafail
+fakeredis
 seaborn
 statsmodels
 ipywidgets
@@ -64,6 +65,7 @@ xlrd
 xlsxwriter
 xlwt
 odfpy
+redis
 fastparquet>=0.4.0
 pyarrow>=0.17.0
 python-snappy

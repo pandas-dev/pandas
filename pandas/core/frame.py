@@ -2317,20 +2317,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         return np.rec.fromarrays(arrays, dtype={"names": names, "formats": formats})
 
-    def to_redis(self, 
-        redis_conn: redis.client.Redis, 
-        alias:str = None, 
-        if_exists:str = "Overwrite"
-        ):
-        """ Pandas IO method to cache a Dataframe to Redis. This uses pyarrow to serialize the Dataframe and stores it as a string value in Redis. 
+    def to_redis(
+        self,
+        redis_conn: redis.client.Redis,
+        alias: str = None,
+        if_exists: str = "Overwrite",
+    ):
+        """Pandas IO method to cache a Dataframe to Redis. This uses pyarrow to serialize the Dataframe and stores it as a string value in Redis.
 
-        *Note* Redis has a 512 MB limit on values, so If the serialized Dataframe is over 512MB, a ValueError will be raised. 
+        *Note* Redis has a 512 MB limit on values, so If the serialized Dataframe is over 512MB, a ValueError will be raised.
 
-        If you are using if_exists="Append", the following logic is applied: 
-            - If the existing DataFrame has columns that don't exist in the new DataFrame, we just append which will add values to the columns that exist in the new DataFrame. 
-            - If the new DataFrame has columns that don't exist in the existing DataFrame, we throw an error. This is due to a desire to maintain integrity of what has already been cached. 
+        If you are using if_exists="Append", the following logic is applied:
+            - If the existing DataFrame has columns that don't exist in the new DataFrame, we just append which will add values to the columns that exist in the new DataFrame.
+            - If the new DataFrame has columns that don't exist in the existing DataFrame, we throw an error. This is due to a desire to maintain integrity of what has already been cached.
 
-        This operation is registered with Pandas under the redis namespace once installed. See example usage below: 
+        This operation is registered with Pandas under the redis namespace once installed. See example usage below:
 
         Parameters
         ----------
@@ -2343,32 +2344,28 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. highlight::
 
-            import pandas as pd 
+            import pandas as pd
             import redis
 
             df = pd.DataFrame(data=[1.2.3], columns=['A'. 'B', 'C'])
-            
+
             redis_conn = redis.StrictRedis(host="your host", port=6379, db=0)
 
             df.redis.to_redis(redis_conn, alias="test")
 
             alias = df.redis.alias
-        
+
         .. highlight::
 
         See Also
         --------
         read_redis : Read a DataFrame from Redis.
         """
-        
+
         from pandas.io import redis
 
         redpandas = Redis_IO(pandas_obj=self)
-        redpandas.to_redis(
-            redis_conn=redis_conn, 
-            alias=alias,
-            if_exists=if_exists
-        )
+        redpandas.to_redis(redis_conn=redis_conn, alias=alias, if_exists=if_exists)
 
     @classmethod
     def _from_arrays(

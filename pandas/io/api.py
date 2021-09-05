@@ -29,6 +29,7 @@ from pandas.io.pytables import (
     HDFStore,
     read_hdf,
 )
+from pandas.io.redis import read_redis
 from pandas.io.sas import read_sas
 from pandas.io.spss import read_spss
 from pandas.io.sql import (
@@ -38,5 +39,3 @@ from pandas.io.sql import (
 )
 from pandas.io.stata import read_stata
 from pandas.io.xml import read_xml
-
-from pandas.io.redis import read_redis

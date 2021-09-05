@@ -157,7 +157,7 @@ ORC
    :toctree: api/
 
    read_orc
-   
+
 Redis
 ~~~~
 .. autosummary::
