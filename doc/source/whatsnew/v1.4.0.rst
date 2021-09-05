@@ -83,6 +83,8 @@ Formerly Styler relied on ``display.html.use_mathjax``, which has now been repla
 
 There are also bug fixes and deprecations listed below.
 
+Validation now for ``caption`` arg (:issue:`43368`)
+
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
 Multithreaded CSV reading with a new CSV Engine based on pyarrow
