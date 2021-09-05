@@ -111,6 +111,8 @@ parser_defaults = {
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": "error",
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
 }
 
 
@@ -340,6 +342,10 @@ class ParserBase:
 
         # extract the columns
         field_count = len(header[0])
+
+        # check if header lengths are equal
+        if not all(len(header_iter) == field_count for header_iter in header[1:]):
+            raise ParserError("Header rows must have an equal number of columns.")
 
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
