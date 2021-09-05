@@ -1,6 +1,6 @@
 name: Bug Report
 description: Report incorrect behavior in the pandas library
-title: "Bug: "
+title: "BUG: "
 labels: [Bug, Needs Triage]
 
 body:
