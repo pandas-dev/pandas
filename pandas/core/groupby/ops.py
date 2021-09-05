@@ -138,7 +138,7 @@ class WrappedCythonOp:
         },
     }
 
-    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax"}
+    _MASKED_CYTHON_FUNCTIONS = {"cummin", "cummax", "min", "max"}
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
@@ -404,6 +404,7 @@ class WrappedCythonOp:
 
         # Copy to ensure input and result masks don't end up shared
         mask = values._mask.copy()
+        result_mask = np.zeros(ngroups, dtype=bool)
         arr = values._data
 
         res_values = self._cython_op_ndim_compat(
@@ -412,13 +413,18 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=mask,
+            result_mask=result_mask,
             **kwargs,
         )
+
         dtype = self._get_result_dtype(orig_values.dtype)
         assert isinstance(dtype, BaseMaskedDtype)
         cls = dtype.construct_array_type()
 
-        return cls(res_values.astype(dtype.type, copy=False), mask)
+        if self.kind != "aggregate":
+            return cls(res_values.astype(dtype.type, copy=False), mask)
+        else:
+            return cls(res_values.astype(dtype.type, copy=False), result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -428,7 +434,8 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: np.ndarray | None,
+        mask: np.ndarray | None = None,
+        result_mask: np.ndarray | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -436,12 +443,15 @@ class WrappedCythonOp:
             values2d = values[None, :]
             if mask is not None:
                 mask = mask[None, :]
+            if result_mask is not None:
+                result_mask = result_mask[None, :]
             res = self._call_cython_op(
                 values2d,
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
                 mask=mask,
+                result_mask=result_mask,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -456,6 +466,7 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=mask,
+            result_mask=result_mask,
             **kwargs,
         )
 
@@ -468,6 +479,7 @@ class WrappedCythonOp:
         ngroups: int,
         comp_ids: np.ndarray,
         mask: np.ndarray | None,
+        result_mask: np.ndarray | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -493,6 +505,8 @@ class WrappedCythonOp:
         values = values.T
         if mask is not None:
             mask = mask.T
+            if result_mask is not None:
+                result_mask = result_mask.T
 
         out_shape = self._get_output_shape(ngroups, values)
         func, values = self.get_cython_func_and_vals(values, is_numeric)
@@ -508,6 +522,8 @@ class WrappedCythonOp:
                     values,
                     comp_ids,
                     min_count,
+                    mask=mask,
+                    result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
                 )
             else:
@@ -947,9 +963,7 @@ class BaseGrouper:
             out = npvalues
         return out
 
-    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
-        # -> np.ndarray[object]
-
+    def _aggregate_series_fast(self, obj: Series, func: F) -> npt.NDArray[np.object_]:
         # At this point we have already checked that
         #  - obj.index is not a MultiIndex
         #  - obj is backed by an ndarray, not ExtensionArray
@@ -967,8 +981,9 @@ class BaseGrouper:
         return result
 
     @final
-    def _aggregate_series_pure_python(self, obj: Series, func: F) -> np.ndarray:
-        # -> np.ndarray[object]
+    def _aggregate_series_pure_python(
+        self, obj: Series, func: F
+    ) -> npt.NDArray[np.object_]:
         ids, _, ngroups = self.group_info
 
         counts = np.zeros(ngroups, dtype=int)
@@ -1190,12 +1205,12 @@ class DataSplitter(Generic[FrameOrSeries]):
         assert isinstance(axis, int), axis
 
     @cache_readonly
-    def slabels(self) -> np.ndarray:  # np.ndarray[np.intp]
+    def slabels(self) -> npt.NDArray[np.intp]:
         # Sorted labels
         return self.labels.take(self._sort_idx)
 
     @cache_readonly
-    def _sort_idx(self) -> np.ndarray:  # np.ndarray[np.intp]
+    def _sort_idx(self) -> npt.NDArray[np.intp]:
         # Counting sort indexer
         return get_group_index_sorter(self.labels, self.ngroups)
 

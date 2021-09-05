@@ -231,7 +231,7 @@ class Styler(StylerRenderer):
             thousands=thousands,
         )
 
-    def _repr_html_(self) -> str:
+    def _repr_html_(self) -> str | None:
         """
         Hooks into Jupyter notebook rich display system, which calls _repr_html_ by
         default if an object is returned at the end of a cell.
@@ -240,7 +240,7 @@ class Styler(StylerRenderer):
             return self.to_html()
         return None
 
-    def _repr_latex_(self) -> str:
+    def _repr_latex_(self) -> str | None:
         if get_option("styler.render.repr") == "latex":
             return self.to_latex()
         return None
@@ -861,6 +861,7 @@ class Styler(StylerRenderer):
             multicol_align=multicol_align,
             environment=environment,
             convert_css=convert_css,
+            siunitx=siunitx,
         )
 
         encoding = encoding or get_option("styler.render.encoding")
@@ -1772,6 +1773,16 @@ class Styler(StylerRenderer):
         -------
         self : Styler
         """
+        msg = "`caption` must be either a string or 2-tuple of strings."
+        if isinstance(caption, tuple):
+            if (
+                len(caption) != 2
+                or not isinstance(caption[0], str)
+                or not isinstance(caption[1], str)
+            ):
+                raise ValueError(msg)
+        elif not isinstance(caption, str):
+            raise ValueError(msg)
         self.caption = caption
         return self
 

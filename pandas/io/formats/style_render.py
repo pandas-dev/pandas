@@ -387,7 +387,6 @@ class StylerRenderer:
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
             and not all(self.hide_index_)
-            and not all(self.hide_columns_)
             and not self.hide_index_names
         ):
             index_names = [
@@ -461,7 +460,7 @@ class StylerRenderer:
         )
 
         rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
-        if self.data.index.nlevels == 1:
+        if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
         body = []
@@ -896,7 +895,7 @@ def _get_level_lengths(
         hidden_elements = []
 
     lengths = {}
-    if index.nlevels == 1:
+    if not isinstance(index, MultiIndex):
         for i, value in enumerate(levels):
             if i not in hidden_elements:
                 lengths[(0, i)] = 1

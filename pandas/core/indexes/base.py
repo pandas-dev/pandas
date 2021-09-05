@@ -242,6 +242,10 @@ def _new_Index(cls, d):
             # GH#23752 "labels" kwarg has been replaced with "codes"
             d["codes"] = d.pop("labels")
 
+    elif "dtype" not in d and "data" in d:
+        # Prevent Index.__new__ from conducting inference;
+        #  "data" key not in RangeIndex
+        d["dtype"] = d["data"].dtype
     return cls.__new__(cls, **d)
 
 
@@ -639,11 +643,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
-        # _index_data is a (temporary?) fix to ensure that the direct data
-        # manipulation we do in `_libs/reduction.pyx` continues to work.
-        # We need access to the actual ndarray, since we're messing with
-        # data buffers and strides.
-        result._index_data = values
         result._name = name
         result._cache = {}
         result._reset_identity()
@@ -3619,7 +3618,12 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            indexer = self._engine.get_indexer(target._get_engine_target())
+            tgt_values = target._get_engine_target()
+            if target._is_multi and self._is_multi:
+                # error: Incompatible types in assignment (expression has type
+                # "Index", variable has type "ndarray[Any, Any]")
+                tgt_values = target  # type: ignore[assignment]
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -4092,8 +4096,6 @@ class Index(IndexOpsMixin, PandasObject):
         join_index, (left_indexer, right_indexer)
         """
         other = ensure_index(other)
-        self_is_mi = isinstance(self, ABCMultiIndex)
-        other_is_mi = isinstance(other, ABCMultiIndex)
 
         if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
             if (self.tz is None) ^ (other.tz is None):
@@ -4113,7 +4115,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # try to figure out the join level
         # GH3662
-        if level is None and (self_is_mi or other_is_mi):
+        if level is None and (self._is_multi or other._is_multi):
 
             # have the same levels/names so a simple join
             if self.names == other.names:
@@ -4122,7 +4124,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._join_multi(other, how=how)
 
         # join on the level
-        if level is not None and (self_is_mi or other_is_mi):
+        if level is not None and (self._is_multi or other._is_multi):
             return self._join_level(other, level, how=how)
 
         if len(other) == 0 and how in ("left", "outer"):
@@ -4171,7 +4173,19 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._join_monotonic(other, how=how)
             except TypeError:
+                # object dtype; non-comparable objects
                 pass
+
+        return self._join_via_get_indexer(other, how, sort)
+
+    @final
+    def _join_via_get_indexer(
+        self, other: Index, how: str_t, sort: bool
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
+        # Fallback if we do not have any fastpaths available based on
+        #  uniqueness/monotonicity
+
+        # Note: at this point we have checked matching dtypes
 
         if how == "left":
             join_index = self
@@ -4282,22 +4296,25 @@ class Index(IndexOpsMixin, PandasObject):
         # We only get here if dtypes match
         assert self.dtype == other.dtype
 
-        lvalues = self._get_join_target()
-        rvalues = other._get_join_target()
-
         left_idx, right_idx = get_join_indexers(
-            [lvalues], [rvalues], how=how, sort=True
+            [self._values], [other._values], how=how, sort=True
         )
-
-        left_idx = ensure_platform_int(left_idx)
-        right_idx = ensure_platform_int(right_idx)
-
-        join_array = np.asarray(lvalues.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_array, mask, rvalues.take(right_idx))
 
-        join_arraylike = self._from_join_target(join_array)
-        join_index = self._wrap_joined_index(join_arraylike, other)
+        # error: Argument 1 to "take" of "ExtensionArray" has incompatible
+        # type "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
+        join_array = self._values.take(left_idx)  # type: ignore[arg-type]
+        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
+        # "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
+        right = other._values.take(right_idx)  # type: ignore[arg-type]
+
+        if isinstance(join_array, np.ndarray):
+            np.putmask(join_array, mask, right)
+        else:
+            # error: "ExtensionArray" has no attribute "putmask"
+            join_array.putmask(mask, right)  # type: ignore[attr-defined]
+
+        join_index = self._wrap_joined_index(join_array, other)
 
         return join_index, left_idx, right_idx
 
@@ -4450,7 +4467,9 @@ class Index(IndexOpsMixin, PandasObject):
         return join_index, left_indexer, right_indexer
 
     @final
-    def _join_monotonic(self, other: Index, how: str_t = "left"):
+    def _join_monotonic(
+        self, other: Index, how: str_t = "left"
+    ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes
         assert other.dtype == self.dtype
 
@@ -5445,6 +5464,8 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: _maybe_promote ensures we never get here with MultiIndex
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
+        if self._is_multi and target._is_multi:
+            tgt_values = target
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)

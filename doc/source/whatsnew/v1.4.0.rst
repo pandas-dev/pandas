@@ -76,12 +76,14 @@ Styler
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption`` (:issue:`41946`, :issue:`43149`).
-  - Keyword argument ``level`` is added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for optionally controlling hidden levels in a MultiIndex (:issue:`25475`)
+  - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
   - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
 
 Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
 
 There are also bug fixes and deprecations listed below.
+
+Validation now for ``caption`` arg (:issue:`43368`)
 
 .. _whatsnew_140.enhancements.pyarrow_csv_engine:
 
@@ -101,6 +103,7 @@ Other enhancements
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 - :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
 - :meth:`read_table` now supports the argument ``storage_options`` (:issue:`39167`)
+- Methods that relied on hashmap based algos such as :meth:`DataFrameGroupBy.value_counts`, :meth:`DataFrameGroupBy.count` and :func:`factorize` ignored imaginary component for complex numbers (:issue:`17927`)
 
 .. ---------------------------------------------------------------------------
 
@@ -271,6 +274,7 @@ Other Deprecations
 - Deprecated dropping of nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`EWM` aggregations (:issue:`42738`)
 - Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 - Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
+- Deprecated passing in a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 
 .. ---------------------------------------------------------------------------
 
@@ -286,6 +290,8 @@ Performance improvements
 - Performance improvement in some :meth:`GroupBy.apply` operations (:issue:`42992`)
 - Performance improvement in :func:`read_stata` (:issue:`43059`)
 - Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
+- Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -375,6 +381,8 @@ I/O
 - Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
 - Bug in :func:`read_fwf`, where difference in lengths of ``colspecs`` and ``names`` was not raising ``ValueError`` (:issue:`40830`)
 - Bug in :func:`Series.to_json` and :func:`DataFrame.to_json` where some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
+- Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
+- Bug in unpickling a :class:`Index` with object dtype incorrectly inferring numeric dtypes (:issue:`43188`)
 -
 
 Period
@@ -391,6 +399,7 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Fixed bug in :meth:`SeriesGroupBy.apply` where passing an unrecognized string argument failed to raise ``TypeError`` when the underlying ``Series`` is empty (:issue:`42021`)
 - Bug in :meth:`Series.rolling.apply`, :meth:`DataFrame.rolling.apply`, :meth:`Series.expanding.apply` and :meth:`DataFrame.expanding.apply` with ``engine="numba"`` where ``*args`` were being cached with the user passed function (:issue:`42287`)
+- Bug in :meth:`GroupBy.max` and :meth:`GroupBy.min` with nullable integer dtypes losing precision (:issue:`41743`)
 - Bug in :meth:`DataFrame.groupby.rolling.var` would calculate the rolling variance only on the first group (:issue:`42442`)
 - Bug in :meth:`GroupBy.shift` that would return the grouping columns if ``fill_value`` was not None (:issue:`41556`)
 - Bug in :meth:`SeriesGroupBy.nlargest` and :meth:`SeriesGroupBy.nsmallest` would have an inconsistent index when the input Series was sorted and ``n`` was greater than or equal to all group sizes (:issue:`15272`, :issue:`16345`, :issue:`29129`)
@@ -404,6 +413,7 @@ Reshaping
 - Improved error message when creating a :class:`DataFrame` column from a multi-dimensional :class:`numpy.ndarray` (:issue:`42463`)
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
+- Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
 -
 
 Sparse
@@ -423,6 +433,7 @@ Styler
 - Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 - Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
+- Bug when rendering a single level MultiIndex (:issue:`43383`).
 
 Other
 ^^^^^
