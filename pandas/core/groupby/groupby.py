@@ -1361,12 +1361,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         with group_selection_context(self):
             # try a cython aggregation if we can
-            result = self._cython_agg_general(
-                how=alias,
-                alt=npfunc,
-                numeric_only=numeric_only,
-                min_count=min_count,
-            )
+            result = None
+            try:
+                result = self._cython_agg_general(
+                    how=alias,
+                    alt=npfunc,
+                    numeric_only=numeric_only,
+                    min_count=min_count,
+                )
+            except DataError:
+                pass
+
+            if result is None:
+                result = self.aggregate(lambda x: npfunc(x, axis=self.axis))
             return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
@@ -1740,16 +1747,21 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Standard deviation of values within each group.
         """
-        return self._get_cythonized_result(
-            libgroupby.group_var,
-            aggregate=True,
-            needs_counts=True,
-            needs_values=True,
-            needs_2d=True,
-            cython_dtype=np.dtype(np.float64),
-            post_processing=lambda vals, inference: np.sqrt(vals),
-            ddof=ddof,
-        )
+        try:
+            return self._get_cythonized_result(
+                libgroupby.group_var,
+                aggregate=True,
+                needs_counts=True,
+                needs_values=True,
+                needs_2d=True,
+                cython_dtype=np.dtype(np.float64),
+                post_processing=lambda vals, inference: np.sqrt(vals),
+                ddof=ddof,
+            )
+        except DataError:
+            func = lambda x: x.std(ddof=ddof)
+            with group_selection_context(self):
+                return self._python_agg_general(func)
 
     @final
     @Substitution(name="groupby")
@@ -1771,10 +1783,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Variance of values within each group.
         """
         if ddof == 1:
-            numeric_only = self._resolve_numeric_only(lib.no_default)
-            return self._cython_agg_general(
-                "var", alt=lambda x: Series(x).var(ddof=ddof), numeric_only=numeric_only
-            )
+            try:
+                numeric_only = self._resolve_numeric_only(lib.no_default)
+                return self._cython_agg_general(
+                    "var",
+                    alt=lambda x: Series(x).var(ddof=ddof),
+                    numeric_only=numeric_only,
+                )
+            except DataError:
+                func = lambda x: x.var(ddof=ddof)
+                with group_selection_context(self):
+                    return self._python_agg_general(func)
         else:
             func = lambda x: x.var(ddof=ddof)
             with group_selection_context(self):
@@ -3049,6 +3068,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # error_msg is "" on an frame/series with no rows or columns
         if not output and error_msg != "":
             raise TypeError(error_msg)
+        elif not output and error_msg == "" and not self._obj_with_exclusions.empty:
+            raise DataError("No numeric types to aggregate")
 
         if aggregate:
             return self._wrap_aggregated_output(output)
