@@ -227,6 +227,7 @@ Package                                                          Minimum support
 `NumPy <https://numpy.org>`__                                    1.18.5
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.1
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
+`jinja2 <https://jinja.pocoo.org>`__                             2.11
 ================================================================ ==========================
 
 .. _install.recommended_dependencies:
@@ -266,7 +267,6 @@ Visualization
 Dependency                Minimum Version    Notes
 ========================= ================== =============================================================
 matplotlib                3.3.2              Plotting library
-Jinja2                    2.11               Conditional formatting with DataFrame.style
 tabulate                  0.8.7              Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== =============================================================
 
