@@ -18,3 +18,4 @@ dependencies:
   - nomkl
   - pytz
   - tabulate==0.8.7
+  - jinja2

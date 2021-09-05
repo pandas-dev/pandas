@@ -323,7 +323,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :meth:`Series.dt.tz_convert` resetting index in a :class:`Series` with :class:`CategoricalIndex` (:issue:`43080`)
 -
 
 Numeric
@@ -362,6 +362,7 @@ Indexing
 - Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
 -
 
+
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
@@ -384,7 +385,7 @@ I/O
 - Bug in :func:`Series.to_json` and :func:`DataFrame.to_json` where some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
 - Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
 - Bug in unpickling a :class:`Index` with object dtype incorrectly inferring numeric dtypes (:issue:`43188`)
--
+- Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
 
 Period
 ^^^^^^

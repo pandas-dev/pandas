@@ -20,6 +20,7 @@ dependencies:
   - gcsfs>=0.6.0
   - geopandas
   - html5lib
+  - jinja2
   - matplotlib
   - moto>=1.3.14
   - flask

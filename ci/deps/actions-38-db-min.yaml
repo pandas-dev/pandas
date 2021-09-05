@@ -15,6 +15,7 @@ dependencies:
   - numpy<1.20  # GH#39541 compat for pyarrow<3
   - python-dateutil
   - pytz
+  - jinja2
 
   # optional
   - beautifulsoup4
