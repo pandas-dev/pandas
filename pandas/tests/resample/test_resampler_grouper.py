@@ -406,6 +406,21 @@ def test_resample_groupby_agg():
     tm.assert_frame_equal(result, expected)
 
 
+def test_resample_groupby_agg_listlike():
+    # GH 42905
+    ts = Timestamp("2021-02-28 00:00:00")
+    df = DataFrame({"class": ["beta"], "value": [69], "date": [ts]})
+    result = (
+        df.set_index("date")
+        .groupby("class")
+        .resample("M")["value"]
+        .agg(["sum", "size"])
+    )
+    index = pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"])
+    expected = DataFrame([[69, 1]], index=index, columns=["sum", "size"])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
 def test_empty(keys):
     # GH 26411

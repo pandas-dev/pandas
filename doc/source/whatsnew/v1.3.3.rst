@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
 - Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
 - Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
+- Fixed regression in :meth:`.Resampler.aggregate` when used after column selection would raise if ``func`` is a list of aggregation functions (:issue:`42905`)
 
 .. ---------------------------------------------------------------------------
 

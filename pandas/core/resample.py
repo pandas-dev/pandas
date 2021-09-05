@@ -1043,6 +1043,7 @@ class _GroupByMixin(PandasObject):
         # the resampler attributes
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
+        # self._selection = kwargs.get('selection')
 
         self.binner = parent.binner
 
