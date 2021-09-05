@@ -377,7 +377,7 @@ I/O
 - Bug in :func:`read_fwf`, where difference in lengths of ``colspecs`` and ``names`` was not raising ``ValueError`` (:issue:`40830`)
 - Bug in :func:`Series.to_json` and :func:`DataFrame.to_json` where some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
 - Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
-- Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
+-
 
 Period
 ^^^^^^
