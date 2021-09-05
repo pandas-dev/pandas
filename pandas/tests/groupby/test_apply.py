@@ -1074,7 +1074,7 @@ def test_apply_dropna_with_indexed_same(dropna):
         index=list("xxyxz"),
     )
     result = df.groupby("group", dropna=dropna).apply(lambda x: x)
-    expected = df.dropna() if dropna else df
+    expected = df.dropna() if dropna else df.iloc[[0, 3, 1, 2, 4]]
     tm.assert_frame_equal(result, expected)
 
 
