@@ -13,6 +13,7 @@ dependencies:
   # pandas dependencies
   - python-dateutil
   - pytz
+  - jinja2
   - pip
   - pip:
     - cython==0.29.21 # GH#34014

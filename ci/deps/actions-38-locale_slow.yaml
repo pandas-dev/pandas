@@ -28,3 +28,4 @@ dependencies:
   - xlsxwriter=1.2.2
   - xlwt=1.3.0
   - html5lib=1.1
+  - jinja2

@@ -36,3 +36,4 @@ dependencies:
   - moto
   - flask
   - numba
+  - jinja2
