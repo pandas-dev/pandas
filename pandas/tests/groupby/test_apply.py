@@ -1062,9 +1062,10 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     tm.assert_frame_equal(by_cols, df)
 
 
-def test_apply_dropna_with_indexed_same():
+@pytest.mark.parametrize("dropna", [True, False])
+def test_apply_dropna_with_indexed_same(dropna):
     # GH 38227
-
+    # GH#43205
     df = DataFrame(
         {
             "col": [1, 2, 3, 4, 5],
@@ -1072,15 +1073,8 @@ def test_apply_dropna_with_indexed_same():
         },
         index=list("xxyxz"),
     )
-    result = df.groupby("group").apply(lambda x: x)
-    expected = DataFrame(
-        {
-            "col": [1, 4, 5],
-            "group": ["a", "b", "b"],
-        },
-        index=list("xxz"),
-    )
-
+    result = df.groupby("group", dropna=dropna).apply(lambda x: x)
+    expected = df.dropna() if dropna else df
     tm.assert_frame_equal(result, expected)
 
 
@@ -1150,18 +1144,4 @@ def test_doctest_example2():
     expected = DataFrame(
         {"B": [1.0, 0.0], "C": [2.0, 0.0]}, index=Index(["a", "b"], name="A")
     )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize("dropna", [True, False])
-def test_apply_dropna_with_indexed_same2(dropna):
-    # GH#43205
-    df = DataFrame(
-        {
-            "a": [1, 2, 3, 4, 5, 6, 7, 8, 9],
-            "b": [1, np.nan, 1, np.nan, 2, 1, 2, np.nan, 1],
-        }
-    )
-    result = df.groupby("b", dropna=dropna).apply(lambda x: x)
-    expected = df.dropna() if dropna else df
     tm.assert_frame_equal(result, expected)
