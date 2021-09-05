@@ -274,6 +274,7 @@ Other Deprecations
 - Deprecated dropping of nuisance columns in :class:`Rolling`, :class:`Expanding`, and :class:`EWM` aggregations (:issue:`42738`)
 - Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 - Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
+- Deprecated passing in a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
 
 .. ---------------------------------------------------------------------------
 
