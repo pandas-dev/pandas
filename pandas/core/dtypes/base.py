@@ -387,8 +387,7 @@ def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDt
 
     Examples
     --------
-    >>> from pandas.api.extensions import register_extension_dtype
-    >>> from pandas.api.extensions import ExtensionDtype
+    >>> from pandas.api.extensions import register_extension_dtype, ExtensionDtype
     >>> @register_extension_dtype
     ... class MyExtensionDtype(ExtensionDtype):
     ...     name = "myextension"

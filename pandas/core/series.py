@@ -475,7 +475,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif index is not None:
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
-            values = na_value_for_dtype(pandas_dtype(dtype))
+            values = na_value_for_dtype(pandas_dtype(dtype), compat=False)
             keys = index
         else:
             keys, values = (), []
@@ -5088,7 +5088,7 @@ Keep all original rows and also all original values
         """
         if inclusive is True or inclusive is False:
             warnings.warn(
-                "Boolean inputs to the `inclusive` argument are deprecated in"
+                "Boolean inputs to the `inclusive` argument are deprecated in "
                 "favour of `both` or `neither`.",
                 FutureWarning,
                 stacklevel=2,
