@@ -437,7 +437,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         def removesuffix(text: str) -> str:
             if text.endswith(suffix):
-                return text[: len(suffix)]
+                return text[: -len(suffix)]
             return text
 
         return self._str_map(removesuffix)
