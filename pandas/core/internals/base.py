@@ -33,6 +33,7 @@ class DataManager(PandasObject):
     def items(self) -> Index:
         raise AbstractMethodError(self)
 
+    @final
     def __len__(self) -> int:
         return len(self.items)
 
@@ -105,6 +106,7 @@ class DataManager(PandasObject):
         """
         raise AbstractMethodError(self)
 
+    @final
     def equals(self, other: object) -> bool:
         """
         Implementation for DataFrame.equals
@@ -129,19 +131,45 @@ class DataManager(PandasObject):
     ) -> T:
         raise AbstractMethodError(self)
 
+    @final
     def isna(self: T, func) -> T:
         return self.apply("apply", func=func)
+
+    # --------------------------------------------------------------------
+    # Consolidation: No-ops for all but BlockManager
+
+    def is_consolidated(self) -> bool:
+        return True
+
+    def consolidate(self: T) -> T:
+        return self
+
+    def _consolidate_inplace(self) -> None:
+        return
 
 
 class SingleDataManager(DataManager):
     ndim = 1
 
+    @final
     @property
     def array(self):
         """
         Quick access to the backing array of the Block or SingleArrayManager.
         """
         return self.arrays[0]  # type: ignore[attr-defined]
+
+    def setitem_inplace(self, indexer, value) -> None:
+        """
+        Set values with indexer.
+
+        For Single[Block/Array]Manager, this backs s[indexer] = value
+
+        This is an inplace version of `setitem()`, mutating the manager/values
+        in place, not returning a new Manager (and Block), and thus never changing
+        the dtype.
+        """
+        self.array[indexer] = value
 
 
 def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:

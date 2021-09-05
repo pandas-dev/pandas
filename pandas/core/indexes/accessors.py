@@ -283,7 +283,7 @@ class DatetimeProperties(Properties):
         Please use Series.dt.isocalendar().week instead.
         """
         warnings.warn(
-            "Series.dt.weekofyear and Series.dt.week have been deprecated.  "
+            "Series.dt.weekofyear and Series.dt.week have been deprecated. "
             "Please use Series.dt.isocalendar().week instead.",
             FutureWarning,
             stacklevel=2,

@@ -32,8 +32,9 @@ def test_simple():
     tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
-def test_bins():
-    data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
+@pytest.mark.parametrize("func", [list, np.array])
+def test_bins(func):
+    data = func([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
     result, bins = cut(data, 3, retbins=True)
 
     intervals = IntervalIndex.from_breaks(bins.round(3))
@@ -66,18 +67,6 @@ def test_no_right():
 
     tm.assert_categorical_equal(result, expected)
     tm.assert_almost_equal(bins, np.array([0.2, 2.575, 4.95, 7.325, 9.7095]))
-
-
-def test_array_like():
-    data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
-    result, bins = cut(data, 3, retbins=True)
-
-    intervals = IntervalIndex.from_breaks(bins.round(3))
-    intervals = intervals.take([0, 0, 0, 1, 2, 0])
-    expected = Categorical(intervals, ordered=True)
-
-    tm.assert_categorical_equal(result, expected)
-    tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667, 6.53333333, 9.7]))
 
 
 def test_bins_from_interval_index():
