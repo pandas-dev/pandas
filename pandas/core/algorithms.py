@@ -27,7 +27,7 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DtypeObj,
-    PositionalIndexer,
+    NonScalarPositionalIndexer,
     Scalar,
     npt,
 )
@@ -1433,7 +1433,7 @@ class SelectNFrame(SelectN):
 
 def take(
     arr,
-    indices: PositionalIndexer,
+    indices: NonScalarPositionalIndexer,
     axis: int = 0,
     allow_fill: bool = False,
     fill_value=None,
