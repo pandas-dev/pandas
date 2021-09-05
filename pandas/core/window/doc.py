@@ -16,7 +16,7 @@ template_header = "Calculate the {window_method} {aggregation_description}.\n\n"
 template_returns = dedent(
     """
     Series or DataFrame
-        Return type is the same as the original object.\n
+        Return type is the same as the original object with ``np.float64`` dtype.\n
     """
 ).replace("\n", "", 1)
 

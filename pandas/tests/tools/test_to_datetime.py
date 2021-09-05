@@ -1839,6 +1839,75 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
 
+    def test_dayfirst_warnings(self):
+        # GH 12585
+        warning_msg_day_first = (
+            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
+            "format or specify infer_datetime_format=True for consistent parsing."
+        )
+        warning_msg_month_first = (
+            "Parsing '03/30/2011' in MM/DD/YYYY format. Provide "
+            "format or specify infer_datetime_format=True for consistent parsing."
+        )
+
+        # CASE 1: valid input
+        arr = ["31/12/2014", "10/03/2011"]
+        expected_consistent = DatetimeIndex(
+            ["2014-12-31", "2011-03-10"], dtype="datetime64[ns]", freq=None
+        )
+        expected_inconsistent = DatetimeIndex(
+            ["2014-12-31", "2011-10-03"], dtype="datetime64[ns]", freq=None
+        )
+
+        # A. dayfirst arg correct, no warning
+        res1 = to_datetime(arr, dayfirst=True)
+        tm.assert_index_equal(expected_consistent, res1)
+
+        # B. dayfirst arg incorrect, warning + incorrect output
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res2 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected_inconsistent, res2)
+
+        # C. dayfirst default arg, same as B
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res3 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected_inconsistent, res3)
+
+        # D. infer_datetime_format=True overrides dayfirst default
+        # no warning + correct result
+        res4 = to_datetime(arr, infer_datetime_format=True)
+        tm.assert_index_equal(expected_consistent, res4)
+
+        # CASE 2: invalid input
+        # cannot consistently process with single format
+        # warnings *always* raised
+
+        arr = ["31/12/2014", "03/30/2011"]
+        # first in DD/MM/YYYY, second in MM/DD/YYYY
+        expected = DatetimeIndex(
+            ["2014-12-31", "2011-03-30"], dtype="datetime64[ns]", freq=None
+        )
+
+        # A. use dayfirst=True
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_month_first):
+            res5 = to_datetime(arr, dayfirst=True)
+        tm.assert_index_equal(expected, res5)
+
+        # B. use dayfirst=False
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res6 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected, res6)
+
+        # C. use dayfirst default arg, same as B
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res7 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected, res7)
+
+        # D. use infer_datetime_format=True
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res8 = to_datetime(arr, infer_datetime_format=True)
+        tm.assert_index_equal(expected, res8)
+
     @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
     def test_to_datetime_dta_tz(self, klass):
         # GH#27733

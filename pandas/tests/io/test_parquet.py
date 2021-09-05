@@ -1079,11 +1079,6 @@ class TestParquetFastParquet(Base):
     def test_use_nullable_dtypes_not_supported(self, monkeypatch, fp):
         df = pd.DataFrame({"a": [1, 2]})
 
-        # This is supported now in fastparquet 0.7.1 and above actually
-        # Still need to ensure that this raises in all versions below
-        import fastparquet as fp
-
-        monkeypatch.setattr(fp, "__version__", "0.4")
         with tm.ensure_clean() as path:
             df.to_parquet(path)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
