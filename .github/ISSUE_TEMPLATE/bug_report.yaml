@@ -26,7 +26,9 @@ body:
         provide a copy-pastable example that can be run on a Python REPL.
       placeholder: >
         import pandas as pd
+
         df = pd.DataFrame(range(5))
+
         ...
     validations:
       required: true
