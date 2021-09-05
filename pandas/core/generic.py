@@ -3173,9 +3173,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Parameters
         ----------
         buf : str, Path or StringIO-like, optional
-            Buffer to write to. If None, the output is returned as a string.
+            Buffer to write to. If `None`, the output is returned as a string.
         hrules : bool
-            Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
+            Set to `True` to add `\\toprule`, `\\midrule` and `\\bottomrule` from the
             `booktabs` LaTeX package.
 
             .. versionadded:: 1.4.0
@@ -3210,7 +3210,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         caption : str, tuple, optional
             If string, then table caption included as: `\\caption{{<caption>}}`.
             If tuple, i.e ("full caption", "short caption"), the caption included
-            as: `\\caption[<caption[1]>]{{<caption[0]>}}`.
+            as:
+
+            `\\caption[<caption[1]>]{{<caption[0]>}}`.
 
             .. versionadded:: 1.0.0
 
@@ -3264,6 +3266,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If given, the environment that will replace "table" in `\\begin{{table}}`.
             If "longtable" is specified then a more suitable template is
             rendered.
+            Defaults to ``pandas.options.styler.latex.environment``, which is `None`.
 
             .. versionadded:: 1.4.0
         formatter : str, callable, dict, optional
@@ -3295,7 +3298,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``{{``, ``}}``, ``~``, ``^``, and ``\`` in the cell display string with
             LaTeX-safe sequences.
             Escaping is done before ``formatter``.
-            Defaults to ``pandas.options.styler.format.escape`` is "latex", which
+            Defaults to (``pandas.options.styler.format.escape`` `=="latex"`), which
             is `False`.
 
             .. versionchanged:: 1.4.0
