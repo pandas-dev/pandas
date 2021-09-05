@@ -248,9 +248,11 @@ def test_groupby_quantile_skips_invalid_dtype(q):
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_quantile_NA_float(any_float_dtype):
+def test_groupby_quantile_NA_float(any_float_allowed_nullable_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    df = DataFrame(
+        {"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_allowed_nullable_dtype
+    )
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series([0.2], dtype=float, index=[1.0], name="y")
     expected.index.name = "x"
@@ -265,9 +267,9 @@ def test_groupby_quantile_NA_float(any_float_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_quantile_NA_int(any_int_ea_dtype):
+def test_groupby_quantile_NA_int(any_nullable_int_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [2, 5]}, dtype=any_int_ea_dtype)
+    df = DataFrame({"x": [1, 1], "y": [2, 5]}, dtype=any_nullable_int_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series([3.5], dtype=float, index=Index([1], name="x"), name="y")
     tm.assert_series_equal(expected, result)
