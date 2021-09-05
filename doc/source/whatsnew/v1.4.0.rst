@@ -101,6 +101,7 @@ Other enhancements
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 - :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
 - :meth:`read_table` now supports the argument ``storage_options`` (:issue:`39167`)
+- Methods that relied on hashmap based algos such as :meth:`DataFrameGroupBy.value_counts`, :meth:`DataFrameGroupBy.count` and :func:`factorize` ignored imaginary component for complex numbers (:issue:`17927`)
 
 .. ---------------------------------------------------------------------------
 
@@ -375,6 +376,7 @@ I/O
 - Bug in :func:`read_csv` with multi-header input and arguments referencing column names as tuples (:issue:`42446`)
 - Bug in :func:`read_fwf`, where difference in lengths of ``colspecs`` and ``names`` was not raising ``ValueError`` (:issue:`40830`)
 - Bug in :func:`Series.to_json` and :func:`DataFrame.to_json` where some attributes were skipped when serialising plain Python objects to JSON (:issue:`42768`, :issue:`33043`)
+- Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
 -
 
 Period
@@ -404,6 +406,7 @@ Reshaping
 - Improved error message when creating a :class:`DataFrame` column from a multi-dimensional :class:`numpy.ndarray` (:issue:`42463`)
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
+- Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
 -
 
 Sparse
@@ -423,6 +426,7 @@ Styler
 - Bug in :meth:`.Styler.copy` where ``uuid`` was not previously copied (:issue:`40675`)
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 - Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
+- Bug when rendering a single level MultiIndex (:issue:`43383`).
 
 Other
 ^^^^^
