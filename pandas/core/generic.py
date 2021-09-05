@@ -3176,7 +3176,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Buffer to write to. If None, the output is returned as a string.
         hrules : bool
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
-            {{booktabs}} LaTeX package.
+            `booktabs` LaTeX package.
 
             .. versionadded:: 1.4.0
         columns : list of label, optional
@@ -3184,7 +3184,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         column_format : str, optional
             The LaTeX column specification placed in location:
 
-            \\begin{{tabular}}{{<column_format>}}
+            `\\begin{{tabular}}{{<column_format>}}`
 
             Defaults to 'l' for index and
             non-numeric data columns, and, for numeric data columns,
@@ -3194,31 +3194,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument (e.g. 'h!') for tables, placed in location:
 
-            \\begin{{table}}[<position>]
+            `\\begin{{table}}[<position>]`.
 
             .. versionchanged:: 1.2.0
         position_float : {{"centering", "raggedleft", "raggedright"}}, optional
             The LaTeX float command placed in location:
 
-            \\begin{{table}}[<position>]
+            `\\begin{{table}}[<position>]`
 
-            \\<position_float>
+            `\\<position_float>`
 
             Cannot be used if ``environment`` is "longtable".
 
             .. versionadded:: 1.4.0
         caption : str, tuple, optional
-            If string, then table caption included as: \\caption{{<caption>}}.
+            If string, then table caption included as: `\\caption{{<caption>}}`.
             If tuple, i.e ("full caption", "short caption"), the caption included
-            as: \\caption[<caption[1]>]{{<caption[0]>}}.
+            as: `\\caption[<caption[1]>]{{<caption[0]>}}`.
 
             .. versionadded:: 1.0.0
 
             .. versionchanged:: 1.2.0
-               Optionally allow caption to be a tuple ``(full_caption, short_caption)``.
+               Optionally allow caption to be a tuple `(full_caption, short_caption)`.
         label : str, optional
-            The LaTeX label included as: \\label{{<label>}}.
-            This is used with \\ref{{<label>}} in the main .tex file.
+            The LaTeX label included as: `\\label{{<label>}}`.
+            This is used with `\\ref{{<label>}}` in the main .tex file.
 
             .. versionadded:: 1.0.0
         index : bool
@@ -3232,8 +3232,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Whether to print the names of the indexes before rendering.
 
             .. versionchanged:: 1.4.0
-
-
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
@@ -3309,44 +3307,54 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         encoding : str, optional
             Character encoding setting for file output, defaults to
             ``pandas.options.styler.render.encoding``, which is "utf-8", if None.
+
+            .. versionchanged:: 1.4.0
         formatters : list, tuple or dict of one-param. functions, optional
+            Unused.
 
             .. deprecated:: 1.4.0
                Use ``formatter`` instead, which is passed to ``Styler.format``.
         float_format : one-parameter function, optional, default None
+            Unused.
 
             .. deprecated:: 1.4.0
                Deprecated in favour of using arguments native to ``Styler.format``,
                such as ``precision``, ``decimal``, and ``thousands``.
         multicolumn : bool, default True
+            Unused.
 
             .. deprecated:: 1.4.0
               Use alternative ``sparse_columns`` and ``multicol_align`` arguments.
         multicolumn_format : str, default 'l'
+            Unused.
 
             .. deprecated:: 1.4.0
               Use alternative ``sparse_columns`` and ``multicol_align`` arguments.
         multirow : bool, default False
+            Unused.
 
             .. deprecated:: 1.4.0
               Use alternative ``sparse_index`` and ``multirow_align`` arguments.
         longtable : bool
+            Unused.
 
             .. deprecated:: 1.4.0
                Use ``environment='longtable'`` instead.
         sparsify : bool
+            Unused.
 
             .. deprecated:: 1.4.0
                Use ``sparse_columns`` and ``sparse_rows`` instead.
         col_space : int, optional
+            Unused.
 
             .. deprecated:: 1.4.0
                Adding LaTeX styling commands renders spacing not applicable.
         bold_rows : bool, default False
+            Unused.
 
             .. deprecated:: 1.4.0
                Use ``bold_header`` instead.
-
         {returns}
         See Also
         --------
@@ -3370,9 +3378,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame(dict(name=['Raphael', 'Donatello'],
-        ...                   mask=['red', 'purple'],
-        ...                   weapon=['sai', 'bo staff']))
+        >>> df = pd.DataFrame({{'name': ['Raphael', 'Donatello'],
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']}})
         >>> print(df.to_latex(index=False, hrules=True))
         \begin{{tabular}}{{lll}}
         \toprule
