@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
     TypeVar,
     cast,
@@ -28,12 +29,14 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas._typing import (
+    ArrayLike,
     Dtype,
     NpDtype,
     PositionalIndexer,
     Scalar,
     ScalarIndexer,
     SequenceIndexer,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -91,8 +94,12 @@ if TYPE_CHECKING:
         Ellipsis = "..."
 
     Ellipsis = ellipsis.Ellipsis
+
+    from pandas._typing import NumpySorter
+
 else:
     ellipsis = type(Ellipsis)
+
 
 # ----------------------------------------------------------------------------
 # Array
@@ -1025,7 +1032,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def searchsorted(self, v, side="left", sorter=None):
+    def searchsorted(
+        self,
+        v: ArrayLike | object,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=2)
         if not is_scalar(v):

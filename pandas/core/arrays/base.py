@@ -32,6 +32,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    npt,
 )
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
@@ -83,6 +84,11 @@ if TYPE_CHECKING:
 
         def all(self, *, skipna: bool = True) -> bool:
             pass
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 
 _extension_array_shared_docs: dict[str, str] = {}
@@ -821,7 +827,12 @@ class ExtensionArray:
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
-    def searchsorted(self, value, side="left", sorter=None):
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find indices where elements should be inserted to maintain order.
 
@@ -852,8 +863,9 @@ class ExtensionArray:
 
         Returns
         -------
-        array of ints
-            Array of insertion points with the same shape as `value`.
+        array of ints or int
+            If value is array-like, array of insertion points.
+            If value is scalar, a single integer.
 
         See Also
         --------
@@ -1318,7 +1330,7 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods
 
-    def delete(self: ExtensionArrayT, loc) -> ExtensionArrayT:
+    def delete(self: ExtensionArrayT, loc: PositionalIndexer) -> ExtensionArrayT:
         indexer = np.delete(np.arange(len(self)), loc)
         return self.take(indexer)
 

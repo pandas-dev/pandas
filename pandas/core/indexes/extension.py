@@ -4,8 +4,11 @@ Shared methods for Index subclasses backed by ExtensionArray.
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Hashable,
+    Literal,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -39,9 +42,17 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
@@ -318,7 +329,37 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    # This overload is needed so that the call to searchsorted in
+    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
+
+    @overload
+    # The following ignore is also present in numpy/__init__.pyi
+    # Possibly a mypy bug??
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types  [misc]
+    def searchsorted(  # type: ignore[misc]
+        self,
+        value: npt._ScalarLike_co,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.intp:
+        ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp]:
+        ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
         # overriding IndexOpsMixin improves performance GH#38083
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
