@@ -46,6 +46,8 @@ _any_string_method = [
     ("startswith", ("a",), {}),
     ("startswith", ("a",), {"na": True}),
     ("startswith", ("a",), {"na": False}),
+    ("removeprefix", ("a",), {}),
+    ("removesuffix", ("a",), {}),
     # translating unicode points of "a" to "d"
     ("translate", ({97: 100},), {}),
     ("wrap", (2,), {}),
