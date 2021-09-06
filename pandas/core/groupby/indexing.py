@@ -32,7 +32,7 @@ class GroupByIndexingMixin:
 
             ``grouped.apply(lambda x: x.iloc[i:j])``
 
-        but very much faster and preserving the original index and order.
+        but much faster and preserving the original index and order.
 
         The behaviour is different from GroupBy.nth:
 
