@@ -29,6 +29,8 @@ from pandas._typing import (
     Dtype,
     FillnaOptions,
     PositionalIndexer,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
 )
 from pandas.compat import set_function_name
@@ -292,13 +294,11 @@ class ExtensionArray:
     # Must be a Sequence
     # ------------------------------------------------------------------------
     @overload
-    def __getitem__(self, item: int | np.integer) -> Any:
+    def __getitem__(self, item: ScalarIndexer) -> Any:
         ...
 
     @overload
-    def __getitem__(
-        self: ExtensionArrayT, item: slice | np.ndarray | list[int]
-    ) -> ExtensionArrayT:
+    def __getitem__(self: ExtensionArrayT, item: SequenceIndexer) -> ExtensionArrayT:
         ...
 
     def __getitem__(

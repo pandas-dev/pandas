@@ -17,6 +17,8 @@ from pandas._typing import (
     F,
     PositionalIndexer2D,
     PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
     type_t,
 )
@@ -188,13 +190,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return value
 
     @overload
-    def __getitem__(self, key: int | np.integer) -> Any:
+    def __getitem__(self, key: ScalarIndexer) -> Any:
         ...
 
     @overload
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
-        key: slice | np.ndarray | list[int] | PositionalIndexerTuple,
+        key: SequenceIndexer | PositionalIndexerTuple,
     ) -> NDArrayBackedExtensionArrayT:
         ...
 

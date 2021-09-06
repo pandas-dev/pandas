@@ -40,6 +40,8 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
     npt,
     type_t,
@@ -2008,13 +2010,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
 
     @overload
-    def __getitem__(self, key: int | np.integer) -> Any:
+    def __getitem__(self, key: ScalarIndexer) -> Any:
         ...
 
     @overload
     def __getitem__(
         self: CategoricalT,
-        key: slice | np.ndarray | list[int] | PositionalIndexerTuple,
+        key: SequenceIndexer | PositionalIndexerTuple,
     ) -> CategoricalT:
         ...
 

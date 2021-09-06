@@ -22,6 +22,8 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
 )
 from pandas.compat import (
     pa_version_under1p0,
@@ -268,13 +270,11 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         )
 
     @overload
-    def __getitem__(self, item: int | np.integer) -> ArrowStringScalarOrNAT:
+    def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
         ...
 
     @overload
-    def __getitem__(
-        self: ArrowStringArray, item: slice | np.ndarray | list[int]
-    ) -> ArrowStringArray:
+    def __getitem__(self: ArrowStringArray, item: SequenceIndexer) -> ArrowStringArray:
         ...
 
     def __getitem__(

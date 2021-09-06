@@ -32,6 +32,8 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -822,13 +824,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Indexing
     # --------
     @overload
-    def __getitem__(self, key: int | np.integer) -> Any:
+    def __getitem__(self, key: ScalarIndexer) -> Any:
         ...
 
     @overload
     def __getitem__(
         self: SparseArrayT,
-        key: slice | np.ndarray | list[int] | tuple[int | ellipsis, ...],
+        key: SequenceIndexer | tuple[int | ellipsis, ...],
     ) -> SparseArrayT:
         ...
 

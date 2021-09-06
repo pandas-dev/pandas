@@ -205,6 +205,8 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # https://github.com/python/typing/issues/684#issuecomment-548203158
 # https://bugs.python.org/issue41810
 # Using List[int] here rather than Sequence[int] to disallow tuples.
-PositionalIndexer = Union[int, np.integer, slice, List[int], np.ndarray]
+ScalarIndexer = Union[int, np.integer]
+SequenceIndexer = Union[slice, List[int], np.ndarray]
+PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
 PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]

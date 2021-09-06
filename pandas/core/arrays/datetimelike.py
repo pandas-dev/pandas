@@ -50,6 +50,8 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -315,13 +317,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         return self._ndarray
 
     @overload
-    def __getitem__(self, item: int | np.integer) -> DTScalarOrNaT:
+    def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
         ...
 
     @overload
     def __getitem__(
         self: DatetimeLikeArrayT,
-        item: slice | np.ndarray | list[int] | PositionalIndexerTuple,
+        item: SequenceIndexer | PositionalIndexerTuple,
     ) -> DatetimeLikeArrayT:
         ...
 

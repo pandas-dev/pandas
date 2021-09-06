@@ -34,6 +34,8 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     PositionalIndexer,
+    ScalarIndexer,
+    SequenceIndexer,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender
@@ -640,13 +642,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: int | np.integer) -> IntervalOrNA:
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
         ...
 
     @overload
-    def __getitem__(
-        self: IntervalArrayT, key: slice | np.ndarray | list[int]
-    ) -> IntervalArrayT:
+    def __getitem__(self: IntervalArrayT, key: SequenceIndexer) -> IntervalArrayT:
         ...
 
     def __getitem__(

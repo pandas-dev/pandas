@@ -20,6 +20,8 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -139,13 +141,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     @overload
-    def __getitem__(self, item: int | np.integer) -> Any:
+    def __getitem__(self, item: ScalarIndexer) -> Any:
         ...
 
     @overload
-    def __getitem__(
-        self: BaseMaskedArrayT, item: slice | np.ndarray | list[int]
-    ) -> BaseMaskedArrayT:
+    def __getitem__(self: BaseMaskedArrayT, item: SequenceIndexer) -> BaseMaskedArrayT:
         ...
 
     def __getitem__(

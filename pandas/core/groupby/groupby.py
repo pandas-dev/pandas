@@ -2984,10 +2984,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
-                # error: Invalid index type "Tuple[slice, int]" for
-                # "Union[ExtensionArray, ndarray[Any, Any]]"; expected type
-                # "Union[int, integer[Any], slice, Sequence[int], ndarray[Any, Any]]"
-                result = result[:, 0]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[slice, int]"
+                result = result[:, 0]  # type: ignore[call-overload]
                 if needs_mask:
                     mask = mask[:, 0]
 
@@ -3001,11 +3000,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_2d and not real_2d:
                 if result.ndim == 2:
                     assert result.shape[1] == 1
-                    # error: Invalid index type "Tuple[slice, int]" for
-                    # "Union[ExtensionArray, Any, ndarray[Any, Any]]"; expected
-                    # type "Union[int, integer[Any], slice, Sequence[int],
-                    # ndarray[Any, Any]]"
-                    result = result[:, 0]  # type: ignore[index]
+                    # error: No overload variant of "__getitem__" of "ExtensionArray"
+                    # matches argument type "Tuple[slice, int]"
+                    result = result[:, 0]  # type: ignore[call-overload]
 
             return result.T
 
