@@ -7706,7 +7706,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # have been passed
         elif (include_start != lib.no_default) or (include_end != lib.no_default):
             warnings.warn(
-                "`include_start` and `include_end` are deprecated in"
+                "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
                 FutureWarning,
                 stacklevel=2,
