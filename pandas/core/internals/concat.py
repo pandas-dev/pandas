@@ -198,7 +198,7 @@ def concatenate_managers(
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
-    mgrs_indexers = _reindex_columns_void(axes, mgrs_indexers)
+    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -247,7 +247,7 @@ def concatenate_managers(
     return BlockManager(tuple(blocks), axes)
 
 
-def _reindex_columns_void(
+def _maybe_reindex_columns_na_proxy(
     axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
 ) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
     """
