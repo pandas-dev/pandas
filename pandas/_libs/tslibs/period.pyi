@@ -8,6 +8,7 @@ from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     Frequency,
     Timezone,
+    npt,
 )
 
 INVALID_FREQ_ERR_MSG: str
@@ -16,30 +17,30 @@ DIFFERENT_FREQ: str
 class IncompatibleFrequency(ValueError): ...
 
 def periodarr_to_dt64arr(
-    periodarr: np.ndarray,  # const int64_t[:]
+    periodarr: npt.NDArray[np.int64],  # const int64_t[:]
     freq: int,
-) -> np.ndarray: ...  # np.ndarray[np.int64]
+) -> npt.NDArray[np.int64]: ...
 def period_asfreq_arr(
-    arr: np.ndarray,  # ndarray[int64_t] arr,
+    arr: npt.NDArray[np.int64],
     freq1: int,
     freq2: int,
     end: bool,
-) -> np.ndarray: ...  # np.ndarray[np.int64]
+) -> npt.NDArray[np.int64]: ...
 def get_period_field_arr(
     field: str,
-    arr: np.ndarray,  # const int64_t[:]
+    arr: npt.NDArray[np.int64],  # const int64_t[:]
     freq: int,
-) -> np.ndarray: ...  # np.ndarray[np.int64]
+) -> npt.NDArray[np.int64]: ...
 def from_ordinals(
-    values: np.ndarray,  # const int64_t[:]
+    values: npt.NDArray[np.int64],  # const int64_t[:]
     freq: Frequency,
-) -> np.ndarray: ...  # np.ndarray[np.int64]
+) -> npt.NDArray[np.int64]: ...
 def extract_ordinals(
-    values: np.ndarray,  # np.ndarray[object]
+    values: npt.NDArray[np.object_],
     freq: Frequency | int,
-) -> np.ndarray: ...  # np.ndarray[np.int64]
+) -> npt.NDArray[np.int64]: ...
 def extract_freq(
-    values: np.ndarray,  # np.ndarray[object]
+    values: npt.NDArray[np.object_],
 ) -> BaseOffset: ...
 
 # exposed for tests

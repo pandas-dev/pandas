@@ -50,6 +50,7 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -275,7 +276,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return (self._box_func(v) for v in self.asi8)
 
     @property
-    def asi8(self) -> np.ndarray:
+    def asi8(self) -> npt.NDArray[np.int64]:
         """
         Integer representation of the values.
 
@@ -791,7 +792,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         return Index(self).map(mapper).array
 
-    def isin(self, values) -> np.ndarray:
+    def isin(self, values) -> npt.NDArray[np.bool_]:
         """
         Compute boolean array of whether each value is found in the
         passed set of values.
@@ -847,11 +848,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # Null Handling
 
-    def isna(self) -> np.ndarray:
+    def isna(self) -> npt.NDArray[np.bool_]:
         return self._isnan
 
     @property  # NB: override with cache_readonly in immutable subclasses
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         """
         return if each value is nan
         """
@@ -1203,7 +1204,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         warnings.warn(
             "Adding/subtracting object-dtype array to "
-            f"{type(self).__name__} not vectorized",
+            f"{type(self).__name__} not vectorized.",
             PerformanceWarning,
         )
 
@@ -1552,7 +1553,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         URL="https://docs.python.org/3/library/datetime.html"
         "#strftime-and-strptime-behavior"
     )
-    def strftime(self, date_format: str) -> np.ndarray:
+    def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
 
@@ -1568,7 +1569,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
         Returns
         -------
-        ndarray
+        ndarray[object]
             NumPy ndarray of formatted strings.
 
         See Also

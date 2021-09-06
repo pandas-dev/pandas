@@ -44,7 +44,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCPandasArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import is_inferred_bool_dtype
@@ -85,6 +84,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
+    extract_pandas_array,
     maybe_coerce_values,
     new_block,
     to_native_types,
@@ -398,6 +398,8 @@ class BaseArrayManager(DataManager):
     ) -> T:
         def _convert(arr):
             if is_object_dtype(arr.dtype):
+                # extract PandasArray for tests that patch PandasArray._typ
+                arr = np.asarray(arr)
                 return soft_convert_objects(
                     arr,
                     datetime=datetime,
@@ -600,6 +602,8 @@ class BaseArrayManager(DataManager):
                     )
                 else:
                     arr = self.arrays[i]
+                    if copy:
+                        arr = arr.copy()
                 new_arrays.append(arr)
 
         else:
@@ -696,6 +700,7 @@ class ArrayManager(BaseArrayManager):
 
         if verify_integrity:
             self._axes = [ensure_index(ax) for ax in axes]
+            arrays = [extract_pandas_array(x, None, 1)[0] for x in arrays]
             self.arrays = [maybe_coerce_values(arr) for arr in arrays]
             self._verify_integrity()
 
@@ -1026,27 +1031,6 @@ class ArrayManager(BaseArrayManager):
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
 
-    def apply_2d(
-        self: ArrayManager, f, ignore_failures: bool = False, **kwargs
-    ) -> ArrayManager:
-        """
-        Variant of `apply`, but where the function should not be applied to
-        each column independently, but to the full data as a 2D array.
-        """
-        values = self.as_array()
-        try:
-            result = f(values, **kwargs)
-        except (TypeError, NotImplementedError):
-            if not ignore_failures:
-                raise
-            result_arrays = []
-            new_axes = [self._axes[0], self.axes[1].take([])]
-        else:
-            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
-            new_axes = self._axes
-
-        return type(self)(result_arrays, new_axes)
-
     # ----------------------------------------------------------------
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
@@ -1180,8 +1164,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
             self._axes = [ensure_index(ax) for ax in self._axes]
             arr = arrays[0]
             arr = maybe_coerce_values(arr)
-            if isinstance(arr, ABCPandasArray):
-                arr = arr.to_numpy()
+            arr = extract_pandas_array(arr, None, 1)[0]
             self.arrays = [arr]
             self._verify_integrity()
 
@@ -1274,6 +1257,14 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         return type(self)([new_array], self._axes)
 
     def setitem(self, indexer, value):
+        """
+        Set values with indexer.
+
+        For SingleArrayManager, this backs s[indexer] = value
+
+        See `setitem_inplace` for a version that works inplace and doesn't
+        return a new Manager.
+        """
         return self.apply_with_block("setitem", indexer=indexer, value=value)
 
     def idelete(self, indexer) -> SingleArrayManager:

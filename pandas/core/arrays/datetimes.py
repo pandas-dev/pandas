@@ -37,6 +37,7 @@ from pandas._libs.tslibs import (
     to_offset,
     tzconversion,
 )
+from pandas._typing import npt
 from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
@@ -109,11 +110,13 @@ def tz_to_dtype(tz):
         return DatetimeTZDtype(tz=tz)
 
 
-def _field_accessor(name, field, docstring=None):
+def _field_accessor(name: str, field: str, docstring=None):
     def f(self):
         values = self._local_timestamps()
 
         if field in self._bool_ops:
+            result: np.ndarray
+
             if field.endswith(("start", "end")):
                 freq = self.freq
                 month_kw = 12
@@ -653,7 +656,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @dtl.ravel_compat
     def _format_native_types(
         self, na_rep="NaT", date_format=None, **kwargs
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
         fmt = get_format_datetime64_from_values(self, date_format)
@@ -741,7 +744,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
         except NotImplementedError:
             warnings.warn(
-                "Non-vectorized DateOffset being applied to Series or DatetimeIndex",
+                "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
                 PerformanceWarning,
             )
             result = self.astype("O") + offset
@@ -1042,7 +1045,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self) -> np.ndarray:
+    def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.
@@ -1183,8 +1186,8 @@ default 'raise'
         # Deprecaation GH#34853
         warnings.warn(
             "to_perioddelta is deprecated and will be removed in a "
-            "future version.  "
-            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead",
+            "future version. "
+            "Use `dtindex - dtindex.to_period(freq).to_timestamp()` instead.",
             FutureWarning,
             # stacklevel chosen to be correct for when called from DatetimeIndex
             stacklevel=3,
@@ -1259,7 +1262,7 @@ default 'raise'
         return result
 
     @property
-    def time(self) -> np.ndarray:
+    def time(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1271,7 +1274,7 @@ default 'raise'
         return ints_to_pydatetime(timestamps, box="time")
 
     @property
-    def timetz(self) -> np.ndarray:
+    def timetz(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of datetime.time also containing timezone
         information. The time part of the Timestamps.
@@ -1279,7 +1282,7 @@ default 'raise'
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
-    def date(self) -> np.ndarray:
+    def date(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
@@ -1350,7 +1353,7 @@ default 'raise'
         warnings.warn(
             "weekofyear and week have been deprecated, please use "
             "DatetimeIndex.isocalendar().week instead, which returns "
-            "a Series.  To exactly reproduce the behavior of week and "
+            "a Series. To exactly reproduce the behavior of week and "
             "weekofyear and return an Index, you may call "
             "pd.Int64Index(idx.isocalendar().week)",
             FutureWarning,

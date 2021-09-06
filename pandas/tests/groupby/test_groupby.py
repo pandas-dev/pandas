@@ -1009,6 +1009,30 @@ def test_groupby_complex():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_complex_numbers():
+    # GH 17927
+    df = DataFrame(
+        [
+            {"a": 1, "b": 1 + 1j},
+            {"a": 1, "b": 1 + 2j},
+            {"a": 4, "b": 1},
+        ]
+    )
+    expected = DataFrame(
+        np.array([1, 1, 1], dtype=np.int64),
+        index=Index([(1 + 1j), (1 + 2j), (1 + 0j)], dtype="object", name="b"),
+        columns=Index(["a"], dtype="object"),
+    )
+    result = df.groupby("b", sort=False).count()
+    tm.assert_frame_equal(result, expected)
+
+    # Sorted by the magnitude of the complex numbers
+    # Complex Index dtype is cast to object
+    expected.index = Index([(1 + 0j), (1 + 1j), (1 + 2j)], dtype="object", name="b")
+    result = df.groupby("b", sort=True).count()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_series_indexed_differently():
     s1 = Series(
         [5.0, -9.0, 4.0, 100.0, -5.0, 55.0, 6.7],
@@ -2407,3 +2431,15 @@ def test_datetime_categorical_multikey_groupby_indices():
         ("c", Timestamp("2018-03-01 00:00:00")): np.array([2]),
     }
     assert result == expected
+
+
+def test_rolling_wrong_param_min_period():
+    # GH34037
+    name_l = ["Alice"] * 5 + ["Bob"] * 5
+    val_l = [np.nan, np.nan, 1, 2, 3] + [np.nan, 1, 2, 3, 4]
+    test_df = DataFrame([name_l, val_l]).T
+    test_df.columns = ["name", "val"]
+
+    result_error_msg = r"__init__\(\) got an unexpected keyword argument 'min_period'"
+    with pytest.raises(TypeError, match=result_error_msg):
+        test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()

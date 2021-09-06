@@ -36,6 +36,8 @@ Style application
 
    Styler.apply
    Styler.applymap
+   Styler.apply_index
+   Styler.applymap_index
    Styler.format
    Styler.hide_index
    Styler.hide_columns
@@ -69,9 +71,8 @@ Style export and import
 .. autosummary::
    :toctree: api/
 
-   Styler.render
+   Styler.to_html
+   Styler.to_latex
+   Styler.to_excel
    Styler.export
    Styler.use
-   Styler.to_html
-   Styler.to_excel
-   Styler.to_latex

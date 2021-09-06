@@ -2085,7 +2085,7 @@ def maybe_cast_to_integer_array(
         warnings.warn(
             f"Constructing Series or DataFrame from {arr.dtype} values and "
             f"dtype={dtype} is deprecated and will raise in a future version. "
-            "Use values.view(dtype) instead",
+            "Use values.view(dtype) instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )

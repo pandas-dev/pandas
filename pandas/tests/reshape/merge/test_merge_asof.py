@@ -1047,9 +1047,9 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_on_specialized_type(self, any_real_dtype):
+    def test_on_specialized_type(self, any_real_numpy_dtype):
         # see gh-13936
-        dtype = np.dtype(any_real_dtype).type
+        dtype = np.dtype(any_real_numpy_dtype).type
 
         df1 = pd.DataFrame(
             {"value": [5, 2, 25, 100, 78, 120, 79], "symbol": list("ABCDEFG")},
@@ -1078,9 +1078,9 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_on_specialized_type_by_int(self, any_real_dtype):
+    def test_on_specialized_type_by_int(self, any_real_numpy_dtype):
         # see gh-13936
-        dtype = np.dtype(any_real_dtype).type
+        dtype = np.dtype(any_real_numpy_dtype).type
 
         df1 = pd.DataFrame(
             {
@@ -1309,18 +1309,18 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_int_type_tolerance(self, any_int_dtype):
+    def test_int_type_tolerance(self, any_int_numpy_dtype):
         # GH #28870
 
         left = pd.DataFrame({"a": [0, 10, 20], "left_val": [1, 2, 3]})
         right = pd.DataFrame({"a": [5, 15, 25], "right_val": [1, 2, 3]})
-        left["a"] = left["a"].astype(any_int_dtype)
-        right["a"] = right["a"].astype(any_int_dtype)
+        left["a"] = left["a"].astype(any_int_numpy_dtype)
+        right["a"] = right["a"].astype(any_int_numpy_dtype)
 
         expected = pd.DataFrame(
             {"a": [0, 10, 20], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
         )
-        expected["a"] = expected["a"].astype(any_int_dtype)
+        expected["a"] = expected["a"].astype(any_int_numpy_dtype)
 
         result = merge_asof(left, right, on="a", tolerance=10)
         tm.assert_frame_equal(result, expected)

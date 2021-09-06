@@ -10,7 +10,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import internals as libinternals
+from pandas._libs import (
+    NaT,
+    internals as libinternals,
+)
+from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -28,8 +32,8 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_extension_array_dtype,
-    is_sparse,
+    is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import (
     cast_to_common_type,
@@ -38,6 +42,7 @@ from pandas.core.dtypes.concat import (
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
+    isna,
     isna_all,
 )
 
@@ -46,6 +51,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
+from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
     ArrayManager,
@@ -94,12 +100,15 @@ def _concatenate_array_managers(
             concat_arrays([mgrs[i].arrays[j] for i in range(len(mgrs))])
             for j in range(len(mgrs[0].arrays))
         ]
-        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
     else:
         # concatting along the columns -> combine reindexed arrays in a single manager
         assert concat_axis == 0
         arrays = list(itertools.chain.from_iterable([mgr.arrays for mgr in mgrs]))
-        return ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+        if copy:
+            arrays = [x.copy() for x in arrays]
+
+    new_mgr = ArrayManager(arrays, [axes[1], axes[0]], verify_integrity=False)
+    return new_mgr
 
 
 def concat_arrays(to_concat: list) -> ArrayLike:
@@ -257,7 +266,10 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
         mgr_shape_list[ax] = len(indexer)
     mgr_shape = tuple(mgr_shape_list)
 
+    has_column_indexer = False
+
     if 0 in indexers:
+        has_column_indexer = True
         ax0_indexer = indexers.pop(0)
         blknos = algos.take_nd(mgr.blknos, ax0_indexer, fill_value=-1)
         blklocs = algos.take_nd(mgr.blklocs, ax0_indexer, fill_value=-1)
@@ -267,9 +279,6 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
             blk = mgr.blocks[0]
             return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
 
-        # error: Incompatible types in assignment (expression has type "None", variable
-        # has type "ndarray")
-        ax0_indexer = None  # type: ignore[assignment]
         blknos = mgr.blknos
         blklocs = mgr.blklocs
 
@@ -285,6 +294,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
         shape = tuple(shape_list)
 
         if blkno == -1:
+            # only reachable in the `0 in indexers` case
             unit = JoinUnit(None, shape)
         else:
             blk = mgr.blocks[blkno]
@@ -299,7 +309,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
                 # placement was sequential before.
                 (
                     (
-                        ax0_indexer is None
+                        not has_column_indexer
                         and blk.mgr_locs.is_slice_like
                         and blk.mgr_locs.as_slice.step == 1
                     )
@@ -327,6 +337,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 class JoinUnit:
     def __init__(self, block, shape: Shape, indexers=None):
         # Passing shape explicitly is required for cases when block is None.
+        # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
             indexers = {}
         self.block = block
@@ -355,7 +366,7 @@ class JoinUnit:
             return blk.dtype
         return ensure_dtype_can_hold_na(blk.dtype)
 
-    def is_valid_na_for(self, dtype: DtypeObj) -> bool:
+    def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
         """
         Check that we are all-NA of a type/dtype that is compatible with this dtype.
         Augments `self.is_na` with an additional check of the type of NA values.
@@ -369,36 +380,50 @@ class JoinUnit:
             values = self.block.values
             return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
 
-        if self.dtype.kind == dtype.kind == "M" and not is_dtype_equal(
-            self.dtype, dtype
-        ):
+        na_value = self.block.fill_value
+        if na_value is NaT and not is_dtype_equal(self.dtype, dtype):
+            # e.g. we are dt64 and other is td64
             # fill_values match but we should not cast self.block.values to dtype
+            # TODO: this will need updating if we ever have non-nano dt64/td64
             return False
 
-        na_value = self.block.fill_value
+        if na_value is NA and needs_i8_conversion(dtype):
+            # FIXME: kludge; test_append_empty_frame_with_timedelta64ns_nat
+            #  e.g. self.dtype == "Int64" and dtype is td64, we dont want
+            #  to consider these as matching
+            return False
+
+        # TODO: better to use can_hold_element?
         return is_valid_na_for_dtype(na_value, dtype)
 
     @cache_readonly
     def is_na(self) -> bool:
-        if self.block is None:
+        blk = self.block
+        if blk is None:
             return True
 
-        if not self.block._can_hold_na:
+        if not blk._can_hold_na:
             return False
 
-        # Usually it's enough to check but a small fraction of values to see if
-        # a block is NOT null, chunks should help in such cases.  1000 value
-        # was chosen rather arbitrarily.
-        values = self.block.values
-        if is_sparse(self.block.values.dtype):
+        values = blk.values
+        if values.size == 0:
+            return True
+        if isinstance(values.dtype, SparseDtype):
             return False
-        elif self.block.is_extension:
+
+        if values.ndim == 1:
             # TODO(EA2D): no need for special case with 2D EAs
-            values_flat = values
+            val = values[0]
+            if not is_scalar(val) or not isna(val):
+                # ideally isna_all would do this short-circuiting
+                return False
+            return isna_all(values)
         else:
-            values_flat = values.ravel(order="K")
-
-        return isna_all(values_flat)
+            val = values[0][0]
+            if not is_scalar(val) or not isna(val):
+                # ideally isna_all would do this short-circuiting
+                return False
+            return all(isna_all(row) for row in values)
 
     def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
         if upcasted_na is None:
@@ -408,7 +433,8 @@ class JoinUnit:
         else:
             fill_value = upcasted_na
 
-            if self.is_valid_na_for(empty_dtype):
+            if self._is_valid_na_for(empty_dtype):
+                # note: always holds when self.block is None
                 blk_dtype = getattr(self.block, "dtype", None)
 
                 if blk_dtype == np.dtype("object"):
@@ -423,9 +449,6 @@ class JoinUnit:
                     i8values = np.full(self.shape, fill_value.value)
                     return DatetimeArray(i8values, dtype=empty_dtype)
 
-                elif is_extension_array_dtype(blk_dtype):
-                    pass
-
                 elif is_1d_only_ea_dtype(empty_dtype):
                     empty_dtype = cast(ExtensionDtype, empty_dtype)
                     cls = empty_dtype.construct_array_type()
@@ -437,11 +460,16 @@ class JoinUnit:
                     return missing_arr.take(
                         empty_arr, allow_fill=True, fill_value=fill_value
                     )
+                elif isinstance(empty_dtype, ExtensionDtype):
+                    # TODO: no tests get here, a handful would if we disabled
+                    #  the dt64tz special-case above (which is faster)
+                    cls = empty_dtype.construct_array_type()
+                    missing_arr = cls._empty(shape=self.shape, dtype=empty_dtype)
+                    missing_arr[:] = fill_value
+                    return missing_arr
                 else:
                     # NB: we should never get here with empty_dtype integer or bool;
                     #  if we did, the missing_arr.fill would cast to gibberish
-                    empty_dtype = cast(np.dtype, empty_dtype)
-
                     missing_arr = np.empty(self.shape, dtype=empty_dtype)
                     missing_arr.fill(fill_value)
                     return missing_arr
@@ -562,6 +590,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         blk = join_units[0].block
         if blk is None:
             return np.dtype(np.float64)
+        return blk.dtype
 
     if _is_uniform_reindex(join_units):
         # FIXME: integrate property
@@ -589,13 +618,16 @@ def _is_uniform_join_units(join_units: list[JoinUnit]) -> bool:
     _concatenate_join_units (which uses `concat_compat`).
 
     """
+    first = join_units[0].block
+    if first is None:
+        return False
     return (
-        # all blocks need to have the same type
-        all(type(ju.block) is type(join_units[0].block) for ju in join_units)  # noqa
+        # exclude cases where a) ju.block is None or b) we have e.g. Int64+int64
+        all(type(ju.block) is type(first) for ju in join_units)
         and
         # e.g. DatetimeLikeBlock can be dt64 or td64, but these are not uniform
         all(
-            is_dtype_equal(ju.block.dtype, join_units[0].block.dtype)
+            is_dtype_equal(ju.block.dtype, first.dtype)
             # GH#42092 we only want the dtype_equal check for non-numeric blocks
             #  (for now, may change but that would need a deprecation)
             or ju.block.dtype.kind in ["b", "i", "u"]
