@@ -25,6 +25,14 @@ def df():
 
 
 @pytest.fixture
+def df2(df):
+    df2 = df.copy()
+    df2.loc[2, :] = [2, -2.22, "de"]
+    df2 = df2.astype({"A": int})
+    return df2
+
+
+@pytest.fixture
 def styler(df):
     return Styler(df, uuid_len=0, precision=2)
 
@@ -210,11 +218,9 @@ def test_multiindex_columns(df):
     assert expected == s.to_latex(sparse_columns=False)
 
 
-def test_multiindex_row(df):
+def test_multiindex_row(df2):
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
-    df.index = ridx
+    df2.index = ridx
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
@@ -225,8 +231,9 @@ def test_multiindex_row(df):
         \\end{tabular}
         """
     )
-    s = df.style.format(precision=2)
-    assert expected == s.to_latex()
+    styler = df2.style.format(precision=2)
+    result = styler.to_latex()
+    assert expected == result
 
     # non-sparse
     expected = dedent(
@@ -239,7 +246,8 @@ def test_multiindex_row(df):
         \\end{tabular}
         """
     )
-    assert expected == s.to_latex(sparse_index=False)
+    result = styler.to_latex(sparse_index=False)
+    assert expected == result
 
 
 def test_multirow_naive(df):
@@ -709,8 +717,6 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
 def test_apply_map_header_render_mi(df, index, columns, siunitx):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
     df.index, df.columns = ridx, cidx
     styler = df.style
 
