@@ -66,7 +66,7 @@ class TestDataFrameMissingData:
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
-        df[2][:2] = np.nan
+        df.iloc[:2, 2] = np.nan
 
         dropped = df.dropna(axis=1)
         expected = df.loc[:, [0, 1, 3]]

@@ -10,7 +10,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -28,7 +31,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.array_algos.putmask import validate_putmask
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -320,21 +322,6 @@ class ExtensionIndex(Index):
         # overriding IndexOpsMixin improves performance GH#38083
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
-    def putmask(self, mask, value) -> Index:
-        mask, noop = validate_putmask(self._data, mask)
-        if noop:
-            return self.copy()
-
-        try:
-            self._validate_fill_value(value)
-        except (ValueError, TypeError):
-            dtype = self._find_common_type_compat(value)
-            return self.astype(dtype).putmask(mask, value)
-
-        arr = self._data.copy()
-        arr.putmask(mask, value)
-        return type(self)._simple_new(arr, name=self.name)
-
     # ---------------------------------------------------------------------
 
     def _get_engine_target(self) -> np.ndarray:
@@ -437,7 +424,7 @@ class ExtensionIndex(Index):
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     @cache_readonly
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         # error: Incompatible return value type (got "ExtensionArray", expected
         # "ndarray")
         return self._data.isna()  # type: ignore[return-value]
@@ -460,19 +447,6 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
     """
 
     _data: NDArrayBackedExtensionArray
-
-    @classmethod
-    def _simple_new(
-        cls,
-        values: NDArrayBackedExtensionArray,
-        name: Hashable = None,
-    ):
-        result = super()._simple_new(values, name)
-
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._ndarray
-
-        return result
 
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray

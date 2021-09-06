@@ -923,7 +923,12 @@ class TestEWM:
         )
         tm.assert_frame_equal(result, expected)
 
-        expected = df.groupby("A").apply(lambda x: getattr(x.ewm(com=1.0), method)())
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            expected = df.groupby("A").apply(
+                lambda x: getattr(x.ewm(com=1.0), method)()
+            )
+
         # There may be a bug in the above statement; not returning the correct index
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
@@ -955,7 +960,9 @@ class TestEWM:
     def test_times(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
         expected = DataFrame(
             {
                 "B": [
@@ -992,22 +999,62 @@ class TestEWM:
     def test_times_vs_apply(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
-        expected = (
-            times_frame.groupby("A")
-            .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
-            .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
-            .reset_index(drop=True)
-        )
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
+            expected = (
+                times_frame.groupby("A")
+                .apply(lambda x: x.ewm(halflife=halflife, times="C").mean())
+                .iloc[[0, 3, 6, 9, 1, 4, 7, 2, 5, 8]]
+                .reset_index(drop=True)
+            )
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
     def test_times_array(self, times_frame):
         # GH 40951
         halflife = "23 days"
-        result = times_frame.groupby("A").ewm(halflife=halflife, times="C").mean()
-        expected = (
-            times_frame.groupby("A")
-            .ewm(halflife=halflife, times=times_frame["C"].values)
-            .mean()
-        )
+        gb = times_frame.groupby("A")
+        with tm.assert_produces_warning(FutureWarning, match="nuisance"):
+            # GH#42738
+            result = gb.ewm(halflife=halflife, times="C").mean()
+            expected = gb.ewm(halflife=halflife, times=times_frame["C"].values).mean()
         tm.assert_frame_equal(result, expected)
+
+    def test_dont_mutate_obj_after_slicing(self):
+        # GH 43355
+        df = DataFrame(
+            {
+                "id": ["a", "a", "b", "b", "b"],
+                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "y": range(5),
+            }
+        )
+        grp = df.groupby("id").rolling("1H", on="timestamp")
+        result = grp.count()
+        expected_df = DataFrame(
+            {
+                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "y": [1.0] * 5,
+            },
+            index=MultiIndex.from_arrays(
+                [["a", "a", "b", "b", "b"], list(range(5))], names=["id", None]
+            ),
+        )
+        tm.assert_frame_equal(result, expected_df)
+
+        result = grp["y"].count()
+        expected_series = Series(
+            [1.0] * 5,
+            index=MultiIndex.from_arrays(
+                [
+                    ["a", "a", "b", "b", "b"],
+                    date_range("2021-9-1", periods=5, freq="H"),
+                ],
+                names=["id", "timestamp"],
+            ),
+            name="y",
+        )
+        tm.assert_series_equal(result, expected_series)
+        # This is the key test
+        result = grp.count()
+        tm.assert_frame_equal(result, expected_df)

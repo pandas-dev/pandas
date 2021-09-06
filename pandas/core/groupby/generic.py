@@ -210,7 +210,8 @@ class SeriesGroupBy(GroupBy[Series]):
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
     2    3.0
-    dtype: float64"""
+    dtype: float64
+    """
     )
 
     @Appender(
@@ -307,9 +308,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = concat(
                 results.values(), axis=1, keys=[key.label for key in results.keys()]
             )
-            # error: Incompatible return value type (got "Union[DataFrame, Series]",
-            # expected "DataFrame")
-            return res_df  # type: ignore[return-value]
+            return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
@@ -454,7 +453,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if self.grouper.nkeys > 1:
                 index = MultiIndex.from_tuples(keys, names=self.grouper.names)
             else:
-                index = Index(keys, name=self.grouper.names[0])
+                index = Index._with_infer(keys, name=self.grouper.names[0])
             return index
 
         if isinstance(values[0], dict):
@@ -546,9 +545,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(dtype=np.float64)
 
         result.name = self.obj.name
-        # error: Incompatible return value type (got "Union[DataFrame, Series]",
-        # expected "Series")
-        return result  # type: ignore[return-value]
+        return result
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
@@ -870,6 +867,24 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return (filled / shifted) - 1
 
+    @doc(Series.nlargest)
+    def nlargest(self, n: int = 5, keep: str = "first"):
+        f = partial(Series.nlargest, n=n, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
+
+    @doc(Series.nsmallest)
+    def nsmallest(self, n: int = 5, keep: str = "first"):
+        f = partial(Series.nsmallest, n=n, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
+
 
 @pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
 class DataFrameGroupBy(GroupBy[DataFrame]):
@@ -957,7 +972,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
           B
     A
     1   1.0
-    2   3.0"""
+    2   3.0
+    """
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
@@ -1614,12 +1630,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         DataFrame
         """
-        indexed_output = {key.position: val for key, val in output.items()}
-        columns = Index([key.label for key in output])
-        columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
+        if isinstance(output, DataFrame):
+            result = output
+        else:
+            indexed_output = {key.position: val for key, val in output.items()}
+            columns = Index([key.label for key in output])
+            columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
 
-        result = self.obj._constructor(indexed_output)
-        result.columns = columns
+            result = self.obj._constructor(indexed_output)
+            result.columns = columns
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
