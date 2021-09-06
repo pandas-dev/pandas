@@ -88,20 +88,24 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                         # )
                         # A normal MultiIndex.from_product will produce too many
                         # combinations.
-                        result_level = np.repeat(
+                        result_level = np.tile(
                             result_index, len(result) // len(result_index)
                         )
                         arg2_levels = (
-                            np.tile(
+                            np.repeat(
                                 arg2.columns.get_level_values(i),
                                 len(result) // len(arg2.columns),
                             )
                             for i in range(arg2.columns.nlevels)
                         )
-                        result_names = [result_index.name] + list(arg2.columns.names)
+                        result_names = list(arg2.columns.names) + [result_index.name]
                         result.index = MultiIndex.from_arrays(
-                            [result_level, *arg2_levels], names=result_names
+                            [*arg2_levels, result_level], names=result_names
                         )
+                        # GH 34440
+                        num_levels = len(result.index.levels)
+                        new_order = [num_levels - 1] + list(range(num_levels - 1))
+                        result = result.reorder_levels(new_order).sort_index()
                     else:
                         result.index = MultiIndex.from_product(
                             [range(len(arg2.columns)), range(len(result_index))]
