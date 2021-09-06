@@ -8,6 +8,8 @@ from functools import partial
 import numpy as np
 import pytest
 
+from pandas._config import get_option
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -42,16 +44,21 @@ def test_agg_api():
     def peak_to_peak(arr):
         return arr.max() - arr.min()
 
+    if get_option("use_hom_api"):
+        msg = "Dropping invalid columns"
+    else:
+        msg = r"\['key2'\] did not aggregate successfully"
+
     with tm.assert_produces_warning(
         FutureWarning,
-        match=r"\['key2'\] did not aggregate successfully",
+        match=msg,
     ):
         expected = grouped.agg([peak_to_peak])
     expected.columns = ["data1", "data2"]
 
     with tm.assert_produces_warning(
         FutureWarning,
-        match=r"\['key2'\] did not aggregate successfully",
+        match=msg,
     ):
         result = grouped.agg(peak_to_peak)
     tm.assert_frame_equal(result, expected)
@@ -201,13 +208,21 @@ def test_aggregate_api_consistency():
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg([np.sum, np.mean])
-    expected = pd.concat([c_sum, c_mean, d_sum, d_mean], axis=1)
-    expected.columns = MultiIndex.from_product([["C", "D"], ["sum", "mean"]])
+    if get_option("use_hom_api"):
+        expected = pd.concat([c_sum, d_sum, c_mean, d_mean], axis=1)
+        expected.columns = MultiIndex.from_product([["sum", "mean"], ["C", "D"]])
+    else:
+        expected = pd.concat([c_sum, c_mean, d_sum, d_mean], axis=1)
+        expected.columns = MultiIndex.from_product([["C", "D"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped[["D", "C"]].agg([np.sum, np.mean])
-    expected = pd.concat([d_sum, d_mean, c_sum, c_mean], axis=1)
-    expected.columns = MultiIndex.from_product([["D", "C"], ["sum", "mean"]])
+    if get_option("use_hom_api"):
+        expected = pd.concat([d_sum, c_sum, d_mean, c_mean], axis=1)
+        expected.columns = MultiIndex.from_product([["sum", "mean"], ["D", "C"]])
+    else:
+        expected = pd.concat([d_sum, d_mean, c_sum, c_mean], axis=1)
+        expected.columns = MultiIndex.from_product([["D", "C"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({"C": "mean", "D": "sum"})
@@ -393,7 +408,10 @@ def test_agg_consistency():
     g = df.groupby("date")
 
     expected = g.agg([P1])
-    expected.columns = expected.columns.levels[0]
+    if get_option("use_hom_api"):
+        expected.columns = expected.columns.levels[1]
+    else:
+        expected.columns = expected.columns.levels[0]
 
     result = g.agg(P1)
     tm.assert_frame_equal(result, expected)

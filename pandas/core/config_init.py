@@ -526,6 +526,23 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
+use_hom_api = """
+: boolean
+    Whether to use the Higher Order Methods implementations. Currently experimental.
+    Defaults to False.
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "use_hom_api",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to False. This environment variable can be set for testing.
+        os.environ.get("PANDAS_USE_HOM_API", "false").lower() == "true",
+        use_hom_api,
+        validator=is_bool,
+    )
+
 
 # user warnings
 chained_assignment = """

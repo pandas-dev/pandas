@@ -26,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
@@ -876,6 +878,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns
 
         if result is None:
+            if get_option("use_hom_api"):
+                return self._hom_agg(func, args, kwargs)
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
@@ -919,6 +923,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         # select everything except for the last level, which is the one
                         # containing the name of the function(s), see GH#32040
                         result.columns = result.columns.droplevel(-1)
+
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
+            result.index = Index(range(len(result)))
+
+        return result
+
+    def _hom_agg(self, func, args, kwargs):
+        if args or kwargs:
+            # test_pass_args_kwargs gets here (with and without as_index)
+            # can't return early
+            result = self._aggregate_frame(func, *args, **kwargs)
+
+        elif self.axis == 1 and self.grouper.nkeys == 1:
+            # _aggregate_multiple_funcs does not allow self.axis == 1
+            # Note: axis == 1 precludes 'not self.as_index', see __init__
+            result = self._aggregate_frame(func)
+            return result
+        else:
+            # test_groupby_as_index_series_scalar gets here
+            # with 'not self.as_index'
+            return self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)

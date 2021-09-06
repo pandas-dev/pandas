@@ -19,6 +19,7 @@ from pandas import (
     Timedelta,
     Timestamp,
     date_range,
+    get_option,
     to_datetime,
 )
 import pandas._testing as tm
@@ -587,15 +588,23 @@ def test_frame_multi_key_function_list():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
+    klass = None if get_option("use_hom_api") else FutureWarning
     with tm.assert_produces_warning(
-        FutureWarning, match=r"\['C'\] did not aggregate successfully"
+        klass, match=r"\['C'\] did not aggregate successfully"
     ):
         agged = grouped.agg(funcs)
-    expected = pd.concat(
-        [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
-        keys=["D", "E", "F"],
-        axis=1,
-    )
+    if get_option("use_hom_api"):
+        expected = pd.concat(
+            [grouped.agg(funcs[0]), grouped.agg(funcs[1])],
+            keys=["mean", "std"],
+            axis=1,
+        )
+    else:
+        expected = pd.concat(
+            [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
+            keys=["D", "E", "F"],
+            axis=1,
+        )
     assert isinstance(agged.index, MultiIndex)
     assert isinstance(expected.index, MultiIndex)
     tm.assert_frame_equal(agged, expected)
@@ -2091,9 +2100,14 @@ def test_groupby_agg_ohlc_non_first():
         index=date_range("2018-01-01", periods=2, freq="D", name="dti"),
     )
 
-    result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
-
-    tm.assert_frame_equal(result, expected)
+    if get_option("use_hom_api"):
+        # TODO (GH 35725): This will not raise when agg-must-agg is implemented
+        msg = "Cannot concat indices that do not have the same number of levels"
+        with pytest.raises(AssertionError, match=msg):
+            df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
+    else:
+        result = df.groupby(Grouper(freq="D")).agg(["sum", "ohlc"])
+        tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_multiindex_nat():
