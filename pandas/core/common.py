@@ -232,12 +232,7 @@ def asarray_tuplesafe(values, dtype: NpDtype | None = None) -> np.ndarray:
         # expected "ndarray")
         return values._values  # type: ignore[return-value]
 
-    # error: Non-overlapping container check (element type: "Union[str, dtype[Any],
-    # None]", container item type: "type")
-    if isinstance(values, list) and dtype in [  # type: ignore[comparison-overlap]
-        np.object_,
-        object,
-    ]:
+    if isinstance(values, list) and dtype in [np.object_, object]:
         return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)

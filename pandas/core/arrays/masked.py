@@ -5,6 +5,7 @@ from typing import (
     Any,
     Sequence,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -15,10 +16,11 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    Dtype,
+    AstypeArg,
     NpDtype,
     PositionalIndexer,
     Scalar,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -282,9 +284,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-            dtype = object  # type: ignore[assignment]
+            dtype = object
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -303,7 +303,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):

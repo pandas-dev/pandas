@@ -18,6 +18,7 @@ from typing import (
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -25,6 +26,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     FillnaOptions,
     PositionalIndexer,
@@ -520,9 +522,21 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    def astype(self, dtype, copy=True):
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
-        Cast to a NumPy array with 'dtype'.
+        Cast to a NumPy array or ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -535,8 +549,10 @@ class ExtensionArray:
 
         Returns
         -------
-        array : ndarray
-            NumPy ndarray with 'dtype' for its dtype.
+        array : np.ndarray or ExtensionArray
+            An ExtensionArray if dtype is StringDtype,
+            or same as that of underlying array.
+            Otherwise a NumPy ndarray with 'dtype' for its dtype.
         """
         from pandas.core.arrays.string_ import StringDtype
 
@@ -552,7 +568,11 @@ class ExtensionArray:
             # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        # error: Argument "dtype" to "array" has incompatible type
+        # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None, type,
+        # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
+        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
+        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -863,6 +883,8 @@ class ExtensionArray:
         # 2. Values between the values in the `data_for_sorting` fixture
         # 3. Missing values.
         arr = self.astype(object)
+        if isinstance(value, ExtensionArray):
+            value = value.astype(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
     def equals(self, other: object) -> bool:
