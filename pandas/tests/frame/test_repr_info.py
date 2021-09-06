@@ -269,15 +269,12 @@ class TestDataFrameReprInfoEtc:
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
-\toprule
-{} &         0 &  1 &  2 \\
-\midrule
-0 &  $\alpha$ &  b &  c \\
-1 &         1 &  2 &  3 \\
-\bottomrule
+ & 0 & 1 & 2 \\
+0 & $\alpha$ & b & c \\
+1 & 1 & 2 & 3 \\
 \end{tabular}
 """
-        with option_context("display.latex.escape", False, "display.latex.repr", True):
+        with option_context("styler.render.repr", "latex"):
             df = DataFrame([[r"$\alpha$", "b", "c"], [1, 2, 3]])
             assert result == df._repr_latex_()
 
