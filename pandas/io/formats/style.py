@@ -2191,9 +2191,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hrows = self.index.get_indexer_for(hide.index)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_rows = list(hrows)  # type: ignore[assignment]
+            self.hidden_rows = list(hrows)
 
         if names:
             self.hide_index_names = True
@@ -2330,9 +2328,7 @@ class Styler(StylerRenderer):
             subset = non_reducing_slice(subset_)
             hide = self.data.loc[subset]
             hcols = self.columns.get_indexer_for(hide.columns)
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray", variable has type "Sequence[int]")
-            self.hidden_columns = list(hcols)  # type: ignore[assignment]
+            self.hidden_columns = list(hcols)
 
         if names:
             self.hide_column_names = True
