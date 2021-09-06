@@ -84,26 +84,24 @@ def flex_binary_moment(arg1, arg2, f, pairwise=False):
                         # have levels attribute
                         arg2.columns = cast(MultiIndex, arg2.columns)
                         # GH 21157: Equivalent to MultiIndex.from_product(
-                        # <unique combinations of arg2.columns.levels>, [result_index]
+                        #  [result_index], <unique combinations of arg2.columns.levels>,
                         # )
                         # A normal MultiIndex.from_product will produce too many
                         # combinations.
-                        idx_codes, idx_uniques = result_index.factorize()
-                        result_levels = list(arg2.columns.levels) + [idx_uniques]
-                        result_codes = [
-                            np.tile(code, int(len(result) / len(code)))
-                            for code in arg2.columns.codes
-                        ] + [np.tile(idx_codes, int(len(result) / len(idx_codes)))]
-                        result_names = list(arg2.columns.names) + [result_index.name]
-                        result.index = MultiIndex(
-                            levels=result_levels,
-                            codes=result_codes,
-                            names=result_names,
+                        result_level = np.repeat(
+                            result_index, len(result) // len(result_index)
                         )
-                        # GH 34440
-                        num_levels = len(result.index.levels)
-                        new_order = [num_levels - 1] + list(range(num_levels - 1))
-                        result = result.reorder_levels(new_order).sort_index()
+                        arg2_levels = (
+                            np.tile(
+                                arg2.columns.get_level_values(i),
+                                len(result) // len(arg2.columns),
+                            )
+                            for i in range(arg2.columns.nlevels)
+                        )
+                        result_names = [result_index.name] + list(arg2.columns.names)
+                        result.index = MultiIndex.from_arrays(
+                            [result_level, *arg2_levels], names=result_names
+                        )
                     else:
                         result.index = MultiIndex.from_product(
                             [range(len(arg2.columns)), range(len(result_index))]
