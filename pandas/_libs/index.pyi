@@ -2,6 +2,8 @@ import numpy as np
 
 from pandas._typing import npt
 
+from pandas import MultiIndex
+
 class IndexEngine:
     over_size_threshold: bool
     def __init__(self, vgetter, n: int): ...
@@ -59,7 +61,7 @@ class BaseMultiIndexCodesEngine:
         self,
         target: npt.NDArray[np.object_],
     ) -> npt.NDArray[np.intp]: ...
-    def _extract_level_codes(self, target: object): ...
+    def _extract_level_codes(self, target: MultiIndex) -> np.ndarray: ...
     def get_indexer_with_fill(
         self,
         target: np.ndarray,  # np.ndarray[object] of tuples
