@@ -7711,8 +7711,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=2,
             )
-            left = 1 if include_start == lib.no_default else int(include_start)
-            right = 1 if include_end == lib.no_default else int(include_end)
+            left = 1 if isinstance(include_start, lib.NoDefault) else int(include_start)
+            right = 1 if isinstance(include_end, lib.NoDefault) else int(include_end)
+
             inc_dict = {
                 (1, 1): "both",
                 (1, 0): "left",
