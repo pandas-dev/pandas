@@ -607,8 +607,8 @@ cdef class TextReader:
             void *ptr
 
         if not hasattr(source, "read"):
-            raise IOError(f'Expected file path name or file-like object, '
-                          f'got {type(source)} type')
+            raise TypeError('Expected file path name or file-like object, '
+                            f'got {type(source)} type')
 
         ptr = new_rd_source(source)
         self.parser.source = ptr
