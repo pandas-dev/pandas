@@ -1095,8 +1095,10 @@ def from_dummies(
     prefix_sep : str, list of str, or dict of str, default '_'
         Separator/deliminator used in the column names of the dummy categories.
         Pass a list if multiple prefix separators are used in the columns names.
-        Alternatively, pass a dictionary to map prefix separators to prefixes if
-        multiple and/ mixed separators are used in the column names.
+        Will separate the prefix based on the first encountered separator following
+        the order of the list. Alternatively, pass a dictionary to map prefix
+        separators to prefixes if multiple and/or mixed separators are used in the
+        column names.
     columns : None, Index, or list of str, default 'None'
         The columns which to convert from dummy-encoding and return as categorical
         `DataFrame`.

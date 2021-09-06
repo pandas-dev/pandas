@@ -207,6 +207,27 @@ def test_from_dummies_to_df_prefix_sep_dict():
     tm.assert_frame_equal(result, expected)
 
 
+def test_from_dummies_to_df_prefix_separators_too_complex_for_sep_list():
+    dummies = DataFrame(
+        {
+            "C": [1, 2, 3],
+            "col1_a-a": [1, 0, 1],
+            "col1_b-b": [0, 1, 0],
+            "col2-a_a": [0, 1, 0],
+            "col2-b_b": [1, 0, 0],
+            "col2-c_c": [0, 0, 1],
+        },
+    )
+    with pytest.raises(
+        ValueError,
+        match=(
+            r"Dummy DataFrame contains unassigned value\(s\) for prefix: "
+            r"'col2-a'; First instance in row: 0"
+        ),
+    ):
+        from_dummies(dummies, prefix_sep=["_", "-"])
+
+
 def test_from_dummies_to_df_prefix_sep_dict_incomplete():
     dummies = DataFrame(
         {
@@ -363,3 +384,50 @@ def test_from_dummies_to_df_double_assignment():
         ),
     ):
         from_dummies(dummies)
+
+
+def test_from_dummies_collate_prefix_sep_and_dropped_first_list():
+    dummies = DataFrame(
+        {
+            "C": [1, 2, 3],
+            "col1_a": [1, 0, 0],
+            "col1_b": [0, 1, 0],
+            "col2-a": [0, 1, 0],
+            "col2-b": [0, 0, 0],
+            "col2-c": [0, 0, 1],
+        },
+    )
+    expected = DataFrame(
+        {"C": [1, 2, 3], "col1": ["a", "b", "x"], "col2": ["y", "a", "c"]}
+    )
+    result = from_dummies(
+        dummies,
+        prefix_sep=["_", "-"],
+        dropped_first=["x", "y"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_from_dummies_collate_prefix_sep_and_dropped_first_dict():
+    dummies = DataFrame(
+        {
+            "C": [1, 2, 3],
+            "col1_a-a": [1, 0, 0],
+            "col1_b-b": [0, 1, 0],
+            "col2-a_a": [0, 1, 0],
+            "col2-b_b": [0, 0, 0],
+            "col2-c_c": [0, 0, 1],
+        },
+    )
+    expected = DataFrame(
+        {"C": [1, 2, 3], "col1": ["a-a", "b-b", "x"], "col2": ["y", "a_a", "c_c"]}
+    )
+    result = from_dummies(
+        dummies,
+        prefix_sep={
+            "col1": "_",
+            "col2": "-",
+        },
+        dropped_first={"col1": "x", "col2": "y"},
+    )
+    tm.assert_frame_equal(result, expected)
