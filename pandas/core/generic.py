@@ -6311,8 +6311,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     value_map = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
-                    # GH#40498 objects can have multiple types of missing values which should not be modified unless
-                    # specified.  Add special casing to minimize performance decrease on other data types where this is
+                    # GH#40498 objects can have multiple types of missing values which
+                    # should not be modified unless specified.  Add special casing to
+                    # minimize performance decrease on other data types where this is
                     # not required.
                     if is_object_dtype(self.dtype):
                         value = self.copy()
