@@ -24,6 +24,7 @@ Fixed regressions
 - Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
 - Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)
 - Fixed regression in :meth:`DataFrame.__getitem__` raising error for slice of :class:`DatetimeIndex` when index is non monotonic (:issue:`43223`)
+- Fixed regression in :meth:`DataFrame.corr` where Kendall correlation would produce incorrect results for columns with repeated values (:issue:`43401`)
 
 .. ---------------------------------------------------------------------------
 
