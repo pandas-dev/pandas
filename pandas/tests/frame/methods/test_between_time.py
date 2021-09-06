@@ -259,3 +259,38 @@ class TestBetweenTime:
         )
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, include_start, include_end, inclusive="left")
+
+    # GH40245
+    def test_between_time_same_functionality_old_and_new_args(self):
+        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        stime = time(0, 0)
+        etime = time(1, 0)
+        match = (
+            "`include_start` and `include_end` "
+            "are deprecated infavour of `inclusive`."
+        )
+
+        x1 = ts.between_time(stime, etime)
+        y1 = ts.between_time(stime, etime, inclusive="both")
+        assert x1.equals(y1)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            x2 = ts.between_time(stime, etime, include_start=False)
+        y2 = ts.between_time(stime, etime, inclusive="right")
+        assert x2.equals(y2)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            x3 = ts.between_time(stime, etime, include_end=False)
+        y3 = ts.between_time(stime, etime, inclusive="left")
+        assert x3.equals(y3)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            x4 = ts.between_time(stime, etime, include_start=False, include_end=False)
+        y4 = ts.between_time(stime, etime, inclusive="neither")
+        assert x4.equals(y4)
+
+        with tm.assert_produces_warning(FutureWarning, match=match):
+            x5 = ts.between_time(stime, etime, include_start=True, include_end=True)
+        y5 = ts.between_time(stime, etime, inclusive="both")
+        assert x5.equals(y5)
