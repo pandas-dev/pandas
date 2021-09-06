@@ -1945,12 +1945,12 @@ class StringMethods(NoNewAttributesMixin):
     >>> s
     0    foo_str
     1    bar_str
-    2    no_prefix
+    2    no_suffix
     dtype: object
     >>> s.str.removesuffix("_str")
     0    foo
     1    bar
-    2    no_prefix
+    2    no_suffix
     dtype: object
     """
 
