@@ -6311,7 +6311,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     value_map = create_series_with_explicit_dtype(
                         value, dtype_if_empty=object
                     )
-                    if self.dtype == "object":
+                    # GH#40498 objects can have multiple types of missing values which should not be modified unless
+                    # specified.  Add special casing to minimize performance decrease on other data types where this is
+                    # not required.
+                    if is_object_dtype(self.dtype):
                         value = self.copy()
                         modification_index = value.index.intersection(value_map.index)
                         if not modification_index.empty:
@@ -6319,8 +6322,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                                 modification_index
                             ]
                     else:
-                        value = value_map
-                        value = value.reindex(self.index, copy=False)
+                        value = value_map.reindex(self.index, copy=False)
                         value = value._values
                 elif not is_list_like(value):
                     pass
