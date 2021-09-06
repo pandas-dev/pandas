@@ -25,11 +25,10 @@ def df():
 
 
 @pytest.fixture
-def df_ext(df):
-    df = df.copy()
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
-    return df
+def df_ext():
+    return DataFrame(
+        {"A": [0, 1, 2], "B": [-0.61, -1.22, -2.22], "C": ["ab", "cd", "de"]}
+    )
 
 
 @pytest.fixture
@@ -251,15 +250,15 @@ def test_multiindex_row(df_ext):
 
 
 def test_multirow_naive(df_ext):
-    ridx = MultiIndex.from_tuples([("X", "x"), ("X", "x"), ("Y", "y")])
+    ridx = MultiIndex.from_tuples([("X", "x"), ("X", "y"), ("Y", "z")])
     df_ext.index = ridx
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
          &  & A & B & C \\\\
         X & x & 0 & -0.61 & ab \\\\
-         & x & 1 & -1.22 & cd \\\\
-        Y & y & 2 & -2.22 & de \\\\
+         & y & 1 & -1.22 & cd \\\\
+        Y & z & 2 & -2.22 & de \\\\
         \\end{tabular}
         """
     )
