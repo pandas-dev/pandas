@@ -199,26 +199,7 @@ def concatenate_managers(
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
-    new_mgrs_indexers = []
-    for mgr, indexers in mgrs_indexers:
-        # We only reindex for axis=0 (i.e. columns), as this can be done cheaply
-        if 0 in indexers:
-            new_mgr = mgr.reindex_indexer(
-                axes[0],
-                indexers[0],
-                axis=0,
-                copy=False,
-                only_slice=True,
-                allow_dups=True,
-                use_na_proxy=True,
-            )
-            new_indexers = indexers.copy()
-            del new_indexers[0]
-            new_mgrs_indexers.append((new_mgr, new_indexers))
-        else:
-            new_mgrs_indexers.append((mgr, indexers))
-
-    mgrs_indexers = new_mgrs_indexers
+    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -265,6 +246,38 @@ def concatenate_managers(
         blocks.append(b)
 
     return BlockManager(tuple(blocks), axes)
+
+
+def _maybe_reindex_columns_na_proxy(
+    axes: list[Index], mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]]
+) -> list[tuple[BlockManager, dict[int, np.ndarray]]]:
+    """
+    Reindex along columns so that all of the BlockManagers being concatenated
+    have matching columns.
+
+    Columns added in this reindexing have dtype=np.void, indicating they
+    should be ignored when choosing a column's final dtype.
+    """
+    new_mgrs_indexers = []
+    for mgr, indexers in mgrs_indexers:
+        # We only reindex for axis=0 (i.e. columns), as this can be done cheaply
+        if 0 in indexers:
+            new_mgr = mgr.reindex_indexer(
+                axes[0],
+                indexers[0],
+                axis=0,
+                copy=False,
+                only_slice=True,
+                allow_dups=True,
+                use_na_proxy=True,
+            )
+            new_indexers = indexers.copy()
+            del new_indexers[0]
+            new_mgrs_indexers.append((new_mgr, new_indexers))
+        else:
+            new_mgrs_indexers.append((mgr, indexers))
+
+    return new_mgrs_indexers
 
 
 def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarray]):
