@@ -25,11 +25,11 @@ def df():
 
 
 @pytest.fixture
-def df2(df):
-    df2 = df.copy()
-    df2.loc[2, :] = [2, -2.22, "de"]
-    df2 = df2.astype({"A": int})
-    return df2
+def df_ext(df):
+    df = df.copy()
+    df.loc[2, :] = [2, -2.22, "de"]
+    df = df.astype({"A": int})
+    return df
 
 
 @pytest.fixture
@@ -218,9 +218,9 @@ def test_multiindex_columns(df):
     assert expected == s.to_latex(sparse_columns=False)
 
 
-def test_multiindex_row(df2):
+def test_multiindex_row(df_ext):
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df2.index = ridx
+    df_ext.index = ridx
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
@@ -231,7 +231,7 @@ def test_multiindex_row(df2):
         \\end{tabular}
         """
     )
-    styler = df2.style.format(precision=2)
+    styler = df_ext.style.format(precision=2)
     result = styler.to_latex()
     assert expected == result
 
@@ -250,11 +250,9 @@ def test_multiindex_row(df2):
     assert expected == result
 
 
-def test_multirow_naive(df):
+def test_multirow_naive(df_ext):
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
-    df.index = ridx
+    df_ext.index = ridx
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
@@ -265,16 +263,15 @@ def test_multirow_naive(df):
         \\end{tabular}
         """
     )
-    s = df.style.format(precision=2)
-    assert expected == s.to_latex(multirow_align="naive")
+    styler = df_ext.style.format(precision=2)
+    result = styler.to_latex(multirow_align="naive")
+    assert expected == result
 
 
-def test_multiindex_row_and_col(df):
+def test_multiindex_row_and_col(df_ext):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
-    df.index, df.columns = ridx, cidx
+    df_ext.index, df_ext.columns = ridx, cidx
     expected = dedent(
         """\
         \\begin{tabular}{llrrl}
@@ -286,8 +283,9 @@ def test_multiindex_row_and_col(df):
         \\end{tabular}
         """
     )
-    s = df.style.format(precision=2)
-    assert s.to_latex(multirow_align="b", multicol_align="l") == expected
+    styler = df_ext.style.format(precision=2)
+    result = styler.to_latex(multirow_align="b", multicol_align="l")
+    assert result == expected
 
     # non-sparse
     expected = dedent(
@@ -301,16 +299,15 @@ def test_multiindex_row_and_col(df):
         \\end{tabular}
         """
     )
-    assert s.to_latex(sparse_index=False, sparse_columns=False) == expected
+    result = styler.to_latex(sparse_index=False, sparse_columns=False)
+    assert result == expected
 
 
-def test_multi_options(df):
+def test_multi_options(df_ext):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
-    df.index, df.columns = ridx, cidx
-    styler = df.style.format(precision=2)
+    df_ext.index, df_ext.columns = ridx, cidx
+    styler = df_ext.style.format(precision=2)
 
     expected = dedent(
         """\
@@ -319,7 +316,8 @@ def test_multi_options(df):
     \\multirow[c]{2}{*}{A} & a & 0 & -0.61 & ab \\\\
     """
     )
-    assert expected in styler.to_latex()
+    result = styler.to_latex()
+    assert expected in result
 
     with option_context("styler.latex.multicol_align", "l"):
         assert " &  & \\multicolumn{2}{l}{Z} & Y \\\\" in styler.to_latex()
@@ -338,30 +336,25 @@ def test_multiindex_columns_hidden():
     assert "{tabular}{lrrr}" in s.to_latex()
 
 
-def test_sparse_options(df):
+@pytest.mark.parametrize(
+    "option, value",
+    [
+        ("styler.sparse.index", True),
+        ("styler.sparse.index", False),
+        ("styler.sparse.columns", True),
+        ("styler.sparse.columns", False),
+    ],
+)
+def test_sparse_options(df_ext, option, value):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df.index, df.columns = ridx, cidx
-    s = df.style
+    df_ext.index, df_ext.columns = ridx, cidx
+    styler = df_ext.style
 
-    latex1 = s.to_latex()
-
-    with option_context("styler.sparse.index", True):
-        latex2 = s.to_latex()
-    assert latex1 == latex2
-
-    with option_context("styler.sparse.index", False):
-        latex2 = s.to_latex()
-    assert latex1 != latex2
-
-    with option_context("styler.sparse.columns", True):
-        latex2 = s.to_latex()
-    assert latex1 == latex2
-
-    with option_context("styler.sparse.columns", False):
-        latex2 = s.to_latex()
-    assert latex1 != latex2
+    latex1 = styler.to_latex()
+    with option_context(option, value):
+        latex2 = styler.to_latex()
+    assert (latex1 == latex2) is value
 
 
 def test_hidden_index(styler):
@@ -379,16 +372,14 @@ def test_hidden_index(styler):
 
 
 @pytest.mark.parametrize("environment", ["table", "figure*", None])
-def test_comprehensive(df, environment):
+def test_comprehensive(df_ext, environment):
     # test as many low level features simultaneously as possible
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.loc[2, :] = [2, -2.22, "de"]
-    df = df.astype({"A": int})
-    df.index, df.columns = ridx, cidx
-    s = df.style
-    s.set_caption("mycap")
-    s.set_table_styles(
+    df_ext.index, df_ext.columns = ridx, cidx
+    stlr = df_ext.style
+    stlr.set_caption("mycap")
+    stlr.set_table_styles(
         [
             {"selector": "label", "props": ":{fig§item}"},
             {"selector": "position", "props": ":h!"},
@@ -400,8 +391,8 @@ def test_comprehensive(df, environment):
             {"selector": "rowcolors", "props": ":{3}{pink}{}"},  # custom command
         ]
     )
-    s.highlight_max(axis=0, props="textbf:--rwrap;cellcolor:[rgb]{1,1,0.6}--rwrap")
-    s.highlight_max(axis=None, props="Huge:--wrap;", subset=[("Z", "a"), ("Z", "b")])
+    stlr.highlight_max(axis=0, props="textbf:--rwrap;cellcolor:[rgb]{1,1,0.6}--rwrap")
+    stlr.highlight_max(axis=None, props="Huge:--wrap;", subset=[("Z", "a"), ("Z", "b")])
 
     expected = (
         """\
@@ -425,7 +416,8 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 \\end{table}
 """
     ).replace("table", environment if environment else "table")
-    assert s.format(precision=2).to_latex(environment=environment) == expected
+    result = stlr.format(precision=2).to_latex(environment=environment)
+    assert result == expected
 
 
 def test_environment_option(styler):
@@ -714,11 +706,11 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
         (False, False),
     ],
 )
-def test_apply_map_header_render_mi(df, index, columns, siunitx):
+def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
     ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
-    df.index, df.columns = ridx, cidx
-    styler = df.style
+    df_ext.index, df_ext.columns = ridx, cidx
+    styler = df_ext.style
 
     func = lambda v: "bfseries: --rwrap" if "A" in v or "Z" in v or "c" in v else None
 
