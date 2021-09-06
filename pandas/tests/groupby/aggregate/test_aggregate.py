@@ -20,6 +20,7 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
+    get_option,
     to_datetime,
 )
 import pandas._testing as tm
@@ -499,12 +500,18 @@ def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
 
-    res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
-    result = res.columns.levels[1]
+    if get_option("new_udf_methods"):
+        # TODO (GH 35725): This will not raise when agg-must-agg is implemented
+        msg = "Cannot concat indices that do not have the same number of levels"
+        with pytest.raises(AssertionError, match=msg):
+            df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
+    else:
+        res = df.groupby("A").agg(["sum", "max", "mean", "ohlc", "min"])
+        result = res.columns.levels[1]
 
-    expected = Index(["sum", "max", "mean", "ohlc", "min"])
+        expected = Index(["sum", "max", "mean", "ohlc", "min"])
 
-    tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
@@ -1207,7 +1214,10 @@ def test_nonagg_agg():
     g = df.groupby("a")
 
     result = g.agg(["cumsum"])
-    result.columns = result.columns.droplevel(-1)
+    if get_option("new_udf_methods"):
+        result.columns = result.columns.droplevel(0)
+    else:
+        result.columns = result.columns.droplevel(-1)
     expected = g.agg("cumsum")
 
     tm.assert_frame_equal(result, expected)

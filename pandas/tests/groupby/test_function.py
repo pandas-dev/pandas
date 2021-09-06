@@ -14,6 +14,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    get_option,
 )
 import pandas._testing as tm
 import pandas.core.nanops as nanops
@@ -1138,7 +1139,10 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     tm.assert_frame_equal(result, expected)
 
     result = groups.agg([function])
-    expected.columns = MultiIndex.from_tuples([("b", function)])
+    if get_option("new_udf_methods"):
+        expected.columns = MultiIndex.from_tuples([(function, "b")])
+    else:
+        expected.columns = MultiIndex.from_tuples([("b", function)])
     tm.assert_frame_equal(result, expected)
 
 

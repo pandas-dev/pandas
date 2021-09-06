@@ -8609,9 +8609,11 @@ NaN 12.3   33.0
 
         axis = self._get_axis_number(axis)
 
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        relabeling, func, columns, order, renamer = reconstruct_func(func, **kwargs)
 
-        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        op = frame_apply(
+            self, func=func, axis=axis, args=args, kwargs=kwargs, renamer=renamer
+        )
         result = op.agg()
 
         if relabeling:

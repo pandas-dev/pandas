@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     NamedAgg,
     Series,
+    get_option,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
@@ -347,15 +348,14 @@ def test_agg():
     b_std = r["B"].std()
     b_sum = r["B"].sum()
 
-    expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
-    expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
+    if get_option("new_udf_methods"):
+        expected = pd.concat([a_mean, b_mean, a_std, b_std], axis=1)
+        expected.columns = pd.MultiIndex.from_product([["mean", "std"], ["A", "B"]])
+    else:
+        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+        expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
-        warn = FutureWarning if t in cases[1:3] else None
-        with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", check_stacklevel=False
-        ):
-            # .var on dt64 column raises and is dropped
-            result = t.aggregate([np.mean, np.std])
+        result = t.aggregate([np.mean, np.std])
         tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
@@ -628,11 +628,22 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    expected = DataFrame(
-        [47.5, 143.5, 195.5],
-        index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),
-        columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
-    )
+    if get_option("new_udf_methods"):
+        expected = DataFrame(
+            [47.5, 143.5, 195.5],
+            index=date_range(
+                start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
+            ),
+            columns=pd.MultiIndex(levels=[["mean"], [col_name]], codes=[[0], [0]]),
+        )
+    else:
+        expected = DataFrame(
+            [47.5, 143.5, 195.5],
+            index=date_range(
+                start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"
+            ),
+            columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
+        )
     tm.assert_frame_equal(result, expected)
 
 

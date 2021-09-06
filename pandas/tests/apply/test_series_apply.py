@@ -13,6 +13,7 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
+    get_option,
     isna,
     timedelta_range,
 )
@@ -254,10 +255,14 @@ def test_transform(string_series):
         # dict, provide renaming
         expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["foo", "bar"]
-        expected = expected.unstack().rename("series")
+        if not get_option("new_udf_methods"):
+            expected = expected.unstack().rename("series")
 
         result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
-        tm.assert_series_equal(result.reindex_like(expected), expected)
+        if get_option("new_udf_methods"):
+            tm.assert_frame_equal(result, expected)
+        else:
+            tm.assert_series_equal(result.reindex_like(expected), expected)
 
 
 @pytest.mark.parametrize("op", series_transform_kernels)
@@ -364,18 +369,32 @@ def test_with_nested_series(datetime_series):
 def test_replicate_describe(string_series):
     # this also tests a result set that is all scalars
     expected = string_series.describe()
-    result = string_series.apply(
-        {
-            "count": "count",
-            "mean": "mean",
-            "std": "std",
-            "min": "min",
-            "25%": lambda x: x.quantile(0.25),
-            "50%": "median",
-            "75%": lambda x: x.quantile(0.75),
-            "max": "max",
-        }
-    )
+    if get_option("new_udf_methods"):
+        result = string_series.agg(
+            {
+                "count": "count",
+                "mean": "mean",
+                "std": "std",
+                "min": "min",
+                "25%": lambda x: x.quantile(0.25),
+                "50%": "median",
+                "75%": lambda x: x.quantile(0.75),
+                "max": "max",
+            }
+        )
+    else:
+        result = string_series.apply(
+            {
+                "count": "count",
+                "mean": "mean",
+                "std": "std",
+                "min": "min",
+                "25%": lambda x: x.quantile(0.25),
+                "50%": "median",
+                "75%": lambda x: x.quantile(0.75),
+                "max": "max",
+            }
+        )
     tm.assert_series_equal(result, expected)
 
 
@@ -410,10 +429,14 @@ def test_non_callable_aggregates(how):
 def test_series_apply_no_suffix_index():
     # GH36189
     s = Series([4] * 3)
-    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
-    expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
-
-    tm.assert_series_equal(result, expected)
+    if get_option("new_udf_methods"):
+        result = s.apply(["sqrt", lambda x: np.sqrt(x), lambda x: np.sqrt(x)])
+        expected = DataFrame([[2.0] * 3] * 3, columns=["sqrt", "<lambda>", "<lambda>"])
+        tm.assert_frame_equal(result, expected)
+    else:
+        result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+        expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
+        tm.assert_series_equal(result, expected)
 
 
 def test_map(datetime_series):
@@ -795,10 +818,19 @@ def test_apply_to_timedelta():
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_listlike_reducer(string_series, ops, names, how):
     # GH 39140
-    expected = Series({name: op(string_series) for name, op in zip(names, ops)})
-    expected.name = "series"
     result = getattr(string_series, how)(ops)
-    tm.assert_series_equal(result, expected)
+    if get_option("new_udf_methods"):
+        if how == "apply":
+            expected = DataFrame({name: string_series for name, op in zip(names, ops)})
+        else:
+            expected = Series(
+                {name: op(string_series) for name, op in zip(names, ops)}, name="series"
+            )
+        tm.assert_equal(result, expected)
+    else:
+        expected = Series({name: op(string_series) for name, op in zip(names, ops)})
+        expected.name = "series"
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -813,10 +845,21 @@ def test_apply_listlike_reducer(string_series, ops, names, how):
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_dictlike_reducer(string_series, ops, how):
     # GH 39140
-    expected = Series({name: op(string_series) for name, op in ops.items()})
-    expected.name = string_series.name
-    result = getattr(string_series, how)(ops)
-    tm.assert_series_equal(result, expected)
+    if get_option("new_udf_methods"):
+        if how == "apply":
+            names = ops.keys() if isinstance(ops, dict) else ops.index
+            expected = concat([string_series.rename(name) for name in names], axis=1)
+        else:
+            expected = Series(
+                {name: op(string_series) for name, op in ops.items()}, name="series"
+            )
+        result = getattr(string_series, how)(ops)
+        tm.assert_equal(result, expected)
+    else:
+        expected = Series({name: op(string_series) for name, op in ops.items()})
+        expected.name = string_series.name
+        result = getattr(string_series, how)(ops)
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -849,7 +892,14 @@ def test_apply_listlike_transformer(string_series, ops, names):
 def test_apply_dictlike_transformer(string_series, ops):
     # GH 39140
     with np.errstate(all="ignore"):
-        expected = concat({name: op(string_series) for name, op in ops.items()})
-        expected.name = string_series.name
-        result = string_series.apply(ops)
-        tm.assert_series_equal(result, expected)
+        if get_option("new_udf_methods"):
+            expected = concat(
+                {name: op(string_series) for name, op in ops.items()}, axis=1
+            )
+            result = string_series.apply(ops)
+            tm.assert_frame_equal(result, expected)
+        else:
+            expected = concat({name: op(string_series) for name, op in ops.items()})
+            expected.name = string_series.name
+            result = string_series.apply(ops)
+            tm.assert_series_equal(result, expected)
