@@ -8251,8 +8251,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side="right")
-        # error: Slice index must be an integer or None
-        return self.iloc[start:]  # type: ignore[misc]
+        return self.iloc[start:]
 
     @final
     def rank(

@@ -82,6 +82,11 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import (
         Categorical,
         DataFrame,
@@ -1517,7 +1522,12 @@ def take(
 # ------------ #
 
 
-def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
+def searchsorted(
+    arr: ArrayLike,
+    value: NumpyValueArrayLike,
+    side: Literal["left", "right"] = "left",
+    sorter: NumpySorter = None,
+) -> npt.NDArray[np.intp] | np.intp:
     """
     Find indices where elements should be inserted to maintain order.
 
@@ -1554,8 +1564,9 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 
     Returns
     -------
-    array of ints
-        Array of insertion points with the same shape as `value`.
+    array of ints or int
+        If value is array-like, array of insertion points.
+        If value is scalar, a single integer.
 
     See Also
     --------
@@ -1583,9 +1594,10 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
             dtype = value_arr.dtype
 
         if is_scalar(value):
-            value = dtype.type(value)
+            # We know that value is int
+            value = cast(int, dtype.type(value))
         else:
-            value = pd_array(value, dtype=dtype)
+            value = pd_array(cast(ArrayLike, value), dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):

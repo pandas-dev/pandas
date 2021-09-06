@@ -7,6 +7,7 @@ from collections import abc
 import numbers
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
@@ -25,9 +26,11 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas._typing import (
+    ArrayLike,
     Dtype,
     NpDtype,
     Scalar,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -76,6 +79,11 @@ from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from pandas._typing import NumpySorter
 
 # ----------------------------------------------------------------------------
 # Array
@@ -992,7 +1000,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def searchsorted(self, v, side="left", sorter=None):
+    def searchsorted(
+        self,
+        v: ArrayLike | object,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=2)
         if not is_scalar(v):

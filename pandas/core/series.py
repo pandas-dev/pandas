@@ -144,6 +144,11 @@ import pandas.plotting
 
 if TYPE_CHECKING:
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas.core.frame import DataFrame
     from pandas.core.groupby.generic import SeriesGroupBy
     from pandas.core.resample import Resampler
@@ -2778,7 +2783,12 @@ Name: Max Speed, dtype: float64
         return self.dot(np.transpose(other))
 
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     # -------------------------------------------------------------------

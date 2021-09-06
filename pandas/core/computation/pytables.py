@@ -11,6 +11,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
+from pandas._typing import npt
 from pandas.compat.chainmap import DeepChainMap
 
 from pandas.core.dtypes.common import is_list_like
@@ -223,6 +224,7 @@ class BinOp(ops.BinOp):
             return TermValue(int(v), v, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
+            result: npt.NDArray[np.intp] | np.intp | int
             if v not in metadata:
                 result = -1
             else:

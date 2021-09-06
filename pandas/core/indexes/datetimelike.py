@@ -674,8 +674,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[:loc]  # type: ignore[misc]
+            right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -691,8 +690,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[loc:]  # type: ignore[misc]
+            right_chunk = right._values[loc:]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
