@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Hashable,
     Iterable,
+    Literal,
     Mapping,
     cast,
     overload,
@@ -15,6 +16,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import Axis
 from pandas.util._decorators import (
     cache_readonly,
     deprecate_nonkeyword_arguments,
@@ -57,15 +59,63 @@ if TYPE_CHECKING:
 @overload
 def concat(
     objs: Iterable[DataFrame] | Mapping[Hashable, DataFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
-    keys=None,
-    levels=None,
-    names=None,
-    verify_integrity: bool = False,
-    sort: bool = False,
-    copy: bool = True,
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[Series] | Mapping[Hashable, Series],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[0, "index"] = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
+) -> DataFrame | Series:
+    ...
+
+
+@overload
+def concat(
+    objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
+    axis: Literal[1, "columns"],
+    join: str = ...,
+    ignore_index: bool = ...,
+    keys=...,
+    levels=...,
+    names=...,
+    verify_integrity: bool = ...,
+    sort: bool = ...,
+    copy: bool = ...,
 ) -> DataFrame:
     ...
 
@@ -73,9 +123,9 @@ def concat(
 @overload
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join: str = "outer",
-    ignore_index: bool = False,
+    axis: Axis = ...,
+    join: str = ...,
+    ignore_index: bool = ...,
     keys=None,
     levels=None,
     names=None,
@@ -89,8 +139,8 @@ def concat(
 @deprecate_nonkeyword_arguments(version=None, allowed_args=["objs"])
 def concat(
     objs: Iterable[NDFrame] | Mapping[Hashable, NDFrame],
-    axis=0,
-    join="outer",
+    axis: Axis = 0,
+    join: str = "outer",
     ignore_index: bool = False,
     keys=None,
     levels=None,
@@ -504,7 +554,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index)
+                df = cons(data, index=index, copy=self.copy)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -717,8 +767,9 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend([np.tile(lab, kpieces) for lab in new_index.codes])
     else:
-        new_levels.append(new_index)
-        new_codes.append(np.tile(np.arange(n), kpieces))
+        new_levels.append(new_index.unique())
+        single_codes = new_index.unique().get_indexer(new_index)
+        new_codes.append(np.tile(single_codes, kpieces))
 
     if len(new_names) < len(new_levels):
         new_names.extend(new_index.names)

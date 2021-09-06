@@ -9,9 +9,11 @@ trigger:
     - 'doc/*'
 
 pr:
-- master
-- 1.2.x
-- 1.3.x
+  autoCancel: true
+  branches:
+    include:
+    - master
+    - 1.3.x
 
 variables:
   PYTEST_WORKERS: auto

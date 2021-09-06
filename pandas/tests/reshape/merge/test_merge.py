@@ -21,18 +21,20 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,

@@ -2031,7 +2031,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
 
         # tupleize_cols=False for e.g. test_fillna_iterable_category GH#41914
-        to_add = Index(value, tupleize_cols=False).difference(self.categories)
+        to_add = Index._with_infer(value, tupleize_cols=False).difference(
+            self.categories
+        )
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
@@ -2308,10 +2310,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         counts = self.value_counts(dropna=False)
         freqs = counts / counts.sum()
 
+        from pandas import Index
         from pandas.core.reshape.concat import concat
 
         result = concat([counts, freqs], axis=1)
-        result.columns = ["counts", "freqs"]
+        result.columns = Index(["counts", "freqs"])
         result.index.name = "categories"
 
         return result
@@ -2741,6 +2744,7 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
         cat = Categorical.from_codes(cat_codes, dtype=values.dtype)
+
         categories = CategoricalIndex(cat)
         codes = values.codes
     else:

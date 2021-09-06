@@ -6,11 +6,13 @@ import codecs
 from collections import abc
 import dataclasses
 import gzip
+import io
 from io import (
     BufferedIOBase,
     BytesIO,
     RawIOBase,
     StringIO,
+    TextIOBase,
     TextIOWrapper,
 )
 import mmap
@@ -49,7 +51,6 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.common import is_file_like
 
 lzma = import_lzma()
-
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -102,7 +103,7 @@ class IOHandles:
         avoid closing the potentially user-created buffer.
         """
         if self.is_wrapped:
-            assert isinstance(self.handle, TextIOWrapper)
+            assert isinstance(self.handle, (TextIOWrapper, BytesIOWrapper))
             self.handle.flush()
             self.handle.detach()
             self.created_handles.remove(self.handle)
@@ -712,7 +713,16 @@ def get_handle(
 
     # Convert BytesIO or file objects passed with an encoding
     is_wrapped = False
-    if is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
+    if not is_text and ioargs.mode == "rb" and isinstance(handle, TextIOBase):
+        handle = BytesIOWrapper(
+            handle,
+            encoding=ioargs.encoding,
+        )
+        handles.append(handle)
+        # the (text) handle is always provided by the caller
+        # since get_handle would have opened it in binary mode
+        is_wrapped = True
+    elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
         handle = TextIOWrapper(
             # error: Argument 1 to "TextIOWrapper" has incompatible type
             # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
@@ -876,6 +886,46 @@ class _MMapWrapper(abc.Iterator):
 
         # IncrementalDecoder seems to push newline to the next line
         return newline.lstrip("\n")
+
+
+# Wrapper that wraps a StringIO buffer and reads bytes from it
+# Created for compat with pyarrow read_csv
+class BytesIOWrapper(io.BytesIO):
+    buffer: StringIO | TextIOBase | None
+
+    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8"):
+        self.buffer = buffer
+        self.encoding = encoding
+        # Because a character can be represented by more than 1 byte,
+        # it is possible that reading will produce more bytes than n
+        # We store the extra bytes in this overflow variable, and append the
+        # overflow to the front of the bytestring the next time reading is performed
+        self.overflow = b""
+
+    def __getattr__(self, attr: str):
+        return getattr(self.buffer, attr)
+
+    def read(self, n: int | None = -1) -> bytes:
+        assert self.buffer is not None
+        bytestring = self.buffer.read(n).encode(self.encoding)
+        # When n=-1/n greater than remaining bytes: Read entire file/rest of file
+        combined_bytestring = self.overflow + bytestring
+        if n is None or n < 0 or n >= len(combined_bytestring):
+            self.overflow = b""
+            return combined_bytestring
+        else:
+            to_return = combined_bytestring[:n]
+            self.overflow = combined_bytestring[n:]
+            return to_return
+
+    def detach(self):
+        # Slightly modified from Python's TextIOWrapper detach method
+        if self.buffer is None:
+            raise ValueError("buffer is already detached")
+        self.flush()
+        buffer = self.buffer
+        self.buffer = None
+        return buffer
 
 
 def _maybe_memory_map(

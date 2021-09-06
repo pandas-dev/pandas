@@ -145,7 +145,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 @cython.wraparound(False)
 def group_cumprod_float64(float64_t[:, ::1] out,
                           const float64_t[:, :] values,
-                          const intp_t[:] labels,
+                          const intp_t[::1] labels,
                           int ngroups,
                           bint is_datetimelike,
                           bint skipna=True) -> None:
@@ -202,7 +202,7 @@ def group_cumprod_float64(float64_t[:, ::1] out,
 @cython.wraparound(False)
 def group_cumsum(numeric[:, ::1] out,
                  ndarray[numeric, ndim=2] values,
-                 const intp_t[:] labels,
+                 const intp_t[::1] labels,
                  int ngroups,
                  is_datetimelike,
                  bint skipna=True) -> None:
@@ -269,7 +269,7 @@ def group_cumsum(numeric[:, ::1] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_shift_indexer(int64_t[::1] out, const intp_t[:] labels,
+def group_shift_indexer(int64_t[::1] out, const intp_t[::1] labels,
                         int ngroups, int periods) -> None:
     cdef:
         Py_ssize_t N, i, j, ii, lab
@@ -388,10 +388,10 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any_all(int8_t[::1] out,
-                  const int8_t[::1] values,
-                  const intp_t[:] labels,
-                  const uint8_t[::1] mask,
+def group_any_all(int8_t[:, ::1] out,
+                  const int8_t[:, :] values,
+                  const intp_t[::1] labels,
+                  const uint8_t[:, :] mask,
                   str val_test,
                   bint skipna,
                   bint nullable) -> None:
@@ -426,9 +426,9 @@ def group_any_all(int8_t[::1] out,
     -1 to signify a masked position in the case of a nullable input.
     """
     cdef:
-        Py_ssize_t i, N = len(labels)
+        Py_ssize_t i, j, N = len(labels), K = out.shape[1]
         intp_t lab
-        int8_t flag_val
+        int8_t flag_val, val
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -448,21 +448,27 @@ def group_any_all(int8_t[::1] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0 or (skipna and mask[i]):
+            if lab < 0:
                 continue
 
-            if nullable and mask[i]:
-                # Set the position as masked if `out[lab] != flag_val`, which
-                # would indicate True/False has not yet been seen for any/all,
-                # so by Kleene logic the result is currently unknown
-                if out[lab] != flag_val:
-                    out[lab] = -1
-                continue
+            for j in range(K):
+                if skipna and mask[i, j]:
+                    continue
 
-            # If True and 'any' or False and 'all', the result is
-            # already determined
-            if values[i] == flag_val:
-                out[lab] = flag_val
+                if nullable and mask[i, j]:
+                    # Set the position as masked if `out[lab] != flag_val`, which
+                    # would indicate True/False has not yet been seen for any/all,
+                    # so by Kleene logic the result is currently unknown
+                    if out[lab, j] != flag_val:
+                        out[lab, j] = -1
+                    continue
+
+                val = values[i, j]
+
+                # If True and 'any' or False and 'all', the result is
+                # already determined
+                if val == flag_val:
+                    out[lab, j] = flag_val
 
 
 # ----------------------------------------------------------------------
@@ -482,7 +488,7 @@ ctypedef fused add_t:
 def group_add(add_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[add_t, ndim=2] values,
-              const intp_t[:] labels,
+              const intp_t[::1] labels,
               Py_ssize_t min_count=0) -> None:
     """
     Only aggregates on axis=0 using Kahan summation
@@ -565,7 +571,7 @@ def group_add(add_t[:, ::1] out,
 def group_prod(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
-               const intp_t[:] labels,
+               const intp_t[::1] labels,
                Py_ssize_t min_count=0) -> None:
     """
     Only aggregates on axis=0
@@ -614,7 +620,7 @@ def group_prod(floating[:, ::1] out,
 def group_var(floating[:, ::1] out,
               int64_t[::1] counts,
               ndarray[floating, ndim=2] values,
-              const intp_t[:] labels,
+              const intp_t[::1] labels,
               Py_ssize_t min_count=-1,
               int64_t ddof=1) -> None:
     cdef:
@@ -720,7 +726,7 @@ def group_mean(floating[:, ::1] out,
 def group_ohlc(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
-               const intp_t[:] labels,
+               const intp_t[::1] labels,
                Py_ssize_t min_count=-1) -> None:
     """
     Only aggregates on axis=0
@@ -910,7 +916,7 @@ cdef inline bint _treat_as_na(rank_t val, bint is_datetimelike) nogil:
 def group_last(rank_t[:, ::1] out,
                int64_t[::1] counts,
                ndarray[rank_t, ndim=2] values,
-               const intp_t[:] labels,
+               const intp_t[::1] labels,
                Py_ssize_t min_count=-1) -> None:
     """
     Only aggregates on axis=0
@@ -1002,7 +1008,7 @@ def group_last(rank_t[:, ::1] out,
 def group_nth(rank_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[rank_t, ndim=2] values,
-              const intp_t[:] labels,
+              const intp_t[::1] labels,
               int64_t min_count=-1,
               int64_t rank=1,
               ) -> None:
@@ -1095,7 +1101,7 @@ def group_nth(rank_t[:, ::1] out,
 @cython.wraparound(False)
 def group_rank(float64_t[:, ::1] out,
                ndarray[rank_t, ndim=2] values,
-               const intp_t[:] labels,
+               const intp_t[::1] labels,
                int ngroups,
                bint is_datetimelike, str ties_method="average",
                bint ascending=True, bint pct=False, str na_option="keep") -> None:
@@ -1173,7 +1179,7 @@ ctypedef fused groupby_t:
 cdef group_min_max(groupby_t[:, ::1] out,
                    int64_t[::1] counts,
                    ndarray[groupby_t, ndim=2] values,
-                   const intp_t[:] labels,
+                   const intp_t[::1] labels,
                    Py_ssize_t min_count=-1,
                    bint is_datetimelike=False,
                    bint compute_max=True):
@@ -1274,7 +1280,7 @@ cdef group_min_max(groupby_t[:, ::1] out,
 def group_max(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
-              const intp_t[:] labels,
+              const intp_t[::1] labels,
               Py_ssize_t min_count=-1,
               bint is_datetimelike=False) -> None:
     """See group_min_max.__doc__"""
@@ -1294,7 +1300,7 @@ def group_max(groupby_t[:, ::1] out,
 def group_min(groupby_t[:, ::1] out,
               int64_t[::1] counts,
               ndarray[groupby_t, ndim=2] values,
-              const intp_t[:] labels,
+              const intp_t[::1] labels,
               Py_ssize_t min_count=-1,
               bint is_datetimelike=False) -> None:
     """See group_min_max.__doc__"""
@@ -1314,9 +1320,10 @@ def group_min(groupby_t[:, ::1] out,
 cdef group_cummin_max(groupby_t[:, ::1] out,
                       ndarray[groupby_t, ndim=2] values,
                       uint8_t[:, ::1] mask,
-                      const intp_t[:] labels,
+                      const intp_t[::1] labels,
                       int ngroups,
                       bint is_datetimelike,
+                      bint skipna,
                       bint compute_max):
     """
     Cumulative minimum/maximum of columns of `values`, in row groups `labels`.
@@ -1336,6 +1343,8 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         Number of groups, larger than all entries of `labels`.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
+    skipna : bool
+        If True, ignore nans in `values`.
     compute_max : bool
         True if cumulative maximum should be computed, False
         if cumulative minimum should be computed
@@ -1356,17 +1365,18 @@ cdef group_cummin_max(groupby_t[:, ::1] out,
         accum[:] = -np.inf if compute_max else np.inf
 
     if mask is not None:
-        masked_cummin_max(out, values, mask, labels, accum, compute_max)
+        masked_cummin_max(out, values, mask, labels, accum, skipna, compute_max)
     else:
-        cummin_max(out, values, labels, accum, is_datetimelike, compute_max)
+        cummin_max(out, values, labels, accum, skipna, is_datetimelike, compute_max)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef cummin_max(groupby_t[:, ::1] out,
                 ndarray[groupby_t, ndim=2] values,
-                const intp_t[:] labels,
+                const intp_t[::1] labels,
                 groupby_t[:, ::1] accum,
+                bint skipna,
                 bint is_datetimelike,
                 bint compute_max):
     """
@@ -1375,8 +1385,24 @@ cdef cummin_max(groupby_t[:, ::1] out,
     """
     cdef:
         Py_ssize_t i, j, N, K
-        groupby_t val, mval
+        groupby_t val, mval, na_val
+        uint8_t[:, ::1] seen_na
         intp_t lab
+        bint na_possible
+
+    if groupby_t is float64_t or groupby_t is float32_t:
+        na_val = NaN
+        na_possible = True
+    elif is_datetimelike:
+        na_val = NPY_NAT
+        na_possible = True
+    # Will never be used, just to avoid uninitialized warning
+    else:
+        na_val = 0
+        na_possible = False
+
+    if na_possible:
+        seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
 
     N, K = (<object>values).shape
     with nogil:
@@ -1385,18 +1411,22 @@ cdef cummin_max(groupby_t[:, ::1] out,
             if lab < 0:
                 continue
             for j in range(K):
-                val = values[i, j]
-                if not _treat_as_na(val, is_datetimelike):
-                    mval = accum[lab, j]
-                    if compute_max:
-                        if val > mval:
-                            accum[lab, j] = mval = val
-                    else:
-                        if val < mval:
-                            accum[lab, j] = mval = val
-                    out[i, j] = mval
+                if not skipna and na_possible and seen_na[lab, j]:
+                    out[i, j] = na_val
                 else:
-                    out[i, j] = val
+                    val = values[i, j]
+                    if not _treat_as_na(val, is_datetimelike):
+                        mval = accum[lab, j]
+                        if compute_max:
+                            if val > mval:
+                                accum[lab, j] = mval = val
+                        else:
+                            if val < mval:
+                                accum[lab, j] = mval = val
+                        out[i, j] = mval
+                    else:
+                        seen_na[lab, j] = 1
+                        out[i, j] = val
 
 
 @cython.boundscheck(False)
@@ -1404,8 +1434,9 @@ cdef cummin_max(groupby_t[:, ::1] out,
 cdef masked_cummin_max(groupby_t[:, ::1] out,
                        ndarray[groupby_t, ndim=2] values,
                        uint8_t[:, ::1] mask,
-                       const intp_t[:] labels,
+                       const intp_t[::1] labels,
                        groupby_t[:, ::1] accum,
+                       bint skipna,
                        bint compute_max):
     """
     Compute the cumulative minimum/maximum of columns of `values`, in row groups
@@ -1414,35 +1445,43 @@ cdef masked_cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K
         groupby_t val, mval
+        uint8_t[:, ::1] seen_na
         intp_t lab
 
     N, K = (<object>values).shape
+    seen_na = np.zeros((<object>accum).shape, dtype=np.uint8)
     with nogil:
         for i in range(N):
             lab = labels[i]
             if lab < 0:
                 continue
             for j in range(K):
-                if not mask[i, j]:
-                    val = values[i, j]
-                    mval = accum[lab, j]
-                    if compute_max:
-                        if val > mval:
-                            accum[lab, j] = mval = val
+                if not skipna and seen_na[lab, j]:
+                    mask[i, j] = 1
+                else:
+                    if not mask[i, j]:
+                        val = values[i, j]
+                        mval = accum[lab, j]
+                        if compute_max:
+                            if val > mval:
+                                accum[lab, j] = mval = val
+                        else:
+                            if val < mval:
+                                accum[lab, j] = mval = val
+                        out[i, j] = mval
                     else:
-                        if val < mval:
-                            accum[lab, j] = mval = val
-                    out[i, j] = mval
+                        seen_na[lab, j] = 1
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_cummin(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
-                 const intp_t[:] labels,
+                 const intp_t[::1] labels,
                  int ngroups,
                  bint is_datetimelike,
-                 uint8_t[:, ::1] mask=None) -> None:
+                 uint8_t[:, ::1] mask=None,
+                 bint skipna=True) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(
         out,
@@ -1451,6 +1490,7 @@ def group_cummin(groupby_t[:, ::1] out,
         labels,
         ngroups,
         is_datetimelike,
+        skipna,
         compute_max=False
     )
 
@@ -1459,10 +1499,11 @@ def group_cummin(groupby_t[:, ::1] out,
 @cython.wraparound(False)
 def group_cummax(groupby_t[:, ::1] out,
                  ndarray[groupby_t, ndim=2] values,
-                 const intp_t[:] labels,
+                 const intp_t[::1] labels,
                  int ngroups,
                  bint is_datetimelike,
-                 uint8_t[:, ::1] mask=None) -> None:
+                 uint8_t[:, ::1] mask=None,
+                 bint skipna=True) -> None:
     """See group_cummin_max.__doc__"""
     group_cummin_max(
         out,
@@ -1471,5 +1512,6 @@ def group_cummax(groupby_t[:, ::1] out,
         labels,
         ngroups,
         is_datetimelike,
+        skipna,
         compute_max=True
     )

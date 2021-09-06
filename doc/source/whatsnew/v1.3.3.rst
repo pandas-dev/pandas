@@ -1,0 +1,58 @@
+.. _whatsnew_133:
+
+What's new in 1.3.3 (September ??, 2021)
+----------------------------------------
+
+These are the changes in pandas 1.3.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)
+- Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
+- Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
+- Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
+- Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`DataFrame.__setitem__` when the key or value is not a :class:`DataFrame`, or key is not list-like (:issue:`43274`)
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine="numba"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.2..v1.3.3|HEAD
