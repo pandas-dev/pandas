@@ -408,6 +408,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.DataFrame.rolling` operation along rows (``axis=1``) incorrectly omits columns containing ``float16`` and ``float32`` (:issue:`41779`)
 - Bug in :meth:`Resampler.aggregate` did not allow the use of Named Aggregation (:issue:`32803`)
 - Bug in :meth:`Series.rolling` when the :class:`Series` ``dtype`` was ``Int64`` (:issue:`43016`)
+- Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
 
 Reshaping
 ^^^^^^^^^
