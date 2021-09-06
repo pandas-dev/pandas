@@ -53,7 +53,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype,
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
-    pandas_dtype, is_extension_array_dtype)
+    pandas_dtype, is_extension_array_dtype,
+    dtype_coerce)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as icom
@@ -474,13 +475,9 @@ cdef class TextReader:
             self.parser.double_converter = xstrtod
 
         if isinstance(dtype, dict):
-            for col, col_dtype in dtype.items():
-                if isinstance(col_dtype, tuple):
-                    col_dtype, coerce = col_dtype
-                    col_dtype = (pandas_dtype(col_dtype), coerce)
-                else:
-                    col_dtype = pandas_dtype(col_dtype)
-                dtype[col] = col_dtype
+            dtype = {col: (pandas_dtype(col_dtype[0]), col_dtype[1]) 
+                          if isinstance(col_dtype, tuple) else pandas_dtype(col_dtype) 
+                          for col, col_dtype in dtype.items()}
         elif dtype is not None:
             dtype = pandas_dtype(dtype)
 
@@ -1052,11 +1049,8 @@ cdef class TextReader:
                         col_dtype = self.dtype[name]
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
-                    if isinstance(col_dtype, tuple):
-                        col_dtype, coerce = col_dtype
-                        col_coerce_float = coerce == 'coerce'
-                        if not is_float_dtype(col_dtype) and col_coerce_float:
-                            raise ValueError('Can only coerce when dtype is a float type')
+                    col_dtype, col_coerce_float = dtype_coerce(col_dtype)
+                    print(col_dtype, col_coerce_float)
                 else:
                     if self.dtype.names:
                         # structured array

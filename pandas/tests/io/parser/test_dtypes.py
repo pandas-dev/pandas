@@ -562,25 +562,16 @@ def test_dtype_coerce(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_dtype_coerce_with_int_raises(all_parsers):
+@pytest.mark.parametrize(
+    "dtype", [{"a": (float, "coerce"), "b": (int, "coerce")}, {"a": (float, "fail")}]
+)
+def test_dtype_coerce_invalid_args_raises(all_parsers, dtype):
     parser = all_parsers
     data = """a,b\n1,2\na,3"""
-    with pytest.raises(ValueError, match="Can only coerce when dtype is a float type"):
-        parser.read_csv(
-            StringIO(data), dtype={"a": (float, "coerce"), "b": (int, "coerce")}
-        )
-
-
-def test_dtype_coerce_invalid_name_raises(all_parsers):
-    parser = all_parsers
-    data = """a,b\n1,2\na,3"""
-    msg = (
-        "could not convert string to float: 'a'"
-        if parser.engine == "c"
-        else "Unable to convert column a to type <class 'float'>"
-    )
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), dtype={"a": (float, "fail")})
+    with pytest.raises(
+        ValueError, match='Only "coerce" is supported when dtype is a float type'
+    ):
+        parser.read_csv(StringIO(data), dtype=dtype)
 
 
 @pytest.mark.parametrize(

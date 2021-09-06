@@ -30,6 +30,7 @@ from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.common import (
+    dtype_coerce,
     ensure_object,
     ensure_str,
     is_bool_dtype,
@@ -38,7 +39,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_file_like,
     is_float,
-    is_float_dtype,
     is_integer,
     is_integer_dtype,
     is_list_like,
@@ -1665,11 +1665,7 @@ class ParserBase:
             coerce_float = False
             if isinstance(dtypes, dict):
                 cast_type = dtypes.get(c, None)
-                if isinstance(cast_type, tuple):
-                    cast_type, coerce = cast_type
-                    coerce_float = coerce == "coerce"
-                    if coerce_float and not is_float_dtype(cast_type):
-                        raise ValueError("Can only coerce when dtype is a float type")
+                cast_type, coerce_float = dtype_coerce(cast_type)
             else:
                 # single dtype or None
                 cast_type = dtypes
