@@ -623,29 +623,34 @@ class TestSeriesFillNA:
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
 
-    def test_fillna_null_value_replacement(self):
+    def test_fillna_null_value_replacement(self, frame_or_series):
         # GH#40498
-        ser = Series([None])
+        ser = Series([None, None])
+        obj = frame_or_series(ser)
 
         value = np.nan
-        result = ser.fillna(value)
+        result = obj.fillna(value)
 
-        expected = Series([np.nan])
+        expected = Series([np.nan, np.nan])
+        expected = frame_or_series(expected)
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_fillna_other_missing_values_not_modified(
-        self, unique_nulls_fixture, unique_nulls_fixture2
+        self, unique_nulls_fixture, unique_nulls_fixture2, frame_or_series
     ):
         # GH#40498
         ser = Series([1, unique_nulls_fixture, unique_nulls_fixture2, "four"])
+        obj = frame_or_series(ser)
 
-        value = {2: 0}
-        result = ser.fillna(value)
+        value = {2: 0} if frame_or_series is Series else {0: {2: 0}}
+
+        result = obj.fillna(value)
 
         expected = Series([1, unique_nulls_fixture, 0, "four"])
+        expected = frame_or_series(expected)
 
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     # ---------------------------------------------------------------
     # CategoricalDtype
