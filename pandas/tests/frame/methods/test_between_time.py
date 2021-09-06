@@ -288,10 +288,10 @@ class TestBetweenTime:
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inclusive = "neeither"
+        inclusive = "bad_string"
         msg = (
             "Inclusive has to be either string of 'both','left', 'right', "
-            "or 'neither'. Got neeither."
+            "or 'neither'. Got bad_string."
         )
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, inclusive=inclusive)
