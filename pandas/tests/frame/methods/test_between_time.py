@@ -226,60 +226,7 @@ class TestBetweenTime:
             "are deprecated infavour of `inclusive`."
         )
         with tm.assert_produces_warning(FutureWarning, match=match):
-            filtered = ts.between_time(stime, etime, inc_start, inc_end)
-
-        # new new new
-        exp_len = 13 * 4 + 1
-        if not inc_start:
-            exp_len -= 5
-        if not inc_end:
-            exp_len -= 4
-
-        assert len(filtered) == exp_len
-        # for rs in filtered.index:
-        #     t = rs.time()
-        #     if inc_start:
-        #         assert t >= stime
-        #     else:
-        #         assert t > stime
-
-        #     if inc_end:
-        #         assert t <= etime
-        #     else:
-        #         assert t < etime
-
-        # result = ts.between_time("00:00", "01:00")
-        # expected = ts.between_time(stime, etime)
-        # tm.assert_equal(result, expected)
-
-        # # across midnight
-        # rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        # ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
-        # if frame_or_series is not DataFrame:
-        #     ts = ts[0]
-        # stime = time(22, 0)
-        # etime = time(9, 0)
-
-        # with tm.assert_produces_warning(FutureWarning):
-        #     filtered = ts.between_time(stime, etime, inc_start, inc_end)
-        # exp_len = (12 * 11 + 1) * 4 + 1
-        # if not inc_start:
-        #     exp_len -= 4
-        # if not inc_end:
-        #     exp_len -= 4
-
-        # assert len(filtered) == exp_len
-        # for rs in filtered.index:
-        #     t = rs.time()
-        #     if inc_start:
-        #         assert (t >= stime) or (t <= etime)
-        #     else:
-        #         assert (t > stime) or (t <= etime)
-
-        #     if inc_end:
-        #         assert (t <= etime) or (t >= stime)
-        #     else:
-        #         assert (t < etime) or (t >= stime)
+            _ = ts.between_time(stime, etime, inc_start, inc_end)
 
     # GH40245
     def test_between_time_incorr_arg_inclusive(self):
@@ -297,17 +244,18 @@ class TestBetweenTime:
             ts.between_time(stime, etime, inclusive=inclusive)
 
     # GH40245
-    def test_between_time_incompatiable_args_given_together(self):
+    @pytest.mark.parametrize(
+        "include_start, include_end", [(True, None), (True, True), (None, True)]
+    )
+    def test_between_time_incompatiable_args_given(self, include_start, include_end):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
 
         stime = time(0, 0)
         etime = time(1, 0)
-        inclusive = "left"
-        include_start = True
         msg = (
             "Deprecated arguments `include_start` and `include_end` cannot be "
             "passed if `inclusive` has been given."
         )
         with pytest.raises(ValueError, match=msg):
-            ts.between_time(stime, etime, include_start, inclusive=inclusive)
+            ts.between_time(stime, etime, include_start, include_end, inclusive="left")
