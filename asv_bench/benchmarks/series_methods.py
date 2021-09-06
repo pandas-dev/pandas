@@ -49,11 +49,11 @@ class Fillna:
         [True, False],
         [None, "pad", "bfill"],
         [
-            "float64",
-            "float32",
             "object",
-            "Int64",
-            "Float64",
+            "int32",
+            "int64",
+            "float32",
+            "float64",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "timedelta64[ns]",
@@ -76,8 +76,7 @@ class Fillna:
             self.value = dict(zip(self.ser.index, data[dtype])) if not method else None
         else:
             data = np.random.randn(N)
-            if dtype == "Int64":
-                data = data.round()
+            data = data.astype(dtype)
             self.ser = Series(data, dtype=dtype)
             self.ser[::2] = None
             self.value = dict(zip(self.ser.index, data)) if not method else None

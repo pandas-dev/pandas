@@ -376,11 +376,11 @@ class Fillna:
         [True, False],
         [None, "pad", "bfill"],
         [
-            "float64",
-            "float32",
             "object",
-            "Int64",
-            "Float64",
+            "int32",
+            "int64",
+            "float32",
+            "float64",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "timedelta64[ns]",
@@ -405,8 +405,7 @@ class Fillna:
             )
         else:
             data = np.random.randn(N, M)
-            if dtype == "Int64":
-                data = data.round()
+            data = data.astype(dtype)
             self.df = DataFrame({f"col_{i}": data[i] for i in range(M)})
             self.df[::2] = None
             self.value = dict(zip(self.df.columns, data[M])) if not method else None
