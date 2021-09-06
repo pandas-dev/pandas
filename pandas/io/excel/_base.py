@@ -121,6 +121,9 @@ usecols : int, str, list-like, or callable default None
     Returns a subset of the columns according to behavior above.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+    .. deprecated:: 1.4.0
+        Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
+        the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -337,7 +340,7 @@ def read_excel(
     names=None,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
@@ -481,7 +484,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
@@ -598,41 +601,49 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                                 data[row][col] = last
                             else:
                                 last = data[row][col]
-
+            future_warnings = []
             # GH 12292 : error when read one empty column from excel file
             try:
-                parser = TextParser(
-                    data,
-                    names=names,
-                    header=header,
-                    index_col=index_col,
-                    has_index_names=has_index_names,
-                    squeeze=squeeze,
-                    dtype=dtype,
-                    true_values=true_values,
-                    false_values=false_values,
-                    skiprows=skiprows,
-                    nrows=nrows,
-                    na_values=na_values,
-                    skip_blank_lines=False,  # GH 39808
-                    parse_dates=parse_dates,
-                    date_parser=date_parser,
-                    thousands=thousands,
-                    comment=comment,
-                    skipfooter=skipfooter,
-                    usecols=usecols,
-                    mangle_dupe_cols=mangle_dupe_cols,
-                    **kwds,
-                )
+                # Gotta catch deprecation warnings to raise at correct stacklevel :(
+                with warnings.catch_warnings(record=True) as w:
+                    parser = TextParser(
+                        data,
+                        names=names,
+                        header=header,
+                        index_col=index_col,
+                        has_index_names=has_index_names,
+                        squeeze=squeeze,
+                        dtype=dtype,
+                        true_values=true_values,
+                        false_values=false_values,
+                        skiprows=skiprows,
+                        nrows=nrows,
+                        na_values=na_values,
+                        skip_blank_lines=False,  # GH 39808
+                        parse_dates=parse_dates,
+                        date_parser=date_parser,
+                        thousands=thousands,
+                        comment=comment,
+                        skipfooter=skipfooter,
+                        usecols=usecols,
+                        mangle_dupe_cols=mangle_dupe_cols,
+                        **kwds,
+                    )
 
-                output[asheetname] = parser.read(nrows=nrows)
+                    output[asheetname] = parser.read(nrows=nrows)
 
-                if not squeeze or isinstance(output[asheetname], DataFrame):
-                    if header_names:
-                        output[asheetname].columns = output[
-                            asheetname
-                        ].columns.set_names(header_names)
+                    if not squeeze or isinstance(output[asheetname], DataFrame):
+                        if header_names:
+                            output[asheetname].columns = output[
+                                asheetname
+                            ].columns.set_names(header_names)
 
+                    # Record warning messages, can't raise here since it would be
+                    # suppressed again
+                    for warning in w:
+                        future_warnings.append(str(warning.message))
+                for warning in future_warnings:
+                    warnings.warn(warning, FutureWarning, stacklevel=5)
             except EmptyDataError:
                 # No Data, return an empty DataFrame
                 output[asheetname] = DataFrame()
@@ -1243,7 +1254,7 @@ class ExcelFile:
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         converters=None,
         true_values=None,
         false_values=None,

@@ -128,7 +128,8 @@ def test_1000_sep(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_squeeze(all_parsers):
+@pytest.mark.parametrize("squeeze", [True, False])
+def test_squeeze(all_parsers, squeeze):
     data = """\
 a,1
 b,2
@@ -138,13 +139,24 @@ c,3
     index = Index(["a", "b", "c"], name=0)
     expected = Series([1, 2, 3], name=1, index=index)
 
-    result = parser.read_csv(StringIO(data), index_col=0, header=None, squeeze=True)
-    tm.assert_series_equal(result, expected)
+    with tm.assert_produces_warning(
+        FutureWarning,
+        match="The squeeze argument has been deprecated "
+        "and will be removed in a future version.\n\n",
+    ):
+        result = parser.read_csv(
+            StringIO(data), index_col=0, header=None, squeeze=squeeze
+        )
+        if not squeeze:
+            expected = DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
+        else:
+            tm.assert_series_equal(result, expected)
 
-    # see gh-8217
-    #
-    # Series should not be a view.
-    assert not result._is_view
+            # see gh-8217
+            #
+            # Series should not be a view.
+            assert not result._is_view
 
 
 @xfail_pyarrow
