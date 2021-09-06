@@ -13,6 +13,7 @@ from pandas import (
     Series,
     Timestamp,
     date_range,
+    get_option,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
@@ -639,6 +640,8 @@ def test_apply_dup_names_multi_agg():
     # GH 21063
     df = DataFrame([[0, 1], [2, 3]], columns=["a", "a"])
     expected = DataFrame([[0, 1]], columns=["a", "a"], index=["min"])
+    if get_option("mode.new_udf_methods"):
+        expected = expected.T
     result = df.agg(["min"])
 
     tm.assert_frame_equal(result, expected)
@@ -1010,25 +1013,46 @@ def test_agg_transform(axis, float_frame):
         # list-like
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
-        if axis in {0, "index"}:
-            expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
+        if get_option("mode.new_udf_methods"):
+            if axis in {0, "index"}:
+                expected.columns = MultiIndex.from_product(
+                    [["sqrt"], float_frame.columns]
+                )
+            else:
+                expected.index = MultiIndex.from_product([["sqrt"], float_frame.index])
         else:
-            expected.index = MultiIndex.from_product([float_frame.index, ["sqrt"]])
+            if axis in {0, "index"}:
+                expected.columns = MultiIndex.from_product(
+                    [float_frame.columns, ["sqrt"]]
+                )
+            else:
+                expected.index = MultiIndex.from_product([float_frame.index, ["sqrt"]])
         tm.assert_frame_equal(result, expected)
 
         # multiple items in list
         # these are in the order as if we are applying both
         # functions per series and then concatting
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
-        expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
-        if axis in {0, "index"}:
-            expected.columns = MultiIndex.from_product(
-                [float_frame.columns, ["absolute", "sqrt"]]
-            )
+        if get_option("mode.new_udf_methods"):
+            expected = pd.concat([f_abs, f_sqrt], axis=other_axis)
+            if axis in {0, "index"}:
+                expected.columns = MultiIndex.from_product(
+                    [["absolute", "sqrt"], float_frame.columns]
+                )
+            else:
+                expected.index = MultiIndex.from_product(
+                    [["absolute", "sqrt"], float_frame.index]
+                )
         else:
-            expected.index = MultiIndex.from_product(
-                [float_frame.index, ["absolute", "sqrt"]]
-            )
+            expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
+            if axis in {0, "index"}:
+                expected.columns = MultiIndex.from_product(
+                    [float_frame.columns, ["absolute", "sqrt"]]
+                )
+            else:
+                expected.index = MultiIndex.from_product(
+                    [float_frame.index, ["absolute", "sqrt"]]
+                )
         tm.assert_frame_equal(result, expected)
 
 
@@ -1040,6 +1064,8 @@ def test_demo():
     expected = DataFrame(
         {"A": [0, 4], "B": [5, 5]}, columns=["A", "B"], index=["min", "max"]
     )
+    if get_option("mode.new_udf_methods"):
+        expected = expected.T
     tm.assert_frame_equal(result, expected)
 
     result = df.agg({"A": ["min", "max"], "B": ["sum", "max"]})
@@ -1086,18 +1112,29 @@ def test_agg_multiple_mixed_no_warning():
         },
         index=["min", "sum"],
     )
+    klass, match = None, None
+    if get_option("mode.new_udf_methods"):
+        expected = expected.T
+        klass, match = FutureWarning, "Dropping of nuisance columns"
     # sorted index
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(klass, match=match, check_stacklevel=False):
         result = mdf.agg(["min", "sum"])
 
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(None):
+    klass, match = None, None
+    if get_option("mode.new_udf_methods"):
+        klass, match = FutureWarning, "Dropping of nuisance columns"
+
+    with tm.assert_produces_warning(klass, match=match, check_stacklevel=False):
         result = mdf[["D", "C", "B", "A"]].agg(["sum", "min"])
 
     # GH40420: the result of .agg should have an index that is sorted
     # according to the arguments provided to agg.
-    expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
+    if get_option("mode.new_udf_methods"):
+        expected = expected.loc[["D", "C", "B", "A"], ["sum", "min"]]
+    else:
+        expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1116,6 +1153,8 @@ def test_agg_reduce(axis, float_frame):
     )
     expected.columns = ["mean", "max", "sum"]
     expected = expected.T if axis in {0, "index"} else expected
+    if get_option("mode.new_udf_methods"):
+        expected = expected.T
 
     result = float_frame.agg(["mean", "max", "sum"], axis=axis)
     tm.assert_frame_equal(result, expected)
@@ -1192,6 +1231,8 @@ def test_nuiscance_columns():
         index=["min"],
         columns=df.columns,
     )
+    if get_option("mode.new_udf_methods"):
+        expected = expected.T
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(
@@ -1205,6 +1246,8 @@ def test_nuiscance_columns():
     expected = DataFrame(
         [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
     )
+    if get_option("mode.new_udf_methods"):
+        expected = expected.T
     tm.assert_frame_equal(result, expected)
 
 
@@ -1244,8 +1287,12 @@ def test_non_callable_aggregates(how):
         }
     )
 
-    tm.assert_frame_equal(result1, result2, check_like=True)
-    tm.assert_frame_equal(result2, expected, check_like=True)
+    if get_option("new_udf_methods"):
+        tm.assert_frame_equal(result2, expected)
+        tm.assert_frame_equal(result1, expected.T)
+    else:
+        tm.assert_frame_equal(result1, result2, check_like=True)
+        tm.assert_frame_equal(result2, expected, check_like=True)
 
     # Just functional string arg is same as calling df.arg()
     result = getattr(df, how)("count")
@@ -1282,7 +1329,9 @@ def test_agg_listlike_result():
     tm.assert_series_equal(result, expected)
 
     result = df.agg([func])
-    expected = expected.to_frame("func").T
+    expected = expected.to_frame("func")
+    if not get_option("mode.new_udf_methods"):
+        expected = expected.T
     tm.assert_frame_equal(result, expected)
 
 
@@ -1395,14 +1444,20 @@ def test_apply_empty_list_reduce():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_no_suffix_index():
+def test_apply_no_suffix_index(request):
     # GH36189
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
-    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
-    expected = DataFrame(
-        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
-    )
-
+    result = pdf.apply([np.square, lambda x: x, lambda x: x])
+    if get_option("mode.new_udf_methods"):
+        columns = MultiIndex.from_product(
+            [["A", "B"], ["square", "<lambda>", "<lambda>"]]
+        )
+        expected = DataFrame([[16, 4, 4, 81, 9, 9]], columns=columns)
+    else:
+        columns = MultiIndex.from_product(
+            [["A", "B"], ["square", "<lambda>", "<lambda>"]]
+        )
+        expected = DataFrame(3 * [[16, 4, 4, 81, 9, 9]], columns=columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1434,15 +1489,25 @@ def test_aggregation_func_column_order():
 
     aggs = ["sum", foo, "count", "min"]
     result = df.agg(aggs)
-    expected = DataFrame(
-        {
-            "item": ["123456", np.nan, 6, "1"],
-            "att1": [21.0, 10.5, 6.0, 1.0],
-            "att2": [18.0, 9.0, 6.0, 0.0],
-            "att3": [17.0, 8.5, 6.0, 0.0],
-        },
-        index=["sum", "foo", "count", "min"],
-    )
+    if get_option("mode.new_udf_methods"):
+        expected = DataFrame(
+            {
+                "sum": ["123456", 21, 18, 17],
+                "count": [6, 6, 6, 6],
+                "min": ["1", 1, 0, 0],
+            },
+            index=["item", "att1", "att2", "att3"],
+        )
+    else:
+        expected = DataFrame(
+            {
+                "item": ["123456", np.nan, 6, "1"],
+                "att1": [21.0, 10.5, 6.0, 1.0],
+                "att2": [18.0, 9.0, 6.0, 0.0],
+                "att3": [17.0, 8.5, 6.0, 0.0],
+            },
+            index=["sum", "foo", "count", "min"],
+        )
     tm.assert_frame_equal(result, expected)
 
 

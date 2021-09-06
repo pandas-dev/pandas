@@ -21,7 +21,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import option_context
+from pandas._config import (
+    get_option,
+    option_context,
+)
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -167,7 +170,10 @@ class Apply(metaclass=abc.ABCMeta):
             return self.agg_dict_like()
         elif is_list_like(arg):
             # we require a list, but not a 'str'
-            return self.agg_list_like()
+            if get_option("new_udf_methods"):
+                return self.new_list_like("agg")
+            else:
+                return self.agg_list_like()
 
         if callable(arg):
             f = com.get_cython_func(arg)
@@ -396,6 +402,70 @@ class Apply(metaclass=abc.ABCMeta):
                 raise ValueError(
                     "cannot combine transform and aggregation operations"
                 ) from err
+            return result
+        else:
+            # Concat uses the first index to determine the final indexing order.
+            # The union of a shorter first index with the other indices causes
+            # the index sorting to be different from the order of the aggregating
+            # functions. Reindex if this is the case.
+            index_size = concatenated.index.size
+            full_ordered_index = next(
+                result.index for result in results if result.index.size == index_size
+            )
+            return concatenated.reindex(full_ordered_index, copy=False)
+
+    def new_list_like(self, method: str) -> DataFrame | Series:
+        """
+        Compute aggregation in the case of a list-like argument.
+
+        Returns
+        -------
+        Result of aggregation.
+        """
+        from pandas.core.reshape.concat import concat
+
+        obj = self.obj
+        arg = cast(List[AggFuncTypeBase], self.f)
+
+        results = []
+        keys = []
+        result_dim = None
+
+        for a in arg:
+            name = None
+            try:
+                if isinstance(a, (tuple, list)):
+                    # Handle (name, value) pairs
+                    name, a = a
+                new_res = getattr(obj, method)(a)
+                if result_dim is None:
+                    result_dim = getattr(new_res, "ndim", 0)
+                elif getattr(new_res, "ndim", 0) != result_dim:
+                    raise ValueError(
+                        "cannot combine transform and aggregation operations"
+                    )
+            except TypeError:
+                pass
+            else:
+                results.append(new_res)
+
+                # make sure we find a good name
+                if name is None:
+                    name = com.get_callable_name(a) or a
+                keys.append(name)
+
+        # if we are empty
+        if not len(results):
+            raise ValueError("no results")
+
+        try:
+            concatenated = concat(results, keys=keys, axis=1, sort=False)
+        except TypeError:
+            # we are concatting non-NDFrame objects,
+            # e.g. a list of scalars
+            from pandas import Series
+
+            result = Series(results, index=keys, name=obj.name)
             return result
         else:
             # Concat uses the first index to determine the final indexing order.

@@ -26,6 +26,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
@@ -37,6 +39,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -886,8 +889,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        op = GroupByApply(self, func, args, kwargs)
-        result = op.agg()
+        with group_selection_context(self):
+            op = GroupByApply(self, func, args, kwargs)
+            result = op.agg()
         if not is_dict_like(func) and result is not None:
             return result
         elif relabeling and result is not None:
@@ -897,6 +901,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns
 
         if result is None:
+            if get_option("new_udf_methods"):
+                return self._new_agg(func, args, kwargs)
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
@@ -940,6 +946,28 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                         # select everything except for the last level, which is the one
                         # containing the name of the function(s), see GH#32040
                         result.columns = result.columns.droplevel(-1)
+
+        if not self.as_index:
+            self._insert_inaxis_grouper_inplace(result)
+            result.index = Index(range(len(result)))
+
+        return result
+
+    def _new_agg(self, func, args, kwargs):
+        if args or kwargs:
+            # test_pass_args_kwargs gets here (with and without as_index)
+            # can't return early
+            result = self._aggregate_frame(func, *args, **kwargs)
+
+        elif self.axis == 1 and self.grouper.nkeys == 1:
+            # _aggregate_multiple_funcs does not allow self.axis == 1
+            # Note: axis == 1 precludes 'not self.as_index', see __init__
+            result = self._aggregate_frame(func)
+            return result
+        else:
+            # test_groupby_as_index_series_scalar gets here
+            # with 'not self.as_index'
+            return self._python_agg_general(func, *args, **kwargs)
 
         if not self.as_index:
             self._insert_inaxis_grouper_inplace(result)
@@ -999,7 +1027,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 f"Before calling .{how}, select only columns which should be "
                 "valid for the function.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
         return self._wrap_agged_manager(new_mgr)
@@ -1195,7 +1223,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 f"Before calling .{how}, select only columns which should be "
                 "valid for the transforming function.",
                 FutureWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
         res_df = self.obj._constructor(res_mgr)

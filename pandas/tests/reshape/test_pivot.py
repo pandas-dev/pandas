@@ -8,6 +8,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._config import get_option
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -1905,8 +1907,14 @@ class TestPivotTable:
             frame, index=["foo"], aggfunc=len, margins=True, margins_name=greek
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
-        expected = DataFrame(index=index)
-        tm.assert_frame_equal(table, expected)
+
+        if get_option("new_udf_methods"):
+            expected = Series([1, 1, 1, 3], index=index)
+            expected.index.name = None
+            tm.assert_series_equal(table, expected)
+        else:
+            expected = DataFrame(index=index)
+            tm.assert_frame_equal(table, expected)
 
     def test_pivot_string_as_func(self):
         # GH #18713

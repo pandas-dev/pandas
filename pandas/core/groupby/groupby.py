@@ -1428,7 +1428,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     "Before calling .agg, select only columns which should be "
                     "valid for the aggregating function.",
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=find_stack_level(),
                 )
                 continue
 

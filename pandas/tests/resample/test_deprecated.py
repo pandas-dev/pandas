@@ -10,6 +10,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Series,
+    get_option,
 )
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
@@ -97,7 +98,10 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
         result_agg = df.resample("2D", loffset="2H").agg(arg)
 
     if isinstance(arg, list):
-        expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
+        if get_option("new_udf_methods"):
+            expected.columns = pd.MultiIndex.from_tuples([("mean", "value")])
+        else:
+            expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
 
     tm.assert_frame_equal(result_agg, expected)
 
@@ -216,7 +220,10 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
     with tm.assert_produces_warning(FutureWarning):
         result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
     if isinstance(agg_arg, list):
-        expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
+        if get_option("new_udf_methods"):
+            expected.columns = pd.MultiIndex.from_tuples([("mean", "value")])
+        else:
+            expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
     tm.assert_frame_equal(result_agg, expected)
 
 
