@@ -10,6 +10,7 @@ module is imported, register them here rather than in the module.
 
 """
 import os
+from typing import Callable
 import warnings
 
 import pandas._config.config as cf
@@ -879,7 +880,7 @@ with cf.config_prefix("styler"):
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, callable, str]),
+        validator=is_instance_factory([type(None), dict, Callable, str]),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
