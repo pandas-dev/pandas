@@ -1846,9 +1846,9 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
 @pytest.mark.parametrize(
     "input_dict,expected",
     [
-        ({0: 0}, np.array([[0]], dtype=int)),
+        ({0: 0}, np.array([[0]], dtype=np.int64)),
         ({"a": "a"}, np.array([["a"]], dtype=object)),
-        ({1: 1}, np.array([[1]], dtype=int)),
+        ({1: 1}, np.array([[1]], dtype=np.int64)),
     ],
 )
 @pytest.mark.skipif(np_version_under1p19, reason="fails on numpy below 1.19")
