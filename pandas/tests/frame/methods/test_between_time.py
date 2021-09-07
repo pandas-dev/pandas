@@ -273,26 +273,26 @@ class TestBetweenTime:
 
         result = ts.between_time(stime, etime)
         expected = ts.between_time(stime, etime, inclusive="both")
-        assert result.equals(expected)
+        tm.assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
             result = ts.between_time(stime, etime, include_start=False)
         expected = ts.between_time(stime, etime, inclusive="right")
-        assert result.equals(expected)
+        tm.assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
             result = ts.between_time(stime, etime, include_end=False)
         expected = ts.between_time(stime, etime, inclusive="left")
-        assert result.equals(expected)
+        tm.assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
             result = ts.between_time(
                 stime, etime, include_start=False, include_end=False
             )
         expected = ts.between_time(stime, etime, inclusive="neither")
-        assert result.equals(expected)
+        tm.assert_frame_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
             result = ts.between_time(stime, etime, include_start=True, include_end=True)
         expected = ts.between_time(stime, etime, inclusive="both")
-        assert result.equals(expected)
+        tm.assert_frame_equal(result, expected)
