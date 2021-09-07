@@ -1206,6 +1206,13 @@ class TestDataFrameIndexing:
         res = df.loc[:, 0.5]
         tm.assert_series_equal(res, expected)
 
+    def test_setitem_array_as_cell_value(self):
+        # GH#43422
+        df = DataFrame(columns=["a", "b"], dtype=object)
+        df.loc[0] = {"a": np.zeros((2,)), "b": np.zeros((2, 2))}
+        expected = DataFrame({"a": [np.zeros((2,))], "b": [np.zeros((2, 2))]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameIndexingUInt64:
     def test_setitem(self, uint64_frame):
