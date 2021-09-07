@@ -1782,3 +1782,41 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         # JSON keys should be all non-callable non-underscore attributes, see GH-42768
         series = Series([_TestObject(a=1, b=2, _c=3, d=4)])
         assert json.loads(series.to_json()) == {"0": {"a": 1, "b": 2, "d": 4}}
+
+    @pytest.mark.parametrize(
+        "data,expected",
+        [
+            (
+                Series({0: -6 + 8j, 1: 0 + 1j, 2: 9 - 5j}),
+                '{"0":{"imag":8.0,"real":-6.0},'
+                '"1":{"imag":1.0,"real":0.0},'
+                '"2":{"imag":-5.0,"real":9.0}}',
+            ),
+            (
+                Series({0: -9.39 + 0.66j, 1: 3.95 + 9.32j, 2: 4.03 - 0.17j}),
+                '{"0":{"imag":0.66,"real":-9.39},'
+                '"1":{"imag":9.32,"real":3.95},'
+                '"2":{"imag":-0.17,"real":4.03}}',
+            ),
+            (
+                DataFrame([[-2 + 3j, -1 - 0j], [4 - 3j, -0 - 10j]]),
+                '{"0":{"0":{"imag":3.0,"real":-2.0},'
+                '"1":{"imag":-3.0,"real":4.0}},'
+                '"1":{"0":{"imag":0.0,"real":-1.0},'
+                '"1":{"imag":-10.0,"real":0.0}}}',
+            ),
+            (
+                DataFrame(
+                    [[-0.28 + 0.34j, -1.08 - 0.39j], [0.41 - 0.34j, -0.78 - 1.35j]]
+                ),
+                '{"0":{"0":{"imag":0.34,"real":-0.28},'
+                '"1":{"imag":-0.34,"real":0.41}},'
+                '"1":{"0":{"imag":-0.39,"real":-1.08},'
+                '"1":{"imag":-1.35,"real":-0.78}}}',
+            ),
+        ],
+    )
+    def test_complex_data_tojson(self, data, expected):
+        # GH41174
+        result = data.to_json()
+        assert result == expected
