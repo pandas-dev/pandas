@@ -972,12 +972,12 @@ class TestSeriesReductions:
         #                           [skipna=True/any, skipna=True/all]]
         "data,expected_data",
         [
-            ([0, 0, 0], [[0, 0], [0, 0]]),
-            ([1, 1, 1], [[1, 1], [1, 1]]),
-            ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [0, 1]]),
-            ([0, pd.NA, 0], [[pd.NA, 0], [0, 0]]),
-            ([1, pd.NA, 1], [[1, pd.NA], [1, 1]]),
-            ([1, pd.NA, 0], [[1, 0], [1, 0]]),
+            ([0, 0, 0], [[False, False], [False, False]]),
+            ([1, 1, 1], [[True, True], [True, True]]),
+            ([pd.NA, pd.NA, pd.NA], [[pd.NA, pd.NA], [False, True]]),
+            ([0, pd.NA, 0], [[pd.NA, False], [False, False]]),
+            ([1, pd.NA, 1], [[True, pd.NA], [True, True]]),
+            ([1, pd.NA, 0], [[True, False], [True, False]]),
         ],
     )
     def test_any_all_nullable_kleene_logic(
