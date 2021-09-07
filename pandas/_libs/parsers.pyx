@@ -797,9 +797,7 @@ cdef class TextReader:
                 header = [ self.names ]
 
         elif self.names is not None:
-            # Enforce this unless usecols
-            if not self.has_usecols:
-                self.parser.expected_fields = len(self.names)
+            self.parser.expected_fields = len(self.names)
 
             # Names passed
             if self.parser.lines < 1:
