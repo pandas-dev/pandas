@@ -637,8 +637,8 @@ def get_handle(
         if is_path:
             dirname = os.path.dirname(handle)
             if len(dirname) != 0 and not os.path.isdir(dirname):
-                raise ValueError(
-                    fr"Cannot save file into non-existent directory {dirname}"
+                raise OSError(
+                    fr"Cannot save file into a non-existent directory: '{dirname}'"
                 )
 
     if compression:
