@@ -150,15 +150,22 @@ def test_mi_styler_sparsify_options(mi_styler):
     assert html1 != html2
 
 
-def test_trimming_maximum():
-    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
-    assert (rn, cn) == (12, 6)
-
-    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
-    assert (rn, cn) == (250, 3)
-
-    rn, cn = _get_trimming_maximums(100, 100, 200, 4, 6, scaling_factor=0.5)
-    assert (rn, cn) == (4, 6)
+@pytest.mark.parametrize(
+    "rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn",
+    [
+        (100, 100, 100, None, None, 12, 6),  # reduce to (12, 6) < 100 elements
+        (1000, 3, 750, None, None, 250, 3),  # dynamically reduce rows to 250, keep cols
+        (4, 1000, 500, None, None, 4, 125),  # dynamically reduce cols to 125, keep rows
+        (1000, 3, 750, 10, None, 10, 3),  # overwrite above dynamics with max_row
+        (4, 1000, 500, None, 5, 4, 5),  # overwrite above dynamics with max_col
+        (100, 100, 700, 50, 50, 25, 25),  # rows cols below given maxes so < 700 elmts
+    ],
+)
+def test_trimming_maximum(rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn):
+    rn, cn = _get_trimming_maximums(
+        rn, cn, max_els, max_rows, max_cols, scaling_factor=0.5
+    )
+    assert (rn, cn) == (exp_rn, exp_cn)
 
 
 @pytest.mark.parametrize(
