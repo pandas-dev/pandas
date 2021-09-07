@@ -449,6 +449,35 @@ def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarr
         return np.full(result_shape, fill_value, dtype=values.dtype)
 
 
+def maybe_operate_rowwise(func):
+    """
+    NumPy operations on C-contiguous ndarrays with axis=1 can be
+    very slow. Operate row-by-row and concatenate the results.
+    """
+
+    @functools.wraps(func)
+    def newfunc(values: np.ndarray, *, axis: int | None = None, **kwargs):
+        if (
+            axis == 1
+            and values.ndim == 2
+            and values.flags["C_CONTIGUOUS"]
+            and values.dtype != object
+        ):
+            arrs = list(values)
+            if kwargs.get("mask") is not None:
+                mask = kwargs.pop("mask")
+                results = [
+                    func(arrs[i], mask=mask[i], **kwargs) for i in range(len(arrs))
+                ]
+            else:
+                results = [func(x, **kwargs) for x in arrs]
+            return np.array(results)
+
+        return func(values, axis=axis, **kwargs)
+
+    return newfunc
+
+
 def nanany(
     values: np.ndarray,
     *,
@@ -543,6 +572,7 @@ def nanall(
 
 @disallow("M8")
 @_datetimelike_compat
+@maybe_operate_rowwise
 def nansum(
     values: np.ndarray,
     *,
@@ -1111,6 +1141,7 @@ def nanargmin(
 
 
 @disallow("M8", "m8")
+@maybe_operate_rowwise
 def nanskew(
     values: np.ndarray,
     *,
@@ -1198,6 +1229,7 @@ def nanskew(
 
 
 @disallow("M8", "m8")
+@maybe_operate_rowwise
 def nankurt(
     values: np.ndarray,
     *,
@@ -1294,6 +1326,7 @@ def nankurt(
 
 
 @disallow("M8", "m8")
+@maybe_operate_rowwise
 def nanprod(
     values: np.ndarray,
     *,

@@ -11,7 +11,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
-    Int64Index,
     Interval,
     RangeIndex,
     Series,
@@ -448,7 +447,7 @@ class TestFromRecords:
         a = np.array([(1, 2)], dtype=[("id", np.int64), ("value", np.int64)])
         df = DataFrame.from_records(a, index="id")
 
-        ex_index = Int64Index([1], name="id")
+        ex_index = Index([1], name="id")
         expected = DataFrame({"value": [2]}, index=ex_index, columns=["value"])
         tm.assert_frame_equal(df, expected)
 
