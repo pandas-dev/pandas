@@ -375,13 +375,18 @@ class SeriesGroupBy(GroupBy[Series]):
         In the vast majority of cases output will only contain one element.
         The exception is operations that expand dimensions, like ohlc.
         """
-        assert len(output) == 1
+        if isinstance(output, Series):
+            result = output
+            result.index = self.grouper.result_index
+            result.name = self.obj.name
+        else:
+            assert len(output) == 1
 
-        name = self.obj.name
-        index = self.grouper.result_index
-        values = next(iter(output.values()))
+            name = self.obj.name
+            index = self.grouper.result_index
+            values = next(iter(output.values()))
 
-        result = self.obj._constructor(values, index=index, name=name)
+            result = self.obj._constructor(values, index=index, name=name)
         return self._reindex_output(result)
 
     def _wrap_transformed_output(

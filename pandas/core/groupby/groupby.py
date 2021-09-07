@@ -3010,15 +3010,49 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return result.T
 
         obj = self._obj_with_exclusions
-        if obj.ndim == 2 and self.axis == 0 and needs_2d and real_2d:
+        if needs_2d and real_2d:
             # Operate block-wise instead of column-by-column
+            orig_ndim = obj.ndim
+            if orig_ndim == 1:
+                # Operate on DataFrame, then squeeze below
+                obj = obj.to_frame()
+
             mgr = obj._mgr
+            if self.axis == 1:
+                mgr = obj.T._mgr
+
             if numeric_only:
                 mgr = mgr.get_numeric_data()
 
-            # setting ignore_failures=False for troubleshooting
-            res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
+            res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
+            if len(res_mgr.items) != len(mgr.items):
+                howstr = how.replace("group_", "")
+                warnings.warn(
+                    "Dropping invalid columns in "
+                    f"{type(self).__name__}.{howstr} is deprecated. "
+                    "In a future version, a TypeError will be raised. "
+                    f"Before calling .{howstr}, select only columns which "
+                    "should be valid for the function.",
+                    FutureWarning,
+                    stacklevel=3,
+                )
+                if len(res_mgr.items) == 0:
+                    # We re-call grouped_reduce to get the right exception message
+                    try:
+                        mgr.grouped_reduce(blk_func, ignore_failures=False)
+                    except Exception as err:
+                        error_msg = str(err)
+                        raise TypeError(error_msg)
+                    # We should never get here
+                    raise TypeError("All columns were dropped in grouped_reduce")
+
             output = type(obj)(res_mgr)
+
+            if orig_ndim == 1:
+                assert output.ndim == 2
+                assert output.shape[1] == 1
+                output = output.iloc[:, 0]
+
             if aggregate:
                 return self._wrap_aggregated_output(output)
             else:
