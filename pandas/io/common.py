@@ -520,6 +520,20 @@ def infer_compression(
     raise ValueError(msg)
 
 
+def check_parent_directory(fpath: str):
+    """Check if parent directory of a file exists, raise OSError if it does not
+
+    Parameters
+    ----------
+    fpath: str
+        File path
+
+    """
+    dirname = os.path.dirname(fpath)
+    if len(dirname) != 0 and not os.path.isdir(dirname):
+        raise OSError(fr"Cannot save file into a non-existent directory: '{dirname}'")
+
+
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
@@ -633,13 +647,8 @@ def get_handle(
     compression = compression_args.pop("method")
 
     # GH 24306
-    if mode not in ["r", "rb"]:  # Only for write methods
-        if is_path:
-            dirname = os.path.dirname(handle)
-            if len(dirname) != 0 and not os.path.isdir(dirname):
-                raise OSError(
-                    fr"Cannot save file into a non-existent directory: '{dirname}'"
-                )
+    if mode not in ["r", "rb"] and is_path:  # Only for write methods
+        check_parent_directory(handle)
 
     if compression:
         # compression libraries do not like an explicit text-mode
