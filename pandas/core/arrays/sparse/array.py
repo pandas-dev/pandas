@@ -7,6 +7,7 @@ from collections import abc
 import numbers
 import operator
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Sequence,
@@ -25,9 +26,12 @@ from pandas._libs.sparse import (
 )
 from pandas._libs.tslibs import NaT
 from pandas._typing import (
+    ArrayLike,
+    AstypeArg,
     Dtype,
     NpDtype,
     Scalar,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
@@ -76,6 +80,11 @@ from pandas.core.nanops import check_below_min_count
 import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
+
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from pandas._typing import NumpySorter
 
 # ----------------------------------------------------------------------------
 # Array
@@ -519,9 +528,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
-                # error: Incompatible types in assignment (expression has type
-                # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-                dtype = object  # type: ignore[assignment]
+                dtype = object
 
         out = np.full(self.shape, fill_value, dtype=dtype)
         out[self.sp_index.to_int_index().indices] = self.sp_values
@@ -992,7 +999,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return taken
 
-    def searchsorted(self, v, side="left", sorter=None):
+    def searchsorted(
+        self,
+        v: ArrayLike | object,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=2)
         if not is_scalar(v):
@@ -1058,7 +1071,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype: Dtype | None = None, copy=True):
+    def astype(self, dtype: AstypeArg | None = None, copy=True):
         """
         Change the dtype of a SparseArray.
 
