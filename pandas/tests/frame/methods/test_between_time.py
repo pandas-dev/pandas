@@ -271,26 +271,28 @@ class TestBetweenTime:
             "are deprecated in favour of `inclusive`."
         )
 
-        x1 = ts.between_time(stime, etime)
-        y1 = ts.between_time(stime, etime, inclusive="both")
-        assert x1.equals(y1)
+        result = ts.between_time(stime, etime)
+        expected = ts.between_time(stime, etime, inclusive="both")
+        assert result.equals(expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
-            x2 = ts.between_time(stime, etime, include_start=False)
-        y2 = ts.between_time(stime, etime, inclusive="right")
-        assert x2.equals(y2)
+            result = ts.between_time(stime, etime, include_start=False)
+        expected = ts.between_time(stime, etime, inclusive="right")
+        assert result.equals(expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
-            x3 = ts.between_time(stime, etime, include_end=False)
-        y3 = ts.between_time(stime, etime, inclusive="left")
-        assert x3.equals(y3)
+            result = ts.between_time(stime, etime, include_end=False)
+        expected = ts.between_time(stime, etime, inclusive="left")
+        assert result.equals(expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
-            x4 = ts.between_time(stime, etime, include_start=False, include_end=False)
-        y4 = ts.between_time(stime, etime, inclusive="neither")
-        assert x4.equals(y4)
+            result = ts.between_time(
+                stime, etime, include_start=False, include_end=False
+            )
+        expected = ts.between_time(stime, etime, inclusive="neither")
+        assert result.equals(expected)
 
         with tm.assert_produces_warning(FutureWarning, match=match):
-            x5 = ts.between_time(stime, etime, include_start=True, include_end=True)
-        y5 = ts.between_time(stime, etime, inclusive="both")
-        assert x5.equals(y5)
+            result = ts.between_time(stime, etime, include_start=True, include_end=True)
+        expected = ts.between_time(stime, etime, inclusive="both")
+        assert result.equals(expected)
