@@ -191,6 +191,28 @@ def test_doctype(styler):
     assert "<head>" not in result
 
 
+def test_doctype_encoding(styler):
+    with option_context("styler.render.encoding", "ASCII"):
+        result = styler.to_html(doctype_html=True)
+        assert '<meta charset="ASCII">' in result
+        result = styler.to_html(doctype_html=True, encoding="ANSI")
+        assert '<meta charset="ANSI">' in result
+
+
+def test_bold_headers_arg(styler):
+    result = styler.to_html(bold_headers=True)
+    assert "th {\n  font-weight: bold;\n}" in result
+    result = styler.to_html()
+    assert "th {\n  font-weight: bold;\n}" not in result
+
+
+def test_caption_arg(styler):
+    result = styler.to_html(caption="foo bar")
+    assert "<caption>foo bar</caption>" in result
+    result = styler.to_html()
+    assert "<caption>foo bar</caption>" not in result
+
+
 def test_block_names(tpl_style, tpl_table):
     # catch accidental removal of a block
     expected_style = {

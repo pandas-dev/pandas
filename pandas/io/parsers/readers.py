@@ -404,8 +404,6 @@ _c_parser_defaults = {
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
     "float_precision": None,
 }
 
@@ -442,7 +440,6 @@ _pyarrow_unsupported = {
 }
 
 _deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
-_deprecated_args: set[str] = {"error_bad_lines", "warn_bad_lines"}
 
 
 def validate_integer(name, val, min_val=0):
@@ -693,6 +690,7 @@ def read_table(
     escapechar=None,
     comment=None,
     encoding=None,
+    encoding_errors: str | None = "strict",
     dialect=None,
     # Error Handling
     error_bad_lines=None,
@@ -700,12 +698,12 @@ def read_table(
     # TODO (2.0): set on_bad_lines to "error".
     # See _refine_defaults_read comment for why we do this.
     on_bad_lines=None,
-    encoding_errors: str | None = "strict",
     # Internal
     delim_whitespace=False,
     low_memory=_c_parser_defaults["low_memory"],
     memory_map=False,
     float_precision=None,
+    storage_options: StorageOptions = None,
 ):
     # locals() should never be modified
     kwds = locals().copy()
@@ -802,6 +800,24 @@ def read_fwf(
         for w in widths:
             colspecs.append((col, col + w))
             col += w
+
+    # GH#40830
+    # Ensure length of `colspecs` matches length of `names`
+    names = kwds.get("names")
+    if names is not None:
+        if len(names) != len(colspecs):
+            # need to check len(index_col) as it might contain
+            # unnamed indices, in which case it's name is not required
+            len_index = 0
+            if kwds.get("index_col") is not None:
+                index_col: Any = kwds.get("index_col")
+                if index_col is not False:
+                    if not is_list_like(index_col):
+                        len_index = 1
+                    else:
+                        len_index = len(index_col)
+            if len(names) + len_index != len(colspecs):
+                raise ValueError("Length of colspecs must match length of names")
 
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
@@ -1026,8 +1042,8 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        for arg in _deprecated_args:
-            parser_default = _c_parser_defaults[arg]
+        for arg in _deprecated_defaults.keys():
+            parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
             depr_default = _deprecated_defaults[arg]
             if result.get(arg, depr_default) != depr_default:
                 msg = (
