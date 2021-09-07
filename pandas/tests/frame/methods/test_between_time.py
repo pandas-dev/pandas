@@ -69,8 +69,7 @@ class TestBetweenTime:
         with pytest.raises(ValueError, match=msg):
             obj.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
-    @pytest.mark.parametrize("inclusive", ["both", "neither", "left", "right"])
-    def test_between_time(self, inclusive, frame_or_series):
+    def test_between_time(self, inclusive_endpoints_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         if frame_or_series is not DataFrame:
@@ -78,6 +77,7 @@ class TestBetweenTime:
 
         stime = time(0, 0)
         etime = time(1, 0)
+        inclusive = inclusive_endpoints_fixture
 
         filtered = ts.between_time(stime, etime, inclusive=inclusive)
         exp_len = 13 * 4 + 1
