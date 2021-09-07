@@ -68,7 +68,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         else:
             # Create workbook object with default optimized_write=True.
-            self.book = Workbook()
+            self.book = Workbook(**engine_kwargs)
 
             if self.book.worksheets:
                 self.book.remove(self.book.worksheets[0])

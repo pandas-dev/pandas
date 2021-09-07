@@ -98,14 +98,15 @@ def test_kwargs(ext, write_only):
                 DataFrame().to_excel(writer)
 
 
-@pytest.mark.parametrize("write_only", [True, False])
-def test_engine_kwargs(ext, write_only):
+@pytest.mark.parametrize("iso_dates", [True, False])
+def test_engine_kwargs(ext, iso_dates):
     # GH 42286
     # openpyxl doesn't utilize kwargs, only test that supplying a engine_kwarg works
-    engine_kwargs = {"write_only": write_only}
+    engine_kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
         with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
             # ExcelWriter won't allow us to close without writing something
+            assert writer.book.iso_dates == iso_dates
             DataFrame().to_excel(writer)
 
 
