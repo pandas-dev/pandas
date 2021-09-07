@@ -9,6 +9,7 @@ from pandas.util._test_decorators import async_mark
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     TimedeltaIndex,
     Timestamp,
@@ -403,6 +404,20 @@ def test_resample_groupby_agg():
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_groupby_agg_listlike():
+    # GH 42905
+    ts = Timestamp("2021-02-28 00:00:00")
+    df = DataFrame({"class": ["beta"], "value": [69]}, index=Index([ts], name="date"))
+    resampled = df.groupby("class").resample("M")["value"]
+    result = resampled.agg(["sum", "size"])
+    expected = DataFrame(
+        [[69, 1]],
+        index=pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"]),
+        columns=["sum", "size"],
+    )
     tm.assert_frame_equal(result, expected)
 
 
