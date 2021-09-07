@@ -3046,17 +3046,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     # We should never get here
                     raise TypeError("All columns were dropped in grouped_reduce")
 
-            output = type(obj)(res_mgr)
+            out = type(obj)(res_mgr)
 
             if orig_ndim == 1:
-                assert output.ndim == 2
-                assert output.shape[1] == 1
-                output = output.iloc[:, 0]
+                assert out.ndim == 2
+                assert out.shape[1] == 1
+                out = out.iloc[:, 0]
 
             if aggregate:
-                return self._wrap_aggregated_output(output)
+                return self._wrap_aggregated_output(out)
             else:
-                return self._wrap_transformed_output(output)
+                return self._wrap_transformed_output(out)
 
         error_msg = ""
         for idx, obj in enumerate(self._iterate_slices()):
