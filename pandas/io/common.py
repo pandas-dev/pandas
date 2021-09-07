@@ -632,6 +632,12 @@ def get_handle(
     compression_args = dict(ioargs.compression)
     compression = compression_args.pop("method")
 
+    # GH 24306
+    if is_path:
+        dirname = os.path.dirname(handle)
+        if len(dirname)!=0 and not os.path.isdir(dirname):
+            raise ValueError(fr'Cannot save file into non-existent directory {dirname}')
+
     if compression:
         # compression libraries do not like an explicit text-mode
         ioargs.mode = ioargs.mode.replace("t", "")
