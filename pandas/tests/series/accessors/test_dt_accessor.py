@@ -691,6 +691,19 @@ class TestSeriesDatetimeValues:
         )
         tm.assert_frame_equal(result, expected_frame)
 
+    def test_hour_index(self):
+        dt_series = Series(
+            date_range(start="2021-01-01", periods=5, freq="h"),
+            index=[2, 6, 7, 8, 11],
+            dtype="category",
+        )
+        result = dt_series.dt.hour
+        expected = Series(
+            [0, 1, 2, 3, 4],
+            index=[2, 6, 7, 8, 11],
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesPeriodValuesDtAccessor:
     @pytest.mark.parametrize(
