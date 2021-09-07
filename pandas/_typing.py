@@ -69,6 +69,11 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset
+
+    # numpy compatible types
+    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]
+
 else:
     npt: Any = None
 
@@ -84,6 +89,7 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
+
 
 # timestamp and timedelta convertible types
 
@@ -120,10 +126,9 @@ RandomState = Union[
 ]
 
 # dtypes
-NpDtype = Union[str, np.dtype]
-Dtype = Union[
-    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
-]
+NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
+Dtype = Union["ExtensionDtype", NpDtype]
+AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
