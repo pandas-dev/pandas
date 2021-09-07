@@ -623,20 +623,26 @@ class TestSeriesFillNA:
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
 
-    def test_fillna_null_value_replacement(self, frame_or_series):
+    def test_fillna_object_null_value_replacement(
+        self, frame_or_series, unique_nulls_fixture, unique_nulls_fixture2
+    ):
         # GH#40498
-        ser = Series([None, None])
+        ser = Series([1, unique_nulls_fixture, "three"])
         obj = frame_or_series(ser)
 
-        value = np.nan
+        if unique_nulls_fixture2 is not None:
+            value = unique_nulls_fixture2
+        else:
+            pytest.skip(f"{unique_nulls_fixture2} cannot be passed to fillna.")
+
         result = obj.fillna(value)
 
-        expected = Series([np.nan, np.nan])
+        expected = Series([1, unique_nulls_fixture2, "three"])
         expected = frame_or_series(expected)
 
         tm.assert_equal(result, expected)
 
-    def test_fillna_other_missing_values_not_modified(
+    def test_fillna_object_other_missing_values_not_modified(
         self, unique_nulls_fixture, unique_nulls_fixture2, frame_or_series
     ):
         # GH#40498
