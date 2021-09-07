@@ -1813,6 +1813,35 @@ class TestMergeCategorical:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_multiindex_merge_with_unordered_categoricalindex(self, ordered):
+        # GH 36973
+        pcat = CategoricalDtype(categories=["P2", "P1"], ordered=ordered)
+        df1 = DataFrame(
+            {
+                "id": ["C", "C", "D"],
+                "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
+                "a": [0, 1, 2],
+            }
+        ).set_index(["id", "p"])
+        df2 = DataFrame(
+            {
+                "id": ["A", "C", "C"],
+                "p": Categorical(["P2", "P2", "P1"], dtype=pcat),
+                "d1": [10, 11, 12],
+            }
+        ).set_index(["id", "p"])
+        result = merge(df1, df2, how="left", left_index=True, right_index=True)
+        expected = DataFrame(
+            {
+                "id": ["C", "C", "D"],
+                "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
+                "a": [0, 1, 2],
+                "d1": [11.0, 12.0, np.nan],
+            }
+        ).set_index(["id", "p"])
+        tm.assert_frame_equal(result, expected)
+
     def test_other_columns(self, left, right):
         # non-merge columns should preserve if possible
         right = right.assign(Z=right.Z.astype("category"))
@@ -2542,33 +2571,3 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
     df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
     with pytest.raises(MergeError, match="Can only pass argument"):
         merge(df_1, df_2, on=["C"], left_index=True)
-
-
-@pytest.mark.parametrize("ordered", [True, False])
-def test_multiindex_merge_with_unordered_categoricalindex(ordered):
-    # GH 36973
-    pcat = CategoricalDtype(categories=["P2", "P1"], ordered=ordered)
-    df1 = DataFrame(
-        {
-            "id": ["C", "C", "D"],
-            "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
-            "a": [0, 1, 2],
-        }
-    ).set_index(["id", "p"])
-    df2 = DataFrame(
-        {
-            "id": ["A", "C", "C"],
-            "p": Categorical(["P2", "P2", "P1"], dtype=pcat),
-            "d1": [10, 11, 12],
-        }
-    ).set_index(["id", "p"])
-    result = merge(df1, df2, how="left", left_index=True, right_index=True)
-    expected = DataFrame(
-        {
-            "id": ["C", "C", "D"],
-            "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
-            "a": [0, 1, 2],
-            "d1": [11.0, 12.0, np.nan],
-        }
-    ).set_index(["id", "p"])
-    tm.assert_frame_equal(result, expected)
