@@ -648,7 +648,7 @@ def get_handle(
 
     # GH 24306
     if mode not in ["r", "rb"] and is_path:  # Only for write methods
-        check_parent_directory(handle)
+        check_parent_directory(str(handle))
 
     if compression:
         # compression libraries do not like an explicit text-mode

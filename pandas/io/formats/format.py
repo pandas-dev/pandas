@@ -1150,7 +1150,7 @@ def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
     if hasattr(buf, "write"):
         yield buf
     elif isinstance(buf, str):
-        check_parent_directory(buf)
+        check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
             # GH#30034 open instead of codecs.open prevents a file leak
             #  if we have an invalid encoding argument.
