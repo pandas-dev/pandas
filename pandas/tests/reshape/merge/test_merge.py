@@ -2544,9 +2544,10 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
         merge(df_1, df_2, on=["C"], left_index=True)
 
 
-def test_multiindex_merge_with_unordered_categoricalindex():
+@pytest.mark.parametrize("ordered", [True, False])
+def test_multiindex_merge_with_unordered_categoricalindex(ordered):
     # GH 36973
-    pcat = CategoricalDtype(categories=["P2", "P1"], ordered=False)
+    pcat = CategoricalDtype(categories=["P2", "P1"], ordered=ordered)
     df1 = DataFrame(
         {
             "id": ["C", "C", "D"],
