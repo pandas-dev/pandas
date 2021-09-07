@@ -419,6 +419,7 @@ Reshaping
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 - Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
+- Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
 -
 
 Sparse
