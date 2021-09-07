@@ -210,9 +210,9 @@ class TestBetweenTime:
         assert len(result) == 12
 
     # GH40245
-    @pytest.mark.parametrize("inc_start", (True, False))
-    @pytest.mark.parametrize("inc_end", (True, False))
-    def test_between_time_warn(self, inc_start, inc_end, frame_or_series):
+    @pytest.mark.parametrize("include_start", [True, False])
+    @pytest.mark.parametrize("include_end", [True, False])
+    def test_between_time_warn(self, include_start, include_end, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         if frame_or_series is not DataFrame:
@@ -226,7 +226,7 @@ class TestBetweenTime:
             "are deprecated in favour of `inclusive`."
         )
         with tm.assert_produces_warning(FutureWarning, match=match):
-            _ = ts.between_time(stime, etime, inc_start, inc_end)
+            _ = ts.between_time(stime, etime, include_start, include_end)
 
     # GH40245
     def test_between_time_incorr_arg_inclusive(self):
