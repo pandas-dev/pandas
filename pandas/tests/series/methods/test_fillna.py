@@ -869,6 +869,14 @@ class TestFillnaPad:
         assert return_value is None
         tm.assert_series_equal(ser.fillna(method="ffill", inplace=False), ser)
 
+    @pytest.mark.parametrize("filler", [0.5, 1, np.uint8(2), np.int16(-2), np.uint64(2), np.int64(32)])
+    def test_fillna_value_f32(self, filler):
+        # GH-43424
+        ser = Series([np.nan, 1.2], dtype="float32")
+        result = ser.fillna(value={0: filler})
+        expected = Series([filler, 1.2], dtype="float32")
+        tm.assert_series_equal(result, expected)
+
     def test_datetime64tz_fillna_round_issue(self):
         # GH#14872
 

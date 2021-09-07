@@ -2208,10 +2208,11 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
 
     elif dtype.kind == "f":
         if tipo is not None:
-            # TODO: itemsize check?
             if tipo.kind not in ["f", "i", "u"]:
                 # Anything other than float/integer we cannot hold
                 return False
+            # elif dtype.itemsize < tipo.itemsize:
+            #     return False
             elif not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype or FloatingDtype;
                 #  we can put this into an ndarray losslessly iff it has no NAs
