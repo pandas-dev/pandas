@@ -133,8 +133,6 @@ compiler installation instructions.
 
 Let us know if you have any difficulties by opening an issue or reaching out on `Gitter <https://gitter.im/pydata/pandas/>`_.
 
-.. _contributing.python-env:
-
 Creating a Python environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
