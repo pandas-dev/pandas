@@ -1062,7 +1062,8 @@ class TestStyler:
 
         self.df.index.name = "some_name"
         ctx = self.df.style.hide_columns()._translate(True, True)
-        assert len(ctx["head"]) == 0  # no header for index names, changed in #42101
+        assert len(ctx["head"]) == 1
+        # index names still visible, changed in #42101, reverted in 43404
 
     def test_hide_single_index(self):
         # GH 14194
@@ -1439,3 +1440,10 @@ def test_hidden_column_names(mi_df):
     ctx = mi_styler._translate(True, True)
     assert len(ctx["head"]) == 1  # no index names and only one visible column headers
     assert ctx["head"][0][1]["display_value"] == "&nbsp;"
+
+
+@pytest.mark.parametrize("caption", [1, ("a", "b", "c"), (1, "s")])
+def test_caption_raises(mi_styler, caption):
+    msg = "`caption` must be either a string or 2-tuple of strings."
+    with pytest.raises(ValueError, match=msg):
+        mi_styler.set_caption(caption)
