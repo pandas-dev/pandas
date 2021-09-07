@@ -3451,16 +3451,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
 
-        Create 'out.csv' in a new folder 'folder/subfolder/'
-
-        >>> import os
-        >>> os.makedirs('folder/subfolder', exist_ok=True)
-        >>> df.to_csv('folder/subfolder/out.csv')
+        To write a csv file to a new folder or nested folder you will first
+        need to create it using either `Pathlib
+        <https://docs.python.org/3/library/pathlib.html#pathlib.Path.mkdir>`
+         or `os <https://docs.python.org/2/library/os.html#os.makedirs>`:
 
         >>> from pathlib import Path
         >>> filepath = Path('folder/subfolder/out.csv')
         >>> filepath.parent.mkdir(parents=True, exist_ok=True)
         >>> df.to_csv(filepath)
+
+        >>> import os
+        >>> os.makedirs('folder/subfolder', exist_ok=True)
+        >>> df.to_csv('folder/subfolder/out.csv')
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
