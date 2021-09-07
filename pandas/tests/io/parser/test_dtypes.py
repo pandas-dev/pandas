@@ -574,6 +574,14 @@ def test_dtype_coerce_invalid_args_raises(all_parsers, dtype):
         parser.read_csv(StringIO(data), dtype=dtype)
 
 
+def test_dtype_coerce_empty(all_parsers):
+    parser = all_parsers
+    data = """a,b"""
+    result = parser.read_csv(StringIO(data), dtype={"a": (float, "coerce"), "b": float})
+    expected = DataFrame([], columns=["a", "b"], dtype=float)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "na_values,expected",
     [

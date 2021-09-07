@@ -3441,7 +3441,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
         # Convert column indexes to column names.
         for k, v in _dtype.items():
             col = columns[k] if is_integer(k) else k
-            dtype[col] = v
+            dtype[col] = v[0] if isinstance(v, tuple) else v
 
     # Even though we have no data, the "index" of the empty DataFrame
     # could for example still be an empty MultiIndex. Thus, we need to
