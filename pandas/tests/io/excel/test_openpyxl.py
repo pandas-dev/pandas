@@ -139,7 +139,7 @@ def test_write_append_mode(ext, mode, expected):
     [
         ("new", 2, ["apple", "banana"]),
         ("replace", 1, ["pear"]),
-        ("overwrite_cells", 1, ["pear", "banana"]),
+        ("overlay", 1, ["pear", "banana"]),
     ],
 )
 def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected):
@@ -171,7 +171,7 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         (
             "invalid",
             "'invalid' is not valid for if_sheet_exists. Valid options "
-            "are 'error', 'new', 'replace' and 'overwrite_cells'.",
+            "are 'error', 'new', 'replace' and 'overlay'.",
         ),
         (
             "error",

@@ -680,15 +680,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         host, port, username, password, etc., if using a URL that will
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
-        .. versionadded:: 1.4.0
-    if_sheet_exists : {'error', 'new', 'replace', 'overwrite_cells'}, default 'error'
+        .. versionadded:: 1.2.0
+    if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
 
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
-        * overwrite_cells: Write contents to the existing sheet.
+        ..versionadded:: 1.4.0
+        * overlay: Write contents to the existing sheet without removing the old
+        contents.
 
         .. versionadded:: 1.3.0
     engine_kwargs : dict, optional
@@ -768,13 +770,13 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>>     df.to_excel(writer, sheet_name="Sheet1")
 
     You can also write multiple DataFrames to a single sheet. Note that the
-    `if_sheet_exists` parameter needs to be set to `overwrite_cells` if you are in
+    `if_sheet_exists` parameter needs to be set to `overlay` if you are in
     append mode:
 
     >>> with ExcelWriter("path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
-    ...     if_sheet_exists="overwrite_cells",
+    ...     if_sheet_exists="overlay",
     ... ) as writer:
     >>>     df1.to_excel(writer, sheet_name="Sheet1")
     >>>     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)
@@ -964,10 +966,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         self.mode = mode
 
-        if if_sheet_exists not in [None, "error", "new", "replace", "overwrite_cells"]:
+        if if_sheet_exists not in [None, "error", "new", "replace", "overlay"]:
             raise ValueError(
                 f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new', 'replace' and 'overwrite_cells'."
+                "Valid options are 'error', 'new', 'replace' and 'overlay'."
             )
         if if_sheet_exists and "r+" not in mode:
             raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
