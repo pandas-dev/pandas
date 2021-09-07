@@ -3452,9 +3452,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...           compression=compression_opts)  # doctest: +SKIP
 
         To write a csv file to a new folder or nested folder you will first
-        need to create it using either `Pathlib
-        <https://docs.python.org/3/library/pathlib.html#pathlib.Path.mkdir>`
-         or `os <https://docs.python.org/2/library/os.html#os.makedirs>`:
+        need to create it using either Pathlib_ or os_.
+        .. _Pathlib: https://docs.python.org/3/library/pathlib.html#pathlib.Path.mkdir
+        .. _os: https://docs.python.org/2/library/os.html#os.makedirs>
 
         >>> from pathlib import Path
         >>> filepath = Path('folder/subfolder/out.csv')
