@@ -723,20 +723,25 @@ def get_handle(
         # since get_handle would have opened it in binary mode
         is_wrapped = True
     elif is_text and (compression or _is_binary_mode(handle, ioargs.mode)):
-        handle = TextIOWrapper(
-            # error: Argument 1 to "TextIOWrapper" has incompatible type
-            # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
-            # expected "IO[bytes]"
-            handle,  # type: ignore[arg-type]
-            encoding=ioargs.encoding,
-            errors=errors,
-            newline="",
-        )
-        handles.append(handle)
-        # only marked as wrapped when the caller provided a handle
-        is_wrapped = not (
-            isinstance(ioargs.filepath_or_buffer, str) or ioargs.should_close
-        )
+        try:
+            # GH43439: tempfile.SpooledTemporaryFile has no attribute 'readable'
+            handle = TextIOWrapper(
+                # error: Argument 1 to "TextIOWrapper" has incompatible type
+                # "Union[IO[bytes], IO[Any], RawIOBase, BufferedIOBase, TextIOBase, mmap]";
+                # expected "IO[bytes]"
+                handle,  # type: ignore[arg-type]
+                encoding=ioargs.encoding,
+                errors=errors,
+                newline="",
+            )
+            handles.append(handle)
+            # only marked as wrapped when the caller provided a handle
+            is_wrapped = not (
+                isinstance(ioargs.filepath_or_buffer, str) or ioargs.should_close
+            )
+        except AttributeError:
+            # read_csv(engine="c") might still be able to deal with binary handles
+            pass
 
     handles.reverse()  # close the most recently added buffer first
     if ioargs.should_close:
