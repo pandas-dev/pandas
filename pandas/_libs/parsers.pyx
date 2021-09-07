@@ -1050,7 +1050,6 @@ cdef class TextReader:
                     elif i in self.dtype:
                         col_dtype = self.dtype[i]
                     col_dtype, col_coerce_float = dtype_coerce(col_dtype)
-                    print(col_dtype, col_coerce_float)
                 else:
                     if self.dtype.names:
                         # structured array
