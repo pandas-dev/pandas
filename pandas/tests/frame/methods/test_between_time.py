@@ -209,10 +209,10 @@ class TestBetweenTime:
         tm.assert_frame_equal(result, expected2)
         assert len(result) == 12
 
-    # GH40245
     @pytest.mark.parametrize("include_start", [True, False])
     @pytest.mark.parametrize("include_end", [True, False])
     def test_between_time_warn(self, include_start, include_end, frame_or_series):
+        # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         if frame_or_series is not DataFrame:
@@ -228,8 +228,8 @@ class TestBetweenTime:
         with tm.assert_produces_warning(FutureWarning, match=match):
             _ = ts.between_time(stime, etime, include_start, include_end)
 
-    # GH40245
     def test_between_time_incorr_arg_inclusive(self):
+        # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
 
@@ -243,11 +243,11 @@ class TestBetweenTime:
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, inclusive=inclusive)
 
-    # GH40245
     @pytest.mark.parametrize(
         "include_start, include_end", [(True, None), (True, True), (None, True)]
     )
     def test_between_time_incompatiable_args_given(self, include_start, include_end):
+        # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
 
@@ -260,8 +260,8 @@ class TestBetweenTime:
         with pytest.raises(ValueError, match=msg):
             ts.between_time(stime, etime, include_start, include_end, inclusive="left")
 
-    # GH40245
     def test_between_time_same_functionality_old_and_new_args(self):
+        # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         stime = time(0, 0)
