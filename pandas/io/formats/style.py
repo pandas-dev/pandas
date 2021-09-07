@@ -930,9 +930,18 @@ class Styler(StylerRenderer):
             Set, or overwrite, the caption on Styler before rendering.
 
             .. versionadded:: 1.4.0
-        max_rows, max_columns : int, optional
-            The maximum rows and/or columns that will be rendered. Defaults to
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
             ``pandas.options.styler.render.max_rows/max_columns``.
+
+            .. versionadded:: 1.4.0
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
 
             .. versionadded:: 1.4.0
         encoding : str, optional
