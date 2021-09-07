@@ -321,22 +321,22 @@ def group_shift_indexer(int64_t[::1] out, const intp_t[::1] labels,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
-                         ndarray[uint8_t] mask, str direction,
+def group_fillna_indexer(ndarray[intp_t, ndim=2] out, ndarray[intp_t] labels,
+                         ndarray[uint8_t, ndim=2] mask, str direction,
                          int64_t limit, bint dropna) -> None:
     """
     Indexes how to fill values forwards or backwards within a group.
 
     Parameters
     ----------
-    out : np.ndarray[np.int64]
+    out : np.ndarray[np.intp, ndim=2]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
-    mask : np.ndarray[np.uint8]
+    mask : np.ndarray[np.uint8, ndim=2]
         Indicating whether a value is na or not.
     direction : {'ffill', 'bfill'}
         Direction for fill to be applied (forwards or backwards, respectively)
@@ -348,12 +348,15 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
     This method modifies the `out` parameter rather than returning an object
     """
     cdef:
-        Py_ssize_t i, N, idx
+        Py_ssize_t i, j, N, idx, ncols
         intp_t[:] sorted_labels
-        intp_t curr_fill_idx=-1
-        int64_t filled_vals = 0
+        intp_t[:] curr_fill_idx
+        int64_t[:] filled_vals
 
     N = len(out)
+    ncols = out.shape[1]
+    filled_vals = np.zeros(ncols, dtype=np.int64)
+    curr_fill_idx = -1 * np.ones(ncols, dtype=np.intp)
 
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
@@ -366,24 +369,25 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
     with nogil:
         for i in range(N):
             idx = sorted_labels[i]
-            if dropna and labels[idx] == -1:  # nan-group gets nan-values
-                curr_fill_idx = -1
-            elif mask[idx] == 1:  # is missing
-                # Stop filling once we've hit the limit
-                if filled_vals >= limit and limit != -1:
-                    curr_fill_idx = -1
-                filled_vals += 1
-            else:  # reset items when not missing
-                filled_vals = 0
-                curr_fill_idx = idx
+            for j in range(ncols):
+                if dropna and labels[idx] == -1:  # nan-group gets nan-values
+                    curr_fill_idx[j] = -1
+                elif mask[idx, j] == 1:  # is missing
+                    # Stop filling once we've hit the limit
+                    if filled_vals[j] >= limit and limit != -1:
+                        curr_fill_idx[j] = -1
+                    filled_vals[j] += 1
+                else:  # reset items when not missing
+                    filled_vals[j] = 0
+                    curr_fill_idx[j] = idx
 
-            out[idx] = curr_fill_idx
+                out[idx, j] = curr_fill_idx[j]
 
-            # If we move to the next group, reset
-            # the fill_idx and counter
-            if i == N - 1 or labels[idx] != labels[sorted_labels[i + 1]]:
-                curr_fill_idx = -1
-                filled_vals = 0
+                # If we move to the next group, reset
+                # the fill_idx and counter
+                if i == N - 1 or labels[idx] != labels[sorted_labels[i + 1]]:
+                    curr_fill_idx[j] = -1
+                    filled_vals[j] = 0
 
 
 @cython.boundscheck(False)

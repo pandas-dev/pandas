@@ -2162,8 +2162,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return self._get_cythonized_result(
             libgroupby.group_fillna_indexer,
             numeric_only=False,
+            needs_2d=True,
             needs_mask=True,
-            cython_dtype=np.dtype(np.int64),
+            cython_dtype=np.dtype(np.intp),
             result_is_index=True,
             direction=direction,
             limit=limit,
@@ -2931,7 +2932,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if min_count is not None:
             base_func = partial(base_func, min_count=min_count)
 
-        real_2d = how in ["group_any_all", "group_var"]
+        real_2d = how in ["group_any_all", "group_var", "group_fillna_indexer"]
 
         def blk_func(values: ArrayLike) -> ArrayLike:
             values = values.T
@@ -2940,7 +2941,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if aggregate:
                 result_sz = ngroups
             else:
-                result_sz = values.shape[-1]
+                result_sz = values.shape[0]
 
             result: ArrayLike
             result = np.zeros(result_sz * ncols, dtype=cython_dtype)
@@ -2980,7 +2981,30 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             func(**kwargs)  # Call func to modify indexer values in place
 
             if result_is_index:
-                result = algorithms.take_nd(values, result, fill_value=fill_value)
+                if values.ndim == 1:
+                    # i.e. is_1d_only_ea_dtype
+                    out = algorithms.take_nd(
+                        values, result[:, 0], fill_value=fill_value
+                    )
+
+                else:
+                    # We broadcast algorithms.take_nd analogous to
+                    #  np.take_along_axis
+
+                    # Note: we only get here with backfill/pad,
+                    #  so if we have a dtype that cannot hold NAs,
+                    #  then there will be no -1s in indexer, so we can use
+                    #  the original dtype (no need to ensure_dtype_can_hold_na)
+                    dtype = values.dtype
+                    if isinstance(dtype, np.dtype):
+                        out = np.empty(values.shape, dtype=dtype)
+                    else:
+                        cls = dtype.construct_array_type()
+                        out = cls._empty(values.shape, dtype=dtype)
+
+                    for i in range(ncols):
+                        out[:, i] = algorithms.take_nd(values[:, i], result[:, i])
+                return out.T
 
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape

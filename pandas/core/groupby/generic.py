@@ -1670,16 +1670,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         -------
         DataFrame
         """
-        indexed_output = {key.position: val for key, val in output.items()}
-        result = self.obj._constructor(indexed_output)
-
-        if self.axis == 1:
-            result = result.T
-            result.columns = self.obj.columns
+        if isinstance(output, DataFrame):
+            result = output
         else:
-            columns = Index(key.label for key in output)
-            columns._set_names(self.obj._get_axis(1 - self.axis).names)
-            result.columns = columns
+            indexed_output = {key.position: val for key, val in output.items()}
+            result = self.obj._constructor(indexed_output)
+
+            if self.axis == 1:
+                result = result.T
+                result.columns = self.obj.columns
+            else:
+                columns = Index(key.label for key in output)
+                columns._set_names(self.obj._get_axis(1 - self.axis).names)
+                result.columns = columns
 
         result.index = self.obj.index
 
