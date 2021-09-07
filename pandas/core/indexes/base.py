@@ -242,6 +242,10 @@ def _new_Index(cls, d):
             # GH#23752 "labels" kwarg has been replaced with "codes"
             d["codes"] = d.pop("labels")
 
+    elif "dtype" not in d and "data" in d:
+        # Prevent Index.__new__ from conducting inference;
+        #  "data" key not in RangeIndex
+        d["dtype"] = d["data"].dtype
     return cls.__new__(cls, **d)
 
 
@@ -3614,7 +3618,11 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            indexer = self._engine.get_indexer(target._get_engine_target())
+            tgt_values = target._get_engine_target()
+            if target._is_multi and self._is_multi:
+                tgt_values = self._engine._extract_level_codes(target)
+
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -3722,7 +3730,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "if index and target are monotonic"
             )
 
-        side = "left" if method == "pad" else "right"
+        side: Literal["left", "right"] = "left" if method == "pad" else "right"
 
         # find exact matches first (this simplifies the algorithm)
         indexer = self.get_indexer(target)
@@ -5455,6 +5463,8 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: _maybe_promote ensures we never get here with MultiIndex
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
+        if self._is_multi and target._is_multi:
+            tgt_values = self._engine._extract_level_codes(target)
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
@@ -6053,7 +6063,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return label
 
-    def _searchsorted_monotonic(self, label, side: str_t = "left"):
+    def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if self.is_monotonic_increasing:
             return self.searchsorted(label, side=side)
         elif self.is_monotonic_decreasing:
@@ -6067,7 +6077,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side: str_t, kind=no_default) -> int:
+    def get_slice_bound(
+        self, label, side: Literal["left", "right"], kind=no_default
+    ) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
