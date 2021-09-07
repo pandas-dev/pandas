@@ -3454,13 +3454,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Create 'out.csv' in a new folder 'folder/subfolder/'
 
         >>> import os
-        >>> os.mkdir('folder/subfolder', parents=True, exists_ok=True)
-        >>> df.to_csv('out.csv')
+        >>> os.makedirs('folder/subfolder', exist_ok=True)
+        >>> df.to_csv('folder/subfolder/out.csv')
 
         >>> from pathlib import Path
         >>> filepath = Path('folder/subfolder/out.csv')
         >>> filepath.parent.mkdir(parents=True, exist_ok=True)
-        >>> df_to_csv(filepath)
+        >>> df.to_csv(filepath)
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
