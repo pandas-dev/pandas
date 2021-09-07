@@ -67,6 +67,7 @@ class StylerRenderer:
     template_html_table = env.get_template("html_table.tpl")
     template_html_style = env.get_template("html_style.tpl")
     template_latex = env.get_template("latex.tpl")
+    template_string = env.get_template("string.tpl")
 
     def __init__(
         self,
@@ -148,6 +149,14 @@ class StylerRenderer:
 
         d.update(kwargs)
         return self.template_latex.render(**d)
+
+    def _render_string(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+        self._compute()
+
+        d = self._translate(sparse_index, sparse_columns, blank="")
+
+        d.update(kwargs)
+        return self.template_string.render(**d)
 
     def _compute(self):
         """

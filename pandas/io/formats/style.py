@@ -988,6 +988,23 @@ class Styler(StylerRenderer):
             html, buf=buf, encoding=(encoding if buf is not None else None)
         )
 
+    def to_string(
+        self,
+        buf=None,
+        encoding=None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+    ):
+        obj = self._copy(deepcopy=True)
+
+        text = obj._render_string(
+            sparse_columns=sparse_columns,
+            sparse_index=sparse_index,
+        )
+        return save_to_buffer(
+            text, buf=buf, encoding=(encoding if buf is not None else None)
+        )
+
     def set_td_classes(self, classes: DataFrame) -> Styler:
         """
         Set the DataFrame of strings added to the ``class`` attribute of ``<td>``
