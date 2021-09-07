@@ -218,6 +218,10 @@ Optional libraries below the lowest tested version may still work, but are not c
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
+Also note that ``Jinja2``, with minimum version 2.11, has been made a hard dependency to support
+DataFrame rendering in LaTeX and HTML formats, where the methods :meth:`DataFrame.to_latex` and
+:meth:`DataFrame.to_html` now utilise the :class:`.Styler` template parsing mechanics.
+
 .. _whatsnew_140.api_breaking.other:
 
 Other API changes
