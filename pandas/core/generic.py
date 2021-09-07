@@ -6323,7 +6323,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                                 modification_index
                             ]
                     else:
-                        value = value_map.reindex(self.index, copy=False)
+                        value = value_map.reindex(self.index)
                         value = value._values
                 elif not is_list_like(value):
                     pass
