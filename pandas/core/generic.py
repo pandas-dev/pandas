@@ -7609,8 +7609,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         end_time,
         include_start: bool_t | lib.NoDefault = lib.no_default,
         include_end: bool_t | lib.NoDefault = lib.no_default,
-        axis=None,
         inclusive: str | None = None,
+        axis=None,
     ) -> FrameOrSeries:
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
@@ -7638,10 +7638,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                Arguments `include_start` and `include_end` have been deprecated
                to standardize boundary inputs. Use `inclusive` instead, to set
                each bound as close or open.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Determine range time on index or columns value.
         inclusive : {"both", "neither", "left", "right"}, default "both"
             Include boundaries; whether to set each bound as closed or open.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Determine range time on index or columns value.
 
         Returns
         -------
