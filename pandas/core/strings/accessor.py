@@ -1907,6 +1907,69 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_rstrip(to_strip)
         return self._wrap_result(result)
 
+    _shared_docs[
+        "str_removefix"
+    ] = r"""
+    Remove a %(side)s from an object series. If the %(side)s is not present,
+    the original string will be returned.
+
+    Parameters
+    ----------
+    %(side)s : str
+        %(side)s to remove.
+
+    Returns
+    -------
+    Series/Index: object
+        The Series or Index with given %(side)s removed.
+
+    See Also
+    --------
+    Series.str.remove%(other_side)s : Remove a %(other_side)s from an object series.
+
+    Examples
+    --------
+    >>> s = pd.Series(["str_foo", "str_bar", "no_prefix"])
+    >>> s
+    0    str_foo
+    1    str_bar
+    2    no_prefix
+    dtype: object
+    >>> s.str.removeprefix("str_")
+    0    foo
+    1    bar
+    2    no_prefix
+    dtype: object
+
+    >>> s = pd.Series(["foo_str", "bar_str", "no_suffix"])
+    >>> s
+    0    foo_str
+    1    bar_str
+    2    no_suffix
+    dtype: object
+    >>> s.str.removesuffix("_str")
+    0    foo
+    1    bar
+    2    no_suffix
+    dtype: object
+    """
+
+    @Appender(
+        _shared_docs["str_removefix"] % {"side": "prefix", "other_side": "suffix"}
+    )
+    @forbid_nonstring_types(["bytes"])
+    def removeprefix(self, prefix):
+        result = self._data.array._str_removeprefix(prefix)
+        return self._wrap_result(result)
+
+    @Appender(
+        _shared_docs["str_removefix"] % {"side": "suffix", "other_side": "prefix"}
+    )
+    @forbid_nonstring_types(["bytes"])
+    def removesuffix(self, suffix):
+        result = self._data.array._str_removesuffix(suffix)
+        return self._wrap_result(result)
+
     @forbid_nonstring_types(["bytes"])
     def wrap(self, width, **kwargs):
         r"""
