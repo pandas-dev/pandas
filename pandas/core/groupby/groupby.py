@@ -1100,6 +1100,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     ) -> Series | DataFrame:
         raise AbstractMethodError(self)
 
+    @final
     def _wrap_aggregated_output(
         self, output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike]
     ):
@@ -1143,8 +1144,32 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return self._reindex_output(result)
 
-    def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
-        raise AbstractMethodError(self)
+    @final
+    def _wrap_transformed_output(
+        self, output: Mapping[base.OutputKey, ArrayLike]
+    ) -> Series | DataFrame:
+        """
+        Wraps the output of GroupBy transformations into the expected result.
+
+        Parameters
+        ----------
+        output : Mapping[base.OutputKey, ArrayLike]
+            Data to wrap.
+
+        Returns
+        -------
+        Series or DataFrame
+            Series for SeriesGroupBy, DataFrame for DataFrameGroupBy
+        """
+        result = self._indexed_output_to_ndframe(output)
+
+        if self.axis == 1:
+            # Only relevant for DataFrameGroupBy
+            result = result.T
+            result.columns = self.obj.columns
+
+        result.index = self.obj.index
+        return result
 
     def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
