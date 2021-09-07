@@ -889,7 +889,7 @@ with cf.config_prefix("styler"):
         "latex.multirow_align",
         "c",
         styler_multirow_align,
-        validator=is_one_of_factory(["c", "t", "b"]),
+        validator=is_one_of_factory(["c", "t", "b", "naive"]),
     )
 
     cf.register_option(
