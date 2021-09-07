@@ -1412,6 +1412,8 @@ def _parse_latex_header_span(
             colspan = int(colspan[: colspan.find('"')])
             return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
         elif 'rowspan="' in attrs:
+            if multirow_align == "naive":
+                return display_val
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"
