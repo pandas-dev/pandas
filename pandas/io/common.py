@@ -521,7 +521,8 @@ def infer_compression(
 
 
 def check_parent_directory(fpath: str):
-    """Check if parent directory of a file exists, raise OSError if it does not
+    """
+    Check if parent directory of a file exists, raise OSError if it does not
 
     Parameters
     ----------
