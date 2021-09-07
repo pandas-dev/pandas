@@ -688,7 +688,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
-        ..versionadded:: 1.4.0
+
+        .. versionadded:: 1.4.0
         * overlay: Write contents to the existing sheet without removing the old
         contents.
 
@@ -770,8 +771,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     >>>     df.to_excel(writer, sheet_name="Sheet1")
 
     You can also write multiple DataFrames to a single sheet. Note that the
-    `if_sheet_exists` parameter needs to be set to `overlay` if you are in
-    append mode:
+    `if_sheet_exists` parameter needs to be set to `overlay`:
 
     >>> with ExcelWriter("path_to_file.xlsx",
     ...     mode="a",
