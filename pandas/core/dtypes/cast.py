@@ -2185,6 +2185,11 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         # ExtensionBlock._can_hold_element
         return True
 
+    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+    # operand type: "Type[object]")
+    if dtype == object:  # type: ignore[comparison-overlap]
+        return True
+
     tipo = maybe_infer_dtype_type(element)
 
     if dtype.kind in ["i", "u"]:
@@ -2231,11 +2236,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
         if tipo is not None:
             return tipo.kind == "b"
         return lib.is_bool(element)
-
-    # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
-    # operand type: "Type[object]")
-    elif dtype == object:  # type: ignore[comparison-overlap]
-        return True
 
     elif dtype.kind == "S":
         # TODO: test tests.frame.methods.test_replace tests get here,
