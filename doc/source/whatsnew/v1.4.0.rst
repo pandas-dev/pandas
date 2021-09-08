@@ -440,6 +440,7 @@ Styler
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 - Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
 - Bug when rendering a single level MultiIndex (:issue:`43383`).
+- Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` (:issue:`43464`)
 
 Other
 ^^^^^
