@@ -78,6 +78,7 @@ Styler
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption`` (:issue:`41946`, :issue:`43149`).
   - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
   - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
+  - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
 
 Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
 
@@ -360,7 +361,7 @@ Indexing
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.nan`` (:issue:`35392`)
 - Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, used in an expression to query a dataframe (:issue:`42826`)
 - Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
--
+- Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
 
 
 Missing
@@ -409,6 +410,7 @@ Groupby/resample/rolling
 - Bug in :meth:`pandas.DataFrame.rolling` operation along rows (``axis=1``) incorrectly omits columns containing ``float16`` and ``float32`` (:issue:`41779`)
 - Bug in :meth:`Resampler.aggregate` did not allow the use of Named Aggregation (:issue:`32803`)
 - Bug in :meth:`Series.rolling` when the :class:`Series` ``dtype`` was ``Int64`` (:issue:`43016`)
+- Bug in :meth:`DataFrame.rolling.corr` when the :class:`DataFrame` columns was a :class:`MultiIndex` (:issue:`21157`)
 - Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
 
 Reshaping
@@ -417,6 +419,7 @@ Reshaping
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 - Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
+- Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
 -
 
 Sparse
@@ -437,6 +440,7 @@ Styler
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 - Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
 - Bug when rendering a single level MultiIndex (:issue:`43383`).
+- Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` (:issue:`43464`)
 
 Other
 ^^^^^
