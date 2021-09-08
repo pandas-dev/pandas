@@ -650,7 +650,7 @@ def get_handle(
 
     # Only for write methods
     if "r" not in mode and is_path:
-        check_parent_directory(handle)
+        check_parent_directory(str(handle))
 
     if compression:
         # compression libraries do not like an explicit text-mode
@@ -715,7 +715,7 @@ def get_handle(
         assert not isinstance(handle, str)
         handles.append(handle)
 
-    elif isinstance(handle, str):
+    elif is_path:
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
