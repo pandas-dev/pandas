@@ -358,7 +358,8 @@ class StylerRenderer:
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths),
+                            _is_visible(c, r, col_lengths)
+                            and c not in self.hidden_columns,
                             display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
