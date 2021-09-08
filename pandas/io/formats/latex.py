@@ -488,9 +488,8 @@ class GenericTableBuilder(TableBuilderAbstract):
 class LongTableBuilder(GenericTableBuilder):
     """Concrete table builder for longtable.
 
-    >>> from pandas import DataFrame
     >>> from pandas.io.formats import format as fmt
-    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
     >>> builder = LongTableBuilder(formatter, caption='a long table',
     ...                            label='tab:long', column_format='lrl')
@@ -578,9 +577,8 @@ class LongTableBuilder(GenericTableBuilder):
 class RegularTableBuilder(GenericTableBuilder):
     """Concrete table builder for regular table.
 
-    >>> from pandas import DataFrame
     >>> from pandas.io.formats import format as fmt
-    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
     >>> builder = RegularTableBuilder(formatter, caption='caption', label='lab',
     ...                               column_format='lrc')
@@ -625,9 +623,8 @@ class RegularTableBuilder(GenericTableBuilder):
 class TabularBuilder(GenericTableBuilder):
     """Concrete table builder for tabular environment.
 
-    >>> from pandas import DataFrame
     >>> from pandas.io.formats import format as fmt
-    >>> df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    >>> df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
     >>> formatter = fmt.DataFrameFormatter(df)
     >>> builder = TabularBuilder(formatter, column_format='lrc')
     >>> table = builder.get_result()

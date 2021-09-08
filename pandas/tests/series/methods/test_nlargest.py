@@ -127,8 +127,12 @@ class TestSeriesNLargestNSmallest:
     def test_nlargest_misc(self):
 
         ser = Series([3.0, np.nan, 1, 2, 5])
-        tm.assert_series_equal(ser.nlargest(), ser.iloc[[4, 0, 3, 2]])
-        tm.assert_series_equal(ser.nsmallest(), ser.iloc[[2, 3, 0, 4]])
+        result = ser.nlargest()
+        expected = ser.iloc[[4, 0, 3, 2, 1]]
+        tm.assert_series_equal(result, expected)
+        result = ser.nsmallest()
+        expected = ser.iloc[[2, 3, 0, 4, 1]]
+        tm.assert_series_equal(result, expected)
 
         msg = 'keep must be either "first", "last"'
         with pytest.raises(ValueError, match=msg):
@@ -166,20 +170,20 @@ class TestSeriesNLargestNSmallest:
         expected = ser.sort_values().head(n)
         tm.assert_series_equal(result, expected)
 
-    def test_nlargest_boundary_integer(self, nselect_method, any_int_dtype):
+    def test_nlargest_boundary_integer(self, nselect_method, any_int_numpy_dtype):
         # GH#21426
-        dtype_info = np.iinfo(any_int_dtype)
+        dtype_info = np.iinfo(any_int_numpy_dtype)
         min_val, max_val = dtype_info.min, dtype_info.max
         vals = [min_val, min_val + 1, max_val - 1, max_val]
-        assert_check_nselect_boundary(vals, any_int_dtype, nselect_method)
+        assert_check_nselect_boundary(vals, any_int_numpy_dtype, nselect_method)
 
-    def test_nlargest_boundary_float(self, nselect_method, float_dtype):
+    def test_nlargest_boundary_float(self, nselect_method, float_numpy_dtype):
         # GH#21426
-        dtype_info = np.finfo(float_dtype)
+        dtype_info = np.finfo(float_numpy_dtype)
         min_val, max_val = dtype_info.min, dtype_info.max
-        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=float_dtype)
+        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=float_numpy_dtype)
         vals = [min_val, min_2nd, max_2nd, max_val]
-        assert_check_nselect_boundary(vals, float_dtype, nselect_method)
+        assert_check_nselect_boundary(vals, float_numpy_dtype, nselect_method)
 
     @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
     def test_nlargest_boundary_datetimelike(self, nselect_method, dtype):
@@ -212,9 +216,9 @@ class TestSeriesNLargestNSmallest:
         expected = Series(expected)
         tm.assert_series_equal(result, expected)
 
-    def test_nlargest_nullable(self, any_nullable_numeric_dtype):
+    def test_nlargest_nullable(self, any_numeric_ea_dtype):
         # GH#42816
-        dtype = any_nullable_numeric_dtype
+        dtype = any_numeric_ea_dtype
         arr = np.random.randn(10).astype(dtype.lower(), copy=False)
 
         ser = Series(arr.copy(), dtype=dtype)

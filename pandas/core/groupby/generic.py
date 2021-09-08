@@ -308,9 +308,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = concat(
                 results.values(), axis=1, keys=[key.label for key in results.keys()]
             )
-            # error: Incompatible return value type (got "Union[DataFrame, Series]",
-            # expected "DataFrame")
-            return res_df  # type: ignore[return-value]
+            return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
@@ -356,35 +354,17 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(ser)
 
-    def _wrap_aggregated_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
+    def _indexed_output_to_ndframe(
+        self, output: Mapping[base.OutputKey, ArrayLike]
     ) -> Series:
         """
-        Wraps the output of a SeriesGroupBy aggregation into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, ArrayLike]]
-            Data to wrap.
-
-        Returns
-        -------
-        Series
-
-        Notes
-        -----
-        In the vast majority of cases output will only contain one element.
-        The exception is operations that expand dimensions, like ohlc.
+        Wrap the dict result of a GroupBy aggregation into a Series.
         """
         assert len(output) == 1
-
-        name = self.obj.name
-        index = self.grouper.result_index
         values = next(iter(output.values()))
-
-        result = self.obj._constructor(values, index=index, name=name)
-        return self._reindex_output(result)
+        result = self.obj._constructor(values)
+        result.name = self.obj.name
+        return result
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Series | ArrayLike]
@@ -547,9 +527,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(dtype=np.float64)
 
         result.name = self.obj.name
-        # error: Incompatible return value type (got "Union[DataFrame, Series]",
-        # expected "Series")
-        return result  # type: ignore[return-value]
+        return result
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
@@ -1618,21 +1596,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if in_axis and name not in columns:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
+    def _indexed_output_to_ndframe(
+        self, output: Mapping[base.OutputKey, ArrayLike]
     ) -> DataFrame:
         """
-        Wraps the output of DataFrameGroupBy aggregations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
-           Data to wrap.
-
-        Returns
-        -------
-        DataFrame
+        Wrap the dict result of a GroupBy aggregation into a DataFrame.
         """
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index([key.label for key in output])
@@ -1640,21 +1608,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
-
-        if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
-            result = result._consolidate()
-        else:
-            result.index = self.grouper.result_index
-
-        if self.axis == 1:
-            result = result.T
-            if result.index.equals(self.obj.index):
-                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
-                result.index = self.obj.index.copy()
-                # TODO: Do this more systematically
-
-        return self._reindex_output(result)
+        return result
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Series | ArrayLike]

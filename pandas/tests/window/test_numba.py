@@ -14,7 +14,7 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
@@ -150,7 +150,7 @@ class TestEngine:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 class TestEWMMean:
     @pytest.mark.parametrize(
         "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
@@ -229,7 +229,7 @@ class TestEWMMean:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
@@ -241,7 +241,7 @@ def test_use_global_config():
     tm.assert_series_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
     with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
@@ -249,7 +249,7 @@ def test_invalid_kwargs_nopython():
         )
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba

@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     FrameOrSeries,
+    IndexLabel,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -316,6 +317,12 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
     2013-01-01 00:00:04       NaN      5
+
+    >>> r.agg(average="mean", total="sum")
+                             average  total
+    2013-01-01 00:00:00      1.5      3
+    2013-01-01 00:00:02      3.5      7
+    2013-01-01 00:00:04      5.0      5
     """
     )
 
@@ -326,7 +333,7 @@ class Resampler(BaseGroupBy, PandasObject):
         klass="DataFrame",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
 
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
@@ -1026,6 +1033,7 @@ class _GroupByMixin(PandasObject):
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
+    _selection: IndexLabel | None = None
 
     def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
@@ -1037,6 +1045,7 @@ class _GroupByMixin(PandasObject):
         # the resampler attributes
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
+        self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
 

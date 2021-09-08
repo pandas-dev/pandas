@@ -19,38 +19,38 @@ class TestSeries(Generic):
 
     @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
     def test_set_axis_name_mi(self, func):
-        s = Series(
+        ser = Series(
             [11, 21, 31],
             index=MultiIndex.from_tuples(
                 [("A", x) for x in ["a", "B", "c"]], names=["l1", "l2"]
             ),
         )
 
-        result = methodcaller(func, ["L1", "L2"])(s)
-        assert s.index.name is None
-        assert s.index.names == ["l1", "l2"]
+        result = methodcaller(func, ["L1", "L2"])(ser)
+        assert ser.index.name is None
+        assert ser.index.names == ["l1", "l2"]
         assert result.index.name is None
         assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
-        s = Series([1])
+        ser = Series([1])
         msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
-            s._set_axis_name(name="a", axis=1)
+            ser._set_axis_name(name="a", axis=1)
 
     def test_get_bool_data_preserve_dtype(self):
-        o = Series([True, False, True])
-        result = o._get_bool_data()
-        self._compare(result, o)
+        ser = Series([True, False, True])
+        result = ser._get_bool_data()
+        self._compare(result, ser)
 
     def test_nonzero_single_element(self):
 
         # allow single item via bool method
-        s = Series([True])
-        assert s.bool()
+        ser = Series([True])
+        assert ser.bool()
 
-        s = Series([False])
-        assert not s.bool()
+        ser = Series([False])
+        assert not ser.bool()
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
     def test_nonzero_single_element_raise_1(self, data):
@@ -112,25 +112,29 @@ class TestSeries(Generic):
     def test_metadata_propagation_indiv(self):
         # check that the metadata matches up on the resulting ops
 
-        o = Series(range(3), range(3))
-        o.name = "foo"
-        o2 = Series(range(3), range(3))
-        o2.name = "bar"
+        ser = Series(range(3), range(3))
+        ser.name = "foo"
+        ser2 = Series(range(3), range(3))
+        ser2.name = "bar"
 
-        result = o.T
-        self.check_metadata(o, result)
+        result = ser.T
+        self.check_metadata(ser, result)
 
         _metadata = Series._metadata
         _finalize = Series.__finalize__
         Series._metadata = ["name", "filename"]
-        o.filename = "foo"
-        o2.filename = "bar"
+        ser.filename = "foo"
+        ser2.filename = "bar"
 
         def finalize(self, other, method=None, **kwargs):
             for name in self._metadata:
                 if method == "concat" and name == "filename":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        [
+                            getattr(obj, name)
+                            for obj in other.objs
+                            if getattr(obj, name, None)
+                        ]
                     )
                     object.__setattr__(self, name, value)
                 else:
@@ -140,7 +144,7 @@ class TestSeries(Generic):
 
         Series.__finalize__ = finalize
 
-        result = pd.concat([o, o2])
+        result = pd.concat([ser, ser2])
         assert result.filename == "foo+bar"
         assert result.name is None
 
