@@ -704,7 +704,7 @@ class TestSeriesFillNA:
 
     @pytest.mark.parametrize("dtype", [float, "float32", "float64"])
     @pytest.mark.parametrize("fill_type", tm.ALL_REAL_NUMPY_DTYPES)
-    def test_fillna_f32_upcast(self, dtype, fill_type):
+    def test_fillna_float_casting(self, dtype, fill_type):
         # GH-43424
         ser = Series([np.nan, 1.2], dtype=dtype)
         fill_values = Series([2, 2], dtype=fill_type)
