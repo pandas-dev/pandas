@@ -1274,3 +1274,18 @@ def test_timeseries_groupby_agg():
 
     expected = DataFrame([[1.0]], index=[1])
     tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
+def test_groupby_agg_precision(dtype):
+    # GH33234
+    df = DataFrame(
+        {"key1": ["a"], "key2": ["b"], "key3": [1583715738627261039]}
+    ).astype({"key3": dtype})
+    df1 = df.groupby(["key1"]).agg(lambda x: x)
+    df2 = df.groupby(["key1", "key2"]).agg(lambda x: x)
+    expected = df.iloc[0]["key3"]
+    result1 = df1.iloc[0]["key3"]
+    result2 = df2.iloc[0]["key3"]
+    assert result1 == expected
+    assert result2 == expected
