@@ -331,7 +331,12 @@ can comment::
 
     @github-actions pre-commit
 
-on that pull request. This will trigger a workflow which will autofix formatting errors.
+on that pull request. This will trigger a workflow which will autofix formatting
+errors.
+
+To automatically fix formatting errors on each commit you make, you can
+set up pre-commit yourself. First, create a Python :ref:`environment
+<contributing_environment>` and then set up :ref:`pre-commit <contributing.pre-commit>`.
 
 Delete your merged branch (optional)
 ------------------------------------
