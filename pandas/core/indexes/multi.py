@@ -1397,16 +1397,15 @@ class MultiIndex(Index):
             raise ValueError("Names must be a tuple or list")
 
         if not names:
-            names = [
+            return [
                 (n if n is not None else f"level_{i}") for i, n in enumerate(self.names)
             ]
-        else:
-            if len(names) != self.nlevels:
-                raise ValueError(
-                    f"The number of provided names "
-                    f"({len(names)}) does not match the number of "
-                    f"MultiIndex levels ({self.nlevels})"
-                )
+        if len(names) != self.nlevels:
+            raise ValueError(
+                f"The number of provided names "
+                f"({len(names)}) does not match the number of "
+                f"MultiIndex levels ({self.nlevels})"
+            )
 
         return names
 
