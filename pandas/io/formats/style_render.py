@@ -157,11 +157,20 @@ class StylerRenderer:
         d.update(kwargs)
         return self.template_latex.render(**d)
 
-    def _render_string(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+    def _render_string(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        align: str,
+        max_colwidth: int,
+        **kwargs,
+    ) -> str:
         self._compute()
 
         d = self._translate(sparse_index, sparse_columns, blank="")
-        self._translate_string(d)
+
+        precision = (get_option("styler.format.precision"),)
+        self._translate_string(d, max_colwidth, precision, align)
 
         d.update(kwargs)
         return self.template_string.render(**d)
@@ -632,10 +641,18 @@ class StylerRenderer:
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
-    def _translate_string(self, d: dict) -> None:
+    def _translate_string(
+        self,
+        d: dict,
+        max_colwidth: int,
+        precision: int,
+        align: str,
+    ) -> None:
         """
         Manipulate the render dict for string output
         """
+
+        # find the maximum length of items in each column
         d["col_max_char"] = [0] * len(d["body"][0])
         for row in d["head"] + d["body"]:
             for cn, col in enumerate(row):
@@ -643,9 +660,27 @@ class StylerRenderer:
                 if chars > d["col_max_char"][cn]:
                     d["col_max_char"][cn] = chars
 
+        def char_refactor(value, display, max_cw, precision, align):
+            if len(display) <= max_cw:
+                return getattr(display, align)(max_cw)
+            elif len(display) > max_cw:
+                if isinstance(value, (float, complex)):
+                    return getattr(f"{{:.{precision}E}}".format(value), align)(max_cw)
+                elif isinstance(value, int):
+                    return getattr(f"{value:.0E}", align)(max_cw)
+                else:
+                    return display[: max_cw - 3] + "..."
+
+        # refactor display values to satisfy consistent column width
         for row in d["head"] + d["body"]:
             for cn, col in enumerate(row):
-                col["display_value"] = col["display_value"].rjust(d["col_max_char"][cn])
+                col["display_value"] = char_refactor(
+                    col["value"],
+                    col["display_value"],
+                    min(max_colwidth, d["col_max_char"][cn]),
+                    precision,
+                    align,
+                )
 
     def format(
         self,
