@@ -889,14 +889,14 @@ with cf.config_prefix("styler"):
         "latex.multirow_align",
         "c",
         styler_multirow_align,
-        validator=is_one_of_factory(["c", "t", "b"]),
+        validator=is_one_of_factory(["c", "t", "b", "naive"]),
     )
 
     cf.register_option(
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l"]),
+        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
     )
 
     cf.register_option(

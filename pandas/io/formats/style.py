@@ -520,14 +520,20 @@ class Styler(StylerRenderer):
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
-        multirow_align : {"c", "t", "b"}, optional
+        multirow_align : {"c", "t", "b", "naive"}, optional
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
-            at the top or bottom. If not given defaults to
-            ``pandas.options.styler.latex.multirow_align``
-        multicol_align : {"r", "c", "l"}, optional
+            at the top or bottom using the multirow package. If not given defaults to
+            ``pandas.options.styler.latex.multirow_align``. If "naive" is given renders
+            without multirow.
+
+            .. versionchanged:: 1.4.0
+        multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``
+            ``pandas.options.styler.latex.multicol_align``. If a naive option is
+            given renders without multicol.
+
+            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
