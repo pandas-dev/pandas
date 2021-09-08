@@ -715,7 +715,7 @@ def get_handle(
         assert not isinstance(handle, str)
         handles.append(handle)
 
-    elif is_path:
+    elif isinstance(handle, str):
         # Check whether the filename is to be opened in binary mode.
         # Binary mode does not support 'encoding' and 'newline'.
         if ioargs.encoding and "b" not in ioargs.mode:
