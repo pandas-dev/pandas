@@ -7693,8 +7693,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        # If user has passed any of the deprecated arguments
-        # ('include_start', 'include_end') AND the new argument ('inclusive')
         if (include_start != lib.no_default or include_end != lib.no_default) and (
             inclusive is not None
         ):
