@@ -1447,3 +1447,14 @@ def test_caption_raises(mi_styler, caption):
     msg = "`caption` must be either a string or 2-tuple of strings."
     with pytest.raises(ValueError, match=msg):
         mi_styler.set_caption(caption)
+
+
+def test_no_sparse_hiding_columns():
+    # GH 43464
+    midx = MultiIndex.from_product([[1, 2], ["a", "a", "b"]])
+    df = DataFrame(9, index=[0], columns=midx)
+    styler = df.style.hide_columns((1, "a"))
+    ctx = styler._translate(False, False)
+
+    for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
+        assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
