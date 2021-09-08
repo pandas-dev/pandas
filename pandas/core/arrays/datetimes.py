@@ -9,7 +9,6 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Literal,
-    cast,
     overload,
 )
 import warnings
@@ -478,11 +477,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             index = cls._simple_new(arr, freq=None, dtype=dtype)
 
         if not left_closed and len(index) and index[0] == start:
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            index = cast(DatetimeArray, index[1:])
+            index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            index = cast(DatetimeArray, index[:-1])
+            index = index[:-1]
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)

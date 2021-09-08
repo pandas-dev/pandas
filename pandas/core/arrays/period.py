@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
 )
 
@@ -76,7 +77,6 @@ from pandas.core.arrays.base import ExtensionArray
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         NumpySorter,

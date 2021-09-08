@@ -4,9 +4,11 @@ from functools import wraps
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -16,6 +18,9 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
     npt,
     type_t,
@@ -48,7 +53,6 @@ NDArrayBackedExtensionArrayT = TypeVar(
 )
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         NumpySorter,
@@ -204,6 +208,17 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
