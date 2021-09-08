@@ -94,7 +94,7 @@ def test_iterator_skipfooter_errors(all_parsers, kwargs):
 
 def test_iteration_open_handle(all_parsers):
     parser = all_parsers
-    kwargs = {"squeeze": True, "header": None}
+    kwargs = {"header": None}
 
     with tm.ensure_clean() as path:
         with open(path, "w") as f:
@@ -105,6 +105,6 @@ def test_iteration_open_handle(all_parsers):
                 if "CCC" in line:
                     break
 
-            result = parser.read_csv(f, **kwargs)
+            result = parser.read_csv(f, **kwargs).squeeze("columns")
             expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
             tm.assert_series_equal(result, expected)

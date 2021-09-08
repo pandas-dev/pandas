@@ -139,24 +139,25 @@ c,3
     index = Index(["a", "b", "c"], name=0)
     expected = Series([1, 2, 3], name=1, index=index)
 
-    with tm.assert_produces_warning(
+    result = parser.read_csv_check_warnings(
         FutureWarning,
-        match="The squeeze argument has been deprecated "
+        "The squeeze argument has been deprecated "
         "and will be removed in a future version.\n\n",
-    ):
-        result = parser.read_csv(
-            StringIO(data), index_col=0, header=None, squeeze=squeeze
-        )
-        if not squeeze:
-            expected = DataFrame(expected)
-            tm.assert_frame_equal(result, expected)
-        else:
-            tm.assert_series_equal(result, expected)
+        StringIO(data),
+        index_col=0,
+        header=None,
+        squeeze=squeeze,
+    )
+    if not squeeze:
+        expected = DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
 
-            # see gh-8217
-            #
-            # Series should not be a view.
-            assert not result._is_view
+        # see gh-8217
+        #
+        # Series should not be a view.
+        assert not result._is_view
 
 
 @xfail_pyarrow
@@ -859,12 +860,13 @@ def test_deprecated_bad_lines_warns(all_parsers, csv1, on_bad_lines):
     # GH 15122
     parser = all_parsers
     kwds = {f"{on_bad_lines}_bad_lines": False}
-    with tm.assert_produces_warning(
+    parser.read_csv_check_warnings(
         FutureWarning,
-        match=f"The {on_bad_lines}_bad_lines argument has been deprecated "
+        f"The {on_bad_lines}_bad_lines argument has been deprecated "
         "and will be removed in a future version.\n\n",
-    ):
-        parser.read_csv(csv1, **kwds)
+        csv1,
+        **kwds,
+    )
 
 
 def test_malformed_second_line(all_parsers):
