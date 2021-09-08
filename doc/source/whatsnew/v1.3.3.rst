@@ -25,7 +25,7 @@ Fixed regressions
 - Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)
 - Fixed regression in :meth:`.Resampler.aggregate` when used after column selection would raise if ``func`` is a list of aggregation functions (:issue:`42905`)
 - Fixed regression in :meth:`DataFrame.corr` where Kendall correlation would produce incorrect results for columns with repeated values (:issue:`43401`)
-- Fixed regression in :meth:`Series.fillna` raising ``TypeError`` when filling ``float32`` ``Series`` with list-like fill value having a larger dtype (like ``float64``) (:issue:`43424`)
+- Fixed regression in :meth:`Series.fillna` raising ``TypeError`` when filling ``float32`` ``Series`` with list-like fill value having a dtype which couldn't cast lostlessly (like ``float64``) (:issue:`43424`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -45,7 +45,6 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine="numba"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)
-- Bug in setting a ``float32`` :class:`Series` with a larger dtype (like ``float64``) not upcasting (:issue:`43424`)
 -
 
 .. ---------------------------------------------------------------------------

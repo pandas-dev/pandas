@@ -200,24 +200,6 @@ class TestFancy:
         assert is_float_dtype(left["foo"])
         assert is_float_dtype(left["baz"])
 
-    @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
-    def test_setitem_dtype_float_listlike_upcasts(self, dtype, indexer_sli):
-        # GH-43424
-        result = Series([1.1, 1.1], dtype=np.float32)
-        indexer_sli(result)[[0]] = np.array([1], dtype=dtype)
-        expected = Series([1.0, 1.1], dtype=np.float64)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "dtype,new_dtype", [(np.int8, np.int64), (np.uint16, np.uint32)]
-    )
-    def test_setitem_dtype_int_listlike_upcasts(self, dtype, new_dtype, indexer_sli):
-        # GH-43424
-        result = Series([1, 1], dtype=dtype)
-        indexer_sli(result)[[0]] = np.array([2], dtype=new_dtype)
-        expected = Series([2, 1], dtype=new_dtype)
-        tm.assert_series_equal(result, expected)
-
     def test_dups_fancy_indexing(self):
 
         # GH 3455
