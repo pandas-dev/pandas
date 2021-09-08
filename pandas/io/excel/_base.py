@@ -683,7 +683,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         .. versionadded:: 1.2.0
     if_sheet_exists : {'error', 'new', 'replace'}, default 'error'
         How to behave when trying to write to a sheet that already
-        exists (append mode only).
+        exists (openpyxl only).
 
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
