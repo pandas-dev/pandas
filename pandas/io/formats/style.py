@@ -532,6 +532,8 @@ class Styler(StylerRenderer):
             the left, centrally, or at the right. If not given defaults to
             ``pandas.options.styler.latex.multicol_align``. If a naive option is
             given renders without multicol.
+
+            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
