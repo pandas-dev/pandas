@@ -768,18 +768,18 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     engine="openpyxl",
     ...     if_sheet_exists="replace",
     ... ) as writer:
-    >>>     df.to_excel(writer, sheet_name="Sheet1")
+    ...     df.to_excel(writer, sheet_name="Sheet1")
 
     You can also write multiple DataFrames to a single sheet. Note that the
-    `if_sheet_exists` parameter needs to be set to `overlay`:
+    ``if_sheet_exists`` parameter needs to be set to ``overlay``:
 
     >>> with ExcelWriter("path_to_file.xlsx",
     ...     mode="a",
     ...     engine="openpyxl",
     ...     if_sheet_exists="overlay",
     ... ) as writer:
-    >>>     df1.to_excel(writer, sheet_name="Sheet1")
-    >>>     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)
+    ...     df1.to_excel(writer, sheet_name="Sheet1")
+    ...     df2.to_excel(writer, sheet_name="Sheet1", startcol=3)
 
     You can store Excel file in RAM:
 
