@@ -1001,7 +1001,10 @@ class SQLTable(PandasObject):
             DataFrame rows, for columns corresponding to `primary_key` names
         """
         # reflect MetaData object and assign contents of db to self.table attribute
-        self.pd_sql.meta.reflect(only=[self.name], views=True)
+        # add self.pd_sql.meta.is_bound() check here?
+        self.pd_sql.meta.reflect(
+            bind=self.pd_sql.connectable, only=[self.name], views=True
+        )
         self.table = self.pd_sql.get_table(table_name=self.name, schema=self.schema)
 
         primary_keys = self.table.primary_key.columns.keys()

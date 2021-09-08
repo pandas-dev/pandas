@@ -94,9 +94,16 @@ SQL_STRINGS = {
         "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
     },
     "read_pkey_table": {
-        "sqlite": """SELECT c FROM pkey_table WHERE A IN (?, ?)""",
-        "mysql": """SELECT c FROM pkey_table WHERE A IN (%s, %s)""",
-        "postgresql": """SELECT c FROM pkey_table WHERE A IN (%s, %s)""",
+        "pkey_table_single": {
+            "sqlite": """SELECT c FROM pkey_table_single WHERE A IN (?, ?)""",
+            "mysql": """SELECT c FROM pkey_table_single WHERE A IN (%s, %s)""",
+            "postgresql": """SELECT c FROM pkey_table_single WHERE A IN (%s, %s)""",
+        },
+        "pkey_table_comp": {
+            "sqlite": """SELECT c FROM pkey_table_comp WHERE A IN (?, ?)""",
+            "mysql": """SELECT c FROM pkey_table_comp WHERE A IN (%s, %s)""",
+            "postgresql": """SELECT c FROM pkey_table_comp WHERE A IN (%s, %s)""",
+        },
     },
 }
 
@@ -171,7 +178,7 @@ def create_and_load_pkey(conn):
 
 
 def create_and_load_pkey_sqlite3(conn: sqlite3.Connection):
-    cur = conn.cusror()
+    cur = conn.cursor()
     stmt_single = """
         CREATE TABLE pkey_table_single (
             "a"  Primary Key,
@@ -191,7 +198,7 @@ def create_and_load_pkey_sqlite3(conn: sqlite3.Connection):
     cur.execute(stmt_comp)
     data = [(1, "name1", "val1"), (2, "name2", "val2"), (3, "name3", "val3")]
     for tbl in ["pkey_table_single", "pkey_table_comp"]:
-        stmt = f"INSERT INTO {tbl} VALUE (?, ?, ?)"
+        stmt = f"INSERT INTO {tbl} VALUES (?, ?, ?)"
         cur.executemany(stmt, data)
 
 
@@ -365,6 +372,31 @@ def count_rows(conn, table_name: str):
     return result.fetchone()[0]
 
 
+def read_pkeys_from_database(conn, tbl_name: str, duplicate_keys: list[int]):
+    if isinstance(conn, sqlite3.Connection):
+        stmt = f"""SELECT c FROM {tbl_name} WHERE A IN (?, ?)"""
+        cur = conn.cursor()
+        result = cur.execute(stmt, duplicate_keys)
+    else:
+        from sqlalchemy import (
+            MetaData,
+            Table,
+            select,
+        )
+        from sqlalchemy.engine import Engine
+
+        meta = MetaData()
+        tbl = Table(tbl_name, meta, autoload_with=conn)
+        stmt = select([tbl.c.c]).where(tbl.c.a.in_(duplicate_keys))
+
+        if isinstance(conn, Engine):
+            with conn.connect() as conn:
+                result = conn.execute(stmt)
+        else:
+            result = conn.execute(stmt)
+    return sorted(val[0] for val in result.fetchall())
+
+
 @pytest.fixture
 def iris_path(datapath):
     iris_path = datapath("io", "data", "csv", "iris.csv")
@@ -475,7 +507,6 @@ def pkey_frame():
         (4, "name4", "val4"),
         (5, "name5", "val5"),
     ]
-
     return DataFrame(data, columns=columns)
 
 
@@ -576,12 +607,6 @@ class PandasSQLTest:
             create_and_load_pkey_sqlite3(self.conn)
         else:
             create_and_load_pkey(self.conn)
-
-    def _load_pkeys_from_database(self):
-        duplicate_keys = [1, 2]
-        query = SQL_STRINGS["read_pkey_table"][self.flavor]
-        records = self._get_exec().execute(query, duplicate_keys)
-        return sorted(val[0] for val in records)
 
     def _check_iris_loaded_frame(self, iris_frame):
         pytype = iris_frame.dtypes[0].type
@@ -717,7 +742,7 @@ class PandasSQLTest:
         assert count_rows(self.conn, tbl_name) == 5
         # Check conflicting primary keys have been updated
         # Get new values for conflicting keys
-        data_from_db = self._load_pkeys_from_database()
+        data_from_db = read_pkeys_from_database(self.conn, tbl_name, [1, 2])
         # duplicate_keys = [1, 2]
         # duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         # duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
@@ -753,7 +778,10 @@ class PandasSQLTest:
         # duplicate_key_query, duplicate_keys
         # )
         # data_from_db_before = sorted(val[0] for val in duplicate_val_before)
-        data_from_db_before = self._load_pkeys_from_database()
+        duplicate_keys = [1, 2]
+        data_from_db_before = read_pkeys_from_database(
+            self.conn, tbl_name, duplicate_keys
+        )
         # Insert new dataframe
         self.pandasSQL.to_sql(
             pkey_frame,
@@ -770,12 +798,12 @@ class PandasSQLTest:
         # duplicate_key_query, duplicate_keys
         # )
         # data_from_db_after = sorted(val[0] for val in duplicate_val_after)
-        data_from_db_after = self._load_pkeys_from_database()
+        data_from_db_after = read_pkeys_from_database(
+            self.conn, tbl_name, duplicate_keys
+        )
         # Get data from incoming df
         data_from_df = sorted(
-            self.pkey_table_frame.loc[
-                self.pkey_table_frame["a"].isin([1, 2]), "c"
-            ].tolist()
+            pkey_frame.loc[pkey_frame["a"].isin(duplicate_keys), "c"].tolist()
         )
         # Check original DB values maintained for duplicate keys
         assert data_from_db_before == data_from_db_after
@@ -820,7 +848,7 @@ class PandasSQLTest:
         # duplicate_key_query = SQL_STRINGS["read_pkey_table"][self.flavor]
         # duplicate_val = self._get_exec().execute(duplicate_key_query, duplicate_keys)
         # data_from_db = sorted(val[0] for val in duplicate_val)
-        data_from_db = self._load_pkeys_from_database()
+        data_from_db = read_pkeys_from_database(self.conn, tbl_name, [1, 2])
         # Expected values from pkey_table_frame
         expected = sorted(["new_val1", "new_val2"])
         assert data_from_db == expected
@@ -1029,22 +1057,22 @@ class _TestSQLApi(PandasSQLTest):
         s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
-    def test_to_sql_invalid_on_conflict(self):
+    def test_to_sql_invalid_on_conflict(self, pkey_frame):
         msg = "'update' is not valid for on_conflict"
         with pytest.raises(ValueError, match=msg):
             sql.to_sql(
-                self.pkey_frame,
+                pkey_frame,
                 "pkey_frame1",
                 self.conn,
                 if_exists="append",
                 on_conflict="update",
             )
 
-    def test_to_sql_on_conflict_non_append(self):
+    def test_to_sql_on_conflict_non_append(self, pkey_frame):
         msg = "on_conflict can only be used with 'append' operations"
         with pytest.raises(ValueError, match=msg):
             sql.to_sql(
-                self.pkey_frame,
+                pkey_frame,
                 "pkey_frame1",
                 self.conn,
                 if_exists="replace",
