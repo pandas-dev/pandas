@@ -791,7 +791,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     engine_kwargs={"keep_vba":True}
     ... ) as writer:
     ...     df.to_excel(writer)
-    )
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
