@@ -691,8 +691,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         .. versionadded:: 1.3.0
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine. Only works for
-        xlsxwriter, openpyxl and xlwt. Does not work in append mode.
+        Keyword arguments to be passed into the engine. Not supported for odswriter.
 
         .. versionadded:: 1.3.0
     **kwargs : dict, optional
@@ -781,6 +780,18 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     engine_kwargs={"options":{"nan_inf_to_errors":True}}
     ... ) as writer:
     ...     df.to_excel(writer)
+
+    In append mode, ``engine_kwargs`` are passed through to
+    openpyxl's ``load_workbook``:
+
+    >>> with ExcelWriter(
+    ...     "path_to_file.xlsx",
+    ...     engine="openpyxl",
+    ...     mode="a",
+    ...     engine_kwargs={"keep_vba":True}
+    ... ) as writer:
+    ...     df.to_excel(writer)
+    )
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)

@@ -62,7 +62,7 @@ class OpenpyxlWriter(ExcelWriter):
         if "r+" in self.mode:  # Load from existing workbook
             from openpyxl import load_workbook
 
-            self.book = load_workbook(self.handles.handle)
+            self.book = load_workbook(self.handles.handle, **engine_kwargs)
             self.handles.handle.seek(0)
             self.sheets = {name: self.book[name] for name in self.book.sheetnames}
 

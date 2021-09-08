@@ -85,29 +85,44 @@ def test_write_cells_merge_styled(ext):
         assert xcell_a2.font == openpyxl_sty_merged
 
 
-@pytest.mark.parametrize("write_only", [True, False])
-def test_kwargs(ext, write_only):
+@pytest.mark.parametrize("iso_dates", [True, False])
+def test_kwargs(ext, iso_dates):
     # GH 42286
     # openpyxl doesn't utilize kwargs, only test that supplying a kwarg works
-    kwargs = {"write_only": write_only}
+    kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
         msg = re.escape("Use of **kwargs is deprecated")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with ExcelWriter(f, engine="openpyxl", **kwargs) as writer:
+                assert writer.book.iso_dates == iso_dates
                 # ExcelWriter won't allow us to close without writing something
                 DataFrame().to_excel(writer)
 
 
 @pytest.mark.parametrize("iso_dates", [True, False])
-def test_engine_kwargs(ext, iso_dates):
-    # GH 42286
-    # openpyxl doesn't utilize kwargs, only test that supplying a engine_kwarg works
+def test_engine_kwargs_write(ext, iso_dates):
+    # GH 42286 GH 43445
     engine_kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
         with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
-            # ExcelWriter won't allow us to close without writing something
             assert writer.book.iso_dates == iso_dates
+            # ExcelWriter won't allow us to close without writing something
             DataFrame().to_excel(writer)
+
+
+def test_engine_kwargs_append(ext):
+    # GH 43445
+    # only read_only=True will give something easy that can be verified (maybe
+    # keep_links or data_only could also work, but that'd be more complicated)
+    # arguments are passed through to load_workbook()
+    engine_kwargs = {"read_only": True}
+    with tm.ensure_clean(ext) as f:
+        DataFrame(["hello", "world"]).to_excel(f)
+        with pytest.raises(TypeError, match=re.escape("Workbook is read-only")):
+            with ExcelWriter(
+                f, engine="openpyxl", mode="a", engine_kwargs=engine_kwargs
+            ) as writer:
+                DataFrame(["goodbye", "world"]).to_excel(writer)
 
 
 @pytest.mark.parametrize(
