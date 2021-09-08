@@ -1208,6 +1208,10 @@ Returning Series
 Using the ``squeeze`` keyword, the parser will return output with a single column
 as a ``Series``:
 
+.. deprecated:: 1.4.0
+   Users should append ``.squeeze("columns")`` to the DataFrame returned by
+   ``read_csv`` instead.
+
 .. ipython:: python
    :suppress:
 
