@@ -527,10 +527,13 @@ class Styler(StylerRenderer):
             without multirow.
 
             .. versionchanged:: 1.4.0
-        multicol_align : {"r", "c", "l"}, optional
+        multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``
+            ``pandas.options.styler.latex.multicol_align``. If a naive option is
+            given renders without multicol.
+
+            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional

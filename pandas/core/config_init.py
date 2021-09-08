@@ -896,7 +896,7 @@ with cf.config_prefix("styler"):
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l"]),
+        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
     )
 
     cf.register_option(
