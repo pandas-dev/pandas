@@ -5,7 +5,6 @@ from io import (
     StringIO,
 )
 import os
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -204,11 +203,10 @@ def test_str_output(datapath, parser):
 
 def test_wrong_file_path(parser):
     path = "/my/fake/path/output.xml"
-    parent = Path(path).parent
 
     with pytest.raises(
         OSError,
-        match=(fr"Cannot save file into a non-existent directory: '{parent}'"),
+        match=(r"Cannot save file into a non-existent directory: .*path"),
     ):
         geom_df.to_xml(path, parser=parser)
 
