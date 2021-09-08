@@ -2299,6 +2299,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         1  1  2.0
         4  2  5.0
         """
+        from collections.abc import Iterable
+        if isinstance(n, Iterable):
+            return self.rows[tuple(n)]
+
+        elif isinstance(n, slice):
+            return self.rows[n]
+
         valid_containers = (set, list, tuple)
         if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
