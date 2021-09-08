@@ -96,10 +96,13 @@ def test_series_compression_defaults_to_infer(
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:
-            del read_kwargs["squeeze"]
-            output = read_method(
-                path, compression=compression_only, **read_kwargs
-            ).squeeze("columns")
+            kwargs = read_kwargs.copy()
+            del kwargs["squeeze"]
+            output = read_method(path, compression=compression_only, **kwargs).squeeze(
+                "columns"
+            )
+        else:
+            output = read_method(path, compression=compression_only, **read_kwargs)
     tm.assert_series_equal(output, input, check_names=False)
 
 
