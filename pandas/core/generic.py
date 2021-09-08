@@ -7624,14 +7624,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Initial time as a time filter limit.
         end_time : datetime.time or str
             End time as a time filter limit.
-        include_start : bool
+        include_start : bool, default True
             Whether the start time needs to be included in the result.
 
             .. deprecated:: 1.4.0
                Arguments `include_start` and `include_end` have been deprecated
                to standardize boundary inputs. Use `inclusive` instead, to set
                each bound as close or open.
-        include_end : bool
+        include_end : bool, default True
             Whether the end time needs to be included in the result.
 
             .. deprecated:: 1.4.0
