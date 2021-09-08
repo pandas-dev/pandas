@@ -24,6 +24,11 @@ def small_df():
     return df.set_index("Index")
 
 
+@pytest.fixture()
+def small_grouped(small_df):
+    return small_df.groupby("Category", as_index=False)
+
+
 @pytest.mark.parametrize(
     "arg, expected_rows",
     [
@@ -35,19 +40,19 @@ def small_df():
         [-6, []],
     ],
 )
-def test_int(small_df, arg, expected_rows):
+def test_int(small_df, small_grouped, arg, expected_rows):
     """Test single integer"""
 
-    result = small_df.groupby("Category").rows[arg]
+    result = small_grouped.rows[arg]
     expected = small_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_slice(small_df):
+def test_slice(small_df, small_grouped):
     """Test single slice"""
 
-    result = small_df.groupby("Category").rows[0:3:2]
+    result = small_grouped.rows[0:3:2]
     expected = small_df.iloc[[0, 1, 4, 5]]
 
     tm.assert_frame_equal(result, expected)
@@ -68,38 +73,53 @@ def test_slice(small_df):
         "set",
     ],
 )
-def test_list(small_df, arg, expected_rows):
+def test_list(small_df, small_grouped, arg, expected_rows):
     """Test lists of integers and integer valued iterables"""
 
-    result = small_df.groupby("Category").rows[arg]
+    result = small_grouped.rows[arg]
     expected = small_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_ints(small_df):
+def test_ints(small_df, small_grouped):
     """Test tuple of ints"""
 
-    result = small_df.groupby("Category").rows[0, 2, -1]
+    result = small_grouped.rows[0, 2, -1]
     expected = small_df.iloc[[0, 1, 3, 4, 5, 7]]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_slices(small_df):
+def test_slices(small_df, small_grouped):
     """Test tuple of slices"""
 
-    result = small_df.groupby("Category").rows[:2, -2:]
+    result = small_grouped.rows[:2, -2:]
     expected = small_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_mix(small_df):
+def test_mix(small_df, small_grouped):
     """Test mixed tuple of ints and slices"""
 
-    result = small_df.groupby("Category").rows[0, 1, -2:]
+    result = small_grouped.rows[0, 1, -2:]
     expected = small_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg, expected_rows",
+    [
+        [0, [0, 1, 4]],
+        [[0, 2, -1], [0, 1, 3, 4, 5, 7]],
+        [(slice(None, 2), slice(-2, None)), [0, 1, 2, 3, 4, 6, 7]],
+    ],
+)
+def test_as_index(small_df, arg, expected_rows):
+    result = small_df.groupby("Category", sort=False).rows[arg]
+    expected = small_df.iloc[expected_rows].set_index("Category")
 
     tm.assert_frame_equal(result, expected)
 
@@ -111,7 +131,7 @@ def test_doc_examples():
         [["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]], columns=["A", "B"]
     )
 
-    grouped = df.groupby("A")
+    grouped = df.groupby("A", as_index=False)
 
     result = grouped.rows[1:2]
     expected = pd.DataFrame([["a", 2], ["b", 5]], columns=["A", "B"], index=[1, 4])
@@ -126,19 +146,8 @@ def test_doc_examples():
     tm.assert_frame_equal(result, expected)
 
 
-def test_multiindex():
-    """Test the multiindex mentioned as the use-case in the documentation"""
-
-    def make_df_from_data(data):
-        rows = {}
-        for date in dates:
-            for level in data[date]:
-                rows[(date, level[0])] = {"A": level[1], "B": level[2]}
-
-        df = pd.DataFrame.from_dict(rows, orient="index")
-        df.index.names = ("Date", "Item")
-        return df
-
+@pytest.fixture()
+def multiindex_data():
     ndates = 100
     nitems = 20
     dates = pd.date_range("20130101", periods=ndates, freq="D")
@@ -154,11 +163,28 @@ def test_multiindex():
         levels.sort(key=lambda x: x[1])
         data[date] = levels
 
-    df = make_df_from_data(data)
-    result = df.groupby("Date").rows[3:-3]
+    return data
 
-    sliced = {date: data[date][3:-3] for date in dates}
-    expected = make_df_from_data(sliced)
+
+def _make_df_from_data(data):
+    rows = {}
+    for date in data:
+        for level in data[date]:
+            rows[(date, level[0])] = {"A": level[1], "B": level[2]}
+
+    df = pd.DataFrame.from_dict(rows, orient="index")
+    df.index.names = ("Date", "Item")
+    return df
+
+
+def test_multiindex(multiindex_data):
+    """Test the multiindex mentioned as the use-case in the documentation"""
+
+    df = _make_df_from_data(multiindex_data)
+    result = df.groupby("Date", as_index=False).nth(slice(3, -3))
+
+    sliced = {date: multiindex_data[date][3:-3] for date in multiindex_data}
+    expected = _make_df_from_data(sliced)
 
     tm.assert_frame_equal(result, expected)
 
@@ -183,7 +209,7 @@ def test_against_head_and_tail(arg, method, simulated):
         ],
     }
     df = pd.DataFrame(data)
-    grouped = df.groupby("group")
+    grouped = df.groupby("group", as_index=False)
 
     if method == "head":
         result = grouped.rows[:arg]
@@ -231,7 +257,7 @@ def test_against_df_iloc(start, stop, step):
         "value": list(range(n_rows)),
     }
     df = pd.DataFrame(data)
-    grouped = df.groupby("group")
+    grouped = df.groupby("group", as_index=False)
 
     result = grouped.rows[start:stop:step]
     expected = df.iloc[start:stop:step]
@@ -259,7 +285,7 @@ def test_step(step):
     data += [["z", f"z{i}"] for i in range(3)]
     df = pd.DataFrame(data, columns=["A", "B"])
 
-    grouped = df.groupby("A")
+    grouped = df.groupby("A", as_index=False)
 
     result = grouped.rows[::step]
 

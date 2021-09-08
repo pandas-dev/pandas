@@ -4,6 +4,9 @@ import numpy as np
 
 from pandas.util._decorators import doc
 
+from pandas.core.groupby import groupby
+from pandas.core.indexes.api import CategoricalIndex
+
 
 class GroupByIndexingMixin:
     """
@@ -81,12 +84,12 @@ class GroupByIndexingMixin:
         --------
             >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
             ...                   columns=["A", "B"])
-            >>> df.groupby("A").rows[1:2]
+            >>> df.groupby("A", as_index=False).rows[1:2]
                A  B
             1  a  2
             4  b  5
 
-            >>> df.groupby("A").rows[1, -1]
+            >>> df.groupby("A", as_index=False).rows[1, -1]
                A  B
             1  a  2
             2  a  3
@@ -101,38 +104,62 @@ class _rowsGroupByIndexer:
         self.grouped = grouped
 
     def __getitem__(self, arg):
-        self.grouped._reset_group_selection()
-        self._cached_ascending_count = None
-        self._cached_descending_count = None
+        with groupby.group_selection_context(self.grouped):
+            self._cached_ascending_count = None
+            self._cached_descending_count = None
 
-        if isinstance(arg, tuple):
-            mask = self._handle_tuple(arg)
+            if isinstance(arg, tuple):
+                if all(isinstance(i, int) for i in arg):
+                    mask = self._handle_list(arg)
 
-        elif isinstance(arg, slice):
-            mask = self._handle_slice(arg)
+                else:
+                    mask = self._handle_tuple(arg)
 
-        elif isinstance(arg, int):
-            mask = self._handle_int(arg)
+            elif isinstance(arg, slice):
+                mask = self._handle_slice(arg)
 
-        elif isinstance(arg, list):
-            mask = self._handle_list(arg)
+            elif isinstance(arg, int):
+                mask = self._handle_int(arg)
 
-        else:
-            try:
-                list_arg = list(arg)
+            elif isinstance(arg, list):
+                mask = self._handle_list(arg)
 
-            except TypeError:
-                raise ValueError(
-                    f"Invalid index {type(arg)}. Must be iterable or a list of "
-                    "integers and slices"
-                )
+            else:
+                try:
+                    list_arg = list(arg)
 
-            mask = self._handle_list(list_arg)
+                except TypeError:
+                    raise ValueError(
+                        f"Invalid index {type(arg)}. Must be iterable or a list of "
+                        "integers and slices"
+                    )
 
-        if mask is None or mask is True:
-            mask = slice(None)
+                mask = self._handle_list(list_arg)
 
-        return self.grouped._selected_obj.iloc[mask]
+            if mask is None or mask is True:
+                mask = slice(None)
+
+            result = self.grouped._selected_obj[mask]
+
+            if self.grouped.as_index:
+                ids, _, _ = self.grouped.grouper.group_info
+
+                # Drop NA values in grouping
+                mask &= ids != -1
+
+                result_index = self.grouped.grouper.result_index
+                result.index = result_index[ids[mask]]
+
+                if not self.grouped.observed and isinstance(
+                    result_index, CategoricalIndex
+                ):
+                    result = result.reindex(result_index)
+
+                result = self.grouped._reindex_output(result)
+                if self.grouped.sort:
+                    result = result.sort_index()
+
+            return result
 
     def _handle_int(self, arg):
         if arg >= 0:
@@ -145,11 +172,10 @@ class _rowsGroupByIndexer:
         positive = [arg for arg in args if arg >= 0]
         negative = [-arg - 1 for arg in args if arg < 0]
 
-        if positive:
-            mask = np.isin(self._ascending_count, positive)
+        mask = False
 
-        else:
-            mask = False
+        if positive:
+            mask |= np.isin(self._ascending_count, positive)
 
         if negative:
             mask |= np.isin(self._descending_count, negative)
@@ -182,22 +208,23 @@ class _rowsGroupByIndexer:
             raise ValueError(f"Invalid step {step}. Must be non-negative")
 
         mask = True
+
         if step is None:
             step = 1
 
         if start is None:
             if step > 1:
-                mask = self._ascending_count % step == 0
+                mask &= self._ascending_count % step == 0
 
         else:
             if start >= 0:
-                mask = self._ascending_count >= start
+                mask &= self._ascending_count >= start
 
                 if step > 1:
                     mask &= (self._ascending_count - start) % step == 0
 
             else:
-                mask = self._descending_count < -start
+                mask &= self._descending_count < -start
 
                 offset_array = self._descending_count + start + 1
                 limit_array = (
