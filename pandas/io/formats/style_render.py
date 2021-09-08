@@ -161,6 +161,7 @@ class StylerRenderer:
         self._compute()
 
         d = self._translate(sparse_index, sparse_columns, blank="")
+        self._translate_string(d)
 
         d.update(kwargs)
         return self.template_string.render(**d)
@@ -629,6 +630,21 @@ class StylerRenderer:
 
             body.append(row_body_headers + row_body_cells)
         d["body"] = body
+
+    def _translate_string(self, d: dict) -> None:
+        """
+        Manipulate the render dict for string output
+        """
+        d["col_max_char"] = [0] * len(d["body"][0])
+        for row in d["head"] + d["body"]:
+            for cn, col in enumerate(row):
+                chars = len(col["display_value"])
+                if chars > d["col_max_char"][cn]:
+                    d["col_max_char"][cn] = chars
+
+        for row in d["head"] + d["body"]:
+            for cn, col in enumerate(row):
+                col["display_value"] = col["display_value"].rjust(d["col_max_char"][cn])
 
     def format(
         self,
