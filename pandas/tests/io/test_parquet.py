@@ -933,11 +933,10 @@ class TestParquetPyArrow(Base):
 
     def test_read_zero_chunked_array(self, pa):
         df = pd.DataFrame({"value": pd.array([], dtype=pd.Int64Dtype())})
-        print(pa)
         with tm.ensure_clean() as path:
             df.to_parquet(path, pa)
             result = read_parquet(path, pa)
-        check_round_trip(df, pa, expected=result)
+            tm.assert_frame_equal(result, df)
 
 
 class TestParquetFastParquet(Base):
