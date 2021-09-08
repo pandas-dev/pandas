@@ -3097,6 +3097,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 assert out.ndim == 2
                 assert out.shape[1] == 1
                 out = out.iloc[:, 0]
+                # restore name=None in case to_frame set columns to [0]
+                out.name = self.obj.name
 
             if aggregate:
                 return self._wrap_aggregated_output(out)
