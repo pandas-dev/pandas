@@ -114,7 +114,9 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     new = np.asarray(new)
 
-    if values.dtype.kind == new.dtype.kind or (values.dtype.kind == "f" and new.dtype.kind in ["i", "u"]):
+    values_kind = values.dtype.kind
+    new_kind = new.dtype.kind
+    if values_kind == new_kind or (values_kind == "f" and new_kind in ["i", "u"]):
         # preserves dtype if possible
         return _putmask_preserve(values, new, mask)
 

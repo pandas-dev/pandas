@@ -702,6 +702,22 @@ class TestSeriesFillNA:
         with pytest.raises(TypeError, match=msg):
             ser.fillna(DataFrame({1: ["a"], 3: ["b"]}))
 
+    @pytest.mark.parametrize("fill_type", [np.float64, np.uint64, np.int64])
+    def test_fillna_f32_upcast(self, fill_type):
+        # GH-43424
+        ser = Series([np.nan, 1.2], dtype=np.float32)
+        fill_values = Series([2, 2], dtype=fill_type)
+        result = ser.fillna(fill_values)
+        expected = Series([2.0, 1.2], dtype="float64")
+        tm.assert_series_equal(result, expected)
+
+    def test_fillna_f32_upcast_with_dict(self):
+        # GH-43424
+        ser = Series([np.nan, 1.2], dtype=np.float32)
+        result = ser.fillna({0: 1})
+        expected = Series([1.0, 1.2])
+        tm.assert_series_equal(result, expected)
+
     # ---------------------------------------------------------------
     # Invalid Usages
 
@@ -868,14 +884,6 @@ class TestFillnaPad:
         return_value = ser.fillna(method="ffill", inplace=True)
         assert return_value is None
         tm.assert_series_equal(ser.fillna(method="ffill", inplace=False), ser)
-
-    @pytest.mark.parametrize("filler", [0.5, 1, np.uint8(2), np.int16(-2), np.uint64(2), np.int64(32)])
-    def test_fillna_value_f32(self, filler):
-        # GH-43424
-        ser = Series([np.nan, 1.2], dtype="float32")
-        result = ser.fillna(value={0: filler})
-        expected = Series([filler, 1.2], dtype="float32")
-        tm.assert_series_equal(result, expected)
 
     def test_datetime64tz_fillna_round_issue(self):
         # GH#14872
