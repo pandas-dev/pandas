@@ -931,6 +931,14 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
+    def test_read_zero_chunked_array(self, pa):
+        df = pd.DataFrame({"value": pd.array([], dtype=pd.Int64Dtype())})
+        print(pa)
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = read_parquet(path, pa)
+        check_round_trip(df, pa, expected=result)
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
