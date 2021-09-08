@@ -1410,8 +1410,18 @@ def _parse_latex_header_span(
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
+            if "naive-l" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = " & {}" if wrap else " &"
+                return out + blanks * (colspan - 1)
+            elif "naive-r" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = "{} & " if wrap else "& "
+                return blanks * (colspan - 1) + out
             return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
         elif 'rowspan="' in attrs:
+            if multirow_align == "naive":
+                return display_val
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"

@@ -1011,7 +1011,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = self.filter(lambda x: True).axes[self.axis]
+            ax = (
+                self.filter(lambda x: True).axes[self.axis]
+                if self.dropna
+                else self._selected_obj._get_axis(self.axis)
+            )
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
@@ -1091,8 +1095,53 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return result
 
-    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, ArrayLike]):
+    def _indexed_output_to_ndframe(
+        self, result: Mapping[base.OutputKey, ArrayLike]
+    ) -> Series | DataFrame:
         raise AbstractMethodError(self)
+
+    def _wrap_aggregated_output(
+        self, output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike]
+    ):
+        """
+        Wraps the output of GroupBy aggregations into the expected result.
+
+        Parameters
+        ----------
+        output : Series, DataFrame, or Mapping[base.OutputKey, ArrayLike]
+           Data to wrap.
+
+        Returns
+        -------
+        Series or DataFrame
+        """
+
+        if isinstance(output, (Series, DataFrame)):
+            # We get here (for DataFrameGroupBy) if we used Manager.grouped_reduce,
+            #  in which case our columns are already set correctly.
+            # ATM we do not get here for SeriesGroupBy; when we do, we will
+            #  need to require that result.name already match self.obj.name
+            result = output
+        else:
+            result = self._indexed_output_to_ndframe(output)
+
+        if not self.as_index:
+            # `not self.as_index` is only relevant for DataFrameGroupBy,
+            #   enforced in __init__
+            self._insert_inaxis_grouper_inplace(result)
+            result = result._consolidate()
+        else:
+            result.index = self.grouper.result_index
+
+        if self.axis == 1:
+            # Only relevant for DataFrameGroupBy, no-op for SeriesGroupBy
+            result = result.T
+            if result.index.equals(self.obj.index):
+                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
+                result.index = self.obj.index.copy()
+                # TODO: Do this more systematically
+
+        return self._reindex_output(result)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
