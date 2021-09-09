@@ -1855,9 +1855,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if ddof == 1:
             numeric_only = self._resolve_numeric_only(lib.no_default)
             return self._cython_agg_general(
-                "var",
-                alt=lambda x: Series(x).var(ddof=ddof),
-                numeric_only=numeric_only,
+                "var", alt=lambda x: Series(x).var(ddof=ddof), numeric_only=numeric_only
             )
         else:
             func = lambda x: x.var(ddof=ddof)
@@ -1937,6 +1935,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 alias="add",
                 npfunc=np.sum,
             )
+        if self.axis == 1 and isinstance(self.obj.columns, MultiIndex):
+            dtypes_df = self.obj.dtypes.unstack().head(1)
+            if len(set(dtypes_df.values[0])) > 1:
+                # if self.obj has mixed dtype
+                result = result.astype(
+                    dict(zip(dtypes_df.columns, dtypes_df.values[0]))
+                )
 
         return self._reindex_output(result, fill_value=0)
 
@@ -3130,8 +3135,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # error_msg is "" on an frame/series with no rows or columns
         if not output and error_msg != "":
             raise TypeError(error_msg)
-        elif not output and error_msg == "" and not self._obj_with_exclusions.empty:
-            raise DataError("No numeric types to aggregate")
 
         if aggregate:
             return self._wrap_aggregated_output(output)

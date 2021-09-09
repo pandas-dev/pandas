@@ -2451,9 +2451,9 @@ def test_rolling_wrong_param_min_period():
         ("sum", [5, 7, 9], "int64", {}),
         ("std", [4.5 ** 0.5] * 3, int, {"i": float, "j": float, "k": float}),
         ("var", [4.5] * 3, int, {"i": float, "j": float, "k": float}),
-        ("sum", [5, 7, 9], "Int64", {"j": "float64"}),
+        ("sum", [5, 7, 9], "Int64", {"j": "Int64"}),
         ("std", [4.5 ** 0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
-        ("var", [4.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
+        ("var", [4.5] * 3, "Int64", {"i": "Float64", "j": "Float64", "k": "Float64"}),
     ],
 )
 def test_multiindex_groupby(func, expected, dtype, result_dtype_dict):
