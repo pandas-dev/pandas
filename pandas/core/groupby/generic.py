@@ -366,36 +366,6 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Series | ArrayLike]
-    ) -> Series:
-        """
-        Wraps the output of a SeriesGroupBy aggregation into the expected result.
-
-        Parameters
-        ----------
-        output : dict[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Dict with a sole key of 0 and a value of the result values.
-
-        Returns
-        -------
-        Series
-
-        Notes
-        -----
-        output should always contain one element. It is specified as a dict
-        for consistency with DataFrame methods and _wrap_aggregated_output.
-        """
-        assert len(output) == 1
-
-        name = self.obj.name
-        values = next(iter(output.values()))
-        result = self.obj._constructor(values, index=self.obj.index, name=name)
-
-        # No transformations increase the ndim of the result
-        assert isinstance(result, Series)
-        return result
-
     def _wrap_applied_output(
         self,
         data: Series,
@@ -1601,36 +1571,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
-        return result
-
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Series | ArrayLike]
-    ) -> DataFrame:
-        """
-        Wraps the output of DataFrameGroupBy transformations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Data to wrap.
-
-        Returns
-        -------
-        DataFrame
-        """
-        indexed_output = {key.position: val for key, val in output.items()}
-        result = self.obj._constructor(indexed_output)
-
-        if self.axis == 1:
-            result = result.T
-            result.columns = self.obj.columns
-        else:
-            columns = Index(key.label for key in output)
-            columns._set_names(self.obj._get_axis(1 - self.axis).names)
-            result.columns = columns
-
-        result.index = self.obj.index
-
         return result
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
