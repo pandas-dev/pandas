@@ -252,7 +252,8 @@ def test_encoding_memory_map(all_parsers, encoding):
     tm.assert_frame_equal(df, expected)
 
 
-def test_non_readable(all_parsers):
+def test_not_readable(all_parsers):
+    # GH43439
     parser = all_parsers
     if parser.engine == "python":
         pytest.skip("SpooledTemporaryFile does not work with Python engine")
