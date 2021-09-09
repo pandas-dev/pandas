@@ -561,10 +561,10 @@ def _concatenate_join_units(
         # concatting with at least one EA means we are concatting a single column
         # the non-EA values are 2D arrays with shape (1, n)
 
-        # error: Invalid index type "Tuple[int, slice]" for
-        # "Union[ExtensionArray, ndarray]"; expected type "Union[int, slice, ndarray]"
+        # error: No overload variant of "__getitem__" of "ExtensionArray" matches
+        # argument type "Tuple[int, slice]"
         to_concat = [
-            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[index]
+            t if is_1d_only_ea_obj(t) else t[0, :]  # type: ignore[call-overload]
             for t in to_concat
         ]
         concat_values = concat_compat(to_concat, axis=0, ea_compat_axis=True)

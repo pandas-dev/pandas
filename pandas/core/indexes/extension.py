@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Literal,
     TypeVar,
     overload,
 )
@@ -47,7 +48,6 @@ from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
 
 if TYPE_CHECKING:
-    from typing import Literal
 
     from pandas._typing import (
         NumpySorter,
