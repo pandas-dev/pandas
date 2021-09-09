@@ -10,10 +10,8 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    Int64Index,
     MultiIndex,
     Series,
-    Timedelta,
     Timestamp,
     date_range,
 )
@@ -263,64 +261,6 @@ class TestNumericOnly:
             result = getattr(gb, method)(numeric_only=False)
 
         tm.assert_index_equal(result.columns, expected_columns)
-
-    def test_groupby_aggregation_non_numeric_dtype(self):
-        # GH #43108
-        df = DataFrame(
-            [["M", [1]], ["M", [1]], ["W", [10]], ["W", [20]]], columns=["MW", "v"]
-        )
-
-        expected = DataFrame(
-            {
-                "v": [[1, 1], [10, 20]],
-            },
-            index=Index(["M", "W"], dtype="object", name="MW"),
-        )
-
-        gb = df.groupby(by=["MW"])
-        result = gb.sum()
-        tm.assert_frame_equal(result, expected)
-
-    def test_groupby_aggregation_multi_non_numeric_dtype(self):
-        # GH #42395
-        df = DataFrame(
-            {
-                "x": [1, 0, 1, 1, 0],
-                "y": [Timedelta(i, "days") for i in range(1, 6)],
-                "z": [Timedelta(i * 10, "days") for i in range(1, 6)],
-            }
-        )
-
-        expected = DataFrame(
-            {
-                "y": [Timedelta(i, "days") for i in range(7, 9)],
-                "z": [Timedelta(i * 10, "days") for i in range(7, 9)],
-            },
-            index=Int64Index([0, 1], dtype="int64", name="x"),
-        )
-
-        gb = df.groupby(by=["x"])
-        result = gb.sum()
-        tm.assert_frame_equal(result, expected)
-
-    def test_groupby_aggregation_numeric_with_non_numeric_dtype(self):
-        # GH #43108
-        df = DataFrame(
-            {
-                "x": [1, 0, 1, 1, 0],
-                "y": [Timedelta(i, "days") for i in range(1, 6)],
-                "z": [i for i in range(1, 6)],
-            }
-        )
-
-        expected = DataFrame(
-            {"z": [7, 8]},
-            index=Int64Index([0, 1], dtype="int64", name="x"),
-        )
-
-        gb = df.groupby(by=["x"])
-        result = gb.sum()
-        tm.assert_frame_equal(result, expected)
 
 
 class TestGroupByNonCythonPaths:
