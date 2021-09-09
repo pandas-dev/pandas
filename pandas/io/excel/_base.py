@@ -404,6 +404,10 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+        # First argument can also be bytes, so create a buffer
+        if isinstance(filepath_or_buffer, bytes):
+            filepath_or_buffer = BytesIO(filepath_or_buffer)
+
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
         )
@@ -422,8 +426,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             except Exception:
                 self.close()
                 raise
-        elif isinstance(self.handles.handle, bytes):
-            self.book = self.load_workbook(BytesIO(self.handles.handle))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -1111,7 +1113,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
         a file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -1169,6 +1171,10 @@ class ExcelFile:
     ):
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
+
+        # First argument can also be bytes, so create a buffer
+        if isinstance(path_or_buffer, bytes):
+            path_or_buffer = BytesIO(path_or_buffer)
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
