@@ -1477,12 +1477,44 @@ def test_caption_raises(mi_styler, caption):
         mi_styler.set_caption(caption)
 
 
-def test_no_sparse_hiding_columns():
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_hiding_headers_over_axis_no_sparsify(axis):
     # GH 43464
     midx = MultiIndex.from_product([[1, 2], ["a", "a", "b"]])
-    df = DataFrame(9, index=[0], columns=midx)
-    styler = df.style.hide_columns((1, "a"))
+    df = DataFrame(
+        9,
+        index=midx if axis == "index" else [0],
+        columns=midx if axis == "columns" else [0],
+    )
+
+    styler = getattr(df.style, f"hide_{axis}")((1, "a"))
     ctx = styler._translate(False, False)
 
-    for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
-        assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
+    if axis == "columns":  # test column headers
+        for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
+            assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
+    if axis == "index":  # test row headers
+        for ix in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+            assert ctx["body"][ix[0]][ix[1]]["is_visible"] is False
+
+
+def test_get_level_lengths_mi_hidden():
+    # GH 43464
+    index = MultiIndex.from_arrays([[1, 1, 1, 2, 2, 2], ["a", "a", "b", "a", "a", "b"]])
+    expected = {
+        (0, 2): 1,
+        (0, 3): 1,
+        (0, 4): 1,
+        (0, 5): 1,
+        (1, 2): 1,
+        (1, 3): 1,
+        (1, 4): 1,
+        (1, 5): 1,
+    }
+    result = _get_level_lengths(
+        index,
+        sparsify=False,
+        max_index=100,
+        hidden_elements=[0, 1, 0, 1],  # hidden element can repeat if duplicated index
+    )
+    tm.assert_dict_equal(result, expected)
