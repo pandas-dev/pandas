@@ -14,6 +14,7 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
+    npt,
 )
 
 # placeholder until we can specify np.ndarray[object, ndim=2]
@@ -63,7 +64,7 @@ def map_infer(
 ) -> np.ndarray: ...
 @overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
 def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
+    objects: npt.NDArray[np.object_],
     *,
     try_float: bool = ...,
     safe: bool = ...,
@@ -76,7 +77,7 @@ def maybe_convert_objects(
 ) -> np.ndarray: ...
 @overload
 def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
+    objects: npt.NDArray[np.object_],
     *,
     try_float: bool = ...,
     safe: bool = ...,
@@ -89,7 +90,7 @@ def maybe_convert_objects(
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
+    objects: npt.NDArray[np.object_],
     *,
     try_float: bool = ...,
     safe: bool = ...,
@@ -102,7 +103,7 @@ def maybe_convert_objects(
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
+    objects: npt.NDArray[np.object_],
     *,
     try_float: bool = ...,
     safe: bool = ...,
@@ -115,7 +116,7 @@ def maybe_convert_objects(
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_objects(
-    objects: np.ndarray,  # np.ndarray[object]
+    objects: npt.NDArray[np.object_],
     *,
     try_float: bool = ...,
     safe: bool = ...,
@@ -128,7 +129,7 @@ def maybe_convert_objects(
 ) -> ArrayLike: ...
 @overload
 def maybe_convert_numeric(
-    values: np.ndarray,  # np.ndarray[object]
+    values: npt.NDArray[np.object_],
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
@@ -136,7 +137,7 @@ def maybe_convert_numeric(
 ) -> tuple[np.ndarray, None]: ...
 @overload
 def maybe_convert_numeric(
-    values: np.ndarray,  # np.ndarray[object]
+    values: npt.NDArray[np.object_],
     na_values: set,
     convert_empty: bool = True,
     coerce_numeric: bool = False,
@@ -151,32 +152,32 @@ def ensure_string_array(
     convert_na_value: bool = True,
     copy: bool = True,
     skipna: bool = True,
-) -> np.ndarray: ...  # np.ndarray[object]
+) -> npt.NDArray[np.object_]: ...
 def infer_datetimelike_array(
-    arr: np.ndarray,  # np.ndarray[object]
+    arr: npt.NDArray[np.object_],
 ) -> tuple[str, bool]: ...
 def astype_intsafe(
-    arr: np.ndarray,  # np.ndarray[object]
+    arr: npt.NDArray[np.object_],
     new_dtype: np.dtype,
 ) -> np.ndarray: ...
-def fast_zip(ndarrays: list) -> np.ndarray: ...  # np.ndarray[object]
+def fast_zip(ndarrays: list) -> npt.NDArray[np.object_]: ...
 
 # TODO: can we be more specific about rows?
 def to_object_array_tuples(rows: object) -> ndarray_obj_2d: ...
 def tuples_to_object_array(
-    tuples: np.ndarray,  # np.ndarray[object]
+    tuples: npt.NDArray[np.object_],
 ) -> ndarray_obj_2d: ...
 
 # TODO: can we be more specific about rows?
 def to_object_array(rows: object, min_width: int = 0) -> ndarray_obj_2d: ...
 def dicts_to_array(dicts: list, columns: list) -> ndarray_obj_2d: ...
 def maybe_booleans_to_slice(
-    mask: np.ndarray,  # ndarray[uint8_t]
-) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
+    mask: npt.NDArray[np.uint8],
+) -> slice | npt.NDArray[np.uint8]: ...
 def maybe_indices_to_slice(
-    indices: np.ndarray,  # np.ndarray[np.intp]
+    indices: npt.NDArray[np.intp],
     max_len: int,
-) -> slice | np.ndarray: ...  # np.ndarray[np.uint8]
+) -> slice | npt.NDArray[np.intp]: ...
 def is_all_arraylike(obj: list) -> bool: ...
 
 # -----------------------------------------------------------------
@@ -192,14 +193,14 @@ def map_infer_mask(
     dtype: np.dtype = ...,
 ) -> np.ndarray: ...
 def indices_fast(
-    index: np.ndarray,  # ndarray[intp_t]
+    index: npt.NDArray[np.intp],
     labels: np.ndarray,  # const int64_t[:]
     keys: list,
-    sorted_labels: list[np.ndarray],  # list[ndarray[np.int64]]
+    sorted_labels: list[npt.NDArray[np.int64]],
 ) -> dict: ...
 def generate_slices(
     labels: np.ndarray, ngroups: int  # const intp_t[:]
-) -> tuple[np.ndarray, np.ndarray,]: ...  # np.ndarray[np.int64]  # np.ndarray[np.int64]
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64]]: ...
 def count_level_2d(
     mask: np.ndarray,  # ndarray[uint8_t, ndim=2, cast=True],
     labels: np.ndarray,  # const intp_t[:]
@@ -211,7 +212,7 @@ def get_level_sorter(
     starts: np.ndarray,  # const intp_t[:]
 ) -> np.ndarray: ...  #  np.ndarray[np.intp, ndim=1]
 def generate_bins_dt64(
-    values: np.ndarray,  # np.ndarray[np.int64]
+    values: npt.NDArray[np.int64],
     binner: np.ndarray,  # const int64_t[:]
     closed: object = "left",
     hasnans: bool = False,
@@ -224,5 +225,5 @@ def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,
-) -> np.ndarray: ...  # np.ndarray[np.intp]
+) -> npt.NDArray[np.intp]: ...
 def is_bool_list(obj: list) -> bool: ...

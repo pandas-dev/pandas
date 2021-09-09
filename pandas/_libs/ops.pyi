@@ -7,6 +7,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._typing import npt
+
 _BinOp = Callable[[Any, Any], Any]
 _BoolOp = Callable[[Any, Any], bool]
 
@@ -14,12 +16,12 @@ def scalar_compare(
     values: np.ndarray,  # object[:]
     val: object,
     op: _BoolOp,  # {operator.eq, operator.ne, ...}
-) -> np.ndarray: ...  # np.ndarray[bool]
+) -> npt.NDArray[np.bool_]: ...
 def vec_compare(
-    left: np.ndarray,  # np.ndarray[object]
-    right: np.ndarray,  # np.ndarray[object]
+    left: npt.NDArray[np.object_],
+    right: npt.NDArray[np.object_],
     op: _BoolOp,  # {operator.eq, operator.ne, ...}
-) -> np.ndarray: ...  # np.ndarray[bool]
+) -> npt.NDArray[np.bool_]: ...
 def scalar_binop(
     values: np.ndarray,  # object[:]
     val: object,
@@ -32,14 +34,14 @@ def vec_binop(
 ) -> np.ndarray: ...
 @overload
 def maybe_convert_bool(
-    arr: np.ndarray,  # np.ndarray[object]
+    arr: npt.NDArray[np.object_],
     true_values=...,
     false_values=...,
     convert_to_masked_nullable: Literal[False] = ...,
 ) -> tuple[np.ndarray, None]: ...
 @overload
 def maybe_convert_bool(
-    arr: np.ndarray,  # np.ndarray[object]
+    arr: npt.NDArray[np.object_],
     true_values=...,
     false_values=...,
     *,
