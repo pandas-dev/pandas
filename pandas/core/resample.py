@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     FrameOrSeries,
+    IndexLabel,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -1016,6 +1017,7 @@ class _GroupByMixin(PandasObject):
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
+    _selection: IndexLabel | None = None
 
     def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
@@ -1027,6 +1029,7 @@ class _GroupByMixin(PandasObject):
         # the resampler attributes
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
+        self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
 
