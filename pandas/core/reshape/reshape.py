@@ -1074,11 +1074,10 @@ def _get_dummies_1d(
 
 def from_dummies(
     data: DataFrame,
-    to_series: bool = False,
-    prefix_sep: str | list[str] | dict[str, str] = "_",
     columns: None | Index | list[str] = None,
+    prefix_sep: None | str | list[str] | dict[str, str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
-) -> Series | DataFrame:
+) -> DataFrame:
     """
     Create a categorical `Series` or `DataFrame` from a `DataFrame` of dummy
     variables.
@@ -1089,9 +1088,6 @@ def from_dummies(
     ----------
     data : `DataFrame`
         Data which contains dummy-coded variables.
-    to_series : bool, default False
-        Converts the input data to a categorical `Series`, converts the input data
-        to a categorical `DataFrame` if False.
     prefix_sep : str, list of str, or dict of str, default '_'
         Separator/deliminator used in the column names of the dummy categories.
         Pass a list if multiple prefix separators are used in the columns names.
@@ -1168,18 +1164,20 @@ def from_dummies(
             f"'{data.columns[data.isna().any().argmax()]}'"
         )
 
-    if to_series:
-        return _from_dummies_1d(data, dropped_first)
-
     if columns is None:
         columns = data.columns
     elif not is_list_like(columns):
         raise TypeError("Argument for parameter 'columns' must be list-like")
     # index data with a list of all columns that are dummies
-    data_to_decode = data[columns].astype("boolean")
+    try:
+        data_to_decode = data[columns].astype("boolean")
+    except TypeError:
+        raise TypeError("Passed DataFrame contains non-dummy data")
 
     # get separator for each prefix and lists to slice data for each prefix
-    if isinstance(prefix_sep, dict):
+    if prefix_sep is None:
+        variables_slice = {"categories": columns}
+    elif isinstance(prefix_sep, dict):
         variables_slice: dict[str, list] = {prefix: [] for prefix in prefix_sep}
         for col in data_to_decode.columns:
             for prefix in prefix_sep:
@@ -1189,10 +1187,15 @@ def from_dummies(
         sep_for_prefix = {}
         variables_slice = {}
         for col in data_to_decode.columns:
-            ps = [ps for ps in prefix_sep if ps in col][0]
-            prefix = col.split(ps)[0]
+            ps = [ps for ps in prefix_sep if ps in col]
+            if len(ps) == 0:
+                raise ValueError(
+                    f"Prefix separator not specified for all columns; "
+                    f"First instance column: '{col}'"
+                )
+            prefix = col.split(ps[0])[0]
             if prefix not in sep_for_prefix:
-                sep_for_prefix[prefix] = ps
+                sep_for_prefix[prefix] = ps[0]
             if prefix not in variables_slice:
                 variables_slice[prefix] = [col]
             else:
@@ -1205,7 +1208,7 @@ def from_dummies(
             len_msg = (
                 f"Length of '{name}' ({len(item)}) did not match the "
                 "length of the columns being encoded "
-                f"({len(variables_slice)})."
+                f"({len(variables_slice)})"
             )
             raise ValueError(len_msg)
 
@@ -1227,20 +1230,23 @@ def from_dummies(
 
     cat_data = {}
     for prefix, prefix_slice in variables_slice.items():
-        cats = [col[len(prefix + prefix_sep[prefix]) :] for col in prefix_slice]
+        if prefix_sep is None:
+            cats = columns.tolist()
+        else:
+            cats = [col[len(prefix + prefix_sep[prefix]) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
-                f"Dummy DataFrame contains multi-assignment(s) for prefix: "
-                f"'{prefix}'; First instance in row: {assigned.argmax()}."
+                f"Dummy DataFrame contains multi-assignment(s); "
+                f"First instance in row: {assigned.argmax()}"
             )
         elif any(assigned == 0):
             if isinstance(dropped_first, dict):
                 cats.append(dropped_first[prefix])
             else:
                 raise ValueError(
-                    f"Dummy DataFrame contains unassigned value(s) for prefix: "
-                    f"'{prefix}'; First instance in row: {assigned.argmin()}."
+                    f"Dummy DataFrame contains unassigned value(s); "
+                    f"First instance in row: {assigned.argmin()}"
                 )
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
@@ -1248,46 +1254,6 @@ def from_dummies(
         cat_data[prefix] = data_slice.dot(cats)
 
     return DataFrame(cat_data)
-
-
-def _from_dummies_1d(
-    data: DataFrame,
-    dropped_first: None | str | list[str] | dict[str, str] = None,
-) -> Series:
-    """
-    Helper function for from_dummies.
-
-    Handles the conversion of dummy encoded data to a categorical `Series`.
-    For parameters and usage see: from_dummies.
-    """
-    from pandas.core.reshape.concat import concat
-
-    if dropped_first and not isinstance(dropped_first, str):
-        raise TypeError(
-            f"Only one dropped first value possible in 1D dummy DataFrame: "
-            f"'dropped_first' should be of type 'str'; "
-            f"Received 'dropped_first' of type: {type(dropped_first).__name__}"
-        )
-
-    data = data.astype("boolean")
-    cats = data.columns.tolist()
-    assigned = data.sum(axis=1)
-    if any(assigned > 1):
-        raise ValueError(
-            f"Dummy DataFrame contains multi-assignment in row: {assigned.argmax()}."
-        )
-    elif any(assigned == 0):
-        if dropped_first:
-            cats.append(dropped_first)
-        else:
-            raise ValueError(
-                f"Dummy DataFrame contains unassigned value in row: "
-                f"{assigned.argmin()}."
-            )
-        data = concat((data, assigned == 0), axis=1)
-
-    categorical_series = data.dot(cats)
-    return categorical_series
 
 
 def _reorder_for_extension_array_stack(
