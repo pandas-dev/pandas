@@ -404,8 +404,6 @@ _c_parser_defaults = {
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
     "float_precision": None,
 }
 
@@ -442,7 +440,6 @@ _pyarrow_unsupported = {
 }
 
 _deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
-_deprecated_args: set[str] = {"error_bad_lines", "warn_bad_lines"}
 
 
 def validate_integer(name, val, min_val=0):
@@ -1045,8 +1042,8 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        for arg in _deprecated_args:
-            parser_default = _c_parser_defaults[arg]
+        for arg in _deprecated_defaults.keys():
+            parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
             depr_default = _deprecated_defaults[arg]
             if result.get(arg, depr_default) != depr_default:
                 msg = (

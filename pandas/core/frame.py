@@ -469,7 +469,8 @@ class DataFrame(NDFrame, OpsMixin):
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order.
+        data is a dict, column order follows insertion-order. If a dict contains Series
+        which have an index defined, it is aligned by its index.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
@@ -523,6 +524,16 @@ class DataFrame(NDFrame, OpsMixin):
     col1    int8
     col2    int8
     dtype: object
+
+    Constructing DataFrame from a dictionary including Series:
+
+    >>> d = {'col1': [0, 1, 2, 3], 'col2': pd.Series([2, 3], index=[2, 3])}
+    >>> pd.DataFrame(data=d, index=[0, 1, 2, 3])
+       col1  col2
+    0     0   NaN
+    1     1   NaN
+    2     2   2.0
+    3     3   3.0
 
     Constructing DataFrame from numpy ndarray:
 
@@ -3462,6 +3473,9 @@ class DataFrame(NDFrame, OpsMixin):
                 indexer = lib.maybe_indices_to_slice(
                     indexer.astype(np.intp, copy=False), len(self)
                 )
+                if isinstance(indexer, np.ndarray):
+                    # GH#43223 If we can not convert, use take
+                    return self.take(indexer, axis=0)
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
@@ -8966,6 +8980,7 @@ NaN 12.3   33.0
         3  3
         4  4
         """
+        combined_columns = None
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
                 if not ignore_index:
@@ -8980,21 +8995,15 @@ NaN 12.3   33.0
             index = Index([other.name], name=self.index.name)
             idx_diff = other.index.difference(self.columns)
             combined_columns = self.columns.append(idx_diff)
-            other = (
-                other.reindex(combined_columns, copy=False)
-                .to_frame()
-                .T.infer_objects()
-                .rename_axis(index.names, copy=False)
-            )
-            if not self.columns.equals(combined_columns):
-                self = self.reindex(columns=combined_columns)
+            row_df = other.to_frame().T
+            # infer_objects is needed for
+            #  test_append_empty_frame_to_series_with_dateutil_tz
+            other = row_df.infer_objects().rename_axis(index.names, copy=False)
         elif isinstance(other, list):
             if not other:
                 pass
             elif not isinstance(other[0], DataFrame):
                 other = DataFrame(other)
-                if (self.columns.get_indexer(other.columns) >= 0).all():
-                    other = other.reindex(columns=self.columns)
 
         from pandas.core.reshape.concat import concat
 
@@ -9002,14 +9011,24 @@ NaN 12.3   33.0
             to_concat = [self, *other]
         else:
             to_concat = [self, other]
-        return (
-            concat(
-                to_concat,
-                ignore_index=ignore_index,
-                verify_integrity=verify_integrity,
-                sort=sort,
-            )
-        ).__finalize__(self, method="append")
+
+        result = concat(
+            to_concat,
+            ignore_index=ignore_index,
+            verify_integrity=verify_integrity,
+            sort=sort,
+        )
+        if (
+            combined_columns is not None
+            and not sort
+            and not combined_columns.equals(result.columns)
+        ):
+            # TODO: reindexing here is a kludge bc union_indexes does not
+            #  pass sort to index.union, xref #43375
+            # combined_columns.equals check is necessary for preserving dtype
+            #  in test_crosstab_normalize
+            result = result.reindex(combined_columns, axis=1)
+        return result.__finalize__(self, method="append")
 
     def join(
         self,
@@ -9385,7 +9404,8 @@ NaN 12.3   33.0
                 regardless of the callable's behavior.
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result.
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
 
         Returns
         -------
@@ -9419,9 +9439,7 @@ NaN 12.3   33.0
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall":
-            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
-        elif callable(method):
+        elif method == "kendall" or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
