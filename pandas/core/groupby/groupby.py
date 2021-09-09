@@ -1161,7 +1161,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Series for SeriesGroupBy, DataFrame for DataFrameGroupBy
         """
-        result = self._indexed_output_to_ndframe(output)
+        if isinstance(output, (Series, DataFrame)):
+            result = output
+        else:
+            result = self._indexed_output_to_ndframe(output)
 
         if self.axis == 1:
             # Only relevant for DataFrameGroupBy
@@ -2237,16 +2240,54 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if limit is None:
             limit = -1
 
-        return self._get_cythonized_result(
+        ids, _, _ = self.grouper.group_info
+
+        col_func = partial(
             libgroupby.group_fillna_indexer,
-            numeric_only=False,
-            needs_mask=True,
-            cython_dtype=np.dtype(np.int64),
-            result_is_index=True,
+            labels=ids,
             direction=direction,
             limit=limit,
             dropna=self.dropna,
         )
+
+        def blk_func(values: ArrayLike) -> ArrayLike:
+            mask = isna(values)
+            if values.ndim == 1:
+                indexer = np.empty(values.shape, dtype=np.intp)
+                col_func(out=indexer, mask=mask)
+                return algorithms.take_nd(values, indexer)
+
+            else:
+                # We broadcast algorithms.take_nd analogous to
+                #  np.take_along_axis
+
+                # Note: we only get here with backfill/pad,
+                #  so if we have a dtype that cannot hold NAs,
+                #  then there will be no -1s in indexer, so we can use
+                #  the original dtype (no need to ensure_dtype_can_hold_na)
+                if isinstance(values, np.ndarray):
+                    out = np.empty(values.shape, dtype=values.dtype)
+                else:
+                    out = type(values)._empty(values.shape, dtype=values.dtype)
+
+                for i in range(len(values)):
+                    # call group_fillna_indexer column-wise
+                    indexer = np.empty(values.shape[1], dtype=np.intp)
+                    col_func(out=indexer, mask=mask[i])
+                    out[i, :] = algorithms.take_nd(values[i], indexer)
+                return out
+
+        obj = self._obj_with_exclusions
+        if self.axis == 1:
+            obj = obj.T
+        mgr = obj._mgr
+        res_mgr = mgr.apply(blk_func)
+
+        new_obj = obj._constructor(res_mgr)
+        if isinstance(new_obj, Series):
+            new_obj.name = obj.name
+
+        return self._wrap_transformed_output(new_obj)
 
     @final
     @Substitution(name="groupby")
@@ -2920,7 +2961,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         min_count: int | None = None,
         needs_mask: bool = False,
         needs_ngroups: bool = False,
-        result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
         fill_value=None,
@@ -2957,9 +2997,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         needs_nullable : bool, default False
             Whether a bool specifying if the input is nullable is part
             of the Cython call signature
-        result_is_index : bool, default False
-            Whether the result of the Cython operation is an index of
-            values to be retrieved, instead of the actual values themselves
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
@@ -2985,8 +3022,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         numeric_only = self._resolve_numeric_only(numeric_only)
 
-        if result_is_index and aggregate:
-            raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing and not callable(post_processing):
             raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
@@ -3057,14 +3092,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             func(**kwargs)  # Call func to modify indexer values in place
 
-            if result_is_index:
-                result = algorithms.take_nd(values, result, fill_value=fill_value)
-
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
-                # error: No overload variant of "__getitem__" of "ExtensionArray"
-                # matches argument type "Tuple[slice, int]"
-                result = result[:, 0]  # type: ignore[call-overload]
+                result = result[:, 0]
                 if needs_mask:
                     mask = mask[:, 0]
 
