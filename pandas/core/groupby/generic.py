@@ -354,35 +354,17 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(ser)
 
-    def _wrap_aggregated_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
+    def _indexed_output_to_ndframe(
+        self, output: Mapping[base.OutputKey, ArrayLike]
     ) -> Series:
         """
-        Wraps the output of a SeriesGroupBy aggregation into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, ArrayLike]]
-            Data to wrap.
-
-        Returns
-        -------
-        Series
-
-        Notes
-        -----
-        In the vast majority of cases output will only contain one element.
-        The exception is operations that expand dimensions, like ohlc.
+        Wrap the dict result of a GroupBy aggregation into a Series.
         """
         assert len(output) == 1
-
-        name = self.obj.name
-        index = self.grouper.result_index
         values = next(iter(output.values()))
-
-        result = self.obj._constructor(values, index=index, name=name)
-        return self._reindex_output(result)
+        result = self.obj._constructor(values)
+        result.name = self.obj.name
+        return result
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Series | ArrayLike]
@@ -449,16 +431,9 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         assert values is not None
 
-        def _get_index() -> Index:
-            if self.grouper.nkeys > 1:
-                index = MultiIndex.from_tuples(keys, names=self.grouper.names)
-            else:
-                index = Index._with_infer(keys, name=self.grouper.names[0])
-            return index
-
         if isinstance(values[0], dict):
             # GH #823 #24880
-            index = _get_index()
+            index = self._group_keys_index
             res_df = self.obj._constructor_expanddim(values, index=index)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
@@ -471,7 +446,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
-                data=values, index=_get_index(), name=self.obj.name
+                data=values, index=self._group_keys_index, name=self.obj.name
             )
             return self._reindex_output(result)
 
@@ -1614,46 +1589,19 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if in_axis and name not in columns:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
+    def _indexed_output_to_ndframe(
+        self, output: Mapping[base.OutputKey, ArrayLike]
     ) -> DataFrame:
         """
-        Wraps the output of DataFrameGroupBy aggregations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
-           Data to wrap.
-
-        Returns
-        -------
-        DataFrame
+        Wrap the dict result of a GroupBy aggregation into a DataFrame.
         """
-        if isinstance(output, DataFrame):
-            result = output
-        else:
-            indexed_output = {key.position: val for key, val in output.items()}
-            columns = Index([key.label for key in output])
-            columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
+        indexed_output = {key.position: val for key, val in output.items()}
+        columns = Index([key.label for key in output])
+        columns._set_names(self._obj_with_exclusions._get_axis(1 - self.axis).names)
 
-            result = self.obj._constructor(indexed_output)
-            result.columns = columns
-
-        if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
-            result = result._consolidate()
-        else:
-            result.index = self.grouper.result_index
-
-        if self.axis == 1:
-            result = result.T
-            if result.index.equals(self.obj.index):
-                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
-                result.index = self.obj.index.copy()
-                # TODO: Do this more systematically
-
-        return self._reindex_output(result)
+        result = self.obj._constructor(indexed_output)
+        result.columns = columns
+        return result
 
     def _wrap_transformed_output(
         self, output: Mapping[base.OutputKey, Series | ArrayLike]

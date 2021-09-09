@@ -63,6 +63,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -1010,7 +1011,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = self.filter(lambda x: True).axes[self.axis]
+            ax = (
+                self.filter(lambda x: True).axes[self.axis]
+                if self.dropna
+                else self._selected_obj._get_axis(self.axis)
+            )
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
@@ -1090,8 +1095,53 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         return result
 
-    def _wrap_aggregated_output(self, output: Mapping[base.OutputKey, ArrayLike]):
+    def _indexed_output_to_ndframe(
+        self, result: Mapping[base.OutputKey, ArrayLike]
+    ) -> Series | DataFrame:
         raise AbstractMethodError(self)
+
+    def _wrap_aggregated_output(
+        self, output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike]
+    ):
+        """
+        Wraps the output of GroupBy aggregations into the expected result.
+
+        Parameters
+        ----------
+        output : Series, DataFrame, or Mapping[base.OutputKey, ArrayLike]
+           Data to wrap.
+
+        Returns
+        -------
+        Series or DataFrame
+        """
+
+        if isinstance(output, (Series, DataFrame)):
+            # We get here (for DataFrameGroupBy) if we used Manager.grouped_reduce,
+            #  in which case our columns are already set correctly.
+            # ATM we do not get here for SeriesGroupBy; when we do, we will
+            #  need to require that result.name already match self.obj.name
+            result = output
+        else:
+            result = self._indexed_output_to_ndframe(output)
+
+        if not self.as_index:
+            # `not self.as_index` is only relevant for DataFrameGroupBy,
+            #   enforced in __init__
+            self._insert_inaxis_grouper_inplace(result)
+            result = result._consolidate()
+        else:
+            result.index = self.grouper.result_index
+
+        if self.axis == 1:
+            # Only relevant for DataFrameGroupBy, no-op for SeriesGroupBy
+            result = result.T
+            if result.index.equals(self.obj.index):
+                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
+                result.index = self.obj.index.copy()
+                # TODO: Do this more systematically
+
+        return self._reindex_output(result)
 
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
@@ -1125,6 +1175,18 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             else:
                 numeric_only = False
         return numeric_only
+
+    @cache_readonly
+    def _group_keys_index(self) -> Index:
+        # The index to use for the result of Groupby Aggregations.
+        # This _may_ be redundant with self.grouper.result_index, but that
+        #  has not been conclusively proven yet.
+        keys = self.grouper._get_group_keys()
+        if self.grouper.nkeys > 1:
+            index = MultiIndex.from_tuples(keys, names=self.grouper.names)
+        else:
+            index = Index._with_infer(keys, name=self.grouper.names[0])
+        return index
 
     # -----------------------------------------------------------------
     # numba
@@ -1193,7 +1255,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper._get_group_keys()
+        index = self._group_keys_index
 
         numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
         result = numba_agg_func(
@@ -1201,7 +1263,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_index,
             starts,
             ends,
-            len(group_keys),
+            len(index),
             len(data.columns),
             *args,
         )
@@ -1210,10 +1272,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 
-        if self.grouper.nkeys > 1:
-            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
-        else:
-            index = Index(group_keys, name=self.grouper.names[0])
         return result, index
 
     # -----------------------------------------------------------------
@@ -2452,6 +2510,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             elif is_timedelta64_dtype(vals.dtype):
                 inference = np.dtype("timedelta64[ns]")
                 out = np.asarray(vals).astype(float)
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+                inference = np.dtype(np.float64)
+                out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
                 out = np.asarray(vals)
 
@@ -2975,10 +3036,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
-                # error: Invalid index type "Tuple[slice, int]" for
-                # "Union[ExtensionArray, ndarray[Any, Any]]"; expected type
-                # "Union[int, integer[Any], slice, Sequence[int], ndarray[Any, Any]]"
-                result = result[:, 0]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[slice, int]"
+                result = result[:, 0]  # type: ignore[call-overload]
                 if needs_mask:
                     mask = mask[:, 0]
 
@@ -2992,11 +3052,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_2d and not real_2d:
                 if result.ndim == 2:
                     assert result.shape[1] == 1
-                    # error: Invalid index type "Tuple[slice, int]" for
-                    # "Union[ExtensionArray, Any, ndarray[Any, Any]]"; expected
-                    # type "Union[int, integer[Any], slice, Sequence[int],
-                    # ndarray[Any, Any]]"
-                    result = result[:, 0]  # type: ignore[index]
+                    # error: No overload variant of "__getitem__" of "ExtensionArray"
+                    # matches argument type "Tuple[slice, int]"
+                    result = result[:, 0]  # type: ignore[call-overload]
 
             return result.T
 

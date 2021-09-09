@@ -43,6 +43,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    cut,
     date_range,
     isna,
 )
@@ -53,6 +54,7 @@ from pandas.arrays import (
     PeriodArray,
     SparseArray,
 )
+from pandas.core.api import Int64Index
 
 MIXED_FLOAT_DTYPES = ["float16", "float32", "float64"]
 MIXED_INT_DTYPES = [
@@ -580,7 +582,7 @@ class TestDataFrameConstructors:
         df = DataFrame([[1]], columns=[[1]], index=[1, 2])
         expected = DataFrame(
             [1, 1],
-            index=pd.Int64Index([1, 2], dtype="int64"),
+            index=Int64Index([1, 2], dtype="int64"),
             columns=MultiIndex(levels=[[1]], codes=[[0]]),
         )
         tm.assert_frame_equal(df, expected)
@@ -1202,6 +1204,12 @@ class TestDataFrameConstructors:
 
         df_casted = DataFrame(float_frame, dtype=np.int64)
         assert df_casted.values.dtype == np.int64
+
+    def test_constructor_empty_dataframe(self):
+        # GH 20624
+        actual = DataFrame(DataFrame(), dtype="object")
+        expected = DataFrame([], dtype="object")
+        tm.assert_frame_equal(actual, expected)
 
     def test_constructor_more(self, float_frame):
         # used to be in test_matrix.py
@@ -2352,6 +2360,32 @@ class TestDataFrameConstructors:
             columns=["f", "female", "m", "male", "unknown"],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_constructor_series_nonexact_categoricalindex(self):
+        # GH 42424
+        ser = Series(range(0, 100))
+        ser1 = cut(ser, 10).value_counts().head(5)
+        ser2 = cut(ser, 10).value_counts().tail(5)
+        result = DataFrame({"1": ser1, "2": ser2})
+        index = CategoricalIndex(
+            [
+                Interval(-0.099, 9.9, closed="right"),
+                Interval(9.9, 19.8, closed="right"),
+                Interval(19.8, 29.7, closed="right"),
+                Interval(29.7, 39.6, closed="right"),
+                Interval(39.6, 49.5, closed="right"),
+                Interval(49.5, 59.4, closed="right"),
+                Interval(59.4, 69.3, closed="right"),
+                Interval(69.3, 79.2, closed="right"),
+                Interval(79.2, 89.1, closed="right"),
+                Interval(89.1, 99, closed="right"),
+            ],
+            ordered=True,
+        )
+        expected = DataFrame(
+            {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=index
+        )
+        tm.assert_frame_equal(expected, result)
 
     def test_from_M8_structured(self):
         dates = [(datetime(2012, 9, 9, 0, 0), datetime(2012, 9, 8, 15, 10))]

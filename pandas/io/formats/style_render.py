@@ -77,6 +77,7 @@ class StylerRenderer:
         table_attributes: str | None = None,
         caption: str | tuple | None = None,
         cell_ids: bool = True,
+        precision: int | None = None,
     ):
 
         # validate ordered args
@@ -97,6 +98,8 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
+        self.hide_index_names: bool = False
+        self.hide_column_names: bool = False
         self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
@@ -107,10 +110,12 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        def_precision = get_option("display.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=def_precision))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
     def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
         """
@@ -249,8 +254,7 @@ class StylerRenderer:
             d.update({k: map})
 
         table_attr = self.table_attributes
-        use_mathjax = get_option("display.html.use_mathjax")
-        if not use_mathjax:
+        if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
@@ -333,7 +337,9 @@ class StylerRenderer:
                     _element(
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
-                        name if name is not None else blank_value,
+                        name
+                        if (name is not None and not self.hide_column_names)
+                        else blank_value,
                         not all(self.hide_index_),
                     )
                 ]
@@ -345,7 +351,8 @@ class StylerRenderer:
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths),
+                            _is_visible(c, r, col_lengths)
+                            and c not in self.hidden_columns,
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
                                 if col_lengths.get((r, c), 0) > 1
@@ -381,7 +388,7 @@ class StylerRenderer:
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
             and not all(self.hide_index_)
-            and not all(self.hide_columns_)
+            and not self.hide_index_names
         ):
             index_names = [
                 _element(
@@ -393,7 +400,9 @@ class StylerRenderer:
                 for c, name in enumerate(self.data.index.names)
             ]
 
-            if len(self.data.columns) <= max_cols:
+            if not clabels:
+                blank_len = 0
+            elif len(self.data.columns) <= max_cols:
                 blank_len = len(clabels[0])
             else:
                 blank_len = len(clabels[0]) + 1  # to allow room for `...` trim col
@@ -452,7 +461,7 @@ class StylerRenderer:
         )
 
         rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
-        if self.data.index.nlevels == 1:
+        if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
         body = []
@@ -686,6 +695,16 @@ class StylerRenderer:
         When using a ``formatter`` string the dtypes must be compatible, otherwise a
         `ValueError` will be raised.
 
+        When instantiating a Styler, default formatting can be applied be setting the
+        ``pandas.options``:
+
+          - ``styler.format.formatter``: default None.
+          - ``styler.format.na_rep``: default None.
+          - ``styler.format.precision``: default 6.
+          - ``styler.format.decimal``: default ".".
+          - ``styler.format.thousands``: default None.
+          - ``styler.format.escape``: default None.
+
         Examples
         --------
         Using ``na_rep`` and ``precision`` with the default ``formatter``
@@ -877,7 +896,7 @@ def _get_level_lengths(
         hidden_elements = []
 
     lengths = {}
-    if index.nlevels == 1:
+    if not isinstance(index, MultiIndex):
         for i, value in enumerate(levels):
             if i not in hidden_elements:
                 lengths[(0, i)] = 1
@@ -954,11 +973,9 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
         Matches input type, or string if input is float or complex or int with sep.
     """
     if isinstance(x, (float, complex)):
-        if thousands:
-            return f"{x:,.{precision}f}"
-        return f"{x:.{precision}f}"
-    elif isinstance(x, int) and thousands:
-        return f"{x:,.0f}"
+        return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
+    elif isinstance(x, int):
+        return f"{x:,.0f}" if thousands else f"{x:.0f}"
     return x
 
 
@@ -1022,7 +1039,9 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = get_option("display.precision") if precision is None else precision
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )
@@ -1392,8 +1411,18 @@ def _parse_latex_header_span(
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
+            if "naive-l" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = " & {}" if wrap else " &"
+                return out + blanks * (colspan - 1)
+            elif "naive-r" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = "{} & " if wrap else "& "
+                return blanks * (colspan - 1) + out
             return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
         elif 'rowspan="' in attrs:
+            if multirow_align == "naive":
+                return display_val
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"
