@@ -41,6 +41,7 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -66,10 +67,7 @@ from pandas.core.aggregation import (
     validate_func_kwargs,
 )
 from pandas.core.apply import GroupByApply
-from pandas.core.base import (
-    DataError,
-    SpecificationError,
-)
+from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
 from pandas.core.frame import DataFrame
@@ -1041,7 +1039,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
-            obj = obj.T
+            # To be removed post #GH #43337 fix
+            transposed_dtype = find_common_type(obj.dtypes.tolist())
+            obj = obj.T.astype(transposed_dtype, copy=False)
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
@@ -1080,9 +1080,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # TypeError -> we may have an exception in trying to aggregate
         #  continue and exclude the block
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
-
-        if not len(new_mgr) and len(self._selected_obj) == 0:
-            raise DataError("No numeric types to aggregate")
 
         if len(new_mgr) < len(data):
             warnings.warn(
@@ -1585,7 +1582,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            return obj.T._mgr
+            # To be removed post #GH #43337 fix
+            transposed_dtype = find_common_type(obj.dtypes.tolist())
+            return obj.T.astype(transposed_dtype, copy=False)._mgr
         else:
             return obj._mgr
 
