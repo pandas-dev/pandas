@@ -634,13 +634,10 @@ def to_sql(
         - append: If table exists, insert data. Create if does not exist.
     on_conflict : {None, 'do_nothing', 'do_update'}, optional
         Determine insertion behaviour in case of a primary key clash.
-        If the table being written has primary key constraints, attempting
-        to insert new rows with the same values in the primary key columns,
-        will cause an error.  In this case the conflicting records can either
-        be updated in the database or ignored from the incoming dataframe.
-        - do_nothing: Ignore incoming rows with primary key clashes, and
+        - None: Do nothing to handle primary key clashes, will raise an Error.
+        - 'do_nothing': Ignore incoming rows with primary key clashes, and
           insert only the incoming rows with non-conflicting primary keys
-        - do_update: Update existing rows in database with primary key clashes,
+        - 'do_update': Update existing rows in database with primary key clashes,
           and append the remaining rows with non-conflicting primary keys
     index : bool, default True
         Write DataFrame index as a column.
@@ -981,7 +978,7 @@ class SQLTable(PandasObject):
         """
         pk_cols, pk_values = self._get_primary_key_data()
         existing_keys = self._load_existing_pkeys(pk_cols, pk_values)
-        existing_data, new_data = self._split_incoming_data(pk_cols, existing_keys)
+        _, new_data = self._split_incoming_data(pk_cols, existing_keys)
         return new_data
 
     def _get_primary_key_data(self):
@@ -1477,6 +1474,7 @@ class PandasSQL(PandasObject):
         frame,
         name,
         if_exists="fail",
+        on_conflict=None,
         index=True,
         index_label=None,
         schema=None,
@@ -1881,7 +1879,7 @@ class SQLDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
-        on_conflict=None,
+        on_conflict: str | None = None,
         index=True,
         index_label=None,
         schema=None,
@@ -1902,18 +1900,15 @@ class SQLDatabase(PandasSQL):
         if_exists : {'fail', 'replace', 'append'},
             default 'fail'.
             - fail: If table exists, do nothing.
-            - replace: If table exRsts, drop it, recreate it, and insert data.
+            - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
         on_conflict : {None, 'do_nothing', 'do_update'}, optional
             Determine insertion behaviour in case of a primary key clash.
-            If the table being written has primary key constraints, attempting
-            to insert new rows with the same values in the primary key columns,
-            will cause an error.  In this case the conflicting records can either
-            be updated in the database or ignored from the incoming dataframe.
-            - do_nothing: Ignore incoming rows with primary key clashes, and
-              insert only the incoming rows with non-conflicting primary keys
-            - do_update: Update existing rows in database with primary key clashes,
-              and append the remaining rows with non-conflicting primary keys
+            - None: Do nothing to handle primary key clashes, will raise an Error.
+            - 'do_nothing': Ignore incoming rows with primary key clashes, and
+            insert only the incoming rows with non-conflicting primary keys
+            - 'do_update': Update existing rows in database with primary key clashes,
+            and append the remaining rows with non-conflicting primary keys
         index : boolean, default True
             Write DataFrame index as a column.
         index_label : string or sequence, default None
@@ -2352,7 +2347,7 @@ class SQLiteDatabase(PandasSQL):
         frame,
         name,
         if_exists="fail",
-        on_conflict=None,
+        on_conflict: str | None = None,
         index=True,
         index_label=None,
         schema=None,
@@ -2375,14 +2370,11 @@ class SQLiteDatabase(PandasSQL):
             append: If table exists, insert data. Create if it does not exist.
         on_conflict : {None, 'do_nothing', 'do_update'}, optional
             Determine insertion behaviour in case of a primary key clash.
-            If the table being written has primary key constraints, attempting
-            to insert new rows with the same values in the primary key columns,
-            will cause an error.  In this case the conflicting records can either
-            be updated in the database or ignored from the incoming dataframe.
-            - do_nothing: Ignore incoming rows with primary key clashes, and
-              insert only the incoming rows with non-conflicting primary keys
-            - do_update: Update existing rows in database with primary key clashes,
-              and append the remaining rows with non-conflicting primary keys
+            - None: Do nothing to handle primary key clashes, will raise an Error.
+            - 'do_nothing': Ignore incoming rows with primary key clashes, and
+            insert only the incoming rows with non-conflicting primary keys
+            - 'do_update': Update existing rows in database with primary key clashes,
+            and append the remaining rows with non-conflicting primary keys
         index : bool, default True
             Write DataFrame index as a column
         index_label : string or sequence, default None
