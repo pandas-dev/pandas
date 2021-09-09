@@ -17,6 +17,7 @@ Fixed regressions
 - Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)
 - Performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
 - Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
+- Fixed regression in :meth:`.GroupBy.quantile` which was failing with ``pandas.NA`` (:issue:`42849`)
 - Fixed regression in :meth:`.GroupBy.apply` where ``nan`` values were dropped even with ``dropna=False`` (:issue:`43205`)
 - Fixed regression in :meth:`merge` where ``on`` columns with ``ExtensionDtype`` or ``bool`` data types were cast to ``object`` in ``right`` and ``outer`` merge (:issue:`40073`)
 - Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
