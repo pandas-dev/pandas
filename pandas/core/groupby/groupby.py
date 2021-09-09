@@ -2309,7 +2309,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     def nth(
         self,
         n: int | slice | list[int | slice],
-        dropna: Literal["any", "all", None] = None
+        dropna: Literal["any", "all", None] = None,
     ) -> DataFrame:
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
