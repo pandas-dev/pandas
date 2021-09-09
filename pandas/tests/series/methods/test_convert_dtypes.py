@@ -232,8 +232,9 @@ class TestSeriesConvertDtypes:
         byte_str = b"binary-string"
 
         df = pd.DataFrame(data={"A": byte_str}, index=[0])
+        df_convert = df.convert_dtypes()
 
-        result = pd.DataFrame(data={"A": df.convert_dtypes()["A"][0].decode("ascii")}, index=[0])
+        result = pd.DataFrame(data={"A": df_convert["A"][0].decode("ascii")}, index=[0])
         expected = pd.DataFrame(data={"A": "binary-string"}, index=[0])
 
         tm.assert_frame_equal(result, expected)
