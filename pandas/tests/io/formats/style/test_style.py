@@ -152,28 +152,56 @@ def test_mi_styler_sparsify_options(mi_styler):
     assert html1 != html2
 
 
-def test_trimming_maximum():
-    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
-    assert (rn, cn) == (12, 6)
+@pytest.mark.parametrize(
+    "rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn",
+    [
+        (100, 100, 100, None, None, 12, 6),  # reduce to (12, 6) < 100 elements
+        (1000, 3, 750, None, None, 250, 3),  # dynamically reduce rows to 250, keep cols
+        (4, 1000, 500, None, None, 4, 125),  # dynamically reduce cols to 125, keep rows
+        (1000, 3, 750, 10, None, 10, 3),  # overwrite above dynamics with max_row
+        (4, 1000, 500, None, 5, 4, 5),  # overwrite above dynamics with max_col
+        (100, 100, 700, 50, 50, 25, 25),  # rows cols below given maxes so < 700 elmts
+    ],
+)
+def test_trimming_maximum(rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn):
+    rn, cn = _get_trimming_maximums(
+        rn, cn, max_els, max_rows, max_cols, scaling_factor=0.5
+    )
+    assert (rn, cn) == (exp_rn, exp_cn)
 
-    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
-    assert (rn, cn) == (250, 3)
 
-
-def test_render_trimming():
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_rows", 3),
+    ],
+)
+def test_render_trimming_rows(option, val):
+    # test auto and specific trimming of rows
     df = DataFrame(np.arange(120).reshape(60, 2))
-    with pd.option_context("styler.render.max_elements", 6):
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 3  # index + 2 data cols
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
     assert len(ctx["body"][0]) == 3  # index + 2 data cols
 
-    df = DataFrame(np.arange(120).reshape(12, 10))
-    with pd.option_context("styler.render.max_elements", 6):
+
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_columns", 2),
+    ],
+)
+def test_render_trimming_cols(option, val):
+    # test auto and specific trimming of cols
+    df = DataFrame(np.arange(30).reshape(3, 10))
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
-    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
-    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
-    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming row
+    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming col
+    assert len(ctx["body"]) == 3  # 3 data rows
+    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming col
 
 
 def test_render_trimming_mi():
