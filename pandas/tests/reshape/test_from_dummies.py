@@ -250,12 +250,12 @@ def test_from_dummies_to_df_contains_unassigned(dummies_with_unassigned):
         from_dummies(dummies_with_unassigned, prefix_sep="_")
 
 
-def test_from_dummies_to_df_columns(dummies_basic):
+def test_from_dummies_to_df_subset(dummies_basic):
     expected = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
     result = from_dummies(
         dummies_basic,
         prefix_sep="_",
-        columns=["col1_a", "col1_b", "col2_a", "col2_b", "col2_c"],
+        subset=["col1_a", "col1_b", "col2_a", "col2_b", "col2_c"],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -323,9 +323,9 @@ def test_from_dummies_to_df_dropped_first_dict_not_complete(dummies_with_unassig
 def test_from_dummies_to_df_wrong_column_type(dummies_basic):
     with pytest.raises(
         TypeError,
-        match=r"Argument for parameter 'columns' must be list-like",
+        match=r"Argument for parameter 'subset' must be list-like",
     ):
-        from_dummies(dummies_basic, prefix_sep="_", columns="col1_a")
+        from_dummies(dummies_basic, prefix_sep="_", subset="col1_a")
 
 
 def test_from_dummies_to_df_contains_nan(dummies_basic):

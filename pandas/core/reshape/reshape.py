@@ -1074,7 +1074,7 @@ def _get_dummies_1d(
 
 def from_dummies(
     data: DataFrame,
-    columns: None | Index | list[str] = None,
+    subset: None | Index | list[str] = None,
     prefix_sep: None | str | list[str] | dict[str, str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> DataFrame:
@@ -1088,6 +1088,11 @@ def from_dummies(
     ----------
     data : `DataFrame`
         Data which contains dummy-coded variables.
+    subset : None, Index, or list of str, default 'None'
+        The columns which to convert from dummy-encoding and return as categorical
+        `DataFrame`.
+        If `columns` is None then all dummy columns are converted and appended
+        to the non-dummy columns.
     prefix_sep : str, list of str, or dict of str, default '_'
         Separator/deliminator used in the column names of the dummy categories.
         Pass a list if multiple prefix separators are used in the columns names.
@@ -1095,11 +1100,6 @@ def from_dummies(
         the order of the list. Alternatively, pass a dictionary to map prefix
         separators to prefixes if multiple and/or mixed separators are used in the
         column names.
-    columns : None, Index, or list of str, default 'None'
-        The columns which to convert from dummy-encoding and return as categorical
-        `DataFrame`.
-        If `columns` is None then all dummy columns are converted and appended
-        to the non-dummy columns.
     dropped_fist : None, str, list of str, or dict of str, default None
         The implied value the dummy takes when all values are zero.
         Can be a a single value for all variables, a list with a number of values
@@ -1164,19 +1164,19 @@ def from_dummies(
             f"'{data.columns[data.isna().any().argmax()]}'"
         )
 
-    if columns is None:
-        columns = data.columns
-    elif not is_list_like(columns):
-        raise TypeError("Argument for parameter 'columns' must be list-like")
+    if subset is None:
+        subset = data.columns
+    elif not is_list_like(subset):
+        raise TypeError("Argument for parameter 'subset' must be list-like")
     # index data with a list of all columns that are dummies
     try:
-        data_to_decode = data[columns].astype("boolean")
+        data_to_decode = data[subset].astype("boolean")
     except TypeError:
         raise TypeError("Passed DataFrame contains non-dummy data")
 
     # get separator for each prefix and lists to slice data for each prefix
     if prefix_sep is None:
-        variables_slice = {"categories": columns}
+        variables_slice = {"categories": subset}
     elif isinstance(prefix_sep, dict):
         variables_slice: dict[str, list] = {prefix: [] for prefix in prefix_sep}
         for col in data_to_decode.columns:
@@ -1231,7 +1231,7 @@ def from_dummies(
     cat_data = {}
     for prefix, prefix_slice in variables_slice.items():
         if prefix_sep is None:
-            cats = columns.tolist()
+            cats = subset.tolist()
         else:
             cats = [col[len(prefix + prefix_sep[prefix]) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
