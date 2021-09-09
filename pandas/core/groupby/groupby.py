@@ -1269,7 +1269,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper.group_keys_seq
 
         numba_transform_func = numba_.generate_numba_transform_func(
             kwargs, func, engine_kwargs
@@ -1279,7 +1278,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_index,
             starts,
             ends,
-            len(group_keys),
             len(data.columns),
             *args,
         )
@@ -1302,7 +1300,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        index = self._group_keys_index
 
         numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
         result = numba_agg_func(
@@ -1310,7 +1307,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_index,
             starts,
             ends,
-            len(index),
             len(data.columns),
             *args,
         )
@@ -1319,7 +1315,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 
-        return result, index
+        return result
 
     # -----------------------------------------------------------------
     # apply/agg/transform
