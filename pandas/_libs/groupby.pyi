@@ -84,11 +84,11 @@ def group_ohlc(
     min_count: int = ...,
 ) -> None: ...
 def group_quantile(
-    out: np.ndarray,  # ndarray[float64_t]
+    out: np.ndarray,  # ndarray[float64_t, ndim=2]
     values: np.ndarray,  # ndarray[numeric, ndim=1]
     labels: np.ndarray,  # ndarray[int64_t]
     mask: np.ndarray,  # ndarray[uint8_t]
-    q: float,  # float64_t
+    qs: np.ndarray,  # const float64_t[:]
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
 ) -> None: ...
 def group_last(

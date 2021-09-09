@@ -240,8 +240,7 @@ def test_groupby_quantile_nullable_array(values, q):
 def test_groupby_quantile_skips_invalid_dtype(q):
     df = DataFrame({"a": [1], "b": [2.0], "c": ["x"]})
 
-    warn = None if isinstance(q, list) else FutureWarning
-    with tm.assert_produces_warning(warn, match="Dropping invalid columns"):
+    with tm.assert_produces_warning(FutureWarning, match="Dropping invalid columns"):
         result = df.groupby("a").quantile(q)
 
     expected = df.groupby("a")[["b"]].quantile(q)
