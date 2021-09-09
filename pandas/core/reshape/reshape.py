@@ -1074,7 +1074,7 @@ def _get_dummies_1d(
 
 def from_dummies(
     data: DataFrame,
-    subset: None | Index | list[str] = None,
+    subset: None | list[str] = None,
     sep: None | str | list[str] | dict[str, str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> DataFrame:
@@ -1161,9 +1161,14 @@ def from_dummies(
     from pandas.core.reshape.concat import concat
 
     if subset is None:
-        subset = data.columns
-    elif not is_list_like(subset):
-        raise TypeError("Argument for parameter 'subset' must be list-like")
+        subset = data.columns.tolist()
+    elif isinstance(subset, Index):
+        subset = subset.tolist()
+    elif not isinstance(subset, list):
+        raise TypeError(
+            f"Expected 'subset' to be of type 'Index', or 'list'; "
+            f"Received 'subset' of type: {type(dropped_first).__name__}"
+        )
 
     if data[subset].isna().any().any():
         raise ValueError(
@@ -1181,7 +1186,7 @@ def from_dummies(
     if sep is None:
         variables_slice = {"categories": subset}
     elif isinstance(sep, dict):
-        variables_slice: dict[str, list] = {prefix: [] for prefix in sep}
+        variables_slice = {prefix: [] for prefix in sep}
         for col in data_to_decode.columns:
             for prefix in sep:
                 if prefix in col:
@@ -1234,7 +1239,7 @@ def from_dummies(
     cat_data = {}
     for prefix, prefix_slice in variables_slice.items():
         if sep is None:
-            cats = subset.tolist()
+            cats = subset.copy()
         else:
             cats = [col[len(prefix + sep[prefix]) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)

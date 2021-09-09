@@ -323,7 +323,10 @@ def test_from_dummies_with_prefix_dropped_first_dict_not_complete(
 def test_from_dummies_with_prefix_wrong_subset_type(dummies_basic):
     with pytest.raises(
         TypeError,
-        match=r"Argument for parameter 'subset' must be list-like",
+        match=(
+            r"Expected 'subset' to be of type 'Index', or 'list'; "
+            r"Received 'subset' of type: NoneType"
+        ),
     ):
         from_dummies(
             dummies_basic,
