@@ -998,7 +998,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     # Dispatch/Wrapping
 
     @final
-    def _concat_objects(self, keys, values, not_indexed_same: bool = False):
+    def _concat_objects(self, values, not_indexed_same: bool = False):
         from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
@@ -1035,7 +1035,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.as_index:
 
                 # possible MI return case
-                group_keys = keys
+                group_keys = self.grouper.group_keys_seq
                 group_levels = self.grouper.levels
                 group_names = self.grouper.names
 
@@ -1146,7 +1146,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     def _wrap_transformed_output(self, output: Mapping[base.OutputKey, ArrayLike]):
         raise AbstractMethodError(self)
 
-    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(self, data, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
@@ -1182,7 +1182,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # The index to use for the result of Groupby Aggregations.
         # This _may_ be redundant with self.grouper.result_index, but that
         #  has not been conclusively proven yet.
-        keys = self.grouper._get_group_keys()
+        keys = self.grouper.group_keys_seq
         if self.grouper.nkeys > 1:
             index = MultiIndex.from_tuples(keys, names=self.grouper.names)
         else:
@@ -1223,7 +1223,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper._get_group_keys()
+        group_keys = self.grouper.group_keys_seq
 
         numba_transform_func = numba_.generate_numba_transform_func(
             kwargs, func, engine_kwargs
@@ -1360,13 +1360,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             data after applying f
         """
-        keys, values, mutated = self.grouper.apply(f, data, self.axis)
+        values, mutated = self.grouper.apply(f, data, self.axis)
 
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
 
         return self._wrap_applied_output(
-            data, keys, values, not_indexed_same=not_indexed_same
+            data, values, not_indexed_same=not_indexed_same
         )
 
     @final
