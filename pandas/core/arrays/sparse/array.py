@@ -10,8 +10,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     Sequence,
     TypeVar,
+    cast,
+    overload,
 )
 import warnings
 
@@ -27,9 +30,13 @@ from pandas._libs.sparse import (
 from pandas._libs.tslibs import NaT
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     NpDtype,
+    PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -80,10 +87,20 @@ import pandas.core.ops as ops
 
 import pandas.io.formats.printing as printing
 
+# See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
-    from typing import Literal
+    from enum import Enum
+
+    class ellipsis(Enum):
+        Ellipsis = "..."
+
+    Ellipsis = ellipsis.Ellipsis
 
     from pandas._typing import NumpySorter
+
+else:
+    ellipsis = type(Ellipsis)
+
 
 # ----------------------------------------------------------------------------
 # Array
@@ -527,9 +544,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:
-                # error: Incompatible types in assignment (expression has type
-                # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-                dtype = object  # type: ignore[assignment]
+                dtype = object
 
         out = np.full(self.shape, fill_value, dtype=dtype)
         out[self.sp_index.to_int_index().indices] = self.sp_values
@@ -814,8 +829,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # --------
     # Indexing
     # --------
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(
+        self: SparseArrayT,
+        key: SequenceIndexer | tuple[int | ellipsis, ...],
+    ) -> SparseArrayT:
+        ...
+
+    def __getitem__(
+        self: SparseArrayT,
+        key: PositionalIndexer | tuple[int | ellipsis, ...],
+    ) -> SparseArrayT | Any:
 
         if isinstance(key, tuple):
             if len(key) > 1:
@@ -825,6 +853,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     key = key[:-1]
             if len(key) > 1:
                 raise IndexError("too many indices for array.")
+            if key[0] is Ellipsis:
+                raise ValueError("Cannot slice with Ellipsis")
             key = key[0]
 
         if is_integer(key):
@@ -853,7 +883,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             key = check_array_indexer(self, key)
 
             if com.is_bool_indexer(key):
-
+                # mypy doesn't know we have an array here
+                key = cast(np.ndarray, key)
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             elif hasattr(key, "__len__"):
                 return self.take(key)
@@ -1072,7 +1103,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype: Dtype | None = None, copy=True):
+    def astype(self, dtype: AstypeArg | None = None, copy=True):
         """
         Change the dtype of a SparseArray.
 

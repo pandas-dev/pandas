@@ -119,3 +119,13 @@ class TestMultiIndexBasic:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_rename_multiindex_with_duplicates(self):
+        # GH 38015
+        mi = MultiIndex.from_tuples([("A", "cat"), ("B", "cat"), ("B", "cat")])
+        df = DataFrame(index=mi)
+        df = df.rename(index={"A": "Apple"}, level=0)
+
+        mi2 = MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
+        expected = DataFrame(index=mi2)
+        tm.assert_frame_equal(df, expected)
