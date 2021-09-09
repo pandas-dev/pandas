@@ -113,6 +113,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         column_levels : tuple/list
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
+            When `row_levels` and/or `column_levels` refer to a single level,
+            set to `True` for a faster execution.
 
         Returns
         -------

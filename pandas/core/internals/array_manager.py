@@ -315,10 +315,9 @@ class BaseArrayManager(DataManager):
             if self.ndim == 2 and arr.ndim == 2:
                 # 2D for np.ndarray or DatetimeArray/TimedeltaArray
                 assert len(arr) == 1
-                # error: Invalid index type "Tuple[int, slice]" for
-                # "Union[ndarray, ExtensionArray]"; expected type
-                # "Union[int, slice, ndarray]"
-                arr = arr[0, :]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[int, slice]"
+                arr = arr[0, :]  # type: ignore[call-overload]
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
@@ -841,10 +840,9 @@ class ArrayManager(BaseArrayManager):
         assert value.shape[0] == len(self._axes[0])
 
         for value_idx, mgr_idx in enumerate(indices):
-            # error: Invalid index type "Tuple[slice, int]" for
-            # "Union[ExtensionArray, ndarray]"; expected type
-            # "Union[int, slice, ndarray]"
-            value_arr = value[:, value_idx]  # type: ignore[index]
+            # error: No overload variant of "__getitem__" of "ExtensionArray" matches
+            # argument type "Tuple[slice, int]"
+            value_arr = value[:, value_idx]  # type: ignore[call-overload]
             self.arrays[mgr_idx] = value_arr
         return
 
@@ -864,10 +862,9 @@ class ArrayManager(BaseArrayManager):
         value = extract_array(value, extract_numpy=True)
         if value.ndim == 2:
             if value.shape[0] == 1:
-                # error: Invalid index type "Tuple[int, slice]" for
-                # "Union[Any, ExtensionArray, ndarray]"; expected type
-                # "Union[int, slice, ndarray]"
-                value = value[0, :]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[int, slice]"
+                value = value[0, :]  # type: ignore[call-overload]
             else:
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"

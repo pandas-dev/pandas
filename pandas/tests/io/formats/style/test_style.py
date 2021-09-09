@@ -48,8 +48,10 @@ def mi_styler_comp(mi_styler):
     mi_styler.set_table_styles([{"selector": "a", "props": "a:v;"}])
     mi_styler.hide_columns()
     mi_styler.hide_columns([("c0", "c1_a")])
+    mi_styler.hide_columns(names=True)
     mi_styler.hide_index()
     mi_styler.hide_index([("i0", "i1_a")])
+    mi_styler.hide_index(names=True)
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
     mi_styler.highlight_max(axis=None)
@@ -148,28 +150,56 @@ def test_mi_styler_sparsify_options(mi_styler):
     assert html1 != html2
 
 
-def test_trimming_maximum():
-    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
-    assert (rn, cn) == (12, 6)
+@pytest.mark.parametrize(
+    "rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn",
+    [
+        (100, 100, 100, None, None, 12, 6),  # reduce to (12, 6) < 100 elements
+        (1000, 3, 750, None, None, 250, 3),  # dynamically reduce rows to 250, keep cols
+        (4, 1000, 500, None, None, 4, 125),  # dynamically reduce cols to 125, keep rows
+        (1000, 3, 750, 10, None, 10, 3),  # overwrite above dynamics with max_row
+        (4, 1000, 500, None, 5, 4, 5),  # overwrite above dynamics with max_col
+        (100, 100, 700, 50, 50, 25, 25),  # rows cols below given maxes so < 700 elmts
+    ],
+)
+def test_trimming_maximum(rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn):
+    rn, cn = _get_trimming_maximums(
+        rn, cn, max_els, max_rows, max_cols, scaling_factor=0.5
+    )
+    assert (rn, cn) == (exp_rn, exp_cn)
 
-    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
-    assert (rn, cn) == (250, 3)
 
-
-def test_render_trimming():
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_rows", 3),
+    ],
+)
+def test_render_trimming_rows(option, val):
+    # test auto and specific trimming of rows
     df = DataFrame(np.arange(120).reshape(60, 2))
-    with pd.option_context("styler.render.max_elements", 6):
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 3  # index + 2 data cols
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
     assert len(ctx["body"][0]) == 3  # index + 2 data cols
 
-    df = DataFrame(np.arange(120).reshape(12, 10))
-    with pd.option_context("styler.render.max_elements", 6):
+
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_columns", 2),
+    ],
+)
+def test_render_trimming_cols(option, val):
+    # test auto and specific trimming of cols
+    df = DataFrame(np.arange(30).reshape(3, 10))
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
-    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
-    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
-    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming row
+    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming col
+    assert len(ctx["body"]) == 3  # 3 data rows
+    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming col
 
 
 def test_render_trimming_mi():
@@ -239,6 +269,8 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
             "cell_ids",
             "hide_index_",
             "hide_columns_",
+            "hide_index_names",
+            "hide_column_names",
             "table_attributes",
         ]
         for attr in shallow:
@@ -402,10 +434,10 @@ class TestStyler:
         self.styler._repr_html_()
 
     def test_repr_html_mathjax(self):
-        # gh-19824
+        # gh-19824 / 41395
         assert "tex2jax_ignore" not in self.styler._repr_html_()
 
-        with pd.option_context("display.html.use_mathjax", False):
+        with pd.option_context("styler.html.mathjax", False):
             assert "tex2jax_ignore" in self.styler._repr_html_()
 
     def test_update_ctx(self):
@@ -1058,7 +1090,8 @@ class TestStyler:
 
         self.df.index.name = "some_name"
         ctx = self.df.style.hide_columns()._translate(True, True)
-        assert len(ctx["head"]) == 0  # no header for index names, changed in #42101
+        assert len(ctx["head"]) == 1
+        # index names still visible, changed in #42101, reverted in 43404
 
     def test_hide_single_index(self):
         # GH 14194
@@ -1398,3 +1431,58 @@ class TestStyler:
         with tm.assert_produces_warning(warn, match=msg):
             result = df.loc[non_reducing_slice(slice_)]
         tm.assert_frame_equal(result, expected)
+
+
+def test_hidden_index_names(mi_df):
+    mi_df.index.names = ["Lev0", "Lev1"]
+    mi_styler = mi_df.style
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 3  # 2 column index levels + 1 index names row
+
+    mi_styler.hide_index(names=True)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is unparsed
+    for i in range(4):
+        assert ctx["body"][0][i]["is_visible"]  # 2 index levels + 2 data values visible
+
+    mi_styler.hide_index(level=1)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 2  # index names row is still hidden
+    assert ctx["body"][0][0]["is_visible"] is True
+    assert ctx["body"][0][1]["is_visible"] is False
+
+
+def test_hidden_column_names(mi_df):
+    mi_df.columns.names = ["Lev0", "Lev1"]
+    mi_styler = mi_df.style
+    ctx = mi_styler._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "Lev0"
+    assert ctx["head"][1][1]["display_value"] == "Lev1"
+
+    mi_styler.hide_columns(names=True)
+    ctx = mi_styler._translate(True, True)
+    assert ctx["head"][0][1]["display_value"] == "&nbsp;"
+    assert ctx["head"][1][1]["display_value"] == "&nbsp;"
+
+    mi_styler.hide_columns(level=0)
+    ctx = mi_styler._translate(True, True)
+    assert len(ctx["head"]) == 1  # no index names and only one visible column headers
+    assert ctx["head"][0][1]["display_value"] == "&nbsp;"
+
+
+@pytest.mark.parametrize("caption", [1, ("a", "b", "c"), (1, "s")])
+def test_caption_raises(mi_styler, caption):
+    msg = "`caption` must be either a string or 2-tuple of strings."
+    with pytest.raises(ValueError, match=msg):
+        mi_styler.set_caption(caption)
+
+
+def test_no_sparse_hiding_columns():
+    # GH 43464
+    midx = MultiIndex.from_product([[1, 2], ["a", "a", "b"]])
+    df = DataFrame(9, index=[0], columns=midx)
+    styler = df.style.hide_columns((1, "a"))
+    ctx = styler._translate(False, False)
+
+    for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
+        assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
