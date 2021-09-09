@@ -191,6 +191,28 @@ def test_doctype(styler):
     assert "<head>" not in result
 
 
+def test_doctype_encoding(styler):
+    with option_context("styler.render.encoding", "ASCII"):
+        result = styler.to_html(doctype_html=True)
+        assert '<meta charset="ASCII">' in result
+        result = styler.to_html(doctype_html=True, encoding="ANSI")
+        assert '<meta charset="ANSI">' in result
+
+
+def test_bold_headers_arg(styler):
+    result = styler.to_html(bold_headers=True)
+    assert "th {\n  font-weight: bold;\n}" in result
+    result = styler.to_html()
+    assert "th {\n  font-weight: bold;\n}" not in result
+
+
+def test_caption_arg(styler):
+    result = styler.to_html(caption="foo bar")
+    assert "<caption>foo bar</caption>" in result
+    result = styler.to_html()
+    assert "<caption>foo bar</caption>" not in result
+
+
 def test_block_names(tpl_style, tpl_table):
     # catch accidental removal of a block
     expected_style = {
@@ -430,3 +452,16 @@ def test_applymap_header_cell_ids(styler, index, columns):
         '<th id="T__level0_col0" class="col_heading level0 col0" >A</th>' in result
     ) is columns
     assert ("#T__level0_col0 {\n  attr: val;\n}" in result) is columns
+
+
+@pytest.mark.parametrize("rows", [True, False])
+@pytest.mark.parametrize("cols", [True, False])
+def test_maximums(styler_mi, rows, cols):
+    result = styler_mi.to_html(
+        max_rows=2 if rows else None,
+        max_columns=2 if cols else None,
+    )
+
+    assert ">5</td>" in result  # [[0,1], [4,5]] always visible
+    assert (">8</td>" in result) is not rows  # first trimmed vertical element
+    assert (">2</td>" in result) is not cols  # first trimmed horizontal element

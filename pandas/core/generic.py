@@ -2645,7 +2645,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               which may perform worse but allow more flexible operations
               like searching / selecting subsets of the data.
             - If None, pd.get_option('io.hdf.default_format') is checked,
-              followed by fallback to "fixed"
+              followed by fallback to "fixed".
         errors : str, default 'strict'
             Specifies how encoding and decoding errors are to be handled.
             See the errors argument for :func:`open` for a full list
@@ -3991,6 +3991,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         value : same type as items contained in object
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [
+        ...         [24.3, 75.7, "high"],
+        ...         [31, 87.8, "high"],
+        ...         [22, 71.6, "medium"],
+        ...         [35, 95, "medium"],
+        ...     ],
+        ...     columns=["temp_celsius", "temp_fahrenheit", "windspeed"],
+        ...     index=pd.date_range(start="2014-02-12", end="2014-02-15", freq="D"),
+        ... )
+
+        >>> df
+                    temp_celsius  temp_fahrenheit windspeed
+        2014-02-12          24.3             75.7      high
+        2014-02-13          31.0             87.8      high
+        2014-02-14          22.0             71.6    medium
+        2014-02-15          35.0             95.0    medium
+
+        >>> df.get(["temp_celsius", "windspeed"])
+                    temp_celsius windspeed
+        2014-02-12          24.3      high
+        2014-02-13          31.0      high
+        2014-02-14          22.0    medium
+        2014-02-15          35.0    medium
+
+        If the key isn't found, the default value will be used.
+
+        >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
+        'default_value'
         """
         try:
             return self[key]
@@ -4816,7 +4848,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axes, level, limit, tolerance, method, fill_value, copy
         ).__finalize__(self, method="reindex")
 
-    @final
     def _reindex_axes(
         self: FrameOrSeries, axes, level, limit, tolerance, method, fill_value, copy
     ) -> FrameOrSeries:
@@ -8220,8 +8251,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side="right")
-        # error: Slice index must be an integer or None
-        return self.iloc[start:]  # type: ignore[misc]
+        return self.iloc[start:]
 
     @final
     def rank(
@@ -8477,6 +8507,71 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         (left, right) : ({klass}, type of other)
             Aligned objects.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [[1, 2, 3, 4], [6, 7, 8, 9]], columns=["D", "B", "E", "A"], index=[1, 2]
+        ... )
+        >>> other = pd.DataFrame(
+        ...     [[10, 20, 30, 40], [60, 70, 80, 90], [600, 700, 800, 900]],
+        ...     columns=["A", "B", "C", "D"],
+        ...     index=[2, 3, 4],
+        ... )
+        >>> df
+           D  B  E  A
+        1  1  2  3  4
+        2  6  7  8  9
+        >>> other
+            A    B    C    D
+        2   10   20   30   40
+        3   60   70   80   90
+        4  600  700  800  900
+
+        Align on columns:
+
+        >>> left, right = df.align(other, join="outer", axis=1)
+        >>> left
+           A  B   C  D  E
+        1  4  2 NaN  1  3
+        2  9  7 NaN  6  8
+        >>> right
+            A    B    C    D   E
+        2   10   20   30   40 NaN
+        3   60   70   80   90 NaN
+        4  600  700  800  900 NaN
+
+        We can also align on the index:
+
+        >>> left, right = df.align(other, join="outer", axis=0)
+        >>> left
+            D    B    E    A
+        1  1.0  2.0  3.0  4.0
+        2  6.0  7.0  8.0  9.0
+        3  NaN  NaN  NaN  NaN
+        4  NaN  NaN  NaN  NaN
+        >>> right
+            A      B      C      D
+        1    NaN    NaN    NaN    NaN
+        2   10.0   20.0   30.0   40.0
+        3   60.0   70.0   80.0   90.0
+        4  600.0  700.0  800.0  900.0
+
+        Finally, the default `axis=None` will align on both index and columns:
+
+        >>> left, right = df.align(other, join="outer", axis=None)
+        >>> left
+             A    B   C    D    E
+        1  4.0  2.0 NaN  1.0  3.0
+        2  9.0  7.0 NaN  6.0  8.0
+        3  NaN  NaN NaN  NaN  NaN
+        4  NaN  NaN NaN  NaN  NaN
+        >>> right
+               A      B      C      D   E
+        1    NaN    NaN    NaN    NaN NaN
+        2   10.0   20.0   30.0   40.0 NaN
+        3   60.0   70.0   80.0   90.0 NaN
+        4  600.0  700.0  800.0  900.0 NaN
         """
 
         method = missing.clean_fill_method(method)
@@ -8970,14 +9065,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
 
         return self._where(cond, other, inplace, axis, level, errors=errors)
 
-    @final
     @doc(
         where,
         klass=_shared_doc_kwargs["klass"],
@@ -9003,7 +9097,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if try_cast is not lib.no_default:
             warnings.warn(
                 "try_cast keyword is deprecated and will be removed in a "
-                "future version",
+                "future version.",
                 FutureWarning,
                 stacklevel=4,
             )
@@ -9196,7 +9290,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         msg = (
             "The 'slice_shift' method is deprecated "
             "and will be removed in a future version. "
-            "You can use DataFrame/Series.shift instead"
+            "You can use DataFrame/Series.shift instead."
         )
         warnings.warn(msg, FutureWarning, stacklevel=2)
 
@@ -10838,7 +10932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
         if center is not None:
             warnings.warn(
-                "The `center` argument on `expanding` will be removed in the future",
+                "The `center` argument on `expanding` will be removed in the future.",
                 FutureWarning,
                 stacklevel=2,
             )

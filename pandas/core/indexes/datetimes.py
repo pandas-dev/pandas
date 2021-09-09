@@ -11,6 +11,7 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Hashable,
+    Literal,
 )
 import warnings
 
@@ -496,7 +497,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if keep_tz:
                 warnings.warn(
                     "The 'keep_tz' keyword in DatetimeIndex.to_series "
-                    "is deprecated and will be removed in a future version.  "
+                    "is deprecated and will be removed in a future version. "
                     "You can stop passing 'keep_tz' to silence this warning.",
                     FutureWarning,
                     stacklevel=2,
@@ -611,7 +612,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 msg = (
                     "Indexing a timezone-aware DatetimeIndex with a "
                     "timezone-naive datetime is deprecated and will "
-                    "raise KeyError in a future version.  "
+                    "raise KeyError in a future version. "
                     "Use a timezone-aware object instead."
                 )
             warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
@@ -765,7 +766,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return indexer
 
     @doc(Index.get_slice_bound)
-    def get_slice_bound(self, label, side: str, kind=lib.no_default) -> int:
+    def get_slice_bound(
+        self, label, side: Literal["left", "right"], kind=lib.no_default
+    ) -> int:
         # GH#42855 handle date here instead of _maybe_cast_slice_bound
         if isinstance(label, date) and not isinstance(label, datetime):
             label = Timestamp(label).to_pydatetime()

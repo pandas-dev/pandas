@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     Series,
 )
@@ -74,6 +75,14 @@ def test_series_dtypes(method, data, expected_data, coerce_int, dtypes, min_peri
         result = getattr(s.rolling(2, min_periods=min_periods), method)()
         expected = Series(expected_data, dtype="float64")
         tm.assert_almost_equal(result, expected)
+
+
+def test_series_nullable_int(any_signed_int_ea_dtype):
+    # GH 43016
+    s = Series([0, 1, NA], dtype=any_signed_int_ea_dtype)
+    result = s.rolling(2).mean()
+    expected = Series([np.nan, 0.5, np.nan])
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
