@@ -718,57 +718,91 @@ To choose another dtype, use the ``dtype`` argument:
 
     pd.get_dummies(df, dtype=bool).dtypes
 
+.. versionadded:: 1.4.0
 
-To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``
-(a categorical ``Series``), for example ``k`` columns of a ``DataFrame`` containing
-1s and 0s can derive a ``DataFrame`` (a ``Series``) which has ``k`` distinct values
+To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``,
+for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
+``DataFrame`` which has ``k`` distinct values
 :func:`~pandas.from_dummies`:
 
 .. ipython:: python
 
-   d = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+   df = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+   df
 
-   pd.from_dummies(d)
+   pd.from_dummies(df, prefix_sep="_")
 
 The ``k`` distinct values can also be represented be a ``dropped_first`` which
-means that no vale assigned implies a the value of the dropped value:
+means that no value assigned implies a the value of the dropped value:
 
 .. ipython:: python
 
-   d = pd.DataFrame({"prefix_a": [0, 1, 0]})
+   df = pd.DataFrame({"prefix_a": [0, 1, 0]})
+   df
 
-   pd.from_dummies(d, dropped_first="b")
+   pd.from_dummies(df, prefix_sep="_", dropped_first="b")
 
-The function is the inverse of :func:`pandas.get_dummies <pandas.reshape.get_dummies>`.
-
-All non-dummy columns are included untouched in the output. You can control
-which columns are included in the output with the ``columns`` argument.
+The ``subset`` argument controls which columns of the input ```DataFrame`` to consider
+for the decoding:
 
 .. ipython:: python
 
-    pd.get_dummies(df, columns=["C", "prefix_A", "prefix_B"])
+   df = pd.DataFrame({"C": [1, 2, 3], "prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+   df
 
-You can pass values for for the ``prefix_sep`` argument depending on how many or
-nested prefix separators are used in the column names. By default the prefix
-separator is assumed to be a '_', however ``prefix_sep`` can be specified in
-3 ways:
+   pd.get_dummies(df, subset=["prefix_a", "prefix_b"], prefix_sep="_")
+
+``sep`` is (or are) character(s) indicating the separation of the categorical names
+from the prefixes. For example, if your column names are ``prefix_A`` and ``prefix_B``,
+you can strip the underscore by specifying ``sep='_'``.
+You can pass values for the ``sep`` argument depending on how many or
+nested prefix separators are used in the column names.
+If a ``list`` of separators is passed ``from_dummies`` will separate based on the
+first encountered separator following the order of the list.
 
 * string: Use the same value for ``prefix_sep`` for each column
   to be dencoded.
-* list: Variables will be decoded by the first instance of prefix separator passed
-  the list that is encountered in the column name.
-* dict: Directly map prefix separators to prefixes. Can be used in case mixed
-  separators are used within the variable name and to separate the variable from
-  the prefix.
+* list: Variables will be decoded by the first prefix separator in the
+  passed list that is encountered in the column name.
+* dict: Directly map prefix separators to prefixes. Can be used in case multiple
+  separation characters are used to separata the prefixes as well as in the
+  variable names themself.
 
 .. ipython:: python
 
-    simple = pd.get_dummies(df, prefix_sep="-")
-    simple
-    from_list = pd.get_dummies(df, prefix_sep=["_", "-"])
-    from_list
-    from_dict = pd.get_dummies(df, prefix_sep={"prefix1": "-", "prefix2": "_"})
-    from_dict
+   df_simple = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
+   df_simple
+
+   simple = pd.get_dummies(df_simple, prefix_sep="_")
+   simple
+
+   df_multi = pd.DataFrame(
+       {
+           "prefix1_a": [0, 1, 0],
+           "prefix1_b": [1, 0, 1],
+           "prefix2-a": [0, 1, 0],
+           "prefix2-b": [1, 0, 1],
+           "prefix2-c": [0, 1, 0],
+       }
+   )
+   df_multi
+
+   from_list = pd.get_dummies(df_multi, prefix_sep=["_", "-"])
+   from_list
+
+   df_complex = pd.DataFrame(
+       {
+           "col1_a-a": [1, 0, 1],
+           "col1_b-b": [0, 1, 0],
+           "col2-a_a": [0, 1, 0],
+           "col2-b_b": [1, 0, 0],
+           "col2-c_c": [0, 0, 1],
+       }
+   )
+   df_complex
+
+   from_dict = pd.get_dummies(df_complex, prefix_sep={"prefix1": "-", "prefix2": "_"})
+   from_dict
 
 
 .. _reshaping.factorize:
