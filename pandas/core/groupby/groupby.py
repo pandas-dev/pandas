@@ -1180,6 +1180,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             else:
                 numeric_only = False
+
         # error: Incompatible return value type (got "Union[bool, NoDefault]",
         # expected "bool")
         return numeric_only  # type: ignore[return-value]
