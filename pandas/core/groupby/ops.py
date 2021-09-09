@@ -716,7 +716,8 @@ class BaseGrouper:
         return self.groupings[0].grouping_vector
 
     @final
-    def _get_group_keys(self):
+    @cache_readonly
+    def group_keys_seq(self):
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
@@ -724,11 +725,6 @@ class BaseGrouper:
 
             # provide "flattened" iterator for multi-group setting
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
-
-    @final
-    @cache_readonly
-    def group_keys_seq(self):
-        return self._get_group_keys()
 
     @final
     def apply(self, f: F, data: FrameOrSeries, axis: int = 0) -> tuple[list, bool]:
