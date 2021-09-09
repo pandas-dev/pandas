@@ -1195,6 +1195,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.obj.ndim == 2:
                 # i.e. DataFrameGroupBy
                 numeric_only = True
+                # GH#42395 GH#43108 GH#43154
+                # Regression from 1.2.5 to 1.3 caused object columns to be dropped
+                obj = self._obj_with_exclusions
+                check = obj._get_numeric_data()
+                if len(obj.columns) and not len(check.columns) and not obj.empty:
+                    numeric_only = False
+                    # TODO: v1.4+ Add FutureWarning
+
             else:
                 numeric_only = False
 
