@@ -72,7 +72,6 @@ Computations / descriptive stats
    GroupBy.prod
    GroupBy.rank
    GroupBy.pct_change
-   GroupBy.rows
    GroupBy.size
    GroupBy.sem
    GroupBy.std

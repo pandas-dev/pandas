@@ -26,6 +26,7 @@ from typing import (
     Literal,
     Mapping,
     Sequence,
+    Iterable,
     TypeVar,
     Union,
     cast,
@@ -2224,11 +2225,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def nth(
-        self, n: int | list[int], dropna: Literal["any", "all", None] = None
+        self, n: int | slice | list[int | slice], dropna: Literal["any", "all", None] = None
     ) -> DataFrame:
         """
-        Take the nth row from each group if n is an int, or a subset of rows
-        if n is a list of ints.
+        Take the nth row from each group if n is an int, otherwise a subset of rows.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -2236,8 +2236,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Parameters
         ----------
-        n : int or list of ints
-            A single nth value for the row or a list of nth values.
+        n : int, slice or list of ints and slices
+            A single nth value for the row or a list of nth values or slices.
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
             the nth row.
@@ -2275,6 +2275,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         1  2.0
         2  3.0
         2  5.0
+        >>> g.nth(slice(None, -1))
+             B
+        A
+        1  NaN
+        1  2.0
+        2  3.0
 
         Specifying `dropna` allows count ignoring ``NaN``
 
@@ -2306,43 +2312,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         elif isinstance(n, slice):
             return self.rows[n]
 
-        valid_containers = (set, list, tuple)
+        valid_containers = (set, list, tuple, range, slice)
         if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
         if not dropna:
+            if isinstance(n, Iterable):
+                return self.rows[tuple(n)]
 
-            if isinstance(n, int):
-                nth_values = [n]
-            elif isinstance(n, valid_containers):
-                nth_values = list(set(n))
-
-            nth_array = np.array(nth_values, dtype=np.intp)
-            with group_selection_context(self):
-
-                mask_left = np.in1d(self._cumcount_array(), nth_array)
-                mask_right = np.in1d(
-                    self._cumcount_array(ascending=False) + 1, -nth_array
-                )
-                mask = mask_left | mask_right
-
-                ids, _, _ = self.grouper.group_info
-
-                # Drop NA values in grouping
-                mask = mask & (ids != -1)
-
-                out = self._selected_obj[mask]
-                if not self.as_index:
-                    return out
-
-                result_index = self.grouper.result_index
-                out.index = result_index[ids[mask]]
-
-                if not self.observed and isinstance(result_index, CategoricalIndex):
-                    out = out.reindex(result_index)
-
-                out = self._reindex_output(out)
-                return out.sort_index() if self.sort else out
+            return self.rows[n]
 
         # dropna is truthy
         if isinstance(n, valid_containers):

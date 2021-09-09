@@ -689,3 +689,49 @@ def test_first_multi_key_groupbby_categorical():
         [(1, 100), (1, 200), (2, 100)], names=["A", "B"]
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.fixture()
+def small_df():
+    data = [
+        [0, "a", "a0_at_0"],
+        [1, "b", "b0_at_1"],
+        [2, "a", "a1_at_2"],
+        [3, "b", "b1_at_3"],
+        [4, "c", "c0_at_4"],
+        [5, "a", "a2_at_5"],
+        [6, "a", "a3_at_6"],
+        [7, "a", "a4_at_7"],
+    ]
+    df = pd.DataFrame(data, columns=["Index", "Category", "Value"])
+    return df.set_index("Index")
+
+
+@pytest.fixture()
+def small_grouped(small_df):
+    return small_df.groupby("Category", as_index=False)
+
+
+@pytest.mark.parametrize(
+    "arg, expected_rows",
+    [
+        [slice(None, 3, 2), [0, 1, 4, 5]],
+        [slice(None, -2), [0, 2, 5]],
+        [[slice(None, 2), slice(-2, None)], [0, 1, 2, 3, 4, 6, 7]],
+        [[0, 1, slice(-2, None)], [0, 1, 2, 3, 4, 6, 7]],
+    ],
+)
+def test_slice(small_df, small_grouped, arg, expected_rows):
+    """Test slices     GH #42947"""
+
+    result = small_grouped.nth(arg)
+    expected = small_df.iloc[expected_rows]
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_negative_step(small_grouped):
+    """Test for error on negative slice step"""
+
+    with pytest.raises(ValueError, match="Invalid step"):
+        result = small_grouped.nth(slice(None, None, -1))

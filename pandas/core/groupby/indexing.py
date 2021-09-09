@@ -1,8 +1,22 @@
 from __future__ import annotations
 
+from typing import Iterable
+
 import numpy as np
 
-from pandas.util._decorators import doc
+from pandas._typing import (
+    FrameOrSeries,
+    PositionalIndexer,
+)
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
+
+from pandas.core.dtypes.common import (
+    is_integer,
+    is_list_like,
+)
 
 from pandas.core.groupby import groupby
 from pandas.core.indexes.api import CategoricalIndex
@@ -15,101 +29,18 @@ class GroupByIndexingMixin:
 
     @property
     def rows(self) -> _rowsGroupByIndexer:
-        """
-        Purely integer-location based indexing for selection by position per group.
-
-        ``.rows[]`` is primarily integer position based (from ``0`` to
-        ``length-1`` of the axis),
-
-        Allowed inputs for the index are:
-
-        - An integer valued iterable, e.g. ``range(2, 4)``.
-        - A comma separated list of integers and slices, e.g. ``5``, ``2, 4``, ``2:4``.
-
-        Note: the slice step cannot be negative.
-
-        The output format is the same as GroupBy.head and GroupBy.tail, namely a subset
-        of the original DataFrame or Series with the index and order preserved.
-
-        The effect of ``grouped.rows[i:j]`` is similar to
-
-            ``grouped.apply(lambda x: x.iloc[i:j])``
-
-        but much faster and preserving the original index and order.
-
-        The behaviour is different from GroupBy.nth:
-
-        - Input to rows can include one or more slices whereas nth just handles
-          a list of indexes.
-        - Output from rows is in the same order as the original grouped DataFrame
-          or Series.
-        - Output from rows has the same index columns as the original grouped DataFrame
-          or Series. (nth behaves like an aggregator and removes the non-grouped
-          indexes.)
-        - GroupBy.rows can  define a slice relative to the last row of each group.
-        - GroupBy.rows is faster than nth.
-        - GroupBy.rows does not handle dropna.
-
-        An important use case for GroupBy.rows is a multi-indexed DataFrame with a
-        large primary index (Date, say) and a secondary index sorted to a different
-        order for each Date.
-        To reduce the DataFrame to a middle slice of each Date:
-
-            ``df.groupby("Date").rows[5:-5]``
-
-        This returns a subset of df containing just the middle rows for each Date
-        and with its original order and indexing preserved.
-
-        To reduce the DataFrame to the remaining rows:
-
-            ``df.groupby("Date").rows[:5, -5:]``
-
-        Returns
-        -------
-        Series
-            The filtered subset of the original grouped Series.
-        DataFrame
-            The filtered subset of the original grouped DataFrame.
-
-        See Also
-        --------
-        DataFrame.iloc : Purely integer-location based indexing for selection by
-            position.
-        GroupBy.head : Return first n rows of each group.
-        GroupBy.tail : Return last n rows of each group.
-        GroupBy.nth : Take the nth row from each group if n is an int, or a
-            subset of rows, if n is a list of ints.
-
-        Examples
-        --------
-            >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
-            ...                   columns=["A", "B"])
-            >>> df.groupby("A", as_index=False).rows[1:2]
-               A  B
-            1  a  2
-            4  b  5
-
-            >>> df.groupby("A", as_index=False).rows[1, -1]
-               A  B
-            1  a  2
-            2  a  3
-            4  b  5
-        """
         return _rowsGroupByIndexer(self)
 
 
 @doc(GroupByIndexingMixin.rows)
 class _rowsGroupByIndexer:
-    def __init__(self, grouped):
+    def __init__(self, grouped: groupby.GroupBy):
         self.grouped = grouped
 
-    def __getitem__(self, arg):
+    def __getitem__(self, arg: PositionalIndexer) -> FrameOrSeries:
         with groupby.group_selection_context(self.grouped):
-            self._cached_ascending_count = None
-            self._cached_descending_count = None
-
             if isinstance(arg, tuple):
-                if all(isinstance(i, int) for i in arg):
+                if all(is_integer(i) for i in arg):
                     mask = self._handle_list(arg)
 
                 else:
@@ -118,23 +49,23 @@ class _rowsGroupByIndexer:
             elif isinstance(arg, slice):
                 mask = self._handle_slice(arg)
 
-            elif isinstance(arg, int):
+            elif is_integer(arg):
                 mask = self._handle_int(arg)
 
-            elif isinstance(arg, list):
+            elif is_list_like(arg):
                 mask = self._handle_list(arg)
 
             else:
-                try:
-                    list_arg = list(arg)
+                raise ValueError(
+                    f"Invalid index {type(arg)}. "
+                    "Must be integer, list-like, slice or a tuple of "
+                    "integers and slices"
+                )
 
-                except TypeError:
-                    raise ValueError(
-                        f"Invalid index {type(arg)}. Must be iterable or a list of "
-                        "integers and slices"
-                    )
+            ids, _, _ = self.grouped.grouper.group_info
 
-                mask = self._handle_list(list_arg)
+            # Drop NA values in grouping
+            mask &= ids != -1
 
             if mask is None or mask is True:
                 mask = slice(None)
@@ -142,11 +73,6 @@ class _rowsGroupByIndexer:
             result = self.grouped._selected_obj[mask]
 
             if self.grouped.as_index:
-                ids, _, _ = self.grouped.grouper.group_info
-
-                # Drop NA values in grouping
-                mask &= ids != -1
-
                 result_index = self.grouped.grouper.result_index
                 result.index = result_index[ids[mask]]
 
@@ -161,14 +87,14 @@ class _rowsGroupByIndexer:
 
             return result
 
-    def _handle_int(self, arg):
+    def _handle_int(self, arg: int) -> np.ndarray:
         if arg >= 0:
             return self._ascending_count == arg
 
         else:
             return self._descending_count == (-arg - 1)
 
-    def _handle_list(self, args):
+    def _handle_list(self, args: Iterable[int]) -> np.ndarray:
         positive = [arg for arg in args if arg >= 0]
         negative = [-arg - 1 for arg in args if arg < 0]
 
@@ -182,7 +108,7 @@ class _rowsGroupByIndexer:
 
         return mask
 
-    def _handle_tuple(self, args):
+    def _handle_tuple(self, args: tuple) -> np.ndarray:
         mask = False
 
         for arg in args:
@@ -199,7 +125,7 @@ class _rowsGroupByIndexer:
 
         return mask
 
-    def _handle_slice(self, arg):
+    def _handle_slice(self, arg: slice) -> np.ndarray:
         start = arg.start
         stop = arg.stop
         step = arg.step
@@ -245,18 +171,10 @@ class _rowsGroupByIndexer:
 
         return mask
 
-    @property
-    def _ascending_count(self):
-        if self._cached_ascending_count is None:
-            self._cached_ascending_count = self.grouped._cumcount_array()
+    @cache_readonly
+    def _ascending_count(self) -> np.ndarray:
+        return self.grouped._cumcount_array()
 
-        return self._cached_ascending_count
-
-    @property
-    def _descending_count(self):
-        if self._cached_descending_count is None:
-            self._cached_descending_count = self.grouped._cumcount_array(
-                ascending=False
-            )
-
-        return self._cached_descending_count
+    @cache_readonly
+    def _descending_count(self) -> np.ndarray:
+        return self.grouped._cumcount_array(ascending=False)
