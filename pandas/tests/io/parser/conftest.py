@@ -29,7 +29,7 @@ class BaseParser:
         return read_csv(*args, **kwargs)
 
     def read_csv_check_warnings(
-        self, warn_type: Warning, warn_msg: str, *args, **kwargs
+        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
     ):
         # We need to check the stacklevel here instead of in the tests
         # since this is where read_csv is called and where the warning
