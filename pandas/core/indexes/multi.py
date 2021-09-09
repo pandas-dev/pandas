@@ -1391,7 +1391,9 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Names Methods
 
-    def get_default_index_names(self, names=None):
+    def get_default_index_names(
+        self, names: Sequence[Hashable] = None
+    ) -> Sequence[Hashable]:
 
         if names is not None and not isinstance(names, (tuple, list)):
             raise ValueError("Names must be a tuple or list")
