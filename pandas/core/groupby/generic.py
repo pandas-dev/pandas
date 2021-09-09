@@ -431,16 +431,9 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         assert values is not None
 
-        def _get_index() -> Index:
-            if self.grouper.nkeys > 1:
-                index = MultiIndex.from_tuples(keys, names=self.grouper.names)
-            else:
-                index = Index._with_infer(keys, name=self.grouper.names[0])
-            return index
-
         if isinstance(values[0], dict):
             # GH #823 #24880
-            index = _get_index()
+            index = self._group_keys_index
             res_df = self.obj._constructor_expanddim(values, index=index)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
@@ -453,7 +446,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
-                data=values, index=_get_index(), name=self.obj.name
+                data=values, index=self._group_keys_index, name=self.obj.name
             )
             return self._reindex_output(result)
 

@@ -124,14 +124,21 @@ class StylerRenderer:
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
-    def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+    def _render_html(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate(sparse_index, sparse_columns)
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
         return self.template_html.render(
             **d,
@@ -173,7 +180,14 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp;"):
+    def _translate(
+        self,
+        sparse_index: bool,
+        sparse_cols: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        blank: str = "&nbsp;",
+    ):
         """
         Process Styler data and settings into a dict for template rendering.
 
@@ -188,6 +202,10 @@ class StylerRenderer:
         sparse_cols : bool
             Whether to sparsify the columns or print all hierarchical column elements.
             Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
+        blank : str
+            Entry to top-left blank cells.
+        max_rows, max_cols : int, optional
+            Specific max rows and cols. max_elements always take precedence in render.
 
         Returns
         -------
@@ -213,8 +231,14 @@ class StylerRenderer:
         }
 
         max_elements = get_option("styler.render.max_elements")
+        max_rows = max_rows if max_rows else get_option("styler.render.max_rows")
+        max_cols = max_cols if max_cols else get_option("styler.render.max_columns")
         max_rows, max_cols = _get_trimming_maximums(
-            len(self.data.index), len(self.data.columns), max_elements
+            len(self.data.index),
+            len(self.data.columns),
+            max_elements,
+            max_rows,
+            max_cols,
         )
 
         self.cellstyle_map_columns: DefaultDict[
@@ -358,7 +382,8 @@ class StylerRenderer:
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths),
+                            _is_visible(c, r, col_lengths)
+                            and c not in self.hidden_columns,
                             display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
@@ -1009,7 +1034,14 @@ def _element(
     }
 
 
-def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
+def _get_trimming_maximums(
+    rn,
+    cn,
+    max_elements,
+    max_rows=None,
+    max_cols=None,
+    scaling_factor=0.8,
+) -> tuple[int, int]:
     """
     Recursively reduce the number of rows and columns to satisfy max elements.
 
@@ -1019,6 +1051,10 @@ def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
         The number of input rows / columns
     max_elements : int
         The number of allowable elements
+    max_rows, max_cols : int, optional
+        Directly specify an initial maximum rows or columns before compression.
+    scaling_factor : float
+        Factor at which to reduce the number of rows / columns to fit.
 
     Returns
     -------
@@ -1031,6 +1067,11 @@ def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
             return rn, int(cn * scaling_factor)
         else:
             return int(rn * scaling_factor), cn
+
+    if max_rows:
+        rn = max_rows if rn > max_rows else rn
+    if max_cols:
+        cn = max_cols if cn > max_cols else cn
 
     while rn * cn > max_elements:
         rn, cn = scale_down(rn, cn)

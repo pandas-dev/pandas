@@ -38,11 +38,11 @@ and so passing in a substring will work - as long as it is unambiguous:
 
 .. ipython:: python
 
-   pd.get_option("display.max_rows")
-   pd.set_option("display.max_rows", 101)
-   pd.get_option("display.max_rows")
-   pd.set_option("max_r", 102)
-   pd.get_option("display.max_rows")
+   pd.get_option("display.chop_threshold")
+   pd.set_option("display.chop_threshold", 2)
+   pd.get_option("display.chop_threshold")
+   pd.set_option("chop", 4)
+   pd.get_option("display.chop_threshold")
 
 
 The following will **not work** because it matches multiple option names, e.g.
@@ -52,7 +52,7 @@ The following will **not work** because it matches multiple option names, e.g.
    :okexcept:
 
    try:
-       pd.get_option("column")
+       pd.get_option("max")
    except KeyError as e:
        print(e)
 
@@ -153,27 +153,27 @@ lines are replaced by an ellipsis.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(7, 2))
-   pd.set_option("max_rows", 7)
+   pd.set_option("display.max_rows", 7)
    df
-   pd.set_option("max_rows", 5)
+   pd.set_option("display.max_rows", 5)
    df
-   pd.reset_option("max_rows")
+   pd.reset_option("display.max_rows")
 
 Once the ``display.max_rows`` is exceeded, the ``display.min_rows`` options
 determines how many rows are shown in the truncated repr.
 
 .. ipython:: python
 
-   pd.set_option("max_rows", 8)
-   pd.set_option("min_rows", 4)
+   pd.set_option("display.max_rows", 8)
+   pd.set_option("display.min_rows", 4)
    # below max_rows -> all rows shown
    df = pd.DataFrame(np.random.randn(7, 2))
    df
    # above max_rows -> only min_rows (4) rows shown
    df = pd.DataFrame(np.random.randn(9, 2))
    df
-   pd.reset_option("max_rows")
-   pd.reset_option("min_rows")
+   pd.reset_option("display.max_rows")
+   pd.reset_option("display.min_rows")
 
 ``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
@@ -193,13 +193,13 @@ dataframes to stretch across pages, wrapped over the full column vs row-wise.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 10))
-   pd.set_option("max_rows", 5)
+   pd.set_option("display.max_rows", 5)
    pd.set_option("large_repr", "truncate")
    df
    pd.set_option("large_repr", "info")
    df
    pd.reset_option("large_repr")
-   pd.reset_option("max_rows")
+   pd.reset_option("display.max_rows")
 
 ``display.max_colwidth`` sets the maximum width of columns.  Cells
 of this length or longer will be truncated with an ellipsis.
@@ -491,6 +491,10 @@ styler.render.repr                      html         Standard output format for 
                                                      Should be one of "html" or "latex".
 styler.render.max_elements              262144       Maximum number of datapoints that Styler will render
                                                      trimming either rows, columns or both to fit.
+styler.render.max_rows                  None         Maximum number of rows that Styler will render. By default
+                                                     this is dynamic based on ``max_elements``.
+styler.render.max_columns               None         Maximum number of columns that Styler will render. By default
+                                                     this is dynamic based on ``max_elements``.
 styler.render.encoding                  utf-8        Default encoding for output HTML or LaTeX files.
 styler.format.formatter                 None         Object to specify formatting functions to ``Styler.format``.
 styler.format.na_rep                    None         String representation for missing data.

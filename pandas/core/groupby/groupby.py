@@ -1177,6 +1177,18 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # expected "bool")
         return numeric_only  # type: ignore[return-value]
 
+    @cache_readonly
+    def _group_keys_index(self) -> Index:
+        # The index to use for the result of Groupby Aggregations.
+        # This _may_ be redundant with self.grouper.result_index, but that
+        #  has not been conclusively proven yet.
+        keys = self.grouper._get_group_keys()
+        if self.grouper.nkeys > 1:
+            index = MultiIndex.from_tuples(keys, names=self.grouper.names)
+        else:
+            index = Index._with_infer(keys, name=self.grouper.names[0])
+        return index
+
     # -----------------------------------------------------------------
     # numba
 
@@ -1244,7 +1256,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper._get_group_keys()
+        index = self._group_keys_index
 
         numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
         result = numba_agg_func(
@@ -1252,7 +1264,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_index,
             starts,
             ends,
-            len(group_keys),
+            len(index),
             len(data.columns),
             *args,
         )
@@ -1261,10 +1273,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 
-        if self.grouper.nkeys > 1:
-            index = MultiIndex.from_tuples(group_keys, names=self.grouper.names)
-        else:
-            index = Index(group_keys, name=self.grouper.names[0])
         return result, index
 
     # -----------------------------------------------------------------
@@ -3029,10 +3037,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
-                # error: Invalid index type "Tuple[slice, int]" for
-                # "Union[ExtensionArray, ndarray[Any, Any]]"; expected type
-                # "Union[int, integer[Any], slice, Sequence[int], ndarray[Any, Any]]"
-                result = result[:, 0]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[slice, int]"
+                result = result[:, 0]  # type: ignore[call-overload]
                 if needs_mask:
                     mask = mask[:, 0]
 
@@ -3046,11 +3053,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if needs_2d and not real_2d:
                 if result.ndim == 2:
                     assert result.shape[1] == 1
-                    # error: Invalid index type "Tuple[slice, int]" for
-                    # "Union[ExtensionArray, Any, ndarray[Any, Any]]"; expected
-                    # type "Union[int, integer[Any], slice, Sequence[int],
-                    # ndarray[Any, Any]]"
-                    result = result[:, 0]  # type: ignore[index]
+                    # error: No overload variant of "__getitem__" of "ExtensionArray"
+                    # matches argument type "Tuple[slice, int]"
+                    result = result[:, 0]  # type: ignore[call-overload]
 
             return result.T
 
