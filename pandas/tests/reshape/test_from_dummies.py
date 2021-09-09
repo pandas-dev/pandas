@@ -13,7 +13,6 @@ from pandas.core.reshape.reshape import from_dummies
 def dummies_basic():
     return DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 1],
             "col1_b": [0, 1, 0],
             "col2_a": [0, 1, 0],
@@ -27,7 +26,6 @@ def dummies_basic():
 def dummies_with_unassigned():
     return DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 0],
             "col1_b": [0, 1, 0],
             "col2_a": [0, 1, 0],
@@ -95,13 +93,6 @@ def test_from_dummies_to_series_contains_nan():
         from_dummies(dummies, to_series=True)
 
 
-def test_from_dummies_to_series_False():
-    dummies = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
-    expected = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
-    result = from_dummies(dummies, to_series=False)
-    tm.assert_frame_equal(result, expected)
-
-
 def test_from_dummies_no_dummies():
     dummies = DataFrame(
         {"a": [1, 6, 3, 1], "b": [0, 1, 0, 2], "c": ["c1", "c2", "c3", "c4"]}
@@ -114,9 +105,7 @@ def test_from_dummies_no_dummies():
 
 
 def test_from_dummies_to_df_basic(dummies_basic):
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "a"], "col2": ["b", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
     result = from_dummies(dummies_basic)
     tm.assert_frame_equal(result, expected)
 
@@ -124,7 +113,6 @@ def test_from_dummies_to_df_basic(dummies_basic):
 def test_from_dummies_to_df_prefix_multiple_seperators():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 1],
             "col1_b": [0, 1, 0],
             "col2-a": [0, 1, 0],
@@ -133,7 +121,6 @@ def test_from_dummies_to_df_prefix_multiple_seperators():
     )
     expected = DataFrame(
         {
-            "C": [1, 2, 3],
             "col2-a": [0, 1, 0],
             "col2-b": [1, 0, 1],
             "col1": ["a", "b", "a"],
@@ -146,7 +133,6 @@ def test_from_dummies_to_df_prefix_multiple_seperators():
 def test_from_dummies_to_df_prefix_sep_list():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 1],
             "col1_b": [0, 1, 0],
             "col2-a": [0, 1, 0],
@@ -154,9 +140,7 @@ def test_from_dummies_to_df_prefix_sep_list():
             "col2-c": [0, 0, 1],
         },
     )
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "a"], "col2": ["b", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "a"], "col2": ["b", "a", "c"]})
     result = from_dummies(dummies, prefix_sep=["_", "-"])
     tm.assert_frame_equal(result, expected)
 
@@ -164,7 +148,6 @@ def test_from_dummies_to_df_prefix_sep_list():
 def test_from_dummies_to_df_prefix_sep_list_incomplete():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 1],
             "col1_b": [0, 1, 0],
             "col2-a": [0, 1, 0],
@@ -173,7 +156,6 @@ def test_from_dummies_to_df_prefix_sep_list_incomplete():
     )
     expected = DataFrame(
         {
-            "C": [1, 2, 3],
             "col2-a": [0, 1, 0],
             "col2-b": [1, 0, 1],
             "col1": ["a", "b", "a"],
@@ -186,7 +168,6 @@ def test_from_dummies_to_df_prefix_sep_list_incomplete():
 def test_from_dummies_to_df_prefix_sep_dict():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a-a": [1, 0, 1],
             "col1_b-b": [0, 1, 0],
             "col2-a_a": [0, 1, 0],
@@ -194,9 +175,7 @@ def test_from_dummies_to_df_prefix_sep_dict():
             "col2-c_c": [0, 0, 1],
         },
     )
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a-a", "b-b", "a-a"], "col2": ["b_b", "a_a", "c_c"]}
-    )
+    expected = DataFrame({"col1": ["a-a", "b-b", "a-a"], "col2": ["b_b", "a_a", "c_c"]})
     result = from_dummies(
         dummies,
         prefix_sep={
@@ -210,7 +189,6 @@ def test_from_dummies_to_df_prefix_sep_dict():
 def test_from_dummies_to_df_prefix_separators_too_complex_for_sep_list():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a-a": [1, 0, 1],
             "col1_b-b": [0, 1, 0],
             "col2-a_a": [0, 1, 0],
@@ -231,7 +209,6 @@ def test_from_dummies_to_df_prefix_separators_too_complex_for_sep_list():
 def test_from_dummies_to_df_prefix_sep_dict_incomplete():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a-a": [1, 0, 1],
             "col1_b-b": [0, 1, 0],
             "col2-a_a": [0, 1, 0],
@@ -240,7 +217,6 @@ def test_from_dummies_to_df_prefix_sep_dict_incomplete():
     )
     expected = DataFrame(
         {
-            "C": [1, 2, 3],
             "col2-a_a": [0, 1, 0],
             "col2-b_b": [1, 0, 1],
             "col1": ["a-a", "b-b", "a-a"],
@@ -253,7 +229,6 @@ def test_from_dummies_to_df_prefix_sep_dict_incomplete():
 def test_from_dummies_to_df_contains_get_dummies_NaN_column():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 0],
             "col1_b": [0, 1, 0],
             "col1_NaN": [0, 0, 1],
@@ -263,9 +238,7 @@ def test_from_dummies_to_df_contains_get_dummies_NaN_column():
             "col2_NaN": [1, 0, 0],
         },
     )
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "NaN"], "col2": ["NaN", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "NaN"], "col2": ["NaN", "a", "c"]})
     result = from_dummies(dummies)
     tm.assert_frame_equal(result, expected)
 
@@ -290,17 +263,13 @@ def test_from_dummies_to_df_columns(dummies_basic):
 
 
 def test_from_dummies_to_df_dropped_first_str(dummies_with_unassigned):
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "x"], "col2": ["x", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["x", "a", "c"]})
     result = from_dummies(dummies_with_unassigned, dropped_first="x")
     tm.assert_frame_equal(result, expected)
 
 
 def test_from_dummies_to_df_dropped_first_list(dummies_with_unassigned):
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "x"], "col2": ["y", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["y", "a", "c"]})
     result = from_dummies(dummies_with_unassigned, dropped_first=["x", "y"])
     tm.assert_frame_equal(result, expected)
 
@@ -329,9 +298,7 @@ def test_from_dummies_to_df_dropped_first_wrong_type(dummies_with_unassigned):
 
 
 def test_from_dummies_to_df_dropped_first_dict(dummies_with_unassigned):
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "y"], "col2": ["x", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "y"], "col2": ["x", "a", "c"]})
     result = from_dummies(
         dummies_with_unassigned, dropped_first={"col2": "x", "col1": "y"}
     )
@@ -368,7 +335,6 @@ def test_from_dummies_to_df_contains_nan(dummies_basic):
 def test_from_dummies_to_df_double_assignment():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 1],
             "col1_b": [1, 1, 0],
             "col2_a": [0, 1, 0],
@@ -389,7 +355,6 @@ def test_from_dummies_to_df_double_assignment():
 def test_from_dummies_collate_prefix_sep_and_dropped_first_list():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a": [1, 0, 0],
             "col1_b": [0, 1, 0],
             "col2-a": [0, 1, 0],
@@ -397,9 +362,7 @@ def test_from_dummies_collate_prefix_sep_and_dropped_first_list():
             "col2-c": [0, 0, 1],
         },
     )
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a", "b", "x"], "col2": ["y", "a", "c"]}
-    )
+    expected = DataFrame({"col1": ["a", "b", "x"], "col2": ["y", "a", "c"]})
     result = from_dummies(
         dummies,
         prefix_sep=["_", "-"],
@@ -411,7 +374,6 @@ def test_from_dummies_collate_prefix_sep_and_dropped_first_list():
 def test_from_dummies_collate_prefix_sep_and_dropped_first_dict():
     dummies = DataFrame(
         {
-            "C": [1, 2, 3],
             "col1_a-a": [1, 0, 0],
             "col1_b-b": [0, 1, 0],
             "col2-a_a": [0, 1, 0],
@@ -419,9 +381,7 @@ def test_from_dummies_collate_prefix_sep_and_dropped_first_dict():
             "col2-c_c": [0, 0, 1],
         },
     )
-    expected = DataFrame(
-        {"C": [1, 2, 3], "col1": ["a-a", "b-b", "x"], "col2": ["y", "a_a", "c_c"]}
-    )
+    expected = DataFrame({"col1": ["a-a", "b-b", "x"], "col2": ["y", "a_a", "c_c"]})
     result = from_dummies(
         dummies,
         prefix_sep={

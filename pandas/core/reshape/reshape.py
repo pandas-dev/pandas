@@ -1171,21 +1171,12 @@ def from_dummies(
     if to_series:
         return _from_dummies_1d(data, dropped_first)
 
-    data_to_decode: DataFrame
     if columns is None:
         columns = data.columns
     elif not is_list_like(columns):
         raise TypeError("Argument for parameter 'columns' must be list-like")
     # index data with a list of all columns that are dummies
-    cat_columns = []
-    non_cat_columns = []
-    for col in columns:
-        if any(ps in col for ps in prefix_sep):
-            cat_columns.append(col)
-        else:
-            non_cat_columns.append(col)
-    data_to_decode = data[cat_columns].astype("boolean")
-    non_cat_data = data[non_cat_columns]
+    data_to_decode = data[columns].astype("boolean")
 
     # get separator for each prefix and lists to slice data for each prefix
     if isinstance(prefix_sep, dict):
@@ -1256,8 +1247,7 @@ def from_dummies(
             data_slice = data_to_decode[prefix_slice]
         cat_data[prefix] = data_slice.dot(cats)
 
-    categorical_df = concat((non_cat_data, DataFrame(cat_data)), axis=1)
-    return categorical_df
+    return DataFrame(cat_data)
 
 
 def _from_dummies_1d(
