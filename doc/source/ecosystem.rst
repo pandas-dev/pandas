@@ -575,3 +575,17 @@ Library            Accessor     Classes                              Description
 .. _composeml: https://github.com/alteryx/compose
 .. _datatest: https://datatest.readthedocs.io/
 .. _woodwork: https://github.com/alteryx/woodwork
+
+Development tools
+----------------------------
+
+`pandas-stubs <https://github.com/VirtusLab/pandas-stubs>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While pandas repository is partially typed, the package itself doesn't expose this information for external use.
+Install pandas-stubs to enable basic type coverage of pandas API.
+
+Learn more by reading through these issues `14468 <https://github.com/pandas-dev/pandas/issues/14468>`_,
+`26766 <https://github.com/pandas-dev/pandas/issues/26766>`_, `28142 <https://github.com/pandas-dev/pandas/issues/28142>`_.
+
+See installation and usage instructions on the `github page <https://github.com/VirtusLab/pandas-stubs>`__.

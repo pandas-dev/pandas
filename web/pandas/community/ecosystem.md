@@ -388,3 +388,14 @@ authors to coordinate on the namespace.
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+## Development tools
+
+### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
+
+While pandas repository is partially typed, the package itself doesn't expose this information for external use.
+Install pandas-stubs to enable basic type coverage of pandas API.
+
+Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
+[26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
+
+See installation and usage instructions on the [github page](https://github.com/VirtusLab/pandas-stubs).
