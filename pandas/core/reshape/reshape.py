@@ -1075,7 +1075,7 @@ def _get_dummies_1d(
 def from_dummies(
     data: DataFrame,
     subset: None | Index | list[str] = None,
-    prefix_sep: None | str | list[str] | dict[str, str] = None,
+    sep: None | str | list[str] | dict[str, str] = None,
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> DataFrame:
     """
@@ -1092,7 +1092,7 @@ def from_dummies(
         `DataFrame`.
         If `columns` is None then all dummy columns are converted and appended
         to the non-dummy columns.
-    prefix_sep : str, list of str, or dict of str, default '_'
+    sep : str, list of str, or dict of str, default '_'
         Separator/deliminator used in the column names of the dummy categories.
         Pass a list if multiple prefix separators are used in the columns names.
         Will separate the prefix based on the first encountered separator following
@@ -1129,7 +1129,7 @@ def from_dummies(
     ...                   "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                   "col2_c": [0, 0, 1]})
 
-    >>> pd.from_dummies(d, prefix_sep="_")
+    >>> pd.from_dummies(d, sep="_")
         col1    col2
     0    a       b
     1    b       a
@@ -1139,7 +1139,7 @@ def from_dummies(
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 0]})
 
-    >>> pd.from_dummies(d, prefix_sep="_", dropped_first=["d", "e"])
+    >>> pd.from_dummies(d, sep="_", dropped_first=["d", "e"])
         col1    col2
     0    a       b
     1    b       a
@@ -1149,7 +1149,7 @@ def from_dummies(
     ...                   "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
     ...                   "col2-c_c": [0, 0, 1]})
 
-    >>> pd.from_dummies(d, prefix_sep={"col1": "_", "col2": "-"})
+    >>> pd.from_dummies(d, sep={"col1": "_", "col2": "-"})
        col1  col2
     0  a-a   b-b
     1  b-b   a-a
@@ -1175,22 +1175,22 @@ def from_dummies(
         raise TypeError("Passed DataFrame contains non-dummy data")
 
     # get separator for each prefix and lists to slice data for each prefix
-    if prefix_sep is None:
+    if sep is None:
         variables_slice = {"categories": subset}
-    elif isinstance(prefix_sep, dict):
-        variables_slice: dict[str, list] = {prefix: [] for prefix in prefix_sep}
+    elif isinstance(sep, dict):
+        variables_slice: dict[str, list] = {prefix: [] for prefix in sep}
         for col in data_to_decode.columns:
-            for prefix in prefix_sep:
+            for prefix in sep:
                 if prefix in col:
                     variables_slice[prefix].append(col)
     else:
         sep_for_prefix = {}
         variables_slice = {}
         for col in data_to_decode.columns:
-            ps = [ps for ps in prefix_sep if ps in col]
+            ps = [ps for ps in sep if ps in col]
             if len(ps) == 0:
                 raise ValueError(
-                    f"Prefix separator not specified for all columns; "
+                    f"Separator not specified for all columns; "
                     f"First instance column: '{col}'"
                 )
             prefix = col.split(ps[0])[0]
@@ -1200,7 +1200,7 @@ def from_dummies(
                 variables_slice[prefix] = [col]
             else:
                 variables_slice[prefix].append(col)
-        prefix_sep = sep_for_prefix
+        sep = sep_for_prefix
 
     # validate number of dropped_first
     def check_len(item, name) -> None:
@@ -1230,10 +1230,10 @@ def from_dummies(
 
     cat_data = {}
     for prefix, prefix_slice in variables_slice.items():
-        if prefix_sep is None:
+        if sep is None:
             cats = subset.tolist()
         else:
-            cats = [col[len(prefix + prefix_sep[prefix]) :] for col in prefix_slice]
+            cats = [col[len(prefix + sep[prefix]) :] for col in prefix_slice]
         assigned = data_to_decode[prefix_slice].sum(axis=1)
         if any(assigned > 1):
             raise ValueError(
