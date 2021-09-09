@@ -255,8 +255,8 @@ def test_encoding_memory_map(all_parsers, encoding):
 def test_not_readable(all_parsers):
     # GH43439
     parser = all_parsers
-    if parser.engine == "python":
-        pytest.skip("SpooledTemporaryFile does not work with Python engine")
+    if parser.engine in ("python", "pyarrow"):
+        pytest.skip("SpooledTemporaryFile does only work with the c-engine")
     with tempfile.SpooledTemporaryFile() as handle:
         handle.write(b"abcd")
         handle.seek(0)
