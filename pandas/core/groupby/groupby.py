@@ -3582,6 +3582,15 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     Insert the sequence 'qs' of quantiles as the inner-most level of a MultiIndex.
 
     The quantile level in the MultiIndex is a repeated copy of 'qs'.
+
+    Parameters
+    ----------
+    idx : Index
+    qs : np.ndarray[float64]
+
+    Returns
+    -------
+    MultiIndex
     """
     nqs = len(qs)
 
