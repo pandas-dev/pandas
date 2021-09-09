@@ -527,8 +527,8 @@ def check_parent_directory(path: Path | str) -> None:
 
     Parameters
     ----------
-    path: Path | str
-        File path
+    path: Path or str
+        Path to check parent directory of
 
     """
     parent = Path(path).parent
