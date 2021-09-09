@@ -370,7 +370,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def _wrap_applied_output(
         self,
         data: Series,
-        keys: Index,
         values: list[Any] | None,
         not_indexed_same: bool = False,
     ) -> DataFrame | Series:
@@ -381,8 +380,6 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         data : Series
             Input data for groupby operation.
-        keys : Index
-            Keys of groups that Series was grouped by.
         values : Optional[List[Any]]
             Applied output for each group.
         not_indexed_same : bool, default False
@@ -392,6 +389,8 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         DataFrame or Series
         """
+        keys = self.grouper.group_keys_seq
+
         if len(keys) == 0:
             # GH #6265
             return self.obj._constructor(
@@ -413,7 +412,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -1103,7 +1102,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_df.columns = obj.columns
         return res_df
 
-    def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
+    def _wrap_applied_output(self, data, values, not_indexed_same=False):
+        keys = self.grouper.group_keys_seq
+
         if len(keys) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
@@ -1118,7 +1119,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH9684 - All values are None, return an empty frame.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(values, not_indexed_same=not_indexed_same)
 
         key_index = self.grouper.result_index if self.as_index else None
 
@@ -1146,12 +1147,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # values are Series
             return self._wrap_applied_output_series(
-                keys, values, not_indexed_same, first_not_none, key_index
+                values, not_indexed_same, first_not_none, key_index
             )
 
     def _wrap_applied_output_series(
         self,
-        keys,
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
@@ -1174,6 +1174,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             # assign the name to this series
             if singular_series:
+                keys = self.grouper.group_keys_seq
                 values[0].name = keys[0]
 
                 # GH2893
@@ -1182,9 +1183,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # if any of the sub-series are not indexed the same
                 # OR we don't have a multi-index and we have only a
                 # single values
-                return self._concat_objects(
-                    keys, values, not_indexed_same=not_indexed_same
-                )
+                return self._concat_objects(values, not_indexed_same=not_indexed_same)
 
             # still a series
             # path added as of GH 5545
@@ -1195,7 +1194,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not all_indexed_same:
             # GH 8467
-            return self._concat_objects(keys, values, not_indexed_same=True)
+            return self._concat_objects(values, not_indexed_same=True)
 
         # Combine values
         # vstack+constructor is faster than concat and handles MI-columns
