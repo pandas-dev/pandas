@@ -703,7 +703,7 @@ def small_df():
         [6, "a", "a3_at_6"],
         [7, "a", "a4_at_7"],
     ]
-    df = pd.DataFrame(data, columns=["Index", "Category", "Value"])
+    df = DataFrame(data, columns=["Index", "Category", "Value"])
     return df.set_index("Index")
 
 
@@ -751,4 +751,4 @@ def test_negative_step(small_grouped):
     """Test for error on negative slice step"""
 
     with pytest.raises(ValueError, match="Invalid step"):
-        result = small_grouped.nth(slice(None, None, -1))
+        small_grouped.nth(slice(None, None, -1))

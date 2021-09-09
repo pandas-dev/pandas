@@ -26,7 +26,6 @@ from typing import (
     Literal,
     Mapping,
     Sequence,
-    Iterable,
     TypeVar,
     Union,
     cast,
@@ -2308,7 +2307,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def nth(
-        self, n: int | slice | list[int | slice], dropna: Literal["any", "all", None] = None
+        self,
+        n: int | slice | list[int | slice],
+        dropna: Literal["any", "all", None] = None
     ) -> DataFrame:
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
@@ -2388,7 +2389,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         1  1  2.0
         4  2  5.0
         """
-        from collections.abc import Iterable
         if isinstance(n, Iterable):
             return self.rows[tuple(n)]
 
