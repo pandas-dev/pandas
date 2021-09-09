@@ -2440,7 +2440,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 inference = np.dtype("timedelta64[ns]")
                 out = np.asarray(vals).astype(float)
             elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
-                inference = np.dtype(object)
+                inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
                 out = np.asarray(vals)
