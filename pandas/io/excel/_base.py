@@ -121,9 +121,10 @@ usecols : int, str, list-like, or callable default None
     Returns a subset of the columns according to behavior above.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+
     .. deprecated:: 1.4.0
-        Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
-        the data.
+       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
+       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
