@@ -1079,8 +1079,7 @@ def from_dummies(
     dropped_first: None | str | list[str] | dict[str, str] = None,
 ) -> DataFrame:
     """
-    Create a categorical `Series` or `DataFrame` from a `DataFrame` of dummy
-    variables.
+    Create a categorical `DataFrame` from a `DataFrame` of dummy variables.
 
     Inverts the operation performed by 'get_dummies'.
 
@@ -1108,7 +1107,7 @@ def from_dummies(
 
     Returns
     -------
-    `Series` or `DataFrame`
+    `DataFrame`
         Categorical data decoded from the dummy input-data.
 
     See Also
@@ -1117,36 +1116,36 @@ def from_dummies(
 
     Examples
     --------
-    >>> d = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
+    >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
     ...                   "c": [0, 0, 1, 0]})
 
-    >>> pd.from_dummies(s, to_series=True)
-    0  a
-    1  b
-    2  c
-    3  a
+    >>> pd.from_dummies(s)
+    0  categories
+    1     b
+    2     c
+    3     a
 
-    >>> d = pd.DataFrame({"C": [1, 2, 3], "col1_a": [1, 0, 1],
-    ...                   "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
-    ...                   "col2_b": [1, 0, 0], "col2_c": [0, 0, 1]})
+    >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
+    ...                   "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+    ...                   "col2_c": [0, 0, 1]})
 
-    >>> pd.from_dummies(d)
-       C   col1    col2
-    0  1     a       b
-    1  2     b       a
-    2  3     a       c
+    >>> pd.from_dummies(d, prefix_sep="_")
+        col1    col2
+    0    a       b
+    1    b       a
+    2    a       c
 
-    >>> d = pd.DataFrame({"C": [1, 2, 3], "col1_a": [1, 0, 0],
-    ...                   "col1_b": [0, 1, 0], "col2_a": [0, 1, 0],
-    ...                   "col2_b": [1, 0, 0], "col2_c": [0, 0, 0]})
+    >>> df = pd.DataFrame({"col1_a": [1, 0, 0], "col1_b": [0, 1, 0],
+    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
+    ...                    "col2_c": [0, 0, 0]})
 
-    >>> pd.from_dummies(d, dropped_first=["d", "e"])
-       C   col1    col2
-    0  1     a       b
-    1  2     b       a
-    2  3     d       e
+    >>> pd.from_dummies(d, prefix_sep="_", dropped_first=["d", "e"])
+        col1    col2
+    0    a       b
+    1    b       a
+    2    d       e
 
-    >>> d = pd.DataFrame({"col1_a-a": [1, 0, 1], "col1_b-b": [0, 1, 0],
+    >>> df = pd.DataFrame({"col1_a-a": [1, 0, 1], "col1_b-b": [0, 1, 0],
     ...                   "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
     ...                   "col2-c_c": [0, 0, 1]})
 
@@ -1158,16 +1157,17 @@ def from_dummies(
     """
     from pandas.core.reshape.concat import concat
 
-    if data.isna().any().any():
+    if subset is None:
+        subset = data.columns
+    elif not is_list_like(subset):
+        raise TypeError("Argument for parameter 'subset' must be list-like")
+
+    if data[subset].isna().any().any():
         raise ValueError(
             f"Dummy DataFrame contains NA value in column: "
             f"'{data.columns[data.isna().any().argmax()]}'"
         )
 
-    if subset is None:
-        subset = data.columns
-    elif not is_list_like(subset):
-        raise TypeError("Argument for parameter 'subset' must be list-like")
     # index data with a list of all columns that are dummies
     try:
         data_to_decode = data[subset].astype("boolean")
