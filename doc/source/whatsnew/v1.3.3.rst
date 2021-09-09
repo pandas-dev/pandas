@@ -26,6 +26,8 @@ Fixed regressions
 - Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)
 - Fixed regression in :meth:`.Resampler.aggregate` when used after column selection would raise if ``func`` is a list of aggregation functions (:issue:`42905`)
 - Fixed regression in :meth:`DataFrame.corr` where Kendall correlation would produce incorrect results for columns with repeated values (:issue:`43401`)
+- Fixed regression in :meth:`Series.fillna` raising ``TypeError`` when filling ``float`` ``Series`` with list-like fill value having a dtype which couldn't cast lostlessly (like ``float32`` filled with ``float64``) (:issue:`43424`)
+-
 
 .. ---------------------------------------------------------------------------
 
