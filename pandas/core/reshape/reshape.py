@@ -1122,7 +1122,7 @@ def from_dummies(
     >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
     ...                   "c": [0, 0, 1, 0]})
 
-    >>> pd.from_dummies(s)
+    >>> pd.from_dummies(df)
     0  categories
     1     b
     2     c
@@ -1132,7 +1132,7 @@ def from_dummies(
     ...                   "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                   "col2_c": [0, 0, 1]})
 
-    >>> pd.from_dummies(d, sep="_")
+    >>> pd.from_dummies(df, sep="_")
         col1    col2
     0    a       b
     1    b       a
@@ -1142,7 +1142,7 @@ def from_dummies(
     ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
     ...                    "col2_c": [0, 0, 0]})
 
-    >>> pd.from_dummies(d, sep="_", dropped_first=["d", "e"])
+    >>> pd.from_dummies(df, sep="_", dropped_first=["d", "e"])
         col1    col2
     0    a       b
     1    b       a
@@ -1152,7 +1152,7 @@ def from_dummies(
     ...                   "col2-a_a": [0, 1, 0], "col2-b_b": [1, 0, 0],
     ...                   "col2-c_c": [0, 0, 1]})
 
-    >>> pd.from_dummies(d, sep={"col1": "_", "col2": "-"})
+    >>> pd.from_dummies(df, sep={"col1": "_", "col2": "-"})
        col1  col2
     0  a-a   b-b
     1  b-b   a-a
