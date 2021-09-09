@@ -14,7 +14,6 @@ from pandas import (
     DataFrame,
     Grouper,
     Index,
-    Int64Index,
     MultiIndex,
     RangeIndex,
     Series,
@@ -2427,7 +2426,7 @@ def test_groupby_aggregation_multi_non_numeric_dtype():
             "y": [Timedelta(i, "days") for i in range(7, 9)],
             "z": [Timedelta(i * 10, "days") for i in range(7, 9)],
         },
-        index=Int64Index([0, 1], dtype="int64", name="x"),
+        index=Index([0, 1], dtype="int64", name="x"),
     )
 
     gb = df.groupby(by=["x"])
@@ -2447,7 +2446,7 @@ def test_groupby_aggregation_numeric_with_non_numeric_dtype():
 
     expected = DataFrame(
         {"z": [7, 8]},
-        index=Int64Index([0, 1], dtype="int64", name="x"),
+        index=Index([0, 1], dtype="int64", name="x"),
     )
 
     gb = df.groupby(by=["x"])
