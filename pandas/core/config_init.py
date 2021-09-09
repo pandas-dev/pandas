@@ -769,6 +769,18 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_max_rows = """
+: int, optional
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_columns = """
+: int, optional
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
 styler_precision = """
 : int
     The precision for floats and complex numbers.
@@ -844,6 +856,20 @@ with cf.config_prefix("styler"):
         "render.max_elements",
         2 ** 18,
         styler_max_elements,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_columns",
+        None,
+        styler_max_columns,
         validator=is_nonnegative_int,
     )
 

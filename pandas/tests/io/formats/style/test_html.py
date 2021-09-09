@@ -452,3 +452,16 @@ def test_applymap_header_cell_ids(styler, index, columns):
         '<th id="T__level0_col0" class="col_heading level0 col0" >A</th>' in result
     ) is columns
     assert ("#T__level0_col0 {\n  attr: val;\n}" in result) is columns
+
+
+@pytest.mark.parametrize("rows", [True, False])
+@pytest.mark.parametrize("cols", [True, False])
+def test_maximums(styler_mi, rows, cols):
+    result = styler_mi.to_html(
+        max_rows=2 if rows else None,
+        max_columns=2 if cols else None,
+    )
+
+    assert ">5</td>" in result  # [[0,1], [4,5]] always visible
+    assert (">8</td>" in result) is not rows  # first trimmed vertical element
+    assert (">2</td>" in result) is not cols  # first trimmed horizontal element
