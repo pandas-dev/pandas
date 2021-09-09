@@ -172,17 +172,17 @@ def test_from_dummies_with_prefix_prefix_sep_dict():
         {
             "col1_a-a": [1, 0, 1],
             "col1_b-b": [0, 1, 0],
-            "col2-a_a": [0, 1, 0],
-            "col2-b_b": [1, 0, 0],
-            "col2-c_c": [0, 0, 1],
+            "col_2-a": [0, 1, 0],
+            "col_2-b": [1, 0, 0],
+            "col_2-c": [0, 0, 1],
         },
     )
-    expected = DataFrame({"col1": ["a-a", "b-b", "a-a"], "col2": ["b_b", "a_a", "c_c"]})
+    expected = DataFrame({"col1": ["a-a", "b-b", "a-a"], "col_2": ["b", "a", "c"]})
     result = from_dummies(
         dummies,
         sep={
             "col1": "_",
-            "col2": "-",
+            "col_2": "-",
         },
     )
     tm.assert_frame_equal(result, expected)

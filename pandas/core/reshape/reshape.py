@@ -1093,7 +1093,10 @@ def from_dummies(
         If `columns` is None then all dummy columns are converted and appended
         to the non-dummy columns.
     sep : str, list of str, or dict of str, default '_'
-        Separator/deliminator used in the column names of the dummy categories.
+        Separator used in the column names of the dummy categories they are
+        character indicating the separation of the categorical names from the prefixes.
+        For example, if your column names are 'prefix_A' and 'prefix_B',
+        you can strip the underscore by specifying sep='_'.
         Pass a list if multiple prefix separators are used in the columns names.
         Will separate the prefix based on the first encountered separator following
         the order of the list. Alternatively, pass a dictionary to map prefix
