@@ -690,7 +690,7 @@ class BaseGrouper:
         for each group
         """
         splitter = self._get_splitter(data, axis=axis)
-        keys = self._get_group_keys()
+        keys = self.group_keys_seq
         for key, group in zip(keys, splitter):
             yield key, group.__finalize__(data, method="groupby")
 
@@ -716,7 +716,8 @@ class BaseGrouper:
         return self.groupings[0].grouping_vector
 
     @final
-    def _get_group_keys(self):
+    @cache_readonly
+    def group_keys_seq(self):
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
@@ -726,10 +727,10 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
-    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
+    def apply(self, f: F, data: FrameOrSeries, axis: int = 0) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
-        group_keys = self._get_group_keys()
+        group_keys = self.group_keys_seq
         result_values = []
 
         # This calls DataSplitter.__iter__
@@ -745,7 +746,7 @@ class BaseGrouper:
                 mutated = True
             result_values.append(res)
 
-        return group_keys, result_values, mutated
+        return result_values, mutated
 
     @cache_readonly
     def indices(self):
