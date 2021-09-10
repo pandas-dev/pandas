@@ -15,6 +15,7 @@ from io import (
 )
 import mmap
 import os
+import tempfile
 from typing import (
     IO,
     Any,
@@ -943,8 +944,15 @@ def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     if "t" in mode or "b" in mode:
         return "b" in mode
 
-    # classes that expect string but have 'b' in mode
-    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    # exceptions
+    text_classes = (
+        # classes that expect string but have 'b' in mode
+        codecs.StreamWriter,
+        codecs.StreamReader,
+        codecs.StreamReaderWriter,
+        # cannot be wrapped in TextIOWrapper GH43439
+        tempfile.SpooledTemporaryFile,
+    )
     if issubclass(type(handle), text_classes):
         return False
 
