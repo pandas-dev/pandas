@@ -3210,6 +3210,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
         return res
 
+    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
     def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None, axis=0):
@@ -3221,6 +3222,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Percentage changes within each group.
         """
+        # TODO: Remove this conditional for SeriesGroupBy when GH#23918 is fixed
         if freq is not None or axis != 0:
             return self.apply(
                 lambda x: x.pct_change(
