@@ -17,6 +17,7 @@ pr:
 
 variables:
   PYTEST_WORKERS: auto
+  PYTEST_TARGET:  pandas
 
 jobs:
 # Mac and Linux use the same template

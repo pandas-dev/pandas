@@ -17,6 +17,7 @@ env:
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
   COVERAGE: true
+  PYTEST_TARGET:  pandas
 
 jobs:
   build:
