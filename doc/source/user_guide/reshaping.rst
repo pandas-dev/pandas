@@ -474,7 +474,15 @@ rows and columns:
 
 .. ipython:: python
 
-   df.pivot_table(index=["A", "B"], columns="C", margins=True, aggfunc=np.std)
+   table = df.pivot_table(index=["A", "B"], columns="C", margins=True, aggfunc=np.std)
+   table
+
+Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFrame
+as having a multi-level index:
+
+.. ipython:: python
+
+    table.stack()
 
 .. _reshaping.crosstabulations:
 

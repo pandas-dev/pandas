@@ -143,7 +143,7 @@ cdef class _NaT(datetime):
                 return True
             warnings.warn(
                 "Comparison of NaT with datetime.date is deprecated in "
-                "order to match the standard library behavior.  "
+                "order to match the standard library behavior. "
                 "In a future version these will be considered non-comparable.",
                 FutureWarning,
                 stacklevel=1,
@@ -409,8 +409,20 @@ class NaTType(_NaT):
     # These are the ones that can get their docstrings from datetime.
 
     # nan methods
-    weekday = _make_nan_func("weekday", datetime.weekday.__doc__)
-    isoweekday = _make_nan_func("isoweekday", datetime.isoweekday.__doc__)
+    weekday = _make_nan_func(
+        "weekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 0 ... Sunday == 6.
+        """,
+    )
+    isoweekday = _make_nan_func(
+        "isoweekday",
+        """
+        Return the day of the week represented by the date.
+        Monday == 1 ... Sunday == 7.
+        """,
+    )
     total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
     month_name = _make_nan_func(
         "month_name",
