@@ -250,3 +250,16 @@ def test_encoding_memory_map(all_parsers, encoding):
         expected.to_csv(file, index=False, encoding=encoding)
         df = parser.read_csv(file, encoding=encoding, memory_map=True)
     tm.assert_frame_equal(df, expected)
+
+
+def test_not_readable(all_parsers):
+    # GH43439
+    parser = all_parsers
+    if parser.engine in ("python", "pyarrow"):
+        pytest.skip("SpooledTemporaryFile does only work with the c-engine")
+    with tempfile.SpooledTemporaryFile() as handle:
+        handle.write(b"abcd")
+        handle.seek(0)
+        df = parser.read_csv(handle)
+    expected = DataFrame([], columns=["abcd"])
+    tm.assert_frame_equal(df, expected)
