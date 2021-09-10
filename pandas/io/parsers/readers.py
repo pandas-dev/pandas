@@ -134,7 +134,7 @@ squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
 
     .. deprecated:: 1.4.0
-        Append ``.squeeze("columns")`` to the call to ``read_csv`` to squeeze
+        Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
         the data.
 prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
