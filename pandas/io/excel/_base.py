@@ -121,6 +121,10 @@ usecols : int, str, list-like, or callable default None
     Returns a subset of the columns according to behavior above.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+
+    .. deprecated:: 1.4.0
+       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
+       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -337,7 +341,7 @@ def read_excel(
     names=None,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
@@ -481,7 +485,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
@@ -1243,7 +1247,7 @@ class ExcelFile:
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         converters=None,
         true_values=None,
         false_values=None,
