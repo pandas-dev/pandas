@@ -369,7 +369,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _wrap_applied_output(
         self,
         data: Series,
-        values: list[Any] | None,
+        values: list[Any],
         not_indexed_same: bool = False,
     ) -> DataFrame | Series:
         """
@@ -379,7 +379,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         data : Series
             Input data for groupby operation.
-        values : Optional[List[Any]]
+        values : List[Any]
             Applied output for each group.
         not_indexed_same : bool, default False
             Whether the applied outputs are not indexed the same as the group axes.
@@ -388,9 +388,7 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         DataFrame or Series
         """
-        keys = self.grouper.group_keys_seq
-
-        if len(keys) == 0:
+        if len(values) == 0:
             # GH #6265
             return self.obj._constructor(
                 [],
@@ -1100,9 +1098,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return res_df
 
     def _wrap_applied_output(self, data, values, not_indexed_same=False):
-        keys = self.grouper.group_keys_seq
 
-        if len(keys) == 0:
+        if len(values) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
