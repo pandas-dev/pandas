@@ -130,6 +130,8 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
 
     ridx = expected_rows.get((method, dropna, has_nan_group))
     expected = df_without_nan_rows.reindex(ridx).reset_index(drop=True)
+    # columns are a 'take' on df.columns, which are object dtype
+    expected.columns = expected.columns.astype(object)
 
     tm.assert_frame_equal(result, expected)
 
