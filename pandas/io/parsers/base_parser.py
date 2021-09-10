@@ -104,13 +104,15 @@ parser_defaults = {
     "chunksize": None,
     "verbose": False,
     "encoding": None,
-    "squeeze": False,
+    "squeeze": None,
     "compression": None,
     "mangle_dupe_cols": True,
     "infer_datetime_format": False,
     "skip_blank_lines": True,
     "encoding_errors": "strict",
     "on_bad_lines": "error",
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
 }
 
 
@@ -341,6 +343,10 @@ class ParserBase:
         # extract the columns
         field_count = len(header[0])
 
+        # check if header lengths are equal
+        if not all(len(header_iter) == field_count for header_iter in header[1:]):
+            raise ParserError("Header rows must have an equal number of columns.")
+
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
@@ -549,7 +555,7 @@ class ParserBase:
                     warnings.warn(
                         (
                             "Both a converter and dtype were specified "
-                            f"for column {c} - only the converter will be used"
+                            f"for column {c} - only the converter will be used."
                         ),
                         ParserWarning,
                         stacklevel=7,
@@ -1090,7 +1096,9 @@ def _process_date_conversion(
                     colspec = orig_names[colspec]
                 if _isindex(colspec):
                     continue
-                data_dict[colspec] = converter(data_dict[colspec])
+                # Pyarrow engine returns Series which we need to convert to
+                # numpy array before converter, its a no-op for other parsers
+                data_dict[colspec] = converter(np.asarray(data_dict[colspec]))
             else:
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names
@@ -1139,7 +1147,7 @@ def _try_convert_dates(parser: Callable, colspec, data_dict, columns):
             colnames.append(c)
 
     new_name = "_".join([str(x) for x in colnames])
-    to_parse = [data_dict[c] for c in colnames if c in data_dict]
+    to_parse = [np.asarray(data_dict[c]) for c in colnames if c in data_dict]
 
     new_col = parser(*to_parse)
     return new_name, new_col, colnames

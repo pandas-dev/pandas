@@ -674,7 +674,8 @@ class TestDataFrameSelectReindex:
         # reindex fails
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            df.reindex(index=list(range(len(df))))
+            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+                df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
 
@@ -684,9 +685,11 @@ class TestDataFrameSelectReindex:
         )
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            df.reindex(columns=["bar"])
+            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+                df.reindex(columns=["bar"])
         with pytest.raises(ValueError, match=msg):
-            df.reindex(columns=["bar", "foo"])
+            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+                df.reindex(columns=["bar", "foo"])
 
     def test_reindex_axis_style(self):
         # https://github.com/pandas-dev/pandas/issues/12392
@@ -958,7 +961,8 @@ class TestDataFrameSelectReindex:
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
         with pytest.raises(ValueError, match=msg):
-            df2.reindex(["a", "b"])
+            with tm.assert_produces_warning(FutureWarning, match="non-unique"):
+                df2.reindex(["a", "b"])
 
         # args NotImplemented ATM
         msg = r"argument {} is not implemented for CategoricalIndex\.reindex"

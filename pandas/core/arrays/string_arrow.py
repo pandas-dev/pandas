@@ -6,17 +6,24 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Sequence,
+    Union,
     cast,
+    overload,
 )
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._typing import (
     Dtype,
     NpDtype,
     PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
 )
 from pandas.compat import (
     pa_version_under1p0,
@@ -76,6 +83,8 @@ if not pa_version_under1p0:
 
 if TYPE_CHECKING:
     from pandas import Series
+
+ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
@@ -260,7 +269,17 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
             )
         )
 
-    def __getitem__(self, item: PositionalIndexer) -> Any:
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> ArrowStringScalarOrNAT:
+        ...
+
+    @overload
+    def __getitem__(self: ArrowStringArray, item: SequenceIndexer) -> ArrowStringArray:
+        ...
+
+    def __getitem__(
+        self: ArrowStringArray, item: PositionalIndexer
+    ) -> ArrowStringArray | ArrowStringScalarOrNAT:
         """Select a subset of self.
 
         Parameters

@@ -69,6 +69,11 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.format import EngFormatter
     from pandas.tseries.offsets import DateOffset
+
+    # numpy compatible types
+    NumpyValueArrayLike = Union[npt._ScalarLike_co, npt.ArrayLike]
+    NumpySorter = Optional[npt._ArrayLikeInt_co]
+
 else:
     npt: Any = None
 
@@ -84,6 +89,7 @@ PythonScalar = Union[str, int, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar]
+
 
 # timestamp and timedelta convertible types
 
@@ -120,10 +126,9 @@ RandomState = Union[
 ]
 
 # dtypes
-NpDtype = Union[str, np.dtype]
-Dtype = Union[
-    "ExtensionDtype", NpDtype, type_t[Union[str, float, int, complex, bool, object]]
-]
+NpDtype = Union[str, np.dtype, type_t[Union[str, float, int, complex, bool, object]]]
+Dtype = Union["ExtensionDtype", NpDtype]
+AstypeArg = Union["ExtensionDtype", "npt.DTypeLike"]
 # DtypeArg specifies all allowable dtypes in a functions its dtype argument
 DtypeArg = Union[Dtype, Dict[Hashable, Dtype]]
 DtypeObj = Union[np.dtype, "ExtensionDtype"]
@@ -201,10 +206,16 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # indexing
 # PositionalIndexer -> valid 1D positional indexer, e.g. can pass
 # to ndarray.__getitem__
+# ScalarIndexer is for a single value as the index
+# SequenceIndexer is for list like or slices (but not tuples)
+# PositionalIndexerTuple is extends the PositionalIndexer for 2D arrays
+# These are used in various __getitem__ overloads
 # TODO: add Ellipsis, see
 # https://github.com/python/typing/issues/684#issuecomment-548203158
 # https://bugs.python.org/issue41810
-PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
-PositionalIndexer2D = Union[
-    PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
-]
+# Using List[int] here rather than Sequence[int] to disallow tuples.
+ScalarIndexer = Union[int, np.integer]
+SequenceIndexer = Union[slice, List[int], np.ndarray]
+PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
+PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
+PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]

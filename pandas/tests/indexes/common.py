@@ -21,20 +21,22 @@ import pandas as pd
 from pandas import (
     CategoricalIndex,
     DatetimeIndex,
-    Float64Index,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
+    NumericIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
     isna,
 )
-from pandas import UInt64Index  # noqa:F401
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
+from pandas.core.api import (  # noqa:F401
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 

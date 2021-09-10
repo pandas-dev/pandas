@@ -24,8 +24,7 @@ from pandas.compat import is_numpy_dev as _is_numpy_dev
 try:
     from pandas._libs import hashtable as _hashtable, lib as _lib, tslib as _tslib
 except ImportError as e:  # pragma: no cover
-    # hack but overkill to use re
-    module = str(e).replace("cannot import name ", "")
+    module = e.name
     raise ImportError(
         f"C extension: {module} not built. If you want to import "
         "pandas from the source directory, you may need to run "
@@ -71,10 +70,8 @@ from pandas.core.api import (
     # indexes
     Index,
     CategoricalIndex,
-    Int64Index,
-    UInt64Index,
     RangeIndex,
-    Float64Index,
+    NumericIndex,
     MultiIndex,
     IntervalIndex,
     TimedeltaIndex,
@@ -186,10 +183,35 @@ del get_versions, v
 
 
 # GH 27101
+__deprecated_num_index_names = ["Float64Index", "Int64Index", "UInt64Index"]
+
+
+def __dir__():
+    # GH43028
+    # Int64Index etc. are deprecated, but we still want them to be available in the dir.
+    # Remove in Pandas 2.0, when we remove Int64Index etc. from the code base.
+    return list(globals().keys()) + __deprecated_num_index_names
+
+
 def __getattr__(name):
     import warnings
 
-    if name == "datetime":
+    if name in __deprecated_num_index_names:
+        warnings.warn(
+            f"pandas.{name} is deprecated "
+            "and will be removed from pandas in a future version. "
+            "Use pandas.NumericIndex with the appropriate dtype instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        from pandas.core.api import Float64Index, Int64Index, UInt64Index
+
+        return {
+            "Float64Index": Float64Index,
+            "Int64Index": Int64Index,
+            "UInt64Index": UInt64Index,
+        }[name]
+    elif name == "datetime":
         warnings.warn(
             "The pandas.datetime class is deprecated "
             "and will be removed from pandas in a future version. "
@@ -207,7 +229,7 @@ def __getattr__(name):
         warnings.warn(
             "The pandas.np module is deprecated "
             "and will be removed from pandas in a future version. "
-            "Import numpy directly instead",
+            "Import numpy directly instead.",
             FutureWarning,
             stacklevel=2,
         )
@@ -218,7 +240,7 @@ def __getattr__(name):
     elif name in {"SparseSeries", "SparseDataFrame"}:
         warnings.warn(
             f"The {name} class is removed from pandas. Accessing it from "
-            "the top-level namespace will also be removed in the next version",
+            "the top-level namespace will also be removed in the next version.",
             FutureWarning,
             stacklevel=2,
         )
