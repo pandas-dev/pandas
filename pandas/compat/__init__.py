@@ -9,7 +9,6 @@ Other items:
 """
 import platform
 import sys
-import warnings
 
 from pandas._typing import F
 from pandas.compat.numpy import (
@@ -116,7 +115,6 @@ def get_lzma_file():
     RuntimeError
         If the `lzma` module was not imported correctly, or didn't exist.
     """
-    if lzma is None:
     try:
         import lzma
     except ImportError:
