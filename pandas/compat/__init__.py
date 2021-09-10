@@ -102,27 +102,7 @@ def is_platform_arm() -> bool:
     return platform.machine() in ("arm64", "aarch64")
 
 
-def import_lzma():
-    """
-    Importing the `lzma` module.
-
-    Warns
-    -----
-    When the `lzma` module is not available.
-    """
-    try:
-        import lzma
-
-        return lzma
-    except ImportError:
-        msg = (
-            "Could not import the lzma module. Your installed Python is incomplete. "
-            "Attempting to use lzma compression will result in a RuntimeError."
-        )
-        warnings.warn(msg)
-
-
-def get_lzma_file(lzma):
+def get_lzma_file():
     """
     Importing the `LZMAFile` class from the `lzma` module.
 
@@ -137,6 +117,9 @@ def get_lzma_file(lzma):
         If the `lzma` module was not imported correctly, or didn't exist.
     """
     if lzma is None:
+    try:
+        import lzma
+    except ImportError:
         raise RuntimeError(
             "lzma module not available. "
             "A Python re-install with the proper dependencies, "

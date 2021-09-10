@@ -15,7 +15,6 @@ from pandas._typing import (
 )
 from pandas.compat import (
     get_lzma_file,
-    import_lzma,
 )
 
 import pandas as pd
@@ -25,8 +24,6 @@ from pandas._testing.contexts import ensure_clean
 from pandas.io.common import urlopen
 
 _RAISE_NETWORK_ERROR_DEFAULT = False
-
-lzma = import_lzma()
 
 # skip tests on exceptions with these messages
 _network_error_messages = (
@@ -387,7 +384,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     elif compression == "bz2":
         compress_method = bz2.BZ2File
     elif compression == "xz":
-        compress_method = get_lzma_file(lzma)
+        compress_method = get_lzma_file()
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
