@@ -43,10 +43,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     StorageOptions,
 )
-from pandas.compat import (
-    get_lzma_file,
-    import_lzma,
-)
+from pandas.compat import get_lzma_file
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import is_file_like

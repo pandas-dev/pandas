@@ -1903,7 +1903,7 @@ def test_compression(compression, version, use_dict, infer):
             with bz2.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
         elif compression == "xz":
-            lzma = pytest.importorskip('lzma')
+            lzma = pytest.importorskip("lzma")
             with lzma.open(path, "rb") as comp:
                 fp = io.BytesIO(comp.read())
         elif compression is None:
