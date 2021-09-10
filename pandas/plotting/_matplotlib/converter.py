@@ -8,7 +8,10 @@ from datetime import (
     tzinfo,
 )
 import functools
-from typing import Any
+from typing import (
+    Any,
+    cast,
+)
 
 from dateutil.relativedelta import relativedelta
 import matplotlib.dates as dates
@@ -28,6 +31,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
+from pandas._typing import F
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -76,7 +80,7 @@ def get_pairs():
     return pairs
 
 
-def register_pandas_matplotlib_converters(func):
+def register_pandas_matplotlib_converters(func: F) -> F:
     """
     Decorator applying pandas_converters.
     """
@@ -86,7 +90,7 @@ def register_pandas_matplotlib_converters(func):
         with pandas_converters():
             return func(*args, **kwargs)
 
-    return wrapper
+    return cast(F, wrapper)
 
 
 @contextlib.contextmanager
