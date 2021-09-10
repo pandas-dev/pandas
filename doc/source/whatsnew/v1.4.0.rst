@@ -426,6 +426,7 @@ Reshaping
 
 Sparse
 ^^^^^^
+- Bug in :meth:`DataFrame.sparse.to_coo` raising ``AttributeError`` when column names are not unique (:issue:`29564`)
 -
 -
 
