@@ -818,7 +818,7 @@ class TestGroupBy:
     def test_groupby_apply_timegrouper_with_nat_dict_returns(
         self, groupby_with_truncated_bingrouper
     ):
-        # case where gb.grouper.result_index and gb.grouper.group_keys_seq
+        # GH#43500 case where gb.grouper.result_index and gb.grouper.group_keys_seq
         #  have different lengths that goes through the `isinstance(values[0], dict)`
         #  path
         gb = groupby_with_truncated_bingrouper
@@ -833,8 +833,8 @@ class TestGroupBy:
     def test_groupby_apply_timegrouper_with_nat_scalar_returns(
         self, groupby_with_truncated_bingrouper
     ):
-        # Previously raised ValueError bc used index with incorrect length
-        #  in wrap_applied_result
+        # GH#43500 Previously raised ValueError bc used index with incorrect
+        #  length in wrap_applied_result
         gb = groupby_with_truncated_bingrouper
 
         res = gb["Quantity"].apply(lambda x: x.iloc[0] if len(x) else np.nan)
