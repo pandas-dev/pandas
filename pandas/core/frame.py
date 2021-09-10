@@ -2430,6 +2430,8 @@ class DataFrame(NDFrame, OpsMixin):
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2511,6 +2513,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.2.0
 
+        value_labels : dict of dicts
+            Dictionary containing columns as keys and dictionaries of column value
+            to labels as values. Labels for a single variable must be 32,000
+            characters or smaller.
+
+            .. versionadded:: 1.4.0
+
         Raises
         ------
         NotImplementedError
@@ -2572,6 +2581,7 @@ class DataFrame(NDFrame, OpsMixin):
             variable_labels=variable_labels,
             compression=compression,
             storage_options=storage_options,
+            value_labels=value_labels,
             **kwargs,
         )
         writer.write_file()
