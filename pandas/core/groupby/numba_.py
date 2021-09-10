@@ -59,9 +59,7 @@ def generate_numba_agg_func(
     kwargs: dict[str, Any],
     func: Callable[..., Scalar],
     engine_kwargs: dict[str, bool] | None,
-) -> Callable[
-    [np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int, Any], np.ndarray
-]:
+) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
     """
     Generate a numba jitted agg function specified by values from engine_kwargs.
 
@@ -100,10 +98,13 @@ def generate_numba_agg_func(
         index: np.ndarray,
         begin: np.ndarray,
         end: np.ndarray,
-        num_groups: int,
         num_columns: int,
         *args: Any,
     ) -> np.ndarray:
+
+        assert len(begin) == len(end)
+        num_groups = len(begin)
+
         result = np.empty((num_groups, num_columns))
         for i in numba.prange(num_groups):
             group_index = index[begin[i] : end[i]]
@@ -119,9 +120,7 @@ def generate_numba_transform_func(
     kwargs: dict[str, Any],
     func: Callable[..., np.ndarray],
     engine_kwargs: dict[str, bool] | None,
-) -> Callable[
-    [np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, int, Any], np.ndarray
-]:
+) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
     """
     Generate a numba jitted transform function specified by values from engine_kwargs.
 
@@ -160,10 +159,13 @@ def generate_numba_transform_func(
         index: np.ndarray,
         begin: np.ndarray,
         end: np.ndarray,
-        num_groups: int,
         num_columns: int,
         *args: Any,
     ) -> np.ndarray:
+
+        assert len(begin) == len(end)
+        num_groups = len(begin)
+
         result = np.empty((len(values), num_columns))
         for i in numba.prange(num_groups):
             group_index = index[begin[i] : end[i]]
