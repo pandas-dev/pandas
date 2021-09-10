@@ -1111,8 +1111,8 @@ class TextFileReader(abc.Iterator):
         result["na_fvalues"] = na_fvalues
         result["skiprows"] = skiprows
         # Default for squeeze is none since we need to check
-        # if user sets it, we set to False since behavior is
-        # equivlent
+        # if user sets it. We then set to False to preserve
+        # previous behavior.
         result["squeeze"] = False if options["squeeze"] is None else options["squeeze"]
 
         return result, engine

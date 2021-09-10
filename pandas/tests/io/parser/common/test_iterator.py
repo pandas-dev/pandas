@@ -8,7 +8,6 @@ import pytest
 
 from pandas import (
     DataFrame,
-    Series,
     concat,
 )
 import pandas._testing as tm
@@ -105,6 +104,6 @@ def test_iteration_open_handle(all_parsers):
                 if "CCC" in line:
                     break
 
-            result = parser.read_csv(f, **kwargs).squeeze("columns")
-            expected = Series(["DDD", "EEE", "FFF", "GGG"], name=0)
-            tm.assert_series_equal(result, expected)
+            result = parser.read_csv(f, **kwargs)
+            expected = DataFrame({0: ["DDD", "EEE", "FFF", "GGG"]})
+            tm.assert_frame_equal(result, expected)
