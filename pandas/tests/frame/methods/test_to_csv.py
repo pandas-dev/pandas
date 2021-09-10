@@ -1039,8 +1039,7 @@ class TestDataFrameToCSV:
                 compression=compression,
                 encoding=encoding,
                 index_col=0,
-                squeeze=True,
-            )
+            ).squeeze("columns")
             tm.assert_frame_equal(df, result)
 
             # explicitly make sure file is compressed

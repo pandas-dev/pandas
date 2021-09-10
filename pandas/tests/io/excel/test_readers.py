@@ -1194,18 +1194,25 @@ class TestReaders:
         # GH 12157
         f = "test_squeeze" + read_ext
 
-        actual = pd.read_excel(f, sheet_name="two_columns", index_col=0, squeeze=True)
-        expected = Series([2, 3, 4], [4, 5, 6], name="b")
-        expected.index.name = "a"
-        tm.assert_series_equal(actual, expected)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match="The squeeze argument has been deprecated "
+            "and will be removed in a future version.\n\n",
+        ):
+            actual = pd.read_excel(
+                f, sheet_name="two_columns", index_col=0, squeeze=True
+            )
+            expected = Series([2, 3, 4], [4, 5, 6], name="b")
+            expected.index.name = "a"
+            tm.assert_series_equal(actual, expected)
 
-        actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
-        expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
-        tm.assert_frame_equal(actual, expected)
+            actual = pd.read_excel(f, sheet_name="two_columns", squeeze=True)
+            expected = DataFrame({"a": [4, 5, 6], "b": [2, 3, 4]})
+            tm.assert_frame_equal(actual, expected)
 
-        actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
-        expected = Series([1, 2, 3], name="a")
-        tm.assert_series_equal(actual, expected)
+            actual = pd.read_excel(f, sheet_name="one_column", squeeze=True)
+            expected = Series([1, 2, 3], name="a")
+            tm.assert_series_equal(actual, expected)
 
     def test_deprecated_kwargs(self, read_ext):
         with tm.assert_produces_warning(FutureWarning, raise_on_extra_warnings=False):
