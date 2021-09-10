@@ -583,7 +583,7 @@ class BaseWindowGroupby(BaseWindow):
 
     _grouper: BaseGrouper
     _as_index: bool
-    _attributes = ["_grouper"]
+    _attributes: list[str] = ["_grouper"]
 
     def __init__(
         self,
@@ -1500,7 +1500,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
 class Rolling(RollingAndExpandingMixin):
 
-    _attributes = [
+    _attributes: list[str] = [
         "window",
         "min_periods",
         "center",

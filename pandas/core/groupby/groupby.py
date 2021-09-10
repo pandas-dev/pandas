@@ -50,6 +50,7 @@ from pandas._typing import (
     RandomState,
     Scalar,
     T,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -59,6 +60,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -999,7 +1001,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     # Dispatch/Wrapping
 
     @final
-    def _concat_objects(self, keys, values, not_indexed_same: bool = False):
+    def _concat_objects(self, values, not_indexed_same: bool = False):
         from pandas.core.reshape.concat import concat
 
         def reset_identity(values):
@@ -1036,7 +1038,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.as_index:
 
                 # possible MI return case
-                group_keys = keys
+                group_keys = self.grouper.group_keys_seq
                 group_levels = self.grouper.levels
                 group_names = self.grouper.names
 
@@ -1103,7 +1105,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _wrap_aggregated_output(
-        self, output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike]
+        self,
+        output: Series | DataFrame | Mapping[base.OutputKey, ArrayLike],
+        qs: npt.NDArray[np.float64] | None = None,
     ):
         """
         Wraps the output of GroupBy aggregations into the expected result.
@@ -1132,8 +1136,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             #   enforced in __init__
             self._insert_inaxis_grouper_inplace(result)
             result = result._consolidate()
+            index = Index(range(self.grouper.ngroups))
+
         else:
-            result.index = self.grouper.result_index
+            index = self.grouper.result_index
+
+        if qs is not None:
+            # We get here with len(qs) != 1 and not self.as_index
+            #  in test_pass_args_kwargs
+            index = _insert_quantile_level(index, qs)
+
+        result.index = index
 
         if self.axis == 1:
             # Only relevant for DataFrameGroupBy, no-op for SeriesGroupBy
@@ -1143,7 +1156,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 result.index = self.obj.index.copy()
                 # TODO: Do this more systematically
 
-        return self._reindex_output(result)
+        return self._reindex_output(result, qs=qs)
 
     @final
     def _wrap_transformed_output(
@@ -1162,7 +1175,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Series for SeriesGroupBy, DataFrame for DataFrameGroupBy
         """
-        result = self._indexed_output_to_ndframe(output)
+        if isinstance(output, (Series, DataFrame)):
+            result = output
+        else:
+            result = self._indexed_output_to_ndframe(output)
 
         if self.axis == 1:
             # Only relevant for DataFrameGroupBy
@@ -1172,7 +1188,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         result.index = self.obj.index
         return result
 
-    def _wrap_applied_output(self, data, keys, values, not_indexed_same: bool = False):
+    def _wrap_applied_output(self, data, values, not_indexed_same: bool = False):
         raise AbstractMethodError(self)
 
     def _resolve_numeric_only(self, numeric_only: bool | lib.NoDefault) -> bool:
@@ -1196,6 +1212,14 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.obj.ndim == 2:
                 # i.e. DataFrameGroupBy
                 numeric_only = True
+                # GH#42395 GH#43108 GH#43154
+                # Regression from 1.2.5 to 1.3 caused object columns to be dropped
+                obj = self._obj_with_exclusions
+                check = obj._get_numeric_data()
+                if len(obj.columns) and not len(check.columns) and not obj.empty:
+                    numeric_only = False
+                    # TODO: v1.4+ Add FutureWarning
+
             else:
                 numeric_only = False
 
@@ -1208,7 +1232,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # The index to use for the result of Groupby Aggregations.
         # This _may_ be redundant with self.grouper.result_index, but that
         #  has not been conclusively proven yet.
-        keys = self.grouper._get_group_keys()
+        keys = self.grouper.group_keys_seq
         if self.grouper.nkeys > 1:
             index = MultiIndex.from_tuples(keys, names=self.grouper.names)
         else:
@@ -1249,7 +1273,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        group_keys = self.grouper._get_group_keys()
 
         numba_transform_func = numba_.generate_numba_transform_func(
             kwargs, func, engine_kwargs
@@ -1259,7 +1282,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_index,
             starts,
             ends,
-            len(group_keys),
             len(data.columns),
             *args,
         )
@@ -1282,7 +1304,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         data and indices into a Numba jitted function.
         """
         starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
-        index = self._group_keys_index
 
         numba_agg_func = numba_.generate_numba_agg_func(kwargs, func, engine_kwargs)
         result = numba_agg_func(
@@ -1290,7 +1311,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_index,
             starts,
             ends,
-            len(index),
             len(data.columns),
             *args,
         )
@@ -1299,7 +1319,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = numba_agg_func
 
-        return result, index
+        return result
 
     # -----------------------------------------------------------------
     # apply/agg/transform
@@ -1386,13 +1406,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             data after applying f
         """
-        keys, values, mutated = self.grouper.apply(f, data, self.axis)
+        values, mutated = self.grouper.apply(f, data, self.axis)
 
         if not_indexed_same is None:
             not_indexed_same = mutated or self.mutated
 
         return self._wrap_applied_output(
-            data, keys, values, not_indexed_same=not_indexed_same
+            data, values, not_indexed_same=not_indexed_same
         )
 
     @final
@@ -2238,16 +2258,54 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if limit is None:
             limit = -1
 
-        return self._get_cythonized_result(
+        ids, _, _ = self.grouper.group_info
+
+        col_func = partial(
             libgroupby.group_fillna_indexer,
-            numeric_only=False,
-            needs_mask=True,
-            cython_dtype=np.dtype(np.int64),
-            result_is_index=True,
+            labels=ids,
             direction=direction,
             limit=limit,
             dropna=self.dropna,
         )
+
+        def blk_func(values: ArrayLike) -> ArrayLike:
+            mask = isna(values)
+            if values.ndim == 1:
+                indexer = np.empty(values.shape, dtype=np.intp)
+                col_func(out=indexer, mask=mask)
+                return algorithms.take_nd(values, indexer)
+
+            else:
+                # We broadcast algorithms.take_nd analogous to
+                #  np.take_along_axis
+
+                # Note: we only get here with backfill/pad,
+                #  so if we have a dtype that cannot hold NAs,
+                #  then there will be no -1s in indexer, so we can use
+                #  the original dtype (no need to ensure_dtype_can_hold_na)
+                if isinstance(values, np.ndarray):
+                    out = np.empty(values.shape, dtype=values.dtype)
+                else:
+                    out = type(values)._empty(values.shape, dtype=values.dtype)
+
+                for i in range(len(values)):
+                    # call group_fillna_indexer column-wise
+                    indexer = np.empty(values.shape[1], dtype=np.intp)
+                    col_func(out=indexer, mask=mask[i])
+                    out[i, :] = algorithms.take_nd(values[i], indexer)
+                return out
+
+        obj = self._obj_with_exclusions
+        if self.axis == 1:
+            obj = obj.T
+        mgr = obj._mgr
+        res_mgr = mgr.apply(blk_func)
+
+        new_obj = obj._constructor(res_mgr)
+        if isinstance(new_obj, Series):
+            new_obj.name = obj.name
+
+        return self._wrap_transformed_output(new_obj)
 
     @final
     @Substitution(name="groupby")
@@ -2493,7 +2551,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         a    2.0
         b    3.0
         """
-        from pandas import concat
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, np.dtype | None]:
             if is_object_dtype(vals):
@@ -2524,7 +2581,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             return out, inference
 
-        def post_processor(vals: np.ndarray, inference: type | None) -> np.ndarray:
+        def post_processor(vals: np.ndarray, inference: np.dtype | None) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (
@@ -2536,63 +2593,71 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return vals
 
         if is_scalar(q):
-            return self._get_cythonized_result(
-                libgroupby.group_quantile,
-                aggregate=True,
-                numeric_only=False,
-                needs_values=True,
-                needs_mask=True,
-                cython_dtype=np.dtype(np.float64),
-                pre_processing=pre_processor,
-                post_processing=post_processor,
-                q=q,
-                interpolation=interpolation,
-            )
-        else:
-            results = [
-                self._get_cythonized_result(
-                    libgroupby.group_quantile,
-                    aggregate=True,
-                    needs_values=True,
-                    needs_mask=True,
-                    cython_dtype=np.dtype(np.float64),
-                    pre_processing=pre_processor,
-                    post_processing=post_processor,
-                    q=qi,
-                    interpolation=interpolation,
-                )
-                for qi in q
-            ]
-            result = concat(results, axis=self.axis, keys=q)
-            # fix levels to place quantiles on the inside
-            # TODO(GH-10710): Ideally, we could write this as
-            #  >>> result.stack(0).loc[pd.IndexSlice[:, ..., q], :]
-            #  but this hits https://github.com/pandas-dev/pandas/issues/10710
-            #  which doesn't reorder the list-like `q` on the inner level.
-            order = list(range(1, result.axes[self.axis].nlevels)) + [0]
+            res = self.quantile([q], interpolation=interpolation)
+            nlevels = res.index.nlevels
+            return res.droplevel(nlevels - 1, axis=0)
 
-            # temporarily saves the index names
-            index_names = np.array(result.axes[self.axis].names)
+        qs = np.array(q, dtype=np.float64)
+        ids, _, ngroups = self.grouper.group_info
+        nqs = len(qs)
 
-            # set index names to positions to avoid confusion
-            result.axes[self.axis].names = np.arange(len(index_names))
+        func = partial(
+            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+        )
 
-            # place quantiles on the inside
-            if isinstance(result, Series):
-                result = result.reorder_levels(order)
+        def blk_func(values: ArrayLike) -> ArrayLike:
+            mask = isna(values)
+            vals, inference = pre_processor(values)
+
+            ncols = 1
+            if vals.ndim == 2:
+                ncols = vals.shape[0]
+
+            out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
+
+            if vals.ndim == 1:
+                func(out[0], values=vals, mask=mask)
             else:
-                result = result.reorder_levels(order, axis=self.axis)
+                for i in range(ncols):
+                    func(out[i], values=vals[i], mask=mask[i])
 
-            # restore the index names in order
-            result.axes[self.axis].names = index_names[order]
+            if vals.ndim == 1:
+                out = out[0].ravel("K")
+            else:
+                out = out.reshape(ncols, ngroups * nqs)
+            return post_processor(out, inference)
 
-            # reorder rows to keep things sorted
-            indices = (
-                np.arange(result.shape[self.axis])
-                .reshape([len(q), self.ngroups])
-                .T.flatten()
+        obj = self._obj_with_exclusions
+        is_ser = obj.ndim == 1
+        if is_ser:
+            # i.e. SeriesGroupBy
+            mgr = obj.to_frame()._mgr
+        else:
+            mgr = self._get_data_to_aggregate()
+
+        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
+        if len(res_mgr.items) != len(mgr.items):
+            warnings.warn(
+                "Dropping invalid columns in "
+                f"{type(self).__name__}.quantile is deprecated. "
+                "In a future version, a TypeError will be raised. "
+                "Before calling .quantile, select only columns which "
+                "should be valid for the function.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
-            return result.take(indices, axis=self.axis)
+            if len(res_mgr.items) == 0:
+                # re-call grouped_reduce to get the desired exception message
+                mgr.grouped_reduce(blk_func, ignore_failures=False)
+
+        if is_ser:
+            res = obj._constructor_expanddim(res_mgr)
+            res = res[res.columns[0]]  # aka res.squeeze()
+            res.name = obj.name
+        else:
+            res = obj._constructor(res_mgr)
+
+        return self._wrap_aggregated_output(res, qs=qs)
 
     @final
     @Substitution(name="groupby")
@@ -2900,7 +2965,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         min_count: int | None = None,
         needs_mask: bool = False,
         needs_ngroups: bool = False,
-        result_is_index: bool = False,
         pre_processing=None,
         post_processing=None,
         fill_value=None,
@@ -2937,9 +3001,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         needs_nullable : bool, default False
             Whether a bool specifying if the input is nullable is part
             of the Cython call signature
-        result_is_index : bool, default False
-            Whether the result of the Cython operation is an index of
-            values to be retrieved, instead of the actual values themselves
         pre_processing : function, default None
             Function to be applied to `values` prior to passing to Cython.
             Function should return a tuple where the first element is the
@@ -2965,8 +3026,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         numeric_only = self._resolve_numeric_only(numeric_only)
 
-        if result_is_index and aggregate:
-            raise ValueError("'result_is_index' and 'aggregate' cannot both be True!")
         if post_processing and not callable(post_processing):
             raise ValueError("'post_processing' must be a callable!")
         if pre_processing:
@@ -3007,6 +3066,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     result = result.reshape((result_sz, ncols))
                 else:
                     result = result.reshape(-1, 1)
+
             func = partial(base_func, out=result)
 
             inferences = None
@@ -3037,14 +3097,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             func(**kwargs)  # Call func to modify indexer values in place
 
-            if result_is_index:
-                result = algorithms.take_nd(values, result, fill_value=fill_value)
-
             if real_2d and values.ndim == 1:
                 assert result.shape[1] == 1, result.shape
-                # error: No overload variant of "__getitem__" of "ExtensionArray"
-                # matches argument type "Tuple[slice, int]"
-                result = result[:, 0]  # type: ignore[call-overload]
+                result = result[:, 0]
                 if needs_mask:
                     mask = mask[:, 0]
 
@@ -3098,7 +3153,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     f"Before calling .{howstr}, select only columns which "
                     "should be valid for the function.",
                     FutureWarning,
-                    stacklevel=3,
+                    stacklevel=find_stack_level(),
                 )
                 continue
 
@@ -3268,7 +3323,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
     @final
     def _reindex_output(
-        self, output: OutputFrameOrSeries, fill_value: Scalar = np.NaN
+        self,
+        output: OutputFrameOrSeries,
+        fill_value: Scalar = np.NaN,
+        qs: npt.NDArray[np.float64] | None = None,
     ) -> OutputFrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
@@ -3287,6 +3345,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Object resulting from grouping and applying an operation.
         fill_value : scalar, default np.NaN
             Value to use for unobserved categories if self.observed is False.
+        qs : np.ndarray[float64] or None, default None
+            quantile values, only relevant for quantile.
 
         Returns
         -------
@@ -3310,9 +3370,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return output
 
         levels_list = [ping.group_index for ping in groupings]
-        index, _ = MultiIndex.from_product(
-            levels_list, names=self.grouper.names
-        ).sortlevel()
+        names = self.grouper.names
+        if qs is not None:
+            levels_list.append(qs)
+            names = names + [None]
+        index, _ = MultiIndex.from_product(levels_list, names=names).sortlevel()
 
         if self.as_index:
             d = {
@@ -3527,3 +3589,31 @@ def get_groupby(
         mutated=mutated,
         dropna=dropna,
     )
+
+
+def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiIndex:
+    """
+    Insert the sequence 'qs' of quantiles as the inner-most level of a MultiIndex.
+
+    The quantile level in the MultiIndex is a repeated copy of 'qs'.
+
+    Parameters
+    ----------
+    idx : Index
+    qs : np.ndarray[float64]
+
+    Returns
+    -------
+    MultiIndex
+    """
+    nqs = len(qs)
+
+    if idx._is_multi:
+        idx = cast(MultiIndex, idx)
+        lev_codes, lev = Index(qs).factorize()
+        levels = list(idx.levels) + [lev]
+        codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
+        mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
+    else:
+        mi = MultiIndex.from_product([idx, qs])
+    return mi
