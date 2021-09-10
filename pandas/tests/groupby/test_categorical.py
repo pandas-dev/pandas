@@ -1183,18 +1183,14 @@ def df_cat(df):
     return df_cat
 
 
-@pytest.mark.parametrize(
-    "operation, kwargs", [("agg", {"dtype": "category"}), ("apply", {})]
-)
-def test_seriesgroupby_observed_true(df_cat, operation, kwargs):
+@pytest.mark.parametrize("operation", ["agg", "apply"])
+def test_seriesgroupby_observed_true(df_cat, operation):
     # GH 24880
-    index = MultiIndex.from_frame(
-        DataFrame(
-            {"A": ["foo", "foo", "bar", "bar"], "B": ["one", "two", "one", "three"]},
-            **kwargs,
-        )
-    )
+    lev_a = Index(["foo", "foo", "bar", "bar"], dtype=df_cat["A"].dtype, name="A")
+    lev_b = Index(["one", "two", "one", "three"], dtype=df_cat["B"].dtype, name="B")
+    index = MultiIndex.from_arrays([lev_a, lev_b])
     expected = Series(data=[1, 3, 2, 4], index=index, name="C")
+
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
     result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
@@ -1225,18 +1221,16 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
     [
         (
             True,
-            MultiIndex.from_tuples(
+            MultiIndex.from_arrays(
                 [
-                    ("foo", "one", "min"),
-                    ("foo", "one", "max"),
-                    ("foo", "two", "min"),
-                    ("foo", "two", "max"),
-                    ("bar", "one", "min"),
-                    ("bar", "one", "max"),
-                    ("bar", "three", "min"),
-                    ("bar", "three", "max"),
-                ],
-                names=["A", "B", None],
+                    Index(["foo"] * 4 + ["bar"] * 4, dtype="category", name="A"),
+                    Index(
+                        ["one", "one", "two", "two", "one", "one", "three", "three"],
+                        dtype="category",
+                        name="B",
+                    ),
+                    Index(["min", "max"] * 4),
+                ]
             ),
             [1, 1, 3, 3, 2, 2, 4, 4],
         ),

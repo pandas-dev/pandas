@@ -23,6 +23,41 @@ from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
 
 
+@pytest.fixture
+def groupby_with_truncated_bingrouper():
+    """
+    GroupBy object such that gb.grouper is a BinGrouper and
+    len(gb.grouper.result_index) < len(gb.grouper.group_keys_seq)
+
+    Aggregations on this groupby should have
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+
+    As either the index or an index level.
+    """
+    df = DataFrame(
+        {
+            "Quantity": [18, 3, 5, 1, 9, 3],
+            "Date": [
+                Timestamp(2013, 9, 1, 13, 0),
+                Timestamp(2013, 9, 1, 13, 5),
+                Timestamp(2013, 10, 1, 20, 0),
+                Timestamp(2013, 10, 3, 10, 0),
+                pd.NaT,
+                Timestamp(2013, 9, 2, 14, 0),
+            ],
+        }
+    )
+
+    tdg = Grouper(key="Date", freq="5D")
+    gb = df.groupby(tdg)
+
+    # check we're testing the case we're interested in
+    assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
+
+    return gb
+
+
 class TestGroupBy:
     def test_groupby_with_timegrouper(self):
         # GH 4161
@@ -779,3 +814,36 @@ class TestGroupBy:
             range(0, periods), index=Index(range(1, periods + 1), name=index.name)
         )
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_apply_timegrouper_with_nat_dict_returns(
+        self, groupby_with_truncated_bingrouper
+    ):
+        # GH#43500 case where gb.grouper.result_index and gb.grouper.group_keys_seq
+        #  have different lengths that goes through the `isinstance(values[0], dict)`
+        #  path
+        gb = groupby_with_truncated_bingrouper
+
+        res = gb["Quantity"].apply(lambda x: {"foo": len(x)})
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+        mi = MultiIndex.from_arrays([dti, ["foo"] * len(dti)])
+        expected = Series([3, 0, 0, 0, 0, 0, 2], index=mi, name="Quantity")
+        tm.assert_series_equal(res, expected)
+
+    def test_groupby_apply_timegrouper_with_nat_scalar_returns(
+        self, groupby_with_truncated_bingrouper
+    ):
+        # GH#43500 Previously raised ValueError bc used index with incorrect
+        #  length in wrap_applied_result
+        gb = groupby_with_truncated_bingrouper
+
+        res = gb["Quantity"].apply(lambda x: x.iloc[0] if len(x) else np.nan)
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+        expected = Series(
+            [18, np.nan, np.nan, np.nan, np.nan, np.nan, 5],
+            index=dti._with_freq(None),
+            name="Quantity",
+        )
+
+        tm.assert_series_equal(res, expected)
