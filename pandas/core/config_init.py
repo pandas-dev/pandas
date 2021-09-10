@@ -10,6 +10,7 @@ module is imported, register them here rather than in the module.
 
 """
 import os
+from typing import Callable
 import warnings
 
 import pandas._config.config as cf
@@ -768,6 +769,18 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_max_rows = """
+: int, optional
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_columns = """
+: int, optional
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
 styler_precision = """
 : int
     The precision for floats and complex numbers.
@@ -846,6 +859,20 @@ with cf.config_prefix("styler"):
         validator=is_nonnegative_int,
     )
 
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_columns",
+        None,
+        styler_max_columns,
+        validator=is_nonnegative_int,
+    )
+
     cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
 
     cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
@@ -879,7 +906,7 @@ with cf.config_prefix("styler"):
         "format.formatter",
         None,
         styler_formatter,
-        validator=is_instance_factory([type(None), dict, callable, str]),
+        validator=is_instance_factory([type(None), dict, Callable, str]),
     )
 
     cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
@@ -888,14 +915,14 @@ with cf.config_prefix("styler"):
         "latex.multirow_align",
         "c",
         styler_multirow_align,
-        validator=is_one_of_factory(["c", "t", "b"]),
+        validator=is_one_of_factory(["c", "t", "b", "naive"]),
     )
 
     cf.register_option(
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l"]),
+        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
     )
 
     cf.register_option(

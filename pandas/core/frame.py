@@ -469,7 +469,8 @@ class DataFrame(NDFrame, OpsMixin):
     ----------
     data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, dataclass or list-like objects. If
-        data is a dict, column order follows insertion-order.
+        data is a dict, column order follows insertion-order. If a dict contains Series
+        which have an index defined, it is aligned by its index.
 
         .. versionchanged:: 0.25.0
            If data is a list of dicts, column order follows insertion-order.
@@ -523,6 +524,16 @@ class DataFrame(NDFrame, OpsMixin):
     col1    int8
     col2    int8
     dtype: object
+
+    Constructing DataFrame from a dictionary including Series:
+
+    >>> d = {'col1': [0, 1, 2, 3], 'col2': pd.Series([2, 3], index=[2, 3])}
+    >>> pd.DataFrame(data=d, index=[0, 1, 2, 3])
+       col1  col2
+    0     0   NaN
+    1     1   NaN
+    2     2   2.0
+    3     3   3.0
 
     Constructing DataFrame from numpy ndarray:
 
@@ -2382,6 +2393,8 @@ class DataFrame(NDFrame, OpsMixin):
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ) -> None:
         """
         Export DataFrame object to Stata dta format.
@@ -2463,6 +2476,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 1.2.0
 
+        value_labels : dict of dicts
+            Dictionary containing columns as keys and dictionaries of column value
+            to labels as values. Labels for a single variable must be 32,000
+            characters or smaller.
+
+            .. versionadded:: 1.4.0
+
         Raises
         ------
         NotImplementedError
@@ -2524,6 +2544,7 @@ class DataFrame(NDFrame, OpsMixin):
             variable_labels=variable_labels,
             compression=compression,
             storage_options=storage_options,
+            value_labels=value_labels,
             **kwargs,
         )
         writer.write_file()
@@ -3462,6 +3483,9 @@ class DataFrame(NDFrame, OpsMixin):
                 indexer = lib.maybe_indices_to_slice(
                     indexer.astype(np.intp, copy=False), len(self)
                 )
+                if isinstance(indexer, np.ndarray):
+                    # GH#43223 If we can not convert, use take
+                    return self.take(indexer, axis=0)
             # either we have a slice or we have a string that can be converted
             #  to a slice for partial-string date indexing
             return self._slice(indexer, axis=0)
@@ -9390,7 +9414,8 @@ NaN 12.3   33.0
                 regardless of the callable's behavior.
         min_periods : int, optional
             Minimum number of observations required per pair of columns
-            to have a valid result.
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
 
         Returns
         -------
@@ -9424,9 +9449,7 @@ NaN 12.3   33.0
             correl = libalgos.nancorr(mat, minp=min_periods)
         elif method == "spearman":
             correl = libalgos.nancorr_spearman(mat, minp=min_periods)
-        elif method == "kendall":
-            correl = libalgos.nancorr_kendall(mat, minp=min_periods)
-        elif callable(method):
+        elif method == "kendall" or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = mat.T
