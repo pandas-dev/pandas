@@ -24,8 +24,13 @@ Fixed regressions
 - Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
 - Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``ValueError`` when setting array as cell value (:issue:`43422`)
 - Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)
+- Fixed regression in :meth:`DataFrame.__getitem__` raising error for slice of :class:`DatetimeIndex` when index is non monotonic (:issue:`43223`)
 - Fixed regression in :meth:`.Resampler.aggregate` when used after column selection would raise if ``func`` is a list of aggregation functions (:issue:`42905`)
 - Fixed regression in :meth:`DataFrame.corr` where Kendall correlation would produce incorrect results for columns with repeated values (:issue:`43401`)
+- Fixed regression in :meth:`DataFrame.groupby` where aggregation on columns with object types dropped results on those columns (:issue:`42395`, :issue:`43108`)
+- Fixed regression in :meth:`Series.fillna` raising ``TypeError`` when filling ``float`` ``Series`` with list-like fill value having a dtype which couldn't cast lostlessly (like ``float32`` filled with ``float64``) (:issue:`43424`)
+- Fixed regression in :func:`read_csv` throwing an ``AttributeError`` when the file handle is an ``tempfile.SpooledTemporaryFile`` object (:issue:`43439`)
+-
 
 .. ---------------------------------------------------------------------------
 

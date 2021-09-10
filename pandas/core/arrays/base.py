@@ -30,6 +30,8 @@ from pandas._typing import (
     Dtype,
     FillnaOptions,
     PositionalIndexer,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
     npt,
 )
@@ -298,8 +300,17 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> Any:
+        ...
 
-    def __getitem__(self, item: PositionalIndexer) -> ExtensionArray | Any:
+    @overload
+    def __getitem__(self: ExtensionArrayT, item: SequenceIndexer) -> ExtensionArrayT:
+        ...
+
+    def __getitem__(
+        self: ExtensionArrayT, item: PositionalIndexer
+    ) -> ExtensionArrayT | Any:
         """
         Select a subset of self.
 
@@ -312,6 +323,8 @@ class ExtensionArray:
               integers or None
 
             * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
+
+            * list[int]:  A list of int
 
         Returns
         -------
@@ -761,7 +774,7 @@ class ExtensionArray:
             new_values = self.copy()
         return new_values
 
-    def dropna(self):
+    def dropna(self: ExtensionArrayT) -> ExtensionArrayT:
         """
         Return ExtensionArray without NA values.
 
