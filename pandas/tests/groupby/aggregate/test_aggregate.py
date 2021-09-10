@@ -1282,10 +1282,6 @@ def test_groupby_agg_precision(dtype):
     df = DataFrame(
         {"key1": ["a"], "key2": ["b"], "key3": [1583715738627261039]}
     ).astype({"key3": dtype})
-    df1 = df.groupby(["key1"]).agg(lambda x: x)
-    df2 = df.groupby(["key1", "key2"]).agg(lambda x: x)
-    expected = df.iloc[0]["key3"]
-    result1 = df1.iloc[0]["key3"]
-    result2 = df2.iloc[0]["key3"]
-    assert result1 == expected
-    assert result2 == expected
+    result = df.groupby(["key1", "key2"]).agg(lambda x: x).reset_index()[["key3"]]
+    expected = df.groupby(["key1"]).agg(lambda x: x).reset_index()[["key3"]]
+    tm.assert_frame_equal(result, expected)
