@@ -91,6 +91,20 @@ class ToCoo:
         self.ss_two_lvl.sparse.to_coo(sort_labels=sort_labels)
 
 
+class ToCooFrame:
+    def setup(self):
+        N = 10000
+        k = 10
+        arr = np.full((N, k), np.nan)
+        arr[0, 0] = 3.0
+        arr[12, 7] = -1.0
+        arr[0, 9] = 11.2
+        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float"))
+
+    def time_to_coo(self):
+        self.df.sparse.to_coo()
+
+
 class Arithmetic:
 
     params = ([0.1, 0.01], [0, np.nan])
