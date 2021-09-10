@@ -401,7 +401,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(values[0], dict):
             # GH #823 #24880
-            index = self._group_keys_index
+            index = self.grouper.result_index
             res_df = self.obj._constructor_expanddim(values, index=index)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
@@ -414,7 +414,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
-                data=values, index=self._group_keys_index, name=self.obj.name
+                data=values, index=self.grouper.result_index, name=self.obj.name
             )
             return self._reindex_output(result)
 
