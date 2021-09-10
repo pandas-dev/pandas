@@ -388,9 +388,7 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         DataFrame or Series
         """
-        keys = self.grouper.group_keys_seq
-
-        if len(keys) == 0:
+        if len(values) == 0:
             # GH #6265
             return self.obj._constructor(
                 [],
@@ -1100,9 +1098,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return res_df
 
     def _wrap_applied_output(self, data, values, not_indexed_same=False):
-        keys = self.grouper.group_keys_seq
 
-        if len(keys) == 0:
+        if len(values) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
