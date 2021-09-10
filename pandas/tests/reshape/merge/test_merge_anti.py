@@ -477,7 +477,7 @@ class Test_AntiJoin:
         result = merge(left, right, how="anti_right")
         expected = DataFrame(
             {"A": [4, 5], "B": [pd.NA, pd.NA], "C": [6, 8]}, dtype=dtype
-        ).astype({"A": object})
+        )
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
