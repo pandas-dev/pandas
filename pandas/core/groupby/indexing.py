@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import (
+    Iterable,
+    cast,
+)
 
 import numpy as np
 
@@ -29,7 +32,7 @@ class GroupByIndexingMixin:
 
     @property
     def rows(self) -> _rowsGroupByIndexer:
-        return _rowsGroupByIndexer(self)
+        return _rowsGroupByIndexer(cast(groupby.GroupBy, self))
 
 
 @doc(GroupByIndexingMixin.rows)
@@ -37,7 +40,7 @@ class _rowsGroupByIndexer:
     def __init__(self, grouped: groupby.GroupBy):
         self.grouped = grouped
 
-    def __getitem__(self, arg: PositionalIndexer) -> FrameOrSeries:
+    def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
         with groupby.group_selection_context(self.grouped):
             if isinstance(arg, tuple):
                 if all(is_integer(i) for i in arg):
@@ -50,10 +53,10 @@ class _rowsGroupByIndexer:
                 mask = self._handle_slice(arg)
 
             elif is_integer(arg):
-                mask = self._handle_int(arg)
+                mask = self._handle_int(cast(int, arg))
 
             elif is_list_like(arg):
-                mask = self._handle_list(arg)
+                mask = self._handle_list(cast(Iterable[int], arg))
 
             else:
                 raise ValueError(
@@ -68,9 +71,10 @@ class _rowsGroupByIndexer:
             mask &= ids != -1
 
             if mask is None or mask is True:
-                mask = slice(None)
+                result = self.grouped._selected_obj[:]
 
-            result = self.grouped._selected_obj[mask]
+            else:
+                result = self.grouped._selected_obj[mask]
 
             if self.grouped.as_index:
                 result_index = self.grouped.grouper.result_index
@@ -87,18 +91,18 @@ class _rowsGroupByIndexer:
 
             return result
 
-    def _handle_int(self, arg: int) -> np.ndarray:
+    def _handle_int(self, arg: int) -> bool | np.ndarray:
         if arg >= 0:
             return self._ascending_count == arg
 
         else:
             return self._descending_count == (-arg - 1)
 
-    def _handle_list(self, args: Iterable[int]) -> np.ndarray:
+    def _handle_list(self, args: Iterable[int]) -> bool | np.ndarray:
         positive = [arg for arg in args if arg >= 0]
         negative = [-arg - 1 for arg in args if arg < 0]
 
-        mask = False
+        mask: bool | np.ndarray = False
 
         if positive:
             mask |= np.isin(self._ascending_count, positive)
@@ -108,12 +112,12 @@ class _rowsGroupByIndexer:
 
         return mask
 
-    def _handle_tuple(self, args: tuple) -> np.ndarray:
-        mask = False
+    def _handle_tuple(self, args: tuple) -> bool | np.ndarray:
+        mask: bool | np.ndarray = False
 
         for arg in args:
-            if isinstance(arg, int):
-                mask |= self._handle_int(arg)
+            if is_integer(arg):
+                mask |= self._handle_int(cast(int, arg))
 
             elif isinstance(arg, slice):
                 mask |= self._handle_slice(arg)
@@ -125,7 +129,7 @@ class _rowsGroupByIndexer:
 
         return mask
 
-    def _handle_slice(self, arg: slice) -> np.ndarray:
+    def _handle_slice(self, arg: slice) -> bool | np.ndarray:
         start = arg.start
         stop = arg.stop
         step = arg.step
@@ -133,7 +137,7 @@ class _rowsGroupByIndexer:
         if step is not None and step < 0:
             raise ValueError(f"Invalid step {step}. Must be non-negative")
 
-        mask = True
+        mask: bool | np.ndarray = True
 
         if step is None:
             step = 1
