@@ -18,7 +18,6 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    NonScalarPositionalIndexer,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -512,7 +511,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
 
     def take(
         self,
-        indices: NonScalarPositionalIndexer,
+        indices: SequenceIndexer,
         allow_fill: bool = False,
         fill_value: Any = None,
     ):

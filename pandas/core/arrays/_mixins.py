@@ -17,7 +17,6 @@ from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
-    NonScalarPositionalIndexer,
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
@@ -102,7 +101,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def take(
         self: NDArrayBackedExtensionArrayT,
-        indices: NonScalarPositionalIndexer,
+        indices: SequenceIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
