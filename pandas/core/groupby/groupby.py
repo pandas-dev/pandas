@@ -1944,7 +1944,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 npfunc=np.sum,
             )
         if self.axis == 1 and isinstance(self.obj.columns, MultiIndex):
-            dtypes_df = self.obj.dtypes.unstack().head(1)
+            dtypes_df = self.obj.dtypes.unstack().head(1).dropna(axis=1)
             if len(set(dtypes_df.values[0])) > 1:
                 # if self.obj has mixed dtype
                 result = result.astype(
