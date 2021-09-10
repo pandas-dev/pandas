@@ -321,7 +321,7 @@ def group_shift_indexer(int64_t[::1] out, const intp_t[::1] labels,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
+def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
                          ndarray[uint8_t] mask, str direction,
                          int64_t limit, bint dropna) -> None:
     """
@@ -329,7 +329,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
     Parameters
     ----------
-    out : np.ndarray[np.int64]
+    out : np.ndarray[np.intp]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
