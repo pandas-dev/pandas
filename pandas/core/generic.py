@@ -7630,7 +7630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. deprecated:: 1.4.0
                Arguments `include_start` and `include_end` have been deprecated
                to standardize boundary inputs. Use `inclusive` instead, to set
-               each bound as close or open.
+               each bound as closed or open.
         include_end : bool, default True
             Whether the end time needs to be included in the result.
 
