@@ -6341,7 +6341,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         continue
                     obj = result[k]
                     downcast_k = downcast if not is_dict else downcast.get(k)
-                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast_k)
+                    result[k] = obj.fillna(v, limit=limit, downcast=downcast_k)
                 return result if not inplace else None
 
             elif not is_list_like(value):
