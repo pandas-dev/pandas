@@ -548,19 +548,25 @@ class TestDateRanges:
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
 
-        closed = date_range(begin, end, closed=None, freq=freq)
-        left = date_range(begin, end, closed="left", freq=freq)
-        right = date_range(begin, end, closed="right", freq=freq)
+        both = date_range(begin, end, inclusive="both", freq=freq)
+        left = date_range(begin, end, inclusive="left", freq=freq)
+        right = date_range(begin, end, inclusive="right", freq=freq)
+        neither = date_range(begin, end, inclusive="neither", freq=freq)
+
         expected_left = left
         expected_right = right
+        expected_neither = neither
 
-        if end == closed[-1]:
-            expected_left = closed[:-1]
-        if begin == closed[0]:
-            expected_right = closed[1:]
+        if end == both[-1]:
+            expected_left = both[:-1]
+        if begin == both[0]:
+            expected_right = both[1:]
+        if end == both[-1] and begin == both[0]:
+            expected_neither = both[1:-1]
 
         tm.assert_index_equal(expected_left, left)
         tm.assert_index_equal(expected_right, right)
+        tm.assert_index_equal(expected_neither, neither)
 
     def test_range_closed_with_tz_aware_start_end(self):
         # GH12409, GH12684
@@ -568,19 +574,25 @@ class TestDateRanges:
         end = Timestamp("2014/1/1", tz="US/Eastern")
 
         for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
-            closed = date_range(begin, end, closed=None, freq=freq)
-            left = date_range(begin, end, closed="left", freq=freq)
-            right = date_range(begin, end, closed="right", freq=freq)
+            both = date_range(begin, end, inclusive="both", freq=freq)
+            left = date_range(begin, end, inclusive="left", freq=freq)
+            right = date_range(begin, end, inclusive="right", freq=freq)
+            neither = date_range(begin, end, inclusive="neither", freq=freq)
+
             expected_left = left
             expected_right = right
+            expected_neither = neither
 
-            if end == closed[-1]:
-                expected_left = closed[:-1]
-            if begin == closed[0]:
-                expected_right = closed[1:]
+            if end == both[-1]:
+                expected_left = both[:-1]
+            if begin == both[0]:
+                expected_right = both[1:]
+            if end == both[-1] and begin == both[0]:
+                expected_neither = both[1:-1]
 
             tm.assert_index_equal(expected_left, left)
             tm.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_neither, neither)
 
         begin = Timestamp("2011/1/1")
         end = Timestamp("2014/1/1")
@@ -588,45 +600,64 @@ class TestDateRanges:
         endtz = Timestamp("2014/1/1", tz="US/Eastern")
 
         for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
-            closed = date_range(begin, end, closed=None, freq=freq, tz="US/Eastern")
-            left = date_range(begin, end, closed="left", freq=freq, tz="US/Eastern")
-            right = date_range(begin, end, closed="right", freq=freq, tz="US/Eastern")
+            both = date_range(begin, end, inclusive="both", freq=freq, tz="US/Eastern")
+            left = date_range(begin, end, inclusive="left", freq=freq, tz="US/Eastern")
+            right = date_range(
+                begin, end, inclusive="right", freq=freq, tz="US/Eastern"
+            )
+            neither = date_range(
+                begin, end, inclusive="neither", freq=freq, tz="US/Eastern"
+            )
+
             expected_left = left
             expected_right = right
+            expected_neither = neither
 
-            if endtz == closed[-1]:
-                expected_left = closed[:-1]
-            if begintz == closed[0]:
-                expected_right = closed[1:]
+            if endtz == both[-1]:
+                expected_left = both[:-1]
+            if begintz == both[0]:
+                expected_right = both[1:]
+            if begintz == both[0] and endtz == both[-1]:
+                expected_neither = both[1:-1]
 
             tm.assert_index_equal(expected_left, left)
             tm.assert_index_equal(expected_right, right)
+            tm.assert_index_equal(expected_neither, neither)
 
-    @pytest.mark.parametrize("closed", ["right", "left", None])
-    def test_range_closed_boundary(self, closed):
+    @pytest.mark.parametrize("inclusive", ["right", "left", "both", "neither"])
+    def test_range_closed_boundary(self, inclusive):
         # GH#11804
         right_boundary = date_range(
-            "2015-09-12", "2015-12-01", freq="QS-MAR", closed=closed
+            "2015-09-12", "2015-12-01", freq="QS-MAR", inclusive=inclusive
         )
         left_boundary = date_range(
-            "2015-09-01", "2015-09-12", freq="QS-MAR", closed=closed
+            "2015-09-01", "2015-09-12", freq="QS-MAR", inclusive=inclusive
         )
         both_boundary = date_range(
-            "2015-09-01", "2015-12-01", freq="QS-MAR", closed=closed
+            "2015-09-01", "2015-12-01", freq="QS-MAR", inclusive=inclusive
         )
-        expected_right = expected_left = expected_both = both_boundary
+        neither_boundary = date_range(
+            "2015-09-11", "2015-09-12", freq="QS-MAR", inclusive=inclusive
+        )
 
-        if closed == "right":
+        expected_right = both_boundary
+        expected_left = both_boundary
+        expected_both = both_boundary
+
+        if inclusive == "right":
             expected_left = both_boundary[1:]
-        if closed == "left":
+        elif inclusive == "left":
             expected_right = both_boundary[:-1]
-        if closed is None:
+        elif inclusive == "both":
             expected_right = both_boundary[1:]
             expected_left = both_boundary[:-1]
+
+        expected_neither = both_boundary[1:-1]
 
         tm.assert_index_equal(right_boundary, expected_right)
         tm.assert_index_equal(left_boundary, expected_left)
         tm.assert_index_equal(both_boundary, expected_both)
+        tm.assert_index_equal(neither_boundary, expected_neither)
 
     def test_years_only(self):
         # GH 6961
@@ -678,6 +709,17 @@ class TestDateRanges:
             ::-1
         ]
         tm.assert_index_equal(result, expected)
+
+    def test_range_where_start_equal_end(self):
+        # GH 43394
+        start = "2021-09-02"
+        end = "2021-09-02"
+        right_result = date_range(start=start, end=end, freq="D", inclusive="right")
+        left_result = date_range(start=start, end=end, freq="D", inclusive="left")
+        expected = date_range(start=start, end=end, freq="D", inclusive="both")
+
+        tm.assert_index_equal(right_result, expected)
+        tm.assert_index_equal(left_result, expected)
 
 
 class TestDateRangeTZ:
@@ -867,12 +909,12 @@ class TestBusinessDateRange:
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
 
-    @pytest.mark.parametrize("closed", ["left", "right"])
-    def test_bdays_and_open_boundaries(self, closed):
+    @pytest.mark.parametrize("inclusive", ["left", "right", "neither", "both"])
+    def test_bdays_and_open_boundaries(self, inclusive):
         # GH 6673
         start = "2018-07-21"  # Saturday
         end = "2018-07-29"  # Sunday
-        result = date_range(start, end, freq="B", closed=closed)
+        result = date_range(start, end, freq="B", inclusive=inclusive)
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
@@ -1018,7 +1060,7 @@ class TestCustomDateRange:
     def test_range_with_millisecond_resolution(self, start_end):
         # https://github.com/pandas-dev/pandas/issues/24110
         start, end = start_end
-        result = date_range(start=start, end=end, periods=2, closed="left")
+        result = date_range(start=start, end=end, periods=2, inclusive="left")
         expected = DatetimeIndex([start])
         tm.assert_index_equal(result, expected)
 

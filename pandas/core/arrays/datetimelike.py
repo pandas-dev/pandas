@@ -1823,6 +1823,71 @@ def validate_periods(periods):
     return periods
 
 
+def validate_inclusiveness(inclusive):
+    """
+    Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
+
+    Parameters
+    ----------
+    inclusive : {"both", "neither", "left", "right"}
+
+    Returns
+    -------
+    left_inclusive : bool
+    right_inclusive : bool
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_right_inclusive: tuple[bool, bool] | None = {
+        "both": (True, True),
+        "left": (True, False),
+        "right": (False, True),
+        "neither": (False, False),
+    }.get(inclusive)
+
+    if left_right_inclusive is None:
+        raise ValueError(
+            "Inclusive has to be either 'both', 'neither', 'left', 'right'"
+        )
+    left_inclusive, right_inclusive = left_right_inclusive
+    return left_inclusive, right_inclusive
+
+
+def validate_endpoints(closed):
+    """
+    Check that the `closed` argument is among [None, "left", "right"]
+
+    Parameters
+    ----------
+    closed : {None, "left", "right"}
+
+    Returns
+    -------
+    left_closed : bool
+    right_closed : bool
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_closed = False
+    right_closed = False
+
+    if closed is None:
+        left_closed = True
+        right_closed = True
+    elif closed == "left":
+        left_closed = True
+    elif closed == "right":
+        right_closed = True
+    else:
+        raise ValueError("Closed has to be either 'left', 'right' or None")
+
+    return left_closed, right_closed
+
+
 def validate_inferred_freq(freq, inferred_freq, freq_infer):
     """
     If the user passes a freq and another freq is inferred from passed data,

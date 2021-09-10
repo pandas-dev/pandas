@@ -299,6 +299,7 @@ Other Deprecations
 - Deprecated the ``squeeze`` argument to :meth:`read_csv`, :meth:`read_table`, and :meth:`read_excel`. Users should squeeze the DataFrame afterwards with ``.squeeze("columns")`` instead. (:issue:`43242`)
 - Deprecated the ``index`` argument to :class:`SparseArray` construction (:issue:`23089`)
 -
+- Deprecated the ``closed`` argument in :meth:`date_range` and :meth:`bdate_range` in favor of ``inclusive`` argument; In a future version passing ``closed`` will raise (:issue:`40245`)
 
 .. ---------------------------------------------------------------------------
 
@@ -340,6 +341,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
 - :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
+- Bug in :meth:`date_range` and :meth:`bdate_range` do not return right bound when ``start`` = ``end`` and set is closed on one side (:issue:`43394`)
 -
 
 Timedelta
