@@ -769,6 +769,18 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_max_rows = """
+: int, optional
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_columns = """
+: int, optional
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
 styler_precision = """
 : int
     The precision for floats and complex numbers.
@@ -847,6 +859,20 @@ with cf.config_prefix("styler"):
         validator=is_nonnegative_int,
     )
 
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_columns",
+        None,
+        styler_max_columns,
+        validator=is_nonnegative_int,
+    )
+
     cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
 
     cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
@@ -896,7 +922,7 @@ with cf.config_prefix("styler"):
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l"]),
+        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
     )
 
     cf.register_option(

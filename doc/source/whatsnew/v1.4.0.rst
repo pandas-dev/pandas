@@ -75,7 +75,7 @@ Styler
   - Styling of indexing has been added, with :meth:`.Styler.apply_index` and :meth:`.Styler.applymap_index`. These mirror the signature of the methods already used to style data values, and work with both HTML and LaTeX format (:issue:`41893`).
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
-  - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption`` (:issue:`41946`, :issue:`43149`).
+  - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
   - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
   - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
   - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
@@ -104,8 +104,10 @@ Other enhancements
 - :meth:`Series.ewm`, :meth:`DataFrame.ewm`, now support a ``method`` argument with a ``'table'`` option that performs the windowing operation over an entire :class:`DataFrame`. See :ref:`Window Overview <window.overview>` for performance and functional benefits (:issue:`42273`)
 - :meth:`.GroupBy.cummin` and :meth:`.GroupBy.cummax` now support the argument ``skipna`` (:issue:`34047`)
 - :meth:`read_table` now supports the argument ``storage_options`` (:issue:`39167`)
+- :meth:`DataFrame.to_stata` and :meth:`StataWriter` now accept the keyword only argument ``value_labels`` to save labels for non-categorical columns
 - Methods that relied on hashmap based algos such as :meth:`DataFrameGroupBy.value_counts`, :meth:`DataFrameGroupBy.count` and :func:`factorize` ignored imaginary component for complex numbers (:issue:`17927`)
 - Add :meth:`Series.str.removeprefix` and :meth:`Series.str.removesuffix` introduced in Python 3.9 to remove pre-/suffixes from string-type :class:`Series` (:issue:`36944`)
+
 
 .. ---------------------------------------------------------------------------
 
@@ -277,6 +279,8 @@ Other Deprecations
 - Deprecated :meth:`Index.reindex` with a non-unique index (:issue:`42568`)
 - Deprecated :meth:`.Styler.render` in favour of :meth:`.Styler.to_html` (:issue:`42140`)
 - Deprecated passing in a string column label into ``times`` in :meth:`DataFrame.ewm` (:issue:`43265`)
+- Deprecated the 'include_start' and 'include_end' arguments in :meth:`DataFrame.between_time`; in a future version passing 'include_start' or 'include_end' will raise (:issue:`40245`)
+- Deprecated the ``squeeze`` argument to :meth:`read_csv`, :meth:`read_table`, and :meth:`read_excel`. Users should squeeze the DataFrame afterwards with ``.squeeze("columns")`` instead. (:issue:`43242`)
 
 .. ---------------------------------------------------------------------------
 
@@ -294,6 +298,8 @@ Performance improvements
 - Performance improvement in :meth:`to_datetime` with ``uint`` dtypes (:issue:`42606`)
 - Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
+- Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -361,12 +367,13 @@ Indexing
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.nan`` (:issue:`35392`)
 - Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, used in an expression to query a dataframe (:issue:`42826`)
 - Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
--
+- Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
 
 
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` with limit and no method ignores axis='columns' or ``axis = 1`` (:issue:`40989`)
+- Bug in :meth:`DataFrame.fillna` not replacing missing values when using a dict-like ``value`` and duplicate column names (:issue:`43476`)
 -
 
 MultiIndex
@@ -419,6 +426,7 @@ Reshaping
 - :func:`concat` creating :class:`MultiIndex` with duplicate level entries when concatenating a :class:`DataFrame` with duplicates in :class:`Index` and multiple keys (:issue:`42651`)
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 - Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
+- Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
 -
 
 Sparse
@@ -439,6 +447,7 @@ Styler
 - Bug in :meth:`Styler.apply` where functions which returned Series objects were not correctly handled in terms of aligning their index labels (:issue:`13657`, :issue:`42014`)
 - Bug when rendering an empty DataFrame with a named index (:issue:`43305`).
 - Bug when rendering a single level MultiIndex (:issue:`43383`).
+- Bug when combining non-sparse rendering and :meth:`.Styler.hide_columns` or :meth:`.Styler.hide_index` (:issue:`43464`)
 
 Other
 ^^^^^

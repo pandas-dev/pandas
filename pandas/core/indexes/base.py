@@ -4803,11 +4803,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = getitem(key)
         if not is_scalar(result):
-            # error: Argument 1 to "ndim" has incompatible type "Union[ExtensionArray,
-            # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
-            # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], _SupportsArray]"
-            if np.ndim(result) > 1:  # type: ignore[arg-type]
+            if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex
@@ -5122,13 +5118,17 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of the `asof` function
             for every element in `where`.
         """
-        locs = self._values[mask].searchsorted(where._values, side="right")
+        # error: No overload variant of "searchsorted" of "ndarray" matches argument
+        # types "Union[ExtensionArray, ndarray[Any, Any]]", "str"
+        # TODO: will be fixed when ExtensionArray.searchsorted() is fixed
+        locs = self._values[mask].searchsorted(
+            where._values, side="right"  # type: ignore[call-overload]
+        )
         locs = np.where(locs > 0, locs - 1, 0)
 
         result = np.arange(len(self), dtype=np.intp)[mask].take(locs)
 
-        # TODO: overload return type of ExtensionArray.__getitem__
-        first_value = cast(Any, self._values[mask.argmax()])
+        first_value = self._values[mask.argmax()]
         result[(locs == 0) & (where._values < first_value)] = -1
 
         return result
