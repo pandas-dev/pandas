@@ -800,9 +800,12 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz, k, nqs
         Py_ssize_t grp_start=0, idx=0
         intp_t lab
-        uint8_t interp
+        InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
-        ndarray[int64_t] counts, non_na_counts, sort_arr
+        int64_t[::1] counts, non_na_counts
+        intp_t[::1] sort_arr
+        ndarray[intp_t] labels_for_lexsort
+        intp_t na_label_for_sorting = 0
 
     assert values.shape[0] == N
 
@@ -825,27 +828,28 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
     ngroups = len(out)
     counts = np.zeros(ngroups, dtype=np.int64)
     non_na_counts = np.zeros(ngroups, dtype=np.int64)
+    labels_for_lexsort = labels.copy()
+
+    # Put '-1' (NaN) labels as the last group so it does not interfere
+    # with the calculations.
+    if N > 0:
+        na_label_for_sorting = labels.max() + 1
 
     # First figure out the size of every group
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab == -1:  # NA group label
+            if lab == -1:
+                labels_for_lexsort[i] = na_label_for_sorting
                 continue
 
             counts[lab] += 1
             if not mask[i]:
                 non_na_counts[lab] += 1
 
-    # Get an index of values sorted by labels and then values
-    if labels.any():
-        # Put '-1' (NaN) labels as the last group so it does not interfere
-        # with the calculations.
-        labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
-    else:
-        labels_for_lexsort = labels
+    # Get an index of values sorted by values and then labels
     order = (values, labels_for_lexsort)
-    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
+    sort_arr = np.lexsort(order).astype(np.intp, copy=False)
 
     with nogil:
         for i in range(ngroups):
@@ -1420,7 +1424,7 @@ cdef cummin_max(groupby_t[:, ::1] out,
     cdef:
         Py_ssize_t i, j, N, K
         groupby_t val, mval, na_val
-        uint8_t[:, ::1] seen_na
+        uint8_t[:, ::1] seen_na = None
         intp_t lab
         bint na_possible
 
