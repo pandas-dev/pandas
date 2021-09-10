@@ -232,4 +232,6 @@ class TestSeriesConvertDtypes:
         byte_str = b"binary-string"
 
         df = pd.DataFrame(data={"A": byte_str}, index=[0])
-        tm.assert_frame_equal(df, df.convert_dtypes().astype(object))
+        result = df.convert_dtypes()
+        expected = df.astype(bytes)
+        tm.assert_frame_equal(result, expected)
