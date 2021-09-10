@@ -1221,6 +1221,7 @@ as a ``Series``:
        fh.write(data)
 
 .. ipython:: python
+   :okwarning:
 
    print(open("tmp.csv").read())
 
