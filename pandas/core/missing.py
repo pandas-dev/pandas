@@ -23,6 +23,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     F,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -57,7 +58,7 @@ def check_value_size(value, mask: np.ndarray, length: int):
     return value
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
+def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
@@ -215,7 +216,7 @@ def interpolate_array_2d(
     **kwargs,
 ):
     """
-    Wrapper to dispatch to either interpolate_2d or interpolate_2d_with_fill.
+    Wrapper to dispatch to either interpolate_2d or _interpolate_2d_with_fill.
     """
     try:
         m = clean_fill_method(method)
@@ -237,7 +238,7 @@ def interpolate_array_2d(
     else:
         assert index is not None  # for mypy
 
-        interp_values = interpolate_2d_with_fill(
+        interp_values = _interpolate_2d_with_fill(
             data=data,
             index=index,
             axis=axis,
@@ -251,7 +252,7 @@ def interpolate_array_2d(
     return interp_values
 
 
-def interpolate_2d_with_fill(
+def _interpolate_2d_with_fill(
     data: np.ndarray,  # floating dtype
     index: Index,
     axis: int,
@@ -263,11 +264,11 @@ def interpolate_2d_with_fill(
     **kwargs,
 ) -> np.ndarray:
     """
-    Column-wise application of interpolate_1d.
+    Column-wise application of _interpolate_1d.
 
     Notes
     -----
-    The signature does differs from interpolate_1d because it only
+    The signature does differs from _interpolate_1d because it only
     includes what is needed for Block.interpolate.
     """
     # validate the interp method
@@ -276,59 +277,8 @@ def interpolate_2d_with_fill(
     if is_valid_na_for_dtype(fill_value, data.dtype):
         fill_value = na_value_for_dtype(data.dtype, compat=False)
 
-    def func(yvalues: np.ndarray) -> np.ndarray:
-        # process 1-d slices in the axis direction, returning it
-
-        # should the axis argument be handled below in apply_along_axis?
-        # i.e. not an arg to interpolate_1d
-        return interpolate_1d(
-            xvalues=index,
-            yvalues=yvalues,
-            method=method,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            bounds_error=False,
-            **kwargs,
-        )
-
-    # interp each column independently
-    return np.apply_along_axis(func, axis, data)
-
-
-def interpolate_1d(
-    xvalues: Index,
-    yvalues: np.ndarray,
-    method: str | None = "linear",
-    limit: int | None = None,
-    limit_direction: str = "forward",
-    limit_area: str | None = None,
-    fill_value: Any | None = None,
-    bounds_error: bool = False,
-    order: int | None = None,
-    **kwargs,
-):
-    """
-    Logic for the 1-d interpolation.  The result should be 1-d, inputs
-    xvalues and yvalues will each be 1-d arrays of the same length.
-
-    Bounds_error is currently hardcoded to False since non-scipy ones don't
-    take it as an argument.
-    """
-    invalid = isna(yvalues)
-    valid = ~invalid
-
-    if not valid.any():
-        result = np.empty(xvalues.shape, dtype=np.float64)
-        result.fill(np.nan)
-        return result
-
-    if valid.all():
-        return yvalues
-
     if method == "time":
-        if not needs_i8_conversion(xvalues.dtype):
+        if not needs_i8_conversion(index.dtype):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -356,6 +306,82 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
 
+    indices = _index_to_interp_indices(index, method)
+
+    def func(yvalues: np.ndarray) -> np.ndarray:
+        # process 1-d slices in the axis direction, returning it
+
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to _interpolate_1d
+        return _interpolate_1d(
+            indices=indices,
+            yvalues=yvalues,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            bounds_error=False,
+            **kwargs,
+        )
+
+    # interp each column independently
+    return np.apply_along_axis(func, axis, data)
+
+
+def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
+    """
+    Convert Index to ndarray of indices to pass to NumPy/SciPy.
+    """
+    xarr = index._values
+    if needs_i8_conversion(xarr.dtype):
+        # GH#1646 for dt64tz
+        xarr = xarr.view("i8")
+
+    if method == "linear":
+        inds = xarr
+        inds = cast(np.ndarray, inds)
+    else:
+        inds = np.asarray(xarr)
+
+        if method in ("values", "index"):
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
+
+    return inds
+
+
+def _interpolate_1d(
+    indices: np.ndarray,
+    yvalues: np.ndarray,
+    method: str | None = "linear",
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    bounds_error: bool = False,
+    order: int | None = None,
+    **kwargs,
+):
+    """
+    Logic for the 1-d interpolation.  The result should be 1-d, inputs
+    indices and yvalues will each be 1-d arrays of the same length.
+
+    Bounds_error is currently hardcoded to False since non-scipy ones don't
+    take it as an argument.
+    """
+
+    invalid = isna(yvalues)
+    valid = ~invalid
+
+    if not valid.any():
+        result = np.empty(indices.shape, dtype=np.float64)
+        result.fill(np.nan)
+        return result
+
+    if valid.all():
+        return yvalues
+
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
 
@@ -368,8 +394,6 @@ def interpolate_1d(
     if last_valid_index is None:  # no nan found in end
         last_valid_index = len(yvalues)
     end_nans = set(range(1 + last_valid_index, len(valid)))
-
-    mid_nans = all_nans - start_nans - end_nans
 
     # Like the sets above, preserve_nans contains indices of invalid values,
     # but in this case, it is the final set of indices that need to be
@@ -396,6 +420,7 @@ def interpolate_1d(
         preserve_nans |= start_nans | end_nans
     elif limit_area == "outside":
         # preserve NaNs on the inside
+        mid_nans = all_nans - start_nans - end_nans
         preserve_nans |= mid_nans
 
     # sort preserve_nans and convert to list
@@ -403,37 +428,18 @@ def interpolate_1d(
 
     result = yvalues.copy()
 
-    # xarr to pass to NumPy/SciPy
-    xarr = xvalues._values
-    if needs_i8_conversion(xarr.dtype):
-        # GH#1646 for dt64tz
-        xarr = xarr.view("i8")
-
-    if method == "linear":
-        inds = xarr
-    else:
-        inds = np.asarray(xarr)
-
-        if method in ("values", "index"):
-            if inds.dtype == np.object_:
-                inds = lib.maybe_convert_objects(inds)
-
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
 
-        # error: Argument 1 to "argsort" has incompatible type "Union[ExtensionArray,
-        # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
-        # Sequence[Union[int, float, complex, str, bytes, generic]],
-        # Sequence[Sequence[Any]], _SupportsArray]"
-        indexer = np.argsort(inds[valid])  # type: ignore[arg-type]
+        indexer = np.argsort(indices[valid])
         result[invalid] = np.interp(
-            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+            indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
     else:
         result[invalid] = _interpolate_scipy_wrapper(
-            inds[valid],
+            indices[valid],
             yvalues[valid],
-            inds[invalid],
+            indices[invalid],
             method=method,
             fill_value=fill_value,
             bounds_error=bounds_error,

@@ -9,7 +9,7 @@ repos:
     -   id: absolufy-imports
         files: ^pandas/
 -   repo: https://github.com/python/black
-    rev: 21.6b0
+    rev: 21.7b0
     hooks:
     -   id: black
 -   repo: https://github.com/codespell-project/codespell
@@ -44,6 +44,7 @@ repos:
             - flake8-bugbear==21.3.2
             - pandas-dev-flaker==0.2.0
     -   id: flake8
+        alias: flake8-cython
         name: flake8 (cython)
         types: [cython]
         args: [--append-config=flake8/cython.cfg]
@@ -53,11 +54,11 @@ repos:
         types: [text]
         args: [--append-config=flake8/cython-template.cfg]
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.9.2
+    rev: 5.9.3
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v2.21.0
+    rev: v2.23.3
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -102,7 +103,34 @@ repos:
             # Incorrect code-block / IPython directives
             |\.\.\ code-block\ ::
             |\.\.\ ipython\ ::
+
+            # Check for deprecated messages without sphinx directive
+            |(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)
         types_or: [python, cython, rst]
+    -   id: cython-casting
+        name: Check Cython casting is `<type>obj`, not `<type> obj`
+        language: pygrep
+        entry: '[a-zA-Z0-9*]> '
+        files: (\.pyx|\.pxi.in)$
+    -   id: incorrect-backticks
+        name: Check for backticks incorrectly rendering because of missing spaces
+        language: pygrep
+        entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
+        types: [rst]
+        files: ^doc/source/
+    -   id: seed-check-asv
+        name: Check for unnecessary random seeds in asv benchmarks
+        language: pygrep
+        entry: 'np\.random\.seed'
+        files: ^asv_bench/benchmarks
+        exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
+    -   id: invalid-ea-testing
+        name: Check for invalid EA testing
+        language: pygrep
+        entry: 'tm\.assert_(series|frame)_equal'
+        files: ^pandas/tests/extension/base
+        types: [python]
+        exclude: ^pandas/tests/extension/base/base\.py
     -   id: pip-to-conda
         name: Generate pip dependency from conda
         description: This hook checks if the conda environment.yml and requirements-dev.txt are equal
@@ -136,3 +164,8 @@ repos:
         entry: python scripts/no_bool_in_generic.py
         language: python
         files: ^pandas/core/generic\.py$
+    -   id: pandas-errors-documented
+        name: Ensure pandas errors are documented in doc/source/reference/general_utility_functions.rst
+        entry: python scripts/pandas_errors_documented.py
+        language: python
+        files: ^pandas/errors/__init__.py$

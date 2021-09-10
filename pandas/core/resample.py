@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     FrameOrSeries,
+    IndexLabel,
     T,
     TimedeltaConvertibleTypes,
     TimestampConvertibleTypes,
@@ -316,6 +317,12 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
     2013-01-01 00:00:04       NaN      5
+
+    >>> r.agg(average="mean", total="sum")
+                             average  total
+    2013-01-01 00:00:00      1.5      3
+    2013-01-01 00:00:02      3.5      7
+    2013-01-01 00:00:04      5.0      5
     """
     )
 
@@ -326,13 +333,12 @@ class Resampler(BaseGroupBy, PandasObject):
         klass="DataFrame",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
 
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
-            grouper = None
-            result = self._groupby_and_aggregate(how, grouper, *args, **kwargs)
+            result = self._groupby_and_aggregate(how, *args, **kwargs)
 
         result = self._apply_loffset(result)
         return result
@@ -402,12 +408,11 @@ class Resampler(BaseGroupBy, PandasObject):
         except KeyError:
             return grouped
 
-    def _groupby_and_aggregate(self, how, grouper=None, *args, **kwargs):
+    def _groupby_and_aggregate(self, how, *args, **kwargs):
         """
         Re-evaluate the obj with a groupby aggregation.
         """
-        if grouper is None:
-            grouper = self.grouper
+        grouper = self.grouper
 
         obj = self._selected_obj
 
@@ -1026,6 +1031,7 @@ class _GroupByMixin(PandasObject):
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
+    _selection: IndexLabel | None = None
 
     def __init__(self, obj, parent=None, groupby=None, **kwargs):
         # reached via ._gotitem and _get_resampler_for_grouping
@@ -1037,6 +1043,7 @@ class _GroupByMixin(PandasObject):
         # the resampler attributes
         for attr in self._attributes:
             setattr(self, attr, kwargs.get(attr, getattr(parent, attr)))
+        self._selection = kwargs.get("selection")
 
         self.binner = parent.binner
 
@@ -1046,7 +1053,7 @@ class _GroupByMixin(PandasObject):
         self.groupby = copy.copy(parent.groupby)
 
     @no_type_check
-    def _apply(self, f, grouper=None, *args, **kwargs):
+    def _apply(self, f, *args, **kwargs):
         """
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object.
@@ -1287,7 +1294,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            return self._groupby_and_aggregate(how, grouper=self.grouper, **kwargs)
+            return self._groupby_and_aggregate(how, **kwargs)
         elif is_superperiod(ax.freq, self.freq):
             if how == "ohlc":
                 # GH #13083
@@ -1295,7 +1302,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 # for pure aggregating/reducing methods
                 # OHLC reduces along the time dimension, but creates multiple
                 # values for each period -> handle by _groupby_and_aggregate()
-                return self._groupby_and_aggregate(how, grouper=self.grouper)
+                return self._groupby_and_aggregate(how)
             return self.asfreq()
         elif ax.freq == self.freq:
             return self.asfreq()
