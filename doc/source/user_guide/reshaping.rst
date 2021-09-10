@@ -738,7 +738,7 @@ for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
    df = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
    df
 
-   pd.from_dummies(df, prefix_sep="_")
+   pd.from_dummies(df, sep="_")
 
 The ``k`` distinct values can also be represented be a ``dropped_first`` which
 means that no value assigned implies a the value of the dropped value:
@@ -748,7 +748,7 @@ means that no value assigned implies a the value of the dropped value:
    df = pd.DataFrame({"prefix_a": [0, 1, 0]})
    df
 
-   pd.from_dummies(df, prefix_sep="_", dropped_first="b")
+   pd.from_dummies(df, sep="_", dropped_first="b")
 
 The ``subset`` argument controls which columns of the input ```DataFrame`` to consider
 for the decoding:
@@ -758,7 +758,7 @@ for the decoding:
    df = pd.DataFrame({"C": [1, 2, 3], "prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
    df
 
-   pd.get_dummies(df, subset=["prefix_a", "prefix_b"], prefix_sep="_")
+   pd.from_dummies(df, subset=["prefix_a", "prefix_b"], sep="_")
 
 ``sep`` is (or are) character(s) indicating the separation of the categorical names
 from the prefixes. For example, if your column names are ``prefix_A`` and ``prefix_B``,
@@ -781,7 +781,7 @@ first encountered separator following the order of the list.
    df_simple = pd.DataFrame({"prefix_a": [0, 1, 0], "prefix_b": [1, 0, 1]})
    df_simple
 
-   simple = pd.get_dummies(df_simple, prefix_sep="_")
+   simple = pd.from_dummies(df_simple, sep="_")
    simple
 
    df_multi = pd.DataFrame(
@@ -789,27 +789,27 @@ first encountered separator following the order of the list.
            "prefix1_a": [0, 1, 0],
            "prefix1_b": [1, 0, 1],
            "prefix2-a": [0, 1, 0],
-           "prefix2-b": [1, 0, 1],
-           "prefix2-c": [0, 1, 0],
+           "prefix2-b": [1, 0, 0],
+           "prefix2-c": [0, 0, 1],
        }
    )
    df_multi
 
-   from_list = pd.get_dummies(df_multi, prefix_sep=["_", "-"])
+   from_list = pd.from_dummies(df_multi, sep=["_", "-"])
    from_list
 
    df_complex = pd.DataFrame(
        {
-           "col1_a-a": [1, 0, 1],
-           "col1_b-b": [0, 1, 0],
-           "col2-a_a": [0, 1, 0],
-           "col2-b_b": [1, 0, 0],
-           "col2-c_c": [0, 0, 1],
+           "prefix1_a-a": [1, 0, 1],
+           "prefix1_b-b": [0, 1, 0],
+           "prefix_2-a": [0, 1, 0],
+           "prefix_2-b": [1, 0, 0],
+           "prefix_2-c": [0, 0, 1],
        }
    )
    df_complex
 
-   from_dict = pd.get_dummies(df_complex, prefix_sep={"prefix1": "-", "prefix2": "_"})
+   from_dict = pd.from_dummies(df_complex, sep={"prefix1": "_", "prefix_2": "-"})
    from_dict
 
 
