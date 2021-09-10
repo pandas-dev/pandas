@@ -4549,10 +4549,10 @@ class AppendableFrameTable(AppendableTable):
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
-            if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(index_vals)
-            else:
+            if info.get("type") != "MultiIndex":
                 cols = Index(index_vals)
+            else:
+                cols = MultiIndex.from_tuples(index_vals)
 
             names = info.get("names")
             if names is not None:

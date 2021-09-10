@@ -96,7 +96,7 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
-    _attributes = ["min_periods", "center", "axis", "method"]
+    _attributes: list[str] = ["min_periods", "center", "axis", "method"]
 
     def __init__(
         self,

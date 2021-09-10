@@ -72,7 +72,7 @@ set_use_bottleneck(get_option("compute.use_bottleneck"))
 
 
 class disallow:
-    def __init__(self, *dtypes):
+    def __init__(self, *dtypes: Dtype):
         super().__init__()
         self.dtypes = tuple(pandas_dtype(dtype).type for dtype in dtypes)
 
@@ -449,7 +449,7 @@ def _na_for_min_count(values: np.ndarray, axis: int | None) -> Scalar | np.ndarr
         return np.full(result_shape, fill_value, dtype=values.dtype)
 
 
-def maybe_operate_rowwise(func):
+def maybe_operate_rowwise(func: F) -> F:
     """
     NumPy operations on C-contiguous ndarrays with axis=1 can be
     very slow. Operate row-by-row and concatenate the results.
@@ -475,7 +475,7 @@ def maybe_operate_rowwise(func):
 
         return func(values, axis=axis, **kwargs)
 
-    return newfunc
+    return cast(F, newfunc)
 
 
 def nanany(
