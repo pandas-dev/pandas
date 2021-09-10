@@ -1276,7 +1276,7 @@ def from_dummies(
             data_slice = concat((data_to_decode[prefix_slice], assigned == 0), axis=1)
         else:
             data_slice = data_to_decode[prefix_slice]
-        cat_data[prefix] = data_slice.dot(cats)
+        cat_data[prefix] = data_slice.dot(np.array(cats))
 
     return DataFrame(cat_data)
 
