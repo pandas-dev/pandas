@@ -7724,7 +7724,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 inclusive = "both"
             elif inclusive not in ["both", "neither", "left", "right"]:
                 raise ValueError(
-                    f"Inclusive has to be either string of 'both',"
+                    f"Inclusive has to be either string of 'both', "
                     f"'left', 'right', or 'neither'. Got {inclusive}."
                 )
 

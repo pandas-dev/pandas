@@ -237,7 +237,7 @@ class TestBetweenTime:
         etime = time(1, 0)
         inclusive = "bad_string"
         msg = (
-            "Inclusive has to be either string of 'both','left', 'right', "
+            "Inclusive has to be either string of 'both', 'left', 'right', "
             "or 'neither'. Got bad_string."
         )
         with pytest.raises(ValueError, match=msg):
