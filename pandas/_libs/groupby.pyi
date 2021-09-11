@@ -2,6 +2,8 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._typing import npt
+
 def group_median_float64(
     out: np.ndarray,  # ndarray[float64_t, ndim=2]
     counts: np.ndarray,  # ndarray[int64_t]
@@ -34,6 +36,7 @@ def group_shift_indexer(
 def group_fillna_indexer(
     out: np.ndarray,  # ndarray[intp_t]
     labels: np.ndarray,  # ndarray[int64_t]
+    sorted_labels: npt.NDArray[np.intp],
     mask: np.ndarray,  # ndarray[uint8_t]
     direction: Literal["ffill", "bfill"],
     limit: int,  # int64_t
