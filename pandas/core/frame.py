@@ -269,10 +269,7 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'cross'}
-    default if `condition` not defined: 'inner'
-    default if `condition` is defined: 'cross'
-
+how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
@@ -288,15 +285,14 @@ how : {'left', 'right', 'outer', 'inner', 'cross'}
 
       .. versionadded:: 1.2.0
 
-condition : Callable
-    Function that takes the provided merge result as an input and returns a
-    boolean mask to filter that result. When paired with `how=cross`, this
-    can be used as a way to provide custom merge conditions.
-
-on : label or list
+on : label or list, or Callable
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
     to the intersection of the columns in both DataFrames.
+    If Callable this will perform a conditional merge. This allows you to 
+    provide a custom match condition for the join. The callable takes 2 
+    arguments, which represent the left and right sides of the merge, and 
+    must return a boolean.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
     be an array or list of arrays of the length of the left DataFrame.
@@ -456,7 +452,8 @@ ValueError: columns overlap but no suffix specified:
 3   bar      8
 
 Merge dataframes `left` and `right`, where column `left.timestep` falls
-within the range of `right.timestart` to `right.timeend`, using `condition`.
+within the range of `right.timestart` to `right.timeend`, using `on` as a 
+callable.
 
 >>> left = pd.DataFrame({'timestep': range(5)})
 >>> right = pd.DataFrame({'mood': ['happy', 'jolly', 'joy', 'cloud9'],
@@ -479,8 +476,8 @@ within the range of `right.timestart` to `right.timeend`, using `condition`.
 
 >>> merge = left.merge(
 ...     right,
-...     condition=lambda dfx: (dfx.timestart <= dfx.timestep)
-...                           & (dfx.timestep <= dfx.timeend)
+...     on=lambda left, right: (right.timestart <= left.timestep)
+...                            & (left.timestep <= right.timeend)
 ... )
 
 >>> merge
@@ -9205,9 +9202,8 @@ NaN 12.3   33.0
     def merge(
         self,
         right: DataFrame | Series,
-        how: str | None = None,
-        condition: Callable | None = None,
-        on: IndexLabel | None = None,
+        how: str = "inner",
+        on: IndexLabel | Callable | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
         left_index: bool = False,
@@ -9224,7 +9220,6 @@ NaN 12.3   33.0
             self,
             right,
             how=how,
-            condition=condition,
             on=on,
             left_on=left_on,
             right_on=right_on,

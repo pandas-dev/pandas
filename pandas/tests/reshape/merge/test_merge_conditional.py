@@ -30,17 +30,18 @@ def test_merge_conditional(monkeypatch, chunk_size):
         left_copy = left.copy()
         right_copy = right.copy()
 
-        def condition(dfx):
-            return (dfx.timestart <= dfx.timestep) & (dfx.timestep <= dfx.timeend)
-
         result = (
-            m.merge(left, right, condition=condition)
+            m.merge(
+                left,
+                right,
+                on=lambda l, r: (r.timestart <= l.timestep) & (l.timestep <= r.timeend)
+            )
             .sort_values(["timestep", "mood", "timestart", "timeend"])
             .reset_index(drop=True)
         )
         expected = (
             m.merge(left, right, how="cross")
-            .loc[condition]
+            .loc[lambda l, r: (r.timestart <= l.timestep) & (l.timestep <= r.timeend)]
             .sort_values(["timestep", "mood", "timestart", "timeend"])
             .reset_index(drop=True)
         )
@@ -49,7 +50,7 @@ def test_merge_conditional(monkeypatch, chunk_size):
         tm.assert_frame_equal(right, right_copy)
 
 
-def test_merge_conditional_non_cross():
-    error_msg = 'Must use `how="cross" | None` if `condition` is specified'
-    with pytest.raises(m.MergeError, match=error_msg):
-        m.merge(DataFrame(), DataFrame(), condition=lambda dfx: None, how="inner")
+@pytest.mark.parametrize("how", ["left", "right", "outer"])
+def test_merge_conditional_non_cross(how):
+    with pytest.raises(NotImplementedError):
+        m.merge(DataFrame(), DataFrame(), on=lambda dfx: None, how=how)

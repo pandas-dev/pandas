@@ -95,9 +95,8 @@ if TYPE_CHECKING:
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
-    how: str | None = None,
-    condition: Callable | None = None,
-    on: IndexLabel | None = None,
+    how: str = "inner",
+    on: IndexLabel | Callable | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
     left_index: bool = False,
@@ -108,35 +107,46 @@ def merge(
     indicator: bool = False,
     validate: str | None = None,
 ) -> DataFrame:
-    how = ("inner" if condition is None else "cross") if how is None else how
 
-    if condition is None:
+    if callable(on):
+        if how != "inner":
+            raise NotImplementedError(
+                '`Conditional merge is currently only available for how="inner". '
+                'Other merge types will be available in a future version.'
+            )
+        if any([left_on, right_on,  left_index, right_index]):
+            raise ValueError(
+                'Cannot define any of (`left_on`, `right_on`, `left_index`, '
+                '`right_index`) in a conditional merge'
+            )
+        if not copy:
+            # Reason is that due to the initial chunked implementation, not-trivial to
+            # guarantee that copy=False is respected
+            raise ValueError('Currently conditional merge must use copy=True')
+
+        if validate:
+            # Reason is that validation cannot be performed on a chunked basis
+            # TODO: validate on the final result of the chunked merge result?
+            raise ValueError('Currently conditional merge does not support validation')
+
+        if sort:
+            # Reason is that there is no definitive sort order when using a
+            # custom merge condition
+            raise ValueError('Cannot sort on join keys in an conditional merge')
+
+        res = _LazyCustomInnerMerge(
+            left,
+            right,
+            condition,
+            suffixes=suffixes,
+            copy=copy,
+            indicator=indicator,  # will always be 'both' for inner join
+        ).get_result()
+    else:
         res = _MergeOperation(
             left,
             right,
             how=how,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            sort=sort,
-            suffixes=suffixes,
-            copy=copy,
-            indicator=indicator,
-            validate=validate,
-        ).get_result()
-    else:
-        if how != "cross":
-            raise MergeError(
-                'Must use `how="cross" | None` if `condition` is specified'
-            )
-
-        res = _LazyMerge(
-            left,
-            right,
-            condition,
-            how="cross",
             on=on,
             left_on=left_on,
             right_on=right_on,
@@ -2385,12 +2395,19 @@ _DEFAULT_LEFT_CHUNK_SIZE = _DEFAULT_RIGHT_CHUNK_SIZE = 1000
 
 
 # TODO: perform lazy merge as optimized cython, rather than chunked merge
-class _LazyMerge:
+class _LazyCustomInnerMerge:
     def __init__(
         self,
         left: DataFrame | Series,
         right: DataFrame | Series,
-        condition: Callable,  # takes frame with same columns as plain merge result
+        # Note: Condition function should respect future desired interface.
+        #       Currently the function "could" make use of df specific logic
+        #       to return a boolean mask (e.g. left.time.dt.date == right.time.dt.date),
+        #       but eventually when this implementation is replaced we might not have that
+        #       ability. Should we restrict those cases now? allow them and fail in the
+        #       future? or plan to develop future implementation to work with these
+        #       constructs as well?
+        condition: Callable,
         left_chunk_size: int | None = None,
         right_chunk_size: int | None = None,
         *args,
@@ -2411,12 +2428,20 @@ class _LazyMerge:
         right_chunks = _chunks(right, n=right_chunk_size)
         self.chunk_pairs = itertools.product(left_chunks, right_chunks)
 
-    def get_result(self) -> DataFrame:  # mimic _MergeOperation
+    # mimic _MergeOperation - should they share an inherited interface?
+    def get_result(self) -> DataFrame:
         from pandas import DataFrame
 
         result = DataFrame()
-        for left, right in self.chunk_pairs:
-            chunk_result = merge(left, right, *self.args, **self.kwargs)
-            chunk_result_filtered = chunk_result.loc[self.condition]
+        for chunk_left, chunk_right in self.chunk_pairs:
+            chunk_result = merge(chunk_left, chunk_right, how="cross", *self.args, **self.kwargs)
+
+            chunk_result_left = chunk_result.iloc[:, :len(chunk_left.columns)]
+            chunk_result_left.columns = chunk_left.columns
+            chunk_result_right = chunk_result.iloc[:, len(chunk_left.columns):]
+            chunk_result_right.columns = chunk_right.columns
+
+            chunk_result_filtered = chunk_result.loc[self.condition(chunk_result_left, chunk_result_right)]
             result = result.append(chunk_result_filtered)
+
         return result.reset_index(drop=True)
