@@ -17,6 +17,7 @@ from io import (
 )
 import mmap
 import os
+from pathlib import Path
 import tempfile
 from typing import (
     IO,
@@ -520,6 +521,21 @@ def infer_compression(
     raise ValueError(msg)
 
 
+def check_parent_directory(path: Path | str) -> None:
+    """
+    Check if parent directory of a file exists, raise OSError if it does not
+
+    Parameters
+    ----------
+    path: Path or str
+        Path to check parent directory of
+
+    """
+    parent = Path(path).parent
+    if not parent.is_dir():
+        raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
+
+
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
@@ -631,6 +647,10 @@ def get_handle(
     is_path = isinstance(handle, str)
     compression_args = dict(ioargs.compression)
     compression = compression_args.pop("method")
+
+    # Only for write methods
+    if "r" not in mode and is_path:
+        check_parent_directory(str(handle))
 
     if compression:
         # compression libraries do not like an explicit text-mode
