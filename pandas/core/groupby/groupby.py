@@ -1956,14 +1956,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 alias="add",
                 npfunc=np.sum,
             )
-        if self.axis == 1 and isinstance(self.obj.columns, MultiIndex):
-            dtypes_df = self.obj.dtypes.unstack().head(1).dropna(axis=1)
-            if len(set(dtypes_df.values[0])) > 1:
-                # if self.obj has mixed dtype
-                result = result.astype(
-                    dict(zip(dtypes_df.columns, dtypes_df.values[0]))
-                )
-
         return self._reindex_output(result, fill_value=0)
 
     @final
