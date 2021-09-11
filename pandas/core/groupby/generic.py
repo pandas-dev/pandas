@@ -1614,7 +1614,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 .to_dict()[0]
             )
         else:
-            dtype_df_dict = dtype_df.drop_duplicates().loc[result.index].to_dict()
+            dtype_df_dict = dtype_df.drop_duplicates().loc[result.columns].to_dict()
         result_cast = result.astype(dtype_df_dict, copy=False, errors="ignore")
         if np.array_equal(result_cast.values, result.values):
             # able to safely cast

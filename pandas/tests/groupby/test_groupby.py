@@ -2522,7 +2522,7 @@ def test_rolling_wrong_param_min_period():
         ("var", [4.5] * 3, "Int64", {"i": "Float64", "j": "Float64", "k": "Float64"}),
     ],
 )
-def test_multiindex_groupby(func, expected, dtype, result_dtype_dict):
+def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype_dict):
     # GH#43209
     df = DataFrame(
         [[1, 2, 3, 4, 5, 6]] * 3,
@@ -2532,4 +2532,29 @@ def test_multiindex_groupby(func, expected, dtype, result_dtype_dict):
     expected = DataFrame([expected] * 3, columns=["i", "j", "k"]).astype(
         result_dtype_dict
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, expected_data, result_dtype_dict",
+    [
+        ("sum", [[2, 4], [10, 12], [18, 20]], {10: "Int64", 20: "int64"}),
+        # should ideally by Int64 #43330
+        ("std", [[2 ** 0.5] * 2] * 3, float),
+        ("var", [[2] * 2] * 3, {10: "Int64", 20: "int64"}),
+    ],
+)
+def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
+    # GH#43209
+    df = DataFrame(
+        np.arange(12).reshape(3, 4),
+        index=Index([0, 1, 0], name="y"),
+        columns=Index([10, 20, 10, 20], name="x"),
+    ).astype({10: "Int64"})
+    result = df.groupby("x", axis=1).agg(func)
+    expected = DataFrame(
+        data=expected_data,
+        index=Index([0, 1, 0], name="y"),
+        columns=Index([10, 20], name="x"),
+    ).astype(result_dtype_dict)
     tm.assert_frame_equal(result, expected)
