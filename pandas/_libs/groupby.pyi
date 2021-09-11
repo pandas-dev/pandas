@@ -90,7 +90,7 @@ def group_quantile(
     values: np.ndarray,  # ndarray[numeric, ndim=1]
     labels: npt.NDArray[np.intp],
     mask: npt.NDArray[np.uint8],
-    sort_arr: npt.NDArray[np.intp],  # const
+    sort_indexer: npt.NDArray[np.intp],  # const
     qs: npt.NDArray[np.float64],  # const
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
 ) -> None: ...

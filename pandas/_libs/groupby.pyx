@@ -774,7 +774,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
                    ndarray[numeric, ndim=1] values,
                    ndarray[intp_t] labels,
                    ndarray[uint8_t] mask,
-                   const intp_t[:] sort_arr,
+                   const intp_t[:] sort_indexer,
                    const float64_t[:] qs,
                    str interpolation) -> None:
     """
@@ -788,7 +788,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
         Array containing the values to apply the function against.
     labels : ndarray[np.intp]
         Array containing the unique group labels.
-    sort_arr : ndarray[np.intp]
+    sort_indexer : ndarray[np.intp]
         Indices describing sort order by values and labels.
     qs : ndarray[float64_t]
         The quantile values to search for.
@@ -857,7 +857,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
                     # Casting to int will intentionally truncate result
                     idx = grp_start + <int64_t>(q_val * <float64_t>(non_na_sz - 1))
 
-                    val = values[sort_arr[idx]]
+                    val = values[sort_indexer[idx]]
                     # If requested quantile falls evenly on a particular index
                     # then write that index's value out. Otherwise interpolate
                     q_idx = q_val * (non_na_sz - 1)
@@ -866,7 +866,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
                     if frac == 0.0 or interp == INTERPOLATION_LOWER:
                         out[i, k] = val
                     else:
-                        next_val = values[sort_arr[idx + 1]]
+                        next_val = values[sort_indexer[idx + 1]]
                         if interp == INTERPOLATION_LINEAR:
                             out[i, k] = val + (next_val - val) * frac
                         elif interp == INTERPOLATION_HIGHER:

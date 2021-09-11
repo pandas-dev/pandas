@@ -2651,10 +2651,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sort_arr = np.lexsort(order).astype(np.intp, copy=False)
 
             if vals.ndim == 1:
-                func(out[0], values=vals, mask=mask, sort_arr=sort_arr)
+                func(out[0], values=vals, mask=mask, sort_indexer=sort_arr)
             else:
                 for i in range(ncols):
-                    func(out[i], values=vals[i], mask=mask[i], sort_arr=sort_arr[i])
+                    func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
 
             if vals.ndim == 1:
                 out = out.ravel("K")
