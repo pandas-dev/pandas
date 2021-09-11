@@ -1037,7 +1037,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if self.as_index:
 
                 # possible MI return case
-                group_keys = self.grouper.group_keys_seq
+                group_keys = self.grouper.result_index
                 group_levels = self.grouper.levels
                 group_names = self.grouper.names
 
