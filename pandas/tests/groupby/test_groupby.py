@@ -2550,6 +2550,7 @@ def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
         np.arange(12).reshape(3, 4),
         index=Index([0, 1, 0], name="y"),
         columns=Index([10, 20, 10, 20], name="x"),
+        dtype="int64",
     ).astype({10: "Int64"})
     result = df.groupby("x", axis=1).agg(func)
     expected = DataFrame(
