@@ -608,7 +608,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
-    def kind(self):
+    def kind(self) -> str:
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
