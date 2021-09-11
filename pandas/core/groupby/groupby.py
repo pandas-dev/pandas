@@ -2620,7 +2620,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     func(out[i], values=vals[i], mask=mask[i], sort_arr=sort_arr[i])
 
             if vals.ndim == 1:
-                out = out.ravel()
+                out = out.ravel("K")
             else:
                 out = out.reshape(ncols, ngroups * nqs)
             return post_processor(out, inference)
