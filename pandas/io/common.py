@@ -739,8 +739,10 @@ def get_handle(
         )
 
     if "r" in ioargs.mode and not hasattr(handle, "read"):
-        raise TypeError('Expected file path name or file-like object, '
-                        f'got {type(ioargs.filepath_or_buffer)} type')
+        raise TypeError(
+            "Expected file path name or file-like object, "
+            f"got {type(ioargs.filepath_or_buffer)} type"
+        )
 
     handles.reverse()  # close the most recently added buffer first
     if ioargs.should_close:
