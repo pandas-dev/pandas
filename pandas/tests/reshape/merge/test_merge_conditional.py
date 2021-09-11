@@ -34,7 +34,7 @@ def test_merge_conditional(monkeypatch, chunk_size):
             m.merge(
                 left,
                 right,
-                on=lambda l, r: (r.timestart <= l.timestep) & (l.timestep <= r.timeend)
+                on=lambda l, r: (r.timestart <= l.timestep) & (l.timestep <= r.timeend),
             )
             .sort_values(["timestep", "mood", "timestart", "timeend"])
             .reset_index(drop=True)
@@ -52,5 +52,9 @@ def test_merge_conditional(monkeypatch, chunk_size):
 
 @pytest.mark.parametrize("how", ["left", "right", "outer"])
 def test_merge_conditional_non_cross(how):
-    with pytest.raises(NotImplementedError):
+    error_msg = (
+        '`Conditional merge is currently only available for how="inner". '
+        "Other merge types will be available in a future version."
+    )
+    with pytest.raises(NotImplementedError, match=error_msg):
         m.merge(DataFrame(), DataFrame(), on=lambda dfx: None, how=how)

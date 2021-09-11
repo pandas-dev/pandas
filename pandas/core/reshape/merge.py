@@ -112,32 +112,32 @@ def merge(
         if how != "inner":
             raise NotImplementedError(
                 '`Conditional merge is currently only available for how="inner". '
-                'Other merge types will be available in a future version.'
+                "Other merge types will be available in a future version."
             )
-        if any([left_on, right_on,  left_index, right_index]):
+        if any([left_on, right_on, left_index, right_index]):
             raise ValueError(
-                'Cannot define any of (`left_on`, `right_on`, `left_index`, '
-                '`right_index`) in a conditional merge'
+                "Cannot define any of (`left_on`, `right_on`, `left_index`, "
+                "`right_index`) in a conditional merge"
             )
         if not copy:
             # Reason is that due to the initial chunked implementation, not-trivial to
             # guarantee that copy=False is respected
-            raise ValueError('Currently conditional merge must use copy=True')
+            raise ValueError("Currently conditional merge must use copy=True")
 
         if validate:
             # Reason is that validation cannot be performed on a chunked basis
             # TODO: validate on the final result of the chunked merge result?
-            raise ValueError('Currently conditional merge does not support validation')
+            raise ValueError("Currently conditional merge does not support validation")
 
         if sort:
             # Reason is that there is no definitive sort order when using a
             # custom merge condition
-            raise ValueError('Cannot sort on join keys in an conditional merge')
+            raise ValueError("Cannot sort on join keys in an conditional merge")
 
         res = _LazyCustomInnerMerge(
             left,
             right,
-            condition,
+            condition=on,
             suffixes=suffixes,
             copy=copy,
             indicator=indicator,  # will always be 'both' for inner join
@@ -2403,9 +2403,9 @@ class _LazyCustomInnerMerge:
         # Note: Condition function should respect future desired interface.
         #       Currently the function "could" make use of df specific logic
         #       to return a boolean mask (e.g. left.time.dt.date == right.time.dt.date),
-        #       but eventually when this implementation is replaced we might not have that
-        #       ability. Should we restrict those cases now? allow them and fail in the
-        #       future? or plan to develop future implementation to work with these
+        #       but eventually when this implementation is replaced we might not have
+        #       that ability. Should we restrict those cases now? allow them and fail in
+        #       the future? or plan to develop future implementation to work with these
         #       constructs as well?
         condition: Callable,
         left_chunk_size: int | None = None,
@@ -2434,14 +2434,18 @@ class _LazyCustomInnerMerge:
 
         result = DataFrame()
         for chunk_left, chunk_right in self.chunk_pairs:
-            chunk_result = merge(chunk_left, chunk_right, how="cross", *self.args, **self.kwargs)
+            chunk_result = merge(
+                chunk_left, chunk_right, how="cross", *self.args, **self.kwargs
+            )
 
-            chunk_result_left = chunk_result.iloc[:, :len(chunk_left.columns)]
+            chunk_result_left = chunk_result.iloc[:, : len(chunk_left.columns)]
             chunk_result_left.columns = chunk_left.columns
-            chunk_result_right = chunk_result.iloc[:, len(chunk_left.columns):]
+            chunk_result_right = chunk_result.iloc[:, len(chunk_left.columns) :]
             chunk_result_right.columns = chunk_right.columns
 
-            chunk_result_filtered = chunk_result.loc[self.condition(chunk_result_left, chunk_result_right)]
+            chunk_result_filtered = chunk_result.loc[
+                self.condition(chunk_result_left, chunk_result_right)
+            ]
             result = result.append(chunk_result_filtered)
 
         return result.reset_index(drop=True)

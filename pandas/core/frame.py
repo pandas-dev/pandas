@@ -289,9 +289,9 @@ on : label or list, or Callable
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
     to the intersection of the columns in both DataFrames.
-    If Callable this will perform a conditional merge. This allows you to 
-    provide a custom match condition for the join. The callable takes 2 
-    arguments, which represent the left and right sides of the merge, and 
+    If Callable this will perform a conditional merge. This allows you to
+    provide a custom match condition for the join. The callable takes 2
+    arguments, which represent the left and right sides of the merge, and
     must return a boolean.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
@@ -452,7 +452,7 @@ ValueError: columns overlap but no suffix specified:
 3   bar      8
 
 Merge dataframes `left` and `right`, where column `left.timestep` falls
-within the range of `right.timestart` to `right.timeend`, using `on` as a 
+within the range of `right.timestart` to `right.timeend`, using `on` as a
 callable.
 
 >>> left = pd.DataFrame({'timestep': range(5)})
