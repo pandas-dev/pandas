@@ -24,6 +24,7 @@ from pandas._typing import (
     Scalar,
     ScalarIndexer,
     SequenceIndexer,
+    npt,
 )
 from pandas.compat import (
     pa_version_under1p0,
@@ -199,12 +200,9 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
         """Convert myself to a pyarrow Array or ChunkedArray."""
         return self._data
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
