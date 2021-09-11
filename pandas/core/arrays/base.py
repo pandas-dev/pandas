@@ -29,6 +29,7 @@ from pandas._typing import (
     AstypeArg,
     Dtype,
     FillnaOptions,
+    GeneralSequenceIndexer,
     PositionalIndexer,
     ScalarIndexer,
     SequenceIndexer,
@@ -1076,7 +1077,7 @@ class ExtensionArray:
 
     def take(
         self: ExtensionArrayT,
-        indices: SequenceIndexer,
+        indices: GeneralSequenceIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
