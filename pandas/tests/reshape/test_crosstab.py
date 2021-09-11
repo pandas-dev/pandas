@@ -811,7 +811,7 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = is_categorical_dtype(a.dtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, np.nan], [34, 32, 66], [52, 48, 100]]
+    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]
