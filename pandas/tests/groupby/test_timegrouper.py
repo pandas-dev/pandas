@@ -24,16 +24,11 @@ from pandas.core.groupby.ops import BinGrouper
 
 
 @pytest.fixture
-def groupby_with_truncated_bingrouper():
+def frame_for_truncated_bingrouper():
     """
-    GroupBy object such that gb.grouper is a BinGrouper and
-    len(gb.grouper.result_index) < len(gb.grouper.group_keys_seq)
-
-    Aggregations on this groupby should have
-
-        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
-
-    As either the index or an index level.
+    DataFrame used by groupby_with_truncated_bingrouper, made into
+    a separate fixture for easier re-use in
+    test_groupby_apply_timegrouper_with_nat_apply_squeeze
     """
     df = DataFrame(
         {
@@ -48,6 +43,22 @@ def groupby_with_truncated_bingrouper():
             ],
         }
     )
+    return df
+
+
+@pytest.fixture
+def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
+    """
+    GroupBy object such that gb.grouper is a BinGrouper and
+    len(gb.grouper.result_index) < len(gb.grouper.group_keys_seq)
+
+    Aggregations on this groupby should have
+
+        dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date")
+
+    As either the index or an index level.
+    """
+    df = frame_for_truncated_bingrouper
 
     tdg = Grouper(key="Date", freq="5D")
     gb = df.groupby(tdg)
@@ -846,4 +857,32 @@ class TestGroupBy:
             name="Quantity",
         )
 
+        tm.assert_series_equal(res, expected)
+
+    def test_groupby_apply_timegrouper_with_nat_apply_squeeze(
+        self, frame_for_truncated_bingrouper
+    ):
+        df = frame_for_truncated_bingrouper
+
+        # We need to create a GroupBy object with only one non-NaT group,
+        #  so use a huge freq so that all non-NaT dates will be grouped together
+        tdg = Grouper(key="Date", freq="100Y")
+
+        with tm.assert_produces_warning(FutureWarning, match="`squeeze` parameter"):
+            gb = df.groupby(tdg, squeeze=True)
+
+        # check that we will go through the singular_series path
+        #  in _wrap_applied_output_series
+        assert gb.ngroups == 1
+        assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
+
+        # function that returns a Series
+        res = gb.apply(lambda x: x["Quantity"] * 2)
+
+        key = Timestamp("2013-12-31")
+        ordering = df["Date"].sort_values().dropna().index
+        mi = MultiIndex.from_product([[key], ordering], names=["Date", None])
+
+        ex_values = df["Quantity"].take(ordering).values * 2
+        expected = Series(ex_values, index=mi, name="Quantity")
         tm.assert_series_equal(res, expected)
