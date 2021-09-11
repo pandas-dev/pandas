@@ -229,9 +229,10 @@ class SeriesGroupBy(GroupBy[Series]):
         if maybe_use_numba(engine):
             with group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self._group_keys_index
             return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
@@ -370,7 +371,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _wrap_applied_output(
         self,
         data: Series,
-        values: list[Any] | None,
+        values: list[Any],
         not_indexed_same: bool = False,
     ) -> DataFrame | Series:
         """
@@ -380,7 +381,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         data : Series
             Input data for groupby operation.
-        values : Optional[List[Any]]
+        values : List[Any]
             Applied output for each group.
         not_indexed_same : bool, default False
             Whether the applied outputs are not indexed the same as the group axes.
@@ -389,9 +390,7 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         DataFrame or Series
         """
-        keys = self.grouper.group_keys_seq
-
-        if len(keys) == 0:
+        if len(values) == 0:
             # GH #6265
             return self.obj._constructor(
                 [],
@@ -403,7 +402,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(values[0], dict):
             # GH #823 #24880
-            index = self._group_keys_index
+            index = self.grouper.result_index
             res_df = self.obj._constructor_expanddim(values, index=index)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
@@ -416,7 +415,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
-                data=values, index=self._group_keys_index, name=self.obj.name
+                data=values, index=self.grouper.result_index, name=self.obj.name
             )
             return self._reindex_output(result)
 
@@ -794,24 +793,6 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(result, fill_value=0)
 
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
-        """Calculate pct_change of each value to previous entry in group"""
-        # TODO: Remove this conditional when #23918 is fixed
-        if freq:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods, fill_method=fill_method, limit=limit, freq=freq
-                )
-            )
-        if fill_method is None:  # GH30463
-            fill_method = "pad"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-
-        return (filled / shifted) - 1
-
     @doc(Series.nlargest)
     def nlargest(self, n: int = 5, keep: str = "first"):
         f = partial(Series.nlargest, n=n, keep=keep)
@@ -927,9 +908,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if maybe_use_numba(engine):
             with group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self._group_keys_index
             return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
@@ -1089,23 +1071,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_resample_apply_product
 
         obj = self._obj_with_exclusions
-        result: dict[int | str, NDFrame] = {}
-        for i, item in enumerate(obj):
-            ser = obj.iloc[:, i]
-            colg = SeriesGroupBy(
-                ser, selection=item, grouper=self.grouper, exclusions=self.exclusions
-            )
+        result: dict[int, NDFrame] = {}
 
-            result[i] = colg.aggregate(func, *args, **kwargs)
+        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
+            result[i] = sgb.aggregate(func, *args, **kwargs)
 
         res_df = self.obj._constructor(result)
         res_df.columns = obj.columns
         return res_df
 
     def _wrap_applied_output(self, data, values, not_indexed_same=False):
-        keys = self.grouper.group_keys_seq
 
-        if len(keys) == 0:
+        if len(values) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
@@ -1172,11 +1149,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied_index = self._selected_obj._get_axis(self.axis)
             singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-            # assign the name to this series
             if singular_series:
-                keys = self.grouper.group_keys_seq
-                values[0].name = keys[0]
-
                 # GH2893
                 # we have series in the values array, we want to
                 # produce a series:
@@ -1376,14 +1349,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  gets here with non-unique columns
         output = {}
         inds = []
-        for i, col in enumerate(obj):
-            subset = obj.iloc[:, i]
-            sgb = SeriesGroupBy(
-                subset,
-                selection=col,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-            )
+        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             try:
                 output[i] = sgb.transform(wrapper)
             except TypeError:

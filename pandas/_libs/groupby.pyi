@@ -32,7 +32,7 @@ def group_shift_indexer(
     periods: int,
 ) -> None: ...
 def group_fillna_indexer(
-    out: np.ndarray,  # ndarray[int64_t]
+    out: np.ndarray,  # ndarray[intp_t]
     labels: np.ndarray,  # ndarray[int64_t]
     mask: np.ndarray,  # ndarray[uint8_t]
     direction: Literal["ffill", "bfill"],
