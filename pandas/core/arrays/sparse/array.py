@@ -1063,20 +1063,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             sp_kind = "integer"
 
+        sp_index: SparseIndex
         if sp_kind == "integer":
             indices = []
 
             for arr in to_concat:
-                idx = arr.sp_index.to_int_index().indices.copy()
-                idx += length  # TODO: wraparound
+                int_idx = arr.sp_index.to_int_index().indices.copy()
+                int_idx += length  # TODO: wraparound
                 length += arr.sp_index.length
 
                 values.append(arr.sp_values)
-                indices.append(idx)
+                indices.append(int_idx)
 
             data = np.concatenate(values)
-            indices = np.concatenate(indices)
-            sp_index = IntIndex(length, indices)
+            indices_arr = np.concatenate(indices)
+            sp_index = IntIndex(length, indices_arr)
 
         else:
             # when concatenating block indices, we don't claim that you'll
@@ -1088,18 +1089,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             blocs = []
 
             for arr in to_concat:
-                idx = arr.sp_index.to_block_index()
+                block_idx = arr.sp_index.to_block_index()
 
                 values.append(arr.sp_values)
-                blocs.append(idx.blocs.copy() + length)
-                blengths.append(idx.blengths)
+                blocs.append(block_idx.blocs.copy() + length)
+                blengths.append(block_idx.blengths)
                 length += arr.sp_index.length
 
             data = np.concatenate(values)
-            blocs = np.concatenate(blocs)
-            blengths = np.concatenate(blengths)
+            blocs_arr = np.concatenate(blocs)
+            blengths_arr = np.concatenate(blengths)
 
-            sp_index = BlockIndex(length, blocs, blengths)
+            sp_index = BlockIndex(length, blocs_arr, blengths_arr)
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
@@ -1666,8 +1667,9 @@ def make_sparse(
     return sparsified_values, index, fill_value
 
 
-def make_sparse_index(length, indices, kind):
+def make_sparse_index(length, indices, kind) -> SparseIndex:
 
+    index: SparseIndex
     if kind == "block" or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)
         index = BlockIndex(length, locs, lens)
