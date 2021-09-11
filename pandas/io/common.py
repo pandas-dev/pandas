@@ -17,8 +17,8 @@ from io import (
 )
 import mmap
 import os
-import tempfile
 from pathlib import Path
+import tempfile
 from typing import (
     IO,
     Any,
