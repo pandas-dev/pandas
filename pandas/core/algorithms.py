@@ -29,7 +29,6 @@ from pandas._typing import (
     DtypeObj,
     GeneralSequenceIndexer,
     Scalar,
-    SequenceIndexer,
     npt,
 )
 from pandas.util._decorators import doc
