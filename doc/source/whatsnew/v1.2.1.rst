@@ -18,7 +18,7 @@ Fixed regressions
 - Fixed regression in :meth:`~DataFrame.to_csv` opening ``codecs.StreamReaderWriter`` in binary mode instead of in text mode (:issue:`39247`)
 - Fixed regression in :meth:`read_csv` and other read functions were the encoding error policy (``errors``) did not default to ``"replace"`` when no encoding was specified (:issue:`38989`)
 - Fixed regression in :func:`read_excel` with non-rawbyte file handles (:issue:`38788`)
-- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occured (:issue:`39202`)
+- Fixed regression in :meth:`DataFrame.to_stata` not removing the created file when an error occurred (:issue:`39202`)
 - Fixed regression in ``DataFrame.__setitem__`` raising ``ValueError`` when expanding :class:`DataFrame` and new column is from type ``"0 - name"`` (:issue:`39010`)
 - Fixed regression in setting with :meth:`DataFrame.loc`  raising ``ValueError`` when :class:`DataFrame` has unsorted :class:`MultiIndex` columns and indexer is a scalar (:issue:`38601`)
 - Fixed regression in setting with :meth:`DataFrame.loc` raising ``KeyError`` with :class:`MultiIndex` and list-like columns indexer enlarging :class:`DataFrame` (:issue:`39147`)
@@ -52,20 +52,23 @@ DataFrame / Series combination) would ignore the indices, only match
 the inputs by shape, and use the index/columns of the first DataFrame for
 the result:
 
-.. code-block:: python
+.. code-block:: ipython
 
-    >>> df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[0, 1])
-    ... df2 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
-    >>> df1
+    In [1]: df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[0, 1])
+    In [2]: df2 = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[1, 2])
+    In [3]: df1
+    Out[3]:
        a  b
     0  1  3
     1  2  4
-    >>> df2
+    In [4]: df2
+    Out[4]:
        a  b
     1  1  3
     2  2  4
 
-    >>> np.add(df1, df2)
+    In [5]: np.add(df1, df2)
+    Out[5]:
        a  b
     0  2  6
     1  4  8
@@ -73,9 +76,10 @@ the result:
 This contrasts with how other pandas operations work, which first align
 the inputs:
 
-.. code-block:: python
+.. code-block:: ipython
 
-    >>> df1 + df2
+    In [6]: df1 + df2
+    Out[6]:
          a    b
     0  NaN  NaN
     1  3.0  7.0
@@ -94,9 +98,10 @@ objects (eg ``np.add(s1, s2)``) already aligns and continues to do so.
 To avoid the warning and keep the current behaviour of ignoring the indices,
 convert one of the arguments to a NumPy array:
 
-.. code-block:: python
+.. code-block:: ipython
 
-    >>> np.add(df1, np.asarray(df2))
+    In [7]: np.add(df1, np.asarray(df2))
+    Out[7]:
        a  b
     0  2  6
     1  4  8
@@ -104,10 +109,11 @@ convert one of the arguments to a NumPy array:
 To obtain the future behaviour and silence the warning, you can align manually
 before passing the arguments to the ufunc:
 
-.. code-block:: python
+.. code-block:: ipython
 
-    >>> df1, df2 = df1.align(df2)
-    >>> np.add(df1, df2)
+    In [8]: df1, df2 = df1.align(df2)
+    In [9]: np.add(df1, df2)
+    Out[9]:
          a    b
     0  NaN  NaN
     1  3.0  7.0
@@ -135,7 +141,7 @@ Other
 - Bumped minimum fastparquet version to 0.4.0 to avoid ``AttributeError`` from numba (:issue:`38344`)
 - Bumped minimum pymysql version to 0.8.1 to avoid test failures (:issue:`38344`)
 - Fixed build failure on MacOS 11 in Python 3.9.1 (:issue:`38766`)
-- Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 whats new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
+- Added reference to backwards incompatible ``check_freq`` arg of :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` in :ref:`pandas 1.1.0 what's new <whatsnew_110.api_breaking.testing.check_freq>` (:issue:`34050`)
 
 .. ---------------------------------------------------------------------------
 

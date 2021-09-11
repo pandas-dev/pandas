@@ -1,16 +1,11 @@
 """
 :mod:`pandas.io.formats.xml` is a module for formatting data in XML.
 """
+from __future__ import annotations
 
 import codecs
 import io
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Union,
-)
+from typing import Any
 
 from pandas._typing import (
     CompressionOptions,
@@ -21,8 +16,9 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.common import is_list_like
 
+from pandas.core.frame import DataFrame
+
 from pandas.io.common import get_handle
-from pandas.io.formats.format import DataFrameFormatter
 from pandas.io.xml import (
     get_data_from_filepath,
     preprocess_data,
@@ -93,24 +89,24 @@ class BaseXMLFormatter:
 
     def __init__(
         self,
-        formatter: DataFrameFormatter,
-        path_or_buffer: Optional[FilePathOrBuffer] = None,
-        index: Optional[bool] = True,
-        root_name: Optional[str] = "data",
-        row_name: Optional[str] = "row",
-        na_rep: Optional[str] = None,
-        attr_cols: Optional[List[str]] = None,
-        elem_cols: Optional[List[str]] = None,
-        namespaces: Optional[Dict[Optional[str], str]] = None,
-        prefix: Optional[str] = None,
+        frame: DataFrame,
+        path_or_buffer: FilePathOrBuffer | None = None,
+        index: bool | None = True,
+        root_name: str | None = "data",
+        row_name: str | None = "row",
+        na_rep: str | None = None,
+        attr_cols: list[str] | None = None,
+        elem_cols: list[str] | None = None,
+        namespaces: dict[str | None, str] | None = None,
+        prefix: str | None = None,
         encoding: str = "utf-8",
-        xml_declaration: Optional[bool] = True,
-        pretty_print: Optional[bool] = True,
-        stylesheet: Optional[FilePathOrBuffer] = None,
+        xml_declaration: bool | None = True,
+        pretty_print: bool | None = True,
+        stylesheet: FilePathOrBuffer | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
     ) -> None:
-        self.fmt = formatter
+        self.frame = frame
         self.path_or_buffer = path_or_buffer
         self.index = index
         self.root_name = root_name
@@ -127,8 +123,7 @@ class BaseXMLFormatter:
         self.compression = compression
         self.storage_options = storage_options
 
-        self.frame = self.fmt.frame
-        self.orig_cols = self.fmt.frame.columns.tolist()
+        self.orig_cols = self.frame.columns.tolist()
         self.frame_dicts = self.process_dataframe()
 
     def build_tree(self) -> bytes:
@@ -175,7 +170,7 @@ class BaseXMLFormatter:
 
         codecs.lookup(self.encoding)
 
-    def process_dataframe(self) -> Dict[Union[int, str], Dict[str, Any]]:
+    def process_dataframe(self) -> dict[int | str, dict[str, Any]]:
         """
         Adjust Data Frame to fit xml output.
 
@@ -183,7 +178,7 @@ class BaseXMLFormatter:
         including optionally replacing missing values and including indexes.
         """
 
-        df = self.fmt.frame
+        df = self.frame
 
         if self.index:
             df = df.reset_index()
@@ -200,14 +195,18 @@ class BaseXMLFormatter:
         This method will add indexes into attr_cols or elem_cols.
         """
 
-        indexes: List[str] = [
-            x for x in self.frame_dicts[0].keys() if x not in self.orig_cols
+        if not self.index:
+            return
+
+        first_key = next(iter(self.frame_dicts))
+        indexes: list[str] = [
+            x for x in self.frame_dicts[first_key].keys() if x not in self.orig_cols
         ]
 
-        if self.attr_cols and self.index:
+        if self.attr_cols:
             self.attr_cols = indexes + self.attr_cols
 
-        if self.elem_cols and self.index:
+        if self.elem_cols:
             self.elem_cols = indexes + self.elem_cols
 
     def get_prefix_uri(self) -> str:
@@ -233,7 +232,7 @@ class BaseXMLFormatter:
         prefix.
         """
 
-        nmsp_dict: Dict[str, str] = {}
+        nmsp_dict: dict[str, str] = {}
         if self.namespaces and self.prefix is None:
             nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p != ""}
 
@@ -262,10 +261,10 @@ class BaseXMLFormatter:
 
         raise AbstractMethodError(self)
 
-    def write_output(self) -> Optional[str]:
+    def write_output(self) -> str | None:
         xml_doc = self.build_tree()
 
-        out_str: Optional[str]
+        out_str: str | None
 
         if self.path_or_buffer is not None:
             with get_handle(
@@ -288,7 +287,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.validate_columns()
@@ -307,12 +306,12 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
         )
 
-        for k, d in self.frame_dicts.items():
+        for d in self.frame_dicts.values():
             self.d = d
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
             if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(self.frame_dicts[0].keys())
+                self.elem_cols = list(self.d.keys())
                 self.build_elems()
 
             else:
@@ -362,9 +361,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             attr_name = f"{self.prefix_uri}{flat_col}"
@@ -389,9 +388,9 @@ class EtreeXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             elem_name = f"{self.prefix_uri}{flat_col}"
@@ -452,7 +451,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.validate_columns()
@@ -477,12 +476,12 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         self.root = Element(f"{self.prefix_uri}{self.root_name}", nsmap=self.namespaces)
 
-        for k, d in self.frame_dicts.items():
+        for d in self.frame_dicts.values():
             self.d = d
             self.elem_row = SubElement(self.root, f"{self.prefix_uri}{self.row_name}")
 
             if not self.attr_cols and not self.elem_cols:
-                self.elem_cols = list(self.frame_dicts[0].keys())
+                self.elem_cols = list(self.d.keys())
                 self.build_elems()
 
             else:
@@ -534,9 +533,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             attr_name = f"{self.prefix_uri}{flat_col}"
@@ -561,9 +560,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
             flat_col = col
             if isinstance(col, tuple):
                 flat_col = (
-                    "".join(str(c) for c in col).strip()
+                    "".join([str(c) for c in col]).strip()
                     if "" in col
-                    else "_".join(str(c) for c in col).strip()
+                    else "_".join([str(c) for c in col]).strip()
                 )
 
             elem_name = f"{self.prefix_uri}{flat_col}"

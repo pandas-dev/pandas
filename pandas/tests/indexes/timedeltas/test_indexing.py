@@ -82,6 +82,7 @@ class TestGetItem:
 
 
 class TestGetLoc:
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
     def test_get_loc(self):
         idx = to_timedelta(["0 days", "1 days", "2 days"])
 
@@ -291,3 +292,52 @@ class TestTake:
         msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
             idx.take(np.array([1, -5]))
+
+
+class TestMaybeCastSliceBound:
+    @pytest.fixture(params=["increasing", "decreasing", None])
+    def monotonic(self, request):
+        return request.param
+
+    @pytest.fixture
+    def tdi(self, monotonic):
+        tdi = timedelta_range("1 Day", periods=10)
+        if monotonic == "decreasing":
+            tdi = tdi[::-1]
+        elif monotonic is None:
+            taker = np.arange(10, dtype=np.intp)
+            np.random.shuffle(taker)
+            tdi = tdi.take(taker)
+        return tdi
+
+    def test_maybe_cast_slice_bound_invalid_str(self, tdi):
+        # test the low-level _maybe_cast_slice_bound and that we get the
+        #  expected exception+message all the way up the stack
+        msg = (
+            "cannot do slice indexing on TimedeltaIndex with these "
+            r"indexers \[foo\] of type str"
+        )
+        with pytest.raises(TypeError, match=msg):
+            tdi._maybe_cast_slice_bound("foo", side="left")
+        with pytest.raises(TypeError, match=msg):
+            tdi.get_slice_bound("foo", side="left")
+        with pytest.raises(TypeError, match=msg):
+            tdi.slice_locs("foo", None, None)
+
+    def test_slice_invalid_str_with_timedeltaindex(
+        self, tdi, frame_or_series, indexer_sl
+    ):
+        obj = frame_or_series(range(10), index=tdi)
+
+        msg = (
+            "cannot do slice indexing on TimedeltaIndex with these "
+            r"indexers \[foo\] of type str"
+        )
+        with pytest.raises(TypeError, match=msg):
+            indexer_sl(obj)["foo":]
+        with pytest.raises(TypeError, match=msg):
+            indexer_sl(obj)["foo":-1]
+        with pytest.raises(TypeError, match=msg):
+            indexer_sl(obj)[:"foo"]
+        with pytest.raises(TypeError, match=msg):
+            indexer_sl(obj)[tdi[0] : "foo"]

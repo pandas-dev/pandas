@@ -23,6 +23,10 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
@@ -338,15 +342,23 @@ class TestGetLoc:
             pi2.get_loc(46)
 
     # TODO: This method came from test_period; de-dup with version above
-    def test_get_loc2(self):
+    @pytest.mark.parametrize("method", [None, "pad", "backfill", "nearest"])
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc_method(self, method):
         idx = period_range("2000-01-01", periods=3)
 
-        for method in [None, "pad", "backfill", "nearest"]:
-            assert idx.get_loc(idx[1], method) == 1
-            assert idx.get_loc(idx[1].asfreq("H", how="start"), method) == 1
-            assert idx.get_loc(idx[1].to_timestamp(), method) == 1
-            assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
-            assert idx.get_loc(str(idx[1]), method) == 1
+        assert idx.get_loc(idx[1], method) == 1
+        assert idx.get_loc(idx[1].to_timestamp(), method) == 1
+        assert idx.get_loc(idx[1].to_timestamp().to_pydatetime(), method) == 1
+        assert idx.get_loc(str(idx[1]), method) == 1
+
+        key = idx[1].asfreq("H", how="start")
+        with pytest.raises(KeyError, match=str(key)):
+            idx.get_loc(key, method=method)
+
+    # TODO: This method came from test_period; de-dup with version above
+    @pytest.mark.filterwarnings("ignore:Passing method:FutureWarning")
+    def test_get_loc3(self):
 
         idx = period_range("2000-01-01", periods=5)[::2]
         assert idx.get_loc("2000-01-02T12", method="nearest", tolerance="1 day") == 1
@@ -400,6 +412,21 @@ class TestGetLoc:
 
         assert "A" not in ser
         assert "A" not in pi
+
+    def test_get_loc_mismatched_freq(self):
+        # see also test_get_indexer_mismatched_dtype testing we get analogous
+        # behavior for get_loc
+        dti = date_range("2016-01-01", periods=3)
+        pi = dti.to_period("D")
+        pi2 = dti.to_period("W")
+        pi3 = pi.view(pi2.dtype)  # i.e. matching i8 representations
+
+        with pytest.raises(KeyError, match="W-SUN"):
+            pi.get_loc(pi2[0])
+
+        with pytest.raises(KeyError, match="W-SUN"):
+            # even though we have matching i8 values
+            pi.get_loc(pi3[0])
 
 
 class TestGetIndexer:
@@ -464,7 +491,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_mismatched_dtype_different_length(self, non_comparable_idx):
-        # without method we arent checking inequalities, so get all-missing
+        # without method we aren't checking inequalities, so get all-missing
         #  but do not raise
         dti = date_range("2016-01-01", periods=3)
         pi = dti.to_period("D")
@@ -492,11 +519,13 @@ class TestGetIndexer:
                 continue
             # Two different error message patterns depending on dtypes
             msg = "|".join(
-                re.escape(msg)
-                for msg in (
-                    f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
-                    " not supported between instances of ",
-                )
+                [
+                    re.escape(msg)
+                    for msg in (
+                        f"Cannot compare dtypes {pi.dtype} and {other.dtype}",
+                        " not supported between instances of ",
+                    )
+                ]
             )
             with pytest.raises(TypeError, match=msg):
                 pi.get_indexer(other2, method=method)
@@ -589,7 +618,7 @@ class TestWhere:
     def test_where_other(self):
         i = period_range("20130101", periods=5, freq="D")
         for arr in [np.nan, NaT]:
-            result = i.where(notna(i), other=np.nan)
+            result = i.where(notna(i), other=arr)
             expected = i
             tm.assert_index_equal(result, expected)
 
@@ -904,10 +933,10 @@ class TestAsOfLocs:
 
         msg = "must be DatetimeIndex or PeriodIndex"
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Int64Index(pi.asi8), mask)
+            pi.asof_locs(Int64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
-            pi.asof_locs(pd.Float64Index(pi.asi8), mask)
+            pi.asof_locs(Float64Index(pi.asi8), mask)
 
         with pytest.raises(TypeError, match=msg):
             # TimedeltaIndex

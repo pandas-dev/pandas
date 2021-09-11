@@ -106,6 +106,54 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
     assert df == expected
 
 
+@pytest.mark.parametrize(
+    "max_cols, max_rows, expected",
+    [
+        (
+            10,
+            None,
+            " 0   1   2   3   4   ...  6   7   8   9   10\n"
+            "  0   0   0   0   0  ...   0   0   0   0   0\n"
+            "  0   0   0   0   0  ...   0   0   0   0   0\n"
+            "  0   0   0   0   0  ...   0   0   0   0   0\n"
+            "  0   0   0   0   0  ...   0   0   0   0   0",
+        ),
+        (
+            None,
+            2,
+            " 0   1   2   3   4   5   6   7   8   9   10\n"
+            "  0   0   0   0   0   0   0   0   0   0   0\n"
+            " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
+            "  0   0   0   0   0   0   0   0   0   0   0",
+        ),
+        (
+            10,
+            2,
+            " 0   1   2   3   4   ...  6   7   8   9   10\n"
+            "  0   0   0   0   0  ...   0   0   0   0   0\n"
+            " ..  ..  ..  ..  ..  ...  ..  ..  ..  ..  ..\n"
+            "  0   0   0   0   0  ...   0   0   0   0   0",
+        ),
+        (
+            9,
+            2,
+            " 0   1   2   3   ...  7   8   9   10\n"
+            "  0   0   0   0  ...   0   0   0   0\n"
+            " ..  ..  ..  ..  ...  ..  ..  ..  ..\n"
+            "  0   0   0   0  ...   0   0   0   0",
+        ),
+        (
+            1,
+            1,
+            " 0  ...\n 0  ...\n..  ...",
+        ),
+    ],
+)
+def test_truncation_no_index(max_cols, max_rows, expected):
+    df = DataFrame([[0] * 11] * 4)
+    assert df.to_string(index=False, max_cols=max_cols, max_rows=max_rows) == expected
+
+
 def test_to_string_unicode_columns(float_frame):
     df = DataFrame({"\u03c3": np.arange(10.0)})
 
@@ -241,9 +289,9 @@ def test_nullable_float_to_string(float_ea_dtype):
     assert result == expected
 
 
-def test_nullable_int_to_string(any_nullable_int_dtype):
+def test_nullable_int_to_string(any_int_ea_dtype):
     # https://github.com/pandas-dev/pandas/issues/36775
-    dtype = any_nullable_int_dtype
+    dtype = any_int_ea_dtype
     s = Series([0, 1, None], dtype=dtype)
     result = s.to_string()
     expected = dedent(
@@ -266,4 +314,27 @@ def test_to_string_na_rep_and_float_format(na_rep):
          0     A  1.22
          1     A   {na_rep}"""
     )
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "data,expected",
+    [
+        (
+            {"col1": [1, 2], "col2": [3, 4]},
+            "   col1  col2\n0     1     3\n1     2     4",
+        ),
+        (
+            {"col1": ["Abc", 0.756], "col2": [np.nan, 4.5435]},
+            "    col1    col2\n0    Abc     NaN\n1  0.756  4.5435",
+        ),
+        (
+            {"col1": [np.nan, "a"], "col2": [0.009, 3.543], "col3": ["Abc", 23]},
+            "  col1   col2 col3\n0  NaN  0.009  Abc\n1    a  3.543   23",
+        ),
+    ],
+)
+def test_to_string_max_rows_zero(data, expected):
+    # GH35394
+    result = DataFrame(data=data).to_string(max_rows=0)
     assert result == expected

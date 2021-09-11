@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -12,9 +10,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-
-# TODO(ArrayManager) quantile is needed for describe()
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 class TestDataFrameDescribe:
@@ -351,7 +346,7 @@ class TestDataFrameDescribe:
         result = df.describe(percentiles=pct)
 
         expected = DataFrame(
-            {"x": [1.0, 1.0, np.NaN, 1.0, *[1.0 for _ in pct], 1.0]},
+            {"x": [1.0, 1.0, np.NaN, 1.0, *(1.0 for _ in pct), 1.0]},
             index=[
                 "count",
                 "mean",

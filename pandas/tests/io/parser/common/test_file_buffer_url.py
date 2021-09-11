@@ -21,6 +21,10 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 import pandas._testing as tm
 
+# TODO(1.4) Please xfail individual tests at release time
+# instead of skip
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @tm.network
 def test_url(all_parsers, csv_dir_path):
@@ -400,7 +404,7 @@ def test_context_manageri_user_provided(all_parsers, datapath):
     # make sure that user-provided handles are not closed
     parser = all_parsers
 
-    with open(datapath("io", "data", "csv", "iris.csv"), mode="r") as path:
+    with open(datapath("io", "data", "csv", "iris.csv")) as path:
 
         reader = parser.read_csv(path, chunksize=1)
         assert not reader._engine.handles.handle.closed

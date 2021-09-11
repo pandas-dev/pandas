@@ -63,23 +63,23 @@ _fieldkeys = [
 _base_params_doc = """\
 Parameters
 ----------
-filepath_or_buffer : string or file-like object
+filepath_or_buffer : str or file-like object
     Path to SAS file or object implementing binary read method."""
 
 _params2_doc = """\
 index : identifier of index column
     Identifier of column that should be used as index of the DataFrame.
-encoding : string
+encoding : str
     Encoding for text data.
 chunksize : int
     Read file `chunksize` lines at a time, returns iterator."""
 
 _format_params_doc = """\
-format : string
+format : str
     File format, only `xport` is currently supported."""
 
 _iterator_doc = """\
-iterator : boolean, default False
+iterator : bool, default False
     Return XportReader object for reading file incrementally."""
 
 
@@ -138,7 +138,7 @@ A DataFrame.
 
 
 def _parse_date(datestr: str) -> datetime:
-    """ Given a date in xport format, return Python date. """
+    """Given a date in xport format, return Python date."""
     try:
         # e.g. "16FEB11:10:07:55"
         return datetime.strptime(datestr, "%d%b%y:%H:%M:%S")
@@ -393,7 +393,7 @@ class XportReader(ReaderBase, abc.Iterator):
         total_records_length = self.filepath_or_buffer.tell() - self.record_start
 
         if total_records_length % 80 != 0:
-            warnings.warn("xport file may be corrupted")
+            warnings.warn("xport file may be corrupted.")
 
         if self.record_length > 80:
             self.filepath_or_buffer.seek(self.record_start)

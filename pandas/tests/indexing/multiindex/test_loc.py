@@ -256,18 +256,15 @@ class TestMultiIndexLoc:
 
         result = s.loc[0:4, "a":"c"]
         tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected)
 
         result = s.loc[:4, "a":"c"]
-        tm.assert_series_equal(result, expected)
         tm.assert_series_equal(result, expected)
 
         result = s.loc[0:, "a":"c"]
         tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result, expected)
 
         # GH 7400
-        # multiindexer gettitem with list of indexers skips wrong element
+        # multiindexer getitem with list of indexers skips wrong element
         s = Series(
             np.arange(15, dtype="int64"),
             MultiIndex.from_product([range(5), ["a", "b", "c"]]),
@@ -388,7 +385,7 @@ class TestMultiIndexLoc:
     [
         ([], []),  # empty ok
         (["A"], slice(3)),
-        (["A", "D"], []),  # "D" isnt present -> raise
+        (["A", "D"], []),  # "D" isn't present -> raise
         (["D", "E"], []),  # no values found -> raise
         (["D"], []),  # same, with single item list: GH 27148
         (pd.IndexSlice[:, ["foo"]], slice(2, None, 3)),
@@ -401,22 +398,22 @@ def test_loc_getitem_duplicates_multiindex_missing_indexers(indexer, pos):
     idx = MultiIndex.from_product(
         [["A", "B", "C"], ["foo", "bar", "baz"]], names=["one", "two"]
     )
-    s = Series(np.arange(9, dtype="int64"), index=idx).sort_index()
-    expected = s.iloc[pos]
+    ser = Series(np.arange(9, dtype="int64"), index=idx).sort_index()
+    expected = ser.iloc[pos]
 
     if expected.size == 0 and indexer != []:
         with pytest.raises(KeyError, match=str(indexer)):
-            s.loc[indexer]
+            ser.loc[indexer]
     else:
-        result = s.loc[indexer]
+        warn = None
+        msg = "MultiIndex with a nested sequence"
+        if indexer == (slice(None), ["foo", "bah"]):
+            # "bah" is not in idx.levels[1], so is ignored, will raise KeyError
+            warn = FutureWarning
+
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ser.loc[indexer]
         tm.assert_series_equal(result, expected)
-
-
-def test_series_loc_getitem_fancy(multiindex_year_month_day_dataframe_random_data):
-    s = multiindex_year_month_day_dataframe_random_data["A"]
-    expected = s.reindex(s.index[49:51])
-    result = s.loc[[(2000, 3, 10), (2000, 3, 13)]]
-    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("columns_indexer", [([], slice(None)), (["foo"], [])])
@@ -541,7 +538,7 @@ def test_loc_period_string_indexing():
     # GH 9892
     a = pd.period_range("2013Q1", "2013Q4", freq="Q")
     i = (1111, 2222, 3333)
-    idx = MultiIndex.from_product((a, i), names=("Periode", "CVR"))
+    idx = MultiIndex.from_product((a, i), names=("Period", "CVR"))
     df = DataFrame(
         index=idx,
         columns=(
@@ -557,15 +554,17 @@ def test_loc_period_string_indexing():
         ),
     )
     result = df.loc[("2013Q1", 1111), "OMS"]
-    expected = Series(
-        [np.nan],
-        dtype=object,
-        name="OMS",
-        index=MultiIndex.from_tuples(
-            [(pd.Period("2013Q1"), 1111)], names=["Periode", "CVR"]
-        ),
-    )
-    tm.assert_series_equal(result, expected)
+
+    alt = df.loc[(a[0], 1111), "OMS"]
+    assert np.isnan(alt)
+
+    # Because the resolution of the string matches, it is an exact lookup,
+    #  not a slice
+    assert np.isnan(result)
+
+    # TODO: should it figure this out?
+    # alt = df.loc["2013Q1", 1111, "OMS"]
+    # assert np.isnan(alt)
 
 
 def test_loc_datetime_mask_slicing():
@@ -746,6 +745,19 @@ def test_get_loc_datetime_index():
     assert mi.get_loc("2001-01") == slice(0, 31, None)
     assert index.get_loc("2001-01") == slice(0, 31, None)
 
+    loc = mi[::2].get_loc("2001-01")
+    expected = index[::2].get_loc("2001-01")
+    assert loc == expected
+
+    loc = mi.repeat(2).get_loc("2001-01")
+    expected = index.repeat(2).get_loc("2001-01")
+    assert loc == expected
+
+    loc = mi.append(mi).get_loc("2001-01")
+    expected = index.append(index).get_loc("2001-01")
+    # TODO: standardize return type for MultiIndex.get_loc
+    tm.assert_numpy_array_equal(loc.nonzero()[0], expected)
+
 
 def test_loc_setitem_indexer_differently_ordered():
     # GH#34603
@@ -774,11 +786,33 @@ def test_loc_getitem_index_differently_ordered_slice_none():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("indexer", [[1, 2, 7, 6, 2, 3, 8, 7], [1, 2, 7, 6, 3, 8]])
+def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
+    # GH#40978
+    df = DataFrame(
+        [1] * 8,
+        index=MultiIndex.from_tuples(
+            [(1, 1), (1, 2), (1, 7), (1, 6), (2, 2), (2, 3), (2, 8), (2, 7)]
+        ),
+        columns=["a"],
+    )
+    result = df.loc[(slice(None), indexer), :]
+    expected = DataFrame(
+        [1] * 8,
+        index=[[1, 1, 2, 1, 2, 1, 2, 2], [1, 2, 2, 7, 7, 6, 3, 8]],
+        columns=["a"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.loc[df.index.isin(indexer, level=1), :]
+    tm.assert_frame_equal(result, df)
+
+
 def test_loc_getitem_drops_levels_for_one_row_dataframe():
-    # GH#10521
+    # GH#10521 "x" and "z" are both scalar indexing, so those levels are dropped
     mi = MultiIndex.from_arrays([["x"], ["y"], ["z"]], names=["a", "b", "c"])
     df = DataFrame({"d": [0]}, index=mi)
-    expected = df.copy()
+    expected = df.droplevel([0, 2])
     result = df.loc["x", :, "z"]
     tm.assert_frame_equal(result, expected)
 
@@ -786,3 +820,95 @@ def test_loc_getitem_drops_levels_for_one_row_dataframe():
     result = ser.loc["x", :, "z"]
     expected = Series([0], index=Index(["y"], name="b"))
     tm.assert_series_equal(result, expected)
+
+
+def test_mi_columns_loc_list_label_order():
+    # GH 10710
+    cols = MultiIndex.from_product([["A", "B", "C"], [1, 2]])
+    df = DataFrame(np.zeros((5, 6)), columns=cols)
+    result = df.loc[:, ["B", "A"]]
+    expected = DataFrame(
+        np.zeros((5, 4)),
+        columns=MultiIndex.from_tuples([("B", 1), ("B", 2), ("A", 1), ("A", 2)]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_mi_partial_indexing_list_raises():
+    # GH 13501
+    frame = DataFrame(
+        np.arange(12).reshape((4, 3)),
+        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
+    )
+    frame.index.names = ["key1", "key2"]
+    frame.columns.names = ["state", "color"]
+    with pytest.raises(KeyError, match="\\[2\\] not in index"):
+        frame.loc[["b", 2], "Colorado"]
+
+
+def test_mi_indexing_list_nonexistent_raises():
+    # GH 15452
+    s = Series(range(4), index=MultiIndex.from_product([[1, 2], ["a", "b"]]))
+    with pytest.raises(KeyError, match="\\['not' 'found'\\] not in index"):
+        s.loc[["not", "found"]]
+
+
+def test_mi_add_cell_missing_row_non_unique():
+    # GH 16018
+    result = DataFrame(
+        [[1, 2, 5, 6], [3, 4, 7, 8]],
+        index=["a", "a"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    result.loc["c"] = -1
+    result.loc["c", (1, "A")] = 3
+    result.loc["d", (1, "A")] = 3
+    expected = DataFrame(
+        [
+            [1.0, 2.0, 5.0, 6.0],
+            [3.0, 4.0, 7.0, 8.0],
+            [3.0, -1.0, -1, -1],
+            [3.0, np.nan, np.nan, np.nan],
+        ],
+        index=["a", "a", "c", "d"],
+        columns=MultiIndex.from_product([[1, 2], ["A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_loc_get_scalar_casting_to_float():
+    # GH#41369
+    df = DataFrame(
+        {"a": 1.0, "b": 2}, index=MultiIndex.from_arrays([[3], [4]], names=["c", "d"])
+    )
+    result = df.loc[(3, 4), "b"]
+    assert result == 2
+    assert isinstance(result, np.int64)
+    result = df.loc[[(3, 4)], "b"].iloc[0]
+    assert result == 2
+    assert isinstance(result, np.int64)
+
+
+def test_loc_empty_single_selector_with_names():
+    # GH 19517
+    idx = MultiIndex.from_product([["a", "b"], ["A", "B"]], names=[1, 0])
+    s2 = Series(index=idx, dtype=np.float64)
+    result = s2.loc["a"]
+    expected = Series([np.nan, np.nan], index=Index(["A", "B"], name=0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_keyerror_rightmost_key_missing():
+    # GH 20951
+
+    df = DataFrame(
+        {
+            "A": [100, 100, 200, 200, 300, 300],
+            "B": [10, 10, 20, 21, 31, 33],
+            "C": range(6),
+        }
+    )
+    df = df.set_index(["A", "B"])
+    with pytest.raises(KeyError, match="^1$"):
+        df.loc[(100, 1)]

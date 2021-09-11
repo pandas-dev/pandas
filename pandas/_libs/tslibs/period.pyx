@@ -197,7 +197,7 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
             return <freq_conv_func>asfreq_BtoW
         elif to_group == FR_BUS:
             return <freq_conv_func>no_op
-        elif to_group  in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
             return <freq_conv_func>asfreq_BtoDT
         else:
             return <freq_conv_func>nofunc
@@ -1445,7 +1445,7 @@ def from_ordinals(const int64_t[:] values, freq):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def extract_ordinals(ndarray[object] values, freq):
+def extract_ordinals(ndarray[object] values, freq) -> np.ndarray:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -1483,7 +1483,7 @@ def extract_ordinals(ndarray[object] values, freq):
     return ordinals.base  # .base to access underlying np.ndarray
 
 
-def extract_freq(ndarray[object] values):
+def extract_freq(ndarray[object] values) -> BaseOffset:
     # TODO: Change type to const object[:] when Cython supports that.
 
     cdef:
@@ -2539,7 +2539,7 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                           minute, second, 0, 0, base)
 
 
-def validate_end_alias(how):
+def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     how_dict = {'S': 'S', 'E': 'E',
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}

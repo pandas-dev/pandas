@@ -1,7 +1,6 @@
 import operator
 import re
 import time
-from typing import Any
 import warnings
 
 import cython
@@ -364,7 +363,7 @@ cdef class BaseOffset:
         self.normalize = normalize
         self._cache = {}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             try:
                 # GH#23524 if to_offset fails, we are dealing with an
@@ -697,7 +696,7 @@ cdef class BaseOffset:
 
     def onOffset(self, dt) -> bool:
         warnings.warn(
-            "onOffset is a deprecated, use is_on_offset instead",
+            "onOffset is a deprecated, use is_on_offset instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -705,7 +704,7 @@ cdef class BaseOffset:
 
     def isAnchored(self) -> bool:
         warnings.warn(
-            "isAnchored is a deprecated, use is_anchored instead",
+            "isAnchored is a deprecated, use is_anchored instead.",
             FutureWarning,
             stacklevel=1,
         )
@@ -715,6 +714,26 @@ cdef class BaseOffset:
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what is_anchored means.
         return self.n == 1
+
+    # ------------------------------------------------------------------
+
+    def is_month_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_start", self)
+
+    def is_month_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_month_end", self)
+
+    def is_quarter_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_start", self)
+
+    def is_quarter_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_quarter_end", self)
+
+    def is_year_start(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_start", self)
+
+    def is_year_end(self, _Timestamp ts):
+        return ts._get_start_end_field("is_year_end", self)
 
 
 cdef class SingleConstructorOffset(BaseOffset):
@@ -1133,12 +1152,13 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
 
-    Works exactly like relativedelta in terms of the keyword args you
-    pass in, use of the keyword n is discouraged-- you would be better
+    Works exactly like the keyword argument form of relativedelta.
+    Note that the positional argument form of relativedelata is not
+    supported. Use of the keyword n is discouraged-- you would be better
     off specifying n in the keywords you use, but regardless it is
     there for you. n is needed for DateOffset subclasses.
 
-    DateOffset work as follows.  Each offset specify a set of dates
+    DateOffset works as follows.  Each offset specify a set of dates
     that conform to the DateOffset.  For example, Bday defines this
     set to be the set of dates that are weekdays (M-F).  To test if a
     date is in the set of a DateOffset dateOffset we can use the
@@ -1434,7 +1454,7 @@ cdef class BusinessHour(BusinessMixin):
 
     def __init__(
             self, n=1, normalize=False, start="09:00", end="17:00", offset=timedelta(0)
-        ):
+    ):
         BusinessMixin.__init__(self, n, normalize, offset)
 
         # must be validated here to equality check
@@ -3350,7 +3370,10 @@ cdef class _CustomBusinessMonth(BusinessMixin):
         """
         Define default roll function to be called in apply method.
         """
-        cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
+        cbday_kwds = self.kwds.copy()
+        cbday_kwds['offset'] = timedelta(0)
+
+        cbday = CustomBusinessDay(n=1, normalize=False, **cbday_kwds)
 
         if self._prefix.endswith("S"):
             # MonthBegin
@@ -3394,6 +3417,9 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
         new = cur_month_offset_date + n * self.m_offset
         result = self.cbday_roll(new)
+
+        if self.offset:
+            result = result + self.offset
         return result
 
 
@@ -3871,7 +3897,7 @@ cdef ndarray[int64_t] _shift_bdays(const int64_t[:] i8other, int periods):
     return result.base
 
 
-def shift_month(stamp: datetime, months: int, day_opt: object=None) -> datetime:
+def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,

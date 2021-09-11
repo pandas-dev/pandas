@@ -11,10 +11,11 @@ from __future__ import annotations
 import copy
 import itertools
 import operator
-from typing import Type
 
 import numpy as np
 import pyarrow as pa
+
+from pandas._typing import type_t
 
 import pandas as pd
 from pandas.api.extensions import (
@@ -36,7 +37,7 @@ class ArrowBoolDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowBoolArray]:
+    def construct_array_type(cls) -> type_t[ArrowBoolArray]:
         """
         Return the array type associated with this dtype.
 
@@ -60,7 +61,7 @@ class ArrowStringDtype(ExtensionDtype):
     na_value = pa.NULL
 
     @classmethod
-    def construct_array_type(cls) -> Type[ArrowStringArray]:
+    def construct_array_type(cls) -> type_t[ArrowStringArray]:
         """
         Return the array type associated with this dtype.
 

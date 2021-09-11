@@ -5,18 +5,13 @@ from math import ceil
 from typing import (
     TYPE_CHECKING,
     Iterable,
-    List,
     Sequence,
-    Tuple,
-    Union,
 )
 import warnings
 
 import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
-
-from pandas._typing import FrameOrSeriesUnion
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
@@ -33,6 +28,11 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def do_adjust_figure(fig: Figure):
@@ -58,7 +58,7 @@ def format_date_labels(ax: Axes, rot):
 
 
 def table(
-    ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
+    ax, data: DataFrame | Series, rowLabels=None, colLabels=None, **kwargs
 ) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
@@ -81,7 +81,7 @@ def table(
     return table
 
 
-def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> Tuple[int, int]:
+def _get_layout(nplots: int, layout=None, layout_type: str = "box") -> tuple[int, int]:
     if layout is not None:
         if not isinstance(layout, (tuple, list)) or len(layout) != 2:
             raise ValueError("Layout must be a tuple of (rows, columns)")
@@ -225,12 +225,13 @@ def create_subplots(
                 ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
-                    "When passing multiple axes, layout keyword is ignored", UserWarning
+                    "When passing multiple axes, layout keyword is ignored.",
+                    UserWarning,
                 )
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
-                    "are ignored. These settings must be specified when creating axes",
+                    "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
                     stacklevel=4,
                 )
@@ -253,7 +254,7 @@ def create_subplots(
         else:
             warnings.warn(
                 "To output multiple subplots, the figure containing "
-                "the passed axes is being cleared",
+                "the passed axes is being cleared.",
                 UserWarning,
                 stacklevel=4,
             )
@@ -392,6 +393,11 @@ def handle_shared_axes(
             row_num = lambda x: x.rowNum
             col_num = lambda x: x.colNum
 
+        if compat.mpl_ge_3_4_0():
+            is_first_col = lambda x: x.get_subplotspec().is_first_col()
+        else:
+            is_first_col = lambda x: x.is_first_col()
+
         if nrows > 1:
             try:
                 # first find out the ax layout,
@@ -412,8 +418,12 @@ def handle_shared_axes(
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
+                if compat.mpl_ge_3_4_0():
+                    is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                else:
+                    is_last_row = lambda x: x.is_last_row()
                 for ax in axarr:
-                    if ax.is_last_row():
+                    if is_last_row(ax):
                         continue
                     if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)
@@ -423,13 +433,13 @@ def handle_shared_axes(
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
-                if ax.is_first_col():
+                if is_first_col(ax):
                     continue
                 if sharey or _has_externally_shared_axis(ax, "y"):
                     _remove_labels_from_axis(ax.yaxis)
 
 
-def flatten_axes(axes: Union[Axes, Sequence[Axes]]) -> np.ndarray:
+def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
     if not is_list_like(axes):
         return np.array([axes])
     elif isinstance(axes, (np.ndarray, ABCIndex)):
@@ -438,7 +448,7 @@ def flatten_axes(axes: Union[Axes, Sequence[Axes]]) -> np.ndarray:
 
 
 def set_ticks_props(
-    axes: Union[Axes, Sequence[Axes]],
+    axes: Axes | Sequence[Axes],
     xlabelsize=None,
     xrot=None,
     ylabelsize=None,
@@ -458,7 +468,7 @@ def set_ticks_props(
     return axes
 
 
-def get_all_lines(ax: Axes) -> List[Line2D]:
+def get_all_lines(ax: Axes) -> list[Line2D]:
     lines = ax.get_lines()
 
     if hasattr(ax, "right_ax"):
@@ -470,7 +480,7 @@ def get_all_lines(ax: Axes) -> List[Line2D]:
     return lines
 
 
-def get_xlim(lines: Iterable[Line2D]) -> Tuple[float, float]:
+def get_xlim(lines: Iterable[Line2D]) -> tuple[float, float]:
     left, right = np.inf, -np.inf
     for line in lines:
         x = line.get_xdata(orig=False)

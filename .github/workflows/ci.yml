@@ -2,11 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - 1.3.x
   pull_request:
     branches:
       - master
-      - 1.2.x
+      - 1.3.x
 
 env:
   ENV_FILE: environment.yml
@@ -20,13 +22,15 @@ jobs:
       run:
         shell: bash -l {0}
 
+    concurrency:
+      group: ${{ github.ref }}-checks
+      cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
-
-    - name: Looking for unwanted patterns
-      run: ci/code_checks.sh patterns
-      if: always()
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Cache conda
       uses: actions/cache@v2
@@ -43,10 +47,6 @@ jobs:
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
-
-    - name: Linting
-      run: ci/code_checks.sh lint
-      if: always()
 
     - name: Checks on imported code
       run: ci/code_checks.sh code
@@ -65,7 +65,7 @@ jobs:
       if: always()
 
     - name: Testing docstring validation script
-      run: pytest --capture=no --strict-markers scripts
+      run: pytest scripts
       if: always()
 
     - name: Running benchmarks
@@ -91,10 +91,16 @@ jobs:
   web_and_docs:
     name: Web and docs
     runs-on: ubuntu-latest
-    steps:
 
+    concurrency:
+      group: ${{ github.ref }}-web-docs
+      cancel-in-progress: true
+
+    steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Set up pandas
       uses: ./.github/actions/setup
@@ -119,15 +125,15 @@ jobs:
         echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBE1Kkopomm7FHG5enATf7SgnpICZ4W2bw+Ho+afqin+w7sMcrsa0je7sbztFAV8YchDkiBKnWTG4cRT+KZgZCaY=" > ~/.ssh/known_hosts
-      if: github.event_name == 'push'
+      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
     - name: Upload web
       run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='Pandas_Cheat_Sheet*' web/build/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas
-      if: github.event_name == 'push'
+      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
     - name: Upload dev docs
       run: rsync -az --delete doc/build/html/ docs@${{ secrets.server_ip }}:/usr/share/nginx/pandas/pandas-docs/dev
-      if: github.event_name == 'push'
+      if: ${{github.event_name == 'push' && github.ref == 'refs/heads/master'}}
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs
@@ -141,32 +147,31 @@ jobs:
   data_manager:
     name: Test experimental data manager
     runs-on: ubuntu-latest
-    steps:
+    strategy:
+      matrix:
+        pattern: ["not slow and not network and not clipboard", "slow"]
+    concurrency:
+      group: ${{ github.ref }}-data_manager-${{ matrix.pattern }}
+      cancel-in-progress: true
 
+    steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Set up pandas
       uses: ./.github/actions/setup
 
     - name: Run tests
+      env:
+        PANDAS_DATA_MANAGER: array
+        PATTERN: ${{ matrix.pattern }}
+        PYTEST_WORKERS: "auto"
+        PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
-        pytest pandas/tests/frame/methods --array-manager
-        pytest pandas/tests/frame/test_constructors.py --array-manager
-        pytest pandas/tests/frame/constructors/ --array-manager
-        pytest pandas/tests/frame/test_reductions.py --array-manager
-        pytest pandas/tests/reductions/ --array-manager
-        pytest pandas/tests/generic/test_generic.py --array-manager
-        pytest pandas/tests/arithmetic/ --array-manager
-        pytest pandas/tests/groupby/ --array-manager
-        pytest pandas/tests/resample/ --array-manager
-        pytest pandas/tests/reshape/merge --array-manager
+        ci/run_tests.sh
 
-        # indexing subset (temporary since other tests don't pass yet)
-        pytest pandas/tests/frame/indexing/test_indexing.py::TestDataFrameIndexing::test_setitem_boolean --array-manager
-        pytest pandas/tests/frame/indexing/test_where.py --array-manager
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_multi_index --array-manager
-        pytest pandas/tests/frame/indexing/test_setitem.py::TestDataFrameSetItem::test_setitem_listlike_indexer_duplicate_columns --array-manager
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_astype_assignment_with_dups --array-manager
-        pytest pandas/tests/indexing/multiindex/test_setitem.py::TestMultiIndexSetItem::test_frame_setitem_multi_column --array-manager
+    - name: Print skipped tests
+      run: python ci/print_skipped.py

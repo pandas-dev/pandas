@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -13,23 +15,26 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_where_unsafe_int(sint_dtype):
-    s = Series(np.arange(10), dtype=sint_dtype)
+def test_where_unsafe_int(any_signed_int_numpy_dtype):
+    s = Series(np.arange(10), dtype=any_signed_int_numpy_dtype)
     mask = s < 5
 
     s[mask] = range(2, 7)
-    expected = Series(list(range(2, 7)) + list(range(5, 10)), dtype=sint_dtype)
+    expected = Series(
+        list(range(2, 7)) + list(range(5, 10)),
+        dtype=any_signed_int_numpy_dtype,
+    )
 
     tm.assert_series_equal(s, expected)
 
 
-def test_where_unsafe_float(float_dtype):
-    s = Series(np.arange(10), dtype=float_dtype)
+def test_where_unsafe_float(float_numpy_dtype):
+    s = Series(np.arange(10), dtype=float_numpy_dtype)
     mask = s < 5
 
     s[mask] = range(2, 7)
     data = list(range(2, 7)) + list(range(5, 10))
-    expected = Series(data, dtype=float_dtype)
+    expected = Series(data, dtype=float_numpy_dtype)
 
     tm.assert_series_equal(s, expected)
 
@@ -137,6 +142,20 @@ def test_where():
     expected.iloc[0] = s2[0]
     rs = s2.where(cond[:3], -s2)
     tm.assert_series_equal(rs, expected)
+
+
+def test_where_non_keyword_deprecation():
+    # GH 41485
+    s = Series(range(5))
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Series.where except for the arguments 'cond' "
+        "and 'other' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.where(s > 1, 10, False)
+    expected = Series([10, 10, 2, 3, 4])
+    tm.assert_series_equal(expected, result)
 
 
 def test_where_error():
@@ -471,6 +490,9 @@ def test_where_categorical(klass):
     tm.assert_equal(exp, res)
 
 
+# TODO(ArrayManager) DataFrame.values not yet correctly returning datetime array
+# for categorical with datetime categories
+@td.skip_array_manager_not_yet_implemented
 def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture

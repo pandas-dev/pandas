@@ -6,6 +6,7 @@ from datetime import (
 from functools import partial
 from io import BytesIO
 import os
+import re
 
 import numpy as np
 import pytest
@@ -436,7 +437,7 @@ class TestExcelWriter:
     def test_ts_frame(self, tsframe, path):
         df = tsframe
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(df.index), freq=None)
         df.index = index
 
@@ -473,9 +474,12 @@ class TestExcelWriter:
         float_frame = df.astype(float)
         float_frame.columns = float_frame.columns.astype(float)
         float_frame.index = float_frame.index.astype(float)
-        recons = pd.read_excel(
-            path, sheet_name="test1", convert_float=False, index_col=0
-        )
+        with tm.assert_produces_warning(
+            FutureWarning, match="convert_float is deprecated"
+        ):
+            recons = pd.read_excel(
+                path, sheet_name="test1", convert_float=False, index_col=0
+            )
         tm.assert_frame_equal(recons, float_frame)
 
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
@@ -515,7 +519,7 @@ class TestExcelWriter:
 
     def test_sheets(self, frame, tsframe, path):
 
-        # freq doesnt round-trip
+        # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
 
@@ -1292,7 +1296,12 @@ class TestExcelWriter:
         )
         expected = DataFrame(np.ones((2, 2)), columns=mi)
         expected.to_excel(path)
-        result = pd.read_excel(path, header=[0, 1], index_col=0, convert_float=False)
+        with tm.assert_produces_warning(
+            FutureWarning, match="convert_float is deprecated"
+        ):
+            result = pd.read_excel(
+                path, header=[0, 1], index_col=0, convert_float=False
+            )
         # need to convert PeriodIndexes to standard Indexes for assert equal
         expected.columns = expected.columns.set_levels(
             [[str(i) for i in mi.levels[0]], [str(i) for i in mi.levels[1]]],
@@ -1323,6 +1332,14 @@ class TestExcelWriter:
         result = pd.read_excel(path)
         expected = DataFrame([[0, 10, 0], [1, 11, 1]], columns=["A", "B", "A.1"])
         tm.assert_frame_equal(result, expected)
+
+    def test_if_sheet_exists_raises(self, ext):
+        # GH 40230
+        msg = "if_sheet_exists is only valid in append mode (mode='a')"
+
+        with tm.ensure_clean(ext) as f:
+            with pytest.raises(ValueError, match=re.escape(msg)):
+                ExcelWriter(f, if_sheet_exists="replace")
 
 
 class TestExcelWriterEngineTests:
@@ -1381,6 +1398,21 @@ class TestExcelWriterEngineTests:
                 check_called(lambda: df.to_excel(filepath))
             with tm.ensure_clean("something.xls") as filepath:
                 check_called(lambda: df.to_excel(filepath, engine="dummy"))
+
+    @pytest.mark.parametrize(
+        "ext",
+        [
+            pytest.param(".xlsx", marks=td.skip_if_no("xlsxwriter")),
+            pytest.param(".xlsx", marks=td.skip_if_no("openpyxl")),
+            pytest.param(".ods", marks=td.skip_if_no("odf")),
+        ],
+    )
+    def test_engine_kwargs_and_kwargs_raises(self, ext):
+        # GH 40430
+        msg = re.escape("Cannot use both engine_kwargs and **kwargs")
+        with pytest.raises(ValueError, match=msg):
+            with ExcelWriter("", engine_kwargs={"a": 1}, b=2):
+                pass
 
 
 @td.skip_if_no("xlrd")

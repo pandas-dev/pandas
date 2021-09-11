@@ -65,13 +65,13 @@ class TestIntervalIndex:
 
         # this is a departure from our current
         # indexing scheme, but simpler
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3, 4, 5]]
 
-        with pytest.raises(KeyError, match=r"^\[-1\]$"):
+        with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3]]
 
-    @pytest.mark.arm_slow
+    @pytest.mark.slow
     def test_loc_getitem_large_series(self):
         ser = Series(
             np.arange(1000000), index=IntervalIndex.from_breaks(np.arange(1000001))
@@ -107,32 +107,49 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"None of \[\[10\]\] are"):
             df.loc[[10]]
 
         # partial missing
-        with pytest.raises(KeyError, match=r"^\[10\]$"):
+        with pytest.raises(KeyError, match=r"\[10\] not in index"):
             df.loc[[10, 4]]
+
+    def test_getitem_interval_with_nans(self, frame_or_series, indexer_sl):
+        # GH#41831
+
+        index = IntervalIndex([np.nan, np.nan])
+        key = index[:-1]
+
+        obj = frame_or_series(range(2), index=index)
+        if frame_or_series is DataFrame and indexer_sl is tm.setitem:
+            obj = obj.T
+
+        result = indexer_sl(obj)[key]
+        expected = obj
+
+        tm.assert_equal(result, expected)
 
 
 class TestIntervalIndexInsideMultiIndex:
     def test_mi_intervalindex_slicing_with_scalar(self):
         # GH#27456
+        ii = IntervalIndex.from_arrays(
+            [0, 1, 10, 11, 0, 1, 10, 11], [1, 2, 11, 12, 1, 2, 11, 12], name="MP"
+        )
         idx = pd.MultiIndex.from_arrays(
             [
                 pd.Index(["FC", "FC", "FC", "FC", "OWNER", "OWNER", "OWNER", "OWNER"]),
                 pd.Index(
                     ["RID1", "RID1", "RID2", "RID2", "RID1", "RID1", "RID2", "RID2"]
                 ),
-                pd.IntervalIndex.from_arrays(
-                    [0, 1, 10, 11, 0, 1, 10, 11], [1, 2, 11, 12, 1, 2, 11, 12]
-                ),
+                ii,
             ]
         )
 
         idx.names = ["Item", "RID", "MP"]
         df = DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
         df.index = idx
+
         query_df = DataFrame(
             {
                 "Item": ["FC", "OWNER", "FC", "OWNER", "OWNER"],
@@ -146,5 +163,13 @@ class TestIntervalIndexInsideMultiIndex:
         idx = pd.MultiIndex.from_arrays([query_df.Item, query_df.RID, query_df.MP])
         query_df.index = idx
         result = df.value.loc[query_df.index]
-        expected = Series([1, 6, 2, 8, 7], index=idx, name="value")
+
+        # the IntervalIndex level is indexed with floats, which map to
+        #  the intervals containing them.  Matching the behavior we would get
+        #  with _only_ an IntervalIndex, we get an IntervalIndex level back.
+        sliced_level = ii.take([0, 1, 1, 3, 2])
+        expected_index = pd.MultiIndex.from_arrays(
+            [idx.get_level_values(0), idx.get_level_values(1), sliced_level]
+        )
+        expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)

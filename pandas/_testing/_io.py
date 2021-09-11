@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 import bz2
 from functools import wraps
 import gzip
 from typing import (
     Any,
     Callable,
-    Optional,
-    Tuple,
 )
 import zipfile
 
@@ -70,7 +70,7 @@ def _get_default_network_errors():
     # Lazy import for http.client because it imports many things from the stdlib
     import http.client
 
-    return (IOError, http.client.HTTPException, TimeoutError)
+    return (OSError, http.client.HTTPException, TimeoutError)
 
 
 def optional_args(decorator):
@@ -93,9 +93,7 @@ def optional_args(decorator):
         is_decorating = not kwargs and len(args) == 1 and callable(args[0])
         if is_decorating:
             f = args[0]
-            # error: Incompatible types in assignment (expression has type
-            # "List[<nothing>]", variable has type "Tuple[Any, ...]")
-            args = []  # type: ignore[assignment]
+            args = ()
             return dec(f)
         else:
             return dec
@@ -137,7 +135,7 @@ def network(
         If True, checks connectivity before running the test case.
     error_classes : tuple or Exception
         error classes to ignore. If not in ``error_classes``, raises the error.
-        defaults to IOError. Be careful about changing the error classes here.
+        defaults to OSError. Be careful about changing the error classes here.
     skip_errnos : iterable of int
         Any exception that has .errno or .reason.erno set to one
         of these values will be skipped with an appropriate
@@ -162,30 +160,30 @@ def network(
     Tests decorated with @network will fail if it's possible to make a network
     connection to another URL (defaults to google.com)::
 
-      >>> from pandas._testing import network
-      >>> from pandas.io.common import urlopen
-      >>> @network
+      >>> from pandas import _testing as ts
+      >>> @ts.network
       ... def test_network():
-      ...     with urlopen("rabbit://bonanza.com"):
+      ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
+      >>> test_network()
       Traceback
          ...
-      URLError: <urlopen error unknown url type: rabit>
+      URLError: <urlopen error unknown url type: rabbit>
 
       You can specify alternative URLs::
 
-        >>> @network("https://www.yahoo.com")
+        >>> @ts.network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
-        ...    raise IOError("Failure Message")
+        ...    raise OSError("Failure Message")
         >>> test_something_with_yahoo()
         Traceback (most recent call last):
             ...
-        IOError: Failure Message
+        OSError: Failure Message
 
     If you set check_before_test, it will check the url first and not run the
     test on failure::
 
-        >>> @network("failing://url.blaher", check_before_test=True)
+        >>> @ts.network("failing://url.blaher", check_before_test=True)
         ... def test_something():
         ...     print("I ran!")
         ...     raise ValueError("Failure")
@@ -244,7 +242,7 @@ with_connectivity_check = network
 
 def can_connect(url, error_classes=None):
     """
-    Try to connect to the given url. True if succeeds, False if IOError
+    Try to connect to the given url. True if succeeds, False if OSError
     raised
 
     Parameters
@@ -255,7 +253,7 @@ def can_connect(url, error_classes=None):
     Returns
     -------
     connectable : bool
-        Return True if no IOError (unable to connect) or URLError (bad url) was
+        Return True if no OSError (unable to connect) or URLError (bad url) was
         raised
     """
     if error_classes is None:
@@ -274,9 +272,7 @@ def can_connect(url, error_classes=None):
 # File-IO
 
 
-def round_trip_pickle(
-    obj: Any, path: Optional[FilePathOrBuffer] = None
-) -> FrameOrSeries:
+def round_trip_pickle(obj: Any, path: FilePathOrBuffer | None = None) -> FrameOrSeries:
     """
     Pickle an object and then read it again.
 
@@ -300,7 +296,7 @@ def round_trip_pickle(
         return pd.read_pickle(temp_path)
 
 
-def round_trip_pathlib(writer, reader, path: Optional[str] = None):
+def round_trip_pathlib(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a pathlib.Path and read it back
 
@@ -329,7 +325,7 @@ def round_trip_pathlib(writer, reader, path: Optional[str] = None):
     return obj
 
 
-def round_trip_localpath(writer, reader, path: Optional[str] = None):
+def round_trip_localpath(writer, reader, path: str | None = None):
     """
     Write an object to file specified by a py.path LocalPath and read it back.
 
@@ -377,7 +373,7 @@ def write_to_compressed(compression, path, data, dest="test"):
     ------
     ValueError : An invalid compression value was passed in.
     """
-    args: Tuple[Any, ...] = (data,)
+    args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
     compress_method: Callable

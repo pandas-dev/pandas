@@ -234,10 +234,12 @@ class TestSeriesGetitemSlices:
         result = ser["1 days, 10:11:12.001001"]
         assert result == ser.iloc[1001]
 
-    def test_getitem_slice_2d(self, datetime_series):
+    def test_getitem_slice_2d(self, datetime_series, using_array_manager):
         # GH#30588 multi-dimensional indexing deprecated
 
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(
+            FutureWarning, check_stacklevel=not using_array_manager
+        ):
             # GH#30867 Don't want to support this long-term, but
             # for now ensure that the warning from Index
             # doesn't comes through via Series.__getitem__.
@@ -358,10 +360,10 @@ class TestSeriesGetitemListLike:
         with pytest.raises(KeyError, match="5"):
             ser[key]
 
-    def test_getitem_uint_array_key(self, uint_dtype):
+    def test_getitem_uint_array_key(self, any_unsigned_int_numpy_dtype):
         # GH #37218
         ser = Series([1, 2, 3])
-        key = np.array([4], dtype=uint_dtype)
+        key = np.array([4], dtype=any_unsigned_int_numpy_dtype)
 
         with pytest.raises(KeyError, match="4"):
             ser[key]
@@ -518,9 +520,11 @@ def test_getitem_generator(string_series):
         Series(date_range("2012-01-01", periods=2, tz="CET")),
     ],
 )
-def test_getitem_ndim_deprecated(series):
+def test_getitem_ndim_deprecated(series, using_array_manager):
     with tm.assert_produces_warning(
-        FutureWarning, match="Support for multi-dimensional indexing"
+        FutureWarning,
+        match="Support for multi-dimensional indexing",
+        check_stacklevel=not using_array_manager,
     ):
         result = series[:, None]
 
@@ -600,10 +604,10 @@ def test_getitem_with_integer_labels():
     ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
-    with pytest.raises(KeyError, match="with any missing labels"):
+    with pytest.raises(KeyError, match="not in index"):
         ser[inds]
 
-    with pytest.raises(KeyError, match="with any missing labels"):
+    with pytest.raises(KeyError, match="not in index"):
         ser[arr_inds]
 
 
@@ -658,3 +662,11 @@ def test_getitem_categorical_str():
 def test_slice_can_reorder_not_uniquely_indexed():
     ser = Series(1, index=["a", "a", "b", "b", "c"])
     ser[::-1]  # it works!
+
+
+@pytest.mark.parametrize("index_vals", ["aabcd", "aadcb"])
+def test_duplicated_index_getitem_positional_indexer(index_vals):
+    # GH 11747
+    s = Series(range(5), index=list(index_vals))
+    result = s[3]
+    assert result == 3

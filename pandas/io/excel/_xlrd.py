@@ -15,7 +15,7 @@ class XlrdReader(BaseExcelReader):
 
         Parameters
         ----------
-        filepath_or_buffer : string, path object or Workbook
+        filepath_or_buffer : str, path object or Workbook
             Object to be parsed.
         storage_options : dict, optional
             passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)

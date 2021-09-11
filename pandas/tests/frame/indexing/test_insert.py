@@ -72,14 +72,30 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self):
+    def test_insert_item_cache(self, using_array_manager):
         df = DataFrame(np.random.randn(4, 3))
         ser = df[0]
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        if using_array_manager:
+            expected_warning = None
+        else:
+            # with BlockManager warn about high fragmentation of single dtype
+            expected_warning = PerformanceWarning
+
+        with tm.assert_produces_warning(expected_warning):
             for n in range(100):
                 df[n + 3] = df[1] * n
 
         ser.values[0] = 99
 
         assert df.iloc[0, 0] == df[0][0]
+
+    def test_insert_frame(self):
+        # GH#42403
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+        msg = (
+            "Expected a 1D array, got an array with shape "
+            r"\(2, 2\)|Wrong number of items passed 2, placement implies 1"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.insert(1, "newcol", df)

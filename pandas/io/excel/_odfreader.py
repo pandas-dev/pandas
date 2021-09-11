@@ -1,7 +1,4 @@
-from typing import (
-    List,
-    cast,
-)
+from __future__ import annotations
 
 import numpy as np
 
@@ -23,7 +20,7 @@ class ODFReader(BaseExcelReader):
 
     Parameters
     ----------
-    filepath_or_buffer : string, path to be parsed or
+    filepath_or_buffer : str, path to be parsed or
         an open readable stream.
     storage_options : dict, optional
         passed to fsspec for appropriate URLs (see ``_get_filepath_or_buffer``)
@@ -54,7 +51,7 @@ class ODFReader(BaseExcelReader):
         return ""
 
     @property
-    def sheet_names(self) -> List[str]:
+    def sheet_names(self) -> list[str]:
         """Return a list of sheet names present in the document"""
         from odf.table import Table
 
@@ -81,7 +78,7 @@ class ODFReader(BaseExcelReader):
         self.close()
         raise ValueError(f"sheet {name} not found")
 
-    def get_sheet_data(self, sheet, convert_float: bool) -> List[List[Scalar]]:
+    def get_sheet_data(self, sheet, convert_float: bool) -> list[list[Scalar]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -99,14 +96,14 @@ class ODFReader(BaseExcelReader):
         empty_rows = 0
         max_row_len = 0
 
-        table: List[List[Scalar]] = []
+        table: list[list[Scalar]] = []
 
-        for i, sheet_row in enumerate(sheet_rows):
+        for sheet_row in sheet_rows:
             sheet_cells = [x for x in sheet_row.childNodes if x.qname in cell_names]
             empty_cells = 0
-            table_row: List[Scalar] = []
+            table_row: list[Scalar] = []
 
-            for j, sheet_cell in enumerate(sheet_cells):
+            for sheet_cell in sheet_cells:
                 if sheet_cell.qname == table_cell_name:
                     value = self._get_cell_value(sheet_cell, convert_float)
                 else:
@@ -200,9 +197,9 @@ class ODFReader(BaseExcelReader):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.to_datetime(cell_value)
         elif cell_type == "time":
-            result = pd.to_datetime(str(cell))
-            result = cast(pd.Timestamp, result)
-            return result.time()
+            stamp = pd.to_datetime(str(cell))
+            # error: Item "str" of "Union[float, str, NaTType]" has no attribute "time"
+            return stamp.time()  # type: ignore[union-attr]
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")

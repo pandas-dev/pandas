@@ -150,7 +150,8 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             indexer_sl(ser)[Interval(3, 5)]
 
-        with pytest.raises(KeyError, match=r"^\[Interval\(3, 5, closed='right'\)\]$"):
+        msg = r"None of \[\[Interval\(3, 5, closed='right'\)\]\]"
+        with pytest.raises(KeyError, match=msg):
             indexer_sl(ser)[[Interval(3, 5)]]
 
         # slices with interval (only exact matches)

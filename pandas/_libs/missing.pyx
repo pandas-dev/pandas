@@ -1,5 +1,6 @@
 from decimal import Decimal
 import numbers
+from sys import maxsize
 
 import cython
 from cython import Py_ssize_t
@@ -27,7 +28,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 )
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
-from pandas.compat import IS64
 
 cdef:
     float64_t INF = <float64_t>np.inf
@@ -35,7 +35,7 @@ cdef:
 
     int64_t NPY_NAT = util.get_nat()
 
-    bint is_32bit = not IS64
+    bint is_32bit = maxsize <= 2 ** 32
 
     type cDecimal = Decimal  # for faster isinstance checks
 
@@ -104,6 +104,7 @@ cpdef bint checknull(object val):
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -143,6 +144,8 @@ cpdef bint checknull_old(object val):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -175,6 +178,8 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr):
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -211,6 +216,7 @@ def isnaobj_old(arr: ndarray) -> ndarray:
      - NEGINF
      - NaT
      - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -249,6 +255,8 @@ def isnaobj2d(arr: ndarray) -> ndarray:
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -293,6 +301,8 @@ def isnaobj2d_old(arr: ndarray) -> ndarray:
      - NaT
      - np.datetime64 representation of NaT
      - np.timedelta64 representation of NaT
+     - NA
+     - Decimal("NaN")
 
     Parameters
     ----------
@@ -390,7 +400,7 @@ def _create_binary_propagating_op(name, is_divmod=False):
     return method
 
 
-def _create_unary_propagating_op(name):
+def _create_unary_propagating_op(name: str):
     def method(self):
         return NA
 

@@ -13,6 +13,7 @@ from pandas import (
     read_parquet,
     read_pickle,
     read_stata,
+    read_table,
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
@@ -122,6 +123,17 @@ def test_csv_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+def test_read_table_options(fsspectest):
+    # GH #39167
+    df = DataFrame({"a": [0]})
+    df.to_csv(
+        "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
+    )
+    assert fsspectest.test[0] == "csv_write"
+    read_table("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    assert fsspectest.test[0] == "csv_read"
+
+
 @pytest.mark.parametrize("extension", ["xlsx", "xls"])
 def test_excel_options(fsspectest, extension):
     if extension == "xls":
@@ -166,6 +178,7 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("fastparquet")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
@@ -210,6 +223,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     )
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
 def test_s3_parquet(s3_resource, s3so):
@@ -247,7 +261,6 @@ def test_pickle_options(fsspectest):
     tm.assert_frame_equal(df, out)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) JSON
 def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
     df.to_json(

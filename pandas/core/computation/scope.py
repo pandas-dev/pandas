@@ -10,7 +10,6 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import List
 
 import numpy as np
 
@@ -51,7 +50,7 @@ def _raw_hex_id(obj) -> str:
     """Return the padded hexadecimal id of ``obj``."""
     # interpret as a pointer since that's what really what id returns
     packed = struct.pack("@P", id(obj))
-    return "".join(_replacer(x) for x in packed)
+    return "".join([_replacer(x) for x in packed])
 
 
 DEFAULT_GLOBALS = {
@@ -107,9 +106,13 @@ class Scope:
     """
 
     __slots__ = ["level", "scope", "target", "resolvers", "temps"]
+    level: int
+    scope: DeepChainMap
+    resolvers: DeepChainMap
+    temps: dict
 
     def __init__(
-        self, level, global_dict=None, local_dict=None, resolvers=(), target=None
+        self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None
     ):
         self.level = level + 1
 
@@ -147,8 +150,7 @@ class Scope:
 
         # assumes that resolvers are going from outermost scope to inner
         if isinstance(local_dict, Scope):
-            # error: Cannot determine type of 'resolvers'
-            resolvers += tuple(local_dict.resolvers.maps)  # type: ignore[has-type]
+            resolvers += tuple(local_dict.resolvers.maps)
         self.resolvers = DeepChainMap(*resolvers)
         self.temps = {}
 
@@ -213,7 +215,7 @@ class Scope:
 
                 raise UndefinedVariableError(key, is_local) from err
 
-    def swapkey(self, old_key: str, new_key: str, new_value=None):
+    def swapkey(self, old_key: str, new_key: str, new_value=None) -> None:
         """
         Replace a variable name, with a potentially new value.
 
@@ -239,7 +241,7 @@ class Scope:
                 mapping[new_key] = new_value  # type: ignore[index]
                 return
 
-    def _get_vars(self, stack, scopes: List[str]):
+    def _get_vars(self, stack, scopes: list[str]) -> None:
         """
         Get specifically scoped variables from a list of stack frames.
 
@@ -264,7 +266,7 @@ class Scope:
                 # scope after the loop
                 del frame
 
-    def _update(self, level: int):
+    def _update(self, level: int) -> None:
         """
         Update the current scope by going back `level` levels.
 
@@ -314,7 +316,7 @@ class Scope:
         return len(self.temps)
 
     @property
-    def full_scope(self):
+    def full_scope(self) -> DeepChainMap:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.

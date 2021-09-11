@@ -391,7 +391,6 @@ class TestSelectDtypes:
         (
             (np.array([1, 2], dtype=np.int32), True),
             (pd.array([1, 2], dtype="Int32"), True),
-            (pd.array(["a", "b"], dtype="string"), False),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=True)), True),
             (DummyArray([1, 2], dtype=DummyDtype(numeric=False)), False),
         ),
@@ -402,3 +401,43 @@ class TestSelectDtypes:
         df = DataFrame(arr)
         is_selected = df.select_dtypes(np.number).shape == df.shape
         assert is_selected == expected
+
+    def test_select_dtypes_numeric_nullable_string(self, nullable_string_dtype):
+        arr = pd.array(["a", "b"], dtype=nullable_string_dtype)
+        df = DataFrame(arr)
+        is_selected = df.select_dtypes(np.number).shape == df.shape
+        assert not is_selected
+
+    @pytest.mark.parametrize(
+        "expected, float_dtypes",
+        [
+            [
+                DataFrame(
+                    {"A": range(3), "B": range(5, 8), "C": range(10, 7, -1)}
+                ).astype(dtype={"A": float, "B": np.float64, "C": np.float32}),
+                float,
+            ],
+            [
+                DataFrame(
+                    {"A": range(3), "B": range(5, 8), "C": range(10, 7, -1)}
+                ).astype(dtype={"A": float, "B": np.float64, "C": np.float32}),
+                "float",
+            ],
+            [DataFrame({"C": range(10, 7, -1)}, dtype=np.float32), np.float32],
+            [
+                DataFrame({"A": range(3), "B": range(5, 8)}).astype(
+                    dtype={"A": float, "B": np.float64}
+                ),
+                np.float64,
+            ],
+        ],
+    )
+    def test_select_dtypes_float_dtype(self, expected, float_dtypes):
+        # GH#42452
+        dtype_dict = {"A": float, "B": np.float64, "C": np.float32}
+        df = DataFrame(
+            {"A": range(3), "B": range(5, 8), "C": range(10, 7, -1)},
+        )
+        df = df.astype(dtype_dict)
+        result = df.select_dtypes(include=float_dtypes)
+        tm.assert_frame_equal(result, expected)

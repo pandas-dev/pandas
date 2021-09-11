@@ -8,8 +8,10 @@ import pytest
 
 from pandas import (
     Categorical,
+    DataFrame,
     DatetimeIndex,
     Index,
+    IntervalIndex,
     MultiIndex,
     NaT,
     Series,
@@ -158,7 +160,7 @@ class TestSetitemScalarIndexer:
         expected = Series([Series([42], index=[ser_index]), 0], dtype="object")
         tm.assert_series_equal(ser, expected)
 
-    @pytest.mark.parametrize("index, exp_value", [(0, 42.0), (1, np.nan)])
+    @pytest.mark.parametrize("index, exp_value", [(0, 42), (1, np.nan)])
     def test_setitem_series(self, index, exp_value):
         # GH#38303
         ser = Series([0, 0])
@@ -200,6 +202,14 @@ class TestSetitemSlices:
 
         series[::2] = 0
         assert (series[::2] == 0).all()
+
+    def test_setitem_multiindex_slice(self, indexer_sli):
+        # GH 8856
+        mi = MultiIndex.from_product(([0, 1], list("abcde")))
+        result = Series(np.arange(10, dtype=np.int64), mi)
+        indexer_sli(result)[::4] = 100
+        expected = Series([100, 1, 2, 3, 100, 5, 6, 7, 100, 9], mi)
+        tm.assert_series_equal(result, expected)
 
 
 class TestSetitemBooleanMask:
@@ -253,19 +263,19 @@ class TestSetitemBooleanMask:
         expected = Series(["a", "b", "c"])
         tm.assert_series_equal(ser, expected)
 
-    def test_setitem_boolean_nullable_int_types(self, any_nullable_numeric_dtype):
+    def test_setitem_boolean_nullable_int_types(self, any_numeric_ea_dtype):
         # GH: 26468
-        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
-        ser[ser > 6] = Series(range(4), dtype=any_nullable_numeric_dtype)
-        expected = Series([5, 6, 2, 3], dtype=any_nullable_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
+        ser[ser > 6] = Series(range(4), dtype=any_numeric_ea_dtype)
+        expected = Series([5, 6, 2, 3], dtype=any_numeric_ea_dtype)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
-        ser.loc[ser > 6] = Series(range(4), dtype=any_nullable_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
+        ser.loc[ser > 6] = Series(range(4), dtype=any_numeric_ea_dtype)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([5, 6, 7, 8], dtype=any_nullable_numeric_dtype)
-        loc_ser = Series(range(4), dtype=any_nullable_numeric_dtype)
+        ser = Series([5, 6, 7, 8], dtype=any_numeric_ea_dtype)
+        loc_ser = Series(range(4), dtype=any_numeric_ea_dtype)
         ser.loc[ser > 6] = loc_ser.loc[loc_ser > 1]
         tm.assert_series_equal(ser, expected)
 
@@ -276,6 +286,13 @@ class TestSetitemBooleanMask:
         ser[mask] = range(5)
         result = ser
         expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        tm.assert_series_equal(result, expected)
+
+    def test_setitem_nan_with_bool(self):
+        # GH 13034
+        result = Series([True, False, True])
+        result[0] = np.nan
+        expected = Series([np.nan, False, True], dtype=object)
         tm.assert_series_equal(result, expected)
 
 
@@ -306,8 +323,8 @@ class TestSetitemViewCopySemantics:
         ser = Series(dti)
         assert ser._values is not dti
         assert ser._values._data.base is not dti._data._data.base
-        assert ser._mgr.blocks[0].values is not dti
-        assert ser._mgr.blocks[0].values._data.base is not dti._data._data.base
+        assert ser._mgr.arrays[0] is not dti
+        assert ser._mgr.arrays[0]._data.base is not dti._data._data.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -556,6 +573,9 @@ class SetitemCastingEquivalents:
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
 
+        genkey = (x for x in [key])
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
+
     def test_slice_key(self, obj, key, expected, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
             return
@@ -569,6 +589,9 @@ class SetitemCastingEquivalents:
 
         indkey = np.array(ilkey)
         self.check_indexer(obj, indkey, expected, val, indexer_sli, is_inplace)
+
+        genkey = (x for x in indkey)
+        self.check_indexer(obj, genkey, expected, val, indexer_sli, is_inplace)
 
     def test_mask_key(self, obj, key, expected, val, indexer_sli):
         # setitem with boolean mask
@@ -885,3 +908,55 @@ class TestSeriesNoneCoercion(SetitemCastingEquivalents):
     def is_inplace(self, obj):
         # This is specific to the 4 cases currently implemented for this class.
         return obj.dtype.kind != "i"
+
+
+def test_setitem_int_as_positional_fallback_deprecation():
+    # GH#42215 deprecated falling back to positional on __setitem__ with an
+    #  int not contained in the index
+    ser = Series([1, 2, 3, 4], index=[1.1, 2.1, 3.0, 4.1])
+    assert not ser.index._should_fallback_to_positional
+    # assert not ser.index.astype(object)._should_fallback_to_positional
+
+    with tm.assert_produces_warning(None):
+        # 3.0 is in our index, so future behavior is unchanged
+        ser[3] = 10
+    expected = Series([1, 2, 10, 4], index=ser.index)
+    tm.assert_series_equal(ser, expected)
+
+    msg = "Treating integers as positional in Series.__setitem__"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(IndexError, match="index 5 is out of bounds"):
+            ser[5] = 5
+    # Once the deprecation is enforced, we will have
+    #  expected = Series([1, 2, 3, 4, 5], index=[1.1, 2.1, 3.0, 4.1, 5.0])
+
+    ii = IntervalIndex.from_breaks(range(10))[::2]
+    ser2 = Series(range(len(ii)), index=ii)
+    expected2 = ser2.copy()
+    expected2.iloc[-1] = 9
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2[4] = 9
+    tm.assert_series_equal(ser2, expected2)
+
+    mi = MultiIndex.from_product([ser.index, ["A", "B"]])
+    ser3 = Series(range(len(mi)), index=mi)
+    expected3 = ser3.copy()
+    expected3.iloc[4] = 99
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser3[4] = 99
+    tm.assert_series_equal(ser3, expected3)
+
+
+def test_setitem_with_bool_indexer():
+    # GH#42530
+
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    result = df.pop("b")
+    result[[True, False, False]] = 9
+    expected = Series(data=[9, 5, 6], name="b")
+    tm.assert_series_equal(result, expected)
+
+    df.loc[[True, False, False], "a"] = 10
+    expected = DataFrame({"a": [10, 2, 3]})
+    tm.assert_frame_equal(df, expected)

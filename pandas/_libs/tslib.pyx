@@ -100,7 +100,7 @@ def format_array_from_datetime(
     tzinfo tz=None,
     str format=None,
     object na_rep=None
-):
+) -> np.ndarray:
     """
     return a np object array of the string formatted values
 
@@ -113,6 +113,9 @@ def format_array_from_datetime(
     na_rep : optional, default is None
           a nat format
 
+    Returns
+    -------
+    np.ndarray[object]
     """
     cdef:
         int64_t val, ns, N = len(values)
@@ -200,7 +203,7 @@ def array_with_unit_to_datetime(
 
     Parameters
     ----------
-    values : ndarray of object
+    values : ndarray
          Date-like objects to convert.
     unit : str
          Time unit to use during conversion.
@@ -232,7 +235,10 @@ def array_with_unit_to_datetime(
         if issubclass(values.dtype.type, (np.integer, np.float_)):
             result = values.astype("M8[ns]", copy=False)
         else:
-            result, tz = array_to_datetime(values.astype(object), errors=errors)
+            result, tz = array_to_datetime(
+                values.astype(object, copy=False),
+                errors=errors,
+            )
         return result, tz
 
     m, p = precision_from_unit(unit)
@@ -242,7 +248,7 @@ def array_with_unit_to_datetime(
         # if we have nulls that are not type-compat
         # then need to iterate
 
-        if values.dtype.kind == "i" or values.dtype.kind == "f":
+        if values.dtype.kind in ["i", "f", "u"]:
             iresult = values.astype("i8", copy=False)
             # fill missing values by comparing to NPY_NAT
             mask = iresult == NPY_NAT
@@ -257,7 +263,7 @@ def array_with_unit_to_datetime(
             ):
                 raise OutOfBoundsDatetime(f"cannot convert input with unit '{unit}'")
 
-            if values.dtype.kind == "i":
+            if values.dtype.kind in ["i", "u"]:
                 result = (iresult * m).astype("M8[ns]")
 
             elif values.dtype.kind == "f":
@@ -411,7 +417,9 @@ cpdef array_to_datetime(
 
     Returns
     -------
-    tuple (ndarray, tzoffset)
+    np.ndarray
+        May be datetime64[ns] or object dtype
+    tzinfo or None
     """
     cdef:
         Py_ssize_t i, n = len(values)
@@ -635,7 +643,7 @@ cpdef array_to_datetime(
     return result, tz_out
 
 
-cdef ignore_errors_out_of_bounds_fallback(ndarray[object] values):
+cdef ndarray[object] ignore_errors_out_of_bounds_fallback(ndarray[object] values):
     """
     Fallback for array_to_datetime if an OutOfBoundsDatetime is raised
     and errors == "ignore"
@@ -689,7 +697,7 @@ cdef _array_to_datetime_object(
 
     Parameters
     ----------
-    values : ndarray of object
+    values : ndarray[object]
          date-like objects to convert
     errors : str
          error behavior when parsing
@@ -700,7 +708,8 @@ cdef _array_to_datetime_object(
 
     Returns
     -------
-    tuple (ndarray, None)
+    np.ndarray[object]
+    Literal[None]
     """
     cdef:
         Py_ssize_t i, n = len(values)

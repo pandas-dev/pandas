@@ -145,7 +145,6 @@ class Mode:
     param_names = ["N", "dtype"]
 
     def setup(self, N, dtype):
-        np.random.seed(42)
         self.s = Series(np.random.randint(0, N, size=10 * N)).astype(dtype)
 
     def time_mode(self, N, dtype):

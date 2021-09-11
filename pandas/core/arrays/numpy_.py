@@ -1,11 +1,6 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    Optional,
-    Tuple,
-    Union,
-)
 
 import numpy as np
 from numpy.lib.mixins import NDArrayOperatorsMixin
@@ -28,6 +23,7 @@ from pandas.core import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 
@@ -39,8 +35,6 @@ class PandasArray(
 ):
     """
     A pandas ExtensionArray for NumPy data.
-
-    .. versionadded:: 0.24.0
 
     This is mostly for internal compatibility, and is not especially
     useful on its own.
@@ -68,11 +62,12 @@ class PandasArray(
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
+    _dtype: PandasDtype
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: Union[np.ndarray, PandasArray], copy: bool = False):
+    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False):
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -87,17 +82,22 @@ class PandasArray(
         if copy:
             values = values.copy()
 
-        self._ndarray = values
-        self._dtype = PandasDtype(values.dtype)
+        dtype = PandasDtype(values.dtype)
+        super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> PandasArray:
         if isinstance(dtype, PandasDtype):
             dtype = dtype._dtype
 
-        result = np.asarray(scalars, dtype=dtype)
+        # error: Argument "dtype" to "asarray" has incompatible type
+        # "Union[ExtensionDtype, str, dtype[Any], dtype[floating[_64Bit]], Type[object],
+        # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+        # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+        # _DTypeDict, Tuple[Any, Any]]]"
+        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")
@@ -127,12 +127,12 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # NumPy Array Interface
 
-    def __array__(self, dtype: Optional[NpDtype] = None) -> np.ndarray:
+    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         return np.asarray(self._ndarray, dtype=dtype)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
@@ -188,50 +188,68 @@ class PandasArray(
     def isna(self) -> np.ndarray:
         return isna(self._ndarray)
 
-    def _validate_fill_value(self, fill_value):
+    def _validate_scalar(self, fill_value):
         if fill_value is None:
             # Primarily for subclasses
             fill_value = self.dtype.na_value
         return fill_value
 
-    def _values_for_factorize(self) -> Tuple[np.ndarray, int]:
+    def _values_for_factorize(self) -> tuple[np.ndarray, int]:
         return self._ndarray, -1
 
     # ------------------------------------------------------------------------
     # Reductions
 
-    def any(self, *, axis=None, out=None, keepdims=False, skipna=True):
+    def any(
+        self,
+        *,
+        axis: int | None = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_any((), {"out": out, "keepdims": keepdims})
         result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def all(self, *, axis=None, out=None, keepdims=False, skipna=True):
+    def all(
+        self,
+        *,
+        axis: int | None = None,
+        out=None,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ):
         nv.validate_all((), {"out": out, "keepdims": keepdims})
         result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
-    def min(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def min(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def max(self, *, axis=None, skipna: bool = True, **kwargs) -> Scalar:
+    def max(self, *, axis: int | None = None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
             values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
         )
         return self._wrap_reduction_result(axis, result)
 
-    def sum(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def sum(
+        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_sum((), kwargs)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
         return self._wrap_reduction_result(axis, result)
 
-    def prod(self, *, axis=None, skipna=True, min_count=0, **kwargs) -> Scalar:
+    def prod(
+        self, *, axis: int | None = None, skipna: bool = True, min_count=0, **kwargs
+    ) -> Scalar:
         nv.validate_prod((), kwargs)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
@@ -241,18 +259,24 @@ class PandasArray(
     def mean(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
         result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
         return self._wrap_reduction_result(axis, result)
 
     def median(
-        self, *, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True
+        self,
+        *,
+        axis: int | None = None,
+        out=None,
+        overwrite_input: bool = False,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_median(
             (), {"out": out, "overwrite_input": overwrite_input, "keepdims": keepdims}
@@ -263,12 +287,12 @@ class PandasArray(
     def std(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
@@ -279,12 +303,12 @@ class PandasArray(
     def var(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
@@ -295,12 +319,12 @@ class PandasArray(
     def sem(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
         ddof=1,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
@@ -311,11 +335,11 @@ class PandasArray(
     def kurt(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
@@ -326,11 +350,11 @@ class PandasArray(
     def skew(
         self,
         *,
-        axis=None,
-        dtype: Optional[NpDtype] = None,
+        axis: int | None = None,
+        dtype: NpDtype | None = None,
         out=None,
-        keepdims=False,
-        skipna=True,
+        keepdims: bool = False,
+        skipna: bool = True,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
@@ -341,9 +365,12 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Additional Methods
 
-    def to_numpy(
+    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
+    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
+    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
+    def to_numpy(  # type: ignore[override]
         self,
-        dtype: Optional[NpDtype] = None,
+        dtype: NpDtype | None = None,
         copy: bool = False,
         na_value=lib.no_default,
     ) -> np.ndarray:
@@ -360,15 +387,18 @@ class PandasArray(
     # ------------------------------------------------------------------------
     # Ops
 
-    def __invert__(self):
+    def __invert__(self) -> PandasArray:
         return type(self)(~self._ndarray)
 
     def _cmp_method(self, other, op):
         if isinstance(other, PandasArray):
             other = other._ndarray
 
+        other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
-        result = pd_op(self._ndarray, other)
+        other = ensure_wrapped_if_datetimelike(other)
+        with np.errstate(all="ignore"):
+            result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result

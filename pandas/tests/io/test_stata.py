@@ -12,8 +12,6 @@ import zipfile
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_categorical_dtype
 
 import pandas as pd
@@ -22,6 +20,7 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
+from pandas.core.indexes.api import ensure_index
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -30,13 +29,11 @@ from pandas.io.stata import (
     PossiblePrecisionLoss,
     StataMissingValue,
     StataReader,
+    StataWriter,
     StataWriterUTF8,
     ValueLabelTypeMismatch,
     read_stata,
 )
-
-# TODO(ArrayManager) the stata code relies on BlockManager internals (eg blknos)
-pytestmark = td.skip_array_manager_not_yet_implemented
 
 
 @pytest.fixture()
@@ -1179,7 +1176,7 @@ class TestStata:
             if is_categorical_dtype(ser.dtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
-                    categories = pd.Index(cat.categories._values)
+                    categories = ensure_index(cat.categories._values)
                     cat = cat.set_categories(categories)
                 from_frame[col] = cat
         return from_frame
@@ -1959,7 +1956,7 @@ def test_chunked_categorical_partial(dirpath):
                 if i < 2:
                     idx = pd.Index(["a", "b"])
                 else:
-                    idx = pd.Float64Index([3.0])
+                    idx = pd.Index([3.0], dtype="float64")
                 tm.assert_index_equal(block.cats.cat.categories, idx)
     with tm.assert_produces_warning(CategoricalConversionWarning):
         with StataReader(dta_file, chunksize=5) as reader:
@@ -2052,3 +2049,116 @@ def test_stata_compression(compression_only, read_infer, to_infer):
         df.to_stata(path, compression=to_compression)
         result = read_stata(path, compression=read_compression, index_col="index")
         tm.assert_frame_equal(result, df)
+
+
+def test_non_categorical_value_labels():
+    data = DataFrame(
+        {
+            "fully_labelled": [1, 2, 3, 3, 1],
+            "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
+            "Y": [7, 7, 9, 8, 10],
+            "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        }
+    )
+
+    with tm.ensure_clean() as path:
+        value_labels = {
+            "fully_labelled": {1: "one", 2: "two", 3: "three"},
+            "partially_labelled": {1.0: "one", 2.0: "two"},
+        }
+        expected = {**value_labels, "Z": {0: "j", 1: "k", 2: "l"}}
+
+        writer = StataWriter(path, data, value_labels=value_labels)
+        writer.write_file()
+
+        reader = StataReader(path)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == expected
+
+        msg = "Can't create value labels for notY, it wasn't found in the dataset."
+        with pytest.raises(KeyError, match=msg):
+            value_labels = {"notY": {7: "label1", 8: "label2"}}
+            writer = StataWriter(path, data, value_labels=value_labels)
+
+        msg = (
+            "Can't create value labels for Z, value labels "
+            "can only be applied to numeric columns."
+        )
+        with pytest.raises(ValueError, match=msg):
+            value_labels = {"Z": {1: "a", 2: "k", 3: "j", 4: "i"}}
+            writer = StataWriter(path, data, value_labels=value_labels)
+
+
+def test_non_categorical_value_label_name_conversion():
+    # Check conversion of invalid variable names
+    data = DataFrame(
+        {
+            "invalid~!": [1, 1, 2, 3, 5, 8],  # Only alphanumeric and _
+            "6_invalid": [1, 1, 2, 3, 5, 8],  # Must start with letter or _
+            "invalid_name_longer_than_32_characters": [8, 8, 9, 9, 8, 8],  # Too long
+            "aggregate": [2, 5, 5, 6, 6, 9],  # Reserved words
+            (1, 2): [1, 2, 3, 4, 5, 6],  # Hashable non-string
+        }
+    )
+
+    value_labels = {
+        "invalid~!": {1: "label1", 2: "label2"},
+        "6_invalid": {1: "label1", 2: "label2"},
+        "invalid_name_longer_than_32_characters": {8: "eight", 9: "nine"},
+        "aggregate": {5: "five"},
+        (1, 2): {3: "three"},
+    }
+
+    expected = {
+        "invalid__": {1: "label1", 2: "label2"},
+        "_6_invalid": {1: "label1", 2: "label2"},
+        "invalid_name_longer_than_32_char": {8: "eight", 9: "nine"},
+        "_aggregate": {5: "five"},
+        "_1__2_": {3: "three"},
+    }
+
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(InvalidColumnName):
+            data.to_stata(path, value_labels=value_labels)
+
+        reader = StataReader(path)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == expected
+
+
+def test_non_categorical_value_label_convert_categoricals_error():
+    # Mapping more than one value to the same label is valid for Stata
+    # labels, but can't be read with convert_categoricals=True
+    value_labels = {
+        "repeated_labels": {10: "Ten", 20: "More than ten", 40: "More than ten"}
+    }
+
+    data = DataFrame(
+        {
+            "repeated_labels": [10, 10, 20, 20, 40, 40],
+        }
+    )
+
+    with tm.ensure_clean() as path:
+        data.to_stata(path, value_labels=value_labels)
+
+        reader = StataReader(path, convert_categoricals=False)
+        reader_value_labels = reader.value_labels()
+        assert reader_value_labels == value_labels
+
+        col = "repeated_labels"
+        repeats = "-" * 80 + "\n" + "\n".join(["More than ten"])
+
+        msg = f"""
+Value labels for column {col} are not unique. These cannot be converted to
+pandas categoricals.
+
+Either read the file with `convert_categoricals` set to False or use the
+low level interface in `StataReader` to separately read the values and the
+value_labels.
+
+The repeated labels are:
+{repeats}
+"""
+        with pytest.raises(ValueError, match=msg):
+            read_stata(path, convert_categoricals=True)

@@ -2,9 +2,12 @@
 
 {{ header }}
 
-*************
-Visualization
-*************
+*******************
+Chart Visualization
+*******************
+
+This section demonstrates visualization through charting. For information on
+visualization of tabular data please see the section on `Table Visualization <style.ipynb>`_.
 
 We use the standard convention for referencing the matplotlib API:
 
@@ -313,6 +316,34 @@ The ``by`` keyword can be specified to plot grouped histograms:
    @savefig grouped_hist.png
    data.hist(by=np.random.randint(0, 4, 1000), figsize=(6, 4));
 
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+   np.random.seed(123456)
+
+In addition, the ``by`` keyword can also be specified in :meth:`DataFrame.plot.hist`.
+
+.. versionchanged:: 1.4.0
+
+.. ipython:: python
+
+   data = pd.DataFrame(
+       {
+           "a": np.random.choice(["x", "y", "z"], 1000),
+           "b": np.random.choice(["e", "f", "g"], 1000),
+           "c": np.random.randn(1000),
+           "d": np.random.randn(1000) - 1,
+       },
+   )
+
+   @savefig grouped_hist_by.png
+   data.plot.hist(by=["a", "b"], figsize=(10, 5));
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
 
 .. _visualization.box:
 
@@ -439,6 +470,32 @@ columns:
 
    @savefig box_plot_ex3.png
    bp = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
+
+.. ipython:: python
+   :suppress:
+
+    plt.close("all")
+
+You could also create groupings with :meth:`DataFrame.plot.box`, for instance:
+
+.. versionchanged:: 1.4.0
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+   np.random.seed(123456)
+
+.. ipython:: python
+   :okwarning:
+
+   df = pd.DataFrame(np.random.rand(10, 3), columns=["Col1", "Col2", "Col3"])
+   df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+
+   plt.figure();
+
+   @savefig box_plot_ex4.png
+   bp = df.plot.box(column=["Col1", "Col2"], by="X")
 
 .. ipython:: python
    :suppress:
@@ -1455,8 +1512,6 @@ Horizontal and vertical error bars can be supplied to the ``xerr`` and ``yerr`` 
 * As a ``str`` indicating which of the columns of plotting :class:`DataFrame` contain the error values.
 * As raw values (``list``, ``tuple``, or ``np.ndarray``). Must be the same length as the plotting :class:`DataFrame`/:class:`Series`.
 
-Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
-
 Here is an example of one way to easily plot group means with standard deviations from the raw data.
 
 .. ipython:: python
@@ -1464,16 +1519,16 @@ Here is an example of one way to easily plot group means with standard deviation
    # Generate the data
    ix3 = pd.MultiIndex.from_arrays(
        [
-           ["a", "a", "a", "a", "b", "b", "b", "b"],
-           ["foo", "foo", "bar", "bar", "foo", "foo", "bar", "bar"],
+           ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"],
+           ["foo", "foo", "foo", "bar", "bar", "foo", "foo", "bar", "bar", "bar"],
        ],
        names=["letter", "word"],
    )
 
    df3 = pd.DataFrame(
        {
-           "data1": [3, 2, 4, 3, 2, 4, 3, 2],
-           "data2": [6, 5, 7, 5, 4, 5, 6, 5],
+           "data1": [9, 3, 2, 4, 3, 2, 4, 6, 3, 2],
+           "data2": [9, 6, 5, 7, 5, 4, 5, 6, 5, 1],
        },
        index=ix3,
    )
@@ -1489,6 +1544,28 @@ Here is an example of one way to easily plot group means with standard deviation
    # Plot
    fig, ax = plt.subplots()
    @savefig errorbar_example.png
+   means.plot.bar(yerr=errors, ax=ax, capsize=4, rot=0);
+
+.. ipython:: python
+   :suppress:
+
+   plt.close("all")
+
+Asymmetrical error bars are also supported, however raw error values must be provided in this case. For a ``N`` length :class:`Series`, a ``2xN`` array should be provided indicating lower and upper (or left and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors should be in a ``Mx2xN`` array.
+
+Here is an example of one way to plot the min/max range using asymmetrical error bars.
+
+.. ipython:: python
+
+   mins = gp3.min()
+   maxs = gp3.max()
+
+   # errors should be positive, and defined in the order of lower, upper
+   errors = [[means[c] - mins[c], maxs[c] - means[c]] for c in df3.columns]
+
+   # Plot
+   fig, ax = plt.subplots()
+   @savefig errorbar_asymmetrical_example.png
    means.plot.bar(yerr=errors, ax=ax, capsize=4, rot=0);
 
 .. ipython:: python
@@ -1717,7 +1794,7 @@ Starting in version 0.25, pandas can be extended with third-party plotting backe
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib.
 
-This can be done by passsing 'backend.module' as the argument ``backend`` in ``plot``
+This can be done by passing 'backend.module' as the argument ``backend`` in ``plot``
 function. For example:
 
 .. code-block:: python

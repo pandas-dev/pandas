@@ -533,7 +533,7 @@ class TestDataFramePlots(TestPlotBase):
         _, ax = self.plt.subplots()
         ax = df["a"].plot.hist(legend=True, ax=ax)
         df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
-        # both legends are dran on left ax
+        # both legends are drawn on left ax
         # left and right axis must be visible
         self._check_legend_labels(ax, labels=["a", "b (right)"])
         assert ax.get_yaxis().get_visible()

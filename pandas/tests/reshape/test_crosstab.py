@@ -438,7 +438,7 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    def test_crosstab_with_empties(self):
+    def test_crosstab_with_empties(self, using_array_manager):
         # Check handling of empties
         df = DataFrame(
             {
@@ -463,6 +463,9 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
+        if using_array_manager:
+            # INFO(ArrayManager) column without NaNs can preserve int dtype
+            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
@@ -556,6 +559,8 @@ class TestCrosstab:
         expected = DataFrame(
             expected_data, index=expected_index, columns=expected_column
         )
+        # aggfunc is np.size, resulting in integers
+        expected["All"] = expected["All"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_duplicate_names(self):
@@ -806,7 +811,7 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = is_categorical_dtype(a.dtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, np.nan], [34, 32, 66], [52, 48, 100]]
+    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]

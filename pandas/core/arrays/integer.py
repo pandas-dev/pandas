@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-)
+from typing import overload
 import warnings
 
 import numpy as np
@@ -18,8 +12,10 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
     DtypeObj,
+    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -40,6 +36,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -79,7 +76,7 @@ class _IntegerDtype(NumericDtype):
         return True
 
     @classmethod
-    def construct_array_type(cls) -> Type[IntegerArray]:
+    def construct_array_type(cls) -> type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
@@ -89,7 +86,7 @@ class _IntegerDtype(NumericDtype):
         """
         return IntegerArray
 
-    def _get_common_dtype(self, dtypes: List[DtypeObj]) -> Optional[DtypeObj]:
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # we only handle nullable EA dtypes and numeric numpy dtypes
         if not all(
             isinstance(t, BaseMaskedDtype)
@@ -101,7 +98,17 @@ class _IntegerDtype(NumericDtype):
         ):
             return None
         np_dtype = np.find_common_type(
-            [t.numpy_dtype if isinstance(t, BaseMaskedDtype) else t for t in dtypes], []
+            # error: List comprehension has incompatible type List[Union[Any,
+            # dtype, ExtensionDtype]]; expected List[Union[dtype, None, type,
+            # _SupportsDtype, str, Tuple[Any, Union[int, Sequence[int]]],
+            # List[Any], _DtypeDict, Tuple[Any, Any]]]
+            [
+                t.numpy_dtype  # type: ignore[misc]
+                if isinstance(t, BaseMaskedDtype)
+                else t
+                for t in dtypes
+            ],
+            [],
         )
         if np.issubdtype(np_dtype, np.integer):
             return INT_STR_TO_DTYPE[str(np_dtype)]
@@ -134,7 +141,7 @@ def safe_cast(values, dtype, copy: bool):
 
 def coerce_to_array(
     values, dtype, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask
 
@@ -234,8 +241,6 @@ class IntegerArray(NumericArray):
     """
     Array of integer (optional missing) values.
 
-    .. versionadded:: 0.24.0
-
     .. versionchanged:: 1.0.0
 
        Now uses :attr:`pandas.NA` as the missing value rather
@@ -317,22 +322,34 @@ class IntegerArray(NumericArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> IntegerArray:
         values, mask = coerce_to_array(scalars, dtype=dtype, copy=copy)
         return IntegerArray(values, mask)
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings, *, dtype: Optional[Dtype] = None, copy: bool = False
+        cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ) -> IntegerArray:
         scalars = to_numeric(strings, errors="raise")
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -360,6 +377,8 @@ class IntegerArray(NumericArray):
 
         if isinstance(dtype, ExtensionDtype):
             return super().astype(dtype, copy=copy)
+
+        na_value: float | np.datetime64 | lib.NoDefault
 
         # coerce
         if is_float_dtype(dtype):
@@ -556,7 +575,7 @@ class UInt64Dtype(_IntegerDtype):
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 
-INT_STR_TO_DTYPE: Dict[str, _IntegerDtype] = {
+INT_STR_TO_DTYPE: dict[str, _IntegerDtype] = {
     "int8": Int8Dtype(),
     "int16": Int16Dtype(),
     "int32": Int32Dtype(),

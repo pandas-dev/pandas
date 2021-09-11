@@ -208,14 +208,16 @@ def test_regression_allowlist_methods(raw_frame, op, level, axis, skipna, sort):
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
-        expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = getattr(frame, op)(level=level, axis=axis, skipna=skipna)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
     else:
         grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)()
-        expected = getattr(frame, op)(level=level, axis=axis)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = getattr(frame, op)(level=level, axis=axis)
         if sort:
             expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)

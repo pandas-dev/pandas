@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import datetime as pydt
 from datetime import (
@@ -8,10 +10,7 @@ from datetime import (
 import functools
 from typing import (
     Any,
-    Dict,
-    List,
-    Optional,
-    Tuple,
+    cast,
 )
 
 from dateutil.relativedelta import relativedelta
@@ -32,6 +31,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
 from pandas._libs.tslibs.offsets import BaseOffset
+from pandas._typing import F
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -80,7 +80,7 @@ def get_pairs():
     return pairs
 
 
-def register_pandas_matplotlib_converters(func):
+def register_pandas_matplotlib_converters(func: F) -> F:
     """
     Decorator applying pandas_converters.
     """
@@ -90,7 +90,7 @@ def register_pandas_matplotlib_converters(func):
         with pandas_converters():
             return func(*args, **kwargs)
 
-    return wrapper
+    return cast(F, wrapper)
 
 
 @contextlib.contextmanager
@@ -169,7 +169,7 @@ class TimeConverter(units.ConversionInterface):
         return value
 
     @staticmethod
-    def axisinfo(unit, axis) -> Optional[units.AxisInfo]:
+    def axisinfo(unit, axis) -> units.AxisInfo | None:
         if unit != "time":
             return None
 
@@ -319,7 +319,7 @@ class DatetimeConverter(dates.DateConverter):
         return values
 
     @staticmethod
-    def axisinfo(unit: Optional[tzinfo], axis) -> units.AxisInfo:
+    def axisinfo(unit: tzinfo | None, axis) -> units.AxisInfo:
         """
         Return the :class:`~matplotlib.units.AxisInfo` for *unit*.
 
@@ -447,7 +447,7 @@ class MilliSecondLocator(dates.DateLocator):
         return self.nonsingular(vmin, vmax)
 
 
-def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
+def _from_ordinal(x, tz: tzinfo | None = None) -> datetime:
     ix = int(x)
     dt = datetime.fromordinal(ix)
     remainder = float(x) - ix
@@ -476,7 +476,7 @@ def _from_ordinal(x, tz: Optional[tzinfo] = None) -> datetime:
 # -------------------------------------------------------------------------
 
 
-def _get_default_annual_spacing(nyears) -> Tuple[int, int]:
+def _get_default_annual_spacing(nyears) -> tuple[int, int]:
     """
     Returns a default spacing between consecutive ticks for annual data.
     """
@@ -506,7 +506,7 @@ def period_break(dates: PeriodIndex, period: str) -> np.ndarray:
     ----------
     dates : PeriodIndex
         Array of intervals to monitor.
-    period : string
+    period : str
         Name of the period to monitor.
     """
     current = getattr(dates, period)
@@ -1027,8 +1027,8 @@ class TimeSeries_DateFormatter(Formatter):
         freq = to_offset(freq)
         self.format = None
         self.freq = freq
-        self.locs: List[Any] = []  # unused, for matplotlib compat
-        self.formatdict: Optional[Dict[Any, Any]] = None
+        self.locs: list[Any] = []  # unused, for matplotlib compat
+        self.formatdict: dict[Any, Any] | None = None
         self.isminor = minor_locator
         self.isdynamic = dynamic_mode
         self.offset = 0

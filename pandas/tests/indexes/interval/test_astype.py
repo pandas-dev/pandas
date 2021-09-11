@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_arm
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
@@ -168,6 +170,7 @@ class TestFloatSubtype(AstypeTests):
         )
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.xfail(is_platform_arm(), reason="GH 41740")
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
         index = interval_range(-10.0, 10.0)
@@ -205,7 +208,7 @@ class TestDatetimelikeSubtype(AstypeTests):
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer(self, index, subtype):
         dtype = IntervalDtype(subtype, "right")
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             result = index.astype(dtype)
             expected = IntervalIndex.from_arrays(
                 index.left.astype(subtype),

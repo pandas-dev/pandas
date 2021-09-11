@@ -9,6 +9,8 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+import os
+from typing import Callable
 import warnings
 
 import pandas._config.config as cf
@@ -19,6 +21,7 @@ from pandas._config.config import (
     is_int,
     is_nonnegative_int,
     is_one_of_factory,
+    is_str,
     is_text,
 )
 
@@ -483,16 +486,30 @@ with cf.config_prefix("mode"):
     cf.register_option(
         "use_inf_as_null", False, use_inf_as_null_doc, cb=use_inf_as_na_cb
     )
-    cf.register_option(
-        "data_manager",
-        "block",
-        "Internal data manager type",
-        validator=is_one_of_factory(["block", "array"]),
-    )
+
 
 cf.deprecate_option(
     "mode.use_inf_as_null", msg=use_inf_as_null_doc, rkey="mode.use_inf_as_na"
 )
+
+
+data_manager_doc = """
+: string
+    Internal data manager type; can be "block" or "array". Defaults to "block",
+    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
+    to be set before pandas is imported).
+"""
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "data_manager",
+        # Get the default from an environment variable, if set, otherwise defaults
+        # to "block". This environment variable can be set for testing.
+        os.environ.get("PANDAS_DATA_MANAGER", "block"),
+        data_manager_doc,
+        validator=is_one_of_factory(["block", "array"]),
+    )
 
 
 # user warnings
@@ -510,6 +527,19 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([None, "warn", "raise"]),
     )
 
+
+string_storage_doc = """
+: string
+    The default storage for StringDtype.
+"""
+
+with cf.config_prefix("mode"):
+    cf.register_option(
+        "string_storage",
+        "python",
+        string_storage_doc,
+        validator=is_one_of_factory(["python", "pyarrow"]),
+    )
 
 # Set up the io.excel specific reader configuration.
 reader_engine_doc = """
@@ -637,6 +667,22 @@ with cf.config_prefix("io.parquet"):
         validator=is_one_of_factory(["auto", "pyarrow", "fastparquet"]),
     )
 
+
+# Set up the io.sql specific configuration.
+sql_engine_doc = """
+: string
+    The default sql reader/writer engine. Available options:
+    'auto', 'sqlalchemy', the default is 'auto'
+"""
+
+with cf.config_prefix("io.sql"):
+    cf.register_option(
+        "engine",
+        "auto",
+        sql_engine_doc,
+        validator=is_one_of_factory(["auto", "sqlalchemy"]),
+    )
+
 # --------
 # Plotting
 # ---------
@@ -694,4 +740,194 @@ with cf.config_prefix("plotting.matplotlib"):
         register_converter_doc,
         validator=is_one_of_factory(["auto", True, False]),
         cb=register_converter_cb,
+    )
+
+# ------
+# Styler
+# ------
+
+styler_sparse_index_doc = """
+: bool
+    Whether to sparsify the display of a hierarchical index. Setting to False will
+    display each explicit level element in a hierarchical key for each row.
+"""
+
+styler_sparse_columns_doc = """
+: bool
+    Whether to sparsify the display of hierarchical columns. Setting to False will
+    display each explicit level element in a hierarchical key for each column.
+"""
+
+styler_render_repr = """
+: str
+    Determine which output to use in Jupyter Notebook in {"html", "latex"}.
+"""
+
+styler_max_elements = """
+: int
+    The maximum number of data-cell (<td>) elements that will be rendered before
+    trimming will occur over columns, rows or both if needed.
+"""
+
+styler_max_rows = """
+: int, optional
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_columns = """
+: int, optional
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_precision = """
+: int
+    The precision for floats and complex numbers.
+"""
+
+styler_decimal = """
+: str
+    The character representation for the decimal separator for floats and complex.
+"""
+
+styler_thousands = """
+: str, optional
+    The character representation for thousands separator for floats, int and complex.
+"""
+
+styler_na_rep = """
+: str, optional
+    The string representation for values identified as missing.
+"""
+
+styler_escape = """
+: str, optional
+    Whether to escape certain characters according to the given context; html or latex.
+"""
+
+styler_formatter = """
+: str, callable, dict, optional
+    A formatter object to be used as default within ``Styler.format``.
+"""
+
+styler_multirow_align = """
+: {"c", "t", "b"}
+    The specifier for vertical alignment of sparsified LaTeX multirows.
+"""
+
+styler_multicol_align = """
+: {"r", "c", "l"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+"""
+
+styler_environment = """
+: str
+    The environment to replace ``\\begin{table}``. If "longtable" is used results
+    in a specific longtable environment format.
+"""
+
+styler_encoding = """
+: str
+    The encoding used for output HTML and LaTeX files.
+"""
+
+styler_mathjax = """
+: bool
+    If False will render special CSS classes to table attributes that indicate Mathjax
+    will not be used in Jupyter Notebook.
+"""
+
+with cf.config_prefix("styler"):
+    cf.register_option("sparse.index", True, styler_sparse_index_doc, validator=is_bool)
+
+    cf.register_option(
+        "sparse.columns", True, styler_sparse_columns_doc, validator=is_bool
+    )
+
+    cf.register_option(
+        "render.repr",
+        "html",
+        styler_render_repr,
+        validator=is_one_of_factory(["html", "latex"]),
+    )
+
+    cf.register_option(
+        "render.max_elements",
+        2 ** 18,
+        styler_max_elements,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_columns",
+        None,
+        styler_max_columns,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option("render.encoding", "utf-8", styler_encoding, validator=is_str)
+
+    cf.register_option("format.decimal", ".", styler_decimal, validator=is_str)
+
+    cf.register_option(
+        "format.precision", 6, styler_precision, validator=is_nonnegative_int
+    )
+
+    cf.register_option(
+        "format.thousands",
+        None,
+        styler_thousands,
+        validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.na_rep",
+        None,
+        styler_na_rep,
+        validator=is_instance_factory([type(None), str]),
+    )
+
+    cf.register_option(
+        "format.escape",
+        None,
+        styler_escape,
+        validator=is_one_of_factory([None, "html", "latex"]),
+    )
+
+    cf.register_option(
+        "format.formatter",
+        None,
+        styler_formatter,
+        validator=is_instance_factory([type(None), dict, Callable, str]),
+    )
+
+    cf.register_option("html.mathjax", True, styler_mathjax, validator=is_bool)
+
+    cf.register_option(
+        "latex.multirow_align",
+        "c",
+        styler_multirow_align,
+        validator=is_one_of_factory(["c", "t", "b", "naive"]),
+    )
+
+    cf.register_option(
+        "latex.multicol_align",
+        "r",
+        styler_multicol_align,
+        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
+    )
+
+    cf.register_option(
+        "latex.environment",
+        None,
+        styler_environment,
+        validator=is_instance_factory([type(None), str]),
     )

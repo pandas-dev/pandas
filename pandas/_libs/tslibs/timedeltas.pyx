@@ -311,10 +311,16 @@ cdef convert_to_timedelta64(object ts, str unit):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def array_to_timedelta64(ndarray[object] values, str unit=None, str errors="raise"):
+def array_to_timedelta64(
+    ndarray[object] values, str unit=None, str errors="raise"
+) -> ndarray:
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
+
+    Returns
+    -------
+    np.ndarray[timedelta64ns]
     """
 
     cdef:
@@ -540,7 +546,7 @@ cdef inline int64_t timedelta_as_neg(int64_t value, bint neg):
     Parameters
     ----------
     value : int64_t of the timedelta value
-    neg : boolean if the a negative value
+    neg : bool if the a negative value
     """
     if neg:
         return -value
@@ -565,7 +571,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
         if unit in ["M", "Y", "y"]:
             warnings.warn(
                 "Units 'M', 'Y' and 'y' do not represent unambiguous "
-                "timedelta values and will be removed in a future version",
+                "timedelta values and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=2,
             )
@@ -635,7 +641,8 @@ def _binary_op_method_timedeltalike(op, name):
             return NaT
 
         elif is_datetime64_object(other) or (
-           PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)):
+            PyDateTime_Check(other) and not isinstance(other, ABCTimestamp)
+        ):
             # this case is for a datetime object that is specifically
             # *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below

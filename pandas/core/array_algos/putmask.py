@@ -1,10 +1,9 @@
 """
 EA-compatible analogue to to np.putmask
 """
-from typing import (
-    Any,
-    Tuple,
-)
+from __future__ import annotations
+
+from typing import Any
 import warnings
 
 import numpy as np
@@ -42,8 +41,14 @@ def putmask_inplace(values: ArrayLike, mask: np.ndarray, value: Any) -> None:
     if lib.is_scalar(value) and isinstance(values, np.ndarray):
         value = convert_scalar_for_putitemlike(value, values.dtype)
 
-    if not isinstance(values, np.ndarray) or (
-        values.dtype == object and not lib.is_scalar(value)
+    if (
+        not isinstance(values, np.ndarray)
+        or (values.dtype == object and not lib.is_scalar(value))
+        # GH#43424: np.putmask raises TypeError if we cannot cast between types with
+        # rule = "safe", a stricter guarantee we may not have here
+        or (
+            isinstance(value, np.ndarray) and not np.can_cast(value.dtype, values.dtype)
+        )
     ):
         # GH#19266 using np.putmask gives unexpected results with listlike value
         if is_list_like(value) and len(value) == len(values):
@@ -81,7 +86,7 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
 
     # n should be the length of the mask or a scalar here
     if not is_list_like(new):
-        new = np.repeat(new, len(mask))
+        new = np.broadcast_to(new, mask.shape)
 
     # see if we are only masking values that if putted
     # will work in the current dtype
@@ -120,7 +125,11 @@ def putmask_smart(values: np.ndarray, mask: np.ndarray, new) -> np.ndarray:
         return _putmask_preserve(values, new, mask)
 
     dtype = find_common_type([values.dtype, new.dtype])
-    values = values.astype(dtype)
+    # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+    # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type,
+    # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]],
+    # List[Any], _DTypeDict, Tuple[Any, Any]]]"
+    values = values.astype(dtype)  # type: ignore[arg-type]
 
     return _putmask_preserve(values, new, mask)
 
@@ -167,7 +176,7 @@ def putmask_without_repeat(values: np.ndarray, mask: np.ndarray, new: Any) -> No
         np.putmask(values, mask, new)
 
 
-def validate_putmask(values: ArrayLike, mask: np.ndarray) -> Tuple[np.ndarray, bool]:
+def validate_putmask(values: ArrayLike, mask: np.ndarray) -> tuple[np.ndarray, bool]:
     """
     Validate mask and check if this putmask operation is a no-op.
     """

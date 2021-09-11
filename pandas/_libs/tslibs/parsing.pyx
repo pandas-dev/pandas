@@ -3,6 +3,7 @@ Parsing functions for datetime and datetime-like strings.
 """
 import re
 import time
+import warnings
 
 from libc.string cimport strchr
 
@@ -80,6 +81,11 @@ class DateParseError(ValueError):
 
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
+
+PARSING_WARNING_MSG = (
+    "Parsing '{date_string}' in {format} format. Provide format "
+    "or specify infer_datetime_format=True for consistent parsing."
+)
 
 cdef:
     set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
@@ -168,10 +174,28 @@ cdef inline object _parse_delimited_date(str date_string, bint dayfirst):
         # date_string can't be converted to date, above format
         return None, None
 
+    swapped_day_and_month = False
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
         if (month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)) and can_swap:
             day, month = month, day
+            swapped_day_and_month = True
+        if dayfirst and not swapped_day_and_month:
+            warnings.warn(
+                PARSING_WARNING_MSG.format(
+                    date_string=date_string,
+                    format='MM/DD/YYYY'
+                ),
+                stacklevel=4,
+            )
+        elif not dayfirst and swapped_day_and_month:
+            warnings.warn(
+                PARSING_WARNING_MSG.format(
+                    date_string=date_string,
+                    format='DD/MM/YYYY'
+                ),
+                stacklevel=4,
+            )
         if PY_VERSION_HEX >= 0x03060100:
             # In Python <= 3.6.0 there is no range checking for invalid dates
             # in C api, thus we call faster C version for 3.6.1 or newer
@@ -219,7 +243,7 @@ def parse_datetime_string(
     bint dayfirst=False,
     bint yearfirst=False,
     **kwargs,
-):
+) -> datetime:
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
@@ -281,7 +305,9 @@ def parse_time_string(arg: str, freq=None, dayfirst=None, yearfirst=None):
 
     Returns
     -------
-    datetime, datetime/dateutil.parser._result, str
+    datetime
+    str
+        Describing resolution of parsed string.
     """
     if is_offset_object(freq):
         freq = freq.rule_code
@@ -468,8 +494,7 @@ cdef inline object _parse_dateabbr_string(object date_string, datetime default,
     except ValueError:
         pass
 
-    if date_len == 6 and (freq == 'M' or
-                          getattr(freq, 'rule_code', None) == 'M'):
+    if date_len == 6 and freq == 'M':
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:
@@ -595,7 +620,7 @@ cdef dateutil_parse(
 
 def try_parse_dates(
     object[:] values, parser=None, bint dayfirst=False, default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -639,7 +664,7 @@ def try_parse_date_and_time(
     time_parser=None,
     bint dayfirst=False,
     default=None,
-):
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -675,7 +700,9 @@ def try_parse_date_and_time(
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(object[:] years, object[:] months, object[:] days):
+def try_parse_year_month_day(
+    object[:] years, object[:] months, object[:] days
+) -> np.ndarray:
     cdef:
         Py_ssize_t i, n
         object[:] result
@@ -697,7 +724,7 @@ def try_parse_datetime_components(object[:] years,
                                   object[:] days,
                                   object[:] hours,
                                   object[:] minutes,
-                                  object[:] seconds):
+                                  object[:] seconds) -> np.ndarray:
 
     cdef:
         Py_ssize_t i, n
@@ -988,7 +1015,7 @@ cdef inline object convert_to_unicode(object item, bint keep_trivial_numbers):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True):
+def concat_date_cols(tuple date_cols, bint keep_trivial_numbers=True) -> np.ndarray:
     """
     Concatenates elements from numpy arrays in `date_cols` into strings.
 

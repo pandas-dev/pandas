@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import (
     array_equivalent,
+    is_valid_na_for_dtype,
     isna,
     isnull,
     na_value_for_dtype,
@@ -34,13 +35,13 @@ from pandas.core.dtypes.missing import (
 import pandas as pd
 from pandas import (
     DatetimeIndex,
-    Float64Index,
     NaT,
     Series,
     TimedeltaIndex,
     date_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 
 now = pd.Timestamp.now()
 utcnow = pd.Timestamp.now("UTC")
@@ -443,8 +444,10 @@ def test_array_equivalent(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
+    msg = "elementwise comparison failed"
     cm = (
-        tm.assert_produces_warning(FutureWarning, check_stacklevel=False)
+        # stacklevel is chosen to make sense when called from .equals
+        tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
         if isinstance(val, str)
         else nullcontext()
     )
@@ -553,7 +556,7 @@ def test_array_equivalent_nested():
 )
 def test_na_value_for_dtype(dtype, na_value):
     result = na_value_for_dtype(dtype)
-    # identify check doesnt work for datetime64/timedelta64("NaT") bc they
+    # identify check doesn't work for datetime64/timedelta64("NaT") bc they
     #  are not singletons
     assert result is na_value or (
         isna(result) and isna(na_value) and type(result) is type(na_value)
@@ -727,3 +730,12 @@ class TestLibMissing:
 
         assert libmissing.is_matching_na(None, np.nan, nan_matches_none=True)
         assert libmissing.is_matching_na(np.nan, None, nan_matches_none=True)
+
+
+class TestIsValidNAForDtype:
+    def test_is_valid_na_for_dtype_interval(self):
+        dtype = IntervalDtype("int64", "left")
+        assert not is_valid_na_for_dtype(NaT, dtype)
+
+        dtype = IntervalDtype("datetime64[ns]", "both")
+        assert not is_valid_na_for_dtype(NaT, dtype)

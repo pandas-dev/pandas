@@ -28,7 +28,7 @@ class SparseSeriesToFrame:
             data = np.random.randn(N)[:-i]
             idx = rng[:-i]
             data[100:] = np.nan
-            self.series[i] = pd.Series(pd.SparseArray(data), index=idx)
+            self.series[i] = Series(SparseArray(data), index=idx)
 
     def time_series_to_frame(self):
         pd.DataFrame(self.series)
@@ -63,20 +63,46 @@ class FromCoo:
         )
 
     def time_sparse_series_from_coo(self):
-        pd.Series.sparse.from_coo(self.matrix)
+        Series.sparse.from_coo(self.matrix)
 
 
 class ToCoo:
-    def setup(self):
+    params = [True, False]
+    param_names = ["sort_labels"]
+
+    def setup(self, sort_labels):
         s = Series([np.nan] * 10000)
         s[0] = 3.0
         s[100] = -1.0
         s[999] = 12.1
-        s.index = MultiIndex.from_product([range(10)] * 4)
-        self.ss = s.astype("Sparse")
 
-    def time_sparse_series_to_coo(self):
-        self.ss.sparse.to_coo(row_levels=[0, 1], column_levels=[2, 3], sort_labels=True)
+        s_mult_lvl = s.set_axis(MultiIndex.from_product([range(10)] * 4))
+        self.ss_mult_lvl = s_mult_lvl.astype("Sparse")
+
+        s_two_lvl = s.set_axis(MultiIndex.from_product([range(100)] * 2))
+        self.ss_two_lvl = s_two_lvl.astype("Sparse")
+
+    def time_sparse_series_to_coo(self, sort_labels):
+        self.ss_mult_lvl.sparse.to_coo(
+            row_levels=[0, 1], column_levels=[2, 3], sort_labels=sort_labels
+        )
+
+    def time_sparse_series_to_coo_single_level(self, sort_labels):
+        self.ss_two_lvl.sparse.to_coo(sort_labels=sort_labels)
+
+
+class ToCooFrame:
+    def setup(self):
+        N = 10000
+        k = 10
+        arr = np.full((N, k), np.nan)
+        arr[0, 0] = 3.0
+        arr[12, 7] = -1.0
+        arr[0, 9] = 11.2
+        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float"))
+
+    def time_to_coo(self):
+        self.df.sparse.to_coo()
 
 
 class Arithmetic:

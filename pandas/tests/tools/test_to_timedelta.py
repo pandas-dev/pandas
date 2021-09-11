@@ -174,7 +174,8 @@ class TestTimedeltas:
     def test_unambiguous_timedelta_values(self, val, warning):
         # GH36666 Deprecate use of strings denoting units with 'M', 'Y', 'm' or 'y'
         # in pd.to_timedelta
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
+        msg = "Units 'M', 'Y' and 'y' do not represent unambiguous timedelta"
+        with tm.assert_produces_warning(warning, match=msg, check_stacklevel=False):
             to_timedelta(val)
 
     def test_to_timedelta_via_apply(self):
@@ -186,41 +187,54 @@ class TestTimedeltas:
         result = Series([to_timedelta("00:00:01")])
         tm.assert_series_equal(result, expected)
 
+    def test_to_timedelta_inference_without_warning(self):
+        # GH#41731 inference produces a warning in the Series constructor,
+        #  but _not_ in to_timedelta
+        vals = ["00:00:01", pd.NaT]
+        with tm.assert_produces_warning(None):
+            result = to_timedelta(vals)
+
+        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT])
+        tm.assert_index_equal(result, expected)
+
     def test_to_timedelta_on_missing_values(self):
         # GH5438
         timedelta_NaT = np.timedelta64("NaT")
 
-        actual = pd.to_timedelta(Series(["00:00:01", np.nan]))
+        actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
             [np.timedelta64(1000000000, "ns"), timedelta_NaT], dtype="<m8[ns]"
         )
         tm.assert_series_equal(actual, expected)
 
-        actual = pd.to_timedelta(Series(["00:00:01", pd.NaT]))
+        with tm.assert_produces_warning(FutureWarning, match="Inferring timedelta64"):
+            ser = Series(["00:00:01", pd.NaT])
+        assert ser.dtype == "m8[ns]"
+        actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 
-        actual = pd.to_timedelta(np.nan)
+        actual = to_timedelta(np.nan)
         assert actual.value == timedelta_NaT.astype("int64")
 
-        actual = pd.to_timedelta(pd.NaT)
+        actual = to_timedelta(pd.NaT)
         assert actual.value == timedelta_NaT.astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
         arr = np.arange(0, 1, 1e-6)[-10:]
-        result = pd.to_timedelta(arr, unit="s")
+        result = to_timedelta(arr, unit="s")
         expected_asi8 = np.arange(999990000, 10 ** 9, 1000, dtype="int64")
         tm.assert_numpy_array_equal(result.asi8, expected_asi8)
 
     def test_to_timedelta_coerce_strings_unit(self):
         arr = np.array([1, 2, "error"], dtype=object)
-        result = pd.to_timedelta(arr, unit="ns", errors="coerce")
-        expected = pd.to_timedelta([1, 2, pd.NaT], unit="ns")
+        result = to_timedelta(arr, unit="ns", errors="coerce")
+        expected = to_timedelta([1, 2, pd.NaT], unit="ns")
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_ignore_strings_unit(self):
         arr = np.array([1, 2, "error"], dtype=object)
-        result = pd.to_timedelta(arr, unit="ns", errors="ignore")
+        result = to_timedelta(arr, unit="ns", errors="ignore")
         tm.assert_numpy_array_equal(result, arr)
 
     def test_to_timedelta_nullable_int64_dtype(self):
@@ -246,7 +260,7 @@ class TestTimedeltas:
             ("8:53:08.7180000089", "8:53:08.718000008"),
         ],
     )
-    @pytest.mark.parametrize("func", [pd.Timedelta, pd.to_timedelta])
+    @pytest.mark.parametrize("func", [pd.Timedelta, to_timedelta])
     def test_to_timedelta_precision_over_nanos(self, input, expected, func):
         # GH: 36738
         expected = pd.Timedelta(expected)

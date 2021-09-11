@@ -306,6 +306,7 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT
 
 .. ipython:: python
 
+   import datetime
    s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
    s.dtype
    s[1] = np.nan

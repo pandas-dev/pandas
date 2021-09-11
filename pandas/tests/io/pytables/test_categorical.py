@@ -15,7 +15,13 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = pytest.mark.single
+pytestmark = [
+    pytest.mark.single,
+    # pytables https://github.com/PyTables/PyTables/issues/822
+    pytest.mark.filterwarnings(
+        "ignore:a closed node found in the registry:UserWarning"
+    ),
+]
 
 
 def test_categorical(setup_path):
@@ -77,8 +83,9 @@ def test_categorical(setup_path):
         # Make sure the metadata is OK
         info = store.info()
         assert "/df2   " in info
-        # assert '/df2/meta/values_block_0/meta' in info
-        assert "/df2/meta/values_block_1/meta" in info
+        # df2._mgr.blocks[0] and df2._mgr.blocks[2] are Categorical
+        assert "/df2/meta/values_block_0/meta" in info
+        assert "/df2/meta/values_block_2/meta" in info
 
         # unordered
         _maybe_remove(store, "s2")
@@ -207,7 +214,7 @@ def test_convert_value(setup_path, where: str, df: DataFrame, expected: DataFram
     max_widths = {"col": 1}
     categorical_values = sorted(df.col.unique())
     expected.col = expected.col.astype("category")
-    expected.col.cat.set_categories(categorical_values, inplace=True)
+    expected.col = expected.col.cat.set_categories(categorical_values)
 
     with ensure_clean_path(setup_path) as path:
         df.to_hdf(path, "df", format="table", min_itemsize=max_widths)

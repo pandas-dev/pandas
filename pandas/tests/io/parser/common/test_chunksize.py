@@ -15,6 +15,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize("index_col", [0, "index"])
 def test_read_chunksize_with_index(all_parsers, index_col):
@@ -159,6 +161,7 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.slow
 @pytest.mark.xfail(reason="GH38630, sometimes gives ResourceWarning", strict=False)
 def test_chunks_have_consistent_numerical_type(all_parsers):
     parser = all_parsers
@@ -176,13 +179,17 @@ def test_chunks_have_consistent_numerical_type(all_parsers):
 def test_warn_if_chunks_have_mismatched_type(all_parsers, request):
     warning_type = None
     parser = all_parsers
-    integers = [str(i) for i in range(499999)]
-    data = "a\n" + "\n".join(integers + ["a", "b"] + integers)
+    size = 10000
 
     # see gh-3866: if chunks are different types and can't
     # be coerced using numerical types, then issue warning.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
+        # Use larger size to hit warning path
+        size = 499999
+
+    integers = [str(i) for i in range(size)]
+    data = "a\n" + "\n".join(integers + ["a", "b"] + integers)
 
     buf = StringIO(data)
 

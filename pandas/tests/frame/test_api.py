@@ -91,7 +91,7 @@ class TestDataFrameMisc:
         empty_frame = DataFrame()
 
         df = DataFrame([1])
-        msg = "'DataFrame' objects are mutable, thus they cannot be hashed"
+        msg = "unhashable type: 'DataFrame'"
         with pytest.raises(TypeError, match=msg):
             hash(df)
         with pytest.raises(TypeError, match=msg):
@@ -296,6 +296,7 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
+    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem (no copy)
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(self, allows_duplicate_labels, frame_or_series):
         obj = DataFrame({"A": [1, 2]})

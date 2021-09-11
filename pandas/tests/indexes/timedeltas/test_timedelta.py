@@ -20,18 +20,19 @@ randn = np.random.randn
 
 
 class TestTimedeltaIndex(DatetimeLike):
-    _holder = TimedeltaIndex
+    _index_cls = TimedeltaIndex
 
     @pytest.fixture
-    def index(self):
-        return tm.makeTimedeltaIndex(10)
-
-    def create_index(self) -> TimedeltaIndex:
+    def simple_index(self) -> TimedeltaIndex:
         index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
         assert index.freq == "D"
         ret = index + pd.offsets.Hour(1)
         assert ret.freq == "D"
         return ret
+
+    @pytest.fixture
+    def index(self):
+        return tm.makeTimedeltaIndex(10)
 
     def test_numeric_compat(self):
         # Dummy method to override super's version; this test is now done
@@ -40,9 +41,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_shift(self):
         pass  # this is handled in test_arithmetic.py
-
-    def test_pickle_compat_construction(self):
-        pass
 
     def test_pickle_after_set_freq(self):
         tdi = timedelta_range("1 day", periods=4, freq="s")

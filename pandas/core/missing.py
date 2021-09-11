@@ -10,10 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    List,
-    Optional,
-    Set,
-    Union,
     cast,
 )
 
@@ -27,6 +23,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     F,
+    npt,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -36,7 +33,11 @@ from pandas.core.dtypes.common import (
     is_numeric_v_string_like,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
+    isna,
+    na_value_for_dtype,
+)
 
 if TYPE_CHECKING:
     from pandas import Index
@@ -57,7 +58,7 @@ def check_value_size(value, mask: np.ndarray, length: int):
     return value
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
+def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     """
     Return a masking array of same size/shape as arr
     with entries equaling any member of values_to_mask set to True
@@ -75,7 +76,11 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> np.ndarray:
     #  known to be holdable by arr.
     # When called from Series._single_replace, values_to_mask is tuple or list
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
-    values_to_mask = np.array(values_to_mask, dtype=dtype)
+    # error: Argument "dtype" to "array" has incompatible type "Union[dtype[Any],
+    # ExtensionDtype]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
+    # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
+    # _DTypeDict, Tuple[Any, Any]]]"
+    values_to_mask = np.array(values_to_mask, dtype=dtype)  # type: ignore[arg-type]
 
     na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
@@ -141,7 +146,7 @@ SP_METHODS = [
 ]
 
 
-def clean_interp_method(method: str, **kwargs) -> str:
+def clean_interp_method(method: str, index: Index, **kwargs) -> str:
     order = kwargs.get("order")
 
     if method in ("spline", "polynomial") and order is None:
@@ -151,10 +156,16 @@ def clean_interp_method(method: str, **kwargs) -> str:
     if method not in valid:
         raise ValueError(f"method must be one of {valid}. Got '{method}' instead.")
 
+    if method in ("krogh", "piecewise_polynomial", "pchip"):
+        if not index.is_monotonic:
+            raise ValueError(
+                f"{method} interpolation requires that the index be monotonic."
+            )
+
     return method
 
 
-def find_valid_index(values, how: str):
+def find_valid_index(values, *, how: str) -> int | None:
     """
     Retrieves the index of the first valid value.
 
@@ -191,38 +202,83 @@ def find_valid_index(values, how: str):
     return idxpos
 
 
-def interpolate_1d(
-    xvalues: Index,
-    yvalues: np.ndarray,
-    method: Optional[str] = "linear",
-    limit: Optional[int] = None,
+def interpolate_array_2d(
+    data: np.ndarray,
+    method: str = "pad",
+    axis: int = 0,
+    index: Index | None = None,
+    limit: int | None = None,
     limit_direction: str = "forward",
-    limit_area: Optional[str] = None,
-    fill_value: Optional[Any] = None,
-    bounds_error: bool = False,
-    order: Optional[int] = None,
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    coerce: bool = False,
+    downcast: str | None = None,
     **kwargs,
 ):
     """
-    Logic for the 1-d interpolation.  The result should be 1-d, inputs
-    xvalues and yvalues will each be 1-d arrays of the same length.
-
-    Bounds_error is currently hardcoded to False since non-scipy ones don't
-    take it as an argument.
+    Wrapper to dispatch to either interpolate_2d or _interpolate_2d_with_fill.
     """
-    invalid = isna(yvalues)
-    valid = ~invalid
+    try:
+        m = clean_fill_method(method)
+    except ValueError:
+        m = None
 
-    if not valid.any():
-        result = np.empty(xvalues.shape, dtype=np.float64)
-        result.fill(np.nan)
-        return result
+    if m is not None:
+        if fill_value is not None:
+            # similar to validate_fillna_kwargs
+            raise ValueError("Cannot pass both fill_value and method")
 
-    if valid.all():
-        return yvalues
+        interp_values = interpolate_2d(
+            data,
+            method=m,
+            axis=axis,
+            limit=limit,
+            limit_area=limit_area,
+        )
+    else:
+        assert index is not None  # for mypy
+
+        interp_values = _interpolate_2d_with_fill(
+            data=data,
+            index=index,
+            axis=axis,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+    return interp_values
+
+
+def _interpolate_2d_with_fill(
+    data: np.ndarray,  # floating dtype
+    index: Index,
+    axis: int,
+    method: str = "linear",
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    **kwargs,
+) -> np.ndarray:
+    """
+    Column-wise application of _interpolate_1d.
+
+    Notes
+    -----
+    The signature does differs from _interpolate_1d because it only
+    includes what is needed for Block.interpolate.
+    """
+    # validate the interp method
+    clean_interp_method(method, index, **kwargs)
+
+    if is_valid_na_for_dtype(fill_value, data.dtype):
+        fill_value = na_value_for_dtype(data.dtype, compat=False)
 
     if method == "time":
-        if not needs_i8_conversion(xvalues.dtype):
+        if not needs_i8_conversion(index.dtype):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -250,11 +306,94 @@ def interpolate_1d(
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
 
+    indices = _index_to_interp_indices(index, method)
+
+    def func(yvalues: np.ndarray) -> np.ndarray:
+        # process 1-d slices in the axis direction, returning it
+
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to _interpolate_1d
+        return _interpolate_1d(
+            indices=indices,
+            yvalues=yvalues,
+            method=method,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            bounds_error=False,
+            **kwargs,
+        )
+
+    # interp each column independently
+    return np.apply_along_axis(func, axis, data)
+
+
+def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
+    """
+    Convert Index to ndarray of indices to pass to NumPy/SciPy.
+    """
+    xarr = index._values
+    if needs_i8_conversion(xarr.dtype):
+        # GH#1646 for dt64tz
+        xarr = xarr.view("i8")
+
+    if method == "linear":
+        inds = xarr
+        inds = cast(np.ndarray, inds)
+    else:
+        inds = np.asarray(xarr)
+
+        if method in ("values", "index"):
+            if inds.dtype == np.object_:
+                inds = lib.maybe_convert_objects(inds)
+
+    return inds
+
+
+def _interpolate_1d(
+    indices: np.ndarray,
+    yvalues: np.ndarray,
+    method: str | None = "linear",
+    limit: int | None = None,
+    limit_direction: str = "forward",
+    limit_area: str | None = None,
+    fill_value: Any | None = None,
+    bounds_error: bool = False,
+    order: int | None = None,
+    **kwargs,
+):
+    """
+    Logic for the 1-d interpolation.  The result should be 1-d, inputs
+    indices and yvalues will each be 1-d arrays of the same length.
+
+    Bounds_error is currently hardcoded to False since non-scipy ones don't
+    take it as an argument.
+    """
+
+    invalid = isna(yvalues)
+    valid = ~invalid
+
+    if not valid.any():
+        result = np.empty(indices.shape, dtype=np.float64)
+        result.fill(np.nan)
+        return result
+
+    if valid.all():
+        return yvalues
+
     # These are sets of index pointers to invalid values... i.e. {0, 1, etc...
     all_nans = set(np.flatnonzero(invalid))
-    start_nans = set(range(find_valid_index(yvalues, "first")))
-    end_nans = set(range(1 + find_valid_index(yvalues, "last"), len(valid)))
-    mid_nans = all_nans - start_nans - end_nans
+
+    first_valid_index = find_valid_index(yvalues, how="first")
+    if first_valid_index is None:  # no nan found in start
+        first_valid_index = 0
+    start_nans = set(range(first_valid_index))
+
+    last_valid_index = find_valid_index(yvalues, how="last")
+    if last_valid_index is None:  # no nan found in end
+        last_valid_index = len(yvalues)
+    end_nans = set(range(1 + last_valid_index, len(valid)))
 
     # Like the sets above, preserve_nans contains indices of invalid values,
     # but in this case, it is the final set of indices that need to be
@@ -265,7 +404,7 @@ def interpolate_1d(
     # are more than'limit' away from the prior non-NaN.
 
     # set preserve_nans based on direction using _interp_limit
-    preserve_nans: Union[List, Set]
+    preserve_nans: list | set
     if limit_direction == "forward":
         preserve_nans = start_nans | set(_interp_limit(invalid, limit, 0))
     elif limit_direction == "backward":
@@ -281,39 +420,26 @@ def interpolate_1d(
         preserve_nans |= start_nans | end_nans
     elif limit_area == "outside":
         # preserve NaNs on the inside
+        mid_nans = all_nans - start_nans - end_nans
         preserve_nans |= mid_nans
 
-    # sort preserve_nans and covert to list
+    # sort preserve_nans and convert to list
     preserve_nans = sorted(preserve_nans)
 
     result = yvalues.copy()
 
-    # xarr to pass to NumPy/SciPy
-    xarr = xvalues._values
-    if needs_i8_conversion(xarr.dtype):
-        # GH#1646 for dt64tz
-        xarr = xarr.view("i8")
-
-    if method == "linear":
-        inds = xarr
-    else:
-        inds = np.asarray(xarr)
-
-        if method in ("values", "index"):
-            if inds.dtype == np.object_:
-                inds = lib.maybe_convert_objects(inds)
-
     if method in NP_METHODS:
         # np.interp requires sorted X values, #21037
-        indexer = np.argsort(inds[valid])
+
+        indexer = np.argsort(indices[valid])
         result[invalid] = np.interp(
-            inds[invalid], inds[valid][indexer], yvalues[valid][indexer]
+            indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
         )
     else:
         result[invalid] = _interpolate_scipy_wrapper(
-            inds[valid],
+            indices[valid],
             yvalues[valid],
-            inds[invalid],
+            indices[invalid],
             method=method,
             fill_value=fill_value,
             bounds_error=bounds_error,
@@ -404,11 +530,11 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         sorted 1D array of x-coordinates
-    yi : array_like or list of array-likes
+    yi : array-like or list of array-likes
         yi[i][j] is the j-th derivative known at xi[i]
-    order: None or int or array_like of ints. Default: None.
+    order: None or int or array-like of ints. Default: None.
         Specifies the degree of local polynomials. If not None, some
         derivatives are ignored.
     der : int or list
@@ -426,7 +552,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of length R or length M or M by R.
     """
     from scipy import interpolate
@@ -448,13 +574,13 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     Parameters
     ----------
-    xi : array_like
+    xi : array-like
         A sorted list of x-coordinates, of length N.
-    yi : array_like
+    yi : array-like
         A 1-D array of real values.  `yi`'s length along the interpolation
         axis must be equal to the length of `xi`. If N-D array, use axis
         parameter to select correct axis.
-    x : scalar or array_like
+    x : scalar or array-like
         Of length M.
     der : int, optional
         How many derivatives to extract; None for all potentially
@@ -470,7 +596,7 @@ def _akima_interpolate(xi, yi, x, der=0, axis=0):
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of length R or length M or M by R,
 
     """
@@ -489,14 +615,14 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
     Parameters
     ----------
-    xi : array_like, shape (n,)
+    xi : array-like, shape (n,)
         1-d array containing values of the independent variable.
         Values must be real, finite and in strictly increasing order.
-    yi : array_like
+    yi : array-like
         Array containing values of the dependent variable. It can have
         arbitrary number of dimensions, but the length along ``axis``
         (see below) must match the length of ``x``. Values must be finite.
-    x : scalar or array_like, shape (m,)
+    x : scalar or array-like, shape (m,)
     axis : int, optional
         Axis along which `y` is assumed to be varying. Meaning that for
         ``x[i]`` the corresponding values are ``np.take(y, i, axis=axis)``.
@@ -524,7 +650,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
         tuple `(order, deriv_values)` allowing to specify arbitrary
         derivatives at curve ends:
         * `order`: the derivative order, 1 or 2.
-        * `deriv_value`: array_like containing derivative values, shape must
+        * `deriv_value`: array-like containing derivative values, shape must
           be the same as `y`, excluding ``axis`` dimension. For example, if
           `y` is 1D, then `deriv_value` must be a scalar. If `y` is 3D with
           the shape (n0, n1, n2) and axis=2, then `deriv_value` must be 2D
@@ -541,7 +667,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
     Returns
     -------
-    y : scalar or array_like
+    y : scalar or array-like
         The result, of shape (m,)
 
     References
@@ -561,7 +687,7 @@ def _cubicspline_interpolate(xi, yi, x, axis=0, bc_type="not-a-knot", extrapolat
 
 
 def _interpolate_with_limit_area(
-    values: ArrayLike, method: str, limit: Optional[int], limit_area: Optional[str]
+    values: ArrayLike, method: str, limit: int | None, limit_area: str | None
 ) -> ArrayLike:
     """
     Apply interpolation and limit_area logic to values along a to-be-specified axis.
@@ -586,8 +712,12 @@ def _interpolate_with_limit_area(
     invalid = isna(values)
 
     if not invalid.all():
-        first = find_valid_index(values, "first")
-        last = find_valid_index(values, "last")
+        first = find_valid_index(values, how="first")
+        if first is None:
+            first = 0
+        last = find_valid_index(values, how="last")
+        if last is None:
+            last = len(values)
 
         values = interpolate_2d(
             values,
@@ -609,14 +739,14 @@ def interpolate_2d(
     values,
     method: str = "pad",
     axis: Axis = 0,
-    limit: Optional[int] = None,
-    limit_area: Optional[str] = None,
+    limit: int | None = None,
+    limit_area: str | None = None,
 ):
     """
     Perform an actual interpolation of values, values will be make 2-d if
     needed fills inplace, returns the result.
 
-       Parameters
+    Parameters
     ----------
     values: array-like
         Input array.
@@ -646,8 +776,6 @@ def interpolate_2d(
             values,
         )
 
-    orig_values = values
-
     transf = (lambda x: x) if axis == 0 else (lambda x: x.T)
 
     # reshape a 1 dim if needed
@@ -660,23 +788,19 @@ def interpolate_2d(
     method = clean_fill_method(method)
     tvalues = transf(values)
     if method == "pad":
-        result = _pad_2d(tvalues, limit=limit)
+        result, _ = _pad_2d(tvalues, limit=limit)
     else:
-        result = _backfill_2d(tvalues, limit=limit)
+        result, _ = _backfill_2d(tvalues, limit=limit)
 
     result = transf(result)
     # reshape back
     if ndim == 1:
         result = result[0]
 
-    if orig_values.dtype.kind in ["m", "M"]:
-        # convert float back to datetime64/timedelta64
-        result = result.view(orig_values.dtype)
-
     return result
 
 
-def _fillna_prep(values, mask=None):
+def _fillna_prep(values, mask: np.ndarray | None = None) -> np.ndarray:
     # boilerplate for _pad_1d, _backfill_1d, _pad_2d, _backfill_2d
 
     if mask is None:
@@ -698,8 +822,8 @@ def _datetimelike_compat(func: F) -> F:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result = func(values.view("i8"), limit=limit, mask=mask)
-            return result.view(values.dtype)
+            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            return result.view(values.dtype), mask
 
         return func(values, limit=limit, mask=mask)
 
@@ -707,17 +831,25 @@ def _datetimelike_compat(func: F) -> F:
 
 
 @_datetimelike_compat
-def _pad_1d(values, limit=None, mask=None):
+def _pad_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.pad_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
-def _backfill_1d(values, limit=None, mask=None):
+def _backfill_1d(
+    values: np.ndarray,
+    limit: int | None = None,
+    mask: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     mask = _fillna_prep(values, mask)
     algos.backfill_inplace(values, mask, limit=limit)
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -729,7 +861,7 @@ def _pad_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 @_datetimelike_compat
@@ -741,29 +873,31 @@ def _backfill_2d(values, limit=None, mask=None):
     else:
         # for test coverage
         pass
-    return values
+    return values, mask
 
 
 _fill_methods = {"pad": _pad_1d, "backfill": _backfill_1d}
 
 
-def get_fill_func(method):
+def get_fill_func(method, ndim: int = 1):
     method = clean_fill_method(method)
-    return _fill_methods[method]
+    if ndim == 1:
+        return _fill_methods[method]
+    return {"pad": _pad_2d, "backfill": _backfill_2d}[method]
 
 
 def clean_reindex_fill_method(method):
     return clean_fill_method(method, allow_nearest=True)
 
 
-def _interp_limit(invalid, fw_limit, bw_limit):
+def _interp_limit(invalid: np.ndarray, fw_limit, bw_limit):
     """
     Get indexers of values that won't be filled
     because they exceed the limits.
 
     Parameters
     ----------
-    invalid : boolean ndarray
+    invalid : np.ndarray[bool]
     fw_limit : int or None
         forward limit to index
     bw_limit : int or None

@@ -7,7 +7,7 @@ import pandas._testing as tm
 
 def test_fields_readonly():
     # https://github.com/vaexio/vaex/issues/357
-    #  fields functions should't raise when we pass read-only data
+    #  fields functions shouldn't raise when we pass read-only data
     dtindex = np.arange(5, dtype=np.int64) * 10 ** 9 * 3600 * 24 * 32
     dtindex.flags.writeable = False
 

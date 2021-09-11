@@ -10,7 +10,6 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
 from pandas.errors import OutOfBoundsTimedelta
 
 import pandas as pd
@@ -18,7 +17,6 @@ from pandas import (
     NaT,
     Timedelta,
     Timestamp,
-    compat,
     offsets,
 )
 import pandas._testing as tm
@@ -434,15 +432,7 @@ class TestTimedeltaMultiplicationDivision:
         "nan",
         [
             np.nan,
-            pytest.param(
-                np.float64("NaN"),
-                marks=pytest.mark.xfail(
-                    # Works on numpy dev only in python 3.9
-                    is_numpy_dev and not compat.PY39,
-                    raises=RuntimeWarning,
-                    reason="https://github.com/pandas-dev/pandas/issues/31992",
-                ),
-            ),
+            np.float64("NaN"),
             float("nan"),
         ],
     )

@@ -198,6 +198,13 @@ class TestGetLoc:
         expected = np.array([False, True, False, True], dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_loc_nan(self):
+        # GH#41933
+        ci = CategoricalIndex(["A", "B", np.nan])
+        res = ci.get_loc(np.nan)
+
+        assert res == 2
+
 
 class TestGetIndexer:
     def test_get_indexer_base(self):
@@ -244,9 +251,9 @@ class TestGetIndexer:
         for indexer in [idx2, list("abf"), Index(list("abf"))]:
             msg = "Reindexing only valid with uniquely valued Index objects"
             with pytest.raises(InvalidIndexError, match=msg):
-                idx1.get_indexer(idx2)
+                idx1.get_indexer(indexer)
 
-            r1, _ = idx1.get_indexer_non_unique(idx2)
+            r1, _ = idx1.get_indexer_non_unique(indexer)
             expected = np.array([0, 1, 2, -1], dtype=np.intp)
             tm.assert_almost_equal(r1, expected)
 
@@ -315,7 +322,7 @@ class TestWhere:
         tm.assert_index_equal(result, expected)
 
         msg = "Cannot setitem on a Categorical with a new category"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TypeError, match=msg):
             # Test the Categorical method directly
             ci._data.where(mask, 2)
 

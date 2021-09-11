@@ -16,28 +16,42 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
 )
-from pandas.core.dtypes.generic import ABCPandasArray
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.numpy_ import PandasArray
-from pandas.core.internals import managers
+from pandas.core.internals import blocks
 from pandas.tests.extension import base
 
 
-def _extract_array_patched(obj):
-    if isinstance(obj, (pd.Index, pd.Series)):
-        obj = obj._values
-    if isinstance(obj, ABCPandasArray):
-        # TODO for reasons unclear, we get here in a couple of tests
-        #  with PandasArray._typ *not* patched
-        obj = obj.to_numpy()
+def _can_hold_element_patched(obj, element) -> bool:
+    if isinstance(element, PandasArray):
+        element = element.to_numpy()
+    return can_hold_element(obj, element)
 
-    return obj
+
+orig_assert_attr_equal = tm.assert_attr_equal
+
+
+def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
+    """
+    patch tm.assert_attr_equal so PandasDtype("object") is closed enough to
+    np.dtype("object")
+    """
+    if attr == "dtype":
+        lattr = getattr(left, "dtype", None)
+        rattr = getattr(right, "dtype", None)
+        if isinstance(lattr, PandasDtype) and not isinstance(rattr, PandasDtype):
+            left = left.astype(lattr.numpy_dtype)
+        elif isinstance(rattr, PandasDtype) and not isinstance(lattr, PandasDtype):
+            right = right.astype(rattr.numpy_dtype)
+
+    orig_assert_attr_equal(attr, left, right, obj)
 
 
 @pytest.fixture(params=["float", "object"])
@@ -64,7 +78,8 @@ def allow_in_pandas(monkeypatch):
     """
     with monkeypatch.context() as m:
         m.setattr(PandasArray, "_typ", "extension")
-        m.setattr(managers, "_extract_array", _extract_array_patched)
+        m.setattr(blocks, "can_hold_element", _can_hold_element_patched)
+        m.setattr(tm.asserters, "assert_attr_equal", _assert_attr_equal)
         yield
 
 
@@ -305,11 +320,6 @@ class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     @skip_nested
-    def test_fillna_scalar(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_scalar(data_missing)
-
-    @skip_nested
     def test_fillna_series(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_series(data_missing)
@@ -318,17 +328,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     def test_fillna_frame(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
-
-    def test_fillna_fill_other(self, data_missing):
-        # Same as the parent class test, but with PandasDtype for expected["B"]
-        #  instead of equivalent numpy dtype
-        data = data_missing
-        result = pd.DataFrame({"A": data, "B": [np.nan] * len(data)}).fillna({"B": 0.0})
-
-        expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
-        expected["B"] = expected["B"].astype(PandasDtype(expected["B"].dtype))
-
-        self.assert_frame_equal(result, expected)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
@@ -344,26 +343,6 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         # ValueError: cannot set using a list-like indexer with a different
         # length than the value
         super().test_setitem_sequence_broadcasts(data, box_in_series)
-
-    @skip_nested
-    def test_setitem_loc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_loc_scalar_multiple_homogoneous(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_mixed(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_mixed(data)
-
-    @skip_nested
-    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
-        # AssertionError
-        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
 
     @skip_nested
     @pytest.mark.parametrize("setter", ["loc", None])
@@ -424,6 +403,23 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
     def test_setitem_loc_iloc_slice(self, data):
         super().test_setitem_loc_iloc_slice(data)
+
+    def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
+        # https://github.com/pandas-dev/pandas/issues/32395
+        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        result = pd.DataFrame(index=df.index)
+
+        # because result has object dtype, the attempt to do setting inplace
+        #  is successful, and object dtype is retained
+        key = full_indexer(df)
+        result.loc[key, "data"] = df["data"]
+
+        # base class method has expected = df; PandasArray behaves oddly because
+        #  we patch _typ for these tests.
+        if data.dtype.numpy_dtype != object:
+            if not isinstance(key, slice) or key != slice(None):
+                expected = pd.DataFrame({"data": data.to_numpy()})
+        self.assert_frame_equal(result, expected)
 
 
 @skip_nested

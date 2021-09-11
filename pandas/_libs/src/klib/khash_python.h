@@ -163,28 +163,198 @@ KHASH_MAP_INIT_COMPLEX128(complex128, size_t)
 #define kh_exist_complex128(h, k) (kh_exist(h, k))
 
 
+// NaN-floats should be in the same equivalency class, see GH 22119
+int PANDAS_INLINE floatobject_cmp(PyFloatObject* a, PyFloatObject* b){
+    return (
+             Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
+             Py_IS_NAN(PyFloat_AS_DOUBLE(b))
+           )
+           ||
+           ( PyFloat_AS_DOUBLE(a) == PyFloat_AS_DOUBLE(b) );
+}
+
+
+// NaNs should be in the same equivalency class, see GH 41836
+// PyObject_RichCompareBool for complexobjects has a different behavior
+// needs to be replaced
+int PANDAS_INLINE complexobject_cmp(PyComplexObject* a, PyComplexObject* b){
+    return (
+                Py_IS_NAN(a->cval.real) &&
+                Py_IS_NAN(b->cval.real) &&
+                Py_IS_NAN(a->cval.imag) &&
+                Py_IS_NAN(b->cval.imag)
+           )
+           ||
+           (
+                Py_IS_NAN(a->cval.real) &&
+                Py_IS_NAN(b->cval.real) &&
+                a->cval.imag == b->cval.imag
+           )
+           ||
+           (
+                a->cval.real == b->cval.real &&
+                Py_IS_NAN(a->cval.imag) &&
+                Py_IS_NAN(b->cval.imag)
+           )
+           ||
+           (
+                a->cval.real == b->cval.real &&
+                a->cval.imag == b->cval.imag
+           );
+}
+
+int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b);
+
+
+// replacing PyObject_RichCompareBool (NaN!=NaN) with pyobject_cmp (NaN==NaN),
+// which treats NaNs as equivalent
+// see GH 41836
+int PANDAS_INLINE tupleobject_cmp(PyTupleObject* a, PyTupleObject* b){
+    Py_ssize_t i;
+
+    if (Py_SIZE(a) != Py_SIZE(b)) {
+        return 0;
+    }
+
+    for (i = 0; i < Py_SIZE(a); ++i) {
+        if (!pyobject_cmp(PyTuple_GET_ITEM(a, i), PyTuple_GET_ITEM(b, i))) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+
 int PANDAS_INLINE pyobject_cmp(PyObject* a, PyObject* b) {
+    if (a == b) {
+        return 1;
+    }
+    if (Py_TYPE(a) == Py_TYPE(b)) {
+        // special handling for some built-in types which could have NaNs
+        // as we would like to have them equivalent, but the usual
+        // PyObject_RichCompareBool would return False
+        if (PyFloat_CheckExact(a)) {
+            return floatobject_cmp((PyFloatObject*)a, (PyFloatObject*)b);
+        }
+        if (PyComplex_CheckExact(a)) {
+            return complexobject_cmp((PyComplexObject*)a, (PyComplexObject*)b);
+        }
+        if (PyTuple_CheckExact(a)) {
+            return tupleobject_cmp((PyTupleObject*)a, (PyTupleObject*)b);
+        }
+        // frozenset isn't yet supported
+    }
+
 	int result = PyObject_RichCompareBool(a, b, Py_EQ);
 	if (result < 0) {
 		PyErr_Clear();
 		return 0;
 	}
-    if (result == 0) {  // still could be two NaNs
-        return PyFloat_CheckExact(a) &&
-               PyFloat_CheckExact(b) &&
-               Py_IS_NAN(PyFloat_AS_DOUBLE(a)) &&
-               Py_IS_NAN(PyFloat_AS_DOUBLE(b));
-    }
 	return result;
 }
 
 
-khint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key){
+Py_hash_t PANDAS_INLINE _Pandas_HashDouble(double val) {
+    //Since Python3.10, nan is no longer has hash 0
+    if (Py_IS_NAN(val)) {
+        return 0;
+    }
+#if PY_VERSION_HEX < 0x030A0000
+    return _Py_HashDouble(val);
+#else
+    return _Py_HashDouble(NULL, val);
+#endif
+}
+
+
+Py_hash_t PANDAS_INLINE floatobject_hash(PyFloatObject* key) {
+    return _Pandas_HashDouble(PyFloat_AS_DOUBLE(key));
+}
+
+
+#define _PandasHASH_IMAG 1000003UL
+
+// replaces _Py_HashDouble with _Pandas_HashDouble
+Py_hash_t PANDAS_INLINE complexobject_hash(PyComplexObject* key) {
+    Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(key->cval.real);
+    Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(key->cval.imag);
+    if (realhash == (Py_uhash_t)-1 || imaghash == (Py_uhash_t)-1) {
+        return -1;
+    }
+    Py_uhash_t combined = realhash + _PandasHASH_IMAG * imaghash;
+    if (combined == (Py_uhash_t)-1) {
+        return -2;
+    }
+    return (Py_hash_t)combined;
+}
+
+
+khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key);
+
+//we could use any hashing algorithm, this is the original CPython's for tuples
+
+#if SIZEOF_PY_UHASH_T > 4
+#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)11400714785074694791ULL)
+#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)14029467366897019727ULL)
+#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)2870177450012600261ULL)
+#define _PandasHASH_XXROTATE(x) ((x << 31) | (x >> 33))  /* Rotate left 31 bits */
+#else
+#define _PandasHASH_XXPRIME_1 ((Py_uhash_t)2654435761UL)
+#define _PandasHASH_XXPRIME_2 ((Py_uhash_t)2246822519UL)
+#define _PandasHASH_XXPRIME_5 ((Py_uhash_t)374761393UL)
+#define _PandasHASH_XXROTATE(x) ((x << 13) | (x >> 19))  /* Rotate left 13 bits */
+#endif
+
+Py_hash_t PANDAS_INLINE tupleobject_hash(PyTupleObject* key) {
+    Py_ssize_t i, len = Py_SIZE(key);
+    PyObject **item = key->ob_item;
+
+    Py_uhash_t acc = _PandasHASH_XXPRIME_5;
+    for (i = 0; i < len; i++) {
+        Py_uhash_t lane = kh_python_hash_func(item[i]);
+        if (lane == (Py_uhash_t)-1) {
+            return -1;
+        }
+        acc += lane * _PandasHASH_XXPRIME_2;
+        acc = _PandasHASH_XXROTATE(acc);
+        acc *= _PandasHASH_XXPRIME_1;
+    }
+
+    /* Add input length, mangled to keep the historical value of hash(()). */
+    acc += len ^ (_PandasHASH_XXPRIME_5 ^ 3527539UL);
+
+    if (acc == (Py_uhash_t)-1) {
+        return 1546275796;
+    }
+    return acc;
+}
+
+
+khuint32_t PANDAS_INLINE kh_python_hash_func(PyObject* key) {
+    Py_hash_t hash;
     // For PyObject_Hash holds:
     //    hash(0.0) == 0 == hash(-0.0)
-    //    hash(X) == 0 if X is a NaN-value
-    // so it is OK to use it directly for doubles
-    Py_hash_t hash = PyObject_Hash(key);
+    //    yet for different nan-objects different hash-values
+    //    are possible
+    if (PyFloat_CheckExact(key)) {
+        // we cannot use kh_float64_hash_func
+        // becase float(k) == k holds for any int-object k
+        // and kh_float64_hash_func doesn't respect it
+        hash = floatobject_hash((PyFloatObject*)key);
+    }
+    else if (PyComplex_CheckExact(key)) {
+        // we cannot use kh_complex128_hash_func
+        // becase complex(k,0) == k holds for any int-object k
+        // and kh_complex128_hash_func doesn't respect it
+        hash = complexobject_hash((PyComplexObject*)key);
+    }
+    else if (PyTuple_CheckExact(key)) {
+        hash = tupleobject_hash((PyTupleObject*)key);
+    }
+    else {
+        hash = PyObject_Hash(key);
+    }
+
 	if (hash == -1) {
 		PyErr_Clear();
 		return 0;

@@ -10,6 +10,21 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_datetimeindex_transpose_empty_df(self):
+        """
+        Regression test for:
+        https://github.com/pandas-dev/pandas/issues/41382
+        """
+        df = DataFrame(index=pd.DatetimeIndex([]))
+
+        expected = pd.DatetimeIndex([], dtype="datetime64[ns]", freq=None)
+
+        result1 = df.T.sum().index
+        result2 = df.sum(axis=1).index
+
+        tm.assert_index_equal(result1, expected)
+        tm.assert_index_equal(result2, expected)
+
     def test_indexing_with_datetime_tz(self):
 
         # GH#8260
@@ -81,7 +96,7 @@ class TestDatetimeIndex:
         result = df[0].at[0]
         assert result == expected
 
-    def test_indexing_with_datetimeindex_tz(self):
+    def test_indexing_with_datetimeindex_tz(self, indexer_sl):
 
         # GH 12050
         # indexing on a series with a datetimeindex with tz
@@ -93,7 +108,7 @@ class TestDatetimeIndex:
 
         for sel in (index, list(index)):
             # getitem
-            result = ser[sel]
+            result = indexer_sl(ser)[sel]
             expected = ser.copy()
             if sel is not index:
                 expected.index = expected.index._with_freq(None)
@@ -101,40 +116,18 @@ class TestDatetimeIndex:
 
             # setitem
             result = ser.copy()
-            result[sel] = 1
-            expected = Series(1, index=index)
-            tm.assert_series_equal(result, expected)
-
-            # .loc getitem
-            result = ser.loc[sel]
-            expected = ser.copy()
-            if sel is not index:
-                expected.index = expected.index._with_freq(None)
-            tm.assert_series_equal(result, expected)
-
-            # .loc setitem
-            result = ser.copy()
-            result.loc[sel] = 1
+            indexer_sl(result)[sel] = 1
             expected = Series(1, index=index)
             tm.assert_series_equal(result, expected)
 
         # single element indexing
 
         # getitem
-        assert ser[index[1]] == 1
+        assert indexer_sl(ser)[index[1]] == 1
 
         # setitem
         result = ser.copy()
-        result[index[1]] = 5
-        expected = Series([0, 5], index=index)
-        tm.assert_series_equal(result, expected)
-
-        # .loc getitem
-        assert ser.loc[index[1]] == 1
-
-        # .loc setitem
-        result = ser.copy()
-        result.loc[index[1]] = 5
+        indexer_sl(result)[index[1]] = 5
         expected = Series([0, 5], index=index)
         tm.assert_series_equal(result, expected)
 
@@ -174,3 +167,16 @@ class TestDatetimeIndex:
             ],
         )
         tm.assert_equal(result, expected)
+
+    def test_str_subclass(self):
+        # GH 37366
+        class mystring(str):
+            pass
+
+        data = ["2020-10-22 01:21:00+00:00"]
+        index = pd.DatetimeIndex(data)
+        df = DataFrame({"a": [1]}, index=index)
+        df["b"] = 2
+        df[mystring("c")] = 3
+        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
+        tm.assert_equal(df, expected)

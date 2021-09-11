@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas.core.dtypes.base import registry
+from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical,
@@ -66,7 +66,7 @@ class Base:
 
         # clear the cache
         type(dtype).reset_cache()
-        assert not len(dtype._cache)
+        assert not len(dtype._cache_dtypes)
 
         # force back to the cache
         result = tm.round_trip_pickle(dtype)
@@ -74,7 +74,7 @@ class Base:
             # Because PeriodDtype has a cython class as a base class,
             #  it has different pickle semantics, and its cache is re-populated
             #  on un-pickling.
-            assert not len(dtype._cache)
+            assert not len(dtype._cache_dtypes)
         assert result == dtype
 
 
@@ -791,14 +791,14 @@ class TestIntervalDtype(Base):
     def test_caching(self):
         IntervalDtype.reset_cache()
         dtype = IntervalDtype("int64", "right")
-        assert len(IntervalDtype._cache) == 1
+        assert len(IntervalDtype._cache_dtypes) == 1
 
         IntervalDtype("interval")
-        assert len(IntervalDtype._cache) == 2
+        assert len(IntervalDtype._cache_dtypes) == 2
 
         IntervalDtype.reset_cache()
         tm.round_trip_pickle(dtype)
-        assert len(IntervalDtype._cache) == 0
+        assert len(IntervalDtype._cache_dtypes) == 0
 
     def test_not_string(self):
         # GH30568: though IntervalDtype has object kind, it cannot be string
@@ -1095,3 +1095,15 @@ def test_period_dtype_compare_to_string():
     dtype = PeriodDtype(freq="M")
     assert (dtype == "period[M]") is True
     assert (dtype != "period[M]") is False
+
+
+def test_compare_complex_dtypes():
+    # GH 28050
+    df = pd.DataFrame(np.arange(5).astype(np.complex128))
+    msg = "'<' not supported between instances of 'complex' and 'complex'"
+
+    with pytest.raises(TypeError, match=msg):
+        df < df.astype(object)
+
+    with pytest.raises(TypeError, match=msg):
+        df.lt(df.astype(object))

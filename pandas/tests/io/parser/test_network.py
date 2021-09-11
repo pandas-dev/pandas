@@ -204,12 +204,12 @@ class TestS3:
 
     def test_read_s3_fails(self, s3so):
         msg = "The specified bucket does not exist"
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
 
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
-        with pytest.raises(IOError, match=msg):
+        with pytest.raises(OSError, match=msg):
             read_csv("s3://cant_get_it/file.csv")
 
     @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
@@ -262,7 +262,7 @@ class TestS3:
         tm.assert_frame_equal(result, expected)
 
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
-        # 8 MB, S3FS usees 5MB chunks
+        # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
         df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))

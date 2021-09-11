@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     NaT,
@@ -38,7 +36,7 @@ all_ts = pytest.mark.parametrize(
 @pytest.fixture
 def create_index(_index_factory):
     def _create_index(*args, **kwargs):
-        """ return the _index_factory created using the args, kwargs """
+        """return the _index_factory created using the args, kwargs"""
         return _index_factory(*args, **kwargs)
 
     return _create_index
@@ -247,7 +245,6 @@ def test_resampler_is_iterable(series):
         tm.assert_series_equal(rv, gv)
 
 
-@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) quantile
 @all_ts
 def test_resample_quantile(series):
     # GH 15023

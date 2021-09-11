@@ -522,7 +522,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert all(ax.get_ylabel() == "" for ax in axes)
         assert all(ax.get_xlabel() == old_label for ax in axes)
 
-        # old xlabel will be overriden and assigned ylabel will be used as ylabel
+        # old xlabel will be overridden and assigned ylabel will be used as ylabel
         axes = df.plot(kind=kind, ylabel=new_label, xlabel=new_label, subplots=True)
         assert all(ax.get_ylabel() == str(new_label) for ax in axes)
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)

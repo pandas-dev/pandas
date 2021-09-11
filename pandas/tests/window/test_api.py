@@ -16,7 +16,8 @@ import pandas._testing as tm
 from pandas.core.base import SpecificationError
 
 
-def test_getitem(frame):
+def test_getitem():
+    frame = DataFrame(np.random.randn(5, 5))
     r = frame.rolling(window=5)
     tm.assert_index_equal(r._selected_obj.columns, frame.columns)
 
@@ -67,7 +68,10 @@ def tests_skip_nuisance():
 def test_skip_sum_object_raises():
     df = DataFrame({"A": range(5), "B": range(5, 10), "C": "foo"})
     r = df.rolling(window=3)
-    result = r.sum()
+    msg = r"nuisance columns.*Dropped columns were Index\(\['C'\], dtype='object'\)"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#42738
+        result = r.sum()
     expected = DataFrame(
         {"A": [np.nan, np.nan, 3, 6, 9], "B": [np.nan, np.nan, 18, 21, 24]},
         columns=list("AB"),

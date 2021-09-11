@@ -1,37 +1,39 @@
-import distutils.version
+from __future__ import annotations
+
 import importlib
 import sys
 import types
-from typing import Optional
 import warnings
+
+from pandas.util.version import Version
 
 # Update install.rst when updating versions!
 
 VERSIONS = {
-    "bs4": "4.6.0",
-    "bottleneck": "1.2.1",
+    "bs4": "4.8.2",
+    "bottleneck": "1.3.1",
     "fsspec": "0.7.4",
-    "fastparquet": "0.3.2",
+    "fastparquet": "0.4.0",
     "gcsfs": "0.6.0",
-    "lxml.etree": "4.3.0",
-    "matplotlib": "2.2.3",
-    "numexpr": "2.6.8",
-    "odfpy": "1.3.0",
-    "openpyxl": "3.0.0",
-    "pandas_gbq": "0.12.0",
-    "pyarrow": "0.15.0",
-    "pytest": "5.0.1",
+    "lxml.etree": "4.5.0",
+    "matplotlib": "3.3.2",
+    "numexpr": "2.7.1",
+    "odfpy": "1.4.1",
+    "openpyxl": "3.0.2",
+    "pandas_gbq": "0.14.0",
+    "pyarrow": "0.17.0",
+    "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
-    "scipy": "1.2.0",
-    "sqlalchemy": "1.2.8",
-    "tables": "3.5.1",
+    "scipy": "1.4.1",
+    "sqlalchemy": "1.3.11",
+    "tables": "3.6.1",
     "tabulate": "0.8.7",
-    "xarray": "0.12.3",
-    "xlrd": "1.2.0",
+    "xarray": "0.15.1",
+    "xlrd": "2.0.1",
     "xlwt": "1.3.0",
-    "xlsxwriter": "1.0.2",
-    "numba": "0.46.0",
+    "xlsxwriter": "1.2.2",
+    "numba": "0.50.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -63,7 +65,7 @@ def import_optional_dependency(
     name: str,
     extra: str = "",
     errors: str = "raise",
-    min_version: Optional[str] = None,
+    min_version: str | None = None,
 ):
     """
     Import an optional dependency.
@@ -127,7 +129,7 @@ def import_optional_dependency(
     minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     if minimum_version:
         version = get_version(module_to_get)
-        if distutils.version.LooseVersion(version) < minimum_version:
+        if Version(version) < Version(minimum_version):
             msg = (
                 f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
                 f"(version '{version}' currently installed)."

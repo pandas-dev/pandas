@@ -4,7 +4,7 @@ import pytest
 from pandas import (
     Index,
     Series,
-    array as pd_array,
+    array,
     date_range,
 )
 import pandas._testing as tm
@@ -31,7 +31,7 @@ class TestView:
     @pytest.mark.parametrize(
         "second", ["m8[ns]", "M8[ns]", "M8[ns, US/Central]", "period[D]"]
     )
-    @pytest.mark.parametrize("box", [Series, Index, pd_array])
+    @pytest.mark.parametrize("box", [Series, Index, array])
     def test_view_between_datetimelike(self, first, second, box):
 
         dti = date_range("2016-01-01", periods=3)

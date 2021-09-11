@@ -618,6 +618,7 @@ cdef class BlockIndex(SparseIndex):
         pass
 
 
+@cython.internal
 cdef class BlockMerge:
     """
     Object-oriented approach makes sharing state between recursive functions a
@@ -661,6 +662,7 @@ cdef class BlockMerge:
             self.yi = xi
 
 
+@cython.internal
 cdef class BlockUnion(BlockMerge):
     """
     Object-oriented approach makes sharing state between recursive functions a

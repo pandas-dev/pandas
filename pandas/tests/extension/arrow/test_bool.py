@@ -82,6 +82,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_construct_empty_dataframe(self, dtype):
         super().test_construct_empty_dataframe(dtype)
 
+    @pytest.mark.xfail(reason="_from_sequence ignores dtype keyword")
+    def test_empty(self, dtype):
+        super().test_empty(dtype)
+
 
 class TestReduce(base.BaseNoReduceTests):
     def test_reduce_series_boolean(self):

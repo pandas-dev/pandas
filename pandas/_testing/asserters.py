@@ -1,12 +1,14 @@
-from typing import (
-    Union,
-    cast,
-)
+from __future__ import annotations
+
+from typing import cast
 import warnings
 
 import numpy as np
 
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    NoDefault,
+    no_default,
+)
 from pandas._libs.missing import is_matching_na
 import pandas._libs.testing as _testing
 
@@ -46,6 +48,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.string_ import StringDtype
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -53,8 +56,8 @@ from pandas.io.formats.printing import pprint_thing
 def assert_almost_equal(
     left,
     right,
-    check_dtype: Union[bool, str] = "equiv",
-    check_less_precise: Union[bool, int] = no_default,
+    check_dtype: bool | str = "equiv",
+    check_less_precise: bool | int | NoDefault = no_default,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
     **kwargs,
@@ -104,7 +107,12 @@ def assert_almost_equal(
             FutureWarning,
             stacklevel=2,
         )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+        # https://github.com/python/mypy/issues/7642
+        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
+        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
+        rtol = atol = _get_tol_from_less_precise(
+            check_less_precise  # type: ignore[arg-type]
+        )
 
     if isinstance(left, Index):
         assert_index_equal(
@@ -154,12 +162,15 @@ def assert_almost_equal(
                 else:
                     obj = "Input"
                 assert_class_equal(left, right, obj=obj)
+
+        # if we have "equiv", this becomes True
+        check_dtype = bool(check_dtype)
         _testing.assert_almost_equal(
             left, right, check_dtype=check_dtype, rtol=rtol, atol=atol, **kwargs
         )
 
 
-def _get_tol_from_less_precise(check_less_precise: Union[bool, int]) -> float:
+def _get_tol_from_less_precise(check_less_precise: bool | int) -> float:
     """
     Return the tolerance equivalent to the deprecated `check_less_precise`
     parameter.
@@ -237,9 +248,9 @@ def assert_dict_equal(left, right, compare_keys: bool = True):
 def assert_index_equal(
     left: Index,
     right: Index,
-    exact: Union[bool, str] = "equiv",
+    exact: bool | str = "equiv",
     check_names: bool = True,
-    check_less_precise: Union[bool, int] = no_default,
+    check_less_precise: bool | int | NoDefault = no_default,
     check_exact: bool = True,
     check_categorical: bool = True,
     check_order: bool = True,
@@ -292,26 +303,28 @@ def assert_index_equal(
 
     Examples
     --------
-    >>> from pandas.testing import assert_index_equal
+    >>> from pandas import testing as tm
     >>> a = pd.Index([1, 2, 3])
     >>> b = pd.Index([1, 2, 3])
-    >>> assert_index_equal(a, b)
+    >>> tm.assert_index_equal(a, b)
     """
     __tracebackhide__ = True
 
-    def _check_types(left, right, obj="Index"):
-        if exact:
-            assert_class_equal(left, right, exact=exact, obj=obj)
+    def _check_types(left, right, obj="Index") -> None:
+        if not exact:
+            return
 
-            # Skip exact dtype checking when `check_categorical` is False
+        assert_class_equal(left, right, exact=exact, obj=obj)
+        assert_attr_equal("inferred_type", left, right, obj=obj)
+
+        # Skip exact dtype checking when `check_categorical` is False
+        if is_categorical_dtype(left.dtype) and is_categorical_dtype(right.dtype):
             if check_categorical:
                 assert_attr_equal("dtype", left, right, obj=obj)
+                assert_index_equal(left.categories, right.categories, exact=exact)
+            return
 
-            # allow string-like to have different inferred_types
-            if left.inferred_type in ("string"):
-                assert right.inferred_type in ("string")
-            else:
-                assert_attr_equal("inferred_type", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=obj)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -328,7 +341,12 @@ def assert_index_equal(
             FutureWarning,
             stacklevel=2,
         )
-        rtol = atol = _get_tol_from_less_precise(check_less_precise)
+        # https://github.com/python/mypy/issues/7642
+        # error: Argument 1 to "_get_tol_from_less_precise" has incompatible
+        # type "Union[bool, int, NoDefault]"; expected "Union[bool, int]"
+        rtol = atol = _get_tol_from_less_precise(
+            check_less_precise  # type: ignore[arg-type]
+        )
 
     # instance validation
     _check_isinstance(left, right, Index)
@@ -388,12 +406,15 @@ def assert_index_equal(
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
             raise_assert_detail(obj, msg, left, right)
     else:
+
+        # if we have "equiv", this becomes True
+        exact_bool = bool(exact)
         _testing.assert_almost_equal(
             left.values,
             right.values,
             rtol=rtol,
             atol=atol,
-            check_dtype=exact,
+            check_dtype=exact_bool,
             obj=obj,
             lobj=left,
             robj=right,
@@ -412,10 +433,12 @@ def assert_index_equal(
             assert_categorical_equal(left._values, right._values, obj=f"{obj} category")
 
 
-def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input"):
+def assert_class_equal(left, right, exact: bool | str = True, obj="Input"):
     """
     Checks classes are equal.
     """
+    from pandas.core.indexes.numeric import NumericIndex
+
     __tracebackhide__ = True
 
     def repr_class(x):
@@ -425,17 +448,16 @@ def assert_class_equal(left, right, exact: Union[bool, str] = True, obj="Input")
 
         return type(x).__name__
 
+    if type(left) == type(right):
+        return
+
     if exact == "equiv":
-        if type(left) != type(right):
-            # allow equivalence of Int64Index/RangeIndex
-            types = {type(left).__name__, type(right).__name__}
-            if len(types - {"Int64Index", "RangeIndex"}):
-                msg = f"{obj} classes are not equivalent"
-                raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
-    elif exact:
-        if type(left) != type(right):
-            msg = f"{obj} classes are different"
-            raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
+        # accept equivalence of NumericIndex (sub-)classes
+        if isinstance(left, NumericIndex) and isinstance(right, NumericIndex):
+            return
+
+    msg = f"{obj} classes are different"
+    raise_assert_detail(obj, msg, repr_class(left), repr_class(right))
 
 
 def assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
@@ -618,12 +640,20 @@ def raise_assert_detail(obj, message, left, right, diff=None, index_values=None)
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif is_categorical_dtype(left) or isinstance(left, PandasDtype):
+    elif (
+        is_categorical_dtype(left)
+        or isinstance(left, PandasDtype)
+        or isinstance(left, StringDtype)
+    ):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif is_categorical_dtype(right) or isinstance(right, PandasDtype):
+    elif (
+        is_categorical_dtype(right)
+        or isinstance(right, PandasDtype)
+        or isinstance(right, StringDtype)
+    ):
         right = repr(right)
 
     msg += f"""
@@ -764,10 +794,10 @@ def assert_extension_array_equal(
 
     Examples
     --------
-    >>> from pandas.testing import assert_extension_array_equal
+    >>> from pandas import testing as tm
     >>> a = pd.Series([1, 2, 3, 4])
     >>> b, c = a.array, a.array
-    >>> assert_extension_array_equal(b, c)
+    >>> tm.assert_extension_array_equal(b, c)
     """
     if check_less_precise is not no_default:
         warnings.warn(
@@ -908,10 +938,10 @@ def assert_series_equal(
 
     Examples
     --------
-    >>> from pandas.testing import assert_series_equal
+    >>> from pandas import testing as tm
     >>> a = pd.Series([1, 2, 3, 4])
     >>> b = pd.Series([1, 2, 3, 4])
-    >>> assert_series_equal(a, b)
+    >>> tm.assert_series_equal(a, b)
     """
     __tracebackhide__ = True
 
@@ -976,8 +1006,8 @@ def assert_series_equal(
         left_values = left._values
         right_values = right._values
         # Only check exact if dtype is numeric
-        if is_extension_array_dtype(left_values) and is_extension_array_dtype(
-            right_values
+        if isinstance(left_values, ExtensionArray) and isinstance(
+            right_values, ExtensionArray
         ):
             assert_extension_array_equal(
                 left_values,
