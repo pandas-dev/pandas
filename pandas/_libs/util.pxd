@@ -1,17 +1,6 @@
 cimport numpy as cnp
-from numpy cimport ndarray
 
 from pandas._libs.tslibs.util cimport *
-
-
-cdef extern from "numpy/ndarraytypes.h":
-    void PyArray_CLEARFLAGS(ndarray arr, int flags) nogil
-
-
-cdef extern from "numpy/arrayobject.h":
-    enum:
-        NPY_ARRAY_C_CONTIGUOUS
-        NPY_ARRAY_F_CONTIGUOUS
 
 
 cdef extern from "src/headers/stdint.h":
@@ -42,10 +31,3 @@ ctypedef fused numeric:
 
     cnp.float32_t
     cnp.float64_t
-
-
-cdef inline void set_array_not_contiguous(ndarray ao) nogil:
-    # Numpy>=1.8-compliant equivalent to:
-    # ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
-    PyArray_CLEARFLAGS(ao,
-                       (NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS))
