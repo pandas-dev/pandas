@@ -47,7 +47,7 @@ from pandas.core.tools.datetimes import to_datetime
 from pandas.util.version import Version
 
 
-class DatabaseError(IOError):
+class DatabaseError(OSError):
     pass
 
 

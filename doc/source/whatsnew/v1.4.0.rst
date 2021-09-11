@@ -394,6 +394,7 @@ I/O
 - Column headers are dropped when constructing a :class:`DataFrame` from a sqlalchemy's ``Row`` object (:issue:`40682`)
 - Bug in unpickling a :class:`Index` with object dtype incorrectly inferring numeric dtypes (:issue:`43188`)
 - Bug in :func:`read_csv` where reading multi-header input with unequal lengths incorrectly raising uncontrolled ``IndexError`` (:issue:`43102`)
+- Bug in :func:`read_csv`, changed exception class when expecting a file path name or file-like object from ``OSError`` to ``TypeError`` (:issue:`43366`)
 
 Period
 ^^^^^^
