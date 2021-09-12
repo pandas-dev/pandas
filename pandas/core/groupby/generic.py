@@ -435,9 +435,6 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self:
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
-            # NB: libreduction does not pin name
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
