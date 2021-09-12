@@ -6274,6 +6274,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  3.0  4.0  0.0  1.0
         2  0.0  0.0  0.0  NaN
         3  0.0  3.0  0.0  4.0
+
+        Note that column D is not affected since it is not present in df2.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
