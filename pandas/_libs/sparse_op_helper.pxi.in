@@ -301,9 +301,4 @@ cpdef sparse_{{opname}}_{{dtype}}({{dtype}}_t[:] x,
     else:
         raise NotImplementedError
 
-
-cpdef sparse_fill_{{opname}}_{{dtype}}({{dtype}}_t xfill,
-                                       {{dtype}}_t yfill):
-    return {{(opname, 'xfill', 'yfill', dtype) | get_op}}
-
 {{endfor}}
