@@ -647,7 +647,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, xlsxwriter for xlsx, odf for ods.
+    Default is to use :
+    * xlwt for xls
+    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
+    * odf for ods.
     See DataFrame.to_excel for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
@@ -1103,7 +1106,7 @@ def inspect_excel_format(
         return "zip"
 
 
-class ExcelFile:
+jupyterclass ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
 
