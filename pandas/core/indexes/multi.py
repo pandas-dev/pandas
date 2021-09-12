@@ -1543,11 +1543,6 @@ class MultiIndex(Index):
                 ) from err
         return level
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
         """
