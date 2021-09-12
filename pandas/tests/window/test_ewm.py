@@ -107,7 +107,6 @@ def test_ewma_halflife_without_times(halflife_with_times):
         np.arange(10).astype("datetime64[D]").astype("datetime64[ns]"),
         date_range("2000", freq="D", periods=10),
         date_range("2000", freq="D", periods=10).tz_localize("UTC"),
-        "time_col",
     ],
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
@@ -230,4 +229,15 @@ def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_times_string_col_deprecated():
+    # GH 43265
+    data = np.arange(10.0)
+    data[::2] = np.nan
+    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
+    with tm.assert_produces_warning(FutureWarning, match="Specifying times"):
+        result = df.ewm(halflife="1 day", min_periods=0, times="time_col").mean()
+        expected = df.ewm(halflife=1.0, min_periods=0).mean()
     tm.assert_frame_equal(result, expected)

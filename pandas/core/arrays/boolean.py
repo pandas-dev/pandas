@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import numbers
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    overload,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +15,10 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
+    AstypeArg,
     Dtype,
+    DtypeObj,
+    npt,
     type_t,
 )
 from pandas.compat.numpy import function as nv
@@ -33,6 +39,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -146,6 +153,18 @@ class BooleanDtype(BaseMaskedDtype):
             )
         else:
             return BooleanArray._concat_same_type(results)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # Handle only boolean + np.bool_ -> boolean, since other cases like
+        # Int64 + boolean -> Int64 will be handled by the other type
+        if all(
+            isinstance(t, BooleanDtype)
+            or (isinstance(t, np.dtype) and (np.issubdtype(t, np.bool_)))
+            for t in dtypes
+        ):
+            return BooleanDtype()
+        else:
+            return None
 
 
 def coerce_to_array(
@@ -392,7 +411,20 @@ class BooleanArray(BaseMaskedArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 

@@ -228,6 +228,11 @@ class Block(PandasObject):
         # expected "ndarray")
         return self.values  # type: ignore[return-value]
 
+    def values_for_json(self) -> np.ndarray:
+        # Incompatible return value type (got "Union[ndarray[Any, Any],
+        # ExtensionArray]", expected "ndarray[Any, Any]")
+        return self.values  # type: ignore[return-value]
+
     @final
     @cache_readonly
     def fill_value(self):
@@ -1369,11 +1374,14 @@ class EABackedBlock(Block):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
-        values = self.values
+        values: ArrayLike = self.values
         if dtype == _dtype_obj:
             values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
+
+    def values_for_json(self) -> np.ndarray:
+        return np.asarray(self.values)
 
     def interpolate(
         self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
@@ -1804,6 +1812,11 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+    def values_for_json(self) -> np.ndarray:
+        # special casing datetimetz to avoid conversion through
+        #  object dtype
+        return self.values._ndarray
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):

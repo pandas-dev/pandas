@@ -17,6 +17,8 @@ from io import (
 )
 import mmap
 import os
+from pathlib import Path
+import tempfile
 from typing import (
     IO,
     Any,
@@ -519,6 +521,21 @@ def infer_compression(
     raise ValueError(msg)
 
 
+def check_parent_directory(path: Path | str) -> None:
+    """
+    Check if parent directory of a file exists, raise OSError if it does not
+
+    Parameters
+    ----------
+    path: Path or str
+        Path to check parent directory of
+
+    """
+    parent = Path(path).parent
+    if not parent.is_dir():
+        raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
+
+
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
@@ -631,6 +648,10 @@ def get_handle(
     compression_args = dict(ioargs.compression)
     compression = compression_args.pop("method")
 
+    # Only for write methods
+    if "r" not in mode and is_path:
+        check_parent_directory(str(handle))
+
     if compression:
         # compression libraries do not like an explicit text-mode
         ioargs.mode = ioargs.mode.replace("t", "")
@@ -736,6 +757,12 @@ def get_handle(
         # only marked as wrapped when the caller provided a handle
         is_wrapped = not (
             isinstance(ioargs.filepath_or_buffer, str) or ioargs.should_close
+        )
+
+    if "r" in ioargs.mode and not hasattr(handle, "read"):
+        raise TypeError(
+            "Expected file path name or file-like object, "
+            f"got {type(ioargs.filepath_or_buffer)} type"
         )
 
     handles.reverse()  # close the most recently added buffer first
@@ -993,8 +1020,15 @@ def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     if "t" in mode or "b" in mode:
         return "b" in mode
 
-    # classes that expect string but have 'b' in mode
-    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    # exceptions
+    text_classes = (
+        # classes that expect string but have 'b' in mode
+        codecs.StreamWriter,
+        codecs.StreamReader,
+        codecs.StreamReaderWriter,
+        # cannot be wrapped in TextIOWrapper GH43439
+        tempfile.SpooledTemporaryFile,
+    )
     if issubclass(type(handle), text_classes):
         return False
 
