@@ -237,7 +237,10 @@ class TestSparseArray:
     )
     def test_scalar_with_index_infer_dtype(self, scalar, dtype):
         # GH 19163
-        arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
+        with tm.assert_produces_warning(
+            FutureWarning, match="The index argument has been deprecated"
+        ):
+            arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
         exp = SparseArray([scalar, scalar, scalar], fill_value=scalar)
 
         tm.assert_sp_array_equal(arr, exp)
