@@ -1486,7 +1486,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(valid_vals) > 0:
             sp_min_max = getattr(valid_vals, kind)()
 
-            # If a non-null fill value is currently present, it might be the max
+            # If a non-null fill value is currently present, it might be the min/max
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
                 return func(sp_min_max, self.fill_value)
