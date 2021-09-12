@@ -258,9 +258,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     sparse_index : SparseIndex, optional
     index : Index
 
-    .. deprecated:: 1.4.0
-       Use a function like `np.full` to construct an array with the desired repeats
-       of the scalar value instead.
+        .. deprecated:: 1.4.0
+            Use a function like `np.full` to construct an array with the desired
+            repeats of the scalar value instead.
 
     fill_value : scalar, optional
         Elements in `data` that are `fill_value` are not stored in the
