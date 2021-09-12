@@ -792,24 +792,6 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(result, fill_value=0)
 
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
-        """Calculate pct_change of each value to previous entry in group"""
-        # TODO: Remove this conditional when #23918 is fixed
-        if freq:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods, fill_method=fill_method, limit=limit, freq=freq
-                )
-            )
-        if fill_method is None:  # GH30463
-            fill_method = "pad"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-
-        return (filled / shifted) - 1
-
     @doc(Series.nlargest)
     def nlargest(self, n: int = 5, keep: str = "first"):
         f = partial(Series.nlargest, n=n, keep=keep)
@@ -1086,14 +1068,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_resample_apply_product
 
         obj = self._obj_with_exclusions
-        result: dict[int | str, NDFrame] = {}
-        for i, item in enumerate(obj):
-            ser = obj.iloc[:, i]
-            colg = SeriesGroupBy(
-                ser, selection=item, grouper=self.grouper, exclusions=self.exclusions
-            )
+        result: dict[int, NDFrame] = {}
 
-            result[i] = colg.aggregate(func, *args, **kwargs)
+        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
+            result[i] = sgb.aggregate(func, *args, **kwargs)
 
         res_df = self.obj._constructor(result)
         res_df.columns = obj.columns
@@ -1168,11 +1146,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied_index = self._selected_obj._get_axis(self.axis)
             singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-            # assign the name to this series
             if singular_series:
-                keys = self.grouper.group_keys_seq
-                values[0].name = keys[0]
-
                 # GH2893
                 # we have series in the values array, we want to
                 # produce a series:
@@ -1372,14 +1346,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  gets here with non-unique columns
         output = {}
         inds = []
-        for i, col in enumerate(obj):
-            subset = obj.iloc[:, i]
-            sgb = SeriesGroupBy(
-                subset,
-                selection=col,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-            )
+        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             try:
                 output[i] = sgb.transform(wrapper)
             except TypeError:
