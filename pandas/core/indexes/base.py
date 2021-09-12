@@ -958,9 +958,9 @@ class Index(IndexOpsMixin, PandasObject):
         if kwargs:
             nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
-
         if indices.ndim != 1:
             raise TypeError("Expected indices to be 1 dimensional")
+
         allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
 
         # Note: we discard fill_value and use self._na_value, only relevant

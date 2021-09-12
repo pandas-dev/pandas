@@ -18,6 +18,7 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
+import pandas
 from pandas import (
     DatetimeIndex,
     Float64Index,
@@ -55,7 +56,6 @@ class TestTake:
         if len(index) < 5:
             # not enough elements; ignore
             return
-
         result = index.take(indexer)
         expected = index[indexer]
         assert result.equals(expected)
@@ -66,16 +66,18 @@ class TestTake:
             with pytest.raises(AttributeError, match=msg):
                 index.freq
 
+    def test_take_dims(self):
+        # Test whether TypeError is being raised when non one-dimensional indices are passed in take
+        df = pandas.DataFrame({"a": [1, 2, 3]})
         scalar_index = 1
         msg = "Expected indices to be 1 dimensional"
-        with pytest.raises(TypeError):
-            index.take(scalar_index, match=msg)
+        with pytest.raises(TypeError, match=msg):
+            df.take(scalar_index)
 
-        non_1d_index = [1, 2]
+        non_1d_index = [[1, 2]]
         msg = "Expected indices to be 1 dimensional"
-        with pytest.raises(TypeError):
-            index.take(non_1d_index, match=msg)
-
+        with pytest.raises(TypeError, match=msg):
+            df.take(non_1d_index)
 
     def test_take_minus1_without_fill(self, index):
         # -1 does not get treated as NA unless allow_fill=True is passed
