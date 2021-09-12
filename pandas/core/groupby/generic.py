@@ -1063,7 +1063,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_df.columns = obj.columns
         return res_df
 
-    def _wrap_applied_output(self, data, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, data: DataFrame, values: list, not_indexed_same: bool = False
+    ):
 
         if len(values) == 0:
             result = self.obj._constructor(
@@ -1099,9 +1101,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
-                result = self.obj._constructor(
-                    values, index=key_index, columns=[self._selection]
-                )
+                result = self.obj._constructor(values, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
         else:
