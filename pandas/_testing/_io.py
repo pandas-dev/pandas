@@ -70,7 +70,7 @@ def _get_default_network_errors():
     # Lazy import for http.client because it imports many things from the stdlib
     import http.client
 
-    return (IOError, http.client.HTTPException, TimeoutError)
+    return (OSError, http.client.HTTPException, TimeoutError)
 
 
 def optional_args(decorator):
@@ -135,7 +135,7 @@ def network(
         If True, checks connectivity before running the test case.
     error_classes : tuple or Exception
         error classes to ignore. If not in ``error_classes``, raises the error.
-        defaults to IOError. Be careful about changing the error classes here.
+        defaults to OSError. Be careful about changing the error classes here.
     skip_errnos : iterable of int
         Any exception that has .errno or .reason.erno set to one
         of these values will be skipped with an appropriate
@@ -165,19 +165,20 @@ def network(
       ... def test_network():
       ...     with pd.io.common.urlopen("rabbit://bonanza.com"):
       ...         pass
+      >>> test_network()
       Traceback
          ...
-      URLError: <urlopen error unknown url type: rabit>
+      URLError: <urlopen error unknown url type: rabbit>
 
       You can specify alternative URLs::
 
         >>> @ts.network("https://www.yahoo.com")
         ... def test_something_with_yahoo():
-        ...    raise IOError("Failure Message")
+        ...    raise OSError("Failure Message")
         >>> test_something_with_yahoo()
         Traceback (most recent call last):
             ...
-        IOError: Failure Message
+        OSError: Failure Message
 
     If you set check_before_test, it will check the url first and not run the
     test on failure::
@@ -241,7 +242,7 @@ with_connectivity_check = network
 
 def can_connect(url, error_classes=None):
     """
-    Try to connect to the given url. True if succeeds, False if IOError
+    Try to connect to the given url. True if succeeds, False if OSError
     raised
 
     Parameters
@@ -252,7 +253,7 @@ def can_connect(url, error_classes=None):
     Returns
     -------
     connectable : bool
-        Return True if no IOError (unable to connect) or URLError (bad url) was
+        Return True if no OSError (unable to connect) or URLError (bad url) was
         raised
     """
     if error_classes is None:

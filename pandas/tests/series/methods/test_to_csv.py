@@ -13,11 +13,11 @@ from pandas.io.common import get_handle
 
 class TestSeriesToCSV:
     def read_csv(self, path, **kwargs):
-        params = {"squeeze": True, "index_col": 0, "header": None, "parse_dates": True}
+        params = {"index_col": 0, "header": None, "parse_dates": True}
         params.update(**kwargs)
 
         header = params.get("header")
-        out = pd.read_csv(path, **params)
+        out = pd.read_csv(path, **params).squeeze("columns")
 
         if header is None:
             out.name = out.index.name = None
@@ -138,8 +138,7 @@ class TestSeriesToCSV:
                 compression=compression,
                 encoding=encoding,
                 index_col=0,
-                squeeze=True,
-            )
+            ).squeeze("columns")
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
@@ -153,8 +152,7 @@ class TestSeriesToCSV:
                 compression=compression,
                 encoding=encoding,
                 index_col=0,
-                squeeze=True,
-            )
+            ).squeeze("columns")
             tm.assert_series_equal(s, result)
 
             # explicitly ensure file was compressed
@@ -164,7 +162,8 @@ class TestSeriesToCSV:
 
             with tm.decompress_file(filename, compression) as fh:
                 tm.assert_series_equal(
-                    s, pd.read_csv(fh, index_col=0, squeeze=True, encoding=encoding)
+                    s,
+                    pd.read_csv(fh, index_col=0, encoding=encoding).squeeze("columns"),
                 )
 
     def test_to_csv_interval_index(self):
@@ -173,7 +172,7 @@ class TestSeriesToCSV:
 
         with tm.ensure_clean("__tmp_to_csv_interval_index__.csv") as path:
             s.to_csv(path, header=False)
-            result = self.read_csv(path, index_col=0, squeeze=True)
+            result = self.read_csv(path, index_col=0)
 
             # can't roundtrip intervalindex via read_csv so check string repr (GH 23595)
             expected = s.copy()
