@@ -680,6 +680,23 @@ def test_nsmallest():
     tm.assert_series_equal(gb.nsmallest(3, keep="last"), e)
 
 
+@pytest.mark.parametrize(
+    "data, groups",
+    [([0, 1, 2, 3], [0, 0, 1, 1]), ([0], [0])],
+)
+@pytest.mark.parametrize("method", ["nlargest", "nsmallest"])
+def test_nlargest_and_smallest_noop(data, groups, method):
+    # GH 15272, GH 16345, GH 29129
+    # Test nlargest/smallest when it results in a noop,
+    # i.e. input is sorted and group size <= n
+    if method == "nlargest":
+        data = list(reversed(data))
+    ser = Series(data, name="a")
+    result = getattr(ser.groupby(groups), method)(n=2)
+    expected = Series(data, index=MultiIndex.from_arrays([groups, ser.index]), name="a")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", ["cumprod", "cumsum"])
 def test_numpy_compat(func):
     # see gh-12811
@@ -1109,7 +1126,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     # https://github.com/pandas-dev/pandas/issues/32219
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
-    idx = Index([1, 2, 3], dtype=object, name="a")
+    idx = Index([1, 2, 3], name="a")
     expected = DataFrame({"b": arr}, index=idx).astype("Float64")
 
     groups = DataFrame(values, dtype="Int64").groupby("a")
@@ -1129,7 +1146,7 @@ def test_groupby_sum_below_mincount_nullable_integer():
     # https://github.com/pandas-dev/pandas/issues/32861
     df = DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
     grouped = df.groupby("a")
-    idx = Index([0, 1, 2], dtype=object, name="a")
+    idx = Index([0, 1, 2], name="a")
 
     result = grouped["b"].sum(min_count=2)
     expected = Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")

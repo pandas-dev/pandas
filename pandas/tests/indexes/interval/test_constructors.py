@@ -9,9 +9,7 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas import (
     Categorical,
     CategoricalIndex,
-    Float64Index,
     Index,
-    Int64Index,
     Interval,
     IntervalIndex,
     date_range,
@@ -20,6 +18,10 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 

@@ -21,11 +21,17 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as common  # noqa: PDF018
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    ExponentialMovingWindowIndexer,
+    GroupbyIndexer,
+)
 from pandas.core.util.numba_ import maybe_use_numba
 from pandas.core.window.common import zsqrt
 from pandas.core.window.doc import (
@@ -38,11 +44,6 @@ from pandas.core.window.doc import (
     template_returns,
     template_see_also,
     window_agg_numba_parameters,
-)
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    ExponentialMovingWindowIndexer,
-    GroupbyIndexer,
 )
 from pandas.core.window.numba_ import (
     generate_ewma_numba_table_func,
@@ -315,6 +316,15 @@ class ExponentialMovingWindow(BaseWindow):
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
             if isinstance(self.times, str):
+                warnings.warn(
+                    (
+                        "Specifying times as a string column label is deprecated "
+                        "and will be removed in a future version. Pass the column "
+                        "into times instead."
+                    ),
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 self.times = self._selected_obj[self.times]
             if not is_datetime64_ns_dtype(self.times):
                 raise ValueError("times must be datetime64[ns] dtype.")
@@ -474,12 +484,14 @@ class ExponentialMovingWindow(BaseWindow):
             if engine_kwargs is not None:
                 raise ValueError("cython engine does not accept engine_kwargs")
             nv.validate_window_func("mean", args, kwargs)
+
+            deltas = None if self.times is None else self._deltas
             window_func = partial(
                 window_aggregations.ewma,
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=self._deltas,
+                deltas=deltas,
             )
             return self._apply(window_func)
         else:

@@ -98,3 +98,34 @@ class TestMultiIndexBasic:
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
+
+    def test_multiindex_complex(self):
+        # GH#42145
+        complex_data = [1 + 2j, 4 - 3j, 10 - 1j]
+        non_complex_data = [3, 4, 5]
+        result = DataFrame(
+            {
+                "x": complex_data,
+                "y": non_complex_data,
+                "z": non_complex_data,
+            }
+        )
+        result.set_index(["x", "y"], inplace=True)
+        expected = DataFrame(
+            {"z": non_complex_data},
+            index=MultiIndex.from_arrays(
+                [complex_data, non_complex_data],
+                names=("x", "y"),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_rename_multiindex_with_duplicates(self):
+        # GH 38015
+        mi = MultiIndex.from_tuples([("A", "cat"), ("B", "cat"), ("B", "cat")])
+        df = DataFrame(index=mi)
+        df = df.rename(index={"A": "Apple"}, level=0)
+
+        mi2 = MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
+        expected = DataFrame(index=mi2)
+        tm.assert_frame_equal(df, expected)
