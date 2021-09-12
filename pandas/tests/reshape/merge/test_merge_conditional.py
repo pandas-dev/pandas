@@ -41,7 +41,10 @@ def test_merge_conditional(monkeypatch, chunk_size):
         )
         expected = (
             m.merge(left, right, how="cross")
-            .loc[lambda l, r: (r.timestart <= l.timestep) & (l.timestep <= r.timeend)]
+            .loc[
+                lambda dfx: (dfx.timestart <= dfx.timestep)
+                & (dfx.timestep <= dfx.timeend)
+            ]
             .sort_values(["timestep", "mood", "timestart", "timeend"])
             .reset_index(drop=True)
         )
