@@ -4696,14 +4696,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
         return value
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        """
-        Indicates if an index is not directly backed by a numpy array
-        """
-        # used to avoid libreduction code paths, which raise or require conversion
-        return False
-
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.

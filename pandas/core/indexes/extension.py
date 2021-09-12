@@ -308,11 +308,6 @@ class ExtensionIndex(Index):
     __truediv__ = _make_wrapped_arith_op("__truediv__")
     __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     # ---------------------------------------------------------------------
     # NDarray-Like Methods
 
