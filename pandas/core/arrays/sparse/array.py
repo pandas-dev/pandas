@@ -97,6 +97,8 @@ if TYPE_CHECKING:
 
     Ellipsis = ellipsis.Ellipsis
 
+    SparseIndexKind = Literal["integer", "block"]
+
     from pandas._typing import NumpySorter
 
     from pandas import Series
@@ -334,7 +336,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         sparse_index=None,
         index=None,
         fill_value=None,
-        kind="integer",
+        kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
         copy: bool = False,
     ):
@@ -624,7 +626,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
-    def kind(self) -> str:
+    def kind(self) -> SparseIndexKind:
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
@@ -1630,7 +1632,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
 
 def make_sparse(
-    arr: np.ndarray, kind="block", fill_value=None, dtype: NpDtype | None = None
+    arr: np.ndarray,
+    kind: SparseIndexKind = "block",
+    fill_value=None,
+    dtype: NpDtype | None = None,
 ):
     """
     Convert ndarray to sparse format
@@ -1689,8 +1694,17 @@ def make_sparse(
     return sparsified_values, index, fill_value
 
 
-def make_sparse_index(length, indices, kind) -> SparseIndex:
+@overload
+def make_sparse_index(length: int, indices, kind: Literal["block"]) -> BlockIndex:
+    ...
 
+
+@overload
+def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntIndex:
+    ...
+
+
+def make_sparse_index(length: int, indices, kind: SparseIndexKind) -> SparseIndex:
     index: SparseIndex
     if kind == "block" or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)
