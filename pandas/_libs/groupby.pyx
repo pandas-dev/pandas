@@ -322,6 +322,7 @@ def group_shift_indexer(int64_t[::1] out, const intp_t[::1] labels,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
+                         ndarray[intp_t] sorted_labels,
                          ndarray[uint8_t] mask, str direction,
                          int64_t limit, bint dropna) -> None:
     """
@@ -334,6 +335,9 @@ def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
+    sorted_labels : np.ndarray[np.intp]
+        obtained by `np.argsort(labels, kind="mergesort")`; reversed if
+        direction == "bfill"
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
@@ -349,7 +353,6 @@ def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
     """
     cdef:
         Py_ssize_t i, N, idx
-        intp_t[:] sorted_labels
         intp_t curr_fill_idx=-1
         int64_t filled_vals = 0
 
@@ -357,11 +360,6 @@ def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
 
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
-
-    sorted_labels = np.argsort(labels, kind='mergesort').astype(
-        np.intp, copy=False)
-    if direction == 'bfill':
-        sorted_labels = sorted_labels[::-1]
 
     with nogil:
         for i in range(N):

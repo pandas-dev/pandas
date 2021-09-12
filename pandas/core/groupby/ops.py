@@ -757,6 +757,7 @@ class BaseGrouper:
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
+    @final
     @property
     def codes(self) -> list[np.ndarray]:
         return [ping.codes for ping in self.groupings]
@@ -836,6 +837,7 @@ class BaseGrouper:
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
+    @final
     @cache_readonly
     def result_arraylike(self) -> ArrayLike:
         """
