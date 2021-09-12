@@ -7,6 +7,8 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -886,3 +888,23 @@ class TestGroupBy:
         ex_values = df["Quantity"].take(ordering).values * 2
         expected = Series(ex_values, index=mi, name="Quantity")
         tm.assert_series_equal(res, expected)
+
+    @td.skip_if_no("numba")
+    def test_groupby_agg_numba_timegrouper_with_nat(
+        self, groupby_with_truncated_bingrouper
+    ):
+        # See discussion in GH#43487
+        gb = groupby_with_truncated_bingrouper
+
+        result = gb["Quantity"].aggregate(
+            lambda values, index: np.nanmean(values), engine="numba"
+        )
+
+        expected = gb["Quantity"].aggregate(np.nanmean)
+        tm.assert_series_equal(result, expected)
+
+        result_df = gb[["Quantity"]].aggregate(
+            lambda values, index: np.nanmean(values), engine="numba"
+        )
+        expected_df = gb[["Quantity"]].aggregate(np.nanmean)
+        tm.assert_frame_equal(result_df, expected_df)

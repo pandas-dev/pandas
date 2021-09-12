@@ -1226,18 +1226,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # expected "bool")
         return numeric_only  # type: ignore[return-value]
 
-    @cache_readonly
-    def _group_keys_index(self) -> Index:
-        # The index to use for the result of Groupby Aggregations.
-        # This _may_ be redundant with self.grouper.result_index, but that
-        #  has not been conclusively proven yet.
-        keys = self.grouper.group_keys_seq
-        if self.grouper.nkeys > 1:
-            index = MultiIndex.from_tuples(keys, names=self.grouper.names)
-        else:
-            index = Index._with_infer(keys, name=self.grouper.names[0])
-        return index
-
     # -----------------------------------------------------------------
     # numba
 
