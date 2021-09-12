@@ -228,9 +228,10 @@ class SeriesGroupBy(GroupBy[Series]):
         if maybe_use_numba(engine):
             with group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self._group_keys_index
             return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
@@ -366,41 +367,10 @@ class SeriesGroupBy(GroupBy[Series]):
         result.name = self.obj.name
         return result
 
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Series | ArrayLike]
-    ) -> Series:
-        """
-        Wraps the output of a SeriesGroupBy aggregation into the expected result.
-
-        Parameters
-        ----------
-        output : dict[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Dict with a sole key of 0 and a value of the result values.
-
-        Returns
-        -------
-        Series
-
-        Notes
-        -----
-        output should always contain one element. It is specified as a dict
-        for consistency with DataFrame methods and _wrap_aggregated_output.
-        """
-        assert len(output) == 1
-
-        name = self.obj.name
-        values = next(iter(output.values()))
-        result = self.obj._constructor(values, index=self.obj.index, name=name)
-
-        # No transformations increase the ndim of the result
-        assert isinstance(result, Series)
-        return result
-
     def _wrap_applied_output(
         self,
         data: Series,
-        keys: Index,
-        values: list[Any] | None,
+        values: list[Any],
         not_indexed_same: bool = False,
     ) -> DataFrame | Series:
         """
@@ -410,9 +380,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         data : Series
             Input data for groupby operation.
-        keys : Index
-            Keys of groups that Series was grouped by.
-        values : Optional[List[Any]]
+        values : List[Any]
             Applied output for each group.
         not_indexed_same : bool, default False
             Whether the applied outputs are not indexed the same as the group axes.
@@ -421,7 +389,7 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         DataFrame or Series
         """
-        if len(keys) == 0:
+        if len(values) == 0:
             # GH #6265
             return self.obj._constructor(
                 [],
@@ -433,7 +401,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(values[0], dict):
             # GH #823 #24880
-            index = self._group_keys_index
+            index = self.grouper.result_index
             res_df = self.obj._constructor_expanddim(values, index=index)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
@@ -442,11 +410,11 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
-                data=values, index=self._group_keys_index, name=self.obj.name
+                data=values, index=self.grouper.result_index, name=self.obj.name
             )
             return self._reindex_output(result)
 
@@ -824,24 +792,6 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(result, fill_value=0)
 
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
-        """Calculate pct_change of each value to previous entry in group"""
-        # TODO: Remove this conditional when #23918 is fixed
-        if freq:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods, fill_method=fill_method, limit=limit, freq=freq
-                )
-            )
-        if fill_method is None:  # GH30463
-            fill_method = "pad"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-
-        return (filled / shifted) - 1
-
     @doc(Series.nlargest)
     def nlargest(self, n: int = 5, keep: str = "first"):
         f = partial(Series.nlargest, n=n, keep=keep)
@@ -957,9 +907,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if maybe_use_numba(engine):
             with group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self._group_keys_index
             return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
@@ -1117,21 +1068,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_resample_apply_product
 
         obj = self._obj_with_exclusions
-        result: dict[int | str, NDFrame] = {}
-        for i, item in enumerate(obj):
-            ser = obj.iloc[:, i]
-            colg = SeriesGroupBy(
-                ser, selection=item, grouper=self.grouper, exclusions=self.exclusions
-            )
+        result: dict[int, NDFrame] = {}
 
-            result[i] = colg.aggregate(func, *args, **kwargs)
+        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
+            result[i] = sgb.aggregate(func, *args, **kwargs)
 
         res_df = self.obj._constructor(result)
         res_df.columns = obj.columns
         return res_df
 
-    def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
-        if len(keys) == 0:
+    def _wrap_applied_output(self, data, values, not_indexed_same=False):
+
+        if len(values) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
@@ -1145,7 +1093,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH9684 - All values are None, return an empty frame.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(values, not_indexed_same=not_indexed_same)
 
         key_index = self.grouper.result_index if self.as_index else None
 
@@ -1173,12 +1121,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # values are Series
             return self._wrap_applied_output_series(
-                keys, values, not_indexed_same, first_not_none, key_index
+                values, not_indexed_same, first_not_none, key_index
             )
 
     def _wrap_applied_output_series(
         self,
-        keys,
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
@@ -1199,19 +1146,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied_index = self._selected_obj._get_axis(self.axis)
             singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-            # assign the name to this series
             if singular_series:
-                values[0].name = keys[0]
-
                 # GH2893
                 # we have series in the values array, we want to
                 # produce a series:
                 # if any of the sub-series are not indexed the same
                 # OR we don't have a multi-index and we have only a
                 # single values
-                return self._concat_objects(
-                    keys, values, not_indexed_same=not_indexed_same
-                )
+                return self._concat_objects(values, not_indexed_same=not_indexed_same)
 
             # still a series
             # path added as of GH 5545
@@ -1222,7 +1164,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not all_indexed_same:
             # GH 8467
-            return self._concat_objects(keys, values, not_indexed_same=True)
+            return self._concat_objects(values, not_indexed_same=True)
 
         # Combine values
         # vstack+constructor is faster than concat and handles MI-columns
@@ -1404,14 +1346,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  gets here with non-unique columns
         output = {}
         inds = []
-        for i, col in enumerate(obj):
-            subset = obj.iloc[:, i]
-            sgb = SeriesGroupBy(
-                subset,
-                selection=col,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-            )
+        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             try:
                 output[i] = sgb.transform(wrapper)
             except TypeError:
@@ -1601,36 +1536,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
-        return result
-
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Series | ArrayLike]
-    ) -> DataFrame:
-        """
-        Wraps the output of DataFrameGroupBy transformations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Data to wrap.
-
-        Returns
-        -------
-        DataFrame
-        """
-        indexed_output = {key.position: val for key, val in output.items()}
-        result = self.obj._constructor(indexed_output)
-
-        if self.axis == 1:
-            result = result.T
-            result.columns = self.obj.columns
-        else:
-            columns = Index(key.label for key in output)
-            columns._set_names(self.obj._get_axis(1 - self.axis).names)
-            result.columns = columns
-
-        result.index = self.obj.index
-
         return result
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:

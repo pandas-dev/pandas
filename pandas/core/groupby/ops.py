@@ -82,7 +82,6 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
@@ -690,7 +689,7 @@ class BaseGrouper:
         for each group
         """
         splitter = self._get_splitter(data, axis=axis)
-        keys = self._get_group_keys()
+        keys = self.group_keys_seq
         for key, group in zip(keys, splitter):
             yield key, group.__finalize__(data, method="groupby")
 
@@ -716,7 +715,8 @@ class BaseGrouper:
         return self.groupings[0].grouping_vector
 
     @final
-    def _get_group_keys(self):
+    @cache_readonly
+    def group_keys_seq(self):
         if len(self.groupings) == 1:
             return self.levels[0]
         else:
@@ -726,10 +726,10 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
-    def apply(self, f: F, data: FrameOrSeries, axis: int = 0):
+    def apply(self, f: F, data: FrameOrSeries, axis: int = 0) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
-        group_keys = self._get_group_keys()
+        group_keys = self.group_keys_seq
         result_values = []
 
         # This calls DataSplitter.__iter__
@@ -745,7 +745,7 @@ class BaseGrouper:
                 mutated = True
             result_values.append(res)
 
-        return group_keys, result_values, mutated
+        return result_values, mutated
 
     @cache_readonly
     def indices(self):
@@ -932,10 +932,6 @@ class BaseGrouper:
             result = self._aggregate_series_pure_python(obj, func)
 
         elif not isinstance(obj._values, np.ndarray):
-            # _aggregate_series_fast would raise TypeError when
-            #  calling libreduction.Slider
-            # In the datetime64tz case it would incorrectly cast to tz-naive
-            # TODO: can we get a performant workaround for EAs backed by ndarray?
             result = self._aggregate_series_pure_python(obj, func)
 
             # we can preserve a little bit more aggressively with EA dtype
@@ -944,17 +940,8 @@ class BaseGrouper:
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        elif obj.index._has_complex_internals:
-            # Preempt TypeError in _aggregate_series_fast
-            result = self._aggregate_series_pure_python(obj, func)
-
-        elif isinstance(self, BinGrouper):
-            # Not yet able to remove the BaseGrouper aggregate_series_fast,
-            #  as test_crosstab.test_categorical breaks without it
-            result = self._aggregate_series_pure_python(obj, func)
-
         else:
-            result = self._aggregate_series_fast(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
@@ -962,23 +949,6 @@ class BaseGrouper:
         else:
             out = npvalues
         return out
-
-    def _aggregate_series_fast(self, obj: Series, func: F) -> npt.NDArray[np.object_]:
-        # At this point we have already checked that
-        #  - obj.index is not a MultiIndex
-        #  - obj is backed by an ndarray, not ExtensionArray
-        #  - len(obj) > 0
-        func = com.is_builtin_func(func)
-
-        ids, _, ngroups = self.group_info
-
-        # avoids object / Series creation overhead
-        indexer = get_group_index_sorter(ids, ngroups)
-        obj = obj.take(indexer)
-        ids = ids.take(indexer)
-        sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
-        result, _ = sgrouper.get_result()
-        return result
 
     @final
     def _aggregate_series_pure_python(
@@ -994,9 +964,6 @@ class BaseGrouper:
         splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
-
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
             res = func(group)
             res = libreduction.extract_result(res)
 

@@ -28,6 +28,7 @@ from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -131,6 +132,10 @@ usecols : list-like or callable, optional
     parsing time and lower memory usage.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+
+    .. deprecated:: 1.4.0
+        Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
+        the data.
 prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : bool, default True
@@ -439,7 +444,11 @@ _pyarrow_unsupported = {
     "low_memory",
 }
 
-_deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
+_deprecated_defaults: dict[str, Any] = {
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
+    "squeeze": None,
+}
 
 
 def validate_integer(name, val, min_val=0):
@@ -552,7 +561,7 @@ def read_csv(
     names=lib.no_default,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
@@ -650,7 +659,7 @@ def read_table(
     names=lib.no_default,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
@@ -867,10 +876,11 @@ class TextFileReader(abc.Iterator):
 
         self.chunksize = options.pop("chunksize", None)
         self.nrows = options.pop("nrows", None)
-        self.squeeze = options.pop("squeeze", False)
 
         self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
+
+        self.squeeze = self.options.pop("squeeze", False)
 
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
@@ -1050,7 +1060,7 @@ class TextFileReader(abc.Iterator):
                     f"The {arg} argument has been deprecated and will be "
                     "removed in a future version.\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=7)
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:
                 result[arg] = parser_default
 
@@ -1100,6 +1110,10 @@ class TextFileReader(abc.Iterator):
         result["na_values"] = na_values
         result["na_fvalues"] = na_fvalues
         result["skiprows"] = skiprows
+        # Default for squeeze is none since we need to check
+        # if user sets it. We then set to False to preserve
+        # previous behavior.
+        result["squeeze"] = False if options["squeeze"] is None else options["squeeze"]
 
         return result, engine
 
@@ -1149,7 +1163,7 @@ class TextFileReader(abc.Iterator):
             self._currow += new_rows
 
         if self.squeeze and len(df.columns) == 1:
-            return df[df.columns[0]].copy()
+            return df.squeeze("columns").copy()
         return df
 
     def get_chunk(self, size=None):
