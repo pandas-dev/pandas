@@ -1184,8 +1184,6 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
-            "_display_funcs_index",
-            "_display_funcs_columns",
             "hidden_rows",
             "hidden_columns",
             "ctx",
