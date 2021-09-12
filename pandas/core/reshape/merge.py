@@ -2410,11 +2410,9 @@ class _LazyCustomInnerMerge:
         condition: Callable,
         left_chunk_size: int | None = None,
         right_chunk_size: int | None = None,
-        *args,
         **kwargs,
     ):
         self.condition = condition
-        self.args = args
         self.kwargs = kwargs
 
         # TODO: dynamically determine optimal default chunk size
@@ -2434,9 +2432,7 @@ class _LazyCustomInnerMerge:
 
         result = DataFrame()
         for chunk_left, chunk_right in self.chunk_pairs:
-            chunk_result = merge(
-                chunk_left, chunk_right, how="cross", *self.args, **self.kwargs
-            )
+            chunk_result = merge(chunk_left, chunk_right, how="cross", **self.kwargs)
 
             chunk_result_left = chunk_result.iloc[:, : len(chunk_left.columns)]
             chunk_result_left.columns = chunk_left.columns
