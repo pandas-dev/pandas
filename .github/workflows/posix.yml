@@ -44,6 +44,7 @@ jobs:
       LC_ALL: ${{ matrix.settings[4] }}
       PANDAS_TESTING_MODE: ${{ matrix.settings[5] }}
       TEST_ARGS: ${{ matrix.settings[6] }}
+      PYTEST_TARGET:  pandas
     concurrency:
       group: ${{ github.ref }}-${{ matrix.settings[0] }}
       cancel-in-progress: ${{github.event_name == 'pull_request'}}
@@ -94,7 +95,7 @@ jobs:
       run: python ci/print_skipped.py
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
       with:
         flags: unittests
         name: codecov-pandas

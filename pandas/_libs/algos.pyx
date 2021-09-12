@@ -15,6 +15,8 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    NPY_COMPLEX64,
+    NPY_COMPLEX128,
     NPY_FLOAT32,
     NPY_FLOAT64,
     NPY_INT8,
@@ -122,7 +124,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
 
     Parameters
     ----------
-    arr : ndarray[in64_t]
+    arr : ndarray[int64_t]
 
     Returns
     -------
@@ -274,16 +276,22 @@ cdef inline numeric kth_smallest_c(numeric* arr, Py_ssize_t k, Py_ssize_t n) nog
         j = m
 
         while 1:
-            while arr[i] < x: i += 1
-            while x < arr[j]: j -= 1
+            while arr[i] < x:
+                i += 1
+            while x < arr[j]:
+                j -= 1
             if i <= j:
                 swap(&arr[i], &arr[j])
-                i += 1; j -= 1
+                i += 1
+                j -= 1
 
-            if i > j: break
+            if i > j:
+                break
 
-        if j < k: l = i
-        if k < i: m = j
+        if j < k:
+            l = i
+        if k < i:
+            m = j
     return arr[k]
 
 
@@ -326,8 +334,12 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         Py_ssize_t i, j, xi, yi, N, K
         bint minpv
         float64_t[:, ::1] result
+        # Initialize to None since we only use in the no missing value case
+        float64_t[::1] means=None, ssqds=None
         ndarray[uint8_t, ndim=2] mask
+        bint no_nans
         int64_t nobs = 0
+        float64_t mean, ssqd, val
         float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
 
     N, K = (<object>mat).shape
@@ -339,25 +351,57 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
+    no_nans = mask.all()
+
+    # Computing the online means and variances is expensive - so if possible we can
+    # precompute these and avoid repeating the computations each time we handle
+    # an (xi, yi) pair
+    if no_nans:
+        means = np.empty(K, dtype=np.float64)
+        ssqds = np.empty(K, dtype=np.float64)
+
+        with nogil:
+            for j in range(K):
+                ssqd = mean = 0
+                for i in range(N):
+                    val = mat[i, j]
+                    dx = val - mean
+                    mean += 1 / (i + 1) * dx
+                    ssqd += (val - mean) * dx
+
+                means[j] = mean
+                ssqds[j] = ssqd
 
     with nogil:
         for xi in range(K):
             for yi in range(xi + 1):
-                # Welford's method for the variance-calculation
-                # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
+                covxy = 0
+                if no_nans:
+                    for i in range(N):
                         vx = mat[i, xi]
                         vy = mat[i, yi]
-                        nobs += 1
-                        dx = vx - meanx
-                        dy = vy - meany
-                        meanx += 1 / nobs * dx
-                        meany += 1 / nobs * dy
-                        ssqdmx += (vx - meanx) * dx
-                        ssqdmy += (vy - meany) * dy
-                        covxy += (vx - meanx) * dy
+                        covxy += (vx - means[xi]) * (vy - means[yi])
+
+                    ssqdmx = ssqds[xi]
+                    ssqdmy = ssqds[yi]
+                    nobs = N
+
+                else:
+                    nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
+                    for i in range(N):
+                        # Welford's method for the variance-calculation
+                        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+                        if mask[i, xi] and mask[i, yi]:
+                            vx = mat[i, xi]
+                            vy = mat[i, yi]
+                            nobs += 1
+                            dx = vx - meanx
+                            dy = vy - meany
+                            meanx += 1 / nobs * dx
+                            meany += 1 / nobs * dy
+                            ssqdmx += (vx - meanx) * dx
+                            ssqdmy += (vy - meany) * dy
+                            covxy += (vx - meanx) * dy
 
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
@@ -470,97 +514,6 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                     result[xi, yi] = result[yi, xi] = sumx / divisor
                 else:
                     result[xi, yi] = result[yi, xi] = NaN
-
-    return result
-
-
-# ----------------------------------------------------------------------
-# Kendall correlation
-# Wikipedia article: https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def nancorr_kendall(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarray:
-    """
-    Perform kendall correlation on a 2d array
-
-    Parameters
-    ----------
-    mat : np.ndarray[float64_t, ndim=2]
-        Array to compute kendall correlation on
-    minp : int, default 1
-        Minimum number of observations required per pair of columns
-        to have a valid result.
-
-    Returns
-    -------
-    numpy.ndarray[float64_t, ndim=2]
-        Correlation matrix
-    """
-    cdef:
-        Py_ssize_t i, j, k, xi, yi, N, K
-        ndarray[float64_t, ndim=2] result
-        ndarray[float64_t, ndim=2] ranked_mat
-        ndarray[uint8_t, ndim=2] mask
-        float64_t currj
-        ndarray[uint8_t, ndim=1] valid
-        ndarray[int64_t] sorted_idxs
-        ndarray[float64_t, ndim=1] col
-        int64_t n_concordant
-        int64_t total_concordant = 0
-        int64_t total_discordant = 0
-        float64_t kendall_tau
-        int64_t n_obs
-
-    N, K = (<object>mat).shape
-
-    result = np.empty((K, K), dtype=np.float64)
-    mask = np.isfinite(mat)
-
-    ranked_mat = np.empty((N, K), dtype=np.float64)
-
-    for i in range(K):
-        ranked_mat[:, i] = rank_1d(mat[:, i])
-
-    for xi in range(K):
-        sorted_idxs = ranked_mat[:, xi].argsort()
-        ranked_mat = ranked_mat[sorted_idxs]
-        mask = mask[sorted_idxs]
-        for yi in range(xi + 1, K):
-            valid = mask[:, xi] & mask[:, yi]
-            if valid.sum() < minp:
-                result[xi, yi] = NaN
-                result[yi, xi] = NaN
-            else:
-                # Get columns and order second column using 1st column ranks
-                if not valid.all():
-                    col = ranked_mat[valid.nonzero()][:, yi]
-                else:
-                    col = ranked_mat[:, yi]
-                n_obs = col.shape[0]
-                total_concordant = 0
-                total_discordant = 0
-                for j in range(n_obs - 1):
-                    currj = col[j]
-                    # Count num concordant and discordant pairs
-                    n_concordant = 0
-                    for k in range(j, n_obs):
-                        if col[k] > currj:
-                            n_concordant += 1
-                    total_concordant += n_concordant
-                    total_discordant += (n_obs - 1 - j - n_concordant)
-                # Note: we do total_concordant+total_discordant here which is
-                # equivalent to the C(n, 2), the total # of pairs,
-                # listed on wikipedia
-                kendall_tau = (total_concordant - total_discordant) / \
-                              (total_concordant + total_discordant)
-                result[xi, yi] = kendall_tau
-                result[yi, xi] = kendall_tau
-
-        if mask[:, xi].sum() > minp:
-            result[xi, xi] = 1
-        else:
-            result[xi, xi] = NaN
 
     return result
 

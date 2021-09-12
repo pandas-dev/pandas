@@ -190,7 +190,7 @@ class Block(PandasObject):
         warnings.warn(
             "Block.is_categorical is deprecated and will be removed in a "
             "future version.  Use isinstance(block.values, Categorical) "
-            "instead.  See https://github.com/pandas-dev/pandas/issues/40226",
+            "instead. See https://github.com/pandas-dev/pandas/issues/40226",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -226,6 +226,11 @@ class Block(PandasObject):
             return self.values.astype(_dtype_obj)
         # error: Incompatible return value type (got "Union[ndarray, ExtensionArray]",
         # expected "ndarray")
+        return self.values  # type: ignore[return-value]
+
+    def values_for_json(self) -> np.ndarray:
+        # Incompatible return value type (got "Union[ndarray[Any, Any],
+        # ExtensionArray]", expected "ndarray[Any, Any]")
         return self.values  # type: ignore[return-value]
 
     @final
@@ -624,7 +629,11 @@ class Block(PandasObject):
         -------
         bool
         """
-        return is_dtype_equal(value.dtype, self.dtype)
+        # faster equivalent to is_dtype_equal(value.dtype, self.dtype)
+        try:
+            return value.dtype == self.dtype
+        except TypeError:
+            return False
 
     @final
     def to_native_types(self, na_rep="nan", quoting=None, **kwargs):
@@ -1080,6 +1089,23 @@ class Block(PandasObject):
             # If there are no NAs, then interpolate is a no-op
             return [self] if inplace else [self.copy()]
 
+        if self.is_object and self.ndim == 2 and self.shape[0] != 1 and axis == 0:
+            # split improves performance in ndarray.copy()
+            return self.split_and_operate(
+                type(self).interpolate,
+                method,
+                axis,
+                index,
+                inplace,
+                limit,
+                limit_direction,
+                limit_area,
+                fill_value,
+                coerce,
+                downcast,
+                **kwargs,
+            )
+
         try:
             m = missing.clean_fill_method(method)
         except ValueError:
@@ -1281,6 +1307,10 @@ class Block(PandasObject):
         mask = mask.any(0)
         # TODO: in all tests we have mask.all(); can we rely on that?
 
+        # Note: these next two lines ensure that
+        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
+        #  which the calling function needs in order to pass verify_integrity=False
+        #  to the BlockManager constructor
         new_values = new_values.T[mask]
         new_placement = new_placement[mask]
 
@@ -1344,11 +1374,14 @@ class EABackedBlock(Block):
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
         """
-        values = self.values
+        values: ArrayLike = self.values
         if dtype == _dtype_obj:
             values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
+
+    def values_for_json(self) -> np.ndarray:
+        return np.asarray(self.values)
 
     def interpolate(
         self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
@@ -1552,12 +1585,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
     def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
         """
         Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
         """
-        # error: Invalid index type "Tuple[ellipsis, slice]" for
-        # "Union[ndarray, ExtensionArray]"; expected type "Union[int, slice, ndarray]"
-        new_values = self.values[..., slicer]  # type: ignore[index]
+        # GH#42787 in principle this is equivalent to values[..., slicer], but we don't
+        # require subclasses of ExtensionArray to support that form (for now).
+        new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim)
 
     def fillna(
@@ -1647,20 +1678,25 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         # converting to a 2-D ndarray of objects.
         # Instead, we unstack an ndarray of integer positions, followed by
         # a `take` on the actual values.
-        n_rows = self.shape[-1]
-        dummy_arr = np.arange(n_rows)
 
-        new_values, mask = unstacker.get_new_values(dummy_arr, fill_value=-1)
-        mask = mask.any(0)
-        # TODO: in all tests we have mask.all(); can we rely on that?
+        # Caller is responsible for ensuring self.shape[-1] == len(unstacker.index)
+        new_values, mask = unstacker.arange_result
+
+        # Note: these next two lines ensure that
+        #  mask.sum() == sum(len(nb.mgr_locs) for nb in blocks)
+        #  which the calling function needs in order to pass verify_integrity=False
+        #  to the BlockManager constructor
+        new_values = new_values.T[mask]
+        new_placement = new_placement[mask]
 
         blocks = [
             # TODO: could cast to object depending on fill_value?
-            self.make_block_same_class(
+            type(self)(
                 self.values.take(indices, allow_fill=allow_fill, fill_value=fill_value),
                 BlockPlacement(place),
+                ndim=2,
             )
-            for indices, place in zip(new_values.T, new_placement)
+            for indices, place in zip(new_values, new_placement)
         ]
         return blocks, mask
 
@@ -1776,6 +1812,11 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+    def values_for_json(self) -> np.ndarray:
+        # special casing datetimetz to avoid conversion through
+        #  object dtype
+        return self.values._ndarray
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
@@ -1920,11 +1961,11 @@ def get_block_type(values, dtype: DtypeObj | None = None):
 
 
 def new_block(values, placement, *, ndim: int, klass=None) -> Block:
+    # caller is responsible for ensuring values is NOT a PandasArray
 
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    values, _ = extract_pandas_array(values, None, ndim)
     check_ndim(values, placement, ndim)
 
     if klass is None:

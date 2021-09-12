@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     IndexSlice,
 )
-import pandas._testing as tm
 
 pytest.importorskip("jinja2")
 
@@ -55,9 +55,7 @@ def test_highlight_minmax_basic(df, f):
     }
     if f == "highlight_min":
         df = -df
-    with tm.assert_produces_warning(RuntimeWarning):
-        # All-NaN slice encountered
-        result = getattr(df.style, f)(axis=1, color="red")._compute().ctx
+    result = getattr(df.style, f)(axis=1, color="red")._compute().ctx
     assert result == expected
 
 
@@ -75,6 +73,26 @@ def test_highlight_minmax_ext(df, f, kwargs):
     if f == "highlight_min":
         df = -df
     result = getattr(df.style, f)(**kwargs)._compute().ctx
+    assert result == expected
+
+
+@pytest.mark.parametrize("f", ["highlight_min", "highlight_max"])
+@pytest.mark.parametrize("axis", [None, 0, 1])
+def test_highlight_minmax_nulls(f, axis):
+    # GH 42750
+    expected = {
+        (1, 0): [("background-color", "yellow")],
+        (1, 1): [("background-color", "yellow")],
+    }
+    if axis == 1:
+        expected.update({(2, 1): [("background-color", "yellow")]})
+
+    if f == "highlight_max":
+        df = DataFrame({"a": [NA, 1, None], "b": [np.nan, 1, -1]})
+    else:
+        df = DataFrame({"a": [NA, -1, None], "b": [np.nan, -1, 1]})
+
+    result = getattr(df.style, f)(axis=axis)._compute().ctx
     assert result == expected
 
 

@@ -646,7 +646,7 @@ class Grouping:
             return self._group_index
 
         uniques = self._codes_and_uniques[1]
-        return Index(uniques, name=self.name)
+        return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
@@ -845,9 +845,11 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, InvalidIndexError):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
+            # InvalidIndexError raised on key-types inappropriate for index,
+            #  e.g. DatetimeIndex.get_loc(tuple())
             return False
 
     for gpr, level in zip(keys, levels):

@@ -2,7 +2,7 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "setuptools>=38.6.0",
+    "setuptools>=51.0.0",
     "wheel",
     "Cython>=0.29.21,<3",  # Note: sync with setup.py
     # Numpy requirements for different OS/architectures

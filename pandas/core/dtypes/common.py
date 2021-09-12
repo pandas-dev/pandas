@@ -97,6 +97,8 @@ ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
+ensure_complex64 = algos.ensure_complex64
+ensure_complex128 = algos.ensure_complex128
 ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
@@ -302,8 +304,8 @@ def is_categorical(arr) -> bool:
     True
     """
     warnings.warn(
-        "is_categorical is deprecated and will be removed in a future version.  "
-        "Use is_categorical_dtype instead",
+        "is_categorical is deprecated and will be removed in a future version. "
+        "Use is_categorical_dtype instead.",
         FutureWarning,
         stacklevel=2,
     )
@@ -564,8 +566,7 @@ def is_string_dtype(arr_or_dtype) -> bool:
         """
         These have kind = "O" but aren't string dtypes so need to be explicitly excluded
         """
-        is_excluded_checks = (is_period_dtype, is_interval_dtype, is_categorical_dtype)
-        return any(is_excluded(dtype) for is_excluded in is_excluded_checks)
+        return isinstance(dtype, (PeriodDtype, IntervalDtype, CategoricalDtype))
 
     return _is_dtype(arr_or_dtype, condition)
 
@@ -1177,11 +1178,14 @@ def needs_i8_conversion(arr_or_dtype) -> bool:
         # fastpath
         dtype = arr_or_dtype
         return dtype.kind in ["m", "M"] or dtype.type is Period
-    return (
-        is_datetime_or_timedelta_dtype(arr_or_dtype)
-        or is_datetime64tz_dtype(arr_or_dtype)
-        or is_period_dtype(arr_or_dtype)
-    )
+
+    try:
+        dtype = get_dtype(arr_or_dtype)
+    except (TypeError, ValueError):
+        return False
+    if isinstance(dtype, np.dtype):
+        return dtype.kind in ["m", "M"]
+    return isinstance(dtype, (PeriodDtype, DatetimeTZDtype))
 
 
 def is_numeric_dtype(arr_or_dtype) -> bool:
@@ -1765,9 +1769,7 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
-        # error: Incompatible return value type (got "Type[ExtensionDtype]",
-        # expected "Union[dtype, ExtensionDtype]")
-        return result  # type: ignore[return-value]
+        return result
 
     # try a numpy dtype
     # raise a consistent TypeError if failed

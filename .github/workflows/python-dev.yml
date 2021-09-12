@@ -17,6 +17,7 @@ env:
   PANDAS_CI: 1
   PATTERN: "not slow and not network and not clipboard"
   COVERAGE: true
+  PYTEST_TARGET:  pandas
 
 jobs:
   build:
@@ -41,7 +42,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
-        pip install git+https://github.com/numpy/numpy.git
+        pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/pytest-dev/pytest.git
         pip install git+https://github.com/nedbat/coveragepy.git
         pip install cython python-dateutil pytz hypothesis pytest-xdist pytest-cov
@@ -78,7 +79,7 @@ jobs:
         coverage report -m
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
       with:
         flags: unittests
         name: codecov-pandas

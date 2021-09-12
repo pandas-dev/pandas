@@ -2,6 +2,8 @@
 Tests for the following offsets:
 - SemiMonthBegin
 - SemiMonthEnd
+- MonthBegin
+- MonthEnd
 """
 from datetime import datetime
 
@@ -9,6 +11,8 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 from pandas._libs.tslibs.offsets import (
+    MonthBegin,
+    MonthEnd,
     SemiMonthBegin,
     SemiMonthEnd,
 )
@@ -64,11 +68,11 @@ class TestSemiMonthEnd(Base):
             assert_offset_equal(SemiMonthEnd(), base, exp_date)
 
         # ensure .apply_index works as expected
-        s = DatetimeIndex(dates[:-1])
+        shift = DatetimeIndex(dates[:-1])
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthEnd() + s
+            result = SemiMonthEnd() + shift
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -213,17 +217,17 @@ class TestSemiMonthEnd(Base):
     def test_apply_index(self, case):
         # https://github.com/pandas-dev/pandas/issues/34580
         offset, cases = case
-        s = DatetimeIndex(cases.keys())
+        shift = DatetimeIndex(cases.keys())
         exp = DatetimeIndex(cases.values())
 
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset + s
+            result = offset + shift
         tm.assert_index_equal(result, exp)
 
         with tm.assert_produces_warning(FutureWarning):
-            result = offset.apply_index(s)
+            result = offset.apply_index(shift)
         tm.assert_index_equal(result, exp)
 
     on_offset_cases = [
@@ -241,7 +245,7 @@ class TestSemiMonthEnd(Base):
 
     @pytest.mark.parametrize("klass", [Series, DatetimeIndex])
     def test_vectorized_offset_addition(self, klass):
-        s = klass(
+        shift = klass(
             [
                 Timestamp("2000-01-15 00:15:00", tz="US/Central"),
                 Timestamp("2000-02-15", tz="US/Central"),
@@ -252,8 +256,8 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = s + SemiMonthEnd()
-            result2 = SemiMonthEnd() + s
+            result = shift + SemiMonthEnd()
+            result2 = SemiMonthEnd() + shift
 
         exp = klass(
             [
@@ -265,7 +269,7 @@ class TestSemiMonthEnd(Base):
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
-        s = klass(
+        shift = klass(
             [
                 Timestamp("2000-01-01 00:15:00", tz="US/Central"),
                 Timestamp("2000-02-01", tz="US/Central"),
@@ -276,8 +280,8 @@ class TestSemiMonthEnd(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = s + SemiMonthEnd()
-            result2 = SemiMonthEnd() + s
+            result = shift + SemiMonthEnd()
+            result2 = SemiMonthEnd() + shift
 
         exp = klass(
             [
@@ -328,11 +332,11 @@ class TestSemiMonthBegin(Base):
             assert_offset_equal(SemiMonthBegin(), base, exp_date)
 
         # ensure .apply_index works as expected
-        s = DatetimeIndex(dates[:-1])
+        shift = DatetimeIndex(dates[:-1])
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = SemiMonthBegin() + s
+            result = SemiMonthBegin() + shift
 
         exp = DatetimeIndex(dates[1:])
         tm.assert_index_equal(result, exp)
@@ -458,12 +462,12 @@ class TestSemiMonthBegin(Base):
     @pytest.mark.parametrize("case", offset_cases)
     def test_apply_index(self, case):
         offset, cases = case
-        s = DatetimeIndex(cases.keys())
+        shift = DatetimeIndex(cases.keys())
 
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = offset + s
+            result = offset + shift
 
         exp = DatetimeIndex(cases.values())
         tm.assert_index_equal(result, exp)
@@ -483,7 +487,7 @@ class TestSemiMonthBegin(Base):
 
     @pytest.mark.parametrize("klass", [Series, DatetimeIndex])
     def test_vectorized_offset_addition(self, klass):
-        s = klass(
+        shift = klass(
             [
                 Timestamp("2000-01-15 00:15:00", tz="US/Central"),
                 Timestamp("2000-02-15", tz="US/Central"),
@@ -493,8 +497,8 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = s + SemiMonthBegin()
-            result2 = SemiMonthBegin() + s
+            result = shift + SemiMonthBegin()
+            result2 = SemiMonthBegin() + shift
 
         exp = klass(
             [
@@ -506,7 +510,7 @@ class TestSemiMonthBegin(Base):
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
 
-        s = klass(
+        shift = klass(
             [
                 Timestamp("2000-01-01 00:15:00", tz="US/Central"),
                 Timestamp("2000-02-01", tz="US/Central"),
@@ -516,8 +520,8 @@ class TestSemiMonthBegin(Base):
         with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
-            result = s + SemiMonthBegin()
-            result2 = SemiMonthBegin() + s
+            result = shift + SemiMonthBegin()
+            result2 = SemiMonthBegin() + shift
 
         exp = klass(
             [
@@ -528,3 +532,161 @@ class TestSemiMonthBegin(Base):
         )
         tm.assert_equal(result, exp)
         tm.assert_equal(result2, exp)
+
+
+class TestMonthBegin(Base):
+    _offset = MonthBegin
+
+    offset_cases = []
+    # NOTE: I'm not entirely happy with the logic here for Begin -ss
+    # see thread 'offset conventions' on the ML
+    offset_cases.append(
+        (
+            MonthBegin(),
+            {
+                datetime(2008, 1, 31): datetime(2008, 2, 1),
+                datetime(2008, 2, 1): datetime(2008, 3, 1),
+                datetime(2006, 12, 31): datetime(2007, 1, 1),
+                datetime(2006, 12, 1): datetime(2007, 1, 1),
+                datetime(2007, 1, 31): datetime(2007, 2, 1),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            MonthBegin(0),
+            {
+                datetime(2008, 1, 31): datetime(2008, 2, 1),
+                datetime(2008, 1, 1): datetime(2008, 1, 1),
+                datetime(2006, 12, 3): datetime(2007, 1, 1),
+                datetime(2007, 1, 31): datetime(2007, 2, 1),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            MonthBegin(2),
+            {
+                datetime(2008, 2, 29): datetime(2008, 4, 1),
+                datetime(2008, 1, 31): datetime(2008, 3, 1),
+                datetime(2006, 12, 31): datetime(2007, 2, 1),
+                datetime(2007, 12, 28): datetime(2008, 2, 1),
+                datetime(2007, 1, 1): datetime(2007, 3, 1),
+                datetime(2006, 11, 1): datetime(2007, 1, 1),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            MonthBegin(-1),
+            {
+                datetime(2007, 1, 1): datetime(2006, 12, 1),
+                datetime(2008, 5, 31): datetime(2008, 5, 1),
+                datetime(2008, 12, 31): datetime(2008, 12, 1),
+                datetime(2006, 12, 29): datetime(2006, 12, 1),
+                datetime(2006, 1, 2): datetime(2006, 1, 1),
+            },
+        )
+    )
+
+    @pytest.mark.parametrize("case", offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in cases.items():
+            assert_offset_equal(offset, base, expected)
+
+
+class TestMonthEnd(Base):
+    _offset = MonthEnd
+
+    def test_day_of_month(self):
+        dt = datetime(2007, 1, 1)
+        offset = MonthEnd()
+
+        result = dt + offset
+        assert result == Timestamp(2007, 1, 31)
+
+        result = result + offset
+        assert result == Timestamp(2007, 2, 28)
+
+    def test_normalize(self):
+        dt = datetime(2007, 1, 1, 3)
+
+        result = dt + MonthEnd(normalize=True)
+        expected = dt.replace(hour=0) + MonthEnd()
+        assert result == expected
+
+    offset_cases = []
+    offset_cases.append(
+        (
+            MonthEnd(),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 31),
+                datetime(2008, 1, 31): datetime(2008, 2, 29),
+                datetime(2006, 12, 29): datetime(2006, 12, 31),
+                datetime(2006, 12, 31): datetime(2007, 1, 31),
+                datetime(2007, 1, 1): datetime(2007, 1, 31),
+                datetime(2006, 12, 1): datetime(2006, 12, 31),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            MonthEnd(0),
+            {
+                datetime(2008, 1, 1): datetime(2008, 1, 31),
+                datetime(2008, 1, 31): datetime(2008, 1, 31),
+                datetime(2006, 12, 29): datetime(2006, 12, 31),
+                datetime(2006, 12, 31): datetime(2006, 12, 31),
+                datetime(2007, 1, 1): datetime(2007, 1, 31),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            MonthEnd(2),
+            {
+                datetime(2008, 1, 1): datetime(2008, 2, 29),
+                datetime(2008, 1, 31): datetime(2008, 3, 31),
+                datetime(2006, 12, 29): datetime(2007, 1, 31),
+                datetime(2006, 12, 31): datetime(2007, 2, 28),
+                datetime(2007, 1, 1): datetime(2007, 2, 28),
+                datetime(2006, 11, 1): datetime(2006, 12, 31),
+            },
+        )
+    )
+
+    offset_cases.append(
+        (
+            MonthEnd(-1),
+            {
+                datetime(2007, 1, 1): datetime(2006, 12, 31),
+                datetime(2008, 6, 30): datetime(2008, 5, 31),
+                datetime(2008, 12, 31): datetime(2008, 11, 30),
+                datetime(2006, 12, 29): datetime(2006, 11, 30),
+                datetime(2006, 12, 30): datetime(2006, 11, 30),
+                datetime(2007, 1, 1): datetime(2006, 12, 31),
+            },
+        )
+    )
+
+    @pytest.mark.parametrize("case", offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in cases.items():
+            assert_offset_equal(offset, base, expected)
+
+    on_offset_cases = [
+        (MonthEnd(), datetime(2007, 12, 31), True),
+        (MonthEnd(), datetime(2008, 1, 1), False),
+    ]
+
+    @pytest.mark.parametrize("case", on_offset_cases)
+    def test_is_on_offset(self, case):
+        offset, dt, expected = case
+        assert_is_on_offset(offset, dt, expected)

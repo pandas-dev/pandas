@@ -9,11 +9,13 @@ from pandas.util._test_decorators import async_mark
 import pandas as pd
 from pandas import (
     DataFrame,
+    Index,
     Series,
     TimedeltaIndex,
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.core.api import Int64Index
 from pandas.core.indexes.datetimes import date_range
 
 test_frame = DataFrame(
@@ -324,7 +326,7 @@ def test_consistency_with_window():
 
     # consistent return values with window
     df = test_frame
-    expected = pd.Int64Index([1, 2, 3], name="A")
+    expected = Int64Index([1, 2, 3], name="A")
     result = df.groupby("A").resample("2s").mean()
     assert result.index.nlevels == 2
     tm.assert_index_equal(result.index.levels[0], expected)
@@ -402,6 +404,20 @@ def test_resample_groupby_agg():
     expected = resampled.sum()
     result = resampled.agg({"num": "sum"})
 
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_groupby_agg_listlike():
+    # GH 42905
+    ts = Timestamp("2021-02-28 00:00:00")
+    df = DataFrame({"class": ["beta"], "value": [69]}, index=Index([ts], name="date"))
+    resampled = df.groupby("class").resample("M")["value"]
+    result = resampled.agg(["sum", "size"])
+    expected = DataFrame(
+        [[69, 1]],
+        index=pd.MultiIndex.from_tuples([("beta", ts)], names=["class", "date"]),
+        columns=["sum", "size"],
+    )
     tm.assert_frame_equal(result, expected)
 
 

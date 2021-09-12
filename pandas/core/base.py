@@ -66,7 +66,13 @@ import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Categorical
+
 
 _shared_docs: dict[str, str] = {}
 _indexops_doc_kwargs = {
@@ -510,16 +516,8 @@ class IndexOpsMixin(OpsMixin):
         """
         if is_extension_array_dtype(self.dtype):
             # error: Too many arguments for "to_numpy" of "ExtensionArray"
-
-            # error: Argument 1 to "to_numpy" of "ExtensionArray" has incompatible type
-            # "Optional[Union[dtype[Any], None, type, _SupportsDType[dtype[Any]], str,
-            # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
-            # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]";
-            # expected "Optional[Union[ExtensionDtype, Union[str, dtype[Any]],
-            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]]"
             return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs  # type: ignore[arg-type]
+                dtype, copy=copy, na_value=na_value, **kwargs
             )
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
@@ -787,6 +785,7 @@ class IndexOpsMixin(OpsMixin):
             )
         return func(skipna=skipna, **kwds)
 
+    @final
     def _map_values(self, mapper, na_action=None):
         """
         An internal function that maps values using the input
@@ -1221,7 +1220,12 @@ class IndexOpsMixin(OpsMixin):
         """
 
     @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
@@ -1232,5 +1236,5 @@ class IndexOpsMixin(OpsMixin):
     @final
     def _duplicated(
         self, keep: Literal["first", "last", False] = "first"
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)

@@ -26,10 +26,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    reduction as libreduction,
-)
+from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
@@ -161,6 +158,19 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
 
+    def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
+        single = mgr.iget(0)
+        ser = self.obj._constructor(single, name=self.obj.name)
+        ser.index = self.grouper.result_index
+        return ser
+
+    def _get_data_to_aggregate(self) -> Manager2D:
+        obj = self._obj_with_exclusions
+        df = obj.to_frame()
+        df.columns = [obj.name]  # in case name is None, we need to overwrite [0]
+
+        return df._mgr
+
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
 
@@ -210,7 +220,8 @@ class SeriesGroupBy(GroupBy[Series]):
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
     2    3.0
-    dtype: float64"""
+    dtype: float64
+    """
     )
 
     @Appender(
@@ -227,9 +238,10 @@ class SeriesGroupBy(GroupBy[Series]):
         if maybe_use_numba(engine):
             with group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self.grouper.result_index
             return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
@@ -307,9 +319,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = concat(
                 results.values(), axis=1, keys=[key.label for key in results.keys()]
             )
-            # error: Incompatible return value type (got "Union[DataFrame, Series]",
-            # expected "DataFrame")
-            return res_df  # type: ignore[return-value]
+            return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
         output = self.obj._constructor_expanddim(indexed_output, index=None)
@@ -355,71 +365,22 @@ class SeriesGroupBy(GroupBy[Series]):
         )
         return self._reindex_output(ser)
 
-    def _wrap_aggregated_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
+    def _indexed_output_to_ndframe(
+        self, output: Mapping[base.OutputKey, ArrayLike]
     ) -> Series:
         """
-        Wraps the output of a SeriesGroupBy aggregation into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, ArrayLike]]
-            Data to wrap.
-
-        Returns
-        -------
-        Series
-
-        Notes
-        -----
-        In the vast majority of cases output will only contain one element.
-        The exception is operations that expand dimensions, like ohlc.
+        Wrap the dict result of a GroupBy aggregation into a Series.
         """
         assert len(output) == 1
-
-        name = self.obj.name
-        index = self.grouper.result_index
         values = next(iter(output.values()))
-
-        result = self.obj._constructor(values, index=index, name=name)
-        return self._reindex_output(result)
-
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Series | ArrayLike]
-    ) -> Series:
-        """
-        Wraps the output of a SeriesGroupBy aggregation into the expected result.
-
-        Parameters
-        ----------
-        output : dict[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Dict with a sole key of 0 and a value of the result values.
-
-        Returns
-        -------
-        Series
-
-        Notes
-        -----
-        output should always contain one element. It is specified as a dict
-        for consistency with DataFrame methods and _wrap_aggregated_output.
-        """
-        assert len(output) == 1
-
-        name = self.obj.name
-        values = next(iter(output.values()))
-        result = self.obj._constructor(values, index=self.obj.index, name=name)
-
-        # No transformations increase the ndim of the result
-        assert isinstance(result, Series)
+        result = self.obj._constructor(values)
+        result.name = self.obj.name
         return result
 
     def _wrap_applied_output(
         self,
         data: Series,
-        keys: Index,
-        values: list[Any] | None,
+        values: list[Any],
         not_indexed_same: bool = False,
     ) -> DataFrame | Series:
         """
@@ -429,9 +390,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ----------
         data : Series
             Input data for groupby operation.
-        keys : Index
-            Keys of groups that Series was grouped by.
-        values : Optional[List[Any]]
+        values : List[Any]
             Applied output for each group.
         not_indexed_same : bool, default False
             Whether the applied outputs are not indexed the same as the group axes.
@@ -440,7 +399,7 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         DataFrame or Series
         """
-        if len(keys) == 0:
+        if len(values) == 0:
             # GH #6265
             return self.obj._constructor(
                 [],
@@ -450,16 +409,9 @@ class SeriesGroupBy(GroupBy[Series]):
             )
         assert values is not None
 
-        def _get_index() -> Index:
-            if self.grouper.nkeys > 1:
-                index = MultiIndex.from_tuples(keys, names=self.grouper.names)
-            else:
-                index = Index(keys, name=self.grouper.names[0])
-            return index
-
         if isinstance(values[0], dict):
             # GH #823 #24880
-            index = _get_index()
+            index = self.grouper.result_index
             res_df = self.obj._constructor_expanddim(values, index=index)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
@@ -468,11 +420,11 @@ class SeriesGroupBy(GroupBy[Series]):
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(values, not_indexed_same=not_indexed_same)
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
-                data=values, index=_get_index(), name=self.obj.name
+                data=values, index=self.grouper.result_index, name=self.obj.name
             )
             return self._reindex_output(result)
 
@@ -483,9 +435,6 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self:
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
-            # NB: libreduction does not pin name
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -546,9 +495,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self.obj._constructor(dtype=np.float64)
 
         result.name = self.obj.name
-        # error: Incompatible return value type (got "Union[DataFrame, Series]",
-        # expected "Series")
-        return result  # type: ignore[return-value]
+        return result
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
@@ -828,47 +775,23 @@ class SeriesGroupBy(GroupBy[Series]):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self.obj.name)
 
-    def count(self) -> Series:
-        """
-        Compute count of group, excluding missing values.
+    @doc(Series.nlargest)
+    def nlargest(self, n: int = 5, keep: str = "first"):
+        f = partial(Series.nlargest, n=n, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
 
-        Returns
-        -------
-        Series
-            Count of values within each group.
-        """
-        ids, _, ngroups = self.grouper.group_info
-        val = self.obj._values
-
-        mask = (ids != -1) & ~isna(val)
-        minlength = ngroups or 0
-        out = np.bincount(ids[mask], minlength=minlength)
-
-        result = self.obj._constructor(
-            out,
-            index=self.grouper.result_index,
-            name=self.obj.name,
-            dtype="int64",
-        )
-        return self._reindex_output(result, fill_value=0)
-
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
-        """Calculate pct_change of each value to previous entry in group"""
-        # TODO: Remove this conditional when #23918 is fixed
-        if freq:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods, fill_method=fill_method, limit=limit, freq=freq
-                )
-            )
-        if fill_method is None:  # GH30463
-            fill_method = "pad"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-
-        return (filled / shifted) - 1
+    @doc(Series.nsmallest)
+    def nsmallest(self, n: int = 5, keep: str = "first"):
+        f = partial(Series.nsmallest, n=n, keep=keep)
+        data = self._obj_with_exclusions
+        # Don't change behavior if result index happens to be the same, i.e.
+        # already ordered and n >= all group sizes.
+        result = self._python_apply_general(f, data, not_indexed_same=True)
+        return result
 
 
 @pin_allowlisted_properties(DataFrame, base.dataframe_apply_allowlist)
@@ -957,7 +880,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
           B
     A
     1   1.0
-    2   3.0"""
+    2   3.0
+    """
     )
 
     @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
@@ -966,9 +890,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if maybe_use_numba(engine):
             with group_selection_context(self):
                 data = self._selected_obj
-            result, index = self._aggregate_with_numba(
+            result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
+            index = self.grouper.result_index
             return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
@@ -1126,21 +1051,20 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_resample_apply_product
 
         obj = self._obj_with_exclusions
-        result: dict[int | str, NDFrame] = {}
-        for i, item in enumerate(obj):
-            ser = obj.iloc[:, i]
-            colg = SeriesGroupBy(
-                ser, selection=item, grouper=self.grouper, exclusions=self.exclusions
-            )
+        result: dict[int, NDFrame] = {}
 
-            result[i] = colg.aggregate(func, *args, **kwargs)
+        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
+            result[i] = sgb.aggregate(func, *args, **kwargs)
 
         res_df = self.obj._constructor(result)
         res_df.columns = obj.columns
         return res_df
 
-    def _wrap_applied_output(self, data, keys, values, not_indexed_same=False):
-        if len(keys) == 0:
+    def _wrap_applied_output(
+        self, data: DataFrame, values: list, not_indexed_same: bool = False
+    ):
+
+        if len(values) == 0:
             result = self.obj._constructor(
                 index=self.grouper.result_index, columns=data.columns
             )
@@ -1154,7 +1078,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # GH9684 - All values are None, return an empty frame.
             return self.obj._constructor()
         elif isinstance(first_not_none, DataFrame):
-            return self._concat_objects(keys, values, not_indexed_same=not_indexed_same)
+            return self._concat_objects(values, not_indexed_same=not_indexed_same)
 
         key_index = self.grouper.result_index if self.as_index else None
 
@@ -1174,20 +1098,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
-                result = self.obj._constructor(
-                    values, index=key_index, columns=[self._selection]
-                )
+                result = self.obj._constructor(values, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
         else:
             # values are Series
             return self._wrap_applied_output_series(
-                keys, values, not_indexed_same, first_not_none, key_index
+                values, not_indexed_same, first_not_none, key_index
             )
 
     def _wrap_applied_output_series(
         self,
-        keys,
         values: list[Series],
         not_indexed_same: bool,
         first_not_none,
@@ -1208,19 +1129,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied_index = self._selected_obj._get_axis(self.axis)
             singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-            # assign the name to this series
             if singular_series:
-                values[0].name = keys[0]
-
                 # GH2893
                 # we have series in the values array, we want to
                 # produce a series:
                 # if any of the sub-series are not indexed the same
                 # OR we don't have a multi-index and we have only a
                 # single values
-                return self._concat_objects(
-                    keys, values, not_indexed_same=not_indexed_same
-                )
+                return self._concat_objects(values, not_indexed_same=not_indexed_same)
 
             # still a series
             # path added as of GH 5545
@@ -1231,7 +1147,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not all_indexed_same:
             # GH 8467
-            return self._concat_objects(keys, values, not_indexed_same=True)
+            return self._concat_objects(values, not_indexed_same=True)
 
         # Combine values
         # vstack+constructor is faster than concat and handles MI-columns
@@ -1413,14 +1329,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  gets here with non-unique columns
         output = {}
         inds = []
-        for i, col in enumerate(obj):
-            subset = obj.iloc[:, i]
-            sgb = SeriesGroupBy(
-                subset,
-                selection=col,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-            )
+        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             try:
                 output[i] = sgb.transform(wrapper)
             except TypeError:
@@ -1598,21 +1507,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if in_axis and name not in columns:
                 result.insert(0, name, lev)
 
-    def _wrap_aggregated_output(
-        self,
-        output: Mapping[base.OutputKey, Series | ArrayLike],
+    def _indexed_output_to_ndframe(
+        self, output: Mapping[base.OutputKey, ArrayLike]
     ) -> DataFrame:
         """
-        Wraps the output of DataFrameGroupBy aggregations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray]]
-           Data to wrap.
-
-        Returns
-        -------
-        DataFrame
+        Wrap the dict result of a GroupBy aggregation into a DataFrame.
         """
         indexed_output = {key.position: val for key, val in output.items()}
         columns = Index([key.label for key in output])
@@ -1620,50 +1519,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         result = self.obj._constructor(indexed_output)
         result.columns = columns
-
-        if not self.as_index:
-            self._insert_inaxis_grouper_inplace(result)
-            result = result._consolidate()
-        else:
-            result.index = self.grouper.result_index
-
-        if self.axis == 1:
-            result = result.T
-            if result.index.equals(self.obj.index):
-                # Retain e.g. DatetimeIndex/TimedeltaIndex freq
-                result.index = self.obj.index.copy()
-                # TODO: Do this more systematically
-
-        return self._reindex_output(result)
-
-    def _wrap_transformed_output(
-        self, output: Mapping[base.OutputKey, Series | ArrayLike]
-    ) -> DataFrame:
-        """
-        Wraps the output of DataFrameGroupBy transformations into the expected result.
-
-        Parameters
-        ----------
-        output : Mapping[base.OutputKey, Union[Series, np.ndarray, ExtensionArray]]
-            Data to wrap.
-
-        Returns
-        -------
-        DataFrame
-        """
-        indexed_output = {key.position: val for key, val in output.items()}
-        result = self.obj._constructor(indexed_output)
-
-        if self.axis == 1:
-            result = result.T
-            result.columns = self.obj.columns
-        else:
-            columns = Index(key.label for key in output)
-            columns._set_names(self.obj._get_axis(1 - self.axis).names)
-            result.columns = columns
-
-        result.index = self.obj.index
-
         return result
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
@@ -1710,40 +1565,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return DataFrame([], columns=columns, index=self.grouper.result_index)
         else:
             return concat(results, keys=columns, axis=1)
-
-    def count(self) -> DataFrame:
-        """
-        Compute count of group, excluding missing values.
-
-        Returns
-        -------
-        DataFrame
-            Count of values within each group.
-        """
-        data = self._get_data_to_aggregate()
-        ids, _, ngroups = self.grouper.group_info
-        mask = ids != -1
-
-        def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(2DEA): reshape would not be necessary with 2D EAs
-            if bvalues.ndim == 1:
-                # EA
-                masked = mask & ~isna(bvalues).reshape(1, -1)
-            else:
-                masked = mask & ~isna(bvalues)
-
-            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
-            return counted
-
-        new_mgr = data.grouped_reduce(hfunc)
-
-        # If we are grouping on categoricals we want unobserved categories to
-        # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_agged_manager() returns. GH 35028
-        with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_manager(new_mgr)
-
-        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True) -> DataFrame:
         """

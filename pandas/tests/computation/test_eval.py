@@ -1110,7 +1110,7 @@ class TestAlignment:
                 expected = (
                     f"Alignment difference on axis 1 is larger "
                     f"than an order of magnitude on term 'df', "
-                    f"by more than {logged:.4g}; performance may suffer"
+                    f"by more than {logged:.4g}; performance may suffer."
                 )
                 assert msg == expected
 
@@ -2033,6 +2033,16 @@ def test_truediv_deprecated(engine, parser):
 
     assert len(m) == 1
     assert match in str(m[0].message)
+
+
+@pytest.mark.parametrize("column", ["Temp(°C)", "Capacitance(μF)"])
+def test_query_token(engine, column):
+    # See: https://github.com/pandas-dev/pandas/pull/42826
+    df = DataFrame(np.random.randn(5, 2), columns=[column, "b"])
+    expected = df[df[column] > 5]
+    query_string = f"`{column}` > 5"
+    result = df.query(query_string, engine=engine)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_negate_lt_eq_le(engine, parser):

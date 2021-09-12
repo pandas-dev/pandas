@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/pypi/l/pandas.svg)](https://github.com/pandas-dev/pandas/blob/master/LICENSE)
 [![Azure Build Status](https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master)](https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master)
 [![Coverage](https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master)](https://codecov.io/gh/pandas-dev/pandas)
-[![Downloads](https://anaconda.org/conda-forge/pandas/badges/downloads.svg)](https://pandas.pydata.org)
+[![Downloads](https://static.pepy.tech/personalized-badge/pandas?period=month&units=international_system&left_color=black&right_color=orange&left_text=PyPI%20downloads%20per%20month)](https://pepy.tech/project/pandas)
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/pydata/pandas)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](https://numfocus.org)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)

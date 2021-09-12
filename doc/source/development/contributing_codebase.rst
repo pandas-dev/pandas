@@ -23,11 +23,10 @@ contributing them to the project::
 
    ./ci/code_checks.sh
 
-The script verifies the linting of code files, it looks for common mistake patterns
-(like missing spaces around sphinx directives that make the documentation not
-being rendered properly) and it also validates the doctests. It is possible to
-run the checks independently by using the parameters ``lint``, ``patterns`` and
-``doctests`` (e.g. ``./ci/code_checks.sh lint``).
+The script validates the doctests, formatting in docstrings, static typing, and
+imported modules. It is possible to run the checks independently by using the
+parameters ``docstring``, ``code``, ``typing``, and ``doctests``
+(e.g. ``./ci/code_checks.sh doctests``).
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
@@ -182,7 +181,7 @@ run this command, though it may take longer::
 
    git diff upstream/master --name-only -- "*.py" | xargs -r flake8
 
-Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
+Note that on macOS, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
    git diff upstream/master --name-only -- "*.py" | xargs flake8
@@ -245,7 +244,7 @@ Alternatively, you can run a command similar to what was suggested for ``black``
 
     git diff upstream/master --name-only -- "*.py" | xargs -r isort
 
-Where similar caveats apply if you are on OSX or Windows.
+Where similar caveats apply if you are on macOS or Windows.
 
 You can then verify the changes look ok, then git :any:`commit <contributing.commit-code>` and :any:`push <contributing.push-code>`.
 
