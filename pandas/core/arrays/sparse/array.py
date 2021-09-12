@@ -98,6 +98,8 @@ if TYPE_CHECKING:
 
     from pandas._typing import NumpySorter
 
+    from pandas import Series
+
 else:
     ellipsis = type(Ellipsis)
 
@@ -328,7 +330,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         fill_value=None,
         kind="integer",
         dtype: Dtype | None = None,
-        copy=False,
+        copy: bool = False,
     ):
 
         if fill_value is None and isinstance(dtype, SparseDtype):
@@ -558,7 +560,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         raise TypeError(msg)
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         return cls(scalars, dtype=dtype)
 
     @classmethod
@@ -625,10 +627,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return self.sp_index.length
 
     @property
-    def _null_fill_value(self):
+    def _null_fill_value(self) -> bool:
         return self._dtype._is_na_fill_value
 
-    def _fill_value_matches(self, fill_value):
+    def _fill_value_matches(self, fill_value) -> bool:
         if self._null_fill_value:
             return isna(fill_value)
         else:
@@ -725,7 +727,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
-    def shift(self, periods=1, fill_value=None):
+    def shift(self, periods: int = 1, fill_value=None):
 
         if not len(self) or periods == 0:
             return self.copy()
@@ -794,7 +796,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         uniques = SparseArray(uniques, dtype=self.dtype)  # type: ignore[assignment]
         return codes, uniques
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         """
         Returns a Series containing counts of unique values.
 
@@ -909,24 +911,28 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             val = maybe_box_datetimelike(val, self.sp_values.dtype)
             return val
 
-    def take(self, indices, *, allow_fill=False, fill_value=None) -> SparseArray:
+    def take(
+        self, indices, *, allow_fill: bool = False, fill_value=None
+    ) -> SparseArray:
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
 
+        dtype = None
         if indices.size == 0:
             result = np.array([], dtype="object")
-            kwargs = {"dtype": self.dtype}
+            dtype = self.dtype
         elif allow_fill:
             result = self._take_with_fill(indices, fill_value=fill_value)
-            kwargs = {}
         else:
             # error: Incompatible types in assignment (expression has type
             # "Union[ndarray, SparseArray]", variable has type "ndarray")
             result = self._take_without_fill(indices)  # type: ignore[assignment]
-            kwargs = {"dtype": self.dtype}
+            dtype = self.dtype
 
-        return type(self)(result, fill_value=self.fill_value, kind=self.kind, **kwargs)
+        return type(self)(
+            result, fill_value=self.fill_value, kind=self.kind, dtype=dtype
+        )
 
     def _take_with_fill(self, indices, fill_value=None) -> np.ndarray:
         if fill_value is None:
@@ -1104,7 +1110,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
-    def astype(self, dtype: AstypeArg | None = None, copy=True):
+    def astype(self, dtype: AstypeArg | None = None, copy: bool = True):
         """
         Change the dtype of a SparseArray.
 
