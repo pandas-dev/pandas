@@ -1861,5 +1861,5 @@ def test_numpy_array(input_dict, expected):
     not np_version_under1p19, reason="check failure on numpy below 1.19"
 )
 def test_numpy_array_np_v1p19():
-    with pytest.raises(KeyError, match="KeyError: 0"):
+    with pytest.raises(KeyError, match="0"):
         np.array([Series({1: 1})])
