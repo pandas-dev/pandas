@@ -581,8 +581,10 @@ class BaseBlockManager(DataManager):
 
         if self.ndim > 1:
             # Avoid needing to re-compute these
-            res._blknos = self.blknos.copy()
-            res._blklocs = self.blklocs.copy()
+            blknos = self._blknos
+            if blknos is not None:
+                res._blknos = blknos.copy()
+                res._blklocs = self._blklocs.copy()
 
         if deep:
             res._consolidate_inplace()
@@ -676,7 +678,12 @@ class BaseBlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
 
-        return type(self).from_blocks(new_blocks, new_axes)
+        new_mgr = type(self).from_blocks(new_blocks, new_axes)
+        if axis == 1:
+            # We can avoid the need to rebuild these
+            new_mgr._blknos = self.blknos.copy()
+            new_mgr._blklocs = self.blklocs.copy()
+        return new_mgr
 
     def _slice_take_blocks_ax0(
         self,

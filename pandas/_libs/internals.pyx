@@ -760,6 +760,8 @@ cdef class BlockManager:
     cdef BlockManager _get_index_slice(self, slobj):
         cdef:
             SharedBlock blk, nb
+            BlockManager mgr
+            ndarray blknos, blklocs
 
         nbs = []
         for blk in self.blocks:
@@ -767,7 +769,15 @@ cdef class BlockManager:
             nbs.append(nb)
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        return type(self)(tuple(nbs), new_axes, verify_integrity=False)
+        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
+
+        # We can avoid having to rebuild blklocs/blknos
+        blklocs = self._blklocs
+        blknos = self._blknos
+        if blknos is not None:
+            mgr._blknos = blknos.copy()
+            mgr._blklocs = blklocs.copy()
+        return mgr
 
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
