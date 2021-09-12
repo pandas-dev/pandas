@@ -41,6 +41,7 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     astype_nansafe,
@@ -258,6 +259,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         `fill_value`.
     sparse_index : SparseIndex, optional
     index : Index
+
+        .. deprecated:: 1.4.0
+            Use a function like `np.full` to construct an array with the desired
+            repeats of the scalar value instead.
+
     fill_value : scalar, optional
         Elements in `data` that are `fill_value` are not stored in the
         SparseArray. For memory savings, this should be the most common value
@@ -360,6 +366,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if fill_value is None:
                 fill_value = dtype.fill_value
             dtype = dtype.subtype
+
+        if index is not None:
+            warnings.warn(
+                "The index argument has been deprecated and will be "
+                "removed in a future version. Use a function like np.full "
+                "to construct an array with the desired repeats of the "
+                "scalar value instead.\n\n",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         if index is not None and not is_scalar(data):
             raise Exception("must only pass scalars with an index")
