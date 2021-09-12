@@ -1708,9 +1708,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         return self._bool_agg("all", skipna)
 
+    @final
     @Substitution(name="groupby")
     @Appender(_common_see_also)
-    def count(self):
+    def count(self) -> Series | DataFrame:
         """
         Compute count of group, excluding missing values.
 
@@ -1719,8 +1720,30 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         Series or DataFrame
             Count of values within each group.
         """
-        # defined here for API doc
-        raise NotImplementedError
+        data = self._get_data_to_aggregate()
+        ids, _, ngroups = self.grouper.group_info
+        mask = ids != -1
+
+        def hfunc(bvalues: ArrayLike) -> ArrayLike:
+            # TODO(2DEA): reshape would not be necessary with 2D EAs
+            if bvalues.ndim == 1:
+                # EA
+                masked = mask & ~isna(bvalues).reshape(1, -1)
+            else:
+                masked = mask & ~isna(bvalues)
+
+            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            return counted
+
+        new_mgr = data.grouped_reduce(hfunc)
+
+        # If we are grouping on categoricals we want unobserved categories to
+        # return zero, rather than the default of NaN which the reindexing in
+        # _wrap_agged_manager() returns. GH 35028
+        with com.temp_setattr(self, "observed", True):
+            result = self._wrap_agged_manager(new_mgr)
+
+        return self._reindex_output(result, fill_value=0)
 
     @final
     @Substitution(name="groupby")
