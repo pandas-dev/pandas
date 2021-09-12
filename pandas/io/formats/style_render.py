@@ -671,10 +671,14 @@ class StylerRenderer:
         precision: int,
         align: str,
     ) -> None:
-        """
-        Manipulate the render dict for string output
-        """
+        r"""
+        Post-process the default render dict for the String template format.
 
+        Processing items included are:
+          - Measuring total column character length and justifying or trimming.
+          - Remove hidden indexes or reinsert missing th elements if part of multiindex
+            or multirow sparsification (so that \multirow and \multicol work correctly).
+        """
         # find the maximum length of items in each column
         d["col_max_char"] = [0] * len(d["body"][0])
         for row in d["head"] + d["body"]:
