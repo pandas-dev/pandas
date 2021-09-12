@@ -1,22 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
-from dateutil.tz import gettz, tzlocal, tzutc
 import numpy as np
 import pytz
 
 from pandas import Timestamp
 
-# One case for each type of tzinfo object that has its own code path
-#  in tzconversion code.
-_tzs = [
-    None,
-    pytz.timezone("Europe/Amsterdam"),
-    gettz("US/Central"),
-    pytz.UTC,
-    tzutc(),
-    timezone(timedelta(minutes=60)),
-    tzlocal(),
-]
+from .tslib import _tzs
 
 
 class TimestampConstruction:

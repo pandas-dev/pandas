@@ -1,0 +1,57 @@
+.. _whatsnew_133:
+
+What's new in 1.3.3 (September 12, 2021)
+----------------------------------------
+
+These are the changes in pandas 1.3.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :class:`DataFrame` constructor failing to broadcast for defined :class:`Index` and len one list of :class:`Timestamp` (:issue:`42810`)
+- Fixed regression in :meth:`.GroupBy.agg` incorrectly raising in some cases (:issue:`42390`)
+- Fixed regression in :meth:`.GroupBy.apply` where ``nan`` values were dropped even with ``dropna=False`` (:issue:`43205`)
+- Fixed regression in :meth:`.GroupBy.quantile` which was failing with ``pandas.NA`` (:issue:`42849`)
+- Fixed regression in :meth:`merge` where ``on`` columns with ``ExtensionDtype`` or ``bool`` data types were cast to ``object`` in ``right`` and ``outer`` merge (:issue:`40073`)
+- Fixed regression in :meth:`RangeIndex.where` and :meth:`RangeIndex.putmask` raising ``AssertionError`` when result did not represent a :class:`RangeIndex` (:issue:`43240`)
+- Fixed regression in :meth:`read_parquet` where the ``fastparquet`` engine would not work properly with fastparquet 0.7.0 (:issue:`43075`)
+- Fixed regression in :meth:`DataFrame.loc.__setitem__` raising ``ValueError`` when setting array as cell value (:issue:`43422`)
+- Fixed regression in :func:`is_list_like` where objects with ``__iter__`` set to ``None`` would be identified as iterable (:issue:`43373`)
+- Fixed regression in :meth:`DataFrame.__getitem__` raising error for slice of :class:`DatetimeIndex` when index is non monotonic (:issue:`43223`)
+- Fixed regression in :meth:`.Resampler.aggregate` when used after column selection would raise if ``func`` is a list of aggregation functions (:issue:`42905`)
+- Fixed regression in :meth:`DataFrame.corr` where Kendall correlation would produce incorrect results for columns with repeated values (:issue:`43401`)
+- Fixed regression in :meth:`DataFrame.groupby` where aggregation on columns with object types dropped results on those columns (:issue:`42395`, :issue:`43108`)
+- Fixed regression in :meth:`Series.fillna` raising ``TypeError`` when filling ``float`` ``Series`` with list-like fill value having a dtype which couldn't cast lostlessly (like ``float32`` filled with ``float64``) (:issue:`43424`)
+- Fixed regression in :func:`read_csv` raising ``AttributeError`` when the file handle is an ``tempfile.SpooledTemporaryFile`` object (:issue:`43439`)
+- Fixed performance regression in :meth:`core.window.ewm.ExponentialMovingWindow.mean` (:issue:`42333`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`DataFrame.__setitem__` when the key or value is not a :class:`DataFrame`, or key is not list-like (:issue:`43274`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.DataFrameGroupBy.transform` with ``engine="numba"`` where ``index`` data was not being correctly passed into ``func`` (:issue:`43133`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_133.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.2..v1.3.3|HEAD

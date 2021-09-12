@@ -91,11 +91,9 @@ void parser_set_default_options(parser_t *self) {
     self->skipinitialspace = 0;
     self->quoting = QUOTE_MINIMAL;
     self->allow_embedded_newline = 1;
-    self->strict = 0;
 
     self->expected_fields = -1;
-    self->error_bad_lines = 0;
-    self->warn_bad_lines = 0;
+    self->on_bad_lines = ERROR;
 
     self->commentchar = '#';
     self->thousands = '\0';
@@ -458,7 +456,7 @@ static int end_line(parser_t *self) {
         self->line_fields[self->lines] = 0;
 
         // file_lines is now the actual file line number (starting at 1)
-        if (self->error_bad_lines) {
+        if (self->on_bad_lines == ERROR) {
             self->error_msg = malloc(bufsize);
             snprintf(self->error_msg, bufsize,
                     "Expected %d fields in line %" PRIu64 ", saw %" PRId64 "\n",
@@ -469,7 +467,7 @@ static int end_line(parser_t *self) {
             return -1;
         } else {
             // simply skip bad lines
-            if (self->warn_bad_lines) {
+            if (self->on_bad_lines == WARN) {
                 // pass up error message
                 msg = malloc(bufsize);
                 snprintf(msg, bufsize,
@@ -554,13 +552,15 @@ int parser_set_skipfirstnrows(parser_t *self, int64_t nrows) {
     return 0;
 }
 
-static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
+static int parser_buffer_bytes(parser_t *self, size_t nbytes,
+                               const char *encoding_errors) {
     int status;
     size_t bytes_read;
 
     status = 0;
     self->datapos = 0;
-    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status);
+    self->data = self->cb_io(self->source, nbytes, &bytes_read, &status,
+                             encoding_errors);
     TRACE((
         "parser_buffer_bytes self->cb_io: nbytes=%zu, datalen: %d, status=%d\n",
         nbytes, bytes_read, status));
@@ -1031,15 +1031,9 @@ int tokenize_bytes(parser_t *self,
                 } else if (IS_CARRIAGE(c)) {
                     END_FIELD();
                     self->state = EAT_CRNL;
-                } else if (!self->strict) {
+                } else {
                     PUSH_CHAR(c);
                     self->state = IN_FIELD;
-                } else {
-                    int64_t bufsize = 100;
-                    self->error_msg = malloc(bufsize);
-                    snprintf(self->error_msg, bufsize,
-                            "delimiter expected after quote in quote");
-                    goto parsingerror;
                 }
                 break;
 
@@ -1341,7 +1335,8 @@ int parser_trim_buffers(parser_t *self) {
   all : tokenize all the data vs. certain number of rows
  */
 
-int _tokenize_helper(parser_t *self, size_t nrows, int all) {
+int _tokenize_helper(parser_t *self, size_t nrows, int all,
+                     const char *encoding_errors) {
     int status = 0;
     uint64_t start_lines = self->lines;
 
@@ -1357,7 +1352,8 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
         if (!all && self->lines - start_lines >= nrows) break;
 
         if (self->datapos == self->datalen) {
-            status = parser_buffer_bytes(self, self->chunksize);
+            status = parser_buffer_bytes(self, self->chunksize,
+                                         encoding_errors);
 
             if (status == REACHED_EOF) {
                 // close out last line
@@ -1390,13 +1386,13 @@ int _tokenize_helper(parser_t *self, size_t nrows, int all) {
     return status;
 }
 
-int tokenize_nrows(parser_t *self, size_t nrows) {
-    int status = _tokenize_helper(self, nrows, 0);
+int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) {
+    int status = _tokenize_helper(self, nrows, 0, encoding_errors);
     return status;
 }
 
-int tokenize_all_rows(parser_t *self) {
-    int status = _tokenize_helper(self, -1, 1);
+int tokenize_all_rows(parser_t *self, const char *encoding_errors) {
+    int status = _tokenize_helper(self, -1, 1, encoding_errors);
     return status;
 }
 
@@ -1733,7 +1729,7 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
         // Process string of digits.
         num_digits = 0;
         n = 0;
-        while (isdigit_ascii(*p)) {
+        while (num_digits < max_digits && isdigit_ascii(*p)) {
             n = n * 10 + (*p - '0');
             num_digits++;
             p++;
@@ -1754,10 +1750,13 @@ double precise_xstrtod(const char *str, char **endptr, char decimal,
     } else if (exponent > 0) {
         number *= e[exponent];
     } else if (exponent < -308) {  // Subnormal
-        if (exponent < -616)       // Prevent invalid array access.
+        if (exponent < -616) {  // Prevent invalid array access.
             number = 0.;
-        number /= e[-308 - exponent];
-        number /= e[308];
+        } else {
+            number /= e[-308 - exponent];
+            number /= e[308];
+        }
+
     } else {
         number /= e[-exponent];
     }

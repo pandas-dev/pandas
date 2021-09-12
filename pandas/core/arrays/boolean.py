@@ -1,16 +1,30 @@
+from __future__ import annotations
+
 import numbers
-from typing import TYPE_CHECKING, List, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    overload,
+)
 import warnings
 
 import numpy as np
 
-from pandas._libs import lib, missing as libmissing
-from pandas._typing import ArrayLike
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._typing import (
+    ArrayLike,
+    AstypeArg,
+    Dtype,
+    DtypeObj,
+    npt,
+    type_t,
+)
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_integer_dtype,
@@ -18,12 +32,18 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    register_extension_dtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
-
-from .masked import BaseMaskedArray, BaseMaskedDtype
+from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.masked import (
+    BaseMaskedArray,
+    BaseMaskedDtype,
+)
 
 if TYPE_CHECKING:
     import pyarrow
@@ -57,9 +77,10 @@ class BooleanDtype(BaseMaskedDtype):
 
     name = "boolean"
 
-    # mypy: https://github.com/python/mypy/issues/4125
+    # https://github.com/python/mypy/issues/4125
+    # error: Signature of "type" incompatible with supertype "BaseMaskedDtype"
     @property
-    def type(self) -> Type:  # type: ignore[override]
+    def type(self) -> type:  # type: ignore[override]
         return np.bool_
 
     @property
@@ -71,7 +92,7 @@ class BooleanDtype(BaseMaskedDtype):
         return np.dtype("bool")
 
     @classmethod
-    def construct_array_type(cls) -> Type["BooleanArray"]:
+    def construct_array_type(cls) -> type_t[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -93,12 +114,15 @@ class BooleanDtype(BaseMaskedDtype):
         return True
 
     def __from_arrow__(
-        self, array: Union["pyarrow.Array", "pyarrow.ChunkedArray"]
-    ) -> "BooleanArray":
+        self, array: pyarrow.Array | pyarrow.ChunkedArray
+    ) -> BooleanArray:
         """
         Construct BooleanArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
+
+        if array.type != pyarrow.bool_():
+            raise TypeError(f"Expected array of boolean type, got {array.type} instead")
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
@@ -108,16 +132,44 @@ class BooleanDtype(BaseMaskedDtype):
 
         results = []
         for arr in chunks:
-            # TODO should optimize this without going through object array
-            bool_arr = BooleanArray._from_sequence(np.array(arr))
+            buflist = arr.buffers()
+            data = pyarrow.BooleanArray.from_buffers(
+                arr.type, len(arr), [None, buflist[1]], offset=arr.offset
+            ).to_numpy(zero_copy_only=False)
+            if arr.null_count != 0:
+                mask = pyarrow.BooleanArray.from_buffers(
+                    arr.type, len(arr), [None, buflist[0]], offset=arr.offset
+                ).to_numpy(zero_copy_only=False)
+                mask = ~mask
+            else:
+                mask = np.zeros(len(arr), dtype=bool)
+
+            bool_arr = BooleanArray(data, mask)
             results.append(bool_arr)
 
-        return BooleanArray._concat_same_type(results)
+        if not results:
+            return BooleanArray(
+                np.array([], dtype=np.bool_), np.array([], dtype=np.bool_)
+            )
+        else:
+            return BooleanArray._concat_same_type(results)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # Handle only boolean + np.bool_ -> boolean, since other cases like
+        # Int64 + boolean -> Int64 will be handled by the other type
+        if all(
+            isinstance(t, BooleanDtype)
+            or (isinstance(t, np.dtype) and (np.issubdtype(t, np.bool_)))
+            for t in dtypes
+        ):
+            return BooleanDtype()
+        else:
+            return None
 
 
 def coerce_to_array(
     values, mask=None, copy: bool = False
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Coerce the input values array to numpy arrays with a mask.
 
@@ -258,6 +310,8 @@ class BooleanArray(BaseMaskedArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = False
+    _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
+    _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
     def __init__(self, values: np.ndarray, mask: np.ndarray, copy: bool = False):
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
@@ -274,8 +328,8 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence(
-        cls, scalars, *, dtype=None, copy: bool = False
-    ) -> "BooleanArray":
+        cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
+    ) -> BooleanArray:
         if dtype:
             assert dtype == "boolean"
         values, mask = coerce_to_array(scalars, copy=copy)
@@ -283,14 +337,23 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _from_sequence_of_strings(
-        cls, strings: List[str], *, dtype=None, copy: bool = False
-    ) -> "BooleanArray":
+        cls,
+        strings: list[str],
+        *,
+        dtype: Dtype | None = None,
+        copy: bool = False,
+        true_values: list[str] | None = None,
+        false_values: list[str] | None = None,
+    ) -> BooleanArray:
+        true_values_union = cls._TRUE_VALUES.union(true_values or [])
+        false_values_union = cls._FALSE_VALUES.union(false_values or [])
+
         def map_string(s):
             if isna(s):
                 return s
-            elif s in ["True", "TRUE", "true", "1", "1.0"]:
+            elif s in true_values_union:
                 return True
-            elif s in ["False", "FALSE", "false", "0", "0.0"]:
+            elif s in false_values_union:
                 return False
             else:
                 raise ValueError(f"{s} cannot be cast to bool")
@@ -300,7 +363,7 @@ class BooleanArray(BaseMaskedArray):
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
-    def __array_ufunc__(self, ufunc, method: str, *inputs, **kwargs):
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For BooleanArray inputs, we apply the ufunc to ._data
         # and mask the result.
         if method == "reduce":
@@ -345,10 +408,23 @@ class BooleanArray(BaseMaskedArray):
         else:
             return reconstruct(result)
 
-    def _coerce_to_array(self, value) -> Tuple[np.ndarray, np.ndarray]:
+    def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
-    def astype(self, dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+
         """
         Cast to a NumPy array or ExtensionArray with 'dtype'.
 
@@ -372,18 +448,10 @@ class BooleanArray(BaseMaskedArray):
             if incompatible type with an BooleanDtype, equivalent of same_kind
             casting
         """
-        from pandas.core.arrays.string_ import StringDtype
-
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, BooleanDtype):
-            values, mask = coerce_to_array(self, copy=copy)
-            if not copy:
-                return self
-            else:
-                return BooleanArray(values, mask, copy=False)
-        elif isinstance(dtype, StringDtype):
-            return dtype.construct_array_type()._from_sequence(self, copy=False)
+        if isinstance(dtype, ExtensionDtype):
+            return super().astype(dtype, copy)
 
         if is_bool_dtype(dtype):
             # astype_nansafe converts np.nan to True
@@ -391,15 +459,11 @@ class BooleanArray(BaseMaskedArray):
                 raise ValueError("cannot convert float NaN to bool")
             else:
                 return self._data.astype(dtype, copy=copy)
-        if is_extension_array_dtype(dtype) and is_integer_dtype(dtype):
-            from pandas.core.arrays import IntegerArray
 
-            return IntegerArray(
-                self._data.astype(dtype.numpy_dtype), self._mask.copy(), copy=False
-            )
         # for integer, error if there are missing values
         if is_integer_dtype(dtype) and self._hasna:
             raise ValueError("cannot convert NA to integer")
+
         # for float dtype, ensure we use np.nan before casting (numpy cannot
         # deal with pd.NA)
         na_value = self._na_value
@@ -594,10 +658,15 @@ class BooleanArray(BaseMaskedArray):
         elif op.__name__ in {"xor", "rxor"}:
             result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
-        return BooleanArray(result, mask)
+        # error: Argument 2 to "BooleanArray" has incompatible type "Optional[Any]";
+        # expected "ndarray"
+        return BooleanArray(result, mask)  # type: ignore[arg-type]
 
     def _cmp_method(self, other, op):
-        from pandas.arrays import FloatingArray, IntegerArray
+        from pandas.arrays import (
+            FloatingArray,
+            IntegerArray,
+        )
 
         if isinstance(other, (IntegerArray, FloatingArray)):
             return NotImplemented
@@ -706,10 +775,11 @@ class BooleanArray(BaseMaskedArray):
         if (is_float_dtype(other) or is_float(other)) or (
             op_name in ["rtruediv", "truediv"]
         ):
-            result[mask] = np.nan
-            return result
+            from pandas.core.arrays import FloatingArray
 
-        if is_bool_dtype(result):
+            return FloatingArray(result, mask, copy=False)
+
+        elif is_bool_dtype(result):
             return BooleanArray(result, mask, copy=False)
 
         elif is_integer_dtype(result):

@@ -3,16 +3,23 @@ Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
+from __future__ import annotations
+
 import numbers
 import random
 import string
-from typing import Type
 
 import numpy as np
+
+from pandas._typing import type_t
 
 from pandas.core.dtypes.base import ExtensionDtype
 
 import pandas as pd
+from pandas.api.types import (
+    is_object_dtype,
+    is_string_dtype,
+)
 from pandas.core.arrays import ExtensionArray
 
 
@@ -22,7 +29,7 @@ class ListDtype(ExtensionDtype):
     na_value = np.nan
 
     @classmethod
-    def construct_array_type(cls) -> Type["ListArray"]:
+    def construct_array_type(cls) -> type_t[ListArray]:
         """
         Return the array type associated with this dtype.
 
@@ -104,9 +111,7 @@ class ListArray(ExtensionArray):
             if copy:
                 return self.copy()
             return self
-        elif pd.api.types.is_string_dtype(dtype) and not pd.api.types.is_object_dtype(
-            dtype
-        ):
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
             return np.array([str(x) for x in self.data], dtype=dtype)
         return np.array(self.data, dtype=dtype, copy=copy)

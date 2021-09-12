@@ -1,7 +1,11 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -13,14 +17,10 @@ def simple_multiindex_dataframe():
     random data by default.
     """
 
-    def _simple_multiindex_dataframe(data=None):
-        if data is None:
-            data = np.random.randn(3, 3)
-        return DataFrame(
-            data, columns=[[2, 2, 4], [6, 8, 10]], index=[[4, 4, 8], [8, 10, 12]]
-        )
-
-    return _simple_multiindex_dataframe
+    data = np.random.randn(3, 3)
+    return DataFrame(
+        data, columns=[[2, 2, 4], [6, 8, 10]], index=[[4, 4, 8], [8, 10, 12]]
+    )
 
 
 @pytest.mark.parametrize(
@@ -41,23 +41,23 @@ def simple_multiindex_dataframe():
     ],
 )
 def test_iloc_returns_series(indexer, expected, simple_multiindex_dataframe):
-    arr = np.random.randn(3, 3)
-    df = simple_multiindex_dataframe(arr)
+    df = simple_multiindex_dataframe
+    arr = df.values
     result = indexer(df)
     expected = expected(arr)
     tm.assert_series_equal(result, expected)
 
 
 def test_iloc_returns_dataframe(simple_multiindex_dataframe):
-    df = simple_multiindex_dataframe()
+    df = simple_multiindex_dataframe
     result = df.iloc[[0, 1]]
     expected = df.xs(4, drop_level=False)
     tm.assert_frame_equal(result, expected)
 
 
 def test_iloc_returns_scalar(simple_multiindex_dataframe):
-    arr = np.random.randn(3, 3)
-    df = simple_multiindex_dataframe(arr)
+    df = simple_multiindex_dataframe
+    arr = df.values
     result = df.iloc[2, 2]
     expected = arr[2, 2]
     assert result == expected

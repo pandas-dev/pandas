@@ -4,11 +4,21 @@ timedelta support tools
 
 import numpy as np
 
-from pandas._libs.tslibs import NaT
-from pandas._libs.tslibs.timedeltas import Timedelta, parse_timedelta_unit
+from pandas._libs import lib
+from pandas._libs.tslibs import (
+    NaT,
+    NaTType,
+)
+from pandas._libs.tslibs.timedeltas import (
+    Timedelta,
+    parse_timedelta_unit,
+)
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
@@ -113,11 +123,11 @@ def to_timedelta(arg, unit=None, errors="raise"):
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)
-    elif isinstance(arg, ABCIndexClass):
+    elif isinstance(arg, ABCIndex):
         return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
-        arg = arg.item()
+        arg = lib.item_from_zerodim(arg)
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
         return _convert_listlike(arg, unit=unit, errors=errors)
     elif getattr(arg, "ndim", 1) > 1:
@@ -134,6 +144,8 @@ def to_timedelta(arg, unit=None, errors="raise"):
 
 def _coerce_scalar_to_timedelta_type(r, unit="ns", errors="raise"):
     """Convert string 'r' to a timedelta object."""
+    result: Timedelta | NaTType  # TODO: alias?
+
     try:
         result = Timedelta(r, unit)
     except ValueError:
@@ -158,7 +170,7 @@ def _convert_listlike(arg, unit=None, errors="raise", name=None):
         arg = np.array(list(arg), dtype=object)
 
     try:
-        value = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+        td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
     except ValueError:
         if errors == "ignore":
             return arg
@@ -174,5 +186,5 @@ def _convert_listlike(arg, unit=None, errors="raise", name=None):
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(value, unit="ns", name=name)
+    value = TimedeltaIndex(td64arr, unit="ns", name=name)
     return value

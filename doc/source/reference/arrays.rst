@@ -480,6 +480,7 @@ we recommend using :class:`StringDtype` (with the alias ``"string"``).
    :template: autosummary/class_without_autosummary.rst
 
    arrays.StringArray
+   arrays.ArrowStringArray
 
 .. autosummary::
    :toctree: api/

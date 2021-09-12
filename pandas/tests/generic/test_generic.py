@@ -1,11 +1,17 @@
-from copy import copy, deepcopy
+from copy import (
+    copy,
+    deepcopy,
+)
 
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -18,7 +24,7 @@ class Generic:
         return self._typ._AXIS_LEN
 
     def _axes(self):
-        """ return the axes for my object typ """
+        """return the axes for my object typ"""
         return self._typ._AXIS_ORDERS
 
     def _construct(self, shape, value=None, dtype=None, **kwargs):
@@ -94,6 +100,9 @@ class Generic:
         # non-inclusion
         result = o._get_bool_data()
         expected = self._construct(n, value="empty", **kwargs)
+        if isinstance(o, DataFrame):
+            # preserve columns dtype
+            expected.columns = o.columns[:0]
         self._compare(result, expected)
 
         # get the bool data
@@ -305,14 +314,14 @@ class Generic:
         # GH11382
 
         # small
-        shape = [int(2e3)] + ([1] * (self._ndim - 1))
+        shape = [2000] + ([1] * (self._ndim - 1))
         small = self._construct(shape, dtype="int8", value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
-        shape = [int(2e6)] + ([1] * (self._ndim - 1))
+        shape = [2_000_000] + ([1] * (self._ndim - 1))
         big = self._construct(shape, dtype="int8", value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)
@@ -465,14 +474,16 @@ class TestNDFrame:
         # GH33637
         box = frame_or_series
         obj = box(dtype=object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "_AXIS_NAMES has been deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj._AXIS_NAMES
 
     def test_axis_numbers_deprecated(self, frame_or_series):
         # GH33637
         box = frame_or_series
         obj = box(dtype=object)
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        msg = "_AXIS_NUMBERS has been deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj._AXIS_NUMBERS
 
     def test_flags_identity(self, frame_or_series):

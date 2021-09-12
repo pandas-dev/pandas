@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series, date_range
+from pandas import (
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 
@@ -56,7 +59,7 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         # fails on dtype conversion in the first place
-        result = s.isin(s[0:2].values.astype("datetime64[D]"))
+        result = s.isin(np.asarray(s[0:2].values).astype("datetime64[D]"))
         tm.assert_series_equal(result, expected)
 
         result = s.isin([s[1]])
@@ -145,6 +148,35 @@ class TestSeriesIsIn:
         res = pd.core.algorithms.isin(ser, other)
         tm.assert_numpy_array_equal(res, expected)
 
+    @pytest.mark.parametrize("values", [[-9.0, 0.0], [-9, 0]])
+    def test_isin_float_in_int_series(self, values):
+        # GH#19356 GH#21804
+        ser = Series(values)
+        result = ser.isin([-9, -0.5])
+        expected = Series([True, False])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
+    @pytest.mark.parametrize(
+        "data,values,expected",
+        [
+            ([0, 1, 0], [1], [False, True, False]),
+            ([0, 1, 0], [1, pd.NA], [False, True, False]),
+            ([0, pd.NA, 0], [1, 0], [True, False, True]),
+            ([0, 1, pd.NA], [1, pd.NA], [False, True, True]),
+            ([0, 1, pd.NA], [1, np.nan], [False, True, False]),
+            ([0, pd.NA, pd.NA], [np.nan, pd.NaT, None], [False, False, False]),
+        ],
+    )
+    def test_isin_masked_types(self, dtype, data, values, expected):
+        # GH#42405
+        ser = Series(data, dtype=dtype)
+
+        result = ser.isin(values)
+        expected = Series(expected, dtype="boolean")
+
+        tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.slow
 def test_isin_large_series_mixed_dtypes_and_nan():
@@ -153,4 +185,19 @@ def test_isin_large_series_mixed_dtypes_and_nan():
     ser = Series([1, 2, np.nan] * 1_000_000)
     result = ser.isin({"foo", "bar"})
     expected = Series([False] * 3 * 1_000_000)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "array,expected",
+    [
+        (
+            [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j],
+            Series([False, True, True, False, True, True, True], dtype=bool),
+        )
+    ],
+)
+def test_isin_complex_numbers(array, expected):
+    # GH 17927
+    result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
     tm.assert_series_equal(result, expected)

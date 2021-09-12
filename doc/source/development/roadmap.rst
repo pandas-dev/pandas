@@ -71,8 +71,8 @@ instead of comparing as False).
 
 Long term, we want to introduce consistent missing data handling for all data
 types. This includes consistent behavior in all operations (indexing, arithmetic
-operations, comparisons, etc.). We want to eventually make the new semantics the
-default.
+operations, comparisons, etc.). There has been discussion of eventually making
+the new semantics the default.
 
 This has been discussed at
 `github #28095 <https://github.com/pandas-dev/pandas/issues/28095>`__ (and

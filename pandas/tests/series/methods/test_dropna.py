@@ -1,7 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import DatetimeIndex, IntervalIndex, NaT, Period, Series, Timestamp
+from pandas import (
+    DatetimeIndex,
+    IntervalIndex,
+    NaT,
+    Period,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -63,7 +70,7 @@ class TestDropna:
         tm.assert_series_equal(result, expected)
 
     def test_datetime64_tz_dropna(self):
-        # DatetimeBlock
+        # DatetimeLikeBlock
         ser = Series(
             [
                 Timestamp("2011-01-01 10:00"),
@@ -78,7 +85,7 @@ class TestDropna:
         )
         tm.assert_series_equal(result, expected)
 
-        # DatetimeBlockTZ
+        # DatetimeTZBlock
         idx = DatetimeIndex(
             ["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz="Asia/Tokyo"
         )
@@ -93,4 +100,16 @@ class TestDropna:
             index=[0, 2],
         )
         assert result.dtype == "datetime64[ns, Asia/Tokyo]"
+        tm.assert_series_equal(result, expected)
+
+    def test_dropna_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3])
+        msg = (
+            r"In a future version of pandas all arguments of Series\.dropna "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dropna(0)
+        expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)

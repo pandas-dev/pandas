@@ -1,6 +1,6 @@
 from pandas.compat._optional import import_optional_dependency
 
-ne = import_optional_dependency("numexpr", raise_on_missing=False, on_version="warn")
+ne = import_optional_dependency("numexpr", errors="warn")
 NUMEXPR_INSTALLED = ne is not None
 if NUMEXPR_INSTALLED:
     NUMEXPR_VERSION = ne.__version__

@@ -5,10 +5,14 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-import pandas as pd
-from pandas import DataFrame, DatetimeIndex, Index, Series
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
-from pandas.core.window.common import flex_binary_moment
 
 
 def _rolling_consistency_cases():
@@ -52,7 +56,6 @@ def test_rolling_pairwise_cov_corr(func, frame):
     result = result.loc[(slice(None), 1), 5]
     result.index = result.index.droplevel(1)
     expected = getattr(frame[1].rolling(window=10, min_periods=5), func)(frame[5])
-    expected.index = expected.index._with_freq(None)
     tm.assert_series_equal(result, expected, check_names=False)
 
 
@@ -127,14 +130,6 @@ def test_rolling_corr_with_zero_variance(window):
     other = Series(np.arange(20))
 
     assert s.rolling(window=window).corr(other=other).isna().all()
-
-
-def test_flex_binary_moment():
-    # GH3155
-    # don't blow the stack
-    msg = "arguments to moment function must be of type np.ndarray/Series/DataFrame"
-    with pytest.raises(TypeError, match=msg):
-        flex_binary_moment(5, 6, None)
 
 
 def test_corr_sanity():
@@ -240,7 +235,7 @@ def test_rolling_functions_window_non_shrinkage_binary(f):
     )
     df_expected = DataFrame(
         columns=Index(["A", "B"], name="foo"),
-        index=pd.MultiIndex.from_product([df.index, df.columns], names=["bar", "foo"]),
+        index=MultiIndex.from_product([df.index, df.columns], names=["bar", "foo"]),
         dtype="float64",
     )
     df_result = f(df)
@@ -482,12 +477,10 @@ def test_moment_functions_zero_length_pairwise(f):
     df2["a"] = df2["a"].astype("float64")
 
     df1_expected = DataFrame(
-        index=pd.MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
+        index=MultiIndex.from_product([df1.index, df1.columns]), columns=Index([])
     )
     df2_expected = DataFrame(
-        index=pd.MultiIndex.from_product(
-            [df2.index, df2.columns], names=["bar", "foo"]
-        ),
+        index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
         columns=Index(["a"], name="foo"),
         dtype="float64",
     )

@@ -10,8 +10,7 @@ if [[ "not network" == *"$PATTERN"* ]]; then
 fi
 
 if [ "$COVERAGE" ]; then
-    COVERAGE_FNAME="/tmp/test_coverage.xml"
-    COVERAGE="-s --cov=pandas --cov-report=xml:$COVERAGE_FNAME"
+    COVERAGE="-s --cov=pandas --cov-report=xml --cov-append"
 fi
 
 # If no X server is found, we use xvfb to emulate it
@@ -20,19 +19,21 @@ if [[ $(uname) == "Linux" && -z $DISPLAY ]]; then
     XVFB="xvfb-run "
 fi
 
-PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile -s --strict --durations=30 --junitxml=test-data.xml $TEST_ARGS $COVERAGE pandas"
+PYTEST_CMD="${XVFB}pytest -m \"$PATTERN\" -n $PYTEST_WORKERS --dist=loadfile $TEST_ARGS $COVERAGE $PYTEST_TARGET"
 
 if [[ $(uname) != "Linux"  && $(uname) != "Darwin" ]]; then
     # GH#37455 windows py38 build appears to be running out of memory
     #  skip collection of window tests
-    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/ --ignore=pandas/tests/plotting/"
+    PYTEST_CMD="$PYTEST_CMD --ignore=pandas/tests/window/moments --ignore=pandas/tests/plotting/"
 fi
 
 echo $PYTEST_CMD
 sh -c "$PYTEST_CMD"
 
-if [[ "$COVERAGE" && $? == 0 && "$TRAVIS_BRANCH" == "master" ]]; then
-    echo "uploading coverage"
-    echo "bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME"
-          bash <(curl -s https://codecov.io/bash) -Z -c -f $COVERAGE_FNAME
+if [[ "$PANDAS_DATA_MANAGER" != "array" ]]; then
+    # The ArrayManager tests should have already been run by PYTEST_CMD if PANDAS_DATA_MANAGER was already set to array
+    PYTEST_AM_CMD="PANDAS_DATA_MANAGER=array pytest -m \"$PATTERN and arraymanager\" -n $PYTEST_WORKERS  --dist=loadfile $TEST_ARGS $COVERAGE pandas"
+
+    echo $PYTEST_AM_CMD
+    sh -c "$PYTEST_AM_CMD"
 fi

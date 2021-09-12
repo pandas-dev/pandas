@@ -1,17 +1,20 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
-@pytest.mark.parametrize("name", ["var", "vol", "mean"])
+@pytest.mark.parametrize("name", ["var", "std", "mean"])
 def test_ewma_series(series, name):
     series_result = getattr(series.ewm(com=10), name)()
     assert isinstance(series_result, Series)
 
 
-@pytest.mark.parametrize("name", ["var", "vol", "mean"])
+@pytest.mark.parametrize("name", ["var", "std", "mean"])
 def test_ewma_frame(frame, name):
     frame_result = getattr(frame.ewm(com=10), name)()
     assert isinstance(frame_result, DataFrame)
@@ -218,11 +221,12 @@ def test_ewma_halflife_arg(series):
     msg = "comass, span, halflife, and alpha are mutually exclusive"
     with pytest.raises(ValueError, match=msg):
         series.ewm(span=20, halflife=50)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         series.ewm(com=9.5, halflife=50)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=msg):
         series.ewm(com=9.5, span=20, halflife=50)
-    with pytest.raises(ValueError):
+    msg = "Must pass one of comass, span, halflife, or alpha"
+    with pytest.raises(ValueError, match=msg):
         series.ewm()
 
 
@@ -299,7 +303,7 @@ def test_ewm_domain_checks():
         s.ewm(alpha=1.1)
 
 
-@pytest.mark.parametrize("method", ["mean", "vol", "var"])
+@pytest.mark.parametrize("method", ["mean", "std", "var"])
 def test_ew_empty_series(method):
     vals = Series([], dtype=np.float64)
 
@@ -309,7 +313,7 @@ def test_ew_empty_series(method):
 
 
 @pytest.mark.parametrize("min_periods", [0, 1])
-@pytest.mark.parametrize("name", ["mean", "var", "vol"])
+@pytest.mark.parametrize("name", ["mean", "var", "std"])
 def test_ew_min_periods(min_periods, name):
     # excluding NaNs correctly
     arr = np.random.randn(50)
@@ -328,7 +332,7 @@ def test_ew_min_periods(min_periods, name):
         assert result[:10].isna().all()
         assert not result[10:].isna().any()
     else:
-        # ewm.std, ewm.vol, ewm.var (with bias=False) require at least
+        # ewm.std, ewm.var (with bias=False) require at least
         # two values
         assert result[:11].isna().all()
         assert not result[11:].isna().any()
@@ -342,7 +346,7 @@ def test_ew_min_periods(min_periods, name):
     if name == "mean":
         tm.assert_series_equal(result, Series([1.0]))
     else:
-        # ewm.std, ewm.vol, ewm.var with bias=False require at least
+        # ewm.std, ewm.var with bias=False require at least
         # two values
         tm.assert_series_equal(result, Series([np.NaN]))
 

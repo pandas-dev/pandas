@@ -12,6 +12,9 @@ dummy_backend = types.ModuleType("pandas_dummy_backend")
 setattr(dummy_backend, "plot", lambda *args, **kwargs: "used_dummy")
 
 
+pytestmark = pytest.mark.slow
+
+
 @pytest.fixture
 def restore_backend():
     """Restore the plotting backend to matplotlib"""
@@ -92,7 +95,11 @@ def test_setting_backend_without_plot_raises():
 
 @td.skip_if_mpl
 def test_no_matplotlib_ok():
-    with pytest.raises(ImportError):
+    msg = (
+        'matplotlib is required for plotting when the default backend "matplotlib" is '
+        "selected."
+    )
+    with pytest.raises(ImportError, match=msg):
         pandas.plotting._core._get_plot_backend("matplotlib")
 
 

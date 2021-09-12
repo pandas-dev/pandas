@@ -4,7 +4,14 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, RangeIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    RangeIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 
 
@@ -140,6 +147,18 @@ class TestResetIndex:
         deleveled = ser.reset_index(drop=True)
         assert isinstance(deleveled, Series)
         assert deleveled.index.name == ser.index.name
+
+    def test_drop_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        ser = Series([1, 2, 3], index=Index([1, 2, 3], name="a"))
+        msg = (
+            r"In a future version of pandas all arguments of Series\.reset_index "
+            r"except for the argument 'level' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.reset_index("a", False)
+        expected = DataFrame({"a": [1, 2, 3], 0: [1, 2, 3]})
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

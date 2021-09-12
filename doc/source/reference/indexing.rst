@@ -170,6 +170,7 @@ Numeric Index
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
+   NumericIndex
    RangeIndex
    Int64Index
    UInt64Index
@@ -290,6 +291,7 @@ MultiIndex properties
    MultiIndex.codes
    MultiIndex.nlevels
    MultiIndex.levshape
+   MultiIndex.dtypes
 
 MultiIndex components
 ~~~~~~~~~~~~~~~~~~~~~
@@ -300,7 +302,6 @@ MultiIndex components
    MultiIndex.set_codes
    MultiIndex.to_flat_index
    MultiIndex.to_frame
-   MultiIndex.is_lexsorted
    MultiIndex.sortlevel
    MultiIndex.droplevel
    MultiIndex.swaplevel

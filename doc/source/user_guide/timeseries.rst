@@ -204,6 +204,7 @@ If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
+   :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
@@ -211,9 +212,10 @@ you can pass the ``dayfirst`` flag:
 
 .. warning::
 
-   You see in the above example that ``dayfirst`` isn't strict, so if a date
+   You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False.
+   ``dayfirst`` were False, and in the case of parsing delimited date strings
+   (e.g. ``31-12-2012``) then a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
@@ -588,10 +590,12 @@ would include matching times on an included date:
 
 .. warning::
 
-   Indexing ``DataFrame`` rows with strings is deprecated in pandas 1.2.0 and will be removed in a future version.  Use ``frame.loc[dtstring]`` instead.
+   Indexing ``DataFrame`` rows with a *single* string with getitem (e.g. ``frame[dtstring]``)
+   is deprecated starting with pandas 1.2.0 (given the ambiguity whether it is indexing
+   the rows or selecting a column) and will be removed in a future version. The equivalent
+   with ``.loc`` (e.g. ``frame.loc[dtstring]``) is still supported.
 
 .. ipython:: python
-   :okwarning:
 
    dft = pd.DataFrame(
        np.random.randn(100000, 1),
@@ -599,34 +603,30 @@ would include matching times on an included date:
        index=pd.date_range("20130101", periods=100000, freq="T"),
    )
    dft
-   dft["2013"]
+   dft.loc["2013"]
 
 This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2"]
 
 This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2-28"]
 
 This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1":"2013-2-28 00:00:00"]
 
 We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
-   :okwarning:
 
    dft["2013-1-15":"2013-1-15 12:30:00"]
 
@@ -652,7 +652,6 @@ We are stopping on the included end-point as it is part of the index:
 Slicing with string indexing also honors UTC offset.
 
 .. ipython:: python
-   :okwarning:
 
     df = pd.DataFrame([0], index=pd.DatetimeIndex(["2019-01-01"], tz="US/Pacific"))
     df
@@ -704,15 +703,14 @@ If index resolution is second, then the minute-accurate timestamp gives a
     series_second.index.resolution
     series_second["2011-12-31 23:59"]
 
-If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``[]`` as well.
+If the timestamp string is treated as a slice, it can be used to index ``DataFrame`` with ``.loc[]`` as well.
 
 .. ipython:: python
-    :okwarning:
 
     dft_minute = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index
     )
-    dft_minute["2011-12-31 23"]
+    dft_minute.loc["2011-12-31 23"]
 
 
 .. warning::
@@ -1426,7 +1424,6 @@ An example of how holidays and holiday calendars are defined:
         MO,
     )
 
-
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
             USMemorialDay,
@@ -1438,7 +1435,6 @@ An example of how holidays and holiday calendars are defined:
                 offset=pd.DateOffset(weekday=MO(2)),
             ),
         ]
-
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1711,12 +1707,10 @@ We can instead only resample those groups where we have points as follows:
     from functools import partial
     from pandas.tseries.frequencies import to_offset
 
-
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
-
 
     ts.groupby(partial(round, freq="3T")).sum()
 
@@ -1891,6 +1885,34 @@ Those two examples are equivalent for this time series:
 
 
 Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``origin`` will be set to the first value of the timeseries.
+
+Backward resample
+~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 1.3.0
+
+Instead of adjusting the beginning of bins, sometimes we need to fix the end of the bins to make a backward resample with a given ``freq``. The backward resample sets ``closed`` to ``'right'`` by default since the last value should be considered as the edge point for the last bin.
+
+We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index stands for the resample result from the current ``Timestamp`` minus ``freq`` to the current ``Timestamp`` with a right close.
+
+.. ipython:: python
+
+   ts.resample('17min', origin='end').sum()
+
+Besides, in contrast with the ``'start_day'`` option, ``end_day`` is supported. This will set the origin as the ceiling midnight of the largest ``Timestamp``.
+
+.. ipython:: python
+
+   ts.resample('17min', origin='end_day').sum()
+
+The above result uses ``2000-10-02 00:29:00`` as the last bin's right edge since the following computation.
+
+.. ipython:: python
+
+   ceil_mid = rng.max().ceil('D')
+   freq = pd.offsets.Minute(17)
+   bin_res = ceil_mid - freq * ((ceil_mid - rng.max()) // freq)
+   bin_res
 
 .. _timeseries.periods:
 
@@ -2080,7 +2102,6 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 Passing a string representing a lower frequency than ``PeriodIndex`` returns partial sliced data.
 
 .. ipython:: python
-   :okwarning:
 
    ps["2011"]
 
@@ -2090,7 +2111,7 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
        index=pd.period_range("2013-01-01 9:00", periods=600, freq="T"),
    )
    dfp
-   dfp["2013-01-01 10H"]
+   dfp.loc["2013-01-01 10H"]
 
 As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
@@ -2232,10 +2253,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s = pd.Series([20121231, 20141130, 99991231])
    s
 
-
    def conv(x):
        return pd.Period(year=x // 10000, month=x // 100 % 100, day=x % 100, freq="D")
-
 
    s.apply(conv)
    s.apply(conv)[2]
@@ -2582,16 +2601,9 @@ For example, to localize and convert a naive stamp to time zone aware.
    s_naive.dt.tz_localize("UTC").dt.tz_convert("US/Eastern")
 
 Time zone information can also be manipulated using the ``astype`` method.
-This method can localize and convert time zone naive timestamps or
-convert time zone aware timestamps.
+This method can convert between different timezone-aware dtypes.
 
 .. ipython:: python
-
-   # localize and convert a naive time zone
-   s_naive.astype("datetime64[ns, US/Eastern]")
-
-   # make an aware tz naive
-   s_aware.astype("datetime64[ns]")
 
    # convert to a new time zone
    s_aware.astype("datetime64[ns, CET]")

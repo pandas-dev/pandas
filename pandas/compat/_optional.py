@@ -1,35 +1,39 @@
-import distutils.version
+from __future__ import annotations
+
 import importlib
+import sys
 import types
 import warnings
+
+from pandas.util.version import Version
 
 # Update install.rst when updating versions!
 
 VERSIONS = {
-    "bs4": "4.6.0",
-    "bottleneck": "1.2.1",
+    "bs4": "4.8.2",
+    "bottleneck": "1.3.1",
     "fsspec": "0.7.4",
-    "fastparquet": "0.3.2",
+    "fastparquet": "0.4.0",
     "gcsfs": "0.6.0",
-    "lxml.etree": "4.3.0",
-    "matplotlib": "2.2.3",
-    "numexpr": "2.6.8",
-    "odfpy": "1.3.0",
-    "openpyxl": "2.5.7",
-    "pandas_gbq": "0.12.0",
-    "pyarrow": "0.15.0",
-    "pytest": "5.0.1",
+    "lxml.etree": "4.5.0",
+    "matplotlib": "3.3.2",
+    "numexpr": "2.7.1",
+    "odfpy": "1.4.1",
+    "openpyxl": "3.0.2",
+    "pandas_gbq": "0.14.0",
+    "pyarrow": "0.17.0",
+    "pytest": "6.0",
     "pyxlsb": "1.0.6",
     "s3fs": "0.4.0",
-    "scipy": "1.2.0",
-    "sqlalchemy": "1.2.8",
-    "tables": "3.5.1",
-    "tabulate": "0.8.3",
-    "xarray": "0.12.0",
-    "xlrd": "1.2.0",
+    "scipy": "1.4.1",
+    "sqlalchemy": "1.3.11",
+    "tables": "3.6.1",
+    "tabulate": "0.8.7",
+    "xarray": "0.15.1",
+    "xlrd": "2.0.1",
     "xlwt": "1.3.0",
-    "xlsxwriter": "1.0.2",
-    "numba": "0.46.0",
+    "xlsxwriter": "1.2.2",
+    "numba": "0.50.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -46,7 +50,7 @@ INSTALL_MAPPING = {
 }
 
 
-def _get_version(module: types.ModuleType) -> str:
+def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
     if version is None:
         # xlrd uses a capitalized attribute name
@@ -58,7 +62,10 @@ def _get_version(module: types.ModuleType) -> str:
 
 
 def import_optional_dependency(
-    name: str, extra: str = "", raise_on_missing: bool = True, on_version: str = "raise"
+    name: str,
+    extra: str = "",
+    errors: str = "raise",
+    min_version: str | None = None,
 ):
     """
     Import an optional dependency.
@@ -70,30 +77,32 @@ def import_optional_dependency(
     Parameters
     ----------
     name : str
-        The module name. This should be top-level only, so that the
-        version may be checked.
+        The module name.
     extra : str
         Additional text to include in the ImportError message.
-    raise_on_missing : bool, default True
-        Whether to raise if the optional dependency is not found.
-        When False and the module is not present, None is returned.
-    on_version : str {'raise', 'warn'}
-        What to do when a dependency's version is too old.
+    errors : str {'raise', 'warn', 'ignore'}
+        What to do when a dependency is not found or its version is too old.
 
         * raise : Raise an ImportError
-        * warn : Warn that the version is too old. Returns None
-        * ignore: Return the module, even if the version is too old.
+        * warn : Only applicable when a module's version is to old.
+          Warns that the version is too old and returns None
+        * ignore: If the module is not installed, return None, otherwise,
+          return the module, even if the version is too old.
           It's expected that users validate the version locally when
-          using ``on_version="ignore"`` (see. ``io/html.py``)
-
+          using ``errors="ignore"`` (see. ``io/html.py``)
+    min_version : str, default None
+        Specify a minimum version that is different from the global pandas
+        minimum version required.
     Returns
     -------
     maybe_module : Optional[ModuleType]
         The imported module, when found and the version is correct.
-        None is returned when the package is not found and `raise_on_missing`
-        is False, or when the package's version is too old and `on_version`
+        None is returned when the package is not found and `errors`
+        is False, or when the package's version is too old and `errors`
         is ``'warn'``.
     """
+
+    assert errors in {"warn", "raise", "ignore"}
 
     package_name = INSTALL_MAPPING.get(name)
     install_name = package_name if package_name is not None else name
@@ -105,24 +114,30 @@ def import_optional_dependency(
     try:
         module = importlib.import_module(name)
     except ImportError:
-        if raise_on_missing:
+        if errors == "raise":
             raise ImportError(msg) from None
         else:
             return None
 
-    minimum_version = VERSIONS.get(name)
+    # Handle submodules: if we have submodule, grab parent module from sys.modules
+    parent = name.split(".")[0]
+    if parent != name:
+        install_name = parent
+        module_to_get = sys.modules[install_name]
+    else:
+        module_to_get = module
+    minimum_version = min_version if min_version is not None else VERSIONS.get(parent)
     if minimum_version:
-        version = _get_version(module)
-        if distutils.version.LooseVersion(version) < minimum_version:
-            assert on_version in {"warn", "raise", "ignore"}
+        version = get_version(module_to_get)
+        if Version(version) < Version(minimum_version):
             msg = (
-                f"Pandas requires version '{minimum_version}' or newer of '{name}' "
+                f"Pandas requires version '{minimum_version}' or newer of '{parent}' "
                 f"(version '{version}' currently installed)."
             )
-            if on_version == "warn":
+            if errors == "warn":
                 warnings.warn(msg, UserWarning)
                 return None
-            elif on_version == "raise":
+            elif errors == "raise":
                 raise ImportError(msg)
 
     return module

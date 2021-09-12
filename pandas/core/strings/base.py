@@ -1,9 +1,16 @@
+from __future__ import annotations
+
 import abc
-from typing import Pattern, Union
+from collections.abc import Callable  # noqa: PDF001
+import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._typing import Scalar
+
+if TYPE_CHECKING:
+    from pandas import Series
 
 
 class BaseStringArrayMethods(abc.ABC):
@@ -49,7 +56,15 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
+    def _str_replace(
+        self,
+        pat: str | re.Pattern,
+        repl: str | Callable,
+        n: int = -1,
+        case: bool = True,
+        flags: int = 0,
+        regex: bool = True,
+    ):
         pass
 
     @abc.abstractmethod
@@ -58,18 +73,14 @@ class BaseStringArrayMethods(abc.ABC):
 
     @abc.abstractmethod
     def _str_match(
-        self,
-        pat: Union[str, Pattern],
-        case: bool = True,
-        flags: int = 0,
-        na: Scalar = np.nan,
+        self, pat: str, case: bool = True, flags: int = 0, na: Scalar = np.nan
     ):
         pass
 
     @abc.abstractmethod
     def _str_fullmatch(
         self,
-        pat: Union[str, Pattern],
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar = np.nan,
@@ -217,9 +228,21 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def _str_removeprefix(self, prefix: str) -> Series:
+        pass
+
+    @abc.abstractmethod
+    def _str_removesuffix(self, suffix: str) -> Series:
+        pass
+
+    @abc.abstractmethod
     def _str_split(self, pat=None, n=-1, expand=False):
         pass
 
     @abc.abstractmethod
     def _str_rsplit(self, pat=None, n=-1):
+        pass
+
+    @abc.abstractmethod
+    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         pass

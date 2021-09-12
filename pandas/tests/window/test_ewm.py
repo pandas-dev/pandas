@@ -3,7 +3,12 @@ import pytest
 
 from pandas.errors import UnsupportedFunctionCall
 
-from pandas import DataFrame, DatetimeIndex, Series, date_range
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    Series,
+    date_range,
+)
 import pandas._testing as tm
 from pandas.core.window import ExponentialMovingWindow
 
@@ -102,7 +107,6 @@ def test_ewma_halflife_without_times(halflife_with_times):
         np.arange(10).astype("datetime64[D]").astype("datetime64[ns]"),
         date_range("2000", freq="D", periods=10),
         date_range("2000", freq="D", periods=10).tz_localize("UTC"),
-        "time_col",
     ],
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
@@ -111,8 +115,10 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
-    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    with tm.assert_produces_warning(FutureWarning, match="nuisance columns"):
+        # GH#42738
+        result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
+        expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -126,4 +132,112 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture):
     df = DataFrame(data)
     result = df.ewm(halflife=halflife, times=times).mean()
     expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ewm_with_nat_raises(halflife_with_times):
+    # GH#38535
+    ser = Series(range(1))
+    times = DatetimeIndex(["NaT"])
+    with pytest.raises(ValueError, match="Cannot convert NaT values to integer"):
+        ser.ewm(com=0.1, halflife=halflife_with_times, times=times)
+
+
+def test_ewm_with_times_getitem(halflife_with_times):
+    # GH 40164
+    halflife = halflife_with_times
+    data = np.arange(10.0)
+    data[::2] = np.nan
+    times = date_range("2000", freq="D", periods=10)
+    df = DataFrame({"A": data, "B": data})
+    result = df.ewm(halflife=halflife, times=times)["A"].mean()
+    expected = df.ewm(halflife=1.0)["A"].mean()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("arg", ["com", "halflife", "span", "alpha"])
+def test_ewm_getitem_attributes_retained(arg, adjust, ignore_na):
+    # GH 40164
+    kwargs = {arg: 1, "adjust": adjust, "ignore_na": ignore_na}
+    ewm = DataFrame({"A": range(1), "B": range(1)}).ewm(**kwargs)
+    expected = {attr: getattr(ewm, attr) for attr in ewm._attributes}
+    ewm_slice = ewm["A"]
+    result = {attr: getattr(ewm, attr) for attr in ewm_slice._attributes}
+    assert result == expected
+
+
+def test_ewm_vol_deprecated():
+    ser = Series(range(1))
+    with tm.assert_produces_warning(FutureWarning):
+        result = ser.ewm(com=0.1).vol()
+    expected = ser.ewm(com=0.1).std()
+    tm.assert_series_equal(result, expected)
+
+
+def test_ewma_times_adjust_false_raises():
+    # GH 40098
+    with pytest.raises(
+        NotImplementedError, match="times is not supported with adjust=False."
+    ):
+        Series(range(1)).ewm(
+            0.1, adjust=False, times=date_range("2000", freq="D", periods=1)
+        )
+
+
+@pytest.mark.parametrize(
+    "func, expected",
+    [
+        [
+            "mean",
+            DataFrame(
+                {
+                    0: range(5),
+                    1: range(4, 9),
+                    2: [7.428571, 9, 10.571429, 12.142857, 13.714286],
+                },
+                dtype=float,
+            ),
+        ],
+        [
+            "std",
+            DataFrame(
+                {
+                    0: [np.nan] * 5,
+                    1: [4.242641] * 5,
+                    2: [4.6291, 5.196152, 5.781745, 6.380775, 6.989788],
+                }
+            ),
+        ],
+        [
+            "var",
+            DataFrame(
+                {
+                    0: [np.nan] * 5,
+                    1: [18.0] * 5,
+                    2: [21.428571, 27, 33.428571, 40.714286, 48.857143],
+                }
+            ),
+        ],
+    ],
+)
+def test_float_dtype_ewma(func, expected, float_numpy_dtype):
+    # GH#42452
+
+    df = DataFrame(
+        {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_numpy_dtype
+    )
+    e = df.ewm(alpha=0.5, axis=1)
+    result = getattr(e, func)()
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_times_string_col_deprecated():
+    # GH 43265
+    data = np.arange(10.0)
+    data[::2] = np.nan
+    df = DataFrame({"A": data, "time_col": date_range("2000", freq="D", periods=10)})
+    with tm.assert_produces_warning(FutureWarning, match="Specifying times"):
+        result = df.ewm(halflife="1 day", min_periods=0, times="time_col").mean()
+        expected = df.ewm(halflife=1.0, min_periods=0).mean()
     tm.assert_frame_equal(result, expected)

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Sequence
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -11,8 +13,8 @@ from pandas.io.common import stringify_path
 
 
 def read_spss(
-    path: Union[str, Path],
-    usecols: Optional[Sequence[str]] = None,
+    path: str | Path,
+    usecols: Sequence[str] | None = None,
     convert_categoricals: bool = True,
 ) -> DataFrame:
     """

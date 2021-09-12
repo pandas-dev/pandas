@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Series
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -43,9 +46,9 @@ class TestConvert:
             converted["H"].astype("int32")
 
         # mixed in a single column
-        df = DataFrame(dict(s=Series([1, "na", 3, 4])))
+        df = DataFrame({"s": Series([1, "na", 3, 4])})
         result = df._convert(datetime=True, numeric=True)
-        expected = DataFrame(dict(s=Series([1, np.nan, 3, 4])))
+        expected = DataFrame({"s": Series([1, np.nan, 3, 4])})
         tm.assert_frame_equal(result, expected)
 
     def test_convert_objects_no_conversion(self):

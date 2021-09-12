@@ -6,17 +6,19 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
-    DatetimeIndex,
     Index,
     Series,
-    TimedeltaIndex,
     Timestamp,
     date_range,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PeriodArray
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.indexes.accessors import Properties
 
@@ -48,7 +50,11 @@ class TestCatAccessor:
         assert not ser.cat.ordered, False
 
         exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
-        return_value = ser.cat.set_categories(["b", "a"], inplace=True)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # issue #37643 inplace kwarg deprecated
+            return_value = ser.cat.set_categories(["b", "a"], inplace=True)
+
         assert return_value is None
         tm.assert_categorical_equal(ser.values, exp)
 
@@ -174,9 +180,9 @@ class TestCatAccessor:
         get_ops = lambda x: x._datetimelike_ops
 
         test_data = [
-            ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
+            ("Datetime", get_ops(DatetimeArray), s_dr, c_dr),
             ("Period", get_ops(PeriodArray), s_pr, c_pr),
-            ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr),
+            ("Timedelta", get_ops(TimedeltaArray), s_tdr, c_tdr),
         ]
 
         assert isinstance(c_dr.dt, Properties)

@@ -1,12 +1,24 @@
-from datetime import datetime, timedelta, timezone
+from datetime import (
+    datetime,
+    timedelta,
+    timezone,
+)
 
 import dateutil.tz
 import pytest
 import pytz
 
-from pandas._libs.tslibs import conversion, timezones
+from pandas._libs.tslibs import (
+    conversion,
+    timezones,
+)
 
 from pandas import Timestamp
+
+
+def test_is_utc(utc_fixture):
+    tz = timezones.maybe_get_tz(utc_fixture)
+    assert timezones.is_utc(tz)
 
 
 @pytest.mark.parametrize("tz_name", list(pytz.common_timezones))
@@ -46,6 +58,20 @@ def test_tzlocal_offset():
     offset = offset.total_seconds() * 1000000000
 
     assert ts.value + offset == Timestamp("2011-01-01").value
+
+
+def test_tzlocal_is_not_utc():
+    # even if the machine running the test is localized to UTC
+    tz = dateutil.tz.tzlocal()
+    assert not timezones.is_utc(tz)
+
+    assert not timezones.tz_compare(tz, dateutil.tz.tzutc())
+
+
+def test_tz_compare_utc(utc_fixture, utc_fixture2):
+    tz = timezones.maybe_get_tz(utc_fixture)
+    tz2 = timezones.maybe_get_tz(utc_fixture2)
+    assert timezones.tz_compare(tz, tz2)
 
 
 @pytest.fixture(

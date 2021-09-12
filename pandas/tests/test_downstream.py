@@ -29,6 +29,9 @@ def df():
     return DataFrame({"A": [1, 2, 3]})
 
 
+# TODO(ArrayManager) dask is still accessing the blocks
+# https://github.com/dask/dask/pull/7318
+@td.skip_array_manager_not_yet_implemented
 def test_dask(df):
 
     toolz = import_module("toolz")  # noqa
@@ -41,7 +44,6 @@ def test_dask(df):
     assert ddf.compute() is not None
 
 
-@pytest.mark.filterwarnings("ignore:Panel class is removed")
 def test_xarray(df):
 
     xarray = import_module("xarray")  # noqa
@@ -57,7 +59,11 @@ def test_xarray_cftimeindex_nearest():
     import xarray
 
     times = xarray.cftime_range("0001", periods=2)
-    result = times.get_loc(cftime.DatetimeGregorian(2000, 1, 1), method="nearest")
+    key = cftime.DatetimeGregorian(2000, 1, 1)
+    with tm.assert_produces_warning(
+        FutureWarning, match="deprecated", check_stacklevel=False
+    ):
+        result = times.get_loc(key, method="nearest")
     expected = 1
     assert result == expected
 
@@ -65,6 +71,21 @@ def test_xarray_cftimeindex_nearest():
 def test_oo_optimizable():
     # GH 21071
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
+
+
+def test_oo_optimized_datetime_index_unpickle():
+    # GH 42866
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-OO",
+            "-c",
+            (
+                "import pandas as pd, pickle; "
+                "pickle.loads(pickle.dumps(pd.date_range('2021-01-01', periods=1)))"
+            ),
+        ]
+    )
 
 
 @tm.network
@@ -90,7 +111,10 @@ def test_statsmodels():
 def test_scikit_learn(df):
 
     sklearn = import_module("sklearn")  # noqa
-    from sklearn import datasets, svm
+    from sklearn import (
+        datasets,
+        svm,
+    )
 
     digits = datasets.load_digits()
     clf = svm.SVC(gamma=0.001, C=100.0)

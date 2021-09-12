@@ -28,6 +28,7 @@ duplicates present. The output can't be determined, and so pandas raises.
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    s1 = pd.Series([0, 1, 2], index=["a", "b", "b"])
    s1.reindex(["a", "b", "c"])

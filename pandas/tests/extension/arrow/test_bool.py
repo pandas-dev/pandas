@@ -3,11 +3,15 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_bool_dtype
 from pandas.tests.extension import base
 
 pytest.importorskip("pyarrow", minversion="0.13.0")
 
-from .arrays import ArrowBoolArray, ArrowBoolDtype  # isort:skip
+from pandas.tests.extension.arrow.arrays import (  # isort:skip
+    ArrowBoolArray,
+    ArrowBoolDtype,
+)
 
 
 @pytest.fixture
@@ -50,6 +54,10 @@ class TestInterface(BaseArrowTests, base.BaseInterfaceTests):
         # __setitem__ does not work, so we only have a smoke-test
         data.view()
 
+    @pytest.mark.xfail(raises=AssertionError, reason="Not implemented yet")
+    def test_contains(self, data, data_missing):
+        super().test_contains(data, data_missing)
+
 
 class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_from_dtype(self, data):
@@ -74,6 +82,10 @@ class TestConstructors(BaseArrowTests, base.BaseConstructorsTests):
     def test_construct_empty_dataframe(self, dtype):
         super().test_construct_empty_dataframe(dtype)
 
+    @pytest.mark.xfail(reason="_from_sequence ignores dtype keyword")
+    def test_empty(self, dtype):
+        super().test_empty(dtype)
+
 
 class TestReduce(base.BaseNoReduceTests):
     def test_reduce_series_boolean(self):
@@ -85,7 +97,7 @@ class TestReduceBoolean(base.BaseBooleanReduceTests):
 
 
 def test_is_bool_dtype(data):
-    assert pd.api.types.is_bool_dtype(data)
+    assert is_bool_dtype(data)
     assert pd.core.common.is_bool_indexer(data)
     s = pd.Series(range(len(data)))
     result = s[data]

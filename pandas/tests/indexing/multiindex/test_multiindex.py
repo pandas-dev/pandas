@@ -4,7 +4,12 @@ import pandas._libs.index as _index
 from pandas.errors import PerformanceWarning
 
 import pandas as pd
-from pandas import DataFrame, Index, MultiIndex, Series
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+)
 import pandas._testing as tm
 
 
@@ -70,7 +75,7 @@ class TestMultiIndexBasic:
 
         dti = pd.to_datetime(["20190101", "20190101", "20190102"])
         idx = Index(["a", "a", "c"])
-        mi = pd.MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
+        mi = MultiIndex.from_arrays([dti, idx], names=["index1", "index2"])
 
         df = DataFrame({"c1": [1, 2, 3], "c2": [np.nan, np.nan, np.nan]}, index=mi)
 
@@ -83,3 +88,44 @@ class TestMultiIndexBasic:
         df3 = df.copy(deep=True)
         df3.loc[[(dti[0], "a")], "c2"] = 1.0
         tm.assert_frame_equal(df3, expected)
+
+    def test_multiindex_with_datatime_level_preserves_freq(self):
+        # https://github.com/pandas-dev/pandas/issues/35563
+        idx = Index(range(2), name="A")
+        dti = pd.date_range("2020-01-01", periods=7, freq="D", name="B")
+        mi = MultiIndex.from_product([idx, dti])
+        df = DataFrame(np.random.randn(14, 2), index=mi)
+        result = df.loc[0].index
+        tm.assert_index_equal(result, dti)
+        assert result.freq == dti.freq
+
+    def test_multiindex_complex(self):
+        # GH#42145
+        complex_data = [1 + 2j, 4 - 3j, 10 - 1j]
+        non_complex_data = [3, 4, 5]
+        result = DataFrame(
+            {
+                "x": complex_data,
+                "y": non_complex_data,
+                "z": non_complex_data,
+            }
+        )
+        result.set_index(["x", "y"], inplace=True)
+        expected = DataFrame(
+            {"z": non_complex_data},
+            index=MultiIndex.from_arrays(
+                [complex_data, non_complex_data],
+                names=("x", "y"),
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_rename_multiindex_with_duplicates(self):
+        # GH 38015
+        mi = MultiIndex.from_tuples([("A", "cat"), ("B", "cat"), ("B", "cat")])
+        df = DataFrame(index=mi)
+        df = df.rename(index={"A": "Apple"}, level=0)
+
+        mi2 = MultiIndex.from_tuples([("Apple", "cat"), ("B", "cat"), ("B", "cat")])
+        expected = DataFrame(index=mi2)
+        tm.assert_frame_equal(df, expected)

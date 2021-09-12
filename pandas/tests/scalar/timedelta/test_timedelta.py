@@ -4,10 +4,19 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import NaT, iNaT
+from pandas._libs import lib
+from pandas._libs.tslibs import (
+    NaT,
+    iNaT,
+)
 
 import pandas as pd
-from pandas import Timedelta, TimedeltaIndex, offsets, to_timedelta
+from pandas import (
+    Timedelta,
+    TimedeltaIndex,
+    offsets,
+    to_timedelta,
+)
 import pandas._testing as tm
 
 
@@ -357,6 +366,67 @@ class TestTimedeltas:
             with pytest.raises(ValueError, match=msg):
                 t1.round(freq)
 
+    def test_round_implementation_bounds(self):
+        # See also: analogous test for Timestamp
+        # GH#38964
+        result = Timedelta.min.ceil("s")
+        expected = Timedelta.min + Timedelta(seconds=1) - Timedelta(145224193)
+        assert result == expected
+
+        result = Timedelta.max.floor("s")
+        expected = Timedelta.max - Timedelta(854775807)
+        assert result == expected
+
+        with pytest.raises(OverflowError, match="value too large"):
+            Timedelta.min.floor("s")
+
+        # the second message here shows up in windows builds
+        msg = "|".join(
+            ["Python int too large to convert to C long", "int too big to convert"]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            Timedelta.max.ceil("s")
+
+    @pytest.mark.parametrize("n", range(100))
+    @pytest.mark.parametrize(
+        "method", [Timedelta.round, Timedelta.floor, Timedelta.ceil]
+    )
+    def test_round_sanity(self, method, n, request):
+        val = np.random.randint(iNaT + 1, lib.i8max, dtype=np.int64)
+        td = Timedelta(val)
+
+        assert method(td, "ns") == td
+
+        res = method(td, "us")
+        nanos = 1000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "ms")
+        nanos = 1_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "s")
+        nanos = 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "min")
+        nanos = 60 * 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "h")
+        nanos = 60 * 60 * 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
+        res = method(td, "D")
+        nanos = 24 * 60 * 60 * 1_000_000_000
+        assert np.abs((res - td).value) < nanos
+        assert res.value % nanos == 0
+
     def test_contains(self):
         # Checking for any NaT-like objects
         # GH 13603
@@ -482,8 +552,8 @@ class TestTimedeltas:
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
-        assert min_td.value == np.iinfo(np.int64).min + 1
-        assert max_td.value == np.iinfo(np.int64).max
+        assert min_td.value == iNaT + 1
+        assert max_td.value == lib.i8max
 
         # Beyond lower limit, a NAT before the Overflow
         assert (min_td - Timedelta(1, "ns")) is NaT

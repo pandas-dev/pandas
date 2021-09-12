@@ -2,7 +2,14 @@
 Period benchmarks with non-tslibs dependencies.  See
 benchmarks.tslibs.period for benchmarks that rely only on tslibs.
 """
-from pandas import DataFrame, Period, PeriodIndex, Series, date_range, period_range
+from pandas import (
+    DataFrame,
+    Period,
+    PeriodIndex,
+    Series,
+    date_range,
+    period_range,
+)
 
 from pandas.tseries.frequencies import to_offset
 
@@ -86,7 +93,7 @@ class Indexing:
         self.index.get_loc(self.period)
 
     def time_shallow_copy(self):
-        self.index._shallow_copy()
+        self.index._view()
 
     def time_series_loc(self):
         self.series.loc[self.period]

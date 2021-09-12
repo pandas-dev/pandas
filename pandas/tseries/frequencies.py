@@ -1,10 +1,14 @@
-from typing import Optional
+from __future__ import annotations
+
 import warnings
 
 import numpy as np
 
 from pandas._libs.algos import unique_deltas
-from pandas._libs.tslibs import Timestamp, tzconversion
+from pandas._libs.tslibs import (
+    Timestamp,
+    tzconversion,
+)
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTH_ALIASES,
@@ -12,7 +16,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
-from pandas._libs.tslibs.fields import build_field_sarray, month_position_check
+from pandas._libs.tslibs.fields import (
+    build_field_sarray,
+    month_position_check,
+)
 from pandas._libs.tslibs.offsets import (  # noqa:F401
     DateOffset,
     Day,
@@ -20,6 +27,7 @@ from pandas._libs.tslibs.offsets import (  # noqa:F401
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
+from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
@@ -87,7 +95,7 @@ for _d in DAYS:
     _offset_to_period_map[f"W-{_d}"] = f"W-{_d}"
 
 
-def get_period_alias(offset_str: str) -> Optional[str]:
+def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
@@ -106,7 +114,7 @@ def get_offset(name: str) -> DateOffset:
     """
     warnings.warn(
         "get_offset is deprecated and will be removed in a future version, "
-        "use to_offset instead",
+        "use to_offset instead.",
         FutureWarning,
         stacklevel=2,
     )
@@ -117,7 +125,7 @@ def get_offset(name: str) -> DateOffset:
 # Period codes
 
 
-def infer_freq(index, warn: bool = True) -> Optional[str]:
+def infer_freq(index, warn: bool = True) -> str | None:
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.
@@ -139,8 +147,19 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         If the index is not datetime-like.
     ValueError
         If there are fewer than three values.
+
+    Examples
+    --------
+    >>> idx = pd.date_range(start='2020/12/01', end='2020/12/30', periods=30)
+    >>> pd.infer_freq(idx)
+    'D'
     """
-    import pandas as pd
+    from pandas.core.api import (
+        DatetimeIndex,
+        Float64Index,
+        Index,
+        Int64Index,
+    )
 
     if isinstance(index, ABCSeries):
         values = index._values
@@ -169,15 +188,15 @@ def infer_freq(index, warn: bool = True) -> Optional[str]:
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 
-    if isinstance(index, pd.Index) and not isinstance(index, pd.DatetimeIndex):
-        if isinstance(index, (pd.Int64Index, pd.Float64Index)):
+    if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
+        if isinstance(index, (Int64Index, Float64Index)):
             raise TypeError(
                 f"cannot infer freq from a non-convertible index type {type(index)}"
             )
         index = index._values
 
-    if not isinstance(index, pd.DatetimeIndex):
-        index = pd.DatetimeIndex(index)
+    if not isinstance(index, DatetimeIndex):
+        index = DatetimeIndex(index)
 
     inferer = _FrequencyInferer(index, warn=warn)
     return inferer.get_freq()
@@ -210,11 +229,11 @@ class _FrequencyInferer:
         )
 
     @cache_readonly
-    def deltas(self):
+    def deltas(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.i8values)
 
     @cache_readonly
-    def deltas_asi8(self):
+    def deltas_asi8(self) -> npt.NDArray[np.int64]:
         # NB: we cannot use self.i8values here because we may have converted
         #  the tz in __init__
         return unique_deltas(self.index.asi8)
@@ -227,7 +246,7 @@ class _FrequencyInferer:
     def is_unique_asi8(self) -> bool:
         return len(self.deltas_asi8) == 1
 
-    def get_freq(self) -> Optional[str]:
+    def get_freq(self) -> str | None:
         """
         Find the appropriate frequency string to describe the inferred
         frequency of self.i8values
@@ -240,16 +259,17 @@ class _FrequencyInferer:
             return None
 
         delta = self.deltas[0]
-        if _is_multiple(delta, _ONE_DAY):
+        if delta and _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
             return "BH"
+
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
         # will not work around DST transitions.  See #8772
-        elif not self.is_unique_asi8:
+        if not self.is_unique_asi8:
             return None
 
         delta = self.deltas_asi8[0]
@@ -281,7 +301,7 @@ class _FrequencyInferer:
         return [x / _ONE_HOUR for x in self.deltas]
 
     @cache_readonly
-    def fields(self):
+    def fields(self) -> np.ndarray:  # structured array of fields
         return build_field_sarray(self.i8values)
 
     @cache_readonly
@@ -292,15 +312,15 @@ class _FrequencyInferer:
         return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
-    def mdiffs(self):
+    def mdiffs(self) -> npt.NDArray[np.int64]:
         nmonths = self.fields["Y"] * 12 + self.fields["M"]
         return unique_deltas(nmonths.astype("i8"))
 
     @cache_readonly
-    def ydiffs(self):
+    def ydiffs(self) -> npt.NDArray[np.int64]:
         return unique_deltas(self.fields["Y"].astype("i8"))
 
-    def _infer_daily_rule(self) -> Optional[str]:
+    def _infer_daily_rule(self) -> str | None:
         annual_rule = self._get_annual_rule()
         if annual_rule:
             nyears = self.ydiffs[0]
@@ -332,7 +352,7 @@ class _FrequencyInferer:
 
         return None
 
-    def _get_daily_rule(self) -> Optional[str]:
+    def _get_daily_rule(self) -> str | None:
         days = self.deltas[0] / _ONE_DAY
         if days % 7 == 0:
             # Weekly
@@ -342,7 +362,7 @@ class _FrequencyInferer:
         else:
             return _maybe_add_count("D", days)
 
-    def _get_annual_rule(self) -> Optional[str]:
+    def _get_annual_rule(self) -> str | None:
         if len(self.ydiffs) > 1:
             return None
 
@@ -352,7 +372,7 @@ class _FrequencyInferer:
         pos_check = self.month_position_check()
         return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
 
-    def _get_quarterly_rule(self) -> Optional[str]:
+    def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
 
@@ -362,7 +382,7 @@ class _FrequencyInferer:
         pos_check = self.month_position_check()
         return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
 
-    def _get_monthly_rule(self) -> Optional[str]:
+    def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
@@ -378,12 +398,13 @@ class _FrequencyInferer:
         shifts = np.diff(self.index.asi8)
         shifts = np.floor_divide(shifts, _ONE_DAY)
         weekdays = np.mod(first_weekday + np.cumsum(shifts), 7)
-        return np.all(
+        # error: Incompatible return value type (got "bool_", expected "bool")
+        return np.all(  # type: ignore[return-value]
             ((weekdays == 0) & (shifts == 3))
             | ((weekdays > 0) & (weekdays <= 4) & (shifts == 1))
         )
 
-    def _get_wom_rule(self) -> Optional[str]:
+    def _get_wom_rule(self) -> str | None:
         # FIXME: dont leave commented-out
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
@@ -550,7 +571,7 @@ def _maybe_coerce_freq(code) -> str:
 
     Parameters
     ----------
-    source : string or DateOffset
+    source : str or DateOffset
         Frequency converting from
 
     Returns

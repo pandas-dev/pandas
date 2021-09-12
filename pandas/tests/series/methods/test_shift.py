@@ -169,7 +169,7 @@ class TestShift:
         tm.assert_equal(res, expected)
 
         # check for incorrect fill_value
-        msg = "'fill_value=f' is not present in this Categorical's categories"
+        msg = r"Cannot setitem on a Categorical with a new category \(f\)"
         with pytest.raises(TypeError, match=msg):
             ts.shift(1, fill_value="f")
 
@@ -353,14 +353,14 @@ class TestShift:
         # GH#21275
         ser = Series(
             range(periods),
-            index=pd.date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
+            index=date_range("2016-1-1 00:00:00", periods=periods, freq="H"),
         )
 
         result = ser.shift(1, "2H")
 
         expected = Series(
             range(periods),
-            index=pd.date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
+            index=date_range("2016-1-1 02:00:00", periods=periods, freq="H"),
         )
         tm.assert_series_equal(result, expected)
 

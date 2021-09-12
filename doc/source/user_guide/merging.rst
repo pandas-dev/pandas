@@ -1578,4 +1578,5 @@ to ``True``.
 You may also keep all the original values even if they are equal.
 
 .. ipython:: python
+
    df.compare(df2, keep_shape=True, keep_equal=True)

@@ -14,18 +14,22 @@ import cython
 from cython import Py_ssize_t
 import numpy as np
 
-from numpy cimport import_array, ndarray, uint8_t
+from numpy cimport (
+    import_array,
+    ndarray,
+    uint8_t,
+)
 
 import_array()
 
 
 from pandas._libs.missing cimport checknull
-from pandas._libs.util cimport UINT8_MAX, is_nan
+from pandas._libs.util cimport is_nan
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def scalar_compare(object[:] values, object val, object op):
+def scalar_compare(object[:] values, object val, object op) -> ndarray:
     """
     Compare each element of `values` array with the scalar `val`, with
     the comparison operation described by `op`.
@@ -107,7 +111,7 @@ def scalar_compare(object[:] values, object val, object op):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def vec_compare(ndarray[object] left, ndarray[object] right, object op):
+def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarray:
     """
     Compare the elements of `left` with the elements of `right` pointwise,
     with the comparison operation described by `op`.
@@ -173,7 +177,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def scalar_binop(object[:] values, object val, object op):
+def scalar_binop(object[:] values, object val, object op) -> ndarray:
     """
     Apply the given binary operator `op` between each element of the array
     `values` and the scalar `val`.
@@ -205,12 +209,12 @@ def scalar_binop(object[:] values, object val, object op):
         else:
             result[i] = op(x, val)
 
-    return maybe_convert_bool(result.base)
+    return maybe_convert_bool(result.base)[0]
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def vec_binop(object[:] left, object[:] right, object op):
+def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
     """
     Apply the given binary operator `op` pointwise to the elements of
     arrays `left` and `right`.
@@ -247,21 +251,25 @@ def vec_binop(object[:] left, object[:] right, object op):
             else:
                 raise
 
-    return maybe_convert_bool(result.base)  # `.base` to access np.ndarray
+    return maybe_convert_bool(result.base)[0]  # `.base` to access np.ndarray
 
 
 def maybe_convert_bool(ndarray[object] arr,
-                       true_values=None, false_values=None):
+                       true_values=None,
+                       false_values=None,
+                       convert_to_masked_nullable=False
+                       ) -> tuple[np.ndarray, np.ndarray | None]:
     cdef:
         Py_ssize_t i, n
         ndarray[uint8_t] result
+        ndarray[uint8_t] mask
         object val
         set true_vals, false_vals
-        int na_count = 0
+        bint has_na = False
 
     n = len(arr)
     result = np.empty(n, dtype=np.uint8)
-
+    mask = np.zeros(n, dtype=np.uint8)
     # the defaults
     true_vals = {'True', 'TRUE', 'true'}
     false_vals = {'False', 'FALSE', 'false'}
@@ -284,16 +292,19 @@ def maybe_convert_bool(ndarray[object] arr,
             result[i] = 1
         elif val in false_vals:
             result[i] = 0
-        elif isinstance(val, float):
-            result[i] = UINT8_MAX
-            na_count += 1
+        elif is_nan(val):
+            mask[i] = 1
+            result[i] = 0  # Value here doesn't matter, will be replaced w/ nan
+            has_na = True
         else:
-            return arr
+            return (arr, None)
 
-    if na_count > 0:
-        mask = result == UINT8_MAX
-        arr = result.view(np.bool_).astype(object)
-        np.putmask(arr, mask, np.nan)
-        return arr
+    if has_na:
+        if convert_to_masked_nullable:
+            return (result.view(np.bool_), mask.view(np.bool_))
+        else:
+            arr = result.view(np.bool_).astype(object)
+            np.putmask(arr, mask, np.nan)
+            return (arr, None)
     else:
-        return result.view(np.bool_)
+        return (result.view(np.bool_), None)

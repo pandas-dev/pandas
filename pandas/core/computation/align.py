@@ -1,9 +1,16 @@
 """
 Core eval alignment algorithms.
 """
+from __future__ import annotations
 
-from functools import partial, wraps
-from typing import Dict, Optional, Sequence, Tuple, Type, Union
+from functools import (
+    partial,
+    wraps,
+)
+from typing import (
+    TYPE_CHECKING,
+    Sequence,
+)
 import warnings
 
 import numpy as np
@@ -11,19 +18,25 @@ import numpy as np
 from pandas._typing import FrameOrSeries
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
+if TYPE_CHECKING:
+    from pandas.core.indexes.api import Index
+
 
 def _align_core_single_unary_op(
     term,
-) -> Tuple[Union[partial, Type[FrameOrSeries]], Optional[Dict[str, int]]]:
+) -> tuple[partial | type[FrameOrSeries], dict[str, Index] | None]:
 
-    typ: Union[partial, Type[FrameOrSeries]]
-    axes: Optional[Dict[str, int]] = None
+    typ: partial | type[FrameOrSeries]
+    axes: dict[str, Index] | None = None
 
     if isinstance(term.value, np.ndarray):
         typ = partial(np.asanyarray, dtype=term.value.dtype)
@@ -36,8 +49,8 @@ def _align_core_single_unary_op(
 
 
 def _zip_axes_from_type(
-    typ: Type[FrameOrSeries], new_axes: Sequence[int]
-) -> Dict[str, int]:
+    typ: type[FrameOrSeries], new_axes: Sequence[Index]
+) -> dict[str, Index]:
     return {name: new_axes[i] for i, name in enumerate(typ._AXIS_ORDERS)}
 
 
@@ -111,7 +124,7 @@ def _align_core(terms):
                     w = (
                         f"Alignment difference on axis {axis} is larger "
                         f"than an order of magnitude on term {repr(terms[i].name)}, "
-                        f"by more than {ordm:.4g}; performance may suffer"
+                        f"by more than {ordm:.4g}; performance may suffer."
                     )
                     warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 

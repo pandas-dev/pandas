@@ -1,9 +1,15 @@
-from datetime import datetime, timedelta
+from datetime import (
+    datetime,
+    timedelta,
+)
 from io import StringIO
 import itertools
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -16,11 +22,18 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import ObjectBlock
-from pandas.core.internals.blocks import IntBlock
+from pandas.core.internals import (
+    NumericBlock,
+    ObjectBlock,
+)
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
+
+
+# TODO(ArrayManager) check which of those tests need to be rewritten to test the
+# equivalent for ArrayManager
+pytestmark = td.skip_array_manager_invalid_test
 
 
 class TestDataFrameBlockInternals:
@@ -32,7 +45,7 @@ class TestDataFrameBlockInternals:
         ts = dti[1]
 
         df = DataFrame({"B": dti})
-        assert df["B"]._values.freq == "D"
+        assert df["B"]._values.freq is None
 
         df.iloc[1, 0] = pd.NaT
         assert df["B"]._values.freq is None
@@ -245,8 +258,11 @@ class TestDataFrameBlockInternals:
             f([("A", "datetime64[h]"), ("B", "str"), ("C", "int32")])
 
         # these work (though results may be unexpected)
-        f("int64")
-        f("float64")
+        depr_msg = "either all columns will be cast to that dtype, or a TypeError will"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("int64")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            f("float64")
 
         # 10822
         # invalid error message on dt inference
@@ -329,12 +345,13 @@ class TestDataFrameBlockInternals:
         df[0] = np.nan
         wasCol = {}
 
-        for i, dt in enumerate(df.index):
-            for col in range(100, 200):
-                if col not in wasCol:
-                    wasCol[col] = 1
-                    df[col] = np.nan
-                df[col][dt] = i
+        with tm.assert_produces_warning(PerformanceWarning):
+            for i, dt in enumerate(df.index):
+                for col in range(100, 200):
+                    if col not in wasCol:
+                        wasCol[col] = 1
+                        df[col] = np.nan
+                    df[col][dt] = i
 
         myid = 100
 
@@ -349,7 +366,7 @@ class TestDataFrameBlockInternals:
         result = DataFrame({"A": arr})
         expected = DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
-        assert isinstance(result._mgr.blocks[0], IntBlock)
+        assert isinstance(result._mgr.blocks[0], NumericBlock)
 
     def test_add_column_with_pandas_array(self):
         # GH 26390
@@ -374,7 +391,7 @@ def test_update_inplace_sets_valid_block_values():
     # inplace update of a single column
     df["a"].fillna(1, inplace=True)
 
-    # check we havent put a Series into any block.values
+    # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
 
     # smoketest for OP bug from GH#35731

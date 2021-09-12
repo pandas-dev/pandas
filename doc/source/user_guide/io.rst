@@ -22,6 +22,8 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     text;Fixed-Width Text File;:ref:`read_fwf<io.fwf_reader>`
     text;`JSON <https://www.json.org/>`__;:ref:`read_json<io.json_reader>`;:ref:`to_json<io.json_writer>`
     text;`HTML <https://en.wikipedia.org/wiki/HTML>`__;:ref:`read_html<io.read_html>`;:ref:`to_html<io.html>`
+    text;`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__;;:ref:`Styler.to_latex<io.latex>`
+    text;`XML <https://www.w3.org/standards/xml/core>`__;:ref:`read_xml<io.read_xml>`;:ref:`to_xml<io.xml>`
     text; Local clipboard;:ref:`read_clipboard<io.clipboard>`;:ref:`to_clipboard<io.clipboard>`
     binary;`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__;:ref:`read_excel<io.excel_reader>`;:ref:`to_excel<io.excel_writer>`
     binary;`OpenDocument <http://www.opendocumentformat.org>`__;:ref:`read_excel<io.ods>`;
@@ -29,7 +31,6 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary;`Feather Format <https://github.com/wesm/feather>`__;:ref:`read_feather<io.feather>`;:ref:`to_feather<io.feather>`
     binary;`Parquet Format <https://parquet.apache.org/>`__;:ref:`read_parquet<io.parquet>`;:ref:`to_parquet<io.parquet>`
     binary;`ORC Format <https://orc.apache.org/>`__;:ref:`read_orc<io.orc>`;
-    binary;`Msgpack <https://msgpack.org/index.html>`__;:ref:`read_msgpack<io.msgpack>`;:ref:`to_msgpack<io.msgpack>`
     binary;`Stata <https://en.wikipedia.org/wiki/Stata>`__;:ref:`read_stata<io.stata_reader>`;:ref:`to_stata<io.stata_writer>`
     binary;`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__;:ref:`read_sas<io.sas_reader>`;
     binary;`SPSS <https://en.wikipedia.org/wiki/SPSS>`__;:ref:`read_spss<io.spss_reader>`;
@@ -112,8 +113,9 @@ index_col : int, str, sequence of int / str, or False, default ``None``
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
-  of the data file, then a default index is used.  If it is one larger, then
-  the first field is used as an index.
+  of the data file, then a default index is used.  If it is larger, then
+  the first columns are used as index so that the remaining number of fields in
+  the body are equal to the number of fields in the header.
 usecols : list-like or callable, default ``None``
   Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
@@ -158,9 +160,15 @@ dtype : Type name or dict of column -> type, default ``None``
   (unsupported with ``engine='python'``). Use ``str`` or ``object`` together
   with suitable ``na_values`` settings to preserve and
   not interpret dtype.
-engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the Python engine is
-  currently more feature-complete.
+engine : {``'c'``, ``'python'``, ``'pyarrow'``}
+  Parser engine to use. The C and pyarrow engines are faster, while the python engine
+  is currently more feature-complete. Multithreading is currently only supported by
+  the pyarrow engine.
+
+  .. versionadded:: 1.4.0
+
+     The "pyarrow" engine was added as an *experimental* engine, and some features
+     are unsupported, or may not work correctly, with this engine.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -232,6 +240,8 @@ verbose : boolean, default ``False``
 skip_blank_lines : boolean, default ``True``
   If ``True``, skip over blank lines rather than interpreting as NaN values.
 
+.. _io.read_csv_table.datetime:
+
 Datetime handling
 +++++++++++++++++
 
@@ -292,7 +302,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``None``
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 0.24.0 'infer' option added and set to default.
   .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
   .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
@@ -339,15 +348,32 @@ dialect : str or :class:`python:csv.Dialect` instance, default ``None``
 Error handling
 ++++++++++++++
 
-error_bad_lines : boolean, default ``True``
+error_bad_lines : boolean, default ``None``
   Lines with too many fields (e.g. a csv line with too many commas) will by
   default cause an exception to be raised, and no ``DataFrame`` will be
   returned. If ``False``, then these "bad lines" will dropped from the
   ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
   below.
-warn_bad_lines : boolean, default ``True``
+
+  .. deprecated:: 1.3.0
+     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
+     encountering a bad line instead.
+warn_bad_lines : boolean, default ``None``
   If error_bad_lines is ``False``, and warn_bad_lines is ``True``, a warning for
   each "bad line" will be output.
+
+  .. deprecated:: 1.3.0
+     The ``on_bad_lines`` parameter should be used instead to specify behavior upon
+     encountering a bad line instead.
+on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
+    Specifies what to do upon encountering a bad line (a line with too many fields).
+    Allowed values are :
+
+        - 'error', raise an ParserError when a bad line is encountered.
+        - 'warn', print a warning when a bad line is encountered and skip that line.
+        - 'skip', skip bad lines without raising or warning when they are encountered.
+
+    .. versionadded:: 1.3.0
 
 .. _io.dtypes:
 
@@ -1182,6 +1208,10 @@ Returning Series
 Using the ``squeeze`` keyword, the parser will return output with a single column
 as a ``Series``:
 
+.. deprecated:: 1.4.0
+   Users should append ``.squeeze("columns")`` to the DataFrame returned by
+   ``read_csv`` instead.
+
 .. ipython:: python
    :suppress:
 
@@ -1191,6 +1221,7 @@ as a ``Series``:
        fh.write(data)
 
 .. ipython:: python
+   :okwarning:
 
    print(open("tmp.csv").read())
 
@@ -1240,7 +1271,7 @@ You can elect to skip bad lines:
 
 .. code-block:: ipython
 
-    In [29]: pd.read_csv(StringIO(data), error_bad_lines=False)
+    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
     Skipping line 3: expected 3 fields, saw 4
 
     Out[29]:
@@ -1577,19 +1608,21 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", chunksize=4)
-   reader
+   with pd.read_csv("tmp.sv", sep="|", chunksize=4) as reader:
+       reader
+       for chunk in reader:
+           print(chunk)
 
-   for chunk in reader:
-       print(chunk)
+.. versionchanged:: 1.2
 
+  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_csv("tmp.sv", sep="|", iterator=True)
-   reader.get_chunk(5)
+   with pd.read_csv("tmp.sv", sep="|", iterator=True) as reader:
+       reader.get_chunk(5)
 
 .. ipython:: python
    :suppress:
@@ -1600,11 +1633,17 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a Python implementation which is currently more feature-complete. Where
-possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to Python if C-unsupported options are specified. Currently, C-unsupported
-options include:
+Pandas currently supports three engines, the C engine, the python engine, and an experimental
+pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads and is equivalent in speed to the C engine on most other workloads.
+The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
+the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
+Python engine.
+
+Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
+back to Python if C-unsupported options are specified.
+
+Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
@@ -1612,6 +1651,32 @@ options include:
 
 Specifying any of the above options will produce a ``ParserWarning`` unless the
 python engine is selected explicitly using ``engine='python'``.
+
+Options that are unsupported by the pyarrow engine which are not covered by the list above include:
+
+* ``float_precision``
+* ``chunksize``
+* ``comment``
+* ``nrows``
+* ``thousands``
+* ``memory_map``
+* ``dialect``
+* ``warn_bad_lines``
+* ``error_bad_lines``
+* ``on_bad_lines``
+* ``delim_whitespace``
+* ``quoting``
+* ``lineterminator``
+* ``converters``
+* ``decimal``
+* ``iterator``
+* ``dayfirst``
+* ``infer_datetime_format``
+* ``verbose``
+* ``skipinitialspace``
+* ``low_memory``
+
+Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
 
 .. _io.remote:
 
@@ -1624,6 +1689,20 @@ functions - the following example shows reading a CSV file:
 .. code-block:: python
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
+
+.. versionadded:: 1.3.0
+
+A custom header can be sent alongside HTTP(s) requests by passing a dictionary
+of header key value mappings to the ``storage_options`` keyword argument as shown below:
+
+.. code-block:: python
+
+   headers = {"User-Agent": "pandas"}
+   df = pd.read_csv(
+       "https://download.bls.gov/pub/time.series/cu/cu.item",
+       sep="\t",
+       storage_options=headers
+   )
 
 All URLs which are not local files or HTTP(s) are handled by
 `fsspec`_, if installed, and its various filesystem implementations
@@ -1876,7 +1955,7 @@ Writing in ISO date format:
 
    dfd = pd.DataFrame(np.random.randn(5, 2), columns=list("AB"))
    dfd["date"] = pd.Timestamp("20130101")
-   dfd = dfd.sort_index(1, ascending=False)
+   dfd = dfd.sort_index(axis=1, ascending=False)
    json = dfd.to_json(date_format="iso")
    json
 
@@ -2169,7 +2248,7 @@ into a flat table.
 
    data = [
        {"id": 1, "name": {"first": "Coleen", "last": "Volk"}},
-       {"name": {"given": "Mose", "family": "Regner"}},
+       {"name": {"given": "Mark", "family": "Regner"}},
        {"id": 2, "name": "Faye Raker"},
    ]
    pd.json_normalize(data)
@@ -2238,10 +2317,10 @@ For line-delimited json files, pandas can also return an iterator which reads in
   df.to_json(orient="records", lines=True)
 
   # reader is an iterator that returns ``chunksize`` lines each iteration
-  reader = pd.read_json(StringIO(jsonl), lines=True, chunksize=1)
-  reader
-  for chunk in reader:
-      print(chunk)
+  with pd.read_json(StringIO(jsonl), lines=True, chunksize=1) as reader:
+      reader
+      for chunk in reader:
+          print(chunk)
 
 .. _io.table_schema:
 
@@ -2428,7 +2507,7 @@ Read a URL with no options:
 
 .. ipython:: python
 
-   url = "https://www.fdic.gov/bank/individual/failed/banklist.html"
+   url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    dfs = pd.read_html(url)
    dfs
 
@@ -2443,7 +2522,9 @@ as a string:
 .. ipython:: python
    :suppress:
 
-   file_path = os.path.abspath(os.path.join("source", "_static", "banklist.html"))
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "html",
+                           "banklist.html")
+   file_path = os.path.abspath(rel_path)
 
 .. ipython:: python
 
@@ -2676,8 +2757,6 @@ table CSS classes. Note that these classes are *appended* to the existing
 The ``render_links`` argument provides the ability to add hyperlinks to cells
 that contain URLs.
 
-.. versionadded:: 0.24
-
 .. ipython:: python
 
    url_df = pd.DataFrame(
@@ -2810,6 +2889,496 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 .. |lxml| replace:: **lxml**
 .. _lxml: https://lxml.de
 
+.. _io.latex:
+
+LaTeX
+-----
+
+.. versionadded:: 1.3.0
+
+Currently there are no methods to read from LaTeX, only output methods.
+
+Writing to LaTeX files
+''''''''''''''''''''''
+
+.. note::
+
+   DataFrame *and* Styler objects currently have a ``to_latex`` method. We recommend
+   using the `Styler.to_latex() <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__ method
+   over `DataFrame.to_latex() <../reference/api/pandas.DataFrame.to_latex.rst>`__ due to the former's greater flexibility with
+   conditional styling, and the latter's possible future deprecation.
+
+Review the documentation for `Styler.to_latex <../reference/api/pandas.io.formats.style.Styler.to_latex.rst>`__,
+which gives examples of conditional styling and explains the operation of its keyword
+arguments.
+
+For simple application the following pattern is sufficient.
+
+.. ipython:: python
+
+   df = pd.DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["c", "d"])
+   print(df.style.to_latex())
+
+To format values before output, chain the `Styler.format <../reference/api/pandas.io.formats.style.Styler.format.rst>`__
+method.
+
+.. ipython:: python
+
+   print(df.style.format("€ {}").to_latex())
+
+XML
+---
+
+.. _io.read_xml:
+
+Reading XML
+'''''''''''
+
+.. versionadded:: 1.3.0
+
+The top-level :func:`~pandas.io.xml.read_xml` function can accept an XML
+string/file/URL and will parse nodes and attributes into a pandas ``DataFrame``.
+
+.. note::
+
+   Since there is no standard XML structure where design types can vary in
+   many ways, ``read_xml`` works best with flatter, shallow versions. If
+   an XML document is deeply nested, use the ``stylesheet`` feature to
+   transform XML into a flatter version.
+
+Let's look at a few examples.
+
+Read an XML string:
+
+.. ipython:: python
+
+   xml = """<?xml version="1.0" encoding="UTF-8"?>
+   <bookstore>
+     <book category="cooking">
+       <title lang="en">Everyday Italian</title>
+       <author>Giada De Laurentiis</author>
+       <year>2005</year>
+       <price>30.00</price>
+     </book>
+     <book category="children">
+       <title lang="en">Harry Potter</title>
+       <author>J K. Rowling</author>
+       <year>2005</year>
+       <price>29.99</price>
+     </book>
+     <book category="web">
+       <title lang="en">Learning XML</title>
+       <author>Erik T. Ray</author>
+       <year>2003</year>
+       <price>39.95</price>
+     </book>
+   </bookstore>"""
+
+   df = pd.read_xml(xml)
+   df
+
+Read a URL with no options:
+
+.. ipython:: python
+
+   df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
+   df
+
+Read in the content of the "books.xml" file and pass it to ``read_xml``
+as a string:
+
+.. ipython:: python
+   :suppress:
+
+   rel_path = os.path.join("..", "pandas", "tests", "io", "data", "xml",
+                           "books.xml")
+   file_path = os.path.abspath(rel_path)
+
+.. ipython:: python
+
+   with open(file_path, "r") as f:
+       df = pd.read_xml(f.read())
+   df
+
+Read in the content of the "books.xml" as instance of ``StringIO`` or
+``BytesIO`` and pass it to ``read_xml``:
+
+.. ipython:: python
+
+   with open(file_path, "r") as f:
+       sio = StringIO(f.read())
+
+   df = pd.read_xml(sio)
+   df
+
+.. ipython:: python
+
+   with open(file_path, "rb") as f:
+       bio = BytesIO(f.read())
+
+   df = pd.read_xml(bio)
+   df
+
+Even read XML from AWS S3 buckets such as Python Software Foundation's IRS 990 Form:
+
+.. ipython:: python
+
+   df = pd.read_xml(
+       "s3://irs-form-990/201923199349319487_public.xml",
+       xpath=".//irs:Form990PartVIISectionAGrp",
+       namespaces={"irs": "http://www.irs.gov/efile"}
+   )
+   df
+
+With `lxml`_ as default ``parser``, you access the full-featured XML library
+that extends Python's ElementTree API. One powerful tool is ability to query
+nodes selectively or conditionally with more expressive XPath:
+
+.. _lxml: https://lxml.de
+
+.. ipython:: python
+
+   df = pd.read_xml(file_path, xpath="//book[year=2005]")
+   df
+
+Specify only elements or only attributes to parse:
+
+.. ipython:: python
+
+   df = pd.read_xml(file_path, elems_only=True)
+   df
+
+.. ipython:: python
+
+   df = pd.read_xml(file_path, attrs_only=True)
+   df
+
+XML documents can have namespaces with prefixes and default namespaces without
+prefixes both of which are denoted with a special attribute ``xmlns``. In order
+to parse by node under a namespace context, ``xpath`` must reference a prefix.
+
+For example, below XML contains a namespace with prefix, ``doc``, and URI at
+``https://example.com``. In order to parse ``doc:row`` nodes,
+``namespaces`` must be used.
+
+.. ipython:: python
+
+   xml = """<?xml version='1.0' encoding='utf-8'?>
+   <doc:data xmlns:doc="https://example.com">
+     <doc:row>
+       <doc:shape>square</doc:shape>
+       <doc:degrees>360</doc:degrees>
+       <doc:sides>4.0</doc:sides>
+     </doc:row>
+     <doc:row>
+       <doc:shape>circle</doc:shape>
+       <doc:degrees>360</doc:degrees>
+       <doc:sides/>
+     </doc:row>
+     <doc:row>
+       <doc:shape>triangle</doc:shape>
+       <doc:degrees>180</doc:degrees>
+       <doc:sides>3.0</doc:sides>
+     </doc:row>
+   </doc:data>"""
+
+   df = pd.read_xml(xml,
+                    xpath="//doc:row",
+                    namespaces={"doc": "https://example.com"})
+   df
+
+Similarly, an XML document can have a default namespace without prefix. Failing
+to assign a temporary prefix will return no nodes and raise a ``ValueError``.
+But assigning *any* temporary name to correct URI allows parsing by nodes.
+
+.. ipython:: python
+
+   xml = """<?xml version='1.0' encoding='utf-8'?>
+   <data xmlns="https://example.com">
+    <row>
+      <shape>square</shape>
+      <degrees>360</degrees>
+      <sides>4.0</sides>
+    </row>
+    <row>
+      <shape>circle</shape>
+      <degrees>360</degrees>
+      <sides/>
+    </row>
+    <row>
+      <shape>triangle</shape>
+      <degrees>180</degrees>
+      <sides>3.0</sides>
+    </row>
+   </data>"""
+
+   df = pd.read_xml(xml,
+                    xpath="//pandas:row",
+                    namespaces={"pandas": "https://example.com"})
+   df
+
+However, if XPath does not reference node names such as default, ``/*``, then
+``namespaces`` is not required.
+
+With `lxml`_ as parser, you can flatten nested XML documents with an XSLT
+script which also can be string/file/URL types. As background, `XSLT`_ is
+a special-purpose language written in a special XML file that can transform
+original XML documents into other XML, HTML, even text (CSV, JSON, etc.)
+using an XSLT processor.
+
+.. _lxml: https://lxml.de
+.. _XSLT: https://www.w3.org/TR/xslt/
+
+For example, consider this somewhat nested structure of Chicago "L" Rides
+where station and rides elements encapsulate data in their own sections.
+With below XSLT, ``lxml`` can transform original nested document into a flatter
+output (as shown below for demonstration) for easier parse into ``DataFrame``:
+
+.. ipython:: python
+
+   xml = """<?xml version='1.0' encoding='utf-8'?>
+    <response>
+     <row>
+       <station id="40850" name="Library"/>
+       <month>2020-09-01T00:00:00</month>
+       <rides>
+         <avg_weekday_rides>864.2</avg_weekday_rides>
+         <avg_saturday_rides>534</avg_saturday_rides>
+         <avg_sunday_holiday_rides>417.2</avg_sunday_holiday_rides>
+       </rides>
+     </row>
+     <row>
+       <station id="41700" name="Washington/Wabash"/>
+       <month>2020-09-01T00:00:00</month>
+       <rides>
+         <avg_weekday_rides>2707.4</avg_weekday_rides>
+         <avg_saturday_rides>1909.8</avg_saturday_rides>
+         <avg_sunday_holiday_rides>1438.6</avg_sunday_holiday_rides>
+       </rides>
+     </row>
+     <row>
+       <station id="40380" name="Clark/Lake"/>
+       <month>2020-09-01T00:00:00</month>
+       <rides>
+         <avg_weekday_rides>2949.6</avg_weekday_rides>
+         <avg_saturday_rides>1657</avg_saturday_rides>
+         <avg_sunday_holiday_rides>1453.8</avg_sunday_holiday_rides>
+       </rides>
+     </row>
+    </response>"""
+
+   xsl = """<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+      <xsl:output method="xml" omit-xml-declaration="no" indent="yes"/>
+      <xsl:strip-space elements="*"/>
+      <xsl:template match="/response">
+         <xsl:copy>
+           <xsl:apply-templates select="row"/>
+         </xsl:copy>
+      </xsl:template>
+      <xsl:template match="row">
+         <xsl:copy>
+           <station_id><xsl:value-of select="station/@id"/></station_id>
+           <station_name><xsl:value-of select="station/@name"/></station_name>
+           <xsl:copy-of select="month|rides/*"/>
+         </xsl:copy>
+      </xsl:template>
+    </xsl:stylesheet>"""
+
+   output = """<?xml version='1.0' encoding='utf-8'?>
+    <response>
+      <row>
+         <station_id>40850</station_id>
+         <station_name>Library</station_name>
+         <month>2020-09-01T00:00:00</month>
+         <avg_weekday_rides>864.2</avg_weekday_rides>
+         <avg_saturday_rides>534</avg_saturday_rides>
+         <avg_sunday_holiday_rides>417.2</avg_sunday_holiday_rides>
+      </row>
+      <row>
+         <station_id>41700</station_id>
+         <station_name>Washington/Wabash</station_name>
+         <month>2020-09-01T00:00:00</month>
+         <avg_weekday_rides>2707.4</avg_weekday_rides>
+         <avg_saturday_rides>1909.8</avg_saturday_rides>
+         <avg_sunday_holiday_rides>1438.6</avg_sunday_holiday_rides>
+      </row>
+      <row>
+         <station_id>40380</station_id>
+         <station_name>Clark/Lake</station_name>
+         <month>2020-09-01T00:00:00</month>
+         <avg_weekday_rides>2949.6</avg_weekday_rides>
+         <avg_saturday_rides>1657</avg_saturday_rides>
+         <avg_sunday_holiday_rides>1453.8</avg_sunday_holiday_rides>
+      </row>
+    </response>"""
+
+   df = pd.read_xml(xml, stylesheet=xsl)
+   df
+
+
+.. _io.xml:
+
+Writing XML
+'''''''''''
+
+.. versionadded:: 1.3.0
+
+``DataFrame`` objects have an instance method ``to_xml`` which renders the
+contents of the ``DataFrame`` as an XML document.
+
+.. note::
+
+   This method does not support special properties of XML including DTD,
+   CData, XSD schemas, processing instructions, comments, and others.
+   Only namespaces at the root level is supported. However, ``stylesheet``
+   allows design changes after initial output.
+
+Let's look at a few examples.
+
+Write an XML without options:
+
+.. ipython:: python
+
+   geom_df = pd.DataFrame(
+       {
+           "shape": ["square", "circle", "triangle"],
+           "degrees": [360, 360, 180],
+           "sides": [4, np.nan, 3],
+       }
+   )
+
+   print(geom_df.to_xml())
+
+
+Write an XML with new root and row name:
+
+.. ipython:: python
+
+   print(geom_df.to_xml(root_name="geometry", row_name="objects"))
+
+Write an attribute-centric XML:
+
+.. ipython:: python
+
+   print(geom_df.to_xml(attr_cols=geom_df.columns.tolist()))
+
+Write a mix of elements and attributes:
+
+.. ipython:: python
+
+   print(
+       geom_df.to_xml(
+           index=False,
+           attr_cols=['shape'],
+           elem_cols=['degrees', 'sides'])
+   )
+
+Any ``DataFrames`` with hierarchical columns will be flattened for XML element names
+with levels delimited by underscores:
+
+.. ipython:: python
+
+   ext_geom_df = pd.DataFrame(
+       {
+           "type": ["polygon", "other", "polygon"],
+           "shape": ["square", "circle", "triangle"],
+           "degrees": [360, 360, 180],
+           "sides": [4, np.nan, 3],
+       }
+   )
+
+   pvt_df = ext_geom_df.pivot_table(index='shape',
+                                    columns='type',
+                                    values=['degrees', 'sides'],
+                                    aggfunc='sum')
+   pvt_df
+
+   print(pvt_df.to_xml())
+
+Write an XML with default namespace:
+
+.. ipython:: python
+
+   print(geom_df.to_xml(namespaces={"": "https://example.com"}))
+
+Write an XML with namespace prefix:
+
+.. ipython:: python
+
+   print(
+       geom_df.to_xml(namespaces={"doc": "https://example.com"},
+                      prefix="doc")
+   )
+
+Write an XML without declaration or pretty print:
+
+.. ipython:: python
+
+   print(
+       geom_df.to_xml(xml_declaration=False,
+                      pretty_print=False)
+   )
+
+Write an XML and transform with stylesheet:
+
+.. ipython:: python
+
+   xsl = """<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+      <xsl:output method="xml" omit-xml-declaration="no" indent="yes"/>
+      <xsl:strip-space elements="*"/>
+      <xsl:template match="/data">
+        <geometry>
+          <xsl:apply-templates select="row"/>
+        </geometry>
+      </xsl:template>
+      <xsl:template match="row">
+        <object index="{index}">
+          <xsl:if test="shape!='circle'">
+              <xsl:attribute name="type">polygon</xsl:attribute>
+          </xsl:if>
+          <xsl:copy-of select="shape"/>
+          <property>
+              <xsl:copy-of select="degrees|sides"/>
+          </property>
+        </object>
+      </xsl:template>
+    </xsl:stylesheet>"""
+
+   print(geom_df.to_xml(stylesheet=xsl))
+
+
+XML Final Notes
+'''''''''''''''
+
+* All XML documents adhere to `W3C specifications`_. Both ``etree`` and ``lxml``
+  parsers will fail to parse any markup document that is not well-formed or
+  follows XML syntax rules. Do be aware HTML is not an XML document unless it
+  follows XHTML specs. However, other popular markup types including KML, XAML,
+  RSS, MusicML, MathML are compliant `XML schemas`_.
+
+* For above reason, if your application builds XML prior to pandas operations,
+  use appropriate DOM libraries like ``etree`` and ``lxml`` to build the necessary
+  document and not by string concatenation or regex adjustments. Always remember
+  XML is a *special* text file with markup rules.
+
+* With very large XML files (several hundred MBs to GBs), XPath and XSLT
+  can become memory-intensive operations. Be sure to have enough available
+  RAM for reading and writing to large XML files (roughly about 5 times the
+  size of text).
+
+* Because XSLT is a programming language, use it with caution since such scripts
+  can pose a security risk in your environment and can run large or infinite
+  recursive operations. Always test scripts on small fragments before full run.
+
+* The `etree`_ parser supports all functionality of both ``read_xml`` and
+  ``to_xml`` except for complex XPath and any XSLT. Though limited in features,
+  ``etree`` is still a reliable and capable parser and tree builder. Its
+  performance may trail ``lxml`` to a certain degree for larger files but
+  relatively unnoticeable on small to medium size files.
+
+.. _`W3C specifications`: https://www.w3.org/TR/xml/
+.. _`XML schemas`: https://en.wikipedia.org/wiki/List_of_types_of_XML_schemas
+.. _`etree`: https://docs.python.org/3/library/xml.etree.elementtree.html
 
 
 
@@ -2818,14 +3387,37 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 Excel files
 -----------
 
-The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``)
-files using the ``xlrd`` Python module.  Excel 2007+ (``.xlsx``) files
-can be read using either ``xlrd`` or ``openpyxl``. Binary Excel (``.xlsb``)
+The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
+using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
+can be read using ``xlrd``. Binary Excel (``.xlsb``)
 files can be read using ``pyxlsb``.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
+
+.. warning::
+
+   The `xlwt <https://xlwt.readthedocs.io/en/latest/>`__ package for writing old-style ``.xls``
+   excel files is no longer maintained.
+   The `xlrd <https://xlrd.readthedocs.io/en/latest/>`__ package is now only for reading
+   old-style ``.xls`` files.
+
+   Before pandas 1.3.0, the default argument ``engine=None`` to :func:`~pandas.read_excel`
+   would result in using the ``xlrd`` engine in many cases, including new
+   Excel 2007+ (``.xlsx``) files. pandas will now default to using the
+   `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__ engine.
+
+   It is strongly encouraged to install ``openpyxl`` to read Excel 2007+
+   (``.xlsx``) files.
+   **Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.**
+   This is no longer supported, switch to using ``openpyxl`` instead.
+
+   Attempting to use the the ``xlwt`` engine will raise a ``FutureWarning``
+   unless the option :attr:`io.excel.xls.writer` is set to ``"xlwt"``.
+   While this option is now deprecated and will also raise a ``FutureWarning``,
+   it can be globally set and the warning suppressed. Users are recommended to
+   write ``.xlsx`` files using the ``openpyxl`` engine instead.
 
 .. _io.excel_reader:
 
@@ -3039,8 +3631,6 @@ indices to be parsed.
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
-.. versionadded:: 0.24
-
 If ``usecols`` is a list of strings, it is assumed that each string corresponds
 to a column name provided either by the user in ``names`` or inferred from the
 document header row(s). Those strings define which columns will be parsed:
@@ -3050,8 +3640,6 @@ document header row(s). Those strings define which columns will be parsed:
     pd.read_excel("path_to_file.xls", "Sheet1", usecols=["foo", "bar"])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
-
-.. versionadded:: 0.24
 
 If ``usecols`` is callable, the callable function will be evaluated against
 the column names, returning names where the callable function evaluates to ``True``.
@@ -3150,15 +3738,6 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
        df1.to_excel(writer, sheet_name="Sheet1")
        df2.to_excel(writer, sheet_name="Sheet2")
 
-.. note::
-
-    Wringing a little more performance out of ``read_excel``
-    Internally, Excel stores all numeric data as floats. Because this can
-    produce unexpected behavior when reading in data, pandas defaults to trying
-    to convert integers to floats if it doesn't lose information (``1.0 -->
-    1``).  You can pass ``convert_float=False`` to disable this behavior, which
-    may give a slight performance improvement.
-
 .. _io.excel_writing_buffer:
 
 Writing Excel files to memory
@@ -3197,6 +3776,13 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
 
 Excel writer engines
 ''''''''''''''''''''
+
+.. deprecated:: 1.2.0
+
+   As the `xlwt <https://pypi.org/project/xlwt/>`__ package is no longer
+   maintained, the ``xlwt`` engine will be removed from a future version
+   of pandas. This is the only engine in pandas that supports writing to
+   ``.xls`` files.
 
 pandas chooses an Excel writer via two methods:
 
@@ -3467,21 +4053,13 @@ Passing options to the compression protocol in order to speed up compression:
 msgpack
 -------
 
-pandas support for ``msgpack`` has been removed in version 1.0.0.  It is recommended to use pyarrow for on-the-wire transmission of pandas objects.
+pandas support for ``msgpack`` has been removed in version 1.0.0. It is
+recommended to use :ref:`pickle <io.pickle>` instead.
 
-Example pyarrow usage:
+Alternatively, you can also the Arrow IPC serialization format for on-the-wire
+transmission of pandas objects. For documentation on pyarrow, see
+`here <https://arrow.apache.org/docs/python/ipc.html>`__.
 
-.. code-block:: python
-
-    import pandas as pd
-    import pyarrow as pa
-
-    df = pd.DataFrame({"A": [1, 2, 3]})
-
-    context = pa.default_serialization_context()
-    df_bytestring = context.serialize(df).to_buffer().to_pybytes()
-
-For documentation on pyarrow, see `here <https://arrow.apache.org/docs/python/index.html>`__.
 
 .. _io.hdf5:
 
@@ -3710,9 +4288,6 @@ everything in the sub-store and **below**, so be *careful*.
 
 You can walk through the group hierarchy using the ``walk`` method which
 will yield a tuple for each group key along with the relative keys of its contents.
-
-.. versionadded:: 0.24.0
-
 
 .. ipython:: python
 
@@ -4143,10 +4718,8 @@ chunks.
 
    store.append("dfeq", dfeq, data_columns=["number"])
 
-
    def chunks(l, n):
        return [l[i: i + n] for i in range(0, len(l), n)]
-
 
    evens = [2, 4, 6, 8, 10]
    coordinates = store.select_as_coordinates("dfeq", "number=evens")
@@ -4735,6 +5308,7 @@ Write to a feather file.
 Read from a feather file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_feather("example.feather")
    result
@@ -4818,6 +5392,7 @@ Write to a parquet file.
 Read from a parquet file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_parquet("example_fp.parquet", engine="fastparquet")
    result = pd.read_parquet("example_pa.parquet", engine="pyarrow")
@@ -4890,8 +5465,6 @@ underlying engine's default behavior.
 Partitioning Parquet files
 ''''''''''''''''''''''''''
 
-.. versionadded:: 0.24.0
-
 Parquet supports partitioning of data based on the values of one or more columns.
 
 .. ipython:: python
@@ -4935,6 +5508,11 @@ ORC
 Similar to the :ref:`parquet <io.parquet>` format, the `ORC Format <https://orc.apache.org/>`__ is a binary columnar serialization
 for data frames. It is designed to make reading data frames efficient. pandas provides *only* a reader for the
 ORC format, :func:`~pandas.read_orc`. This requires the `pyarrow <https://arrow.apache.org/docs/python/>`__ library.
+
+.. warning::
+
+   * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
+   * :func:`~pandas.read_orc` is not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
 
 .. _io.sql:
 
@@ -4993,12 +5571,22 @@ below and the SQLAlchemy `documentation <https://docs.sqlalchemy.org/en/latest/c
    # Create your engine.
    engine = create_engine("sqlite:///:memory:")
 
-If you want to manage your own connections you can pass one of those instead:
+If you want to manage your own connections you can pass one of those instead. The example below opens a
+connection to the database using a Python context manager that automatically closes the connection after
+the block has completed.
+See the `SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/core/connections.html#basic-usage>`__
+for an explanation of how the database connection is handled.
 
 .. code-block:: python
 
    with engine.connect() as conn, conn.begin():
        data = pd.read_sql_table("data", conn)
+
+.. warning::
+
+	When you open a connection to a database you are also responsible for closing it.
+	Side effects of leaving a connection open may include locking the database or
+	other breaking behaviour.
 
 Writing DataFrames
 ''''''''''''''''''
@@ -5114,8 +5702,6 @@ will convert the data to UTC.
 Insertion method
 ++++++++++++++++
 
-.. versionadded:: 0.24.0
-
 The parameter ``method`` controls the SQL insertion clause used.
 Possible values are:
 
@@ -5158,7 +5744,7 @@ Example of a callable using PostgreSQL `COPY clause
           writer.writerows(data_iter)
           s_buf.seek(0)
 
-          columns = ', '.join('"{}"'.format(k) for k in keys)
+          columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
               table_name = '{}.{}'.format(table.schema, table.name)
           else:
@@ -5471,9 +6057,9 @@ object can be used as an iterator.
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", chunksize=3)
-  for df in reader:
-      print(df.shape)
+  with pd.read_stata("stata.dta", chunksize=3) as reader:
+      for df in reader:
+          print(df.shape)
 
 For more fine-grained control, use ``iterator=True`` and specify
 ``chunksize`` with each call to
@@ -5481,9 +6067,9 @@ For more fine-grained control, use ``iterator=True`` and specify
 
 .. ipython:: python
 
-  reader = pd.read_stata("stata.dta", iterator=True)
-  chunk1 = reader.read(5)
-  chunk2 = reader.read(5)
+  with pd.read_stata("stata.dta", iterator=True) as reader:
+      chunk1 = reader.read(5)
+      chunk2 = reader.read(5)
 
 Currently the ``index`` is retrieved as a column.
 
@@ -5595,9 +6181,9 @@ Obtain an iterator and read an XPORT file 100,000 lines at a time:
         pass
 
 
-    rdr = pd.read_sas("sas_xport.xpt", chunk=100000)
-    for chunk in rdr:
-        do_something(chunk)
+    with pd.read_sas("sas_xport.xpt", chunk=100000) as rdr:
+        for chunk in rdr:
+            do_something(chunk)
 
 The specification_ for the xport file format is available from the SAS
 web site.

@@ -9,7 +9,16 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Grouper, MultiIndex, Series, date_range, to_datetime
+from pandas import (
+    Categorical,
+    CategoricalIndex,
+    DataFrame,
+    Grouper,
+    MultiIndex,
+    Series,
+    date_range,
+    to_datetime,
+)
 import pandas._testing as tm
 
 
@@ -65,9 +74,13 @@ def test_series_groupby_value_counts(
         df.index = MultiIndex.from_arrays(arr, names=df.index.names)
         return df
 
-    kwargs = dict(
-        normalize=normalize, sort=sort, ascending=ascending, dropna=dropna, bins=bins
-    )
+    kwargs = {
+        "normalize": normalize,
+        "sort": sort,
+        "ascending": ascending,
+        "dropna": dropna,
+        "bins": bins,
+    }
 
     gr = df.groupby(keys, sort=isort)
     left = gr["3rd"].value_counts(**kwargs)
@@ -105,5 +118,57 @@ def test_series_groupby_value_counts_with_grouper():
     result = dfg["Food"].value_counts().sort_index()
     expected = dfg["Food"].apply(Series.value_counts).sort_index()
     expected.index.names = result.index.names
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_empty(columns):
+    # GH39172
+    df = DataFrame(columns=columns)
+    dfg = df.groupby(columns[:-1])
+
+    result = dfg[columns[-1]].value_counts()
+    expected = Series([], name=columns[-1], dtype=result.dtype)
+    expected.index = MultiIndex.from_arrays([[]] * len(columns), names=columns)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("columns", [["A", "B"], ["A", "B", "C"]])
+def test_series_groupby_value_counts_one_row(columns):
+    # GH42618
+    df = DataFrame(data=[range(len(columns))], columns=columns)
+    dfg = df.groupby(columns[:-1])
+
+    result = dfg[columns[-1]].value_counts()
+    expected = df.value_counts().rename(columns[-1])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_series_groupby_value_counts_on_categorical():
+    # GH38672
+
+    s = Series(Categorical(["a"], categories=["a", "b"]))
+    result = s.groupby([0]).value_counts()
+
+    expected = Series(
+        data=[1, 0],
+        index=MultiIndex.from_arrays(
+            [
+                [0, 0],
+                CategoricalIndex(
+                    ["a", "b"], categories=["a", "b"], ordered=False, dtype="category"
+                ),
+            ]
+        ),
+        name=0,
+    )
+
+    # Expected:
+    # 0  a    1
+    #    b    0
+    # Name: 0, dtype: int64
 
     tm.assert_series_equal(result, expected)

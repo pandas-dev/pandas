@@ -19,13 +19,24 @@ import numpy as np
 import pytz
 
 cimport numpy as cnp
-from numpy cimport int64_t, intp_t, ndarray, uint8_t
+from numpy cimport (
+    int64_t,
+    intp_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
 
-from pandas._libs.tslibs.ccalendar cimport DAY_NANOS, HOUR_NANOS
+from pandas._libs.tslibs.ccalendar cimport (
+    DAY_NANOS,
+    HOUR_NANOS,
+)
 from pandas._libs.tslibs.nattype cimport NPY_NAT
-from pandas._libs.tslibs.np_datetime cimport dt64_to_dtstruct, npy_datetimestruct
+from pandas._libs.tslibs.np_datetime cimport (
+    dt64_to_dtstruct,
+    npy_datetimestruct,
+)
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
     get_utcoffset,
@@ -98,8 +109,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, tzinfo tz, object ambiguous=None,
     nonexistent : {None, "NaT", "shift_forward", "shift_backward", "raise", \
 timedelta-like}
         How to handle non-existent times when converting wall times to UTC
-
-        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -426,7 +435,7 @@ def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     int64 ndarray of converted
     """
     cdef:
-        int64_t[:] converted
+        const int64_t[:] converted
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -437,7 +446,7 @@ def tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
+cdef const int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -459,7 +468,7 @@ cdef int64_t[:] _tz_convert_from_utc(const int64_t[:] vals, tzinfo tz):
         str typ
 
     if is_utc(tz):
-        converted = vals.copy()
+        return vals
     elif is_tzlocal(tz):
         converted = np.empty(n, dtype=np.int64)
         for i in range(n):

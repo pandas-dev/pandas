@@ -5,9 +5,11 @@ import struct
 import numpy as np
 import pytest
 
-from pandas._libs import algos as libalgos, hashtable as ht
-from pandas.compat import IS64
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas._libs import (
+    algos as libalgos,
+    hashtable as ht,
+)
+from pandas.compat import np_array_datetime64_compat
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
@@ -93,29 +95,32 @@ class TestFactorize:
         exp = np.array(["a", "b", "c"], dtype=object)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(range(5))))
+        arr = np.arange(5, dtype=np.intp)[::-1]
+
+        codes, uniques = algos.factorize(arr)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([4, 3, 2, 1, 0], dtype=np.int64)
+        exp = np.array([4, 3, 2, 1, 0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(range(5))), sort=True)
-
+        codes, uniques = algos.factorize(arr, sort=True)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+        exp = np.array([0, 1, 2, 3, 4], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(np.arange(5.0))))
+        arr = np.arange(5.0)[::-1]
+
+        codes, uniques = algos.factorize(arr)
         exp = np.array([0, 1, 2, 3, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([4.0, 3.0, 2.0, 1.0, 0.0], dtype=np.float64)
+        exp = np.array([4.0, 3.0, 2.0, 1.0, 0.0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
-        codes, uniques = algos.factorize(list(reversed(np.arange(5.0))), sort=True)
+        codes, uniques = algos.factorize(arr, sort=True)
         exp = np.array([4, 3, 2, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
-        exp = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=np.float64)
+        exp = np.array([0.0, 1.0, 2.0, 3.0, 4.0], dtype=arr.dtype)
         tm.assert_numpy_array_equal(uniques, exp)
 
     def test_mixed(self):
@@ -189,7 +194,7 @@ class TestFactorize:
         # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype="O")
-        rizer = ht.Factorizer(len(key))
+        rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
@@ -243,6 +248,17 @@ class TestFactorize:
         )
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
+
+    def test_numeric_dtype_factorize(self, any_real_numpy_dtype):
+        # GH41132
+        dtype = any_real_numpy_dtype
+        data = np.array([1, 2, 2, 1], dtype=dtype)
+        expected_codes = np.array([0, 1, 1, 0], dtype=np.intp)
+        expected_uniques = np.array([1, 2], dtype=dtype)
+
+        codes, uniques = algos.factorize(data)
+        tm.assert_numpy_array_equal(codes, expected_codes)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
 
     def test_float64_factorize(self, writable):
         data = np.array([1.0, 1e8, 1.0, 1e-8, 1e8, 1.0], dtype=np.float64)
@@ -306,6 +322,39 @@ class TestFactorize:
         codes, uniques = pd.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_numpy_array_equal(uniques, expected_uniques)
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize_rangeindex(self, sort):
+        # increasing -> sort doesn't matter
+        ri = pd.RangeIndex.from_range(range(10))
+        expected = np.arange(10, dtype=np.intp), ri
+
+        result = algos.factorize(ri, sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+        result = ri.factorize(sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_factorize_rangeindex_decreasing(self, sort):
+        # decreasing -> sort matters
+        ri = pd.RangeIndex.from_range(range(10))
+        expected = np.arange(10, dtype=np.intp), ri
+
+        ri2 = ri[::-1]
+        expected = expected[0], ri2
+        if sort:
+            expected = expected[0][::-1], expected[1][::-1]
+
+        result = algos.factorize(ri2, sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
+
+        result = ri2.factorize(sort=sort)
+        tm.assert_numpy_array_equal(result[0], expected[0])
+        tm.assert_index_equal(result[1], expected[1], exact=True)
 
     def test_deprecate_order(self):
         # gh 19727 - check warning is raised for deprecated keyword, order.
@@ -567,7 +616,7 @@ class TestUnique:
 
         # we are expecting to return in the order
         # of appearance
-        expected = Categorical(list("bac"), categories=list("bac"))
+        expected = Categorical(list("bac"))
 
         # we are expecting to return in the order
         # of the categories
@@ -597,7 +646,7 @@ class TestUnique:
         tm.assert_categorical_equal(result, expected)
 
         # CI -> return CI
-        ci = CategoricalIndex(Categorical(list("baabc"), categories=list("bac")))
+        ci = CategoricalIndex(Categorical(list("baabc"), categories=list("abc")))
         expected = CategoricalIndex(expected)
         result = ci.unique()
         tm.assert_index_equal(result, expected)
@@ -842,6 +891,27 @@ class TestIsin:
         expected = np.array([True, True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype1", ["m8[ns]", "M8[ns]", "M8[ns, UTC]", "period[D]"])
+    @pytest.mark.parametrize("dtype", ["i8", "f8", "u8"])
+    def test_isin_datetimelike_values_numeric_comps(self, dtype, dtype1):
+        # Anything but object and we get all-False shortcut
+
+        dta = date_range("2013-01-01", periods=3)._values
+        if dtype1 == "period[D]":
+            # TODO: fix Series.view to get this on its own
+            arr = dta.to_period("D")
+        elif dtype1 == "M8[ns, UTC]":
+            # TODO: fix Series.view to get this on its own
+            arr = dta.tz_localize("UTC")
+        else:
+            arr = Series(dta.view("i8")).view(dtype1)._values
+
+        comps = arr.view("i8").astype(dtype)
+
+        result = algos.isin(comps, arr)
+        expected = np.zeros(comps.shape, dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_large(self):
         s = date_range("20000101", periods=2000000, freq="s").values
         result = algos.isin(s, s[0:2])
@@ -854,8 +924,8 @@ class TestIsin:
         # GH 16639
         vals = np.array([0, 1, 2, 0])
         cats = ["a", "b", "c"]
-        Sd = Series(Categorical(1).from_codes(vals, cats))
-        St = Series(Categorical(1).from_codes(np.array([0, 1]), cats))
+        Sd = Series(Categorical([1]).from_codes(vals, cats))
+        St = Series(Categorical([1]).from_codes(np.array([0, 1]), cats))
         expected = np.array([True, True, False, True])
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
@@ -863,8 +933,8 @@ class TestIsin:
     def test_categorical_isin(self):
         vals = np.array([0, 1, 2, 0])
         cats = ["a", "b", "c"]
-        cat = Categorical(1).from_codes(vals, cats)
-        other = Categorical(1).from_codes(np.array([0, 1]), cats)
+        cat = Categorical([1]).from_codes(vals, cats)
+        other = Categorical([1]).from_codes(np.array([0, 1]), cats)
 
         expected = np.array([True, True, False, True])
         result = algos.isin(cat, other)
@@ -990,7 +1060,6 @@ class TestIsin:
         expected = np.array([True, True])
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_int_df_string_search(self):
         """Comparing df with int`s (1,2) with a string at isin() ("1")
         -> should not match values because int 1 is not equal str 1"""
@@ -999,7 +1068,6 @@ class TestIsin:
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
-    @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_nan_df_string_search(self):
         """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
         -> should not match values because np.nan is not equal str NaN"""
@@ -1008,7 +1076,6 @@ class TestIsin:
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
-    @pytest.mark.xfail(reason="problem related with issue #34125")
     def test_isin_float_df_string_search(self):
         """Comparing df with floats (1.4245,2.32441) with a string at isin() ("1.4245")
         -> should not match values because float 1.4245 is not equal str 1.4245"""
@@ -1222,12 +1289,10 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
         arr = np.array([-1, 2 ** 63], dtype=object)
-        expected = Series([1, 1], index=[2 ** 63, -1])
+        expected = Series([1, 1], index=[-1, 2 ** 63])
         result = algos.value_counts(arr)
 
-        # 32-bit linux has a different ordering
-        if IS64:
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestDuplicated:
@@ -1427,7 +1492,7 @@ class TestDuplicated:
             )
 
     @pytest.mark.parametrize(
-        "arr, unique",
+        "arr, uniques",
         [
             (
                 [(0, 0), (0, 1), (1, 0), (1, 1), (0, 0), (0, 1), (1, 0), (1, 1)],
@@ -1440,12 +1505,27 @@ class TestDuplicated:
             ([("a", 1), ("b", 2), ("a", 3), ("a", 1)], [("a", 1), ("b", 2), ("a", 3)]),
         ],
     )
-    def test_unique_tuples(self, arr, unique):
+    def test_unique_tuples(self, arr, uniques):
         # https://github.com/pandas-dev/pandas/issues/16519
-        expected = np.empty(len(unique), dtype=object)
-        expected[:] = unique
+        expected = np.empty(len(uniques), dtype=object)
+        expected[:] = uniques
 
         result = pd.unique(arr)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected",
+        [
+            (
+                [1 + 1j, 0, 1, 1j, 1 + 2j, 1 + 2j],
+                # Should return a complex dtype in the future
+                np.array([(1 + 1j), 0j, (1 + 0j), 1j, (1 + 2j)], dtype=object),
+            )
+        ],
+    )
+    def test_unique_complex_numbers(self, array, expected):
+        # GH 17927
+        result = pd.unique(array)
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -1661,7 +1741,7 @@ def test_quantile():
 
 def test_unique_label_indices():
 
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype("i8")
+    a = np.random.randint(1, 1 << 10, 1 << 15).astype("int64")
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
@@ -1691,14 +1771,15 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self, writable):
+    @pytest.mark.parametrize("dtype", np.typecodes["AllInteger"])
+    def test_basic(self, writable, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        for dtype in np.typecodes["AllInteger"]:
-            data = np.array([1, 100], dtype=dtype)
-            data.setflags(write=writable)
-            s = Series(data)
-            tm.assert_numpy_array_equal(algos.rank(s), exp)
+        data = np.array([1, 100], dtype=dtype)
+        data.setflags(write=writable)
+        ser = Series(data)
+        result = algos.rank(ser)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_uint64_overflow(self):
         exp = np.array([1, 2], dtype=np.float64)
@@ -1733,19 +1814,19 @@ def test_pad_backfill_object_segfault():
     new = np.array([datetime(2010, 12, 31)], dtype="O")
 
     result = libalgos.pad["object"](old, new)
-    expected = np.array([-1], dtype=np.int64)
+    expected = np.array([-1], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.pad["object"](new, old)
-    expected = np.array([], dtype=np.int64)
+    expected = np.array([], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.backfill["object"](old, new)
-    expected = np.array([-1], dtype=np.int64)
+    expected = np.array([-1], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
 
     result = libalgos.backfill["object"](new, old)
-    expected = np.array([], dtype=np.int64)
+    expected = np.array([], dtype=np.intp)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -1771,7 +1852,7 @@ class TestTseriesUtil:
 
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
-        expect_filler = np.array([0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1], dtype=np.int64)
+        expect_filler = np.array([0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(filler, expect_filler)
 
         # corner case
@@ -1779,7 +1860,7 @@ class TestTseriesUtil:
         new = Index(list(range(5, 10)))
         filler = libalgos.backfill["int64_t"](old.values, new.values)
 
-        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
+        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(filler, expect_filler)
 
     def test_pad(self):
@@ -1788,14 +1869,14 @@ class TestTseriesUtil:
 
         filler = libalgos.pad["int64_t"](old.values, new.values)
 
-        expect_filler = np.array([-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2], dtype=np.int64)
+        expect_filler = np.array([-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(filler, expect_filler)
 
         # corner case
         old = Index([5, 10])
         new = Index(np.arange(5))
         filler = libalgos.pad["int64_t"](old.values, new.values)
-        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.int64)
+        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(filler, expect_filler)
 
 
@@ -2065,26 +2146,26 @@ def test_is_lexsorted():
 
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype(np.int64)
-    b = np.random.randint(0, 1000, 100).astype(np.int64)
+    a = np.random.randint(0, 1000, 100).astype(np.intp)
+    b = np.random.randint(0, 1000, 100).astype(np.intp)
 
     result = libalgos.groupsort_indexer(a, 1000)[0]
 
     # need to use a stable sort
     # np.argsort returns int, groupsort_indexer
-    # always returns int64
+    # always returns intp
     expected = np.argsort(a, kind="mergesort")
-    expected = expected.astype(np.int64)
+    expected = expected.astype(np.intp)
 
     tm.assert_numpy_array_equal(result, expected)
 
     # compare with lexsort
     # np.lexsort returns int, groupsort_indexer
-    # always returns int64
+    # always returns intp
     key = a * 1000 + b
     result = libalgos.groupsort_indexer(key, 1000000)[0]
     expected = np.lexsort((b, a))
-    expected = expected.astype(np.int64)
+    expected = expected.astype(np.intp)
 
     tm.assert_numpy_array_equal(result, expected)
 
@@ -2202,7 +2283,7 @@ def test_int64_add_overflow():
 
 class TestMode:
     def test_no_mode(self):
-        exp = Series([], dtype=np.float64)
+        exp = Series([], dtype=np.float64, index=Index([], dtype=int))
         tm.assert_series_equal(algos.mode([]), exp)
 
     def test_mode_single(self):
@@ -2359,14 +2440,24 @@ class TestDiff:
         with pytest.raises(ValueError, match=msg):
             algos.diff(dta, 1, axis=1)
 
+    @pytest.mark.parametrize("dtype", ["int8", "int16"])
+    def test_diff_low_precision_int(self, dtype):
+        arr = np.array([0, 1, 1, 0, 0], dtype=dtype)
+        result = algos.diff(arr, 1)
+        expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
+        tm.assert_numpy_array_equal(result, expected)
 
-@pytest.mark.parametrize(
-    "left_values", [[0, 1, 1, 4], [0, 1, 1, 4, 4], [0, 1, 1, 1, 4]]
-)
-def test_make_duplicates_of_left_unique_in_right(left_values):
-    # GH#36263
-    left = np.array(left_values)
-    right = np.array([0, 0, 1, 1, 4])
-    result = algos.make_duplicates_of_left_unique_in_right(left, right)
-    expected = np.array([0, 0, 1, 4])
-    tm.assert_numpy_array_equal(result, expected)
+
+@pytest.mark.parametrize("op", [np.array, pd.array])
+def test_union_with_duplicates(op):
+    # GH#36289
+    lvals = op([3, 1, 3, 4])
+    rvals = op([2, 3, 1, 1])
+    expected = op([3, 3, 1, 1, 4, 2])
+    if isinstance(expected, np.ndarray):
+        result = algos.union_with_duplicates(lvals, rvals)
+        tm.assert_numpy_array_equal(result, expected)
+    else:
+        with tm.assert_produces_warning(RuntimeWarning):
+            result = algos.union_with_duplicates(lvals, rvals)
+        tm.assert_extension_array_equal(result, expected)

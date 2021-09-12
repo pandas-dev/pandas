@@ -3,7 +3,14 @@ import json
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index, Series, json_normalize
+import pandas.util._test_decorators as td
+
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    json_normalize,
+)
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
@@ -98,6 +105,7 @@ def missing_metadata():
                     "zip": 44646,
                 }
             ],
+            "previous_residences": {"cities": [{"city_name": "Foo York City"}]},
         },
         {
             "addresses": [
@@ -108,7 +116,8 @@ def missing_metadata():
                     "state": "TN",
                     "zip": 37643,
                 }
-            ]
+            ],
+            "previous_residences": {"cities": [{"city_name": "Barmingham"}]},
         },
     ]
 
@@ -144,6 +153,8 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    # TODO(ArrayManager) sanitize S/U numpy dtypes to object
+    @td.skip_array_manager_not_yet_implemented
     def test_simple_normalize(self, state_data):
         result = json_normalize(state_data[0], "counties")
         expected = DataFrame(state_data[0]["counties"])
@@ -167,6 +178,24 @@ class TestJSONNormalize:
         result = json_normalize([])
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, record_path, exception_type",
+        [
+            ([{"a": 0}, {"a": 1}], None, None),
+            ({"a": [{"a": 0}, {"a": 1}]}, "a", None),
+            ('{"a": [{"a": 0}, {"a": 1}]}', None, NotImplementedError),
+            (None, None, NotImplementedError),
+        ],
+    )
+    def test_accepted_input(self, data, record_path, exception_type):
+        if exception_type is not None:
+            with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
+                json_normalize(data, record_path=record_path)
+        else:
+            result = json_normalize(data, record_path=record_path)
+            expected = DataFrame([0, 1], columns=["a"])
+            tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):
         # GH 14883
@@ -345,6 +374,8 @@ class TestJSONNormalize:
         for val in ["metafoo", "metabar", "foo", "bar"]:
             assert val in result
 
+    # TODO(ArrayManager) sanitize S/U numpy dtypes to object
+    @td.skip_array_manager_not_yet_implemented
     def test_record_prefix(self, state_data):
         result = json_normalize(state_data[0], "counties")
         expected = DataFrame(state_data[0]["counties"])
@@ -518,16 +549,27 @@ class TestJSONNormalize:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_generator(self, state_data):
+        # GH35923 Fix pd.json_normalize to not skip the first element of a
+        # generator input
+        def generator_data():
+            yield from state_data[0]["counties"]
+
+        result = json_normalize(generator_data())
+        expected = DataFrame(state_data[0]["counties"])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
-        recs = [dict(flat1=1, flat2=2), dict(flat1=3, flat2=4)]
+        recs = [{"flat1": 1, "flat2": 2}, {"flat3": 3, "flat2": 4}]
         result = nested_to_record(recs)
         expected = recs
         assert result == expected
 
     def test_one_level_deep_flattens(self):
-        data = dict(flat1=1, dict1=dict(c=1, d=2))
+        data = {"flat1": 1, "dict1": {"c": 1, "d": 2}}
 
         result = nested_to_record(data)
         expected = {"dict1.c": 1, "dict1.d": 2, "flat1": 1}
@@ -535,7 +577,11 @@ class TestNestedToRecord:
         assert result == expected
 
     def test_nested_flattens(self):
-        data = dict(flat1=1, dict1=dict(c=1, d=2), nested=dict(e=dict(c=1, d=2), d=2))
+        data = {
+            "flat1": 1,
+            "dict1": {"c": 1, "d": 2},
+            "nested": {"e": {"c": 1, "d": 2}, "d": 2},
+        }
 
         result = nested_to_record(data)
         expected = {
@@ -554,7 +600,10 @@ class TestNestedToRecord:
         # If meta keys are not always present a new option to set
         # errors='ignore' has been implemented
 
-        msg = "Try running with errors='ignore' as key 'name' is not always present"
+        msg = (
+            "Key 'name' not found. To replace missing values of "
+            "'name' with np.nan, pass in errors='ignore'"
+        )
         with pytest.raises(KeyError, match=msg):
             json_normalize(
                 data=missing_metadata,
@@ -574,8 +623,41 @@ class TestNestedToRecord:
             [9562, "Morris St.", "Massillon", "OH", 44646, "Alice"],
             [8449, "Spring St.", "Elizabethton", "TN", 37643, np.nan],
         ]
-        columns = ["city", "number", "state", "street", "zip", "name"]
         columns = ["number", "street", "city", "state", "zip", "name"]
+        expected = DataFrame(ex_data, columns=columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_missing_meta_multilevel_record_path_errors_raise(self, missing_metadata):
+        # GH41876
+        # Ensure errors='raise' works as intended even when a record_path of length
+        # greater than one is passed in
+        msg = (
+            "Key 'name' not found. To replace missing values of "
+            "'name' with np.nan, pass in errors='ignore'"
+        )
+        with pytest.raises(KeyError, match=msg):
+            json_normalize(
+                data=missing_metadata,
+                record_path=["previous_residences", "cities"],
+                meta="name",
+                errors="raise",
+            )
+
+    def test_missing_meta_multilevel_record_path_errors_ignore(self, missing_metadata):
+        # GH41876
+        # Ensure errors='ignore' works as intended even when a record_path of length
+        # greater than one is passed in
+        result = json_normalize(
+            data=missing_metadata,
+            record_path=["previous_residences", "cities"],
+            meta="name",
+            errors="ignore",
+        )
+        ex_data = [
+            ["Foo York City", "Alice"],
+            ["Barmingham", np.nan],
+        ]
+        columns = ["city_name", "name"]
         expected = DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 

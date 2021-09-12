@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame, Series, Timestamp
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    Timestamp,
+)
 import pandas._testing as tm
 
 
@@ -51,7 +56,8 @@ class TestDataFrameQuantile:
         # non-numeric exclusion
         df = DataFrame({"col1": ["A", "A", "B", "B"], "col2": [1, 2, 3, 4]})
         rs = df.quantile(0.5)
-        xp = df.median().rename(0.5)
+        with tm.assert_produces_warning(FutureWarning, match="Select only valid"):
+            xp = df.median().rename(0.5)
         tm.assert_series_equal(rs, xp)
 
         # axis
@@ -332,7 +338,7 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(res, exp)
 
-        # DatetimeBlock may be consolidated and contain NaT in different loc
+        # DatetimeLikeBlock may be consolidated and contain NaT in different loc
         df = DataFrame(
             {
                 "A": [
@@ -517,3 +523,202 @@ class TestDataFrameQuantile:
         expected = DataFrame([], index=[0.5], columns=[])
         expected.columns.name = "captain tightpants"
         tm.assert_frame_equal(result, expected)
+
+    def test_quantile_item_cache(self, using_array_manager):
+        # previous behavior incorrect retained an invalid _item_cache entry
+        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df["D"] = df["A"] * 2
+        ser = df["A"]
+        if not using_array_manager:
+            assert len(df._mgr.blocks) == 2
+
+        df.quantile(numeric_only=False)
+        ser.values[0] = 99
+
+        assert df.iloc[0, 0] == df["A"][0]
+
+
+class TestQuantileExtensionDtype:
+    # TODO: tests for axis=1?
+    # TODO: empty case?  might as well do dt64 and td64 here too
+
+    @pytest.fixture(
+        params=[
+            pytest.param(
+                pd.IntervalIndex.from_breaks(range(10)),
+                marks=pytest.mark.xfail(reason="raises when trying to add Intervals"),
+            ),
+            pd.period_range("2016-01-01", periods=9, freq="D"),
+            pd.date_range("2016-01-01", periods=9, tz="US/Pacific"),
+            pd.array(np.arange(9), dtype="Int64"),
+            pd.array(np.arange(9), dtype="Float64"),
+        ],
+        ids=lambda x: str(x.dtype),
+    )
+    def index(self, request):
+        # NB: not actually an Index object
+        idx = request.param
+        idx.name = "A"
+        return idx
+
+    @pytest.fixture
+    def obj(self, index, frame_or_series):
+        # bc index is not always an Index (yet), we need to re-patch .name
+        obj = frame_or_series(index).copy()
+
+        if frame_or_series is Series:
+            obj.name = "A"
+        else:
+            obj.columns = ["A"]
+        return obj
+
+    def compute_quantile(self, obj, qs):
+        if isinstance(obj, Series):
+            result = obj.quantile(qs)
+        else:
+            result = obj.quantile(qs, numeric_only=False)
+        return result
+
+    def test_quantile_ea(self, obj, index):
+
+        # result should be invariant to shuffling
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = [0.5, 0, 1]
+        result = self.compute_quantile(obj, qs)
+
+        # expected here assumes len(index) == 9
+        expected = Series(
+            [index[4], index[0], index[-1]], dtype=index.dtype, index=qs, name="A"
+        )
+        expected = type(obj)(expected)
+
+        tm.assert_equal(result, expected)
+
+    def test_quantile_ea_with_na(self, obj, index):
+
+        obj.iloc[0] = index._na_value
+        obj.iloc[-1] = index._na_value
+
+        # result should be invariant to shuffling
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = [0.5, 0, 1]
+        result = self.compute_quantile(obj, qs)
+
+        # expected here assumes len(index) == 9
+        expected = Series(
+            [index[4], index[1], index[-2]], dtype=index.dtype, index=qs, name="A"
+        )
+        expected = type(obj)(expected)
+        tm.assert_equal(result, expected)
+
+    # TODO: filtering can be removed after GH#39763 is fixed
+    @pytest.mark.filterwarnings("ignore:Using .astype to convert:FutureWarning")
+    def test_quantile_ea_all_na(self, obj, index, frame_or_series):
+
+        obj.iloc[:] = index._na_value
+
+        # TODO(ArrayManager): this casting should be unnecessary after GH#39763 is fixed
+        obj[:] = obj.astype(index.dtype)
+        assert np.all(obj.dtypes == index.dtype)
+
+        # result should be invariant to shuffling
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = [0.5, 0, 1]
+        result = self.compute_quantile(obj, qs)
+
+        expected = index.take([-1, -1, -1], allow_fill=True, fill_value=index._na_value)
+        expected = Series(expected, index=qs, name="A")
+        expected = type(obj)(expected)
+        tm.assert_equal(result, expected)
+
+    def test_quantile_ea_scalar(self, obj, index):
+        # scalar qs
+
+        # result should be invariant to shuffling
+        indexer = np.arange(len(index), dtype=np.intp)
+        np.random.shuffle(indexer)
+        obj = obj.iloc[indexer]
+
+        qs = 0.5
+        result = self.compute_quantile(obj, qs)
+
+        expected = Series({"A": index[4]}, dtype=index.dtype, name=0.5)
+        if isinstance(obj, Series):
+            expected = expected["A"]
+            assert result == expected
+        else:
+            tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected_data, expected_index, axis",
+        [
+            ["float64", [], [], 1],
+            ["int64", [], [], 1],
+            ["float64", [np.nan, np.nan], ["a", "b"], 0],
+            ["int64", [np.nan, np.nan], ["a", "b"], 0],
+        ],
+    )
+    def test_empty_numeric(self, dtype, expected_data, expected_index, axis):
+        # GH 14564
+        df = DataFrame(columns=["a", "b"], dtype=dtype)
+        result = df.quantile(0.5, axis=axis)
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype="float64"
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, expected_data, expected_index, axis, expected_dtype",
+        [
+            pytest.param(
+                "datetime64[ns]",
+                [],
+                [],
+                1,
+                "datetime64[ns]",
+                marks=pytest.mark.xfail(reason="#GH 41544"),
+            ),
+            ["datetime64[ns]", [pd.NaT, pd.NaT], ["a", "b"], 0, "datetime64[ns]"],
+        ],
+    )
+    def test_empty_datelike(
+        self, dtype, expected_data, expected_index, axis, expected_dtype
+    ):
+        # GH 14564
+        df = DataFrame(columns=["a", "b"], dtype=dtype)
+        result = df.quantile(0.5, axis=axis, numeric_only=False)
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype=expected_dtype
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected_data, expected_index, axis",
+        [
+            [[np.nan, np.nan], range(2), 1],
+            [[], [], 0],
+        ],
+    )
+    def test_datelike_numeric_only(self, expected_data, expected_index, axis):
+        # GH 14564
+        df = DataFrame(
+            {
+                "a": pd.to_datetime(["2010", "2011"]),
+                "b": [0, 5],
+                "c": pd.to_datetime(["2011", "2012"]),
+            }
+        )
+        result = df[["a", "c"]].quantile(0.5, axis=axis)
+        expected = Series(
+            expected_data, name=0.5, index=Index(expected_index), dtype=np.float64
+        )
+        tm.assert_series_equal(result, expected)

@@ -13,6 +13,7 @@ from pandas import (
     read_parquet,
     read_pickle,
     read_stata,
+    read_table,
 )
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
@@ -51,18 +52,16 @@ def test_reasonable_error(monkeypatch, cleared_fs):
     from fsspec.registry import known_implementations
 
     registry.target.clear()
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="nosuchprotocol"):
         read_csv("nosuchprotocol://test/test.csv")
-        assert "nosuchprotocol" in str(e.value)
-    err_mgs = "test error messgae"
+    err_msg = "test error message"
     monkeypatch.setitem(
         known_implementations,
         "couldexist",
-        {"class": "unimportable.CouldExist", "err": err_mgs},
+        {"class": "unimportable.CouldExist", "err": err_msg},
     )
-    with pytest.raises(ImportError) as e:
+    with pytest.raises(ImportError, match=err_msg):
         read_csv("couldexist://test/test.csv")
-        assert err_mgs in str(e.value)
 
 
 def test_to_csv(cleared_fs):
@@ -124,6 +123,17 @@ def test_csv_options(fsspectest):
     assert fsspectest.test[0] == "csv_read"
 
 
+def test_read_table_options(fsspectest):
+    # GH #39167
+    df = DataFrame({"a": [0]})
+    df.to_csv(
+        "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
+    )
+    assert fsspectest.test[0] == "csv_write"
+    read_table("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    assert fsspectest.test[0] == "csv_read"
+
+
 @pytest.mark.parametrize("extension", ["xlsx", "xls"])
 def test_excel_options(fsspectest, extension):
     if extension == "xls":
@@ -168,6 +178,7 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("fastparquet")
 def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
@@ -212,6 +223,7 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
     )
 
 
+@td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
 def test_s3_parquet(s3_resource, s3so):
@@ -225,9 +237,9 @@ def test_s3_parquet(s3_resource, s3so):
 
 @td.skip_if_installed("fsspec")
 def test_not_present_exception():
-    with pytest.raises(ImportError) as e:
+    msg = "Missing optional dependency 'fsspec'|fsspec library is required"
+    with pytest.raises(ImportError, match=msg):
         read_csv("memory://test/test.csv")
-        assert "fsspec library is required" in str(e.value)
 
 
 @td.skip_if_no("pyarrow")
@@ -249,11 +261,19 @@ def test_pickle_options(fsspectest):
     tm.assert_frame_equal(df, out)
 
 
-def test_json_options(fsspectest):
+def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
-    df.to_json("testmem://afile", storage_options={"test": "json_write"})
+    df.to_json(
+        "testmem://afile",
+        compression=compression,
+        storage_options={"test": "json_write"},
+    )
     assert fsspectest.test[0] == "json_write"
-    out = read_json("testmem://afile", storage_options={"test": "json_read"})
+    out = read_json(
+        "testmem://afile",
+        compression=compression,
+        storage_options={"test": "json_read"},
+    )
     assert fsspectest.test[0] == "json_read"
     tm.assert_frame_equal(df, out)
 

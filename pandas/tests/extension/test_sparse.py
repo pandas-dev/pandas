@@ -1,3 +1,19 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
+
 import numpy as np
 import pytest
 
@@ -202,6 +218,14 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
 
+    def test_fillna_no_op_returns_copy(self, data, request):
+        if np.isnan(data.fill_value):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="returns array with different fill value")
+            )
+        with tm.assert_produces_warning(PerformanceWarning):
+            super().test_fillna_no_op_returns_copy(data)
+
     def test_fillna_series_method(self, data_missing):
         with tm.assert_produces_warning(PerformanceWarning):
             super().test_fillna_limit_backfill(data_missing)
@@ -258,12 +282,13 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
-        df = pd.DataFrame({"A": arr})
+        df = pd.DataFrame({"A": arr}, copy=False)
 
         filled_val = df.iloc[0, 0]
         result = df.fillna(filled_val)
 
-        assert df.values.base is not result.values.base
+        if hasattr(df._mgr, "blocks"):
+            assert df.values.base is not result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
     def test_fillna_copy_series(self, data_missing):
@@ -335,18 +360,19 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     def test_astype_object_series(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock
+        #  to be ObjectBlock / resulting array to be np.dtype("object")
         ser = pd.Series(all_data, name="A")
         result = ser.astype(object)
-        assert is_object_dtype(result._data.blocks[0].dtype)
+        assert is_object_dtype(result.dtype)
+        assert is_object_dtype(result._mgr.array.dtype)
 
     def test_astype_object_frame(self, all_data):
         # Unlike the base class, we do not expect the resulting Block
-        #  to be ObjectBlock
+        #  to be ObjectBlock / resulting array to be np.dtype("object")
         df = pd.DataFrame({"A": all_data})
 
         result = df.astype(object)
-        assert is_object_dtype(result._data.blocks[0].dtype)
+        assert is_object_dtype(result._mgr.arrays[0].dtype)
 
         # FIXME: these currently fail; dont leave commented-out
         # check that we can compare the dtypes
@@ -377,9 +403,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # general, so we can't make the expected. This is tested elsewhere
             raise pytest.skip("Incorrected expected from Series.combine")
 
-    def test_error(self, data, all_arithmetic_operators):
-        pass
-
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
@@ -387,6 +410,22 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
+
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        if data.dtype.fill_value != 0:
+            pass
+        elif all_arithmetic_operators.strip("_") not in [
+            "mul",
+            "rmul",
+            "floordiv",
+            "rfloordiv",
+            "pow",
+            "mod",
+            "rmod",
+        ]:
+            mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
+            request.node.add_marker(mark)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
@@ -418,7 +457,7 @@ class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):
 
 
 class TestPrinting(BaseSparseTests, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Different repr", strict=True)
+    @pytest.mark.xfail(reason="Different repr")
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 

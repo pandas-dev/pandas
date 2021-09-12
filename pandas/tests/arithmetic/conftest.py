@@ -2,8 +2,25 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Float64Index, Int64Index, RangeIndex, UInt64Index
+from pandas import RangeIndex
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
+from pandas.core.computation import expressions as expr
+
+
+@pytest.fixture(
+    autouse=True, scope="module", params=[0, 1000000], ids=["numexpr", "python"]
+)
+def switch_numexpr_min_elements(request):
+    _MIN_ELEMENTS = expr._MIN_ELEMENTS
+    expr._MIN_ELEMENTS = request.param
+    yield request.param
+    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+
 
 # ------------------------------------------------------------------
 # Helper Functions
@@ -18,18 +35,6 @@ def id_func(x):
 
 
 # ------------------------------------------------------------------
-@pytest.fixture(
-    params=[
-        ("foo", None, None),
-        ("Egon", "Venkman", None),
-        ("NCC1701D", "NCC1701D", "NCC1701D"),
-    ]
-)
-def names(request):
-    """
-    A 3-tuple of names, the first two for operands, the last for a result.
-    """
-    return request.param
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])

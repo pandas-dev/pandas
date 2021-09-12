@@ -5,17 +5,27 @@ engine is set to 'python-fwf' internally.
 """
 
 from datetime import datetime
-from io import BytesIO, StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 from pathlib import Path
 
 import numpy as np
 import pytest
 
-import pandas as pd
-from pandas import DataFrame, DatetimeIndex
+from pandas.errors import EmptyDataError
+
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+)
 import pandas._testing as tm
 
-from pandas.io.parsers import EmptyDataError, read_csv, read_fwf
+from pandas.io.parsers import (
+    read_csv,
+    read_fwf,
+)
 
 
 def test_basic():
@@ -536,7 +546,7 @@ def test_variable_width_unicode():
         "\r\n"
     )
     encoding = "utf8"
-    kwargs = dict(header=None, encoding=encoding)
+    kwargs = {"header": None, "encoding": encoding}
 
     expected = read_fwf(
         BytesIO(data.encode(encoding)), colspecs=[(0, 4), (5, 9)], **kwargs
@@ -545,7 +555,7 @@ def test_variable_width_unicode():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", [dict(), {"a": "float64", "b": str, "c": "int32"}])
+@pytest.mark.parametrize("dtype", [{}, {"a": "float64", "b": str, "c": "int32"}])
 def test_dtype(dtype):
     data = """ a    b    c
 1    2    3.2
@@ -647,7 +657,7 @@ def test_fwf_compression(compression_only, infer):
     compression = compression_only
     extension = "gz" if compression == "gzip" else compression
 
-    kwargs = dict(widths=[5, 5], names=["one", "two"])
+    kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
 
     data = bytes(data, encoding="utf-8")
@@ -676,7 +686,7 @@ bba bab b a"""
     with tm.ensure_clean() as path:
         Path(path).write_text(data)
         with open(path, "rb") as file:
-            df = pd.read_fwf(file)
+            df = read_fwf(file)
             file.seek(0)
             tm.assert_frame_equal(df, df_reference)
 
@@ -690,7 +700,7 @@ def test_encoding_mmap(memory_map):
     """
     encoding = "iso8859_1"
     data = BytesIO(" 1 A Ä 2\n".encode(encoding))
-    df = pd.read_fwf(
+    df = read_fwf(
         data,
         header=None,
         widths=[2, 2, 2, 2],
@@ -700,3 +710,146 @@ def test_encoding_mmap(memory_map):
     data.seek(0)
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
+
+
+@pytest.mark.parametrize(
+    "colspecs, names, widths, index_col",
+    [
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            None,
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            None,
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            True,
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            False,
+        ),
+        (
+            None,
+            list("abcde"),
+            [6] * 4,
+            True,
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abcde"),
+            None,
+            False,
+        ),
+    ],
+)
+def test_len_colspecs_len_names(colspecs, names, widths, index_col):
+    # GH#40830
+    data = """col1  col2  col3  col4
+    bab   ba    2"""
+    msg = "Length of colspecs must match length of names"
+    with pytest.raises(ValueError, match=msg):
+        read_fwf(
+            StringIO(data),
+            colspecs=colspecs,
+            names=names,
+            widths=widths,
+            index_col=index_col,
+        )
+
+
+@pytest.mark.parametrize(
+    "colspecs, names, widths, index_col, expected",
+    [
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("abc"),
+            None,
+            0,
+            DataFrame(
+                index=["col1", "ba"],
+                columns=["a", "b", "c"],
+                data=[["col2", "col3", "col4"], ["b   ba", "2", np.nan]],
+            ),
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("ab"),
+            None,
+            [0, 1],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"]],
+                columns=["a", "b"],
+                data=[["col3", "col4"], ["2", np.nan]],
+            ),
+        ),
+        (
+            [(0, 6), (6, 12), (12, 18), (18, None)],
+            list("a"),
+            None,
+            [0, 1, 2],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
+                columns=["a"],
+                data=[["col4"], [np.nan]],
+            ),
+        ),
+        (
+            None,
+            list("abc"),
+            [6] * 4,
+            0,
+            DataFrame(
+                index=["col1", "ba"],
+                columns=["a", "b", "c"],
+                data=[["col2", "col3", "col4"], ["b   ba", "2", np.nan]],
+            ),
+        ),
+        (
+            None,
+            list("ab"),
+            [6] * 4,
+            [0, 1],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"]],
+                columns=["a", "b"],
+                data=[["col3", "col4"], ["2", np.nan]],
+            ),
+        ),
+        (
+            None,
+            list("a"),
+            [6] * 4,
+            [0, 1, 2],
+            DataFrame(
+                index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
+                columns=["a"],
+                data=[["col4"], [np.nan]],
+            ),
+        ),
+    ],
+)
+def test_len_colspecs_len_names_with_index_col(
+    colspecs, names, widths, index_col, expected
+):
+    # GH#40830
+    data = """col1  col2  col3  col4
+    bab   ba    2"""
+    result = read_fwf(
+        StringIO(data),
+        colspecs=colspecs,
+        names=names,
+        widths=widths,
+        index_col=index_col,
+    )
+    tm.assert_frame_equal(result, expected)
