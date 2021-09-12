@@ -121,6 +121,10 @@ usecols : int, str, list-like, or callable default None
     Returns a subset of the columns according to behavior above.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+
+    .. deprecated:: 1.4.0
+       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
+       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -337,7 +341,7 @@ def read_excel(
     names=None,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     dtype: DtypeArg | None = None,
     engine=None,
     converters=None,
@@ -404,6 +408,10 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+        # First argument can also be bytes, so create a buffer
+        if isinstance(filepath_or_buffer, bytes):
+            filepath_or_buffer = BytesIO(filepath_or_buffer)
+
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
         )
@@ -422,8 +430,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             except Exception:
                 self.close()
                 raise
-        elif isinstance(self.handles.handle, bytes):
-            self.book = self.load_workbook(BytesIO(self.handles.handle))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -481,7 +487,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         dtype: DtypeArg | None = None,
         true_values=None,
         false_values=None,
@@ -1111,7 +1117,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
         a file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -1169,6 +1175,10 @@ class ExcelFile:
     ):
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
+
+        # First argument can also be bytes, so create a buffer
+        if isinstance(path_or_buffer, bytes):
+            path_or_buffer = BytesIO(path_or_buffer)
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
@@ -1243,7 +1253,7 @@ class ExcelFile:
         names=None,
         index_col=None,
         usecols=None,
-        squeeze=False,
+        squeeze=None,
         converters=None,
         true_values=None,
         false_values=None,

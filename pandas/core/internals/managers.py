@@ -66,6 +66,7 @@ from pandas.core.internals.base import (
 from pandas.core.internals.blocks import (
     Block,
     DatetimeTZBlock,
+    NumpyBlock,
     ensure_block_shape,
     extend_blocks,
     get_block_type,
@@ -613,6 +614,8 @@ class BaseBlockManager(DataManager):
         copy: bool = True,
         consolidate: bool = True,
         only_slice: bool = False,
+        *,
+        use_na_proxy: bool = False,
     ) -> T:
         """
         Parameters
@@ -627,6 +630,8 @@ class BaseBlockManager(DataManager):
             Whether to consolidate inplace before reindexing.
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
+        use_na_proxy : bool, default False
+            Whether to use a np.void ndarray for newly introduced columns.
 
         pandas-indexer with -1's only.
         """
@@ -651,7 +656,10 @@ class BaseBlockManager(DataManager):
 
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(
-                indexer, fill_value=fill_value, only_slice=only_slice
+                indexer,
+                fill_value=fill_value,
+                only_slice=only_slice,
+                use_na_proxy=use_na_proxy,
             )
         else:
             new_blocks = [
@@ -675,6 +683,8 @@ class BaseBlockManager(DataManager):
         slice_or_indexer: slice | np.ndarray,
         fill_value=lib.no_default,
         only_slice: bool = False,
+        *,
+        use_na_proxy: bool = False,
     ) -> list[Block]:
         """
         Slice/take blocks along axis=0.
@@ -688,6 +698,8 @@ class BaseBlockManager(DataManager):
         only_slice : bool, default False
             If True, we always return views on existing arrays, never copies.
             This is used when called from ops.blockwise.operate_blockwise.
+        use_na_proxy : bool, default False
+            Whether to use a np.void ndarray for newly introduced columns.
 
         Returns
         -------
@@ -756,7 +768,11 @@ class BaseBlockManager(DataManager):
                 # If we've got here, fill_value was not lib.no_default
 
                 blocks.append(
-                    self._make_na_block(placement=mgr_locs, fill_value=fill_value)
+                    self._make_na_block(
+                        placement=mgr_locs,
+                        fill_value=fill_value,
+                        use_na_proxy=use_na_proxy,
+                    )
                 )
             else:
                 blk = self.blocks[blkno]
@@ -798,7 +814,16 @@ class BaseBlockManager(DataManager):
 
         return blocks
 
-    def _make_na_block(self, placement: BlockPlacement, fill_value=None) -> Block:
+    def _make_na_block(
+        self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
+    ) -> Block:
+
+        if use_na_proxy:
+            assert fill_value is None
+            shape = (len(placement), self.shape[1])
+            vals = np.empty(shape, dtype=np.void)
+            nb = NumpyBlock(vals, placement, ndim=2)
+            return nb
 
         if fill_value is None:
             fill_value = np.nan
@@ -973,24 +998,25 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Used in the JSON C code to access column arrays.
         This optimizes compared to using `iget_values` by converting each
-        block.values to a np.ndarray only once up front
         """
-        # special casing datetimetz to avoid conversion through object dtype
-        arrays = [
-            blk.values._ndarray
-            if isinstance(blk, DatetimeTZBlock)
-            else np.asarray(blk.values)
-            for blk in self.blocks
-        ]
-        result = []
-        for i in range(len(self.items)):
-            arr = arrays[self.blknos[i]]
-            if arr.ndim == 2:
-                values = arr[self.blklocs[i]]
+        # This is an optimized equivalent to
+        #  result = [self.iget_values(i) for i in range(len(self.items))]
+        result: list[np.ndarray | None] = [None] * len(self.items)
+
+        for blk in self.blocks:
+            mgr_locs = blk._mgr_locs
+            values = blk.values_for_json()
+            if values.ndim == 1:
+                # TODO(EA2D): special casing not needed with 2D EAs
+                result[mgr_locs[0]] = values
+
             else:
-                values = arr
-            result.append(values)
-        return result
+                for i, loc in enumerate(mgr_locs):
+                    result[loc] = values[i]
+
+        # error: Incompatible return value type (got "List[None]",
+        # expected "List[ndarray[Any, Any]]")
+        return result  # type: ignore[return-value]
 
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """
