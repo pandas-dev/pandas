@@ -1,0 +1,45 @@
+.. _whatsnew_134:
+
+What's new in 1.3.4 (October ??, 2021)
+--------------------------------------
+
+These are the changes in pandas 1.3.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.3..v1.3.4|HEAD
