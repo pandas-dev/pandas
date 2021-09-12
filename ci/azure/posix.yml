@@ -15,7 +15,7 @@ jobs:
           PATTERN: "not slow and not network"
           PYTEST_TARGET: "pandas/tests/[a-h]*"
         py37_macos_2:
-          ENV_FILE: ci/deps/azure-macos-38.yaml
+          ENV_FILE: ci/deps/azure-macos-37.yaml
           CONDA_PY: "37"
           PATTERN: "not slow and not network"
           PYTEST_TARGET: "pandas/tests/[i-z]*"
