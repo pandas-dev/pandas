@@ -2648,6 +2648,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
         )
 
+        # Put '-1' (NaN) labels as the last group so it does not interfere
+        # with the calculations. Note: length check avoids failure on empty
+        # labels. In that case, the value doesn't matter
+        na_label_for_sorting = ids.max() + 1 if len(ids) > 0 else 0
+        labels_for_lexsort = np.where(ids == -1, na_label_for_sorting, ids)
+
         def blk_func(values: ArrayLike) -> ArrayLike:
             mask = isna(values)
             vals, inference = pre_processor(values)
@@ -2655,17 +2661,26 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             ncols = 1
             if vals.ndim == 2:
                 ncols = vals.shape[0]
+                shaped_labels = np.broadcast_to(
+                    labels_for_lexsort, (ncols, len(labels_for_lexsort))
+                )
+            else:
+                shaped_labels = labels_for_lexsort
 
             out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
 
-            if vals.ndim == 1:
-                func(out[0], values=vals, mask=mask)
-            else:
-                for i in range(ncols):
-                    func(out[i], values=vals[i], mask=mask[i])
+            # Get an index of values sorted by values and then labels
+            order = (vals, shaped_labels)
+            sort_arr = np.lexsort(order).astype(np.intp, copy=False)
 
             if vals.ndim == 1:
-                out = out[0].ravel("K")
+                func(out[0], values=vals, mask=mask, sort_indexer=sort_arr)
+            else:
+                for i in range(ncols):
+                    func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
+
+            if vals.ndim == 1:
+                out = out.ravel("K")
             else:
                 out = out.reshape(ncols, ngroups * nqs)
             return post_processor(out, inference)
