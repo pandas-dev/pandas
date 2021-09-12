@@ -538,8 +538,21 @@ class Apply(metaclass=abc.ABCMeta):
             raise SpecificationError("nested renamer is not supported")
 
         if obj.ndim != 1:
+
+            # Check if it is an aggregate over multiple columns,
+            #   this means a tuple of columns has been passed,
+            #   so we need to unnest to check fo non existing columns.
+            func_keys = set()
+            for func_key in func.keys():
+                if is_list_like(func_key):
+                    # a tuple of columns has been passed, we unnest.
+                    for key in func_key:
+                        func_keys.add(key)
+                else:
+                    func_keys.add(func_key)
+
             # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
+            cols = func_keys - set(obj.columns)
             if len(cols) > 0:
                 cols_sorted = list(safe_sort(list(cols)))
                 raise KeyError(f"Column(s) {cols_sorted} do not exist")
