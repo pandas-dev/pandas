@@ -1515,11 +1515,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return func(sp_min_max, self.fill_value)
             else:
                 return sp_min_max
+        elif has_nonnull_fill_vals:
+            return self.fill_value
         else:
-            if has_nonnull_fill_vals:
-                return self.fill_value
-            else:
-                return na_value_for_dtype(self.dtype.subtype)
+            return na_value_for_dtype(self.dtype.subtype)
 
     # ------------------------------------------------------------------------
     # Ufuncs
