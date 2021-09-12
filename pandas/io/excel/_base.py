@@ -1106,7 +1106,7 @@ def inspect_excel_format(
         return "zip"
 
 
-jupyterclass ExcelFile:
+class ExcelFile:
     """
     Class for parsing tabular excel sheets into DataFrame objects.
 
