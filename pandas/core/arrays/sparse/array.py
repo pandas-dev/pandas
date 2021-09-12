@@ -97,7 +97,12 @@ if TYPE_CHECKING:
 
     Ellipsis = ellipsis.Ellipsis
 
-    from pandas._typing import NumpySorter
+    from scipy.sparse import spmatrix
+
+    from pandas._typing import (
+        FillnaOptions,
+        NumpySorter,
+    )
 
     from pandas import Series
 
@@ -139,7 +144,7 @@ def _get_fill(arr: SparseArray) -> np.ndarray:
 
 def _sparse_array_op(
     left: SparseArray, right: SparseArray, op: Callable, name: str
-) -> Any:
+) -> SparseArray:
     """
     Perform a binary operation between two arrays.
 
@@ -227,7 +232,9 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
-def _wrap_result(name, data, sparse_index, fill_value, dtype: Dtype | None = None):
+def _wrap_result(
+    name: str, data, sparse_index, fill_value, dtype: Dtype | None = None
+) -> SparseArray:
     """
     wrap op result to have correct dtype
     """
@@ -498,7 +505,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return new
 
     @classmethod
-    def from_spmatrix(cls, data):
+    def from_spmatrix(cls: type[SparseArrayT], data: spmatrix) -> SparseArrayT:
         """
         Create a SparseArray from a scipy.sparse matrix.
 
@@ -688,7 +695,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         dtype = SparseDtype(bool, self._null_fill_value)
         return type(self)._simple_new(isna(self.sp_values), self.sp_index, dtype)
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(
+        self: SparseArrayT,
+        value=None,
+        method: FillnaOptions | None = None,
+        limit: int | None = None,
+    ) -> SparseArrayT:
         """
         Fill missing values with `value`.
 
@@ -743,7 +755,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
 
-    def shift(self, periods: int = 1, fill_value=None):
+    def shift(self: SparseArrayT, periods: int = 1, fill_value=None) -> SparseArrayT:
 
         if not len(self) or periods == 0:
             return self.copy()
@@ -789,7 +801,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         diff = indices[1:] - indices[:-1]
         return np.searchsorted(diff, 2) + 1
 
-    def unique(self):
+    def unique(self: SparseArrayT) -> SparseArrayT:
         uniques = list(algos.unique(self.sp_values))
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
@@ -800,17 +812,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Still override this for hash_pandas_object
         return np.asarray(self), self.fill_value
 
-    def factorize(self, na_sentinel=-1):
+    def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, SparseArray]:
         # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
         # The sparsity on this is backwards from what Sparse would want. Want
         # ExtensionArray.factorize -> Tuple[EA, EA]
         # Given that we have to return a dense array of codes, why bother
         # implementing an efficient factorize?
         codes, uniques = algos.factorize(np.asarray(self), na_sentinel=na_sentinel)
-        # error: Incompatible types in assignment (expression has type "SparseArray",
-        # variable has type "Union[ndarray, Index]")
-        uniques = SparseArray(uniques, dtype=self.dtype)  # type: ignore[assignment]
-        return codes, uniques
+        uniques_sp = SparseArray(uniques, dtype=self.dtype)
+        return codes, uniques_sp
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -928,8 +938,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return val
 
     def take(
-        self, indices, *, allow_fill: bool = False, fill_value=None
-    ) -> SparseArray:
+        self: SparseArrayT, indices, *, allow_fill: bool = False, fill_value=None
+    ) -> SparseArrayT:
         if is_scalar(indices):
             raise ValueError(f"'indices' must be an array, not a scalar '{indices}'.")
         indices = np.asarray(indices, dtype=np.int32)
@@ -1220,7 +1230,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sp_values, self.sp_index, dtype  # type: ignore[arg-type]
         )
 
-    def map(self, mapper):
+    def map(self: SparseArrayT, mapper) -> SparseArrayT:
         """
         Map categories using input correspondence (dict, Series, or function).
 
@@ -1272,7 +1282,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
 
-    def to_dense(self):
+    def to_dense(self) -> np.ndarray:
         """
         Convert SparseArray to a NumPy array.
 
@@ -1405,7 +1415,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
 
-    def cumsum(self, axis=0, *args, **kwargs):
+    def cumsum(self, axis: int = 0, *args, **kwargs) -> SparseArray:
         """
         Cumulative sum of non-NA/null values.
 
