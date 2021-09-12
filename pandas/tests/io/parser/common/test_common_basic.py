@@ -506,6 +506,14 @@ def test_raise_on_sep_with_delim_whitespace(all_parsers):
         parser.read_csv(StringIO(data), sep=r"\s", delim_whitespace=True)
 
 
+def test_read_filepath_or_buffer(all_parsers):
+    # see gh-43366
+    parser = all_parsers
+
+    with pytest.raises(TypeError, match="Expected file path name or file-like"):
+        parser.read_csv(filepath_or_buffer=b"input")
+
+
 @xfail_pyarrow
 @pytest.mark.parametrize("delim_whitespace", [True, False])
 def test_single_char_leading_whitespace(all_parsers, delim_whitespace):

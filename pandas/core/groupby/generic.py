@@ -26,10 +26,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    reduction as libreduction,
-)
+from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
@@ -160,6 +157,19 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 @pin_allowlisted_properties(Series, base.series_apply_allowlist)
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
+
+    def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
+        single = mgr.iget(0)
+        ser = self.obj._constructor(single, name=self.obj.name)
+        ser.index = self.grouper.result_index
+        return ser
+
+    def _get_data_to_aggregate(self) -> Manager2D:
+        obj = self._obj_with_exclusions
+        df = obj.to_frame()
+        df.columns = [obj.name]  # in case name is None, we need to overwrite [0]
+
+        return df._mgr
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -768,48 +778,6 @@ class SeriesGroupBy(GroupBy[Series]):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self.obj.name)
 
-    def count(self) -> Series:
-        """
-        Compute count of group, excluding missing values.
-
-        Returns
-        -------
-        Series
-            Count of values within each group.
-        """
-        ids, _, ngroups = self.grouper.group_info
-        val = self.obj._values
-
-        mask = (ids != -1) & ~isna(val)
-        minlength = ngroups or 0
-        out = np.bincount(ids[mask], minlength=minlength)
-
-        result = self.obj._constructor(
-            out,
-            index=self.grouper.result_index,
-            name=self.obj.name,
-            dtype="int64",
-        )
-        return self._reindex_output(result, fill_value=0)
-
-    def pct_change(self, periods=1, fill_method="pad", limit=None, freq=None):
-        """Calculate pct_change of each value to previous entry in group"""
-        # TODO: Remove this conditional when #23918 is fixed
-        if freq:
-            return self.apply(
-                lambda x: x.pct_change(
-                    periods=periods, fill_method=fill_method, limit=limit, freq=freq
-                )
-            )
-        if fill_method is None:  # GH30463
-            fill_method = "pad"
-            limit = 0
-        filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(self.grouper.codes)
-        shifted = fill_grp.shift(periods=periods, freq=freq)
-
-        return (filled / shifted) - 1
-
     @doc(Series.nlargest)
     def nlargest(self, n: int = 5, keep: str = "first"):
         f = partial(Series.nlargest, n=n, keep=keep)
@@ -1086,20 +1054,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_resample_apply_product
 
         obj = self._obj_with_exclusions
-        result: dict[int | str, NDFrame] = {}
-        for i, item in enumerate(obj):
-            ser = obj.iloc[:, i]
-            colg = SeriesGroupBy(
-                ser, selection=item, grouper=self.grouper, exclusions=self.exclusions
-            )
+        result: dict[int, NDFrame] = {}
 
-            result[i] = colg.aggregate(func, *args, **kwargs)
+        for i, (item, sgb) in enumerate(self._iterate_column_groupbys(obj)):
+            result[i] = sgb.aggregate(func, *args, **kwargs)
 
         res_df = self.obj._constructor(result)
         res_df.columns = obj.columns
         return res_df
 
-    def _wrap_applied_output(self, data, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, data: DataFrame, values: list, not_indexed_same: bool = False
+    ):
 
         if len(values) == 0:
             result = self.obj._constructor(
@@ -1135,9 +1101,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
-                result = self.obj._constructor(
-                    values, index=key_index, columns=[self._selection]
-                )
+                result = self.obj._constructor(values, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
         else:
@@ -1168,11 +1132,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied_index = self._selected_obj._get_axis(self.axis)
             singular_series = len(values) == 1 and applied_index.nlevels == 1
 
-            # assign the name to this series
             if singular_series:
-                keys = self.grouper.group_keys_seq
-                values[0].name = keys[0]
-
                 # GH2893
                 # we have series in the values array, we want to
                 # produce a series:
@@ -1372,14 +1332,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  gets here with non-unique columns
         output = {}
         inds = []
-        for i, col in enumerate(obj):
-            subset = obj.iloc[:, i]
-            sgb = SeriesGroupBy(
-                subset,
-                selection=col,
-                grouper=self.grouper,
-                exclusions=self.exclusions,
-            )
+        for i, (colname, sgb) in enumerate(self._iterate_column_groupbys(obj)):
             try:
                 output[i] = sgb.transform(wrapper)
             except TypeError:
@@ -1615,40 +1568,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return DataFrame([], columns=columns, index=self.grouper.result_index)
         else:
             return concat(results, keys=columns, axis=1)
-
-    def count(self) -> DataFrame:
-        """
-        Compute count of group, excluding missing values.
-
-        Returns
-        -------
-        DataFrame
-            Count of values within each group.
-        """
-        data = self._get_data_to_aggregate()
-        ids, _, ngroups = self.grouper.group_info
-        mask = ids != -1
-
-        def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(2DEA): reshape would not be necessary with 2D EAs
-            if bvalues.ndim == 1:
-                # EA
-                masked = mask & ~isna(bvalues).reshape(1, -1)
-            else:
-                masked = mask & ~isna(bvalues)
-
-            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
-            return counted
-
-        new_mgr = data.grouped_reduce(hfunc)
-
-        # If we are grouping on categoricals we want unobserved categories to
-        # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_agged_manager() returns. GH 35028
-        with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_manager(new_mgr)
-
-        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True) -> DataFrame:
         """
