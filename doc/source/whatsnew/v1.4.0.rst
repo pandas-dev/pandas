@@ -300,7 +300,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
-- :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`?`)
+- :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -436,7 +436,8 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``AttributeError`` when column names are not unique (:issue:`29564`)
-- Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` raising ``ValueError`` for arrays with 0 non-null elements (:issue:`?`)
+- Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` raising ``ValueError`` for arrays with 0 non-null elements (:issue:`43527`)
+-
 -
 
 ExtensionArray
