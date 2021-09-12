@@ -3390,7 +3390,11 @@ class DataFrame(NDFrame, OpsMixin):
 
         else:
             new_arr = self.values.T
-            common_dtype = find_common_type(dtypes) if len(dtypes) > 0 else None
+            common_dtype = None
+            if len(dtypes) > 0:
+                common_dtype = find_common_type(dtypes)
+                if common_dtype is object:
+                    common_dtype = None
             result = self._constructor(
                 new_arr,
                 index=self.columns,
