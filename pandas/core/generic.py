@@ -6216,64 +6216,66 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
         ...                    [3, 4, np.nan, 1],
-        ...                    [np.nan, np.nan, np.nan, 5],
+        ...                    [np.nan, np.nan, np.nan, np.nan],
         ...                    [np.nan, 3, np.nan, 4]],
         ...                   columns=list("ABCD"))
         >>> df
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
-        2  NaN  NaN NaN  5
-        3  NaN  3.0 NaN  4
+             A    B   C    D
+        0  NaN  2.0 NaN  0.0
+        1  3.0  4.0 NaN  1.0
+        2  NaN  NaN NaN  NaN
+        3  NaN  3.0 NaN  4.0
 
         Replace all NaN elements with 0s.
 
         >>> df.fillna(0)
-            A   B   C   D
-        0   0.0 2.0 0.0 0
-        1   3.0 4.0 0.0 1
-        2   0.0 0.0 0.0 5
-        3   0.0 3.0 0.0 4
+             A    B    C    D
+        0  0.0  2.0  0.0  0.0
+        1  3.0  4.0  0.0  1.0
+        2  0.0  0.0  0.0  0.0
+        3  0.0  3.0  0.0  4.0
 
         We can also propagate non-null values forward or backward.
 
         >>> df.fillna(method="ffill")
-            A   B   C   D
-        0   NaN 2.0 NaN 0
-        1   3.0 4.0 NaN 1
-        2   3.0 4.0 NaN 5
-        3   3.0 3.0 NaN 4
+             A    B   C    D
+        0  NaN  2.0 NaN  0.0
+        1  3.0  4.0 NaN  1.0
+        2  3.0  4.0 NaN  1.0
+        3  3.0  3.0 NaN  4.0
 
         Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
         2, and 3 respectively.
 
         >>> values = {{"A": 0, "B": 1, "C": 2, "D": 3}}
         >>> df.fillna(value=values)
-            A   B   C   D
-        0   0.0 2.0 2.0 0
-        1   3.0 4.0 2.0 1
-        2   0.0 1.0 2.0 5
-        3   0.0 3.0 2.0 4
+             A    B    C    D
+        0  0.0  2.0  2.0  0.0
+        1  3.0  4.0  2.0  1.0
+        2  0.0  1.0  2.0  3.0
+        3  0.0  3.0  2.0  4.0
 
         Only replace the first NaN element.
 
         >>> df.fillna(value=values, limit=1)
-            A   B   C   D
-        0   0.0 2.0 2.0 0
-        1   3.0 4.0 NaN 1
-        2   NaN 1.0 NaN 5
-        3   NaN 3.0 NaN 4
+             A    B    C    D
+        0  0.0  2.0  2.0  0.0
+        1  3.0  4.0  NaN  1.0
+        2  NaN  1.0  NaN  3.0
+        3  NaN  3.0  NaN  4.0
 
         When filling using a DataFrame, replacement happens along
         the same column names and same indices
 
         >>> df2 = pd.DataFrame(np.zeros((4, 4)), columns=list("ABCE"))
         >>> df.fillna(df2)
-            A   B   C   D
-        0   0.0 2.0 0.0 0
-        1   3.0 4.0 0.0 1
-        2   0.0 0.0 0.0 5
-        3   0.0 3.0 0.0 4
+             A    B    C    D
+        0  0.0  2.0  0.0  0.0
+        1  3.0  4.0  0.0  1.0
+        2  0.0  0.0  0.0  NaN
+        3  0.0  3.0  0.0  4.0
+
+        Note that column D is not affected since it is not present in df2.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
@@ -6339,9 +6341,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in value.items():
                     if k not in result:
                         continue
-                    obj = result[k]
                     downcast_k = downcast if not is_dict else downcast.get(k)
-                    obj.fillna(v, limit=limit, inplace=True, downcast=downcast_k)
+                    result[k] = result[k].fillna(v, limit=limit, downcast=downcast_k)
                 return result if not inplace else None
 
             elif not is_list_like(value):
@@ -7607,8 +7608,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self: FrameOrSeries,
         start_time,
         end_time,
-        include_start: bool_t = True,
-        include_end: bool_t = True,
+        include_start: bool_t | lib.NoDefault = lib.no_default,
+        include_end: bool_t | lib.NoDefault = lib.no_default,
+        inclusive: str | None = None,
         axis=None,
     ) -> FrameOrSeries:
         """
@@ -7625,8 +7627,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             End time as a time filter limit.
         include_start : bool, default True
             Whether the start time needs to be included in the result.
+
+            .. deprecated:: 1.4.0
+               Arguments `include_start` and `include_end` have been deprecated
+               to standardize boundary inputs. Use `inclusive` instead, to set
+               each bound as closed or open.
         include_end : bool, default True
             Whether the end time needs to be included in the result.
+
+            .. deprecated:: 1.4.0
+               Arguments `include_start` and `include_end` have been deprecated
+               to standardize boundary inputs. Use `inclusive` instead, to set
+               each bound as closed or open.
+        inclusive : {"both", "neither", "left", "right"}, default "both"
+            Include boundaries; whether to set each bound as closed or open.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine range time on index or columns value.
 
@@ -7680,8 +7694,46 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
+        if (include_start != lib.no_default or include_end != lib.no_default) and (
+            inclusive is not None
+        ):
+            raise ValueError(
+                "Deprecated arguments `include_start` and `include_end` "
+                "cannot be passed if `inclusive` has been given."
+            )
+        # If any of the deprecated arguments ('include_start', 'include_end')
+        # have been passed
+        elif (include_start != lib.no_default) or (include_end != lib.no_default):
+            warnings.warn(
+                "`include_start` and `include_end` are deprecated in "
+                "favour of `inclusive`.",
+                FutureWarning,
+                stacklevel=2,
+            )
+            left = True if isinstance(include_start, lib.NoDefault) else include_start
+            right = True if isinstance(include_end, lib.NoDefault) else include_end
+
+            inc_dict = {
+                (True, True): "both",
+                (True, False): "left",
+                (False, True): "right",
+                (False, False): "neither",
+            }
+            inclusive = inc_dict[(left, right)]
+        else:  # On arg removal inclusive can default to "both"
+            if inclusive is None:
+                inclusive = "both"
+            elif inclusive not in ["both", "neither", "left", "right"]:
+                raise ValueError(
+                    f"Inclusive has to be either string of 'both', "
+                    f"'left', 'right', or 'neither'. Got {inclusive}."
+                )
+
         indexer = index.indexer_between_time(
-            start_time, end_time, include_start=include_start, include_end=include_end
+            start_time,
+            end_time,
+            include_start=inclusive in ["both", "left"],
+            include_end=inclusive in ["both", "right"],
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
@@ -8251,8 +8303,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         start_date = self.index[-1] - offset
         start = self.index.searchsorted(start_date, side="right")
-        # error: Slice index must be an integer or None
-        return self.iloc[start:]  # type: ignore[misc]
+        return self.iloc[start:]
 
     @final
     def rank(

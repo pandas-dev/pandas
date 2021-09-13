@@ -8,6 +8,7 @@ from pandas import (
     CategoricalDtype,
     CategoricalIndex,
     DataFrame,
+    DatetimeIndex,
     Index,
     MultiIndex,
     Series,
@@ -364,3 +365,26 @@ class TestGetitemSlice:
 
         result = obj.loc[start:end]
         tm.assert_equal(result, expected)
+
+    def test_getitem_datetime_slice(self):
+        # GH#43223
+        df = DataFrame(
+            {"a": 0},
+            index=DatetimeIndex(
+                [
+                    "11.01.2011 22:00",
+                    "11.01.2011 23:00",
+                    "12.01.2011 00:00",
+                    "2011-01-13 00:00",
+                ]
+            ),
+        )
+        with tm.assert_produces_warning(FutureWarning):
+            result = df["2011-01-01":"2011-11-01"]
+        expected = DataFrame(
+            {"a": 0},
+            index=DatetimeIndex(
+                ["11.01.2011 22:00", "11.01.2011 23:00", "2011-01-13 00:00"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)

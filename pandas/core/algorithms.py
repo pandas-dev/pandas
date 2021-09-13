@@ -82,6 +82,11 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
 
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import (
         Categorical,
         DataFrame,
@@ -1247,6 +1252,8 @@ class SelectNSeries(SelectN):
 
     def compute(self, method: str) -> Series:
 
+        from pandas.core.reshape.concat import concat
+
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
@@ -1256,6 +1263,7 @@ class SelectNSeries(SelectN):
             return self.obj[[]]
 
         dropped = self.obj.dropna()
+        nan_index = self.obj.drop(dropped.index)
 
         if is_extension_array_dtype(dropped.dtype):
             # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
@@ -1272,7 +1280,7 @@ class SelectNSeries(SelectN):
         # slow method
         if n >= len(self.obj):
             ascending = method == "nsmallest"
-            return dropped.sort_values(ascending=ascending).head(n)
+            return self.obj.sort_values(ascending=ascending).head(n)
 
         # fast method
         new_dtype = dropped.dtype
@@ -1290,6 +1298,8 @@ class SelectNSeries(SelectN):
         if self.keep == "last":
             arr = arr[::-1]
 
+        nbase = n
+        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1301,12 +1311,13 @@ class SelectNSeries(SelectN):
 
         if self.keep != "all":
             inds = inds[:n]
+            findex = nbase
 
         if self.keep == "last":
             # reverse indices
             inds = narr - 1 - inds
 
-        return dropped.iloc[inds]
+        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
 
 
 class SelectNFrame(SelectN):
@@ -1517,7 +1528,12 @@ def take(
 # ------------ #
 
 
-def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
+def searchsorted(
+    arr: ArrayLike,
+    value: NumpyValueArrayLike,
+    side: Literal["left", "right"] = "left",
+    sorter: NumpySorter = None,
+) -> npt.NDArray[np.intp] | np.intp:
     """
     Find indices where elements should be inserted to maintain order.
 
@@ -1554,8 +1570,9 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
 
     Returns
     -------
-    array of ints
-        Array of insertion points with the same shape as `value`.
+    array of ints or int
+        If value is array-like, array of insertion points.
+        If value is scalar, a single integer.
 
     See Also
     --------
@@ -1583,9 +1600,10 @@ def searchsorted(arr, value, side="left", sorter=None) -> np.ndarray:
             dtype = value_arr.dtype
 
         if is_scalar(value):
-            value = dtype.type(value)
+            # We know that value is int
+            value = cast(int, dtype.type(value))
         else:
-            value = pd_array(value, dtype=dtype)
+            value = pd_array(cast(ArrayLike, value), dtype=dtype)
     elif not (
         is_object_dtype(arr) or is_numeric_dtype(arr) or is_categorical_dtype(arr)
     ):
