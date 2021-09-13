@@ -117,6 +117,12 @@ class StylerRenderer:
         self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
     def _render_html(
         self,
@@ -377,6 +383,7 @@ class StylerRenderer:
                             f"{col_heading_class} level{r} col{c}",
                             value,
                             _is_visible(c, r, col_lengths),
+                            display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
                                 if col_lengths.get((r, c), 0) > 1
@@ -535,6 +542,7 @@ class StylerRenderer:
                     f"{row_heading_class} level{c} row{r}",
                     value,
                     _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
+                    display_value=self._display_funcs_index[(r, c)](value),
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1
@@ -831,6 +839,96 @@ class StylerRenderer:
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
+
+        return self
+
+    def format_index(
+        self,
+        formatter: ExtFormatter | None = None,
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: str | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Format the text display value of index labels or column headers.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Object to define how values are displayed. See notes.
+        axis : {0, "index", 1, "columns"}
+            Whether to apply the formatter to the index or column headers.
+        level : int, str, list
+            The level(s) over which to apply the generic formatter.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+
+        Returns
+        -------
+        self : Styler
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index, self.index
+        else:
+            display_funcs_, obj = self._display_funcs_columns, self.columns
+        levels_ = refactor_levels(level, obj)
+
+        if all(
+            (
+                formatter is None,
+                level is None,
+                precision is None,
+                decimal == ".",
+                thousands is None,
+                na_rep is None,
+                escape is None,
+            )
+        ):
+            display_funcs_.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
+        if not isinstance(formatter, dict):
+            formatter = {level: formatter for level in levels_}
+        else:
+            formatter = {
+                obj._get_level_number(level): formatter_
+                for level, formatter_ in formatter.items()
+            }
+
+        for lvl in levels_:
+            format_func = _maybe_wrap_formatter(
+                formatter.get(lvl),
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+            )
+
+            for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
+                display_funcs_[idx] = format_func
 
         return self
 
