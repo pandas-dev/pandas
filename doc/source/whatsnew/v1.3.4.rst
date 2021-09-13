@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`.GroupBy.agg` where it was failing silently with mixed data types along ``axis=1`` and :class:`MultiIndex` (:issue:`43209`)
 -
 
 .. ---------------------------------------------------------------------------
