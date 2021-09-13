@@ -5,10 +5,7 @@ import cython
 from libc.math cimport round
 from libcpp.deque cimport deque
 
-from pandas._libs.algos cimport (
-    TiebreakEnumType,
-    tiebreakers,
-)
+from pandas._libs.algos cimport TiebreakEnumType
 
 import numpy as np
 
@@ -1146,6 +1143,13 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     return output
 
 
+rolling_rank_tiebreakers = {
+    "average": TiebreakEnumType.TIEBREAK_AVERAGE,
+    "min": TiebreakEnumType.TIEBREAK_MIN,
+    "max": TiebreakEnumType.TIEBREAK_MAX,
+}
+
+
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp, bint percentile,
               str method, bint ascending) -> np.ndarray:
@@ -1164,12 +1168,8 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
         TiebreakEnumType rank_type
 
     try:
-        rank_type = tiebreakers[method]
+        rank_type = rolling_rank_tiebreakers[method]
     except KeyError:
-        raise ValueError(f"Method '{method}' is not supported")
-    if rank_type not in (TiebreakEnumType.TIEBREAK_AVERAGE,
-                         TiebreakEnumType.TIEBREAK_MIN,
-                         TiebreakEnumType.TIEBREAK_MAX):
         raise ValueError(f"Method '{method}' is not supported")
 
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(

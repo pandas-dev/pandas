@@ -67,6 +67,15 @@ cdef:
     int64_t NPY_NAT = get_nat()
 
 
+tiebreakers = {
+    "average": TIEBREAK_AVERAGE,
+    "min": TIEBREAK_MIN,
+    "max": TIEBREAK_MAX,
+    "first": TIEBREAK_FIRST,
+    "dense": TIEBREAK_DENSE,
+}
+
+
 cdef inline bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR

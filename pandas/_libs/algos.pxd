@@ -10,11 +10,3 @@ cdef enum TiebreakEnumType:
     TIEBREAK_FIRST
     TIEBREAK_FIRST_DESCENDING
     TIEBREAK_DENSE
-
-tiebreakers = {
-    "average": TIEBREAK_AVERAGE,
-    "min": TIEBREAK_MIN,
-    "max": TIEBREAK_MAX,
-    "first": TIEBREAK_FIRST,
-    "dense": TIEBREAK_DENSE,
-}
