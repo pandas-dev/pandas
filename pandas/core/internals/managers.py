@@ -581,8 +581,10 @@ class BaseBlockManager(DataManager):
 
         if self.ndim > 1:
             # Avoid needing to re-compute these
-            res._blknos = self.blknos.copy()
-            res._blklocs = self.blklocs.copy()
+            blknos = self._blknos
+            if blknos is not None:
+                res._blknos = blknos.copy()
+                res._blklocs = self._blklocs.copy()
 
         if deep:
             res._consolidate_inplace()
@@ -676,7 +678,12 @@ class BaseBlockManager(DataManager):
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
 
-        return type(self).from_blocks(new_blocks, new_axes)
+        new_mgr = type(self).from_blocks(new_blocks, new_axes)
+        if axis == 1:
+            # We can avoid the need to rebuild these
+            new_mgr._blknos = self.blknos.copy()
+            new_mgr._blklocs = self.blklocs.copy()
+        return new_mgr
 
     def _slice_take_blocks_ax0(
         self,
@@ -998,24 +1005,25 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """
         Used in the JSON C code to access column arrays.
         This optimizes compared to using `iget_values` by converting each
-        block.values to a np.ndarray only once up front
         """
-        # special casing datetimetz to avoid conversion through object dtype
-        arrays = [
-            blk.values._ndarray
-            if isinstance(blk, DatetimeTZBlock)
-            else np.asarray(blk.values)
-            for blk in self.blocks
-        ]
-        result = []
-        for i in range(len(self.items)):
-            arr = arrays[self.blknos[i]]
-            if arr.ndim == 2:
-                values = arr[self.blklocs[i]]
+        # This is an optimized equivalent to
+        #  result = [self.iget_values(i) for i in range(len(self.items))]
+        result: list[np.ndarray | None] = [None] * len(self.items)
+
+        for blk in self.blocks:
+            mgr_locs = blk._mgr_locs
+            values = blk.values_for_json()
+            if values.ndim == 1:
+                # TODO(EA2D): special casing not needed with 2D EAs
+                result[mgr_locs[0]] = values
+
             else:
-                values = arr
-            result.append(values)
-        return result
+                for i, loc in enumerate(mgr_locs):
+                    result[loc] = values[i]
+
+        # error: Incompatible return value type (got "List[None]",
+        # expected "List[ndarray[Any, Any]]")
+        return result  # type: ignore[return-value]
 
     def iset(self, loc: int | slice | np.ndarray, value: ArrayLike):
         """

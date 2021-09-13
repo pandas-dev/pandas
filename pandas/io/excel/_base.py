@@ -408,6 +408,10 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(self, filepath_or_buffer, storage_options: StorageOptions = None):
+        # First argument can also be bytes, so create a buffer
+        if isinstance(filepath_or_buffer, bytes):
+            filepath_or_buffer = BytesIO(filepath_or_buffer)
+
         self.handles = IOHandles(
             handle=filepath_or_buffer, compression={"method": None}
         )
@@ -426,8 +430,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             except Exception:
                 self.close()
                 raise
-        elif isinstance(self.handles.handle, bytes):
-            self.book = self.load_workbook(BytesIO(self.handles.handle))
         else:
             raise ValueError(
                 "Must explicitly set engine if not passing in buffer or path for io."
@@ -651,7 +653,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
+    Default is to use :
+    * xlwt for xls
+    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
+    * odf for ods.
     See DataFrame.to_excel for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
@@ -725,14 +730,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     Default usage:
 
     >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df.to_excel(writer)
 
     To write to separate sheets in a single file:
 
     >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])
     >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df1.to_excel(writer, sheet_name="Sheet1")
     ...     df2.to_excel(writer, sheet_name="Sheet2")
 
@@ -747,7 +752,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     index=["Date", "Datetime"],
     ...     columns=["X", "Y"],
     ... )
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
     ...     datetime_format="YYYY-MM-DD HH:MM:SS"
@@ -756,7 +761,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     You can also append to an existing Excel file:
 
-    >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
 
     You can store Excel file in RAM:
@@ -1115,7 +1120,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
         a file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
@@ -1173,6 +1178,10 @@ class ExcelFile:
     ):
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
+
+        # First argument can also be bytes, so create a buffer
+        if isinstance(path_or_buffer, bytes):
+            path_or_buffer = BytesIO(path_or_buffer)
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
