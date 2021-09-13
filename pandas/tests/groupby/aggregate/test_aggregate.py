@@ -3,18 +3,28 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import datetime
 import functools
-import re
 from functools import partial
+import re
 
 import numpy as np
-import pandas as pd
-import pandas._testing as tm
 import pytest
-from pandas import DataFrame, Index, MultiIndex, Series, concat, to_datetime
-from pandas.core.base import SpecificationError
-from pandas.core.dtypes.common import is_integer_dtype
-from pandas.core.groupby.grouper import Grouping
+
 from pandas.errors import PerformanceWarning
+
+from pandas.core.dtypes.common import is_integer_dtype
+
+import pandas as pd
+from pandas import (
+    DataFrame,
+    Index,
+    MultiIndex,
+    Series,
+    concat,
+    to_datetime,
+)
+import pandas._testing as tm
+from pandas.core.base import SpecificationError
+from pandas.core.groupby.grouper import Grouping
 
 
 def test_groupby_agg_no_extra_calls():
