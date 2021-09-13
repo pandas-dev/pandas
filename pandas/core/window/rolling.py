@@ -1355,15 +1355,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmean)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmean
+                from pandas.core.numba_.kernels import sliding_mean
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(sliding_mean, engine_kwargs, "rolling_mean")
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
