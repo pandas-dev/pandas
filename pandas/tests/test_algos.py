@@ -194,7 +194,7 @@ class TestFactorize:
         # rizer.factorize should not raise an exception if na_sentinel indexes
         # outside of reverse_indexer
         key = np.array([1, 2, 1, np.nan], dtype="O")
-        rizer = ht.Factorizer(len(key))
+        rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
             ids = rizer.factorize(key, sort=True, na_sentinel=na_sentinel)
             expected = np.array([0, 1, 0, na_sentinel], dtype="int32")
@@ -249,9 +249,9 @@ class TestFactorize:
         with pytest.raises(TypeError, match=msg):
             algos.factorize(x17[::-1], sort=True)
 
-    def test_numeric_dtype_factorize(self, any_real_dtype):
+    def test_numeric_dtype_factorize(self, any_real_numpy_dtype):
         # GH41132
-        dtype = any_real_dtype
+        dtype = any_real_numpy_dtype
         data = np.array([1, 2, 2, 1], dtype=dtype)
         expected_codes = np.array([0, 1, 1, 0], dtype=np.intp)
         expected_uniques = np.array([1, 2], dtype=dtype)
@@ -1513,6 +1513,21 @@ class TestDuplicated:
         result = pd.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "array,expected",
+        [
+            (
+                [1 + 1j, 0, 1, 1j, 1 + 2j, 1 + 2j],
+                # Should return a complex dtype in the future
+                np.array([(1 + 1j), 0j, (1 + 0j), 1j, (1 + 2j)], dtype=object),
+            )
+        ],
+    )
+    def test_unique_complex_numbers(self, array, expected):
+        # GH 17927
+        result = pd.unique(array)
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestHashTable:
     def test_string_hashtable_set_item_signature(self):
@@ -1747,7 +1762,7 @@ class TestRank:
         def _check(arr):
             mask = ~np.isfinite(arr)
             arr = arr.copy()
-            result = libalgos.rank_1d(arr, labels=np.zeros(len(arr), dtype=np.intp))
+            result = libalgos.rank_1d(arr)
             arr[mask] = np.inf
             exp = rankdata(arr)
             exp[mask] = np.nan
@@ -1756,14 +1771,15 @@ class TestRank:
         _check(np.array([np.nan, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 3, np.nan]))
         _check(np.array([4.0, np.nan, 5.0, 5.0, 5.0, np.nan, 1, 2, 4.0, np.nan]))
 
-    def test_basic(self, writable):
+    @pytest.mark.parametrize("dtype", np.typecodes["AllInteger"])
+    def test_basic(self, writable, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        for dtype in np.typecodes["AllInteger"]:
-            data = np.array([1, 100], dtype=dtype)
-            data.setflags(write=writable)
-            s = Series(data)
-            tm.assert_numpy_array_equal(algos.rank(s), exp)
+        data = np.array([1, 100], dtype=dtype)
+        data.setflags(write=writable)
+        ser = Series(data)
+        result = algos.rank(ser)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_uint64_overflow(self):
         exp = np.array([1, 2], dtype=np.float64)

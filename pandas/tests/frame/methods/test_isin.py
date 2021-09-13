@@ -79,8 +79,8 @@ class TestDataFrameIsIn:
         df2 = DataFrame({"A": [0, 2, 12, 4], "B": [2, np.nan, 4, 5]})
         expected = DataFrame(False, df1.index, df1.columns)
         result = df1.isin(df2)
-        expected["A"].loc[[1, 3]] = True
-        expected["B"].loc[[0, 2]] = True
+        expected.loc[[1, 3], "A"] = True
+        expected.loc[[0, 2], "B"] = True
         tm.assert_frame_equal(result, expected)
 
         # partial overlapping columns
@@ -133,7 +133,7 @@ class TestDataFrameIsIn:
         )
         s = Series([1, 3, 11, 4], index=["a", "b", "c", "d"])
         expected = DataFrame(False, index=df.index, columns=df.columns)
-        expected["A"].loc["a"] = True
+        expected.loc["a", "A"] = True
         expected.loc["d"] = True
         result = df.isin(s)
         tm.assert_frame_equal(result, expected)

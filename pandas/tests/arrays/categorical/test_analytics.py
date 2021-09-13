@@ -186,15 +186,19 @@ class TestCategoricalAnalytics:
         tm.assert_numpy_array_equal(res_ser, exp)
 
         # Searching for a single value that is not from the Categorical
-        with pytest.raises(KeyError, match="cucumber"):
+        with pytest.raises(TypeError, match="cucumber"):
             cat.searchsorted("cucumber")
-        with pytest.raises(KeyError, match="cucumber"):
+        with pytest.raises(TypeError, match="cucumber"):
             ser.searchsorted("cucumber")
 
         # Searching for multiple values one of each is not from the Categorical
-        with pytest.raises(KeyError, match="cucumber"):
+        msg = (
+            "Cannot setitem on a Categorical with a new category, "
+            "set the categories first"
+        )
+        with pytest.raises(TypeError, match=msg):
             cat.searchsorted(["bread", "cucumber"])
-        with pytest.raises(KeyError, match="cucumber"):
+        with pytest.raises(TypeError, match=msg):
             ser.searchsorted(["bread", "cucumber"])
 
     def test_unique(self, ordered):
@@ -314,10 +318,14 @@ class TestCategoricalAnalytics:
             cat.as_unordered(inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
+            with tm.assert_produces_warning(FutureWarning):
+                # issue #37643 inplace kwarg deprecated
+                cat.set_categories(["X", "Y", "Z"], rename=True, inplace=value)
 
         with pytest.raises(ValueError, match=msg):
-            cat.rename_categories(["X", "Y", "Z"], inplace=value)
+            with tm.assert_produces_warning(FutureWarning):
+                # issue #37643 inplace kwarg deprecated
+                cat.rename_categories(["X", "Y", "Z"], inplace=value)
 
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning):

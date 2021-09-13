@@ -4,6 +4,7 @@ Quantilization functions and related stuff
 from typing import (
     Any,
     Callable,
+    Literal,
 )
 
 import numpy as np
@@ -250,7 +251,7 @@ def cut(
             raise ValueError("Cannot cut empty array")
 
         rng = (nanops.nanmin(x), nanops.nanmax(x))
-        mn, mx = [mi + 0.0 for mi in rng]
+        mn, mx = (mi + 0.0 for mi in rng)
 
         if np.isinf(mn) or np.isinf(mx):
             # GH 24314
@@ -384,7 +385,7 @@ def qcut(
 
 def _bins_to_cuts(
     x,
-    bins,
+    bins: np.ndarray,
     right: bool = True,
     labels=None,
     precision: int = 3,
@@ -417,11 +418,11 @@ def _bins_to_cuts(
         else:
             bins = unique_bins
 
-    side = "left" if right else "right"
+    side: Literal["left", "right"] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        ids[np.asarray(x) == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -552,7 +553,7 @@ def _convert_bin_to_datelike_type(bins, dtype):
 def _format_labels(
     bins, precision: int, right: bool = True, include_lowest: bool = False, dtype=None
 ):
-    """ based on the dtype, return our labels """
+    """based on the dtype, return our labels"""
     closed = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]

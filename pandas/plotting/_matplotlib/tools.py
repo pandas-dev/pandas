@@ -13,8 +13,6 @@ import matplotlib.table
 import matplotlib.ticker as ticker
 import numpy as np
 
-from pandas._typing import FrameOrSeriesUnion
-
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -30,6 +28,11 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
     from matplotlib.table import Table
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 def do_adjust_figure(fig: Figure):
@@ -55,7 +58,7 @@ def format_date_labels(ax: Axes, rot):
 
 
 def table(
-    ax, data: FrameOrSeriesUnion, rowLabels=None, colLabels=None, **kwargs
+    ax, data: DataFrame | Series, rowLabels=None, colLabels=None, **kwargs
 ) -> Table:
     if isinstance(data, ABCSeries):
         data = data.to_frame()
@@ -222,12 +225,13 @@ def create_subplots(
                 ax = flatten_axes(ax)
             if layout is not None:
                 warnings.warn(
-                    "When passing multiple axes, layout keyword is ignored", UserWarning
+                    "When passing multiple axes, layout keyword is ignored.",
+                    UserWarning,
                 )
             if sharex or sharey:
                 warnings.warn(
                     "When passing multiple axes, sharex and sharey "
-                    "are ignored. These settings must be specified when creating axes",
+                    "are ignored. These settings must be specified when creating axes.",
                     UserWarning,
                     stacklevel=4,
                 )
@@ -250,7 +254,7 @@ def create_subplots(
         else:
             warnings.warn(
                 "To output multiple subplots, the figure containing "
-                "the passed axes is being cleared",
+                "the passed axes is being cleared.",
                 UserWarning,
                 stacklevel=4,
             )
@@ -414,8 +418,12 @@ def handle_shared_axes(
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
+                if compat.mpl_ge_3_4_0():
+                    is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                else:
+                    is_last_row = lambda x: x.is_last_row()
                 for ax in axarr:
-                    if ax.is_last_row():
+                    if is_last_row(ax):
                         continue
                     if sharex or _has_externally_shared_axis(ax, "x"):
                         _remove_labels_from_axis(ax.xaxis)

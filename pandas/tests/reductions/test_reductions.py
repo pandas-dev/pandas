@@ -451,8 +451,8 @@ class TestIndexReductions:
     def test_numpy_minmax_datetime64(self):
         dr = date_range(start="2016-01-15", end="2016-01-20")
 
-        assert np.min(dr) == Timestamp("2016-01-15 00:00:00", freq="D")
-        assert np.max(dr) == Timestamp("2016-01-20 00:00:00", freq="D")
+        assert np.min(dr) == Timestamp("2016-01-15 00:00:00")
+        assert np.max(dr) == Timestamp("2016-01-20 00:00:00")
 
         errmsg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=errmsg):
@@ -896,7 +896,7 @@ class TestSeriesReductions:
 
         # Alternative types, with implicit 'object' dtype.
         s = Series(["abc", True])
-        assert "abc" == s.any()  # 'abc' || True => 'abc'
+        assert s.any()
 
     @pytest.mark.parametrize("klass", [Index, Series])
     def test_numpy_all_any(self, klass):
@@ -913,7 +913,7 @@ class TestSeriesReductions:
         s2 = Series([np.nan, False])
         assert s1.all(skipna=False)  # nan && True => True
         assert s1.all(skipna=True)
-        assert np.isnan(s2.any(skipna=False))  # nan || False => nan
+        assert s2.any(skipna=False)
         assert not s2.any(skipna=True)
 
         # Check level.
@@ -940,6 +940,29 @@ class TestSeriesReductions:
         msg = "Series.all does not implement numeric_only."
         with pytest.raises(NotImplementedError, match=msg):
             s.all(bool_only=True)
+
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_any_all_object_dtype(self, bool_agg_func, skipna):
+        # GH#12863
+        ser = Series(["a", "b", "c", "d", "e"], dtype=object)
+        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        expected = True
+
+        assert result == expected
+
+    @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
+    @pytest.mark.parametrize(
+        "data", [[False, None], [None, False], [False, np.nan], [np.nan, False]]
+    )
+    def test_any_all_object_dtype_missing(self, data, bool_agg_func):
+        # GH#27709
+        ser = Series(data)
+        result = getattr(ser, bool_agg_func)(skipna=False)
+
+        # None is treated is False, but np.nan is treated as True
+        expected = bool_agg_func == "any" and None not in data
+        assert result == expected
 
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
@@ -1456,4 +1479,58 @@ class TestSeriesMode:
             result = s.mode(dropna=False)
             result = result.sort_values().reset_index(drop=True)
 
+        tm.assert_series_equal(result, expected)
+
+    def test_mode_boolean_with_na(self):
+        # GH#42107
+        ser = Series([True, False, True, pd.NA], dtype="boolean")
+        result = ser.mode()
+        expected = Series({0: True}, dtype="boolean")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected,dtype",
+        [
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [0, 1j, 1, 1, 1 + 1j, 1 + 2j],
+                Series([1], dtype=np.complex64),
+                np.complex64,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j],
+                Series([1 + 1j], dtype=np.complex128),
+                np.complex128,
+            ),
+        ],
+    )
+    def test_single_mode_value_complex(self, array, expected, dtype):
+        result = Series(array, dtype=dtype).mode()
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "array,expected,dtype",
+        [
+            (
+                # no modes
+                [0, 1j, 1, 1 + 1j, 1 + 2j],
+                Series([0j, 1j, 1 + 0j, 1 + 1j, 1 + 2j], dtype=np.complex128),
+                np.complex128,
+            ),
+            (
+                [1 + 1j, 2j, 1 + 1j, 2j, 3],
+                Series([2j, 1 + 1j], dtype=np.complex64),
+                np.complex64,
+            ),
+        ],
+    )
+    def test_multimode_complex(self, array, expected, dtype):
+        # GH 17927
+        # mode tries to sort multimodal series.
+        # Complex numbers are sorted by their magnitude
+        result = Series(array, dtype=dtype).mode()
         tm.assert_series_equal(result, expected)

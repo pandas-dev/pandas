@@ -14,7 +14,6 @@ from pandas import (
     CategoricalIndex,
     DatetimeIndex,
     Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     NaT,
@@ -22,12 +21,15 @@ from pandas import (
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
     date_range,
     period_range,
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import (
+    Int64Index,
+    UInt64Index,
+)
 
 
 class TestIndexConstructorInference:
@@ -135,6 +137,16 @@ class TestIndexConstructorInference:
             data = data[::-1]
 
         expected = Index(data, dtype=object)
+        tm.assert_index_equal(Index(data), expected)
+        tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
+
+    @pytest.mark.parametrize("swap_objs", [True, False])
+    def test_constructor_datetime_and_datetime64(self, swap_objs):
+        data = [Timestamp(2021, 6, 8, 9, 42), np.datetime64("now")]
+        if swap_objs:
+            data = data[::-1]
+        expected = DatetimeIndex(data)
+
         tm.assert_index_equal(Index(data), expected)
         tm.assert_index_equal(Index(np.array(data, dtype=object)), expected)
 

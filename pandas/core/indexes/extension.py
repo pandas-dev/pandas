@@ -1,28 +1,29 @@
 """
 Shared methods for Index subclasses backed by ExtensionArray.
 """
+from __future__ import annotations
+
 from typing import (
+    TYPE_CHECKING,
     Hashable,
-    List,
-    Type,
+    Literal,
     TypeVar,
-    Union,
+    overload,
 )
 
 import numpy as np
 
-from pandas._typing import ArrayLike
+from pandas._typing import (
+    ArrayLike,
+    npt,
+)
 from pandas.compat.numpy import function as nv
-from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import rewrite_exception
 
-from pandas.core.dtypes.cast import (
-    find_common_type,
-    infer_dtype_from,
-)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_object_dtype,
@@ -41,9 +42,17 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.indexers import deprecate_ndim_indexing
 from pandas.core.indexes.base import Index
 from pandas.core.ops import get_op_result_name
+
+if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 _T = TypeVar("_T", bound="NDArrayBackedExtensionIndex")
 
@@ -106,6 +115,8 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     else:
 
         def method(self, *args, **kwargs):
+            if "inplace" in kwargs:
+                raise ValueError(f"cannot use inplace with {type(self).__name__}")
             result = attr(self._data, *args, **kwargs)
             if wrap:
                 if isinstance(result, type(self._data)):
@@ -120,7 +131,7 @@ def inherit_from_data(name: str, delegate, cache: bool = False, wrap: bool = Fal
     return method
 
 
-def inherit_names(names: List[str], delegate, cache: bool = False, wrap: bool = False):
+def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = False):
     """
     Class decorator to pin attributes from an ExtensionArray to a Index subclass.
 
@@ -163,7 +174,7 @@ def _make_wrapped_comparison_op(opname: str):
     return wrapper
 
 
-def make_wrapped_arith_op(opname: str):
+def _make_wrapped_arith_op(opname: str):
     def method(self, other):
         if (
             isinstance(other, Index)
@@ -174,7 +185,16 @@ def make_wrapped_arith_op(opname: str):
             # a chance to implement ops before we unwrap them.
             # See https://github.com/pandas-dev/pandas/issues/31109
             return NotImplemented
-        meth = getattr(self._data, opname)
+
+        try:
+            meth = getattr(self._data, opname)
+        except AttributeError as err:
+            # e.g. Categorical, IntervalArray
+            cls = type(self).__name__
+            raise TypeError(
+                f"cannot perform {opname} with this index type: {cls}"
+            ) from err
+
         result = meth(_maybe_unwrap_index(other))
         return _wrap_arithmetic_op(self, other, result)
 
@@ -230,20 +250,20 @@ class ExtensionIndex(Index):
     # The base class already passes through to _data:
     #  size, __len__, dtype
 
-    _data: Union[IntervalArray, NDArrayBackedExtensionArray]
+    _data: IntervalArray | NDArrayBackedExtensionArray
 
-    _data_cls: Union[
-        Type[Categorical],
-        Type[DatetimeArray],
-        Type[TimedeltaArray],
-        Type[PeriodArray],
-        Type[IntervalArray],
-    ]
+    _data_cls: (
+        type[Categorical]
+        | type[DatetimeArray]
+        | type[TimedeltaArray]
+        | type[PeriodArray]
+        | type[IntervalArray]
+    )
 
     @classmethod
     def _simple_new(
         cls,
-        array: Union[IntervalArray, NDArrayBackedExtensionArray],
+        array: IntervalArray | NDArrayBackedExtensionArray,
         name: Hashable = None,
     ):
         """
@@ -271,10 +291,22 @@ class ExtensionIndex(Index):
     __le__ = _make_wrapped_comparison_op("__le__")
     __ge__ = _make_wrapped_comparison_op("__ge__")
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
+    __add__ = _make_wrapped_arith_op("__add__")
+    __sub__ = _make_wrapped_arith_op("__sub__")
+    __radd__ = _make_wrapped_arith_op("__radd__")
+    __rsub__ = _make_wrapped_arith_op("__rsub__")
+    __pow__ = _make_wrapped_arith_op("__pow__")
+    __rpow__ = _make_wrapped_arith_op("__rpow__")
+    __mul__ = _make_wrapped_arith_op("__mul__")
+    __rmul__ = _make_wrapped_arith_op("__rmul__")
+    __floordiv__ = _make_wrapped_arith_op("__floordiv__")
+    __rfloordiv__ = _make_wrapped_arith_op("__rfloordiv__")
+    __mod__ = _make_wrapped_arith_op("__mod__")
+    __rmod__ = _make_wrapped_arith_op("__rmod__")
+    __divmod__ = _make_wrapped_arith_op("__divmod__")
+    __rdivmod__ = _make_wrapped_arith_op("__rdivmod__")
+    __truediv__ = _make_wrapped_arith_op("__truediv__")
+    __rtruediv__ = _make_wrapped_arith_op("__rtruediv__")
 
     # ---------------------------------------------------------------------
     # NDarray-Like Methods
@@ -292,7 +324,37 @@ class ExtensionIndex(Index):
         deprecate_ndim_indexing(result)
         return result
 
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    # This overload is needed so that the call to searchsorted in
+    # pandas.core.resample.TimeGrouper._get_period_bins picks the correct result
+
+    @overload
+    # The following ignore is also present in numpy/__init__.pyi
+    # Possibly a mypy bug??
+    # error: Overloaded function signatures 1 and 2 overlap with incompatible
+    # return types  [misc]
+    def searchsorted(  # type: ignore[misc]
+        self,
+        value: npt._ScalarLike_co,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> np.intp:
+        ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp]:
+        ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
         # overriding IndexOpsMixin improves performance GH#38083
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
@@ -322,22 +384,36 @@ class ExtensionIndex(Index):
         result = self._data.repeat(repeats, axis=axis)
         return type(self)._simple_new(result, name=self.name)
 
-    def insert(self, loc: int, item):
-        # ExtensionIndex subclasses must override Index.insert
-        raise AbstractMethodError(self)
+    def insert(self, loc: int, item) -> Index:
+        """
+        Make new Index inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : Index
+        """
+        try:
+            result = self._data.insert(loc, item)
+        except (ValueError, TypeError):
+            # e.g. trying to insert an integer into a DatetimeIndex
+            #  We cannot keep the same dtype, so cast to the (often object)
+            #  minimal shared dtype before doing the insert.
+            dtype = self._find_common_type_compat(item)
+            return self.astype(dtype).insert(loc, item)
+        else:
+            return type(self)._simple_new(result, name=self.name)
 
     def _validate_fill_value(self, value):
         """
         Convert value to be insertable to underlying array.
         """
         return self._data._validate_setitem_value(value)
-
-    def _get_unique_index(self):
-        if self.is_unique:
-            return self
-
-        result = self._data.unique()
-        return type(self)._simple_new(result, name=self.name)
 
     @doc(Index.map)
     def map(self, mapper, na_action=None):
@@ -365,18 +441,26 @@ class ExtensionIndex(Index):
                 return self
             return self.copy()
 
-        if isinstance(dtype, np.dtype) and dtype.kind == "M" and dtype != "M8[ns]":
+        # error: Non-overlapping equality check (left operand type: "dtype[Any]", right
+        # operand type: "Literal['M8[ns]']")
+        if (
+            isinstance(self.dtype, np.dtype)
+            and isinstance(dtype, np.dtype)
+            and dtype.kind == "M"
+            and dtype != "M8[ns]"  # type: ignore[comparison-overlap]
+        ):
             # For now Datetime supports this by unwrapping ndarray, but DTI doesn't
-            raise TypeError(f"Cannot cast {type(self._data).__name__} to dtype")
+            raise TypeError(f"Cannot cast {type(self).__name__} to dtype")
 
-        new_values = self._data.astype(dtype, copy=copy)
+        with rewrite_exception(type(self._data).__name__, type(self).__name__):
+            new_values = self._data.astype(dtype, copy=copy)
 
         # pass copy=False because any copying will be done in the
         #  _data.astype call above
         return Index(new_values, dtype=new_values.dtype, name=self.name, copy=False)
 
     @cache_readonly
-    def _isnan(self) -> np.ndarray:
+    def _isnan(self) -> npt.NDArray[np.bool_]:
         # error: Incompatible return value type (got "ExtensionArray", expected
         # "ndarray")
         return self._data.isna()  # type: ignore[return-value]
@@ -400,79 +484,9 @@ class NDArrayBackedExtensionIndex(ExtensionIndex):
 
     _data: NDArrayBackedExtensionArray
 
-    @classmethod
-    def _simple_new(
-        cls,
-        values: NDArrayBackedExtensionArray,
-        name: Hashable = None,
-    ):
-        result = super()._simple_new(values, name)
-
-        # For groupby perf. See note in indexes/base about _index_data
-        result._index_data = values._ndarray
-
-        return result
-
     def _get_engine_target(self) -> np.ndarray:
         return self._data._ndarray
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         assert result.dtype == self._data._ndarray.dtype
         return self._data._from_backing_data(result)
-
-    def insert(self: _T, loc: int, item) -> Index:
-        """
-        Make new Index inserting new item at location. Follows
-        Python list.append semantics for negative values.
-
-        Parameters
-        ----------
-        loc : int
-        item : object
-
-        Returns
-        -------
-        new_index : Index
-
-        Raises
-        ------
-        ValueError if the item is not valid for this dtype.
-        """
-        arr = self._data
-        try:
-            code = arr._validate_scalar(item)
-        except (ValueError, TypeError):
-            # e.g. trying to insert an integer into a DatetimeIndex
-            #  We cannot keep the same dtype, so cast to the (often object)
-            #  minimal shared dtype before doing the insert.
-            dtype, _ = infer_dtype_from(item, pandas_dtype=True)
-            dtype = find_common_type([self.dtype, dtype])
-            return self.astype(dtype).insert(loc, item)
-        else:
-            new_vals = np.concatenate(
-                (
-                    arr._ndarray[:loc],
-                    np.asarray([code], dtype=arr._ndarray.dtype),
-                    arr._ndarray[loc:],
-                )
-            )
-            new_arr = arr._from_backing_data(new_vals)
-            return type(self)._simple_new(new_arr, name=self.name)
-
-    def putmask(self, mask, value) -> Index:
-        res_values = self._data.copy()
-        try:
-            res_values.putmask(mask, value)
-        except (TypeError, ValueError):
-            return self.astype(object).putmask(mask, value)
-
-        return type(self)._simple_new(res_values, name=self.name)
-
-    # error: Argument 1 of "_wrap_joined_index" is incompatible with supertype
-    # "Index"; supertype defines the argument type as "Union[ExtensionArray, ndarray]"
-    def _wrap_joined_index(  # type: ignore[override]
-        self: _T, joined: NDArrayBackedExtensionArray, other: _T
-    ) -> _T:
-        name = get_op_result_name(self, other)
-
-        return type(self)._simple_new(joined, name=name)

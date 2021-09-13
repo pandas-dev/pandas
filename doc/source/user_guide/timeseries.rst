@@ -204,6 +204,7 @@ If you use dates which start with the day first (i.e. European style),
 you can pass the ``dayfirst`` flag:
 
 .. ipython:: python
+   :okwarning:
 
     pd.to_datetime(["04-01-2012 10:00"], dayfirst=True)
 
@@ -211,9 +212,10 @@ you can pass the ``dayfirst`` flag:
 
 .. warning::
 
-   You see in the above example that ``dayfirst`` isn't strict, so if a date
+   You see in the above example that ``dayfirst`` isn't strict. If a date
    can't be parsed with the day being first it will be parsed as if
-   ``dayfirst`` were False.
+   ``dayfirst`` were False, and in the case of parsing delimited date strings
+   (e.g. ``31-12-2012``) then a warning will also be raised.
 
 If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
@@ -1422,7 +1424,6 @@ An example of how holidays and holiday calendars are defined:
         MO,
     )
 
-
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
             USMemorialDay,
@@ -1434,7 +1435,6 @@ An example of how holidays and holiday calendars are defined:
                 offset=pd.DateOffset(weekday=MO(2)),
             ),
         ]
-
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1707,12 +1707,10 @@ We can instead only resample those groups where we have points as follows:
     from functools import partial
     from pandas.tseries.frequencies import to_offset
 
-
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
-
 
     ts.groupby(partial(round, freq="3T")).sum()
 
@@ -2255,10 +2253,8 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s = pd.Series([20121231, 20141130, 99991231])
    s
 
-
    def conv(x):
        return pd.Period(year=x // 10000, month=x // 100 % 100, day=x % 100, freq="D")
-
 
    s.apply(conv)
    s.apply(conv)[2]

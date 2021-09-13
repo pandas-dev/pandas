@@ -44,9 +44,16 @@ def test_agg_api():
     def peak_to_peak(arr):
         return arr.max() - arr.min()
 
-    expected = grouped.agg([peak_to_peak])
+    with tm.assert_produces_warning(
+        FutureWarning, match="Dropping invalid", check_stacklevel=False
+    ):
+        expected = grouped.agg([peak_to_peak])
     expected.columns = ["data1", "data2"]
-    result = grouped.agg(peak_to_peak)
+
+    with tm.assert_produces_warning(
+        FutureWarning, match="Dropping invalid", check_stacklevel=False
+    ):
+        result = grouped.agg(peak_to_peak)
     tm.assert_frame_equal(result, expected)
 
 
@@ -294,7 +301,8 @@ def test_agg_item_by_item_raise_typeerror():
         raise TypeError("test")
 
     with pytest.raises(TypeError, match="test"):
-        df.groupby(0).agg(raiseException)
+        with tm.assert_produces_warning(FutureWarning, match="Dropping invalid"):
+            df.groupby(0).agg(raiseException)
 
 
 def test_series_agg_multikey():
@@ -425,14 +433,21 @@ def test_agg_over_numpy_arrays():
         ],
         columns=["category", "arraydata"],
     )
-    result = df.groupby("category").agg(sum)
+    gb = df.groupby("category")
 
     expected_data = [[np.array([50, 70, 90])], [np.array([20, 30, 40])]]
     expected_index = Index([1, 2], name="category")
     expected_column = ["arraydata"]
     expected = DataFrame(expected_data, index=expected_index, columns=expected_column)
 
+    alt = gb.sum(numeric_only=False)
+    tm.assert_frame_equal(alt, expected)
+
+    result = gb.agg("sum", numeric_only=False)
     tm.assert_frame_equal(result, expected)
+
+    # FIXME: the original version of this test called `gb.agg(sum)`
+    #  and that raises TypeError if `numeric_only=False` is passed
 
 
 @pytest.mark.parametrize("as_period", [True, False])
@@ -516,8 +531,13 @@ def test_sum_uint64_overflow():
     )
 
     expected.index.name = 0
-    result = df.groupby(0).sum()
+    result = df.groupby(0).sum(numeric_only=False)
     tm.assert_frame_equal(result, expected)
+
+    # out column is non-numeric, so with numeric_only=True it is dropped
+    result2 = df.groupby(0).sum(numeric_only=True)
+    expected2 = expected[[]]
+    tm.assert_frame_equal(result2, expected2)
 
 
 @pytest.mark.parametrize(

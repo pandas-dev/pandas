@@ -1,32 +1,33 @@
 # Arithmetic tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
+from __future__ import annotations
+
 from collections import abc
 from decimal import Decimal
 from itertools import combinations
 import operator
-from typing import (
-    Any,
-    List,
-)
+from typing import Any
 
 import numpy as np
 import pytest
 
 import pandas as pd
 from pandas import (
-    Float64Index,
     Index,
-    Int64Index,
     RangeIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
-    UInt64Index,
     array,
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.computation import expressions as expr
 
 
@@ -56,8 +57,8 @@ def adjust_negative_zero(zero, expected):
 # TODO: remove this kludge once mypy stops giving false positives here
 # List comprehension has incompatible type List[PandasObject]; expected List[RangeIndex]
 #  See GH#29725
-ser_or_index: List[Any] = [Series, Index]
-lefts: List[Any] = [RangeIndex(10, 40, 10)]
+ser_or_index: list[Any] = [Series, Index]
+lefts: list[Any] = [RangeIndex(10, 40, 10)]
 lefts.extend(
     [
         cls([10, 20, 30], dtype=dtype)
@@ -392,9 +393,14 @@ class TestDivisionByZero:
     # ------------------------------------------------------------------
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, switch_numexpr_min_elements, dtype1, any_real_dtype):
+    def test_ser_div_ser(
+        self,
+        switch_numexpr_min_elements,
+        dtype1,
+        any_real_numpy_dtype,
+    ):
         # no longer do integer div for any ops, but deal with the 0's
-        dtype2 = any_real_dtype
+        dtype2 = any_real_numpy_dtype
 
         first = Series([3, 4, 5, 8], name="first").astype(dtype1)
         second = Series([0, 0, 0, 3], name="second").astype(dtype2)
@@ -417,9 +423,9 @@ class TestDivisionByZero:
         assert not result.equals(second / first)
 
     @pytest.mark.parametrize("dtype1", [np.int64, np.float64, np.uint64])
-    def test_ser_divmod_zero(self, dtype1, any_real_dtype):
+    def test_ser_divmod_zero(self, dtype1, any_real_numpy_dtype):
         # GH#26987
-        dtype2 = any_real_dtype
+        dtype2 = any_real_numpy_dtype
         left = Series([1, 1]).astype(dtype1)
         right = Series([0, 2]).astype(dtype2)
 
@@ -1407,3 +1413,18 @@ def test_integer_array_add_list_like(
 
     assert_function(left, expected)
     assert_function(right, expected)
+
+
+def test_sub_multiindex_swapped_levels():
+    # GH 9952
+    df = pd.DataFrame(
+        {"a": np.random.randn(6)},
+        index=pd.MultiIndex.from_product(
+            [["a", "b"], [0, 1, 2]], names=["levA", "levB"]
+        ),
+    )
+    df2 = df.copy()
+    df2.index = df2.index.swaplevel(0, 1)
+    result = df - df2
+    expected = pd.DataFrame([0.0] * 6, columns=["a"], index=df.index)
+    tm.assert_frame_equal(result, expected)

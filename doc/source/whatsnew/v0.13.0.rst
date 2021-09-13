@@ -310,7 +310,7 @@ Float64Index API change
 
 - Added a new index type, ``Float64Index``. This will be automatically created when passing floating values in index creation.
   This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
-  same. See :ref:`the docs<indexing.float64index>`, (:issue:`263`)
+  same. See :ref:`the docs<advanced.float64index>`, (:issue:`263`)
 
   Construction is by default for floating type values.
 

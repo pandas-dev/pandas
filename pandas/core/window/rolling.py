@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Hashable,
 )
 import warnings
 
@@ -27,11 +28,11 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     FrameOrSeries,
-    FrameOrSeriesUnion,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -43,25 +44,31 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
-    ABCPeriodIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
+from pandas.core.arrays import ExtensionArray
 from pandas.core.base import (
     DataError,
     SelectionMixin,
 )
 import pandas.core.common as com
+from pandas.core.indexers.objects import (
+    BaseIndexer,
+    FixedWindowIndexer,
+    GroupbyIndexer,
+    VariableWindowIndexer,
+)
 from pandas.core.indexes.api import (
+    DatetimeIndex,
     Index,
     MultiIndex,
+    PeriodIndex,
+    TimedeltaIndex,
 )
-from pandas.core.internals import ArrayManager
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
@@ -84,12 +91,6 @@ from pandas.core.window.doc import (
     window_agg_numba_parameters,
     window_apply_parameters,
 )
-from pandas.core.window.indexers import (
-    BaseIndexer,
-    FixedWindowIndexer,
-    GroupbyIndexer,
-    VariableWindowIndexer,
-)
 from pandas.core.window.numba_ import (
     generate_manual_numpy_nan_agg_with_axis,
     generate_numba_apply_func,
@@ -101,6 +102,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
 
@@ -108,7 +110,8 @@ class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
-    exclusions: set[str] = set()
+    exclusions: frozenset[Hashable] = frozenset()
+    _on: Index
 
     def __init__(
         self,
@@ -121,6 +124,8 @@ class BaseWindow(SelectionMixin):
         on: str | Index | None = None,
         closed: str | None = None,
         method: str = "single",
+        *,
+        selection=None,
     ):
         self.obj = obj
         self.on = on
@@ -148,6 +153,8 @@ class BaseWindow(SelectionMixin):
                 f"invalid on specified as {self.on}, "
                 "must be a column (of DataFrame), an Index or None"
             )
+
+        self._selection = selection
         self.validate()
 
     @property
@@ -163,7 +170,7 @@ class BaseWindow(SelectionMixin):
         return self._win_type
 
     @property
-    def is_datetimelike(self):
+    def is_datetimelike(self) -> bool:
         warnings.warn(
             "is_datetimelike is deprecated and will be removed in a future version.",
             FutureWarning,
@@ -220,7 +227,7 @@ class BaseWindow(SelectionMixin):
             # GH: 20649 in case of mixed dtype and axis=1 we have to convert everything
             # to float to calculate the complete row at once. We exclude all non-numeric
             # dtypes.
-            obj = obj.select_dtypes(include=["integer", "float"], exclude=["timedelta"])
+            obj = obj.select_dtypes(include=["number"], exclude=["timedelta"])
             obj = obj.astype("float64", copy=False)
             obj._mgr = obj._mgr.consolidate()
         return obj
@@ -240,16 +247,22 @@ class BaseWindow(SelectionMixin):
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
-        # TODO: Remove once win_type deprecation is enforced
+
+        # we need to make a shallow copy of ourselves
+        # with the same groupby
         with warnings.catch_warnings():
+            # TODO: Remove once win_type deprecation is enforced
             warnings.filterwarnings("ignore", "win_type", FutureWarning)
-            self = type(self)(
-                subset, **{attr: getattr(self, attr) for attr in self._attributes}
-            )
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
-        return self
+            kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        selection = None
+        if subset.ndim == 2 and (
+            (is_scalar(key) and key in subset) or is_list_like(key)
+        ):
+            selection = key
+
+        new_win = type(self)(subset, selection=selection, **kwargs)
+        return new_win
 
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
@@ -278,6 +291,7 @@ class BaseWindow(SelectionMixin):
 
     def __iter__(self):
         obj = self._create_data(self._selected_obj)
+        obj = obj.set_axis(self._on)
         indexer = self._get_window_indexer()
 
         start, end = indexer.get_window_bounds(
@@ -304,7 +318,10 @@ class BaseWindow(SelectionMixin):
             # GH #12373 : rolling functions error on float32 data
             # make sure the data is coerced to float64
             try:
-                values = ensure_float64(values)
+                if isinstance(values, ExtensionArray):
+                    values = values.to_numpy(np.float64, na_value=np.nan)
+                else:
+                    values = ensure_float64(values)
             except (ValueError, TypeError) as err:
                 raise TypeError(f"cannot handle this type -> {values.dtype}") from err
 
@@ -317,7 +334,7 @@ class BaseWindow(SelectionMixin):
         # expected "ndarray")
         return values  # type: ignore[return-value]
 
-    def _insert_on_column(self, result: DataFrame, obj: DataFrame):
+    def _insert_on_column(self, result: DataFrame, obj: DataFrame) -> None:
         # if we have an 'on' column we want to put it back into
         # the results in the same location
         from pandas import Series
@@ -381,10 +398,11 @@ class BaseWindow(SelectionMixin):
         """
         obj = self._create_data(self._selected_obj)
 
-        try:
+        if name == "count":
             # GH 12541: Special case for count where we support date-like types
-            input = obj.values if name != "count" else notna(obj.values).astype(int)
-            values = self._prep_values(input)
+            obj = notna(obj).astype(int)
+        try:
+            values = self._prep_values(obj._values)
         except (TypeError, NotImplementedError) as err:
             raise DataError("No numeric types to aggregate") from err
 
@@ -393,7 +411,7 @@ class BaseWindow(SelectionMixin):
 
     def _apply_blockwise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame broken down into homogeneous
         sub-frames.
@@ -406,29 +424,53 @@ class BaseWindow(SelectionMixin):
             # GH 12541: Special case for count where we support date-like types
             obj = notna(obj).astype(int)
             obj._mgr = obj._mgr.consolidate()
-        mgr = obj._mgr
 
-        def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(EA2D): getattr unnecessary with 2D EAs
-            values = self._prep_values(getattr(bvalues, "T", bvalues))
-            res_values = homogeneous_func(values)
-            return getattr(res_values, "T", res_values)
-
-        def hfunc2d(values: ArrayLike) -> ArrayLike:
+        def hfunc(values: ArrayLike) -> ArrayLike:
             values = self._prep_values(values)
             return homogeneous_func(values)
 
-        if isinstance(mgr, ArrayManager) and self.axis == 1:
-            new_mgr = mgr.apply_2d(hfunc2d, ignore_failures=True)
-        else:
-            new_mgr = mgr.apply(hfunc, ignore_failures=True)
-        out = obj._constructor(new_mgr)
+        if self.axis == 1:
+            obj = obj.T
 
-        return self._resolve_output(out, obj)
+        taker = []
+        res_values = []
+        for i, arr in enumerate(obj._iter_column_arrays()):
+            # GH#42736 operate column-wise instead of block-wise
+            try:
+                res = hfunc(arr)
+            except (TypeError, NotImplementedError):
+                pass
+            else:
+                res_values.append(res)
+                taker.append(i)
+
+        df = type(obj)._from_arrays(
+            res_values,
+            index=obj.index,
+            columns=obj.columns.take(taker),
+            verify_integrity=False,
+        )
+
+        if self.axis == 1:
+            df = df.T
+
+        if 0 != len(res_values) != len(obj.columns):
+            # GH#42738 ignore_failures dropped nuisance columns
+            dropped = obj.columns.difference(obj.columns.take(taker))
+            warnings.warn(
+                "Dropping of nuisance columns in rolling operations "
+                "is deprecated; in a future version this will raise TypeError. "
+                "Select only valid columns before calling the operation. "
+                f"Dropped columns were {dropped}",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        return self._resolve_output(df, obj)
 
     def _apply_tablewise(
         self, homogeneous_func: Callable[..., ArrayLike], name: str | None = None
-    ) -> FrameOrSeriesUnion:
+    ) -> DataFrame | Series:
         """
         Apply the given function to the DataFrame across the entire object
         """
@@ -445,11 +487,11 @@ class BaseWindow(SelectionMixin):
 
     def _apply_pairwise(
         self,
-        target: FrameOrSeriesUnion,
-        other: FrameOrSeriesUnion | None,
+        target: DataFrame | Series,
+        other: DataFrame | Series | None,
         pairwise: bool | None,
-        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
-    ) -> FrameOrSeriesUnion:
+        func: Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series],
+    ) -> DataFrame | Series:
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
@@ -457,6 +499,8 @@ class BaseWindow(SelectionMixin):
             other = target
             # only default unset
             pairwise = True if pairwise is None else pairwise
+        elif not isinstance(other, (ABCDataFrame, ABCSeries)):
+            raise ValueError("other must be a DataFrame or Series")
 
         return flex_binary_moment(target, other, func, pairwise=bool(pairwise))
 
@@ -465,6 +509,7 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -478,6 +523,8 @@ class BaseWindow(SelectionMixin):
         name : str,
         numba_cache_key : tuple
             caching key to be used to store a compiled numba func
+        numba_args : tuple
+            args to be passed when func is a numba func
         **kwargs
             additional arguments for rolling function and window function
 
@@ -505,13 +552,10 @@ class BaseWindow(SelectionMixin):
                     center=self.center,
                     closed=self.closed,
                 )
-                return func(x, start, end, min_periods)
+                return func(x, start, end, min_periods, *numba_args)
 
             with np.errstate(all="ignore"):
-                if values.ndim > 1 and self.method == "single":
-                    result = np.apply_along_axis(calc, self.axis, values)
-                else:
-                    result = calc(values)
+                result = calc(values)
 
             if numba_cache_key is not None:
                 NUMBA_FUNC_CACHE[numba_cache_key] = func
@@ -537,18 +581,22 @@ class BaseWindowGroupby(BaseWindow):
     Provide the groupby windowing facilities.
     """
 
-    _attributes = ["_grouper"]
+    _grouper: BaseGrouper
+    _as_index: bool
+    _attributes: list[str] = ["_grouper"]
 
     def __init__(
         self,
         obj: FrameOrSeries,
         *args,
-        _grouper=None,
-        _as_index=True,
+        _grouper: BaseGrouper,
+        _as_index: bool = True,
         **kwargs,
     ):
-        if _grouper is None:
-            raise ValueError("Must pass a Grouper object.")
+        from pandas.core.groupby.ops import BaseGrouper
+
+        if not isinstance(_grouper, BaseGrouper):
+            raise ValueError("Must pass a BaseGrouper object.")
         self._grouper = _grouper
         self._as_index = _as_index
         # GH 32262: It's convention to keep the grouping column in
@@ -562,12 +610,14 @@ class BaseWindowGroupby(BaseWindow):
         func: Callable[..., Any],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ) -> FrameOrSeries:
         result = super()._apply(
             func,
             name,
             numba_cache_key,
+            numba_args,
             **kwargs,
         )
         # Reconstruct the resulting MultiIndex
@@ -618,11 +668,11 @@ class BaseWindowGroupby(BaseWindow):
 
     def _apply_pairwise(
         self,
-        target: FrameOrSeriesUnion,
-        other: FrameOrSeriesUnion | None,
+        target: DataFrame | Series,
+        other: DataFrame | Series | None,
         pairwise: bool | None,
-        func: Callable[[FrameOrSeriesUnion, FrameOrSeriesUnion], FrameOrSeriesUnion],
-    ) -> FrameOrSeriesUnion:
+        func: Callable[[DataFrame | Series, DataFrame | Series], DataFrame | Series],
+    ) -> DataFrame | Series:
         """
         Apply the given pairwise function given 2 pandas objects (DataFrame/Series)
         """
@@ -658,7 +708,9 @@ class BaseWindowGroupby(BaseWindow):
             # When we evaluate the pairwise=True result, repeat the groupby
             # labels by the number of columns in the original object
             groupby_codes = self._grouper.codes
-            groupby_levels = self._grouper.levels
+            # error: Incompatible types in assignment (expression has type
+            # "List[Index]", variable has type "List[Union[ndarray, Index]]")
+            groupby_levels = self._grouper.levels  # type: ignore[assignment]
 
             group_indices = self._grouper.indices.values()
             if group_indices:
@@ -714,7 +766,8 @@ class BaseWindowGroupby(BaseWindow):
         # here so our index is carried through to the selected obj
         # when we do the splitting for the groupby
         if self.on is not None:
-            self.obj = self.obj.set_index(self._on)
+            # GH 43355
+            subset = self.obj.set_index(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
     def _validate_monotonic(self):
@@ -946,6 +999,7 @@ class Window(BaseWindow):
         func: Callable[[np.ndarray, int, int], np.ndarray],
         name: str | None = None,
         numba_cache_key: tuple[Callable, str] | None = None,
+        numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
         """
@@ -958,6 +1012,8 @@ class Window(BaseWindow):
         func : callable function to apply
         name : str,
         use_numba_cache : tuple
+            unused
+        numba_args : tuple
             unused
         **kwargs
             additional arguments for scipy windows if necessary
@@ -981,11 +1037,8 @@ class Window(BaseWindow):
                 return func(x, window, self.min_periods or len(window))
 
             with np.errstate(all="ignore"):
-                if values.ndim > 1:
-                    result = np.apply_along_axis(calc, self.axis, values)
-                else:
-                    # Our weighted aggregations return memoryviews
-                    result = np.asarray(calc(values))
+                # Our weighted aggregations return memoryviews
+                result = np.asarray(calc(values))
 
             if self.center:
                 result = self._center_window(result, offset)
@@ -1136,18 +1189,20 @@ class RollingAndExpandingMixin(BaseWindow):
             raise ValueError("raw parameter must be `True` or `False`")
 
         numba_cache_key = None
+        numba_args: tuple[Any, ...] = ()
         if maybe_use_numba(engine):
             if raw is False:
                 raise ValueError("raw must be `True` when using the numba engine")
             caller_name = type(self).__name__
+            numba_args = args
             if self.method == "single":
                 apply_func = generate_numba_apply_func(
-                    args, kwargs, func, engine_kwargs, caller_name
+                    kwargs, func, engine_kwargs, caller_name
                 )
                 numba_cache_key = (func, f"{caller_name}_apply_single")
             else:
                 apply_func = generate_numba_table_func(
-                    args, kwargs, func, engine_kwargs, f"{caller_name}_apply"
+                    kwargs, func, engine_kwargs, f"{caller_name}_apply"
                 )
                 numba_cache_key = (func, f"{caller_name}_apply_table")
         elif engine in ("cython", None):
@@ -1160,6 +1215,7 @@ class RollingAndExpandingMixin(BaseWindow):
         return self._apply(
             apply_func,
             numba_cache_key=numba_cache_key,
+            numba_args=numba_args,
         )
 
     def _generate_cython_apply_func(
@@ -1356,7 +1412,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -1394,7 +1450,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -1444,7 +1500,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
 class Rolling(RollingAndExpandingMixin):
 
-    _attributes = [
+    _attributes: list[str] = [
         "window",
         "min_periods",
         "center",
@@ -1461,9 +1517,7 @@ class Rolling(RollingAndExpandingMixin):
         # we allow rolling on a datetimelike index
         if (
             self.obj.empty
-            or isinstance(
-                self._on, (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex)
-            )
+            or isinstance(self._on, (DatetimeIndex, TimedeltaIndex, PeriodIndex))
         ) and isinstance(self.window, (str, BaseOffset, timedelta)):
 
             self._validate_monotonic()
@@ -1476,7 +1530,7 @@ class Rolling(RollingAndExpandingMixin):
                     f"passed window {self.window} is not "
                     "compatible with a datetimelike index"
                 ) from err
-            if isinstance(self._on, ABCPeriodIndex):
+            if isinstance(self._on, PeriodIndex):
                 self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
             else:
                 self._win_freq_i8 = freq.nanos
@@ -2138,7 +2192,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def cov(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,
@@ -2263,7 +2317,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def corr(
         self,
-        other: FrameOrSeriesUnion | None = None,
+        other: DataFrame | Series | None = None,
         pairwise: bool | None = None,
         ddof: int = 1,
         **kwargs,

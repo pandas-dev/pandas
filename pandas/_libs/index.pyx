@@ -106,7 +106,8 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
+            # GH#41775 OverflowError e.g. if we are uint64 and val is -1
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):
@@ -287,10 +288,12 @@ cdef class IndexEngine:
             object val
             int count = 0, count_missing = 0
             Py_ssize_t i, j, n, n_t, n_alloc
+            bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
         self._ensure_mapping_populated()
         values = np.array(self._get_index_values(), copy=False)
         stargets = set(targets)
+
         n = len(values)
         n_t = len(targets)
         if n > 10_000:
@@ -320,6 +323,7 @@ cdef class IndexEngine:
 
         if stargets:
             # otherwise, map by iterating through all items in the index
+
             for i in range(n):
                 val = values[i]
                 if val in stargets:
@@ -327,12 +331,27 @@ cdef class IndexEngine:
                         d[val] = []
                     d[val].append(i)
 
+                elif util.is_nan(val):
+                    # GH#35392
+                    if need_nan_check:
+                        # Do this check only once
+                        stargets_has_nan = any(util.is_nan(val) for x in stargets)
+                        need_nan_check = False
+
+                    if stargets_has_nan:
+                        if not d_has_nan:
+                            # use a canonical nan object
+                            d[np.nan] = []
+                            d_has_nan = True
+                        d[np.nan].append(i)
+
         for i in range(n_t):
             val = targets[i]
 
             # found
-            if val in d:
-                for j in d[val]:
+            if val in d or (d_has_nan and util.is_nan(val)):
+                key = val if not util.is_nan(val) else np.nan
+                for j in d[key]:
 
                     # realloc if needed
                     if count >= n_alloc:
@@ -584,26 +603,26 @@ cdef class BaseMultiIndexCodesEngine:
     def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
         raise NotImplementedError("Implemented by subclass")
 
-    def _extract_level_codes(self, ndarray[object] target) -> np.ndarray:
+    def _extract_level_codes(self, target) -> np.ndarray:
         """
         Map the requested list of (tuple) keys to their integer representations
         for searching in the underlying integer index.
 
         Parameters
         ----------
-        target : ndarray[object]
-            Each key is a tuple, with a label for each level of the index.
+        target : MultiIndex
 
         Returns
         ------
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
+        zt = [target._get_level_values(i) for i in range(target.nlevels)]
         level_codes = [lev.get_indexer(codes) + 1 for lev, codes
-                       in zip(self.levels, zip(*target))]
+                       in zip(self.levels, zt)]
         return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    def get_indexer(self, ndarray[object] target) -> np.ndarray:
+    def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
         Returns an array giving the positions of each value of `target` in
         `self.values`, where -1 represents a value in `target` which does not
@@ -611,16 +630,14 @@ cdef class BaseMultiIndexCodesEngine:
 
         Parameters
         ----------
-        target : ndarray[object]
-            Each key is a tuple, with a label for each level of the index
+        target : np.ndarray
 
         Returns
         -------
         np.ndarray[intp_t, ndim=1] of the indexer of `target` into
         `self.values`
         """
-        lab_ints = self._extract_level_codes(target)
-        return self._base.get_indexer(self, lab_ints)
+        return self._base.get_indexer(self, target)
 
     def get_indexer_with_fill(self, ndarray target, ndarray values,
                               str method, object limit) -> np.ndarray:
@@ -723,10 +740,9 @@ cdef class BaseMultiIndexCodesEngine:
 
         return self._base.get_loc(self, lab_int)
 
-    def get_indexer_non_unique(self, ndarray[object] target):
-
-        lab_ints = self._extract_level_codes(target)
-        indexer = self._base.get_indexer_non_unique(self, lab_ints)
+    def get_indexer_non_unique(self, target: np.ndarray) -> np.ndarray:
+        # target: MultiIndex
+        indexer = self._base.get_indexer_non_unique(self, target)
 
         return indexer
 

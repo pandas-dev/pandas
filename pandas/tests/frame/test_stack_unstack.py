@@ -255,7 +255,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
         # Fill with non-category results in a ValueError
-        msg = r"'fill_value=d' is not present in"
+        msg = r"Cannot setitem on a Categorical with a new category \(d\)"
         with pytest.raises(TypeError, match=msg):
             data.unstack(fill_value="d")
 
@@ -358,7 +358,7 @@ class TestDataFrameReshape:
                 "E": Series([1.0, 50.0, 100.0]).astype("float32"),
                 "F": Series([3.0, 4.0, 5.0]).astype("float64"),
                 "G": False,
-                "H": Series([1, 200, 923442], dtype="int8"),
+                "H": Series([1, 200, 923442]).astype("int8"),
             }
         )
 
@@ -1285,6 +1285,21 @@ def test_stack_positional_level_duplicate_column_names():
     tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_non_slice_like_blocks(using_array_manager):
+    # Case where the mgr_locs of a DataFrame's underlying blocks are not slice-like
+
+    mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
+    df = DataFrame(np.random.randn(15, 4), index=mi)
+    df[1] = df[1].astype(np.int64)
+    if not using_array_manager:
+        assert any(not x.mgr_locs.is_slice_like for x in df._mgr.blocks)
+
+    res = df.unstack()
+
+    expected = pd.concat([df[n].unstack() for n in range(4)], keys=range(4), axis=1)
+    tm.assert_frame_equal(res, expected)
+
+
 class TestStackUnstackMultiLevel:
     def test_unstack(self, multiindex_year_month_day_dataframe_random_data):
         # just check that it works for now
@@ -1997,4 +2012,72 @@ Thu,Lunch,Yes,51.51,17"""
             index=Index([(0, None), (0, 0), (0, 1)]),
             columns=Index([(0, None), (0, 2), (0, 3)]),
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_multi_level_stack_categorical(self):
+        # GH 15239
+        midx = MultiIndex.from_arrays(
+            [
+                ["A"] * 2 + ["B"] * 2,
+                pd.Categorical(list("abab")),
+                pd.Categorical(list("ccdd")),
+            ]
+        )
+        df = DataFrame(np.arange(8).reshape(2, 4), columns=midx)
+        result = df.stack([1, 2])
+        expected = DataFrame(
+            [
+                [0, np.nan],
+                [np.nan, 2],
+                [1, np.nan],
+                [np.nan, 3],
+                [4, np.nan],
+                [np.nan, 6],
+                [5, np.nan],
+                [np.nan, 7],
+            ],
+            columns=["A", "B"],
+            index=MultiIndex.from_arrays(
+                [
+                    [0] * 4 + [1] * 4,
+                    pd.Categorical(list("aabbaabb")),
+                    pd.Categorical(list("cdcdcdcd")),
+                ]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_stack_nan_level(self):
+        # GH 9406
+        df_nan = DataFrame(
+            np.arange(4).reshape(2, 2),
+            columns=MultiIndex.from_tuples(
+                [("A", np.nan), ("B", "b")], names=["Upper", "Lower"]
+            ),
+            index=Index([0, 1], name="Num"),
+            dtype=np.float64,
+        )
+        result = df_nan.stack()
+        expected = DataFrame(
+            [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
+            columns=Index(["A", "B"], name="Upper"),
+            index=MultiIndex.from_tuples(
+                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_unstack_categorical_columns(self):
+        # GH 14018
+        idx = MultiIndex.from_product([["A"], [0, 1]])
+        df = DataFrame({"cat": pd.Categorical(["a", "b"])}, index=idx)
+        result = df.unstack()
+        expected = DataFrame(
+            {
+                0: pd.Categorical(["a"], categories=["a", "b"]),
+                1: pd.Categorical(["b"], categories=["a", "b"]),
+            },
+            index=["A"],
+        )
+        expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
         tm.assert_frame_equal(result, expected)

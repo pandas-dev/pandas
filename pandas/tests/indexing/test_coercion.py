@@ -1,9 +1,7 @@
+from __future__ import annotations
+
 from datetime import timedelta
 import itertools
-from typing import (
-    Dict,
-    List,
-)
 
 import numpy as np
 import pytest
@@ -15,6 +13,10 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+)
 
 ###############################################################
 # Index / Series common tests which may trigger dtype coercions
@@ -79,7 +81,7 @@ class TestSetitemCoercion(CoercionBase):
     def _assert_setitem_series_conversion(
         self, original_series, loc_value, expected_series, expected_dtype
     ):
-        """ test series value's coercion triggered by assignment """
+        """test series value's coercion triggered by assignment"""
         temp = original_series.copy()
         temp[1] = loc_value
         tm.assert_series_equal(temp, expected_series)
@@ -134,7 +136,10 @@ class TestSetitemCoercion(CoercionBase):
             )
             request.node.add_marker(mark)
 
-        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        warn = None if exp_dtype is np.int8 else FutureWarning
+        msg = "Values are too large to be losslessly cast to int8"
+        with tm.assert_produces_warning(warn, match=msg):
+            exp = pd.Series([1, val, 3, 4], dtype=np.int8)
         self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     @pytest.mark.parametrize(
@@ -270,9 +275,14 @@ class TestSetitemCoercion(CoercionBase):
     def _assert_setitem_index_conversion(
         self, original_series, loc_key, expected_index, expected_dtype
     ):
-        """ test index's coercion triggered by assign key """
+        """test index's coercion triggered by assign key"""
         temp = original_series.copy()
-        temp[loc_key] = 5
+        warn = None
+        if isinstance(loc_key, int) and temp.index.dtype == np.float64:
+            # GH#33469
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn):
+            temp[loc_key] = 5
         exp = pd.Series([1, 2, 3, 4, 5], index=expected_index)
         tm.assert_series_equal(temp, exp)
         # check dtype explicitly for sure
@@ -323,7 +333,10 @@ class TestSetitemCoercion(CoercionBase):
             temp = obj.copy()
             msg = "index 5 is out of bounds for axis 0 with size 4"
             with pytest.raises(exp_dtype, match=msg):
-                temp[5] = 5
+                # GH#33469
+                depr_msg = "Treating integers as positional"
+                with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                    temp[5] = 5
             mark = pytest.mark.xfail(reason="TODO_GH12747 The result must be float")
             request.node.add_marker(mark)
         exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
@@ -364,7 +377,7 @@ class TestInsertIndexCoercion(CoercionBase):
     method = "insert"
 
     def _assert_insert_conversion(self, original, value, expected, expected_dtype):
-        """ test coercion triggered by insert """
+        """test coercion triggered by insert"""
         target = original.copy()
         res = target.insert(1, value)
         tm.assert_index_equal(res, expected)
@@ -396,7 +409,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
     )
     def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
-        obj = pd.Int64Index([1, 2, 3, 4])
+        obj = Int64Index([1, 2, 3, 4])
         assert obj.dtype == np.int64
 
         exp = pd.Index([1, coerced_val, 2, 3, 4])
@@ -412,7 +425,7 @@ class TestInsertIndexCoercion(CoercionBase):
         ],
     )
     def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
-        obj = pd.Float64Index([1.0, 2.0, 3.0, 4.0])
+        obj = Float64Index([1.0, 2.0, 3.0, 4.0])
         assert obj.dtype == np.float64
 
         exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0])
@@ -552,7 +565,7 @@ class TestWhereCoercion(CoercionBase):
     def _assert_where_conversion(
         self, original, cond, values, expected, expected_dtype
     ):
-        """ test coercion triggered by where """
+        """test coercion triggered by where"""
         target = original.copy()
         res = target.where(cond, values)
         tm.assert_equal(res, expected)
@@ -866,7 +879,7 @@ class TestFillnaSeriesCoercion(CoercionBase):
         raise NotImplementedError
 
     def _assert_fillna_conversion(self, original, value, expected, expected_dtype):
-        """ test coercion triggered by fillna """
+        """test coercion triggered by fillna"""
         target = original.copy()
         res = target.fillna(value)
         tm.assert_equal(res, expected)
@@ -1021,7 +1034,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
     klasses = ["series"]
     method = "replace"
 
-    rep: Dict[str, List] = {}
+    rep: dict[str, list] = {}
     rep["object"] = ["a", "b"]
     rep["int64"] = [4, 5]
     rep["float64"] = [1.1, 2.2]

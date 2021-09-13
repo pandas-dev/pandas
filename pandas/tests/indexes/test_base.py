@@ -21,20 +21,23 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
     date_range,
     isna,
     period_range,
 )
 import pandas._testing as tm
+from pandas.api.types import is_float_dtype
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -46,13 +49,14 @@ from pandas.tests.indexes.common import Base
 
 
 class TestIndex(Base):
-    _holder = Index
+    _index_cls = Index
 
-    def create_index(self) -> Index:
-        return Index(list("abcde"))
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return self._index_cls(list("abcde"))
 
-    def test_can_hold_identifiers(self):
-        index = self.create_index()
+    def test_can_hold_identifiers(self, simple_index):
+        index = simple_index
         key = index[0]
         assert index._can_hold_identifiers_and_holds_name(key) is True
 
@@ -77,8 +81,6 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_constructor_copy(self, index):
-        # copy
-        # index = self.create_index()
         arr = np.array(index)
         new_index = Index(arr, copy=True, name="name")
         assert isinstance(new_index, Index)
@@ -600,8 +602,8 @@ class TestIndex(Base):
         for i, val in enumerate(sub_index):
             assert sub_index.get_loc(val) == i
 
-    def test_fancy(self):
-        index = self.create_index()
+    def test_fancy(self, simple_index):
+        index = simple_index
         sl = index[[1, 2, 3]]
         for i in sl:
             assert i == sl[sl.get_loc(i)]
@@ -628,9 +630,9 @@ class TestIndex(Base):
         with pytest.raises(IndexError, match=msg):
             index[empty_farr]
 
-    def test_union_dt_as_obj(self, sort):
+    def test_union_dt_as_obj(self, sort, simple_index):
         # TODO: Replace with fixturesult
-        index = self.create_index()
+        index = simple_index
         date_index = date_range("2019-01-01", periods=10)
         first_cat = index.union(date_index)
         second_cat = index.union(index)
@@ -714,6 +716,12 @@ class TestIndex(Base):
         if index.empty:
             # to match proper result coercion for uints
             expected = Index([])
+        elif index._is_backward_compat_public_numeric_index:
+            if is_float_dtype(index.dtype):
+                exp_dtype = np.float64
+            else:
+                exp_dtype = np.int64
+            expected = index._constructor(np.arange(len(index), 0, -1), dtype=exp_dtype)
         else:
             expected = Index(np.arange(len(index), 0, -1))
 
@@ -754,9 +762,9 @@ class TestIndex(Base):
         result = left.append(right)
         assert result.name == expected
 
-    def test_is_mixed_deprecated(self):
+    def test_is_mixed_deprecated(self, simple_index):
         # GH#32922
-        index = self.create_index()
+        index = simple_index
         with tm.assert_produces_warning(FutureWarning):
             index.is_mixed()
 
@@ -866,8 +874,8 @@ class TestIndex(Base):
         assert result == expected
 
     @pytest.mark.parametrize("op", ["any", "all"])
-    def test_logical_compat(self, op):
-        index = self.create_index()
+    def test_logical_compat(self, op, simple_index):
+        index = simple_index
         assert getattr(index, op)() == getattr(index.values, op)()
 
     @pytest.mark.parametrize("index", ["string", "int", "float"], indirect=True)
@@ -973,9 +981,9 @@ class TestIndex(Base):
         index = Index([5, datetime.now(), 7])
         assert not getattr(index, attr)
 
-    def test_set_value_deprecated(self):
+    def test_set_value_deprecated(self, simple_index):
         # GH 28621
-        idx = self.create_index()
+        idx = simple_index
         arr = np.array([1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             idx.set_value(arr, idx[1], 80)
@@ -993,7 +1001,7 @@ class TestIndex(Base):
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(self, request, nulls_fixture, nulls_fixture2):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
@@ -1367,7 +1375,7 @@ class TestIndex(Base):
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; idx = Index([1, 2])"
+        code = "import pandas as pd; idx = pd.Index([1, 2])"
         await ip.run_code(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
@@ -1415,29 +1423,30 @@ class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)
-    _holder = Index
+    _index_cls = Index
+
+    @pytest.fixture
+    def simple_index(self) -> Index:
+        return self._index_cls([0, "a", 1, "b", 2, "c"])
 
     @pytest.fixture(params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
     def index(self, request):
         return Index(request.param)
 
-    def create_index(self) -> Index:
-        return Index([0, "a", 1, "b", 2, "c"])
-
-    def test_argsort(self):
-        index = self.create_index()
+    def test_argsort(self, simple_index):
+        index = simple_index
         with pytest.raises(TypeError, match="'>|<' not supported"):
             index.argsort()
 
-    def test_numpy_argsort(self):
-        index = self.create_index()
+    def test_numpy_argsort(self, simple_index):
+        index = simple_index
         with pytest.raises(TypeError, match="'>|<' not supported"):
             np.argsort(index)
 
-    def test_copy_name(self):
+    def test_copy_name(self, simple_index):
         # Check that "name" argument passed at initialization is honoured
         # GH12309
-        index = self.create_index()
+        index = simple_index
 
         first = type(index)(index, copy=True, name="mario")
         second = type(first)(first, copy=False)
@@ -1482,8 +1491,8 @@ class TestMixedIntIndex(Base):
         result = idx.unique()
         tm.assert_index_equal(result, expected)
 
-    def test_logical_compat(self):
-        index = self.create_index()
+    def test_logical_compat(self, simple_index):
+        index = simple_index
         assert index.all() == index.values.all()
         assert index.any() == index.values.any()
 
@@ -1622,6 +1631,18 @@ class TestIndexUtils:
         expected = Index(intervals, dtype=object)
         tm.assert_index_equal(result, expected)
 
+    def test_ensure_index_uint64(self):
+        # with both 0 and a large-uint64, np.array will infer to float64
+        #  https://github.com/numpy/numpy/issues/19146
+        #  but a more accurate choice would be uint64
+        values = [0, np.iinfo(np.uint64).max]
+
+        result = ensure_index(values)
+        assert list(result) == values
+
+        expected = Index(values, dtype="uint64")
+        tm.assert_index_equal(result, expected)
+
     def test_get_combined_index(self):
         result = _get_combined_index([])
         expected = Index([])
@@ -1720,3 +1741,48 @@ def test_validate_1d_input():
     ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
         ser.index = np.array([[2, 3]] * 4)
+
+
+@pytest.mark.parametrize(
+    "klass, extra_kwargs",
+    [
+        [Index, {}],
+        [Int64Index, {}],
+        [Float64Index, {}],
+        [DatetimeIndex, {}],
+        [TimedeltaIndex, {}],
+        [PeriodIndex, {"freq": "Y"}],
+    ],
+)
+def test_construct_from_memoryview(klass, extra_kwargs):
+    # GH 13120
+    result = klass(memoryview(np.arange(2000, 2005)), **extra_kwargs)
+    expected = klass(range(2000, 2005), **extra_kwargs)
+    tm.assert_index_equal(result, expected)
+
+
+def test_index_set_names_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 4])
+    msg = (
+        "In a future version of pandas all arguments of Index.set_names "
+        "except for the argument 'names' will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = idx.set_names("quarter", None)
+    expected = Index([1, 2, 3, 4], name="quarter")
+    tm.assert_index_equal(result, expected)
+
+
+def test_drop_duplicates_pos_args_deprecation():
+    # GH#41485
+    idx = Index([1, 2, 3, 1])
+    msg = (
+        "In a future version of pandas all arguments of "
+        "Index.drop_duplicates will be keyword-only"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx.drop_duplicates("last")
+        result = idx.drop_duplicates("last")
+    expected = Index([2, 3, 1])
+    tm.assert_index_equal(expected, result)

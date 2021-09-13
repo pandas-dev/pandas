@@ -26,6 +26,21 @@ def test_read_jsonl():
     tm.assert_frame_equal(result, expected)
 
 
+def test_read_datetime():
+    # GH33787
+    df = DataFrame(
+        [([1, 2], ["2020-03-05", "2020-04-08T09:58:49+00:00"], "hector")],
+        columns=["accounts", "date", "name"],
+    )
+    json_line = df.to_json(lines=True, orient="records")
+    result = read_json(json_line)
+    expected = DataFrame(
+        [[1, "2020-03-05", "hector"], [2, "2020-04-08T09:58:49+00:00", "hector"]],
+        columns=["accounts", "date", "name"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_read_jsonl_unicode_chars():
     # GH15132: non-ascii unicode characters
     # \u201d == RIGHT DOUBLE QUOTATION MARK
@@ -192,7 +207,7 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
 
 def test_readjson_unicode(monkeypatch):
     with tm.ensure_clean("test.json") as path:
-        monkeypatch.setattr("_bootlocale.getpreferredencoding", lambda l: "cp949")
+        monkeypatch.setattr("locale.getpreferredencoding", lambda l: "cp949")
         with open(path, "w", encoding="utf-8") as f:
             f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 

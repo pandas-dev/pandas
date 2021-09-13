@@ -66,6 +66,11 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+# Until https://github.com/numpy/numpy/issues/19078 is sorted out, just suppress
+suppress_npdev_promotion_warning = pytest.mark.filterwarnings(
+    "ignore:Promotion of numbers and bools:FutureWarning"
+)
+
 # ----------------------------------------------------------------
 # Configuration / Settings
 # ----------------------------------------------------------------
@@ -111,6 +116,8 @@ def pytest_collection_modifyitems(items):
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
+
+        item.add_marker(suppress_npdev_promotion_warning)
 
 
 # Hypothesis
@@ -453,6 +460,16 @@ indices_dict = {
     "uint": tm.makeUIntIndex(100),
     "range": tm.makeRangeIndex(100),
     "float": tm.makeFloatIndex(100),
+    "num_int64": tm.makeNumericIndex(100, dtype="int64"),
+    "num_int32": tm.makeNumericIndex(100, dtype="int32"),
+    "num_int16": tm.makeNumericIndex(100, dtype="int16"),
+    "num_int8": tm.makeNumericIndex(100, dtype="int8"),
+    "num_uint64": tm.makeNumericIndex(100, dtype="uint64"),
+    "num_uint32": tm.makeNumericIndex(100, dtype="uint32"),
+    "num_uint16": tm.makeNumericIndex(100, dtype="uint16"),
+    "num_uint8": tm.makeNumericIndex(100, dtype="uint8"),
+    "num_float64": tm.makeNumericIndex(100, dtype="float64"),
+    "num_float32": tm.makeNumericIndex(100, dtype="float32"),
     "bool": tm.makeBoolIndex(10),
     "categorical": tm.makeCategoricalIndex(100),
     "interval": tm.makeIntervalIndex(100),
@@ -504,7 +521,10 @@ index_flat2 = index_flat
     params=[
         key
         for key in indices_dict
-        if key not in ["int", "uint", "range", "empty", "repeats"]
+        if not (
+            key in ["int", "uint", "range", "empty", "repeats"]
+            or key.startswith("num_")
+        )
         and not isinstance(indices_dict[key], MultiIndex)
     ]
 )
@@ -573,7 +593,7 @@ def datetime_series():
 
 
 def _create_series(index):
-    """ Helper for the _series dict """
+    """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
     return Series(data, index=index, name="a")
@@ -1113,9 +1133,9 @@ def string_dtype(request):
 
 @pytest.fixture(
     params=[
-        "string",
+        "string[python]",
         pytest.param(
-            "arrow_string", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
         ),
     ]
 )
@@ -1123,12 +1143,30 @@ def nullable_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
 
-    * 'string'
-    * 'arrow_string'
+    * 'string[python]'
+    * 'string[pyarrow]'
     """
-    from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
     return request.param
+
+
+@pytest.fixture(
+    params=[
+        "python",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow", min_version="1.0.0")),
+    ]
+)
+def string_storage(request):
+    """
+    Parametrized fixture for pd.options.mode.string_storage.
+
+    * 'python'
+    * 'pyarrow'
+    """
+    return request.param
+
+
+# Alias so we can test with cartesian product of string_storage
+string_storage2 = string_storage
 
 
 @pytest.fixture(params=tm.BYTES_DTYPES)
@@ -1149,6 +1187,25 @@ def object_dtype(request):
 
     * object
     * 'object'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        "object",
+        "string[python]",
+        pytest.param(
+            "string[pyarrow]", marks=td.skip_if_no("pyarrow", min_version="1.0.0")
+        ),
+    ]
+)
+def any_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'object'
+    * 'string[python]'
+    * 'string[pyarrow]'
     """
     return request.param
 
@@ -1175,8 +1232,8 @@ def timedelta64_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_DTYPES)
-def float_dtype(request):
+@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES)
+def float_numpy_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1198,8 +1255,8 @@ def float_ea_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.FLOAT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_float_allowed_nullable_dtype(request):
+@pytest.fixture(params=tm.FLOAT_NUMPY_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_float_dtype(request):
     """
     Parameterized fixture for float dtypes.
 
@@ -1224,8 +1281,8 @@ def complex_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_INT_DTYPES)
-def sint_dtype(request):
+@pytest.fixture(params=tm.SIGNED_INT_NUMPY_DTYPES)
+def any_signed_int_numpy_dtype(request):
     """
     Parameterized fixture for signed integer dtypes.
 
@@ -1238,8 +1295,8 @@ def sint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.UNSIGNED_INT_DTYPES)
-def uint_dtype(request):
+@pytest.fixture(params=tm.UNSIGNED_INT_NUMPY_DTYPES)
+def any_unsigned_int_numpy_dtype(request):
     """
     Parameterized fixture for unsigned integer dtypes.
 
@@ -1251,8 +1308,8 @@ def uint_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_DTYPES)
-def any_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES)
+def any_int_numpy_dtype(request):
     """
     Parameterized fixture for any integer dtype.
 
@@ -1269,8 +1326,8 @@ def any_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_EA_INT_DTYPES)
-def any_nullable_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_EA_DTYPES)
+def any_int_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1286,8 +1343,8 @@ def any_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_INT_DTYPES + tm.ALL_EA_INT_DTYPES)
-def any_int_or_nullable_int_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_NUMPY_DTYPES + tm.ALL_INT_EA_DTYPES)
+def any_int_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype.
 
@@ -1312,8 +1369,8 @@ def any_int_or_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_EA_INT_DTYPES + tm.FLOAT_EA_DTYPES)
-def any_nullable_numeric_dtype(request):
+@pytest.fixture(params=tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES)
+def any_numeric_ea_dtype(request):
     """
     Parameterized fixture for any nullable integer dtype and
     any float ea dtypes.
@@ -1332,8 +1389,8 @@ def any_nullable_numeric_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.SIGNED_EA_INT_DTYPES)
-def any_signed_nullable_int_dtype(request):
+@pytest.fixture(params=tm.SIGNED_INT_EA_DTYPES)
+def any_signed_int_ea_dtype(request):
     """
     Parameterized fixture for any signed nullable integer dtype.
 
@@ -1345,8 +1402,8 @@ def any_signed_nullable_int_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=tm.ALL_REAL_DTYPES)
-def any_real_dtype(request):
+@pytest.fixture(params=tm.ALL_REAL_NUMPY_DTYPES)
+def any_real_numpy_dtype(request):
     """
     Parameterized fixture for any (purely) real numeric dtype.
 

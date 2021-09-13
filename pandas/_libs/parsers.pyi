@@ -8,31 +8,29 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    npt,
 )
 
 STR_NA_VALUES: set[str]
 
-
 def sanitize_objects(
-    values: np.ndarray,  # ndarray[object]
+    values: npt.NDArray[np.object_],
     na_values: set,
     convert_empty: bool = ...,
 ) -> int: ...
 
-
 class TextReader:
     unnamed_cols: set[str]
-    table_width: int   # int64_t
+    table_width: int  # int64_t
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
-
     def __init__(
         self,
         source,
         delimiter: bytes | str = ...,  # single-character only
         header=...,
-        header_start=...,
-        header_end=...,
+        header_start: int = ...,  # int64_t
+        header_end: int = ...,  # uint64_t
         index_col=...,
         names=...,
         tokenize_chunksize: int = ...,  # int64_t
@@ -58,20 +56,17 @@ class TextReader:
         true_values=...,
         false_values=...,
         allow_leading_cols: bool = ...,
-        low_memory: bool = ...,
         skiprows=...,
         skipfooter: int = ...,  # int64_t
         verbose: bool = ...,
         mangle_dupe_cols: bool = ...,
         float_precision: Literal["round_trip", "legacy", "high"] | None = ...,
         skip_blank_lines: bool = ...,
-        encoding_errors: bytes | str = ...
+        encoding_errors: bytes | str = ...,
     ): ...
-
     def set_error_bad_lines(self, status: int) -> None: ...
     def set_noconvert(self, i: int) -> None: ...
     def remove_noconvert(self, i: int) -> None: ...
-
     def close(self) -> None: ...
-
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
+    def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...

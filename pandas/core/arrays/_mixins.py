@@ -2,27 +2,31 @@ from __future__ import annotations
 
 from functools import wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
+    npt,
     type_t,
 )
-from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    cache_readonly,
-    doc,
-)
+from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -48,6 +52,13 @@ NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
 
+if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
 
 def ravel_compat(meth: F) -> F:
     """
@@ -69,23 +80,12 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-class NDArrayBackedExtensionArray(ExtensionArray):
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
 
     _ndarray: np.ndarray
-
-    def _from_backing_data(
-        self: NDArrayBackedExtensionArrayT, arr: np.ndarray
-    ) -> NDArrayBackedExtensionArrayT:
-        """
-        Construct a new ExtensionArray `new_array` with `arr` as its _ndarray.
-
-        This should round-trip:
-            self == self._from_backing_data(self._ndarray)
-        """
-        raise AbstractMethodError(self)
 
     def _box_func(self, x):
         """
@@ -108,7 +108,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         axis: int = 0,
     ) -> NDArrayBackedExtensionArrayT:
         if allow_fill:
-            fill_value = self._validate_fill_value(fill_value)
+            fill_value = self._validate_scalar(fill_value)
 
         new_data = take(
             self._ndarray,
@@ -119,65 +119,6 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             fill_value=fill_value,
             axis=axis,
         )
-        return self._from_backing_data(new_data)
-
-    def _validate_fill_value(self, fill_value):
-        """
-        If a fill_value is passed to `take` convert it to a representation
-        suitable for self._ndarray, raising TypeError if this is not possible.
-
-        Parameters
-        ----------
-        fill_value : object
-
-        Returns
-        -------
-        fill_value : native representation
-
-        Raises
-        ------
-        TypeError
-        """
-        raise AbstractMethodError(self)
-
-    # ------------------------------------------------------------------------
-
-    # TODO: make this a cache_readonly; for that to work we need to remove
-    #  the _index_data kludge in libreduction
-    @property
-    def shape(self) -> Shape:
-        return self._ndarray.shape
-
-    def __len__(self) -> int:
-        return self.shape[0]
-
-    @cache_readonly
-    def ndim(self) -> int:
-        return len(self.shape)
-
-    @cache_readonly
-    def size(self) -> int:
-        return self._ndarray.size
-
-    @cache_readonly
-    def nbytes(self) -> int:
-        return self._ndarray.nbytes
-
-    def reshape(
-        self: NDArrayBackedExtensionArrayT, *args, **kwargs
-    ) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.reshape(*args, **kwargs)
-        return self._from_backing_data(new_data)
-
-    def ravel(
-        self: NDArrayBackedExtensionArrayT, *args, **kwargs
-    ) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.ravel(*args, **kwargs)
-        return self._from_backing_data(new_data)
-
-    @property
-    def T(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.T
         return self._from_backing_data(new_data)
 
     # ------------------------------------------------------------------------
@@ -208,24 +149,6 @@ class NDArrayBackedExtensionArray(ExtensionArray):
             raise NotImplementedError
         return nargminmax(self, "argmax", axis=axis)
 
-    def copy(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
-        new_data = self._ndarray.copy()
-        return self._from_backing_data(new_data)
-
-    def repeat(
-        self: NDArrayBackedExtensionArrayT, repeats, axis=None
-    ) -> NDArrayBackedExtensionArrayT:
-        """
-        Repeat elements of an array.
-
-        See Also
-        --------
-        numpy.ndarray.repeat
-        """
-        nv.validate_repeat((), {"axis": axis})
-        new_data = self._ndarray.repeat(repeats, axis=axis)
-        return self._from_backing_data(new_data)
-
     def unique(self: NDArrayBackedExtensionArrayT) -> NDArrayBackedExtensionArrayT:
         new_data = unique(self._ndarray)
         return self._from_backing_data(new_data)
@@ -248,12 +171,22 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
 
     @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        value = self._validate_searchsorted_value(value)
-        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        npvalue = self._validate_searchsorted_value(value)
+        return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(self, value):
-        return value
+    def _validate_searchsorted_value(
+        self, value: NumpyValueArrayLike | ExtensionArray
+    ) -> NumpyValueArrayLike:
+        if isinstance(value, ExtensionArray):
+            return value.to_numpy()
+        else:
+            return value
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):
@@ -266,7 +199,7 @@ class NDArrayBackedExtensionArray(ExtensionArray):
     def _validate_shift_value(self, fill_value):
         # TODO: after deprecation in datetimelikearraymixin is enforced,
         #  we can remove this and ust validate_fill_value directly
-        return self._validate_fill_value(fill_value)
+        return self._validate_scalar(fill_value)
 
     def __setitem__(self, key, value):
         key = check_array_indexer(self, key)
@@ -275,6 +208,17 @@ class NDArrayBackedExtensionArray(ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,
@@ -418,17 +362,35 @@ class NDArrayBackedExtensionArray(ExtensionArray):
         res_values = np.where(mask, self._ndarray, value)
         return self._from_backing_data(res_values)
 
-    def delete(
-        self: NDArrayBackedExtensionArrayT, loc, axis: int = 0
-    ) -> NDArrayBackedExtensionArrayT:
-        res_values = np.delete(self._ndarray, loc, axis=axis)
-        return self._from_backing_data(res_values)
+    # ------------------------------------------------------------------------
+    # Index compat methods
 
-    def swapaxes(
-        self: NDArrayBackedExtensionArrayT, axis1, axis2
+    def insert(
+        self: NDArrayBackedExtensionArrayT, loc: int, item
     ) -> NDArrayBackedExtensionArrayT:
-        res_values = self._ndarray.swapaxes(axis1, axis2)
-        return self._from_backing_data(res_values)
+        """
+        Make new ExtensionArray inserting new item at location. Follows
+        Python list.append semantics for negative values.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        type(self)
+        """
+        code = self._validate_scalar(item)
+
+        new_vals = np.concatenate(
+            (
+                self._ndarray[:loc],
+                np.asarray([code], dtype=self._ndarray.dtype),
+                self._ndarray[loc:],
+            )
+        )
+        return self._from_backing_data(new_vals)
 
     # ------------------------------------------------------------------------
     # Additional array methods

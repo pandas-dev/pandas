@@ -8,19 +8,24 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
+    Hashable,
+    Literal,
     TypeVar,
     cast,
+    final,
 )
 
 import numpy as np
 
 import pandas._libs.lib as lib
 from pandas._typing import (
-    Dtype,
+    ArrayLike,
     DtypeObj,
+    FrameOrSeries,
     IndexLabel,
     Shape,
-    final,
+    npt,
 )
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
@@ -60,7 +65,14 @@ from pandas.core.construction import create_series_with_explicit_dtype
 import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
+
     from pandas import Categorical
+
 
 _shared_docs: dict[str, str] = {}
 _indexops_doc_kwargs = {
@@ -162,25 +174,17 @@ class SpecificationError(Exception):
     pass
 
 
-class SelectionMixin:
+class SelectionMixin(Generic[FrameOrSeries]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions
     """
 
+    obj: FrameOrSeries
     _selection: IndexLabel | None = None
+    exclusions: frozenset[Hashable]
     _internal_names = ["_cache", "__setstate__"]
     _internal_names_set = set(_internal_names)
-
-    @property
-    def _selection_name(self):
-        """
-        Return a name for myself;
-
-        This would ideally be called the 'name' property,
-        but we cannot conflict with the Series.name property which can be set.
-        """
-        return self._selection
 
     @final
     @property
@@ -193,16 +197,12 @@ class SelectionMixin:
 
     @cache_readonly
     def _selected_obj(self):
-        # error: "SelectionMixin" has no attribute "obj"
-        if self._selection is None or isinstance(
-            self.obj, ABCSeries  # type: ignore[attr-defined]
-        ):
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj  # type: ignore[attr-defined]
+        if self._selection is None or isinstance(self.obj, ABCSeries):
+            return self.obj
         else:
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj[self._selection]  # type: ignore[attr-defined]
+            return self.obj[self._selection]
 
+    @final
     @cache_readonly
     def ndim(self) -> int:
         return self._selected_obj.ndim
@@ -210,51 +210,35 @@ class SelectionMixin:
     @final
     @cache_readonly
     def _obj_with_exclusions(self):
-        # error: "SelectionMixin" has no attribute "obj"
-        if self._selection is not None and isinstance(
-            self.obj, ABCDataFrame  # type: ignore[attr-defined]
-        ):
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj.reindex(  # type: ignore[attr-defined]
-                columns=self._selection_list
-            )
+        if self._selection is not None and isinstance(self.obj, ABCDataFrame):
+            return self.obj[self._selection_list]
 
-        # error: "SelectionMixin" has no attribute "exclusions"
-        if len(self.exclusions) > 0:  # type: ignore[attr-defined]
-            # error: "SelectionMixin" has no attribute "obj"
-            # error: "SelectionMixin" has no attribute "exclusions"
-            return self.obj.drop(self.exclusions, axis=1)  # type: ignore[attr-defined]
+        if len(self.exclusions) > 0:
+            return self.obj.drop(self.exclusions, axis=1)
         else:
-            # error: "SelectionMixin" has no attribute "obj"
-            return self.obj  # type: ignore[attr-defined]
+            return self.obj
 
     def __getitem__(self, key):
         if self._selection is not None:
             raise IndexError(f"Column(s) {self._selection} already selected")
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndex, np.ndarray)):
-            # error: "SelectionMixin" has no attribute "obj"
-            if len(
-                self.obj.columns.intersection(key)  # type: ignore[attr-defined]
-            ) != len(key):
-                # error: "SelectionMixin" has no attribute "obj"
-                bad_keys = list(
-                    set(key).difference(self.obj.columns)  # type: ignore[attr-defined]
-                )
+            if len(self.obj.columns.intersection(key)) != len(key):
+                bad_keys = list(set(key).difference(self.obj.columns))
                 raise KeyError(f"Columns not found: {str(bad_keys)[1:-1]}")
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, "as_index", False):
-            # error: "SelectionMixin" has no attribute "obj"
-            if key not in self.obj.columns:  # type: ignore[attr-defined]
+            if key not in self.obj.columns:
                 raise KeyError(f"Column not found: {key}")
             return self._gotitem(key, ndim=2)
 
         else:
-            # error: "SelectionMixin" has no attribute "obj"
-            if key not in self.obj:  # type: ignore[attr-defined]
+            if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
-            return self._gotitem(key, ndim=1)
+            subset = self.obj[key]
+            ndim = subset.ndim
+            return self._gotitem(key, ndim=ndim, subset=subset)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """
@@ -371,8 +355,6 @@ class IndexOpsMixin(OpsMixin):
         """
         The ExtensionArray of the data backing this Series or Index.
 
-        .. versionadded:: 0.24.0
-
         Returns
         -------
         ExtensionArray
@@ -435,15 +417,13 @@ class IndexOpsMixin(OpsMixin):
 
     def to_numpy(
         self,
-        dtype: Dtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value=lib.no_default,
         **kwargs,
     ) -> np.ndarray:
         """
         A NumPy ndarray representing the values in this Series or Index.
-
-        .. versionadded:: 0.24.0
 
         Parameters
         ----------
@@ -521,8 +501,8 @@ class IndexOpsMixin(OpsMixin):
 
         >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
         >>> ser.to_numpy(dtype=object)
-        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
-               Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+        array([Timestamp('2000-01-01 00:00:00+0100', tz='CET'),
+               Timestamp('2000-01-02 00:00:00+0100', tz='CET')],
               dtype=object)
 
         Or ``dtype='datetime64[ns]'`` to return an ndarray of native
@@ -545,12 +525,7 @@ class IndexOpsMixin(OpsMixin):
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
 
-        # error: Argument "dtype" to "asarray" has incompatible type
-        # "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float], Type[int],
-        # Type[complex], Type[bool], Type[object], None]"; expected "Union[dtype[Any],
-        # None, type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(self._values, dtype=dtype)  # type: ignore[arg-type]
+        result = np.asarray(self._values, dtype=dtype)
         # TODO(GH-24345): Avoid potential double copy
         if copy or na_value is not lib.no_default:
             result = result.copy()
@@ -810,6 +785,7 @@ class IndexOpsMixin(OpsMixin):
             )
         return func(skipna=skipna, **kwds)
 
+    @final
     def _map_values(self, mapper, na_action=None):
         """
         An internal function that maps values using the input
@@ -996,7 +972,7 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
 
         if not isinstance(values, np.ndarray):
-            result = values.unique()
+            result: ArrayLike = values.unique()
             if self.dtype.kind in ["m", "M"] and isinstance(self, ABCSeries):
                 # GH#31182 Series._values returns EA, unpack for backward-compat
                 if getattr(self.dtype, "tz", None) is None:
@@ -1040,8 +1016,10 @@ class IndexOpsMixin(OpsMixin):
         >>> s.nunique()
         4
         """
-        obj = remove_na_arraylike(self) if dropna else self
-        return len(obj.unique())
+        uniqs = self.unique()
+        if dropna:
+            uniqs = remove_na_arraylike(uniqs)
+        return len(uniqs)
 
     @property
     def is_unique(self) -> bool:
@@ -1115,6 +1093,7 @@ class IndexOpsMixin(OpsMixin):
         are not components of the array if deep=False or if used on PyPy
         """
         if hasattr(self.array, "memory_usage"):
+            # https://github.com/python/mypy/issues/1424
             # error: "ExtensionArray" has no attribute "memory_usage"
             return self.array.memory_usage(deep=deep)  # type: ignore[attr-defined]
 
@@ -1157,13 +1136,13 @@ class IndexOpsMixin(OpsMixin):
 
         Parameters
         ----------
-        value : array_like
+        value : array-like or scalar
             Values to insert into `self`.
         side : {{'left', 'right'}}, optional
             If 'left', the index of the first suitable location found is given.
             If 'right', return the last such index.  If there is no suitable
             index, return either 0 or N (where N is the length of `self`).
-        sorter : 1-D array_like, optional
+        sorter : 1-D array-like, optional
             Optional array of integer indices that sort `self` into ascending
             order. They are typically the result of ``np.argsort``.
 
@@ -1172,11 +1151,6 @@ class IndexOpsMixin(OpsMixin):
         int or array of int
             A scalar or array of insertion points with the
             same shape as `value`.
-
-            .. versionchanged:: 0.24.0
-                If `value` is a scalar, an int is now always returned.
-                Previously, scalar inputs returned an 1-item array for
-                :class:`Series` and :class:`Categorical`.
 
         See Also
         --------
@@ -1246,7 +1220,12 @@ class IndexOpsMixin(OpsMixin):
         """
 
     @doc(_shared_docs["searchsorted"], klass="Index")
-    def searchsorted(self, value, side="left", sorter=None) -> np.ndarray:
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
         return algorithms.searchsorted(self._values, value, side=side, sorter=sorter)
 
     def drop_duplicates(self, keep="first"):
@@ -1255,5 +1234,7 @@ class IndexOpsMixin(OpsMixin):
         return self[~duplicated]  # type: ignore[index]
 
     @final
-    def _duplicated(self, keep: str | bool = "first") -> np.ndarray:
+    def _duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)

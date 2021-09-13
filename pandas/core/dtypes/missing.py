@@ -37,7 +37,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -435,7 +439,9 @@ def array_equivalent(
     # Slow path when we allow comparing different dtypes.
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
-    if is_string_dtype(left.dtype) or is_string_dtype(right.dtype):
+    if left.dtype.kind in "OSU" or right.dtype.kind in "OSU":
+        # Note: `in "OSU"` is non-trivially faster than `in ["O", "S", "U"]`
+        #  or `in ("O", "S", "U")`
         return _array_equivalent_object(left, right, strict_nan)
 
     # NaNs can occur in float and complex arrays.
@@ -630,7 +636,13 @@ def is_valid_na_for_dtype(obj, dtype: DtypeObj) -> bool:
         # This is needed for Categorical, but is kind of weird
         return True
 
-    # must be PeriodDType
+    elif isinstance(dtype, PeriodDtype):
+        return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
+
+    elif isinstance(dtype, IntervalDtype):
+        return lib.is_float(obj) or obj is None or obj is libmissing.NA
+
+    # fallback, default to allowing NaN, None, NA, NaT
     return not isinstance(obj, (np.datetime64, np.timedelta64, Decimal))
 
 

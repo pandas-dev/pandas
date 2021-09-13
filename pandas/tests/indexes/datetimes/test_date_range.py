@@ -49,21 +49,21 @@ class TestTimestampEquivDateRange:
         rng = date_range("20090415", "20090519", tz="US/Eastern")
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz="US/Eastern", freq="D")
+        ts = Timestamp("20090415", tz="US/Eastern")
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_dateutil(self):
         rng = date_range("20090415", "20090519", tz="dateutil/US/Eastern")
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz="dateutil/US/Eastern", freq="D")
+        ts = Timestamp("20090415", tz="dateutil/US/Eastern")
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_explicit_pytz(self):
         rng = date_range("20090415", "20090519", tz=pytz.timezone("US/Eastern"))
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"), freq="D")
+        ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         assert ts == stamp
 
     @td.skip_if_windows_python_3
@@ -73,7 +73,7 @@ class TestTimestampEquivDateRange:
         rng = date_range("20090415", "20090519", tz=gettz("US/Eastern"))
         stamp = rng[0]
 
-        ts = Timestamp("20090415", tz=gettz("US/Eastern"), freq="D")
+        ts = Timestamp("20090415", tz=gettz("US/Eastern"))
         assert ts == stamp
 
     def test_date_range_timestamp_equiv_from_datetime_instance(self):
@@ -82,12 +82,12 @@ class TestTimestampEquivDateRange:
         # addition/subtraction of integers
         timestamp_instance = date_range(datetime_instance, periods=1, freq="D")[0]
 
-        ts = Timestamp(datetime_instance, freq="D")
+        ts = Timestamp(datetime_instance)
         assert ts == timestamp_instance
 
     def test_date_range_timestamp_equiv_preserve_frequency(self):
         timestamp_instance = date_range("2014-03-05", periods=1, freq="D")[0]
-        ts = Timestamp("2014-03-05", freq="D")
+        ts = Timestamp("2014-03-05")
 
         assert timestamp_instance == ts
 
@@ -400,9 +400,7 @@ class TestDateRanges:
     def test_compat_replace(self):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
-        result = date_range(
-            Timestamp("1960-04-01 00:00:00", freq="QS-JAN"), periods=76, freq="QS-JAN"
-        )
+        result = date_range(Timestamp("1960-04-01 00:00:00"), periods=76, freq="QS-JAN")
         assert len(result) == 76
 
     def test_catch_infinite_loop(self):

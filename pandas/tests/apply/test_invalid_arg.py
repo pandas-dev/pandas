@@ -342,6 +342,7 @@ def test_transform_wont_agg_series(string_series, func):
 @pytest.mark.parametrize(
     "op_wrapper", [lambda x: x, lambda x: [x], lambda x: {"A": x}, lambda x: {"A": [x]}]
 )
+@pytest.mark.filterwarnings("ignore:.*Select only valid:FutureWarning")
 def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
     # GH 35964
     op = op_wrapper(all_reductions)

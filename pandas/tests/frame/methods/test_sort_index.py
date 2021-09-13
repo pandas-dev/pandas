@@ -441,14 +441,14 @@ class TestDataFrameSortIndex:
                 {"M1": [1, 2], "M2": [3, 4]},
                 True,
                 False,
-                MultiIndex.from_tuples([[2, 1], [3, 4]], names=list("AB")),
+                MultiIndex.from_tuples([(2, 1), (3, 4)], names=list("AB")),
             ),
             (
                 {"M1": [1, 2], "M2": [3, 4]},
                 {"M1": [2, 1], "M2": [4, 3]},
                 False,
                 False,
-                MultiIndex.from_tuples([[3, 4], [2, 1]], names=list("AB")),
+                MultiIndex.from_tuples([(3, 4), (2, 1)], names=list("AB")),
             ),
         ],
     )
@@ -456,7 +456,7 @@ class TestDataFrameSortIndex:
         self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
         # GH 30114, this is to test ignore_index on MulitIndex of index
-        mi = MultiIndex.from_tuples([[2, 1], [3, 4]], names=list("AB"))
+        mi = MultiIndex.from_tuples([(2, 1), (3, 4)], names=list("AB"))
         df = DataFrame(original_dict, index=mi)
         expected_df = DataFrame(sorted_dict, index=output_index)
 
@@ -603,7 +603,7 @@ class TestDataFrameSortIndex:
 
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int64)
+        df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
 
         # it works!
         result = df.sort_index(level=0)
@@ -611,7 +611,7 @@ class TestDataFrameSortIndex:
 
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000), index=index, dtype=np.int32)
+        df = DataFrame(np.random.randn(4000).astype("int32"), index=index)
 
         # it works!
         result = df.sort_index(level=0)
@@ -775,6 +775,16 @@ class TestDataFrameSortIndex:
         with pytest.raises(ValueError, match=match):
             df.sort_index(axis=0, ascending=ascending, na_position="first")
 
+    def test_sort_index_use_inf_as_na(self):
+        # GH 29687
+        expected = DataFrame(
+            {"col1": [1, 2, 3], "col2": [3, 4, 5]},
+            index=pd.date_range("2020", periods=3),
+        )
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = expected.sort_index()
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortIndexKey:
     def test_sort_multi_index_key(self):
@@ -866,4 +876,16 @@ class TestDataFrameSortIndexKey:
 
         result = expected.sort_index(level=0)
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_pos_args_deprecation(self):
+        # https://github.com/pandas-dev/pandas/issues/41485
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of DataFrame.sort_index "
+            r"will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.sort_index(1)
+        expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)

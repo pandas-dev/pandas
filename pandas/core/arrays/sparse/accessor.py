@@ -113,6 +113,8 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         column_levels : tuple/list
         sort_labels : bool, default False
             Sort the row and column labels before forming the sparse matrix.
+            When `row_levels` and/or `column_levels` refer to a single level,
+            set to `True` for a faster execution.
 
         Returns
         -------
@@ -337,12 +339,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, name in enumerate(self._parent):
-            s = self._parent[name]
-            row = s.array.sp_index.to_int_index().indices
+        for col, (_, ser) in enumerate(self._parent.iteritems()):
+            row = ser.array.sp_index.to_int_index().indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            data.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(ser.array.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
@@ -354,9 +355,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         """
         Ratio of non-sparse points to total (dense) data points.
         """
-        # error: Incompatible return value type (got "number", expected "float")
         tmp = np.mean([column.array.density for _, column in self._parent.items()])
-        return tmp  # type: ignore[return-value]
+        return tmp
 
     @staticmethod
     def _prep_index(data, index, columns):

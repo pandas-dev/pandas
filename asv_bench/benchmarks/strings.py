@@ -11,6 +11,17 @@ from pandas import (
 from .pandas_vb_common import tm
 
 
+class Dtypes:
+    params = ["str", "string[python]", "string[pyarrow]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        try:
+            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
+        except ImportError:
+            raise NotImplementedError
+
+
 class Construction:
 
     params = ["str", "string"]
@@ -49,18 +60,7 @@ class Construction:
         DataFrame(self.frame_cat_arr, dtype=dtype)
 
 
-class Methods:
-    params = ["str", "string", "arrow_string"]
-    param_names = ["dtype"]
-
-    def setup(self, dtype):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
-        except ImportError:
-            raise NotImplementedError
-
+class Methods(Dtypes):
     def time_center(self, dtype):
         self.s.str.center(100)
 
@@ -82,6 +82,9 @@ class Methods:
 
     def time_rfind(self, dtype):
         self.s.str.rfind("[A-Z]+")
+
+    def time_fullmatch(self, dtype):
+        self.s.str.fullmatch("A")
 
     def time_get(self, dtype):
         self.s.str.get(0)
@@ -211,43 +214,53 @@ class Cat:
         self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
 
 
-class Contains:
+class Contains(Dtypes):
 
-    params = (["str", "string", "arrow_string"], [True, False])
+    params = (Dtypes.params, [True, False])
     param_names = ["dtype", "regex"]
 
     def setup(self, dtype, regex):
-        from pandas.core.arrays.string_arrow import ArrowStringDtype  # noqa: F401
-
-        try:
-            self.s = Series(tm.makeStringIndex(10 ** 5), dtype=dtype)
-        except ImportError:
-            raise NotImplementedError
+        super().setup(dtype)
 
     def time_contains(self, dtype, regex):
         self.s.str.contains("A", regex=regex)
 
 
-class Split:
+class Split(Dtypes):
 
-    params = [True, False]
-    param_names = ["expand"]
+    params = (Dtypes.params, [True, False])
+    param_names = ["dtype", "expand"]
 
-    def setup(self, expand):
-        self.s = Series(tm.makeStringIndex(10 ** 5)).str.join("--")
+    def setup(self, dtype, expand):
+        super().setup(dtype)
+        self.s = self.s.str.join("--")
 
-    def time_split(self, expand):
+    def time_split(self, dtype, expand):
         self.s.str.split("--", expand=expand)
 
-    def time_rsplit(self, expand):
+    def time_rsplit(self, dtype, expand):
         self.s.str.rsplit("--", expand=expand)
 
 
-class Dummies:
-    def setup(self):
-        self.s = Series(tm.makeStringIndex(10 ** 5)).str.join("|")
+class Extract(Dtypes):
 
-    def time_get_dummies(self):
+    params = (Dtypes.params, [True, False])
+    param_names = ["dtype", "expand"]
+
+    def setup(self, dtype, expand):
+        super().setup(dtype)
+
+    def time_extract_single_group(self, dtype, expand):
+        with warnings.catch_warnings(record=True):
+            self.s.str.extract("(\\w*)A", expand=expand)
+
+
+class Dummies(Dtypes):
+    def setup(self, dtype):
+        super().setup(dtype)
+        self.s = self.s.str.join("|")
+
+    def time_get_dummies(self, dtype):
         self.s.str.get_dummies("|")
 
 
@@ -266,3 +279,9 @@ class Slice:
     def time_vector_slice(self):
         # GH 2602
         self.s.str[:5]
+
+
+class Iter(Dtypes):
+    def time_iter(self, dtype):
+        for i in self.s:
+            pass

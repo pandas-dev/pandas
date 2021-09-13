@@ -957,18 +957,40 @@ class TestToDatetime:
         expected = Timestamp("20130101 00:00:00")
         assert result == expected
 
-    def test_convert_object_to_datetime_with_cache(self):
+    @pytest.mark.parametrize(
+        "datetimelikes,expected_values",
+        (
+            (
+                (None, np.nan) + (NaT,) * start_caching_at,
+                (NaT,) * (start_caching_at + 2),
+            ),
+            (
+                (None, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
+                (NaT, Timestamp("2012-07-26")) + (NaT,) * start_caching_at,
+            ),
+            (
+                (None,)
+                + (NaT,) * start_caching_at
+                + ("2012 July 26", Timestamp("2012-07-26")),
+                (NaT,) * (start_caching_at + 1)
+                + (Timestamp("2012-07-26"), Timestamp("2012-07-26")),
+            ),
+        ),
+    )
+    def test_convert_object_to_datetime_with_cache(
+        self, datetimelikes, expected_values
+    ):
         # GH#39882
         ser = Series(
-            [None] + [NaT] * start_caching_at + [Timestamp("2012-07-26")],
+            datetimelikes,
             dtype="object",
         )
-        result = to_datetime(ser, errors="coerce")
-        expected = Series(
-            [NaT] * (start_caching_at + 1) + [Timestamp("2012-07-26")],
+        result_series = to_datetime(ser, errors="coerce")
+        expected_series = Series(
+            expected_values,
             dtype="datetime64[ns]",
         )
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result_series, expected_series)
 
     @pytest.mark.parametrize(
         "date, format",
@@ -1079,7 +1101,7 @@ class TestToDatetime:
 
     def test_mixed_offsets_with_native_datetime_raises(self):
         # GH 25978
-        s = Series(
+        ser = Series(
             [
                 "nan",
                 Timestamp("1990-01-01"),
@@ -1089,7 +1111,7 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match="Tz-aware datetime.datetime"):
-            to_datetime(s)
+            to_datetime(ser)
 
     def test_non_iso_strings_with_tz_offset(self):
         result = to_datetime(["March 1, 2018 12:00:00+0400"] * 2)
@@ -1817,6 +1839,75 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, idx5)
         tm.assert_index_equal(expected, idx6)
 
+    def test_dayfirst_warnings(self):
+        # GH 12585
+        warning_msg_day_first = (
+            "Parsing '31/12/2014' in DD/MM/YYYY format. Provide "
+            "format or specify infer_datetime_format=True for consistent parsing."
+        )
+        warning_msg_month_first = (
+            "Parsing '03/30/2011' in MM/DD/YYYY format. Provide "
+            "format or specify infer_datetime_format=True for consistent parsing."
+        )
+
+        # CASE 1: valid input
+        arr = ["31/12/2014", "10/03/2011"]
+        expected_consistent = DatetimeIndex(
+            ["2014-12-31", "2011-03-10"], dtype="datetime64[ns]", freq=None
+        )
+        expected_inconsistent = DatetimeIndex(
+            ["2014-12-31", "2011-10-03"], dtype="datetime64[ns]", freq=None
+        )
+
+        # A. dayfirst arg correct, no warning
+        res1 = to_datetime(arr, dayfirst=True)
+        tm.assert_index_equal(expected_consistent, res1)
+
+        # B. dayfirst arg incorrect, warning + incorrect output
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res2 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected_inconsistent, res2)
+
+        # C. dayfirst default arg, same as B
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res3 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected_inconsistent, res3)
+
+        # D. infer_datetime_format=True overrides dayfirst default
+        # no warning + correct result
+        res4 = to_datetime(arr, infer_datetime_format=True)
+        tm.assert_index_equal(expected_consistent, res4)
+
+        # CASE 2: invalid input
+        # cannot consistently process with single format
+        # warnings *always* raised
+
+        arr = ["31/12/2014", "03/30/2011"]
+        # first in DD/MM/YYYY, second in MM/DD/YYYY
+        expected = DatetimeIndex(
+            ["2014-12-31", "2011-03-30"], dtype="datetime64[ns]", freq=None
+        )
+
+        # A. use dayfirst=True
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_month_first):
+            res5 = to_datetime(arr, dayfirst=True)
+        tm.assert_index_equal(expected, res5)
+
+        # B. use dayfirst=False
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res6 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected, res6)
+
+        # C. use dayfirst default arg, same as B
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res7 = to_datetime(arr, dayfirst=False)
+        tm.assert_index_equal(expected, res7)
+
+        # D. use infer_datetime_format=True
+        with tm.assert_produces_warning(UserWarning, match=warning_msg_day_first):
+            res8 = to_datetime(arr, infer_datetime_format=True)
+        tm.assert_index_equal(expected, res8)
+
     @pytest.mark.parametrize("klass", [DatetimeIndex, DatetimeArray])
     def test_to_datetime_dta_tz(self, klass):
         # GH#27733
@@ -1899,7 +1990,10 @@ class TestToDatetimeInferFormat:
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_infer_datetime_format_series_with_nans(self, cache):
         s = Series(
-            np.array(["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan])
+            np.array(
+                ["01/01/2011 00:00:00", np.nan, "01/03/2011 00:00:00", np.nan],
+                dtype=object,
+            )
         )
         tm.assert_series_equal(
             to_datetime(s, infer_datetime_format=False, cache=cache),
@@ -1916,7 +2010,8 @@ class TestToDatetimeInferFormat:
                     "01/01/2011 00:00:00",
                     "01/02/2011 00:00:00",
                     "01/03/2011 00:00:00",
-                ]
+                ],
+                dtype=object,
             )
         )
 
@@ -2504,3 +2599,15 @@ def test_empty_string_datetime_coerce__unit():
     # verify that no exception is raised even when errors='raise' is set
     result = to_datetime([1, ""], unit="s", errors="raise")
     tm.assert_index_equal(expected, result)
+
+
+@pytest.mark.parametrize("cache", [True, False])
+def test_to_datetime_monotonic_increasing_index(cache):
+    # GH28238
+    cstart = start_caching_at
+    times = date_range(Timestamp("1980"), periods=cstart, freq="YS")
+    times = times.to_frame(index=False, name="DT").sample(n=cstart, random_state=1)
+    times.index = times.index.to_series().astype(float) / 1000
+    result = to_datetime(times.iloc[:, 0], cache=cache)
+    expected = times.iloc[:, 0]
+    tm.assert_series_equal(result, expected)

@@ -16,7 +16,10 @@ from pandas._libs import (
 from pandas._typing import ArrayLike
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import ensure_platform_int
+from pandas.core.dtypes.common import (
+    ensure_platform_int,
+    is_1d_only_ea_obj,
+)
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -91,12 +94,14 @@ def take_nd(
 
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
-        if arr.ndim == 2:
-            # e.g. DatetimeArray, TimedeltArray
+        # includes for EA to catch DatetimeArray, TimedeltaArray
+        if not is_1d_only_ea_obj(arr):
+            # i.e. DatetimeArray, TimedeltaArray
             arr = cast("NDArrayBackedExtensionArray", arr)
             return arr.take(
                 indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
             )
+
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     arr = np.asarray(arr)

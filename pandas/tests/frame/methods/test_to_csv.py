@@ -714,7 +714,9 @@ class TestDataFrameToCSV:
             np.random.randn(100, 5), dtype="float64", columns=create_cols("float")
         )
         df_int = DataFrame(
-            np.random.randn(100, 5), dtype="int64", columns=create_cols("int")
+            np.random.randn(100, 5).astype("int64"),
+            dtype="int64",
+            columns=create_cols("int"),
         )
         df_bool = DataFrame(True, index=df_float.index, columns=create_cols("bool"))
         df_object = DataFrame(
@@ -765,7 +767,7 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, df)
 
         df_float = DataFrame(np.random.randn(1000, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(1000, 3), dtype="int64")
+        df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
         df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
@@ -1037,8 +1039,7 @@ class TestDataFrameToCSV:
                 compression=compression,
                 encoding=encoding,
                 index_col=0,
-                squeeze=True,
-            )
+            ).squeeze("columns")
             tm.assert_frame_equal(df, result)
 
             # explicitly make sure file is compressed
@@ -1330,3 +1331,14 @@ class TestDataFrameToCSV:
 
         result = buf.getvalue()
         assert "2000-01-01" in result
+
+    def test_to_csv_na_quoting(self):
+        # GH 15891
+        # Normalize carriage return for Windows OS
+        result = (
+            DataFrame([None, None])
+            .to_csv(None, header=False, index=False, na_rep="")
+            .replace("\r\n", "\n")
+        )
+        expected = '""\n""\n'
+        assert result == expected

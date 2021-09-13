@@ -14,7 +14,7 @@ import pandas._testing as tm
 from pandas.core.util.numba_ import NUMBA_FUNC_CACHE
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:
@@ -121,33 +121,88 @@ class TestEngine:
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "window,window_kwargs",
+        [
+            ["rolling", {"window": 3, "min_periods": 0}],
+            ["expanding", {}],
+        ],
+    )
+    def test_dont_cache_args(
+        self, window, window_kwargs, nogil, parallel, nopython, method
+    ):
+        # GH 42287
 
-@td.skip_if_no("numba", "0.46.0")
-class TestGroupbyEWMMean:
-    def test_invalid_engine(self):
+        def add(values, x):
+            return np.sum(values) + x
+
+        df = DataFrame({"value": [0, 0, 0]})
+        result = getattr(df, window)(**window_kwargs).apply(
+            add, raw=True, engine="numba", args=(1,)
+        )
+        expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+        tm.assert_frame_equal(result, expected)
+
+        result = getattr(df, window)(**window_kwargs).apply(
+            add, raw=True, engine="numba", args=(2,)
+        )
+        expected = DataFrame({"value": [2.0, 2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+class TestEWMMean:
+    @pytest.mark.parametrize(
+        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
+    )
+    def test_invalid_engine(self, grouper):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="engine must be either"):
-            df.groupby("A").ewm(com=1.0).mean(engine="foo")
+            grouper(df).ewm(com=1.0).mean(engine="foo")
 
-    def test_invalid_engine_kwargs(self):
+    @pytest.mark.parametrize(
+        "grouper", [lambda x: x, lambda x: x.groupby("A")], ids=["None", "groupby"]
+    )
+    def test_invalid_engine_kwargs(self, grouper):
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
         with pytest.raises(ValueError, match="cython engine does not"):
-            df.groupby("A").ewm(com=1.0).mean(
+            grouper(df).ewm(com=1.0).mean(
                 engine="cython", engine_kwargs={"nopython": True}
             )
 
-    def test_cython_vs_numba(self, nogil, parallel, nopython, ignore_na, adjust):
+    @pytest.mark.parametrize("grouper", ["None", "groupby"])
+    def test_cython_vs_numba(
+        self, grouper, nogil, parallel, nopython, ignore_na, adjust
+    ):
+        if grouper == "None":
+            grouper = lambda x: x
+            warn = FutureWarning
+        else:
+            grouper = lambda x: x.groupby("A")
+            warn = None
+
         df = DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
-        gb_ewm = df.groupby("A").ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
+        ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = gb_ewm.mean(engine="cython")
+        with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
+            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+            expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
-    def test_cython_vs_numba_times(self, nogil, parallel, nopython, ignore_na):
+    @pytest.mark.parametrize("grouper", ["None", "groupby"])
+    def test_cython_vs_numba_times(self, grouper, nogil, parallel, nopython, ignore_na):
         # GH 40951
+
+        if grouper == "None":
+            grouper = lambda x: x
+            warn = FutureWarning
+        else:
+            grouper = lambda x: x.groupby("A")
+            warn = None
+
         halflife = "23 days"
         times = to_datetime(
             [
@@ -160,18 +215,21 @@ class TestGroupbyEWMMean:
             ]
         )
         df = DataFrame({"A": ["a", "b", "a", "b", "b", "a"], "B": [0, 0, 1, 1, 2, 2]})
-        gb_ewm = df.groupby("A").ewm(
+        ewm = grouper(df).ewm(
             halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
         )
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = gb_ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
-        expected = gb_ewm.mean(engine="cython")
+
+        with tm.assert_produces_warning(warn, match="nuisance"):
+            # GH#42738
+            result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+            expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_use_global_config():
     def f(x):
         return np.mean(x) + 2
@@ -183,7 +241,7 @@ def test_use_global_config():
     tm.assert_series_equal(expected, result)
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 def test_invalid_kwargs_nopython():
     with pytest.raises(NumbaUtilError, match="numba does not support kwargs with"):
         Series(range(1)).rolling(1).apply(
@@ -191,7 +249,7 @@ def test_invalid_kwargs_nopython():
         )
 
 
-@td.skip_if_no("numba", "0.46.0")
+@td.skip_if_no("numba")
 @pytest.mark.slow
 @pytest.mark.filterwarnings("ignore:\\nThe keyword argument")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
@@ -287,6 +345,20 @@ class TestTableMethod:
             engine_kwargs=engine_kwargs, engine="numba"
         )
         expected = getattr(df.expanding(method="single", axis=axis), method)(
+            engine_kwargs=engine_kwargs, engine="numba"
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("data", [np.eye(3), np.ones((2, 3)), np.ones((3, 2))])
+    def test_table_method_ewm(self, data, axis, nogil, parallel, nopython):
+        engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
+
+        df = DataFrame(data)
+
+        result = df.ewm(com=1, method="table", axis=axis).mean(
+            engine_kwargs=engine_kwargs, engine="numba"
+        )
+        expected = df.ewm(com=1, method="single", axis=axis).mean(
             engine_kwargs=engine_kwargs, engine="numba"
         )
         tm.assert_frame_equal(result, expected)

@@ -6,28 +6,25 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
-from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
     Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 import numpy.ma as ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs import (
-    IncompatibleFrequency,
-    OutOfBoundsDatetime,
-)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     Dtype,
     DtypeObj,
 )
+from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
@@ -35,13 +32,13 @@ from pandas.core.dtypes.base import (
 )
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
-    construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike,
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
-    maybe_castable,
     maybe_convert_platform,
+    maybe_infer_to_datetimelike,
     maybe_upcast,
+    sanitize_to_nanoseconds,
 )
 from pandas.core.dtypes.common import (
     is_datetime64_ns_dtype,
@@ -50,7 +47,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_string_dtype,
     is_timedelta64_ns_dtype,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -80,8 +76,6 @@ def array(
 ) -> ExtensionArray:
     """
     Create an array.
-
-    .. versionadded:: 0.24.0
 
     Parameters
     ----------
@@ -113,18 +107,22 @@ def array(
 
         Currently, pandas will infer an extension dtype for sequences of
 
-        ============================== =====================================
+        ============================== =======================================
         Scalar Type                    Array Type
-        ============================== =====================================
+        ============================== =======================================
         :class:`pandas.Interval`       :class:`pandas.arrays.IntervalArray`
         :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
         :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
         :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
         :class:`float`                 :class:`pandas.arrays.FloatingArray`
-        :class:`str`                   :class:`pandas.arrays.StringArray`
+        :class:`str`                   :class:`pandas.arrays.StringArray` or
+                                       :class:`pandas.arrays.ArrowStringArray`
         :class:`bool`                  :class:`pandas.arrays.BooleanArray`
-        ============================== =====================================
+        ============================== =======================================
+
+        The ExtensionArray created when the scalar type is :class:`str` is determined by
+        ``pd.options.mode.string_storage`` if the dtype is not explicitly given.
 
         For all other cases, NumPy's usual inference rules will be used.
 
@@ -240,6 +238,14 @@ def array(
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
+    >>> with pd.option_context("string_storage", "pyarrow"):
+    ...     arr = pd.array(["a", None, "c"])
+    ...
+    >>> arr
+    <ArrowStringArray>
+    ['a', <NA>, 'c']
+    Length: 3, dtype: string
+
     >>> pd.array([pd.Period('2000', freq="D"), pd.Period("2000", freq="D")])
     <PeriodArray>
     ['2000-01-01', '2000-01-01']
@@ -292,10 +298,10 @@ def array(
         IntegerArray,
         IntervalArray,
         PandasArray,
-        StringArray,
+        PeriodArray,
         TimedeltaArray,
-        period_array,
     )
+    from pandas.core.arrays.string_ import StringDtype
 
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
@@ -318,19 +324,10 @@ def array(
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
-            try:
-                return period_array(data, copy=copy)
-            except IncompatibleFrequency:
-                # We may have a mixture of frequencies.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return PeriodArray._from_sequence(data, copy=copy)
+
         elif inferred_dtype == "interval":
-            try:
-                return IntervalArray(data, copy=copy)
-            except ValueError:
-                # We may have a mixture of `closed` here.
-                # We choose to return an ndarray, rather than raising.
-                pass
+            return IntervalArray(data, copy=copy)
 
         elif inferred_dtype.startswith("datetime"):
             # datetime, datetime64
@@ -345,7 +342,8 @@ def array(
             return TimedeltaArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "string":
-            return StringArray._from_sequence(data, copy=copy)
+            # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
+            return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
@@ -404,12 +402,10 @@ def extract_array(
     >>> extract_array([1, 2, 3])
     [1, 2, 3]
 
-    For an ndarray-backed Series / Index a PandasArray is returned.
+    For an ndarray-backed Series / Index the ndarray is returned.
 
     >>> extract_array(pd.Series([1, 2, 3]))
-    <PandasArray>
-    [1, 2, 3]
-    Length: 3, dtype: int64
+    array([1, 2, 3])
 
     To extract all the way down to the ndarray, pass ``extract_numpy=True``.
 
@@ -422,9 +418,9 @@ def extract_array(
                 return obj._values
             return obj
 
-        obj = obj.array
+        obj = obj._values
 
-    if extract_numpy and isinstance(obj, ABCPandasArray):
+    elif extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
     return obj
@@ -468,6 +464,8 @@ def sanitize_array(
     dtype: DtypeObj | None = None,
     copy: bool = False,
     raise_cast_failure: bool = True,
+    *,
+    allow_2d: bool = False,
 ) -> ArrayLike:
     """
     Sanitize input data to an ndarray or ExtensionArray, copy if specified,
@@ -480,6 +478,8 @@ def sanitize_array(
     dtype : np.dtype, ExtensionDtype, or None, default None
     copy : bool, default False
     raise_cast_failure : bool, default True
+    allow_2d : bool, default False
+        If False, raise if we have a 2D Arraylike.
 
     Returns
     -------
@@ -501,6 +501,16 @@ def sanitize_array(
         if dtype is None:
             dtype = data.dtype
         data = lib.item_from_zerodim(data)
+    elif isinstance(data, range):
+        # GH#16804
+        data = range_to_ndarray(data)
+        copy = False
+
+    if not is_list_like(data):
+        if index is None:
+            raise ValueError("index must be specified when data is not list-like")
+        data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+        return data
 
     # GH#846
     if isinstance(data, np.ndarray):
@@ -509,7 +519,24 @@ def sanitize_array(
             # possibility of nan -> garbage
             try:
                 subarr = _try_cast(data, dtype, copy, True)
+            except IntCastingNaNError:
+                subarr = np.array(data, copy=copy)
             except ValueError:
+                if not raise_cast_failure:
+                    # i.e. called via DataFrame constructor
+                    warnings.warn(
+                        "In a future version, passing float-dtype values and an "
+                        "integer dtype to DataFrame will retain floating dtype "
+                        "if they cannot be cast losslessly (matching Series behavior). "
+                        "To retain the old behavior, use DataFrame(data).astype(dtype)",
+                        FutureWarning,
+                        stacklevel=4,
+                    )
+                    # GH#40110 until the deprecation is enforced, we _dont_
+                    #  ignore the dtype for DataFrame, and _do_ cast even though
+                    #  it is lossy.
+                    dtype = cast(np.dtype, dtype)
+                    return np.array(data, dtype=dtype, copy=copy)
                 subarr = np.array(data, copy=copy)
         else:
             # we will try to copy by-definition here
@@ -523,59 +550,63 @@ def sanitize_array(
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:
             subarr = subarr.copy()
-        return subarr
 
-    elif isinstance(data, (list, tuple, abc.Set, abc.ValuesView)) and len(data) > 0:
-        # TODO: deque, array.array
+    else:
         if isinstance(data, (set, frozenset)):
             # Raise only for unordered sets, e.g., not for dict_keys
             raise TypeError(f"'{type(data).__name__}' type is unordered")
-        data = list(data)
 
-        if dtype is not None:
+        # materialize e.g. generators, convert e.g. tuples, abc.ValueView
+        if hasattr(data, "__array__"):
+            # e.g. dask array GH#38645
+            data = np.asarray(data)
+        else:
+            data = list(data)
+
+        if dtype is not None or len(data) == 0:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
         else:
             subarr = maybe_convert_platform(data)
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ExtensionArray, ndarray, List[Any]]", variable has type
-            # "ExtensionArray")
-            subarr = maybe_cast_to_datetime(subarr, dtype)  # type: ignore[assignment]
+            if subarr.dtype == object:
+                subarr = cast(np.ndarray, subarr)
+                subarr = maybe_infer_to_datetimelike(subarr)
 
-    elif isinstance(data, range):
-        # GH#16804
-        arr = np.arange(data.start, data.stop, data.step, dtype="int64")
-        subarr = _try_cast(arr, dtype, copy, raise_cast_failure)
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
-    elif not is_list_like(data):
-        if index is None:
-            raise ValueError("index must be specified when data is not list-like")
-        subarr = construct_1d_arraylike_from_scalar(data, len(index), dtype)
-
-    else:
-        # realize e.g. generators
-        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
-        data = list(data)
-        subarr = _try_cast(data, dtype, copy, raise_cast_failure)
-
-    subarr = _sanitize_ndim(subarr, data, dtype, index)
-
-    if not (
-        isinstance(subarr.dtype, ExtensionDtype) or isinstance(dtype, ExtensionDtype)
-    ):
+    if isinstance(subarr, np.ndarray):
+        # at this point we should have dtype be None or subarr.dtype == dtype
+        dtype = cast(np.dtype, dtype)
         subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
-
-        is_object_or_str_dtype = is_object_dtype(dtype) or is_string_dtype(dtype)
-        if is_object_dtype(subarr.dtype) and not is_object_or_str_dtype:
-            inferred = lib.infer_dtype(subarr, skipna=False)
-            if inferred in {"interval", "period"}:
-                subarr = array(subarr)
-                subarr = extract_array(subarr, extract_numpy=True)
 
     return subarr
 
 
+def range_to_ndarray(rng: range) -> np.ndarray:
+    """
+    Cast a range object to ndarray.
+    """
+    # GH#30171 perf avoid realizing range as a list in np.array
+    try:
+        arr = np.arange(rng.start, rng.stop, rng.step, dtype="int64")
+    except OverflowError:
+        # GH#30173 handling for ranges that overflow int64
+        if (rng.start >= 0 and rng.step > 0) or (rng.stop >= 0 and rng.step < 0):
+            try:
+                arr = np.arange(rng.start, rng.stop, rng.step, dtype="uint64")
+            except OverflowError:
+                arr = construct_1d_object_array_from_listlike(list(rng))
+        else:
+            arr = construct_1d_object_array_from_listlike(list(rng))
+    return arr
+
+
 def _sanitize_ndim(
-    result: ArrayLike, data, dtype: DtypeObj | None, index: Index | None
+    result: ArrayLike,
+    data,
+    dtype: DtypeObj | None,
+    index: Index | None,
+    *,
+    allow_2d: bool = False,
 ) -> ArrayLike:
     """
     Ensure we have a 1-dimensional result array.
@@ -589,13 +620,13 @@ def _sanitize_ndim(
 
     elif result.ndim > 1:
         if isinstance(data, np.ndarray):
+            if allow_2d:
+                return result
             raise ValueError("Data must be 1-dimensional")
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
             # i.e. PandasDtype("O")
 
-            # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
-            # "Type[object]"; expected "Union[str, dtype[Any], None]"
-            result = com.asarray_tuplesafe(data, dtype=object)  # type: ignore[arg-type]
+            result = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             cls = dtype.construct_array_type()
             result = cls._from_sequence(result, dtype=dtype)
         else:
@@ -661,26 +692,56 @@ def _try_cast(
     -------
     np.ndarray or ExtensionArray
     """
-    # perf shortcut as this is the most common case
-    if (
-        isinstance(arr, np.ndarray)
-        and maybe_castable(arr.dtype)
-        and not copy
-        and dtype is None
-    ):
-        return arr
+    is_ndarray = isinstance(arr, np.ndarray)
 
-    if isinstance(dtype, ExtensionDtype) and not isinstance(dtype, DatetimeTZDtype):
+    if dtype is None:
+        # perf shortcut as this is the most common case
+        if is_ndarray:
+            arr = cast(np.ndarray, arr)
+            if arr.dtype != object:
+                return sanitize_to_nanoseconds(arr, copy=copy)
+
+            out = maybe_infer_to_datetimelike(arr)
+            if out is arr and copy:
+                out = out.copy()
+            return out
+
+        else:
+            # i.e. list
+            varr = np.array(arr, copy=False)
+            # filter out cases that we _dont_ want to go through
+            #  maybe_infer_to_datetimelike
+            if varr.dtype != object or varr.size == 0:
+                return varr
+            return maybe_infer_to_datetimelike(varr)
+
+    elif isinstance(dtype, ExtensionDtype):
         # create an extension array from its dtype
-        # DatetimeTZ case needs to go through maybe_cast_to_datetime but
-        # SparseDtype does not
+        if isinstance(dtype, DatetimeTZDtype):
+            # We can't go through _from_sequence because it handles dt64naive
+            #  data differently; _from_sequence treats naive as wall times,
+            #  while maybe_cast_to_datetime treats it as UTC
+            #  see test_maybe_promote_any_numpy_dtype_with_datetimetz
+
+            return maybe_cast_to_datetime(arr, dtype)
+            # TODO: copy?
+
         array_type = dtype.construct_array_type()._from_sequence
         subarr = array_type(arr, dtype=dtype, copy=copy)
         return subarr
 
-    if is_object_dtype(dtype) and not isinstance(arr, np.ndarray):
-        subarr = construct_1d_object_array_from_listlike(arr)
-        return subarr
+    elif is_object_dtype(dtype):
+        if not is_ndarray:
+            subarr = construct_1d_object_array_from_listlike(arr)
+            return subarr
+        return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
+
+    elif dtype.kind == "U":
+        # TODO: test cases with arr.dtype.kind in ["m", "M"]
+        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy)
+
+    elif dtype.kind in ["m", "M"]:
+        return maybe_cast_to_datetime(arr, dtype)
 
     try:
         # GH#15832: Check if we are requesting a numeric dtype and
@@ -688,29 +749,28 @@ def _try_cast(
         if is_integer_dtype(dtype):
             # this will raise if we have e.g. floats
 
-            # error: Argument 2 to "maybe_cast_to_integer_array" has incompatible type
-            # "Union[dtype, ExtensionDtype, None]"; expected "Union[ExtensionDtype, str,
-            # dtype, Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]"
-            maybe_cast_to_integer_array(arr, dtype)  # type: ignore[arg-type]
-            subarr = arr
+            subarr = maybe_cast_to_integer_array(arr, dtype)
         else:
-            subarr = maybe_cast_to_datetime(arr, dtype)
-            if dtype is not None and dtype.kind == "M":
-                return subarr
+            # 4 tests fail if we move this to a try/except/else; see
+            #  test_constructor_compound_dtypes, test_constructor_cast_failure
+            #  test_constructor_dict_cast2, test_loc_setitem_dtype
+            subarr = np.array(arr, dtype=dtype, copy=copy)
 
-        if not isinstance(subarr, ABCExtensionArray):
-            subarr = construct_1d_ndarray_preserving_na(subarr, dtype, copy=copy)
-    except OutOfBoundsDatetime:
-        # in case of out of bound datetime64 -> always raise
-        raise
-    except (ValueError, TypeError) as err:
-        if dtype is not None and raise_cast_failure:
-            raise
-        elif "Cannot cast" in str(err):
-            # via _disallow_mismatched_datetimelike
+    except (ValueError, TypeError):
+        if raise_cast_failure:
             raise
         else:
+            # we only get here with raise_cast_failure False, which means
+            #  called via the DataFrame constructor
+            # GH#24435
+            warnings.warn(
+                f"Could not cast to {dtype}, falling back to object. This "
+                "behavior is deprecated. In a future version, when a dtype is "
+                "passed to 'DataFrame', either all columns will be cast to that "
+                "dtype, or a TypeError will be raised.",
+                FutureWarning,
+                stacklevel=7,
+            )
             subarr = np.array(arr, dtype=object, copy=copy)
     return subarr
 
