@@ -37,6 +37,7 @@ class TestTranspose:
         df4 = DataFrame({"A": dti, "B": dti2})
         assert (df4.dtypes == [dti.dtype, dti2.dtype]).all()
         assert (df4.T.dtypes == object).all()
+        print(df4._can_fast_transpose, df4.T._can_fast_transpose)
         tm.assert_frame_equal(df4.T.T, df4)
 
     @pytest.mark.parametrize("tz", [None, "America/New_York"])
@@ -57,6 +58,7 @@ class TestTranspose:
         df2 = DataFrame([dti, dti2])
         assert (df2.dtypes == object).all()
         res2 = df2.T
+        print("\n", res2.dtypes, [dti.dtype, dti2.dtype])
         assert (res2.dtypes == [dti.dtype, dti2.dtype]).all()
 
     def test_transpose_uint64(self, uint64_frame):
