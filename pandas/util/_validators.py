@@ -478,15 +478,19 @@ def validate_inclusive(inclusive):
     ------
     ValueError : if argument is not among valid values
     """
-    left_right_inclusive: tuple[bool, bool] | None = {
-        "both": (True, True),
-        "left": (True, False),
-        "right": (False, True),
-        "neither": (False, False),
-    }.get(inclusive)
+    left_right_inclusive: tuple[bool, bool] | None = None
+
+    if isinstance(inclusive, str):
+        left_right_inclusive = {
+            "both": (True, True),
+            "left": (True, False),
+            "right": (False, True),
+            "neither": (False, False),
+        }.get(inclusive)
 
     if left_right_inclusive is None:
         raise ValueError(
             "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
         )
+
     return left_right_inclusive
