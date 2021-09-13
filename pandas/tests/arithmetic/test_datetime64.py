@@ -2146,7 +2146,7 @@ class TestDatetimeIndexArithmetic:
         result = dti - tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = "cannot subtract DatetimeArray from"
+        msg = "cannot subtract a datelike from a TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
@@ -2172,13 +2172,7 @@ class TestDatetimeIndexArithmetic:
         result -= tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = "|".join(
-            [
-                "cannot perform __neg__ with this index type:",
-                "ufunc subtract cannot use operands with types",
-                "cannot subtract DatetimeArray from",
-            ]
-        )
+        msg = "cannot subtract a datelike from a TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdi.values -= dti
 

@@ -753,7 +753,7 @@ class TestPeriodIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             rng - tdarr
-        msg = r"cannot subtract PeriodArray from timedelta64\[ns\]"
+        msg = r"cannot subtract period\[Q-DEC\]-dtype from TimedeltaArray"
         with pytest.raises(TypeError, match=msg):
             tdarr - rng
 
