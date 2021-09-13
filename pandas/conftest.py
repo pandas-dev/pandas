@@ -121,7 +121,7 @@ def pytest_collection_modifyitems(items, config):
 
                 item.add_marker(mark)
 
-        if only_slow and " slow" not in item.keywords:
+        if only_slow and "slow" not in item.keywords:
             item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
 
         if "high_memory" in item.keywords and not run_high_memory:
