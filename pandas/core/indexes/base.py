@@ -6364,7 +6364,10 @@ class Index(IndexOpsMixin, PandasObject):
                     arr[self.isna()] = False
                 return arr
             elif op in {operator.ne, operator.lt, operator.gt}:
-                return np.zeros(len(self), dtype=bool)
+                arr = np.zeros(len(self), dtype=bool)
+                if self._can_hold_na and not isinstance(self, ABCMultiIndex):
+                    arr[self.isna()] = True
+                return arr
 
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
             self
@@ -6380,6 +6383,9 @@ class Index(IndexOpsMixin, PandasObject):
             # e.g. PeriodArray, Categorical
             with np.errstate(all="ignore"):
                 result = op(self._values, other)
+
+        elif isinstance(self._values, ExtensionArray):
+            result = op(self._values, other)
 
         elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex

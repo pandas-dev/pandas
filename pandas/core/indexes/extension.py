@@ -28,10 +28,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
 )
-from pandas.core.dtypes.generic import (
-    ABCDataFrame,
-    ABCSeries,
-)
+from pandas.core.dtypes.generic import ABCDataFrame
 
 from pandas.core.arrays import (
     Categorical,
@@ -152,45 +149,6 @@ def inherit_names(names: list[str], delegate, cache: bool = False, wrap: bool = 
     return wrapper
 
 
-def _make_wrapped_comparison_op(opname: str):
-    """
-    Create a comparison method that dispatches to ``._data``.
-    """
-
-    def wrapper(self, other):
-        if isinstance(other, ABCSeries):
-            # the arrays defer to Series for comparison ops but the indexes
-            #  don't, so we have to unwrap here.
-            other = other._values
-
-        other = _maybe_unwrap_index(other)
-
-        op = getattr(self._data, opname)
-        return op(other)
-
-    wrapper.__name__ = opname
-    return wrapper
-
-
-def _maybe_unwrap_index(obj):
-    """
-    If operating against another Index object, we need to unwrap the underlying
-    data before deferring to the DatetimeArray/TimedeltaArray/PeriodArray
-    implementation, otherwise we will incorrectly return NotImplemented.
-
-    Parameters
-    ----------
-    obj : object
-
-    Returns
-    -------
-    unwrapped object
-    """
-    if isinstance(obj, Index):
-        return obj._data
-    return obj
-
-
 class ExtensionIndex(Index):
     """
     Index subclass for indexes backed by ExtensionArray.
@@ -232,13 +190,6 @@ class ExtensionIndex(Index):
         result._cache = {}
         result._reset_identity()
         return result
-
-    __eq__ = _make_wrapped_comparison_op("__eq__")
-    __ne__ = _make_wrapped_comparison_op("__ne__")
-    __lt__ = _make_wrapped_comparison_op("__lt__")
-    __gt__ = _make_wrapped_comparison_op("__gt__")
-    __le__ = _make_wrapped_comparison_op("__le__")
-    __ge__ = _make_wrapped_comparison_op("__ge__")
 
     # ---------------------------------------------------------------------
     # NDarray-Like Methods
