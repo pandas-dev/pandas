@@ -69,6 +69,7 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     TimedeltaIndex,
 )
+from pandas.core.numba_ import executor
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
@@ -566,6 +567,38 @@ class BaseWindow(SelectionMixin):
             return self._apply_blockwise(homogeneous_func, name)
         else:
             return self._apply_tablewise(homogeneous_func, name)
+
+    def _numba_apply(
+        self,
+        func: Callable[..., Any],
+        engine_kwargs: dict[str, bool],
+        numba_cache_key: str,
+        numba_args: tuple[Any, ...] = (),
+        **kwargs,
+    ):
+        window_indexer = self._get_window_indexer()
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
+        obj = self._create_data(self._selected_obj)
+        if self.axis == 1:
+            obj = obj.T
+        values = self._prep_values(obj)
+        start, end = window_indexer.get_window_bounds(
+            num_values=len(values),
+            min_periods=min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        aggregator = executor.generate_shared_aggregator(
+            kwargs, func, engine_kwargs, numba_cache_key
+        )
+        result = aggregator(values, start, end, min_periods, *numba_args)
+        result = result.T if self.axis == 1 else result
+        out = obj._constructor(result, index=obj.index, columns=obj.columns)
+        return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
