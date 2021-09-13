@@ -653,7 +653,10 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
-    Default is to use xlwt for xls, openpyxl for xlsx, odf for ods.
+    Default is to use :
+    * xlwt for xls
+    * xlsxwriter for xlsx if xlsxwriter is installed otherwise openpyxl
+    * odf for ods.
     See DataFrame.to_excel for typical usage.
 
     The writer should be used as a context manager. Otherwise, call `close()` to save
@@ -727,14 +730,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     Default usage:
 
     >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df.to_excel(writer)
 
     To write to separate sheets in a single file:
 
     >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])
     >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df1.to_excel(writer, sheet_name="Sheet1")
     ...     df2.to_excel(writer, sheet_name="Sheet2")
 
@@ -749,7 +752,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     index=["Date", "Datetime"],
     ...     columns=["X", "Y"],
     ... )
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
     ...     datetime_format="YYYY-MM-DD HH:MM:SS"
@@ -758,7 +761,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     You can also append to an existing Excel file:
 
-    >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
 
     You can store Excel file in RAM:
