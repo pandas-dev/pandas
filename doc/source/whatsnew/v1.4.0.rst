@@ -104,10 +104,10 @@ Example:
 
 .. ipython:: python
 
-    >>> s = pd.Series([1, 4, 2, 3, 5, 3])
-    >>> s.rolling(3).rank()
+    s = pd.Series([1, 4, 2, 3, 5, 3])
+    s.rolling(3).rank()
 
-    >>> s.rolling(3).rank(method="max")
+    s.rolling(3).rank(method="max")
 
 .. _whatsnew_140.enhancements.other:
 
