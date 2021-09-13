@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`DataFrame.convert_dtypes` incorrectly converts byte strings to strings (:issue:`43183`)
 -
 
 .. ---------------------------------------------------------------------------
