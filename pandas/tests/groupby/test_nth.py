@@ -743,11 +743,6 @@ def test_negative_step(slice_test_grouped):
 def test_np_ints(slice_test_df, slice_test_grouped):
     """Test np ints work"""
 
-    result = slice_test_grouped.nth(np.int(0))
-    expected = slice_test_df.iloc[[0, 1, 4]]
-
-    tm.assert_frame_equal(result, expected)
-
     result = slice_test_grouped.nth(np.array([0, 1]))
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4]]
 

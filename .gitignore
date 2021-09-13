@@ -120,3 +120,16 @@ doc/build/html/index.html
 doc/tmp.sv
 env/
 doc/source/savefig/
+Dockerfile
+my_tests/
+my notebooks.cmd
+*.ipynb
+my build.cmd
+my documentation.cmd
+my tests.cmd
+my docstring.cmd
+my pre-commit.cmd
+my test nth.cmd
+my test rows.cmd
+pandas/core/groupby/indexing.pyMINE_WITH_DOC
+my static analysis.cmd
