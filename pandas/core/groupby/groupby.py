@@ -47,6 +47,7 @@ from pandas._typing import (
     F,
     FrameOrSeries,
     IndexLabel,
+    PositionalIndexer,
     RandomState,
     Scalar,
     T,
@@ -66,6 +67,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
     is_float_dtype,
+    is_integer,
     is_integer_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -2387,9 +2389,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @Substitution(see_also=_common_see_also)
     def nth(
         self,
-        n: int | slice | list[int | slice],
+        arg: PositionalIndexer | tuple,
         dropna: Literal["any", "all", None] = None,
-    ) -> DataFrame:
+    ) -> FrameOrSeries:
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
@@ -2401,6 +2403,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         ----------
         n : int, slice or list of ints and slices
             A single nth value for the row or a list of nth values or slices.
+
+            .. versionchanged:: 1.4.0
+                Added slice and lists containiing slices
+
+            
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
             the nth row.
@@ -2468,30 +2475,27 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         1  1  2.0
         4  2  5.0
         """
-        valid_containers = (set, list, tuple, range, slice)
-        if not isinstance(n, (valid_containers, int)):
-            raise TypeError("n needs to be an int or a list/set/tuple of ints")
-
         if not dropna:
-            if isinstance(n, Iterable):
-                return self.rows[tuple(n)]
+            if isinstance(arg, Iterable):
+                return self._rows[tuple(arg)]
 
-            return self.rows[n]
+            return self._rows[arg]
 
         # dropna is truthy
-        if isinstance(n, valid_containers):
-            raise ValueError("dropna option with a list of nth values is not supported")
+        if not is_integer(arg):
+            raise ValueError("dropna option only supported for an integer argument")
 
         if dropna not in ["any", "all"]:
             # Note: when agg-ing picker doesn't raise this, just returns NaN
             raise ValueError(
-                "For a DataFrame groupby, dropna must be "
+                "For a DataFrame groupby.nth, dropna must be "
                 "either None, 'any' or 'all', "
                 f"(was passed {dropna})."
             )
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
+        n = cast(int, arg)
         max_len = n if n >= 0 else -1 - n
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 

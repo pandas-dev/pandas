@@ -31,11 +31,11 @@ class GroupByIndexingMixin:
     """
 
     @property
-    def rows(self) -> _rowsGroupByIndexer:
+    def _rows(self) -> _rowsGroupByIndexer:
         return _rowsGroupByIndexer(cast(groupby.GroupBy, self))
 
 
-@doc(GroupByIndexingMixin.rows)
+@doc(GroupByIndexingMixin._rows)
 class _rowsGroupByIndexer:
     def __init__(self, grouped: groupby.GroupBy):
         self.grouped = grouped
@@ -59,7 +59,7 @@ class _rowsGroupByIndexer:
                 mask = self._handle_list(cast(Iterable[int], arg))
 
             else:
-                raise ValueError(
+                raise TypeError(
                     f"Invalid index {type(arg)}. "
                     "Must be integer, list-like, slice or a tuple of "
                     "integers and slices"

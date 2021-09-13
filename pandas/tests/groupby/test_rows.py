@@ -8,27 +8,6 @@ import pandas as pd
 import pandas._testing as tm
 
 
-@pytest.fixture()
-def small_df():
-    data = [
-        [0, "a", "a0_at_0"],
-        [1, "b", "b0_at_1"],
-        [2, "a", "a1_at_2"],
-        [3, "b", "b1_at_3"],
-        [4, "c", "c0_at_4"],
-        [5, "a", "a2_at_5"],
-        [6, "a", "a3_at_6"],
-        [7, "a", "a4_at_7"],
-    ]
-    df = pd.DataFrame(data, columns=["Index", "Category", "Value"])
-    return df.set_index("Index")
-
-
-@pytest.fixture()
-def small_grouped(small_df):
-    return small_df.groupby("Category", as_index=False)
-
-
 @pytest.mark.parametrize(
     "arg, expected_rows",
     [
@@ -40,20 +19,20 @@ def small_grouped(small_df):
         [-6, []],
     ],
 )
-def test_int(small_df, small_grouped, arg, expected_rows):
+def test_int(slice_test_df, slice_test_grouped, arg, expected_rows):
     """Test single integer"""
 
-    result = small_grouped.rows[arg]
-    expected = small_df.iloc[expected_rows]
+    result = slice_test_grouped._rows[arg]
+    expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_slice(small_df, small_grouped):
+def test_slice(slice_test_df, slice_test_grouped):
     """Test single slice"""
 
-    result = small_grouped.rows[0:3:2]
-    expected = small_df.iloc[[0, 1, 4, 5]]
+    result = slice_test_grouped._rows[0:3:2]
+    expected = slice_test_df.iloc[[0, 1, 4, 5]]
 
     tm.assert_frame_equal(result, expected)
 
@@ -73,38 +52,38 @@ def test_slice(small_df, small_grouped):
         "set",
     ],
 )
-def test_list(small_df, small_grouped, arg, expected_rows):
+def test_list(slice_test_df, slice_test_grouped, arg, expected_rows):
     """Test lists of integers and integer valued iterables"""
 
-    result = small_grouped.rows[arg]
-    expected = small_df.iloc[expected_rows]
+    result = slice_test_grouped._rows[arg]
+    expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_ints(small_df, small_grouped):
+def test_ints(slice_test_df, slice_test_grouped):
     """Test tuple of ints"""
 
-    result = small_grouped.rows[0, 2, -1]
-    expected = small_df.iloc[[0, 1, 3, 4, 5, 7]]
+    result = slice_test_grouped._rows[0, 2, -1]
+    expected = slice_test_df.iloc[[0, 1, 3, 4, 5, 7]]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_slices(small_df, small_grouped):
+def test_slices(slice_test_df, slice_test_grouped):
     """Test tuple of slices"""
 
-    result = small_grouped.rows[:2, -2:]
-    expected = small_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
+    result = slice_test_grouped._rows[:2, -2:]
+    expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_mix(small_df, small_grouped):
+def test_mix(slice_test_df, slice_test_grouped):
     """Test mixed tuple of ints and slices"""
 
-    result = small_grouped.rows[0, 1, -2:]
-    expected = small_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
+    result = slice_test_grouped._rows[0, 1, -2:]
+    expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
     tm.assert_frame_equal(result, expected)
 
@@ -117,9 +96,9 @@ def test_mix(small_df, small_grouped):
         [(slice(None, 2), slice(-2, None)), [0, 1, 2, 3, 4, 6, 7]],
     ],
 )
-def test_as_index(small_df, arg, expected_rows):
-    result = small_df.groupby("Category", sort=False).rows[arg]
-    expected = small_df.iloc[expected_rows].set_index("Category")
+def test_as_index(slice_test_df, arg, expected_rows):
+    result = slice_test_df.groupby("Group", sort=False)._rows[arg]
+    expected = slice_test_df.iloc[expected_rows].set_index("Group")
 
     tm.assert_frame_equal(result, expected)
 
@@ -133,12 +112,12 @@ def test_doc_examples():
 
     grouped = df.groupby("A", as_index=False)
 
-    result = grouped.rows[1:2]
+    result = grouped._rows[1:2]
     expected = pd.DataFrame([["a", 2], ["b", 5]], columns=["A", "B"], index=[1, 4])
 
     tm.assert_frame_equal(result, expected)
 
-    result = grouped.rows[1, -1]
+    result = grouped._rows[1, -1]
     expected = pd.DataFrame(
         [["a", 2], ["a", 3], ["b", 5]], columns=["A", "B"], index=[1, 2, 4]
     )
@@ -212,7 +191,7 @@ def test_against_head_and_tail(arg, method, simulated):
     grouped = df.groupby("group", as_index=False)
 
     if method == "head":
-        result = grouped.rows[:arg]
+        result = grouped._rows[:arg]
 
         if simulated:
             indices = []
@@ -227,7 +206,7 @@ def test_against_head_and_tail(arg, method, simulated):
             expected = grouped.head(arg)
 
     else:
-        result = grouped.rows[-arg:]
+        result = grouped._rows[-arg:]
 
         if simulated:
             indices = []
@@ -259,7 +238,7 @@ def test_against_df_iloc(start, stop, step):
     df = pd.DataFrame(data)
     grouped = df.groupby("group", as_index=False)
 
-    result = grouped.rows[start:stop:step]
+    result = grouped._rows[start:stop:step]
     expected = df.iloc[start:stop:step]
 
     tm.assert_frame_equal(result, expected)
@@ -270,7 +249,7 @@ def test_series():
 
     ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "a", "b", "b"])
     grouped = ser.groupby(level=0)
-    result = grouped.rows[1:2]
+    result = grouped._rows[1:2]
     expected = pd.Series([2, 5], index=["a", "b"])
 
     tm.assert_series_equal(result, expected)
@@ -287,7 +266,7 @@ def test_step(step):
 
     grouped = df.groupby("A", as_index=False)
 
-    result = grouped.rows[::step]
+    result = grouped._rows[::step]
 
     data = [["x", f"x{i}"] for i in range(0, 5, step)]
     data += [["y", f"y{i}"] for i in range(0, 4, step)]

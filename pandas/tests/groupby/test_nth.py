@@ -691,22 +691,6 @@ def test_first_multi_key_groupbby_categorical():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.fixture()
-def small_df():
-    data = [
-        [0, "a", "a0_at_0"],
-        [1, "b", "b0_at_1"],
-        [2, "a", "a1_at_2"],
-        [3, "b", "b1_at_3"],
-        [4, "c", "c0_at_4"],
-        [5, "a", "a2_at_5"],
-        [6, "a", "a3_at_6"],
-        [7, "a", "a4_at_7"],
-    ]
-    df = DataFrame(data, columns=["Index", "Category", "Value"])
-    return df.set_index("Index")
-
-
 @pytest.mark.parametrize("method", ["first", "last", "nth"])
 def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     # GH29645
@@ -724,11 +708,6 @@ def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.fixture()
-def small_grouped(small_df):
-    return small_df.groupby("Category", as_index=False)
-
-
 @pytest.mark.parametrize(
     "arg, expected_rows",
     [
@@ -738,17 +717,38 @@ def small_grouped(small_df):
         [[0, 1, slice(-2, None)], [0, 1, 2, 3, 4, 6, 7]],
     ],
 )
-def test_slice(small_df, small_grouped, arg, expected_rows):
+def test_slice(slice_test_df, slice_test_grouped, arg, expected_rows):
     """Test slices     GH #42947"""
 
-    result = small_grouped.nth(arg)
-    expected = small_df.iloc[expected_rows]
+    result = slice_test_grouped.nth(arg)
+    expected = slice_test_df.iloc[expected_rows]
 
     tm.assert_frame_equal(result, expected)
 
 
-def test_negative_step(small_grouped):
+def test_invalid_argument(slice_test_grouped):
+    """Test for error on invalid argument"""
+
+    with pytest.raises(TypeError, match="Invalid index"):
+        slice_test_grouped.nth(3.14)
+
+
+def test_negative_step(slice_test_grouped):
     """Test for error on negative slice step"""
 
     with pytest.raises(ValueError, match="Invalid step"):
-        small_grouped.nth(slice(None, None, -1))
+        slice_test_grouped.nth(slice(None, None, -1))
+
+
+def test_np_ints(slice_test_df, slice_test_grouped):
+    """Test np ints work"""
+
+    result = slice_test_grouped.nth(np.int(0))
+    expected = slice_test_df.iloc[[0, 1, 4]]
+
+    tm.assert_frame_equal(result, expected)
+
+    result = slice_test_grouped.nth(np.array([0, 1]))
+    expected = slice_test_df.iloc[[0, 1, 2, 3, 4]]
+
+    tm.assert_frame_equal(result, expected)
