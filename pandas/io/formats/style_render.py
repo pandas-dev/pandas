@@ -22,6 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
+from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -113,7 +114,7 @@ class StylerRenderer:
         precision = (
             get_option("styler.format.precision") if precision is None else precision
         )
-        self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
+        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
@@ -375,8 +376,7 @@ class StylerRenderer:
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths)
-                            and c not in self.hidden_columns,
+                            _is_visible(c, r, col_lengths),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
                                 if col_lengths.get((r, c), 0) > 1
@@ -534,7 +534,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
+                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1
@@ -948,7 +948,8 @@ def _get_level_lengths(
                 # stop the loop due to display trimming
                 break
             if not sparsify:
-                lengths[(i, j)] = 1
+                if j not in hidden_elements:
+                    lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
                 lengths[(i, last_label)] = 1
@@ -1170,6 +1171,40 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
                 f"for example 'attr: val;'. '{style}' was given."
             )
     return style
+
+
+def refactor_levels(
+    level: Level | list[Level] | None,
+    obj: Index,
+) -> list[int]:
+    """
+    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+
+    Parameters
+    ----------
+    level : int, str, list
+        Original ``level`` arg supplied to above methods.
+    obj:
+        Either ``self.index`` or ``self.columns``
+
+    Returns
+    -------
+    list : refactored arg with a list of levels to hide
+    """
+    if level is None:
+        levels_: list[int] = list(range(obj.nlevels))
+    elif isinstance(level, int):
+        levels_ = [level]
+    elif isinstance(level, str):
+        levels_ = [obj._get_level_number(level)]
+    elif isinstance(level, list):
+        levels_ = [
+            obj._get_level_number(lev) if not isinstance(lev, int) else lev
+            for lev in level
+        ]
+    else:
+        raise ValueError("`level` must be of type `int`, `str` or list of such")
+    return levels_
 
 
 class Tooltips:
