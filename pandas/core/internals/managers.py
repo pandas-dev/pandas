@@ -1649,6 +1649,17 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         block = new_block(array, placement=slice(0, len(index)), ndim=1)
         return cls(block, index)
 
+    def to_2d_mgr(self, columns: Index) -> BlockManager:
+        """
+        Manager analogue of Series.to_frame
+        """
+        blk = self.blocks[0]
+        arr = ensure_block_shape(blk.values, ndim=2)
+        bp = BlockPlacement(0)
+        new_blk = type(blk)(arr, placement=bp, ndim=2)
+        axes = [columns, self.axes[0]]
+        return BlockManager([new_blk], axes=axes, verify_integrity=False)
+
     def __getstate__(self):
         block_values = [b.values for b in self.blocks]
         block_items = [self.items[b.mgr_locs.indexer] for b in self.blocks]

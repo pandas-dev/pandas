@@ -1742,11 +1742,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2    c
         """
         if name is None:
-            df = self._constructor_expanddim(self)
+            name = self.name
+            if name is None:
+                # default to [0], same as we would get with DataFrame(self)
+                columns = ibase.default_index(1)
+            else:
+                columns = Index([name])
         else:
-            df = self._constructor_expanddim({name: self})
+            columns = Index([name])
 
-        return df
+        mgr = self._mgr.to_2d_mgr(columns)
+        return self._constructor_expanddim(mgr)
 
     def _set_name(self, name, inplace=False) -> Series:
         """
