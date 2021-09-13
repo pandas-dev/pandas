@@ -26,10 +26,7 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import (
-    lib,
-    reduction as libreduction,
-)
+from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
@@ -162,6 +159,19 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
 
+    def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
+        single = mgr.iget(0)
+        ser = self.obj._constructor(single, name=self.obj.name)
+        ser.index = self.grouper.result_index
+        return ser
+
+    def _get_data_to_aggregate(self) -> Manager2D:
+        obj = self._obj_with_exclusions
+        df = obj.to_frame()
+        df.columns = [obj.name]  # in case name is None, we need to overwrite [0]
+
+        return df._mgr
+
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
 
@@ -232,7 +242,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self._group_keys_index
+            index = self.grouper.result_index
             return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
@@ -426,9 +436,6 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self:
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
-            # NB: libreduction does not pin name
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -493,16 +500,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
-
-    def _wrap_transform_fast_result(self, result: Series) -> Series:
-        """
-        fast version of transform, only applicable to
-        builtin/cythonizable functions
-        """
-        ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_nd(result._values, ids)
-        return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
@@ -769,30 +766,6 @@ class SeriesGroupBy(GroupBy[Series]):
             out = ensure_int64(out)
         return self.obj._constructor(out, index=mi, name=self.obj.name)
 
-    def count(self) -> Series:
-        """
-        Compute count of group, excluding missing values.
-
-        Returns
-        -------
-        Series
-            Count of values within each group.
-        """
-        ids, _, ngroups = self.grouper.group_info
-        val = self.obj._values
-
-        mask = (ids != -1) & ~isna(val)
-        minlength = ngroups or 0
-        out = np.bincount(ids[mask], minlength=minlength)
-
-        result = self.obj._constructor(
-            out,
-            index=self.grouper.result_index,
-            name=self.obj.name,
-            dtype="int64",
-        )
-        return self._reindex_output(result, fill_value=0)
-
     @doc(Series.nlargest)
     def nlargest(self, n: int = 5, keep: str = "first"):
         f = partial(Series.nlargest, n=n, keep=keep)
@@ -911,7 +884,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self._group_keys_index
+            index = self.grouper.result_index
             return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
@@ -1080,7 +1053,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_df.columns = obj.columns
         return res_df
 
-    def _wrap_applied_output(self, data, values, not_indexed_same=False):
+    def _wrap_applied_output(
+        self, data: DataFrame, values: list, not_indexed_same: bool = False
+    ):
 
         if len(values) == 0:
             result = self.obj._constructor(
@@ -1116,9 +1091,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if self.as_index:
                 return self.obj._constructor_sliced(values, index=key_index)
             else:
-                result = self.obj._constructor(
-                    values, index=key_index, columns=[self._selection]
-                )
+                result = self.obj._constructor(values, columns=[self._selection])
                 self._insert_inaxis_grouper_inplace(result)
                 return result
         else:
@@ -1290,19 +1263,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return isinstance(result, DataFrame) and result.columns.equals(
             self._obj_with_exclusions.columns
         )
-
-    def _wrap_transform_fast_result(self, result: DataFrame) -> DataFrame:
-        """
-        Fast transform path for aggregations
-        """
-        obj = self._obj_with_exclusions
-
-        # for each col, reshape to size of original frame by take operation
-        ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
-        output = result.take(ids, axis=0)
-        output.index = obj.index
-        return output
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
@@ -1610,40 +1570,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return DataFrame([], columns=columns, index=self.grouper.result_index)
         else:
             return concat(results, keys=columns, axis=1)
-
-    def count(self) -> DataFrame:
-        """
-        Compute count of group, excluding missing values.
-
-        Returns
-        -------
-        DataFrame
-            Count of values within each group.
-        """
-        data = self._get_data_to_aggregate()
-        ids, _, ngroups = self.grouper.group_info
-        mask = ids != -1
-
-        def hfunc(bvalues: ArrayLike) -> ArrayLike:
-            # TODO(2DEA): reshape would not be necessary with 2D EAs
-            if bvalues.ndim == 1:
-                # EA
-                masked = mask & ~isna(bvalues).reshape(1, -1)
-            else:
-                masked = mask & ~isna(bvalues)
-
-            counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
-            return counted
-
-        new_mgr = data.grouped_reduce(hfunc)
-
-        # If we are grouping on categoricals we want unobserved categories to
-        # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_agged_manager() returns. GH 35028
-        with com.temp_setattr(self, "observed", True):
-            result = self._wrap_agged_manager(new_mgr)
-
-        return self._reindex_output(result, fill_value=0)
 
     def nunique(self, dropna: bool = True) -> DataFrame:
         """
