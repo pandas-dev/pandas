@@ -9402,6 +9402,7 @@ NaN 12.3   33.0
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
+        calculate_diagonal: bool = False,
     ) -> DataFrame:
         """
         Compute pairwise correlation of columns, excluding NA/null values.
@@ -9422,6 +9423,12 @@ NaN 12.3   33.0
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for Pearson
             and Spearman correlation.
+        calculate_diagonal : bool, optional
+            Whether to calculate pairwise correlation using supplied callable.
+            Ignored when method argument is not callable. If False, pairwise
+            correlation between a column and itself is default to 1.
+
+            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -9471,7 +9478,7 @@ NaN 12.3   33.0
                     valid = mask[i] & mask[j]
                     if valid.sum() < min_periods:
                         c = np.nan
-                    elif i == j:
+                    elif i == j and not calculate_diagonal:
                         c = 1.0
                     elif not valid.all():
                         c = corrf(ac[valid], bc[valid])

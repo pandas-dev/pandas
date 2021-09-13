@@ -236,6 +236,21 @@ class TestDataFrameCorr:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore: An input array is constant")
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("array_creator", [np.ones, np.zeros, np.random.random])
+    def test_corr_diagonal_not_ones(self, array_creator):
+        from scipy.stats import pearsonr
+
+        frame_size = 4
+        df = DataFrame(array_creator((frame_size, frame_size)))
+        cor_mat = df.corr(
+            method=lambda x, y: pearsonr(x, y)[0], calculate_diagonal=True
+        )
+        result_diag = [cor_mat.loc[i, i] for i in range(frame_size)]
+        expected_diag = [pearsonr(df[i], df[i])[0] for i in range(frame_size)]
+        tm.assert_almost_equal(result_diag, expected_diag)
+
 
 class TestDataFrameCorrWith:
     def test_corrwith(self, datetime_frame):
