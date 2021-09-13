@@ -66,7 +66,6 @@ def test_agg_ser_multi_key(df):
 
 
 def test_groupby_aggregation_mixed_dtype():
-
     # GH 6212
     expected = DataFrame(
         {
@@ -1274,3 +1273,36 @@ def test_timeseries_groupby_agg():
 
     expected = DataFrame([[1.0]], index=[1])
     tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize(
+    "input_data, expected_output",
+    [
+        (  # timedelta
+            {"dtype": "timedelta64[ns]", "values": ["1 day", "3 days", "NaT"]},
+            {"dtype": "timedelta64[ns]", "values": ["2 days"]},
+        ),
+        (  # datetime
+            {
+                "dtype": "datetime64[ns]",
+                "values": ["2021-01-01T00:00", "NaT", "2021-01-01T02:00"],
+            },
+            {"dtype": "datetime64[ns]", "values": ["2021-01-01T01:00"]},
+        ),
+        (  # timezoned data
+            {
+                "dtype": "datetime64[ns]",
+                "values": ["2021-01-01T00:00-0100", "NaT", "2021-01-01T02:00-0100"],
+            },
+            {"dtype": "datetime64[ns]", "values": ["2021-01-01T01:00"]},
+        ),
+    ],
+)
+def test_group_mean_timedelta_nat(input_data, expected_output):
+    # GH43132
+    data = Series(input_data["values"], dtype=input_data["dtype"])
+    expected = Series(expected_output["values"], dtype=expected_output["dtype"])
+
+    result = data.groupby([0, 0, 0]).mean()
+
+    tm.assert_series_equal(result, expected)
