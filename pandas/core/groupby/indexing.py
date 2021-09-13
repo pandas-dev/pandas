@@ -43,19 +43,19 @@ class _rowsGroupByIndexer:
     def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
         """
         Positional index for selection by integer location per group.
-        
+
         Used to implement GroupBy._rows which is used to implement GroupBy.nth
         when keyword dropna is None or absent.
-        The behaviour extends GroupBy.nth and handles DataFrame.groupby() 
+        The behaviour extends GroupBy.nth and handles DataFrame.groupby()
         keyword parameters such as as_index and dropna in a compatible way.
-        
+
         The additions to nth(arg) are:
         - Handles iterables such as range.
         - Handles slice(start, stop, step) with
             start: positive, negative or None.
             stop: positive, negative or None.
             step: positive or None.
-        
+
         Parameters
         ----------
         arg : PositionalIndexer | tuple
@@ -64,7 +64,7 @@ class _rowsGroupByIndexer:
             - Integer values iterable such as list or range
             - Slice
             - Comma separated list of integers and slices
-        
+
         Returns
         -------
         Series
@@ -214,9 +214,7 @@ class _rowsGroupByIndexer:
             limit_array = (
                 self._ascending_count + self._descending_count + (start + 1)
             ) < 0
-            offset_array = np.where(
-                limit_array, self._ascending_count, offset_array
-            )
+            offset_array = np.where(limit_array, self._ascending_count, offset_array)
 
             mask &= offset_array % step == 0
 
