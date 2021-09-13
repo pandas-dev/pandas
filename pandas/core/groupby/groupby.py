@@ -62,6 +62,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -3140,7 +3141,9 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         mgr = obj._mgr
         if self.axis == 1:
-            mgr = obj.T._mgr
+            # To be removed post #GH #43337 fix
+            transposed_dtype = find_common_type(obj.dtypes.tolist())
+            mgr = obj.T.astype(transposed_dtype, copy=False)._mgr
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
