@@ -2395,7 +2395,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             .. versionchanged:: 1.4.0
                 Added slice and lists containiing slices
 
-            
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
             the nth row.
