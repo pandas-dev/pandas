@@ -10,6 +10,7 @@ from typing import (
 from pandas._typing import (
     Axis,
     FrameOrSeries,
+    WindowingRankType,
 )
 
 if TYPE_CHECKING:
@@ -627,7 +628,7 @@ class Expanding(RollingAndExpandingMixin):
     )
     def rank(
         self,
-        method: str = "average",
+        method: WindowingRankType = "average",
         ascending: bool = True,
         pct: bool = False,
         **kwargs,

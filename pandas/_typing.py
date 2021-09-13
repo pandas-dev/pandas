@@ -208,3 +208,6 @@ PositionalIndexer = Union[int, np.integer, slice, Sequence[int], np.ndarray]
 PositionalIndexer2D = Union[
     PositionalIndexer, Tuple[PositionalIndexer, PositionalIndexer]
 ]
+
+# Windowing rank methods
+WindowingRankType = Literal["average", "min", "max"]

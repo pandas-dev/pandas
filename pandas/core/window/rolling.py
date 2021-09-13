@@ -28,6 +28,7 @@ from pandas._typing import (
     ArrayLike,
     Axis,
     FrameOrSeries,
+    WindowingRankType,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -1411,7 +1412,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def rank(
         self,
-        method: str = "average",
+        method: WindowingRankType = "average",
         ascending: bool = True,
         pct: bool = False,
         **kwargs,
@@ -2239,7 +2240,7 @@ class Rolling(RollingAndExpandingMixin):
     )
     def rank(
         self,
-        method: str = "average",
+        method: WindowingRankType = "average",
         ascending: bool = True,
         pct: bool = False,
         **kwargs,

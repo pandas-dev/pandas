@@ -266,19 +266,21 @@ def test_expanding_skew_kurt_numerical_stability(method):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("window", [1, 3, 10, 50, 1000])
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
 def test_rank(window, method, pct, ascending, test_data):
-    length = 1000
+    length = 20
     if test_data == "default":
         ser = Series(data=np.random.rand(length))
     elif test_data == "duplicates":
         ser = Series(data=np.random.choice(3, length))
     elif test_data == "nans":
-        ser = Series(data=np.random.choice([1.0, 0.25, 0.75, np.nan], length))
+        ser = Series(
+            data=np.random.choice([1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length)
+        )
 
     expected = ser.expanding(window).apply(
         lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]

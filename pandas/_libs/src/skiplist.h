@@ -180,6 +180,8 @@ PANDAS_INLINE double skiplist_get(skiplist_t *skp, int i, int *ret) {
     return node->value;
 }
 
+// Returns the lowest rank of all elements with value `value`, as opposed to the
+// highest rank returned by `skiplist_insert`.
 PANDAS_INLINE int skiplist_min_rank(skiplist_t *skp, double value) {
     node_t *node;
     int level, rank = 0;

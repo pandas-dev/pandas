@@ -99,40 +99,8 @@ Example:
 
     >>> s = pd.Series([1, 4, 2, 3, 5, 3])
     >>> s.rolling(3).rank()
-    0    NaN
-    1    NaN
-    2    2.0
-    3    2.0
-    4    3.0
-    5    1.5
-    dtype: float64
 
     >>> s.rolling(3).rank(method="max")
-    0    NaN
-    1    NaN
-    2    2.0
-    3    2.0
-    4    3.0
-    5    2.0
-    dtype: float64
-
-    >>> s.expanding().rank()
-    0    1.0
-    1    2.0
-    2    2.0
-    3    3.0
-    4    5.0
-    5    3.5
-    dtype: float64
-
-    >>> s.expanding().rank(method="max")
-    0    1.0
-    1    2.0
-    2    2.0
-    3    3.0
-    4    5.0
-    5    4.0
-    dtype: float64
 
 .. _whatsnew_140.enhancements.other:
 

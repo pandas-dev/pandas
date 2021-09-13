@@ -5,6 +5,11 @@ import cython
 from libc.math cimport round
 from libcpp.deque cimport deque
 
+from pandas._libs.algos cimport (
+    TiebreakEnumType,
+    tiebreakers,
+)
+
 import numpy as np
 
 cimport numpy as cnp
@@ -1141,19 +1146,6 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     return output
 
 
-cdef enum RankType:
-    AVERAGE,
-    MIN,
-    MAX,
-
-
-rank_types = {
-    'average': AVERAGE,
-    'min': MIN,
-    'max': MAX,
-}
-
-
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp, bint percentile,
               str method, bint ascending) -> np.ndarray:
@@ -1168,12 +1160,16 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
         int64_t nobs = 0, win
         float64_t val
         skiplist_t *skiplist
-        float64_t[::1] output = None
-        RankType rank_type
+        float64_t[::1] output
+        TiebreakEnumType rank_type
 
     try:
-        rank_type = rank_types[method]
+        rank_type = tiebreakers[method]
     except KeyError:
+        raise ValueError(f"Method '{method}' is not supported")
+    if rank_type not in (TiebreakEnumType.TIEBREAK_AVERAGE,
+                         TiebreakEnumType.TIEBREAK_MIN,
+                         TiebreakEnumType.TIEBREAK_MAX):
         raise ValueError(f"Method '{method}' is not supported")
 
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
@@ -1210,12 +1206,20 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                         rank = skiplist_insert(skiplist, val)
                         if rank == -1:
                             raise MemoryError("skiplist_insert failed")
-                        if rank_type == AVERAGE:
+                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
+                            # The average rank of `val` is the sum of the ranks of all
+                            # instances of `val` in the skip list divided by the number
+                            # of instances. The sum of consecutive integers from 1 to N
+                            # is N * (N + 1) / 2.
+                            # The sum of the ranks is the sum of integers from the
+                            # lowest rank to the highest rank, which is the sum of
+                            # integers from 1 to the highest rank minus the sum of
+                            # integers from 1 to one less than the lowest rank.
                             rank_min = skiplist_min_rank(skiplist, val)
                             rank = (((rank * (rank + 1) / 2)
                                     - ((rank_min - 1) * rank_min / 2))
                                     / (rank - rank_min + 1))
-                        elif rank_type == MIN:
+                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
                             rank = skiplist_min_rank(skiplist, val)
                     else:
                         rank = NaN
@@ -1236,17 +1240,17 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                         rank = skiplist_insert(skiplist, val)
                         if rank == -1:
                             raise MemoryError("skiplist_insert failed")
-                        if rank_type == AVERAGE:
+                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
                             rank_min = skiplist_min_rank(skiplist, val)
                             rank = (((rank * (rank + 1) / 2)
                                     - ((rank_min - 1) * rank_min / 2))
                                     / (rank - rank_min + 1))
-                        elif rank_type == MIN:
+                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
                             rank = skiplist_min_rank(skiplist, val)
                     else:
                         rank = NaN
             if nobs >= minp:
-                output[i] = <float64_t>(rank) / nobs if percentile else rank
+                output[i] = rank / nobs if percentile else rank
             else:
                 output[i] = NaN
 
