@@ -178,6 +178,7 @@ class AllHeaderCSVResponder(http.server.BaseHTTPRequestHandler):
         self.wfile.write(response_bytes)
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
     "responder, read_method, parquet_engine",
     [
@@ -219,6 +220,7 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
     assert not df_http.empty
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
     "responder, read_method, parquet_engine",
     [
@@ -272,6 +274,7 @@ def test_server_and_custom_headers(responder, read_method, parquet_engine):
     tm.assert_frame_equal(df_true, df_http)
 
 
+@pytest.mark.network
 @pytest.mark.parametrize(
     "responder, read_method",
     [
