@@ -36,3 +36,5 @@ dependencies:
   - moto
   - flask
   - numba
+  - pip:
+    - pytest-randomly
