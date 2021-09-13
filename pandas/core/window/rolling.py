@@ -584,7 +584,7 @@ class BaseWindowGroupby(BaseWindow):
 
     _grouper: BaseGrouper
     _as_index: bool
-    _attributes = ["_grouper"]
+    _attributes: list[str] = ["_grouper"]
 
     def __init__(
         self,
@@ -767,7 +767,8 @@ class BaseWindowGroupby(BaseWindow):
         # here so our index is carried through to the selected obj
         # when we do the splitting for the groupby
         if self.on is not None:
-            self.obj = self.obj.set_index(self._on)
+            # GH 43355
+            subset = self.obj.set_index(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
     def _validate_monotonic(self):
@@ -1516,7 +1517,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
 class Rolling(RollingAndExpandingMixin):
 
-    _attributes = [
+    _attributes: list[str] = [
         "window",
         "min_periods",
         "center",

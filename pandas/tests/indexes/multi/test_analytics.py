@@ -9,6 +9,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.core.api import UInt64Index
 
 
 def test_shift(idx):
@@ -174,7 +175,7 @@ def test_map(idx):
     index = idx
 
     # we don't infer UInt64
-    if isinstance(index, pd.UInt64Index):
+    if isinstance(index, UInt64Index):
         expected = index.astype("int64")
     else:
         expected = index
@@ -198,7 +199,7 @@ def test_map_dictlike(idx, mapper):
     identity = mapper(idx.values, idx)
 
     # we don't infer to UInt64 for a dict
-    if isinstance(idx, pd.UInt64Index) and isinstance(identity, dict):
+    if isinstance(idx, UInt64Index) and isinstance(identity, dict):
         expected = idx.astype("int64")
     else:
         expected = idx

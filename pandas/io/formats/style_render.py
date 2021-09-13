@@ -98,6 +98,8 @@ class StylerRenderer:
         self.cell_ids = cell_ids
 
         # add rendering variables
+        self.hide_index_names: bool = False
+        self.hide_column_names: bool = False
         self.hide_index_: list = [False] * self.index.nlevels
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
@@ -108,19 +110,28 @@ class StylerRenderer:
         self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
-        precision = precision or get_option("styler.format.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
-    def _render_html(self, sparse_index: bool, sparse_columns: bool, **kwargs) -> str:
+    def _render_html(
+        self,
+        sparse_index: bool,
+        sparse_columns: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        **kwargs,
+    ) -> str:
         """
         Renders the ``Styler`` including all applied styles to HTML.
         Generates a dict with necessary kwargs passed to jinja2 template.
         """
         self._compute()
         # TODO: namespace all the pandas keys
-        d = self._translate(sparse_index, sparse_columns)
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
         return self.template_html.render(
             **d,
@@ -162,7 +173,14 @@ class StylerRenderer:
             r = func(self)(*args, **kwargs)
         return r
 
-    def _translate(self, sparse_index: bool, sparse_cols: bool, blank: str = "&nbsp;"):
+    def _translate(
+        self,
+        sparse_index: bool,
+        sparse_cols: bool,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
+        blank: str = "&nbsp;",
+    ):
         """
         Process Styler data and settings into a dict for template rendering.
 
@@ -177,6 +195,10 @@ class StylerRenderer:
         sparse_cols : bool
             Whether to sparsify the columns or print all hierarchical column elements.
             Upstream defaults are typically to `pandas.options.styler.sparse.columns`.
+        blank : str
+            Entry to top-left blank cells.
+        max_rows, max_cols : int, optional
+            Specific max rows and cols. max_elements always take precedence in render.
 
         Returns
         -------
@@ -202,8 +224,14 @@ class StylerRenderer:
         }
 
         max_elements = get_option("styler.render.max_elements")
+        max_rows = max_rows if max_rows else get_option("styler.render.max_rows")
+        max_cols = max_cols if max_cols else get_option("styler.render.max_columns")
         max_rows, max_cols = _get_trimming_maximums(
-            len(self.data.index), len(self.data.columns), max_elements
+            len(self.data.index),
+            len(self.data.columns),
+            max_elements,
+            max_rows,
+            max_cols,
         )
 
         self.cellstyle_map_columns: DefaultDict[
@@ -250,8 +278,7 @@ class StylerRenderer:
             d.update({k: map})
 
         table_attr = self.table_attributes
-        use_mathjax = get_option("display.html.use_mathjax")
-        if not use_mathjax:
+        if not get_option("styler.html.mathjax"):
             table_attr = table_attr or ""
             if 'class="' in table_attr:
                 table_attr = table_attr.replace('class="', 'class="tex2jax_ignore ')
@@ -334,7 +361,9 @@ class StylerRenderer:
                     _element(
                         "th",
                         f"{blank_class if name is None else index_name_class} level{r}",
-                        name if name is not None else blank_value,
+                        name
+                        if (name is not None and not self.hide_column_names)
+                        else blank_value,
                         not all(self.hide_index_),
                     )
                 ]
@@ -382,7 +411,7 @@ class StylerRenderer:
             self.data.index.names
             and com.any_not_none(*self.data.index.names)
             and not all(self.hide_index_)
-            and not all(self.hide_columns_)
+            and not self.hide_index_names
         ):
             index_names = [
                 _element(
@@ -455,7 +484,7 @@ class StylerRenderer:
         )
 
         rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
-        if self.data.index.nlevels == 1:
+        if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
         body = []
@@ -504,7 +533,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
+                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1
@@ -826,7 +855,14 @@ def _element(
     }
 
 
-def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
+def _get_trimming_maximums(
+    rn,
+    cn,
+    max_elements,
+    max_rows=None,
+    max_cols=None,
+    scaling_factor=0.8,
+) -> tuple[int, int]:
     """
     Recursively reduce the number of rows and columns to satisfy max elements.
 
@@ -836,6 +872,10 @@ def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
         The number of input rows / columns
     max_elements : int
         The number of allowable elements
+    max_rows, max_cols : int, optional
+        Directly specify an initial maximum rows or columns before compression.
+    scaling_factor : float
+        Factor at which to reduce the number of rows / columns to fit.
 
     Returns
     -------
@@ -848,6 +888,11 @@ def _get_trimming_maximums(rn, cn, max_elements, scaling_factor=0.8):
             return rn, int(cn * scaling_factor)
         else:
             return int(rn * scaling_factor), cn
+
+    if max_rows:
+        rn = max_rows if rn > max_rows else rn
+    if max_cols:
+        cn = max_cols if cn > max_cols else cn
 
     while rn * cn > max_elements:
         rn, cn = scale_down(rn, cn)
@@ -890,7 +935,7 @@ def _get_level_lengths(
         hidden_elements = []
 
     lengths = {}
-    if index.nlevels == 1:
+    if not isinstance(index, MultiIndex):
         for i, value in enumerate(levels):
             if i not in hidden_elements:
                 lengths[(0, i)] = 1
@@ -902,7 +947,8 @@ def _get_level_lengths(
                 # stop the loop due to display trimming
                 break
             if not sparsify:
-                lengths[(i, j)] = 1
+                if j not in hidden_elements:
+                    lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
                 lengths[(i, last_label)] = 1
@@ -1033,7 +1079,9 @@ def _maybe_wrap_formatter(
     elif callable(formatter):
         func_0 = formatter
     elif formatter is None:
-        precision = precision or get_option("styler.format.precision")
+        precision = (
+            get_option("styler.format.precision") if precision is None else precision
+        )
         func_0 = partial(
             _default_formatter, precision=precision, thousands=(thousands is not None)
         )
@@ -1403,8 +1451,18 @@ def _parse_latex_header_span(
         if 'colspan="' in attrs:
             colspan = attrs[attrs.find('colspan="') + 9 :]  # len('colspan="') = 9
             colspan = int(colspan[: colspan.find('"')])
+            if "naive-l" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = " & {}" if wrap else " &"
+                return out + blanks * (colspan - 1)
+            elif "naive-r" == multicol_align:
+                out = f"{{{display_val}}}" if wrap else f"{display_val}"
+                blanks = "{} & " if wrap else "& "
+                return blanks * (colspan - 1) + out
             return f"\\multicolumn{{{colspan}}}{{{multicol_align}}}{{{display_val}}}"
         elif 'rowspan="' in attrs:
+            if multirow_align == "naive":
+                return display_val
             rowspan = attrs[attrs.find('rowspan="') + 9 :]
             rowspan = int(rowspan[: rowspan.find('"')])
             return f"\\multirow[{multirow_align}]{{{rowspan}}}{{*}}{{{display_val}}}"

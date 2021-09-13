@@ -92,6 +92,7 @@ class TestDataFrameCorr:
     def test_corr_scipy_method(self, float_frame, method):
         float_frame["A"][:5] = np.nan
         float_frame["B"][5:10] = np.nan
+        float_frame["A"][:10] = float_frame["A"][10:20]
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)

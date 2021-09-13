@@ -28,6 +28,7 @@ from pandas.util._decorators import (
     Appender,
     deprecate_nonkeyword_arguments,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
@@ -131,6 +132,10 @@ usecols : list-like or callable, optional
     parsing time and lower memory usage.
 squeeze : bool, default False
     If the parsed data only contains one column then return a Series.
+
+    .. deprecated:: 1.4.0
+        Append ``.squeeze("columns")`` to the call to ``{func_name}`` to squeeze
+        the data.
 prefix : str, optional
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : bool, default True
@@ -404,8 +409,6 @@ _c_parser_defaults = {
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
-    "error_bad_lines": None,
-    "warn_bad_lines": None,
     "float_precision": None,
 }
 
@@ -441,8 +444,11 @@ _pyarrow_unsupported = {
     "low_memory",
 }
 
-_deprecated_defaults: dict[str, Any] = {"error_bad_lines": None, "warn_bad_lines": None}
-_deprecated_args: set[str] = {"error_bad_lines", "warn_bad_lines"}
+_deprecated_defaults: dict[str, Any] = {
+    "error_bad_lines": None,
+    "warn_bad_lines": None,
+    "squeeze": None,
+}
 
 
 def validate_integer(name, val, min_val=0):
@@ -555,7 +561,7 @@ def read_csv(
     names=lib.no_default,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
@@ -653,7 +659,7 @@ def read_table(
     names=lib.no_default,
     index_col=None,
     usecols=None,
-    squeeze=False,
+    squeeze=None,
     prefix=lib.no_default,
     mangle_dupe_cols=True,
     # General Parsing Configuration
@@ -804,6 +810,24 @@ def read_fwf(
             colspecs.append((col, col + w))
             col += w
 
+    # GH#40830
+    # Ensure length of `colspecs` matches length of `names`
+    names = kwds.get("names")
+    if names is not None:
+        if len(names) != len(colspecs):
+            # need to check len(index_col) as it might contain
+            # unnamed indices, in which case it's name is not required
+            len_index = 0
+            if kwds.get("index_col") is not None:
+                index_col: Any = kwds.get("index_col")
+                if index_col is not False:
+                    if not is_list_like(index_col):
+                        len_index = 1
+                    else:
+                        len_index = len(index_col)
+            if len(names) + len_index != len(colspecs):
+                raise ValueError("Length of colspecs must match length of names")
+
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
@@ -852,10 +876,11 @@ class TextFileReader(abc.Iterator):
 
         self.chunksize = options.pop("chunksize", None)
         self.nrows = options.pop("nrows", None)
-        self.squeeze = options.pop("squeeze", False)
 
         self._check_file_or_buffer(f, engine)
         self.options, self.engine = self._clean_options(options, engine)
+
+        self.squeeze = self.options.pop("squeeze", False)
 
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
@@ -1027,15 +1052,15 @@ class TextFileReader(abc.Iterator):
 
         validate_header_arg(options["header"])
 
-        for arg in _deprecated_args:
-            parser_default = _c_parser_defaults[arg]
+        for arg in _deprecated_defaults.keys():
+            parser_default = _c_parser_defaults.get(arg, parser_defaults[arg])
             depr_default = _deprecated_defaults[arg]
             if result.get(arg, depr_default) != depr_default:
                 msg = (
                     f"The {arg} argument has been deprecated and will be "
                     "removed in a future version.\n\n"
                 )
-                warnings.warn(msg, FutureWarning, stacklevel=7)
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
             else:
                 result[arg] = parser_default
 
@@ -1085,6 +1110,10 @@ class TextFileReader(abc.Iterator):
         result["na_values"] = na_values
         result["na_fvalues"] = na_fvalues
         result["skiprows"] = skiprows
+        # Default for squeeze is none since we need to check
+        # if user sets it. We then set to False to preserve
+        # previous behavior.
+        result["squeeze"] = False if options["squeeze"] is None else options["squeeze"]
 
         return result, engine
 
@@ -1134,7 +1163,7 @@ class TextFileReader(abc.Iterator):
             self._currow += new_rows
 
         if self.squeeze and len(df.columns) == 1:
-            return df[df.columns[0]].copy()
+            return df.squeeze("columns").copy()
         return df
 
     def get_chunk(self, size=None):

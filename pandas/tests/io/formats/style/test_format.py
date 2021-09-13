@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     DataFrame,
     IndexSlice,
+    MultiIndex,
     NaT,
     Timestamp,
     option_context,
@@ -298,3 +299,43 @@ def test_format_options():
     with option_context("styler.format.formatter", {"int": "{:,.2f}"}):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][1]["display_value"] == "2,000.00"
+
+
+def test_precision_zero(df):
+    styler = Styler(df, precision=0)
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][2]["display_value"] == "-1"
+    assert ctx["body"][1][2]["display_value"] == "-1"
+
+
+@pytest.mark.parametrize(
+    "formatter, exp",
+    [
+        (lambda x: f"{x:.3f}", "9.000"),
+        ("{:.2f}", "9.00"),
+        ({0: "{:.1f}"}, "9.0"),
+        (None, "9"),
+    ],
+)
+def test_formatter_options_validator(formatter, exp):
+    df = DataFrame([[9]])
+    with option_context("styler.format.formatter", formatter):
+        assert f" {exp} " in df.style.to_latex()
+
+
+def test_formatter_options_raises():
+    msg = "Value must be an instance of"
+    with pytest.raises(ValueError, match=msg):
+        with option_context("styler.format.formatter", ["bad", "type"]):
+            DataFrame().style.to_latex()
+
+
+def test_1level_multiindex():
+    # GH 43383
+    midx = MultiIndex.from_product([[1, 2]], names=[""])
+    df = DataFrame(-1, index=midx, columns=[0, 1])
+    ctx = df.style._translate(True, True)
+    assert ctx["body"][0][0]["display_value"] == 1
+    assert ctx["body"][0][0]["is_visible"] is True
+    assert ctx["body"][1][0]["display_value"] == 2
+    assert ctx["body"][1][0]["is_visible"] is True

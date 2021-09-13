@@ -670,6 +670,43 @@ cdef class BlockManager:
         self._blklocs = None
 
     # -------------------------------------------------------------------
+    # Block Placement
+
+    def _rebuild_blknos_and_blklocs(self) -> None:
+        """
+        Update mgr._blknos / mgr._blklocs.
+        """
+        cdef:
+            intp_t blkno, i, j
+            cnp.npy_intp length = self.shape[0]
+            SharedBlock blk
+            BlockPlacement bp
+
+        # equiv: np.empty(length, dtype=np.intp)
+        new_blknos = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
+        new_blklocs = cnp.PyArray_EMPTY(1, &length, cnp.NPY_INTP, 0)
+        new_blknos.fill(-1)
+        new_blklocs.fill(-1)
+
+        for blkno, blk in enumerate(self.blocks):
+            bp = blk.mgr_locs
+            # Iterating over `bp` is a faster equivalent to
+            #  new_blknos[bp.indexer] = blkno
+            #  new_blklocs[bp.indexer] = np.arange(len(bp))
+            for i, j in enumerate(bp):
+                new_blknos[j] = blkno
+                new_blklocs[j] = i
+
+        for blkno in new_blknos:
+            # If there are any -1s remaining, this indicates that our mgr_locs
+            #  are invalid.
+            if blkno == -1:
+                raise AssertionError("Gaps in blk ref_locs")
+
+        self._blknos = new_blknos
+        self._blklocs = new_blklocs
+
+    # -------------------------------------------------------------------
     # Pickle
 
     cpdef __reduce__(self):
@@ -723,6 +760,8 @@ cdef class BlockManager:
     cdef BlockManager _get_index_slice(self, slobj):
         cdef:
             SharedBlock blk, nb
+            BlockManager mgr
+            ndarray blknos, blklocs
 
         nbs = []
         for blk in self.blocks:
@@ -730,7 +769,15 @@ cdef class BlockManager:
             nbs.append(nb)
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
-        return type(self)(tuple(nbs), new_axes, verify_integrity=False)
+        mgr = type(self)(tuple(nbs), new_axes, verify_integrity=False)
+
+        # We can avoid having to rebuild blklocs/blknos
+        blklocs = self._blklocs
+        blknos = self._blknos
+        if blknos is not None:
+            mgr._blknos = blknos.copy()
+            mgr._blklocs = blklocs.copy()
+        return mgr
 
     def get_slice(self, slobj: slice, axis: int = 0) -> BlockManager:
 
