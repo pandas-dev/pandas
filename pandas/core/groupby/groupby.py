@@ -2389,7 +2389,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Parameters
         ----------
-        n : int, slice or list of ints and slices
+        arg : int, slice or list of ints and slices
             A single nth value for the row or a list of nth values or slices.
 
             .. versionchanged:: 1.4.0
@@ -2475,7 +2475,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if dropna not in ["any", "all"]:
             # Note: when agg-ing picker doesn't raise this, just returns NaN
             raise ValueError(
-                "For a DataFrame groupby.nth, dropna must be "
+                "For a DataFrame or Series groupby.nth, dropna must be "
                 "either None, 'any' or 'all', "
                 f"(was passed {dropna})."
             )

@@ -270,7 +270,7 @@ def test_nth():
     result = s.groupby(g, sort=False).nth(0, dropna="all")
     tm.assert_series_equal(result, expected)
 
-    with pytest.raises(ValueError, match="For a DataFrame groupby"):
+    with pytest.raises(ValueError, match="For a DataFrame"):
         s.groupby(g, sort=False).nth(0, dropna=True)
 
     # doc example
@@ -718,7 +718,7 @@ def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     ],
 )
 def test_slice(slice_test_df, slice_test_grouped, arg, expected_rows):
-    """Test slices     GH #42947"""
+    #Test slices     GH #42947
 
     result = slice_test_grouped.nth(arg)
     expected = slice_test_df.iloc[expected_rows]
@@ -727,21 +727,21 @@ def test_slice(slice_test_df, slice_test_grouped, arg, expected_rows):
 
 
 def test_invalid_argument(slice_test_grouped):
-    """Test for error on invalid argument"""
+    #Test for error on invalid argument
 
     with pytest.raises(TypeError, match="Invalid index"):
         slice_test_grouped.nth(3.14)
 
 
 def test_negative_step(slice_test_grouped):
-    """Test for error on negative slice step"""
+    #Test for error on negative slice step
 
     with pytest.raises(ValueError, match="Invalid step"):
         slice_test_grouped.nth(slice(None, None, -1))
 
 
 def test_np_ints(slice_test_df, slice_test_grouped):
-    """Test np ints work"""
+    #Test np ints work
 
     result = slice_test_grouped.nth(np.array([0, 1]))
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4]]

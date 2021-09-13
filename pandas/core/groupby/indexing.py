@@ -30,15 +30,15 @@ class GroupByIndexingMixin:
     Mixin for adding .rows to GroupBy.
     """
 
-    @property
+    @cache_readonly
     def _rows(self) -> _rowsGroupByIndexer:
         return _rowsGroupByIndexer(cast(groupby.GroupBy, self))
 
 
 @doc(GroupByIndexingMixin._rows)
 class _rowsGroupByIndexer:
-    def __init__(self, grouped: groupby.GroupBy):
-        self.grouped = grouped
+    def __init__(self, groupByObject: groupby.GroupBy):
+        self.groupByObject = groupByObject
 
     def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
         """
@@ -96,7 +96,7 @@ class _rowsGroupByIndexer:
             2  a  3
             4  b  5
         """
-        with groupby.group_selection_context(self.grouped):
+        with groupby.group_selection_context(self.groupByObject):
             if isinstance(arg, tuple):
                 if all(is_integer(i) for i in arg):
                     mask = self._handle_list(arg)
@@ -120,28 +120,28 @@ class _rowsGroupByIndexer:
                     "integers and slices"
                 )
 
-            ids, _, _ = self.grouped.grouper.group_info
+            ids, _, _ = self.groupByObject.grouper.group_info
 
             # Drop NA values in grouping
             mask &= ids != -1
 
             if mask is None or mask is True:
-                result = self.grouped._selected_obj[:]
+                result = self.groupByObject._selected_obj[:]
 
             else:
-                result = self.grouped._selected_obj[mask]
+                result = self.groupByObject._selected_obj[mask]
 
-            if self.grouped.as_index:
-                result_index = self.grouped.grouper.result_index
+            if self.groupByObject.as_index:
+                result_index = self.groupByObject.grouper.result_index
                 result.index = result_index[ids[mask]]
 
-                if not self.grouped.observed and isinstance(
+                if not self.groupByObject.observed and isinstance(
                     result_index, CategoricalIndex
                 ):
                     result = result.reindex(result_index)
 
-                result = self.grouped._reindex_output(result)
-                if self.grouped.sort:
+                result = self.groupByObject._reindex_output(result)
+                if self.groupByObject.sort:
                     result = result.sort_index()
 
             return result
@@ -231,8 +231,8 @@ class _rowsGroupByIndexer:
 
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
-        return self.grouped._cumcount_array()
+        return self.groupByObject._cumcount_array()
 
     @cache_readonly
     def _descending_count(self) -> np.ndarray:
-        return self.grouped._cumcount_array(ascending=False)
+        return self.groupByObject._cumcount_array(ascending=False)
