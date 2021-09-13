@@ -3,27 +3,18 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 import datetime
 import functools
-from functools import partial
 import re
+from functools import partial
 
 import numpy as np
-import pytest
-
-from pandas.errors import PerformanceWarning
-
-from pandas.core.dtypes.common import is_integer_dtype
-
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    concat,
-)
 import pandas._testing as tm
+import pytest
+from pandas import DataFrame, Index, MultiIndex, Series, concat, to_datetime
 from pandas.core.base import SpecificationError
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.groupby.grouper import Grouping
+from pandas.errors import PerformanceWarning
 
 
 def test_groupby_agg_no_extra_calls():
@@ -1275,34 +1266,33 @@ def test_timeseries_groupby_agg():
     tm.assert_frame_equal(res, expected)
 
 
-@pytest.mark.parametrize(
-    "input_data, expected_output",
-    [
-        (  # timedelta
-            {"dtype": "timedelta64[ns]", "values": ["1 day", "3 days", "NaT"]},
-            {"dtype": "timedelta64[ns]", "values": ["2 days"]},
-        ),
-        (  # datetime
-            {
-                "dtype": "datetime64[ns]",
-                "values": ["2021-01-01T00:00", "NaT", "2021-01-01T02:00"],
-            },
-            {"dtype": "datetime64[ns]", "values": ["2021-01-01T01:00"]},
-        ),
-        (  # timezoned data
-            {
-                "dtype": "datetime64[ns]",
-                "values": ["2021-01-01T00:00-0100", "NaT", "2021-01-01T02:00-0100"],
-            },
-            {"dtype": "datetime64[ns]", "values": ["2021-01-01T01:00"]},
-        ),
-    ],
-)
-def test_group_mean_timedelta_nat(input_data, expected_output):
+def test_group_mean_timedelta_nat():
     # GH43132
-    data = Series(input_data["values"], dtype=input_data["dtype"])
-    expected = Series(expected_output["values"], dtype=expected_output["dtype"])
+    data = Series(["1 day", "3 days", "NaT"], dtype="timedelta64[ns]")
+    expected = Series(["2 days"], dtype="timedelta64[ns]")
 
     result = data.groupby([0, 0, 0]).mean()
 
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_data, expected_output",
+    [
+        (  # no timezone
+            ["2021-01-01T00:00", "NaT", "2021-01-01T02:00"],
+            ["2021-01-01T01:00"],
+        ),
+        (  # timezone
+            ["2021-01-01T00:00-0100", "NaT", "2021-01-01T02:00-0100"],
+            ["2021-01-01T01:00-0100"],
+        ),
+    ],
+)
+def test_group_mean_datetime64_nat(input_data, expected_output):
+    # GH43132
+    data = to_datetime(Series(input_data))
+    expected = to_datetime(Series(expected_output))
+
+    result = data.groupby([0, 0, 0]).mean()
     tm.assert_series_equal(result, expected)
