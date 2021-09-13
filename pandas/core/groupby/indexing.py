@@ -41,6 +41,61 @@ class _rowsGroupByIndexer:
         self.grouped = grouped
 
     def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
+        """
+        Positional index for selection by integer location per group.
+        
+        Used to implement GroupBy._rows which is used to implement GroupBy.nth
+        when keyword dropna is None or absent.
+        The behaviour extends GroupBy.nth and handles DataFrame.groupby() 
+        keyword parameters such as as_index and dropna in a compatible way.
+        
+        The additions to nth(arg) are:
+        - Handles iterables such as range.
+        - Handles slice(start, stop, step) with
+            start: positive, negative or None.
+            stop: positive, negative or None.
+            step: positive or None.
+        
+        Parameters
+        ----------
+        arg : PositionalIndexer | tuple
+            Allowed values are:
+            - Integer
+            - Integer values iterable such as list or range
+            - Slice
+            - Comma separated list of integers and slices
+        
+        Returns
+        -------
+        Series
+            The filtered subset of the original groupby Series.
+        DataFrame
+            The filtered subset of the original groupby DataFrame.
+
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+        GroupBy.head : Return first n rows of each group.
+        GroupBy.tail : Return last n rows of each group.
+        GroupBy.nth : Take the nth row from each group if n is an int, or a
+            subset of rows, if n is a list of ints.
+
+        Examples
+        --------
+            >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
+            ...                   columns=["A", "B"])
+            >>> df.groupby("A", as_index=False)._rows[1:2]
+               A  B
+            1  a  2
+            4  b  5
+
+            >>> df.groupby("A", as_index=False)._rows[1, -1]
+               A  B
+            1  a  2
+            2  a  3
+            4  b  5
+        """
         with groupby.group_selection_context(self.grouped):
             if isinstance(arg, tuple):
                 if all(is_integer(i) for i in arg):
@@ -146,25 +201,24 @@ class _rowsGroupByIndexer:
             if step > 1:
                 mask &= self._ascending_count % step == 0
 
+        elif start >= 0:
+            mask &= self._ascending_count >= start
+
+            if step > 1:
+                mask &= (self._ascending_count - start) % step == 0
+
         else:
-            if start >= 0:
-                mask &= self._ascending_count >= start
+            mask &= self._descending_count < -start
 
-                if step > 1:
-                    mask &= (self._ascending_count - start) % step == 0
+            offset_array = self._descending_count + start + 1
+            limit_array = (
+                self._ascending_count + self._descending_count + (start + 1)
+            ) < 0
+            offset_array = np.where(
+                limit_array, self._ascending_count, offset_array
+            )
 
-            else:
-                mask &= self._descending_count < -start
-
-                offset_array = self._descending_count + start + 1
-                limit_array = (
-                    self._ascending_count + self._descending_count + (start + 1)
-                ) < 0
-                offset_array = np.where(
-                    limit_array, self._ascending_count, offset_array
-                )
-
-                mask &= offset_array % step == 0
+            mask &= offset_array % step == 0
 
         if stop is not None:
             if stop >= 0:
