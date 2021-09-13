@@ -302,6 +302,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.sparse.to_coo` (:issue:`42880`)
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
+- :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -423,7 +424,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.rolling` when the :class:`Series` ``dtype`` was ``Int64`` (:issue:`43016`)
 - Bug in :meth:`DataFrame.rolling.corr` when the :class:`DataFrame` columns was a :class:`MultiIndex` (:issue:`21157`)
 - Bug in :meth:`DataFrame.groupby.rolling` when specifying ``on`` and calling ``__getitem__`` would subsequently return incorrect results (:issue:`43355`)
-- Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`)
+- Bug in :meth:`GroupBy.apply` with time-based :class:`Grouper` objects incorrectly raising ``ValueError`` in corner cases where the grouping vector contains a ``NaT`` (:issue:`43500`, :issue:`43515`)
 
 Reshaping
 ^^^^^^^^^
@@ -437,6 +438,7 @@ Reshaping
 Sparse
 ^^^^^^
 - Bug in :meth:`DataFrame.sparse.to_coo` raising ``AttributeError`` when column names are not unique (:issue:`29564`)
+- Bug in :meth:`SparseArray.max` and :meth:`SparseArray.min` raising ``ValueError`` for arrays with 0 non-null elements (:issue:`43527`)
 -
 -
 

@@ -97,6 +97,8 @@ if TYPE_CHECKING:
 
     Ellipsis = ellipsis.Ellipsis
 
+    SparseIndexKind = Literal["integer", "block"]
+
     from pandas._typing import NumpySorter
 
     from pandas import Series
@@ -334,7 +336,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         sparse_index=None,
         index=None,
         fill_value=None,
-        kind="integer",
+        kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
         copy: bool = False,
     ):
@@ -624,7 +626,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
-    def kind(self) -> str:
+    def kind(self) -> SparseIndexKind:
         """
         The kind of sparse index for this array. One of {'integer', 'block'}.
         """
@@ -1456,23 +1458,69 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             nsparse = self.sp_index.ngaps
             return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
 
-    def max(self, axis=0, *args, **kwargs):
+    def max(self, axis: int = 0, *args, **kwargs) -> Scalar:
+        """
+        Max of non-NA/null values
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
+        Returns
+        -------
+        scalar
+        """
         nv.validate_max(args, kwargs)
+        return self._min_max("max")
 
-        # This condition returns a nan if there are no valid values in the array.
-        if self.size > 0 and self._valid_sp_values.size == 0:
-            return self.fill_value
-        else:
-            return np.nanmax(self, axis)
+    def min(self, axis: int = 0, *args, **kwargs) -> Scalar:
+        """
+        Min of non-NA/null values
 
-    def min(self, axis=0, *args, **kwargs):
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+
+        Returns
+        -------
+        scalar
+        """
         nv.validate_min(args, kwargs)
+        return self._min_max("min")
 
-        # This condition returns a nan if there are no valid values in the array.
-        if self.size > 0 and self._valid_sp_values.size == 0:
+    def _min_max(self, kind: Literal["min", "max"]) -> Scalar:
+        """
+        Min/max of non-NA/null values
+
+        Parameters
+        ----------
+        kind : {"min", "max"}
+
+        Returns
+        -------
+        scalar
+        """
+        valid_vals = self._valid_sp_values
+        has_nonnull_fill_vals = not self._null_fill_value and self.sp_index.ngaps > 0
+        if len(valid_vals) > 0:
+            sp_min_max = getattr(valid_vals, kind)()
+
+            # If a non-null fill value is currently present, it might be the min/max
+            if has_nonnull_fill_vals:
+                func = max if kind == "max" else min
+                return func(sp_min_max, self.fill_value)
+            else:
+                return sp_min_max
+        elif has_nonnull_fill_vals:
             return self.fill_value
         else:
-            return np.nanmin(self, axis)
+            return na_value_for_dtype(self.dtype.subtype)
 
     # ------------------------------------------------------------------------
     # Ufuncs
@@ -1630,7 +1678,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
 
 def make_sparse(
-    arr: np.ndarray, kind="block", fill_value=None, dtype: NpDtype | None = None
+    arr: np.ndarray,
+    kind: SparseIndexKind = "block",
+    fill_value=None,
+    dtype: NpDtype | None = None,
 ):
     """
     Convert ndarray to sparse format
@@ -1689,8 +1740,17 @@ def make_sparse(
     return sparsified_values, index, fill_value
 
 
-def make_sparse_index(length, indices, kind) -> SparseIndex:
+@overload
+def make_sparse_index(length: int, indices, kind: Literal["block"]) -> BlockIndex:
+    ...
 
+
+@overload
+def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntIndex:
+    ...
+
+
+def make_sparse_index(length: int, indices, kind: SparseIndexKind) -> SparseIndex:
     index: SparseIndex
     if kind == "block" or isinstance(kind, BlockIndex):
         locs, lens = splib.get_blocks(indices)

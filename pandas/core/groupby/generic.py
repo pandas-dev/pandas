@@ -241,7 +241,7 @@ class SeriesGroupBy(GroupBy[Series]):
             result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self._group_keys_index
+            index = self.grouper.result_index
             return self.obj._constructor(result.ravel(), index=index, name=data.name)
 
         relabeling = func is None
@@ -435,9 +435,6 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self:
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
-            # NB: libreduction does not pin name
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -896,7 +893,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-            index = self._group_keys_index
+            index = self.grouper.result_index
             return self.obj._constructor(result, index=index, columns=data.columns)
 
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
