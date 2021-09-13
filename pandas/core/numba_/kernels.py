@@ -1,5 +1,5 @@
 """
-Numba aggregation kernels that can be shared by
+Numba 1D aggregation kernels that can be shared by
 * Dataframe / Series
 * groupby
 * rolling / expanding
