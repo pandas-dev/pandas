@@ -23,6 +23,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :meth:`pandas.DataFrame.groupby.rolling` and :class:`pandas.api.indexers.FixedForwardWindowIndexer` leading to segfaults and window endpoints being mixed across groups (:issue:`43267`)
 -
 -
 
