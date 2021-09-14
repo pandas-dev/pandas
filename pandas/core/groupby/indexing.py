@@ -87,7 +87,7 @@ class RowsGroupByIndexer:
         2  a  3
         4  b  5
         """
-        with groupby.group_selection_context(self.groupby_object):
+        with self.groupby_object._group_selection_context():
             if isinstance(arg, tuple):
                 if all(is_integer(i) for i in arg):
                     mask = self._handle_list(arg)

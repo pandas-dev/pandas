@@ -74,7 +74,6 @@ from pandas.core.groupby.groupby import (
     _agg_template,
     _apply_docs,
     _transform_template,
-    group_selection_context,
 )
 from pandas.core.indexes.api import (
     Index,
@@ -236,7 +235,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with group_selection_context(self):
+            with self._group_selection_context():
                 data = self._selected_obj
             result = self._aggregate_with_numba(
                 data.to_frame(), func, *args, engine_kwargs=engine_kwargs, **kwargs
@@ -878,7 +877,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
 
         if maybe_use_numba(engine):
-            with group_selection_context(self):
+            with self._group_selection_context():
                 data = self._selected_obj
             result = self._aggregate_with_numba(
                 data, func, *args, engine_kwargs=engine_kwargs, **kwargs
