@@ -299,6 +299,11 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=["both", "neither", "left", "right"])
+def inclusive_endpoints_fixture(request):
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Missing values & co.
 # ----------------------------------------------------------------
