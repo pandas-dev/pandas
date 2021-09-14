@@ -27,43 +27,34 @@ from pandas.core.indexes.api import CategoricalIndex
 
 class GroupByIndexingMixin:
     """
-    Mixin for adding .rows to GroupBy.
+    Mixin for adding ._rows to GroupBy.
     """
 
-    @cache_readonly
-    def _rows(self) -> _rowsGroupByIndexer:
-        return _rowsGroupByIndexer(cast(groupby.GroupBy, self))
+    @property
+    def _rows(self) -> RowsGroupByIndexer:
+        return RowsGroupByIndexer(cast(groupby.GroupBy, self))
 
 
 @doc(GroupByIndexingMixin._rows)
-class _rowsGroupByIndexer:
-    def __init__(self, groupByObject: groupby.GroupBy):
-        self.groupByObject = groupByObject
+class RowsGroupByIndexer:
+    def __init__(self, groupby_object: groupby.GroupBy):
+        self.groupby_object = groupby_object
 
     def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
         """
         Positional index for selection by integer location per group.
 
         Used to implement GroupBy._rows which is used to implement GroupBy.nth
-        when keyword dropna is None or absent.
-        The behaviour extends GroupBy.nth and handles DataFrame.groupby()
-        keyword parameters such as as_index and dropna in a compatible way.
-
-        The additions to nth(arg) are:
-        - Handles iterables such as range.
-        - Handles slice(start, stop, step) with
-            start: positive, negative or None.
-            stop: positive, negative or None.
-            step: positive or None.
+        in the case when the keyword dropna is None or absent.
 
         Parameters
         ----------
         arg : PositionalIndexer | tuple
             Allowed values are:
-            - Integer
-            - Integer values iterable such as list or range
-            - Slice
-            - Comma separated list of integers and slices
+            - int
+            - int valued iterable such as list or range
+            - slice with step either None or positive
+            - tuple of integers and slices
 
         Returns
         -------
@@ -83,20 +74,20 @@ class _rowsGroupByIndexer:
 
         Examples
         --------
-            >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
-            ...                   columns=["A", "B"])
-            >>> df.groupby("A", as_index=False)._rows[1:2]
-               A  B
-            1  a  2
-            4  b  5
+        >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
+        ...                   columns=["A", "B"])
+        >>> df.groupby("A", as_index=False)._rows[1:2]
+           A  B
+        1  a  2
+        4  b  5
 
-            >>> df.groupby("A", as_index=False)._rows[1, -1]
-               A  B
-            1  a  2
-            2  a  3
-            4  b  5
+        >>> df.groupby("A", as_index=False)._rows[1, -1]
+           A  B
+        1  a  2
+        2  a  3
+        4  b  5
         """
-        with groupby.group_selection_context(self.groupByObject):
+        with groupby.group_selection_context(self.groupby_object):
             if isinstance(arg, tuple):
                 if all(is_integer(i) for i in arg):
                     mask = self._handle_list(arg)
@@ -116,27 +107,27 @@ class _rowsGroupByIndexer:
                     "integers and slices"
                 )
 
-            ids, _, _ = self.groupByObject.grouper.group_info
+            ids, _, _ = self.groupby_object.grouper.group_info
 
             # Drop NA values in grouping
             mask &= ids != -1
 
             if mask is None or mask is True:
-                result = self.groupByObject._selected_obj[:]
+                result = self.groupby_object._selected_obj[:]
             else:
-                result = self.groupByObject._selected_obj[mask]
+                result = self.groupby_object._selected_obj[mask]
 
-            if self.groupByObject.as_index:
-                result_index = self.groupByObject.grouper.result_index
+            if self.groupby_object.as_index:
+                result_index = self.groupby_object.grouper.result_index
                 result.index = result_index[ids[mask]]
 
-                if not self.groupByObject.observed and isinstance(
+                if not self.groupby_object.observed and isinstance(
                     result_index, CategoricalIndex
                 ):
                     result = result.reindex(result_index)
 
-                result = self.groupByObject._reindex_output(result)
-                if self.groupByObject.sort:
+                result = self.groupby_object._reindex_output(result)
+                if self.groupby_object.sort:
                     result = result.sort_index()
 
             return result
@@ -220,8 +211,8 @@ class _rowsGroupByIndexer:
 
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
-        return self.groupByObject._cumcount_array()
+        return self.groupby_object._cumcount_array()
 
     @cache_readonly
     def _descending_count(self) -> np.ndarray:
-        return self.groupByObject._cumcount_array(ascending=False)
+        return self.groupby_object._cumcount_array(ascending=False)
