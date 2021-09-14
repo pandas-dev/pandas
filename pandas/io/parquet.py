@@ -177,7 +177,7 @@ class PyArrowImpl(BaseImpl):
             isinstance(path, str)
             and storage_options is None
             and filesystem is None
-            and LooseVersion(self.api.__version__) >= "5.0.0"
+            and Version(self.api.__version__) >= Version("5.0.0")
         ):
             try:
                 from pyarrow.fs import FileSystem
