@@ -5,6 +5,8 @@ import cython
 from libc.math cimport round
 from libcpp.deque cimport deque
 
+from pandas._libs.algos cimport TiebreakEnumType
+
 import numpy as np
 
 cimport numpy as cnp
@@ -50,6 +52,8 @@ cdef extern from "../src/skiplist.h":
     double skiplist_get(skiplist_t*, int, int*) nogil
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
+    int skiplist_rank(skiplist_t*, double) nogil
+    int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
     float32_t MINfloat32 = np.NINF
@@ -795,7 +799,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j]
                     if notnan(val):
                         nobs += 1
-                        err = skiplist_insert(sl, val) != 1
+                        err = skiplist_insert(sl, val) == -1
                         if err:
                             break
 
@@ -806,7 +810,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j]
                     if notnan(val):
                         nobs += 1
-                        err = skiplist_insert(sl, val) != 1
+                        err = skiplist_insert(sl, val) == -1
                         if err:
                             break
 
@@ -1137,6 +1141,122 @@ def roll_quantile(const float64_t[:] values, ndarray[int64_t] start,
     skiplist_destroy(skiplist)
 
     return output
+
+
+rolling_rank_tiebreakers = {
+    "average": TiebreakEnumType.TIEBREAK_AVERAGE,
+    "min": TiebreakEnumType.TIEBREAK_MIN,
+    "max": TiebreakEnumType.TIEBREAK_MAX,
+}
+
+
+def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
+              ndarray[int64_t] end, int64_t minp, bint percentile,
+              str method, bint ascending) -> np.ndarray:
+    """
+    O(N log(window)) implementation using skip list
+
+    derived from roll_quantile
+    """
+    cdef:
+        Py_ssize_t i, j, s, e, N = len(values), idx
+        float64_t rank_min = 0, rank = 0
+        int64_t nobs = 0, win
+        float64_t val
+        skiplist_t *skiplist
+        float64_t[::1] output
+        TiebreakEnumType rank_type
+
+    try:
+        rank_type = rolling_rank_tiebreakers[method]
+    except KeyError:
+        raise ValueError(f"Method '{method}' is not supported")
+
+    is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
+        start, end
+    )
+    # we use the Fixed/Variable Indexer here as the
+    # actual skiplist ops outweigh any window computation costs
+    output = np.empty(N, dtype=np.float64)
+
+    win = (end - start).max()
+    if win == 0:
+        output[:] = NaN
+        return np.asarray(output)
+    skiplist = skiplist_init(<int>win)
+    if skiplist == NULL:
+        raise MemoryError("skiplist_init failed")
+
+    with nogil:
+        for i in range(N):
+            s = start[i]
+            e = end[i]
+
+            if i == 0 or not is_monotonic_increasing_bounds:
+                if not is_monotonic_increasing_bounds:
+                    nobs = 0
+                    skiplist_destroy(skiplist)
+                    skiplist = skiplist_init(<int>win)
+
+                # setup
+                for j in range(s, e):
+                    val = values[j] if ascending else -values[j]
+                    if notnan(val):
+                        nobs += 1
+                        rank = skiplist_insert(skiplist, val)
+                        if rank == -1:
+                            raise MemoryError("skiplist_insert failed")
+                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
+                            # The average rank of `val` is the sum of the ranks of all
+                            # instances of `val` in the skip list divided by the number
+                            # of instances. The sum of consecutive integers from 1 to N
+                            # is N * (N + 1) / 2.
+                            # The sum of the ranks is the sum of integers from the
+                            # lowest rank to the highest rank, which is the sum of
+                            # integers from 1 to the highest rank minus the sum of
+                            # integers from 1 to one less than the lowest rank.
+                            rank_min = skiplist_min_rank(skiplist, val)
+                            rank = (((rank * (rank + 1) / 2)
+                                    - ((rank_min - 1) * rank_min / 2))
+                                    / (rank - rank_min + 1))
+                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
+                            rank = skiplist_min_rank(skiplist, val)
+                    else:
+                        rank = NaN
+
+            else:
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = values[j] if ascending else -values[j]
+                    if notnan(val):
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = values[j] if ascending else -values[j]
+                    if notnan(val):
+                        nobs += 1
+                        rank = skiplist_insert(skiplist, val)
+                        if rank == -1:
+                            raise MemoryError("skiplist_insert failed")
+                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
+                            rank_min = skiplist_min_rank(skiplist, val)
+                            rank = (((rank * (rank + 1) / 2)
+                                    - ((rank_min - 1) * rank_min / 2))
+                                    / (rank - rank_min + 1))
+                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
+                            rank = skiplist_min_rank(skiplist, val)
+                    else:
+                        rank = NaN
+            if nobs >= minp:
+                output[i] = rank / nobs if percentile else rank
+            else:
+                output[i] = NaN
+
+    skiplist_destroy(skiplist)
+
+    return np.asarray(output)
 
 
 def roll_apply(object obj,
