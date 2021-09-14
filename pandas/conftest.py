@@ -92,32 +92,44 @@ def pytest_addoption(parser):
     )
 
 
-def pytest_runtest_setup(item):
-    if "slow" in item.keywords and item.config.getoption("--skip-slow"):
-        pytest.skip("skipping due to --skip-slow")
+def pytest_collection_modifyitems(items, config):
+    skip_slow = config.getoption("--skip-slow")
+    only_slow = config.getoption("--only-slow")
+    skip_network = config.getoption("--skip-network")
+    skip_db = config.getoption("--skip-db")
+    run_high_memory = config.getoption("--run-high-memory")
 
-    if "slow" not in item.keywords and item.config.getoption("--only-slow"):
-        pytest.skip("skipping due to --only-slow")
+    marks = [
+        (pytest.mark.slow, "slow", skip_slow, "--skip-slow"),
+        (pytest.mark.network, "network", skip_network, "--network"),
+        (pytest.mark.db, "db", skip_db, "--skip-db"),
+    ]
 
-    if "network" in item.keywords and item.config.getoption("--skip-network"):
-        pytest.skip("skipping due to --skip-network")
-
-    if "db" in item.keywords and item.config.getoption("--skip-db"):
-        pytest.skip("skipping due to --skip-db")
-
-    if "high_memory" in item.keywords and not item.config.getoption(
-        "--run-high-memory"
-    ):
-        pytest.skip("skipping high memory test since --run-high-memory was not set")
-
-
-def pytest_collection_modifyitems(items):
     for item in items:
         # mark all tests in the pandas/tests/frame directory with "arraymanager"
         if "/frame/" in item.nodeid:
             item.add_marker(pytest.mark.arraymanager)
-
         item.add_marker(suppress_npdev_promotion_warning)
+
+        for (mark, kwd, skip_if_found, arg_name) in marks:
+            if kwd in item.keywords:
+                # If we're skipping, no need to actually add the marker or look for
+                # other markers
+                if skip_if_found:
+                    item.add_marker(pytest.mark.skip(f"skipping due to {arg_name}"))
+                    break
+
+                item.add_marker(mark)
+
+        if only_slow and "slow" not in item.keywords:
+            item.add_marker(pytest.mark.skip("skipping due to --only-slow"))
+
+        if "high_memory" in item.keywords and not run_high_memory:
+            item.add_marker(
+                pytest.mark.skip(
+                    "skipping high memory test since --run-high-memory was not set"
+                )
+            )
 
 
 # Hypothesis
