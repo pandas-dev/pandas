@@ -14,7 +14,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`merge` with integer and ``NaN`` keys failing with ``outer`` merge (:issue:`43550`)
 -
 
 .. ---------------------------------------------------------------------------
