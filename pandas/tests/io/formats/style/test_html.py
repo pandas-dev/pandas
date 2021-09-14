@@ -365,11 +365,13 @@ def test_sticky_mi(styler_mi, index, columns):
 
 @pytest.mark.parametrize("index", [False, True])
 @pytest.mark.parametrize("columns", [False, True])
-def test_sticky_levels(styler_mi, index, columns):
+@pytest.mark.parametrize("levels", [[1], ["one"], "one"])
+def test_sticky_levels(styler_mi, index, columns, levels):
+    styler_mi.index.names, styler_mi.columns.names = ["zero", "one"], ["zero", "one"]
     if index:
-        styler_mi.set_sticky(axis=0, levels=[1])
+        styler_mi.set_sticky(axis=0, levels=levels)
     if columns:
-        styler_mi.set_sticky(axis=1, levels=[1])
+        styler_mi.set_sticky(axis=1, levels=levels)
 
     left_css = (
         "#T_ {0} {{\n  position: sticky;\n  background-color: white;\n"
