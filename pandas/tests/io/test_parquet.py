@@ -932,7 +932,8 @@ class TestParquetPyArrow(Base):
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
     @pytest.mark.parametrize(
-        "dtype", ["int64", "float64", "object", "datetime64[ns, UTC]", "bool"]
+        "dtype",
+        ["int64", "float64", "object", "datetime64[ns, UTC]", "bool", "Int64", "UInt8"],
     )
     def test_read_empty_array(self, pa, dtype):
         df = pd.DataFrame(
