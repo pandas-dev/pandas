@@ -60,6 +60,8 @@ from pandas import (
     to_timedelta,
 )
 from pandas.core import generic
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
@@ -588,14 +590,24 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
         (np.uint32, np.int32, np.int64),
+        (np.uint64, np.int64, np.float64),
     )
 
     float32_max = struct.unpack("<f", b"\xff\xff\xff\x7e")[0]
     float64_max = struct.unpack("<d", b"\xff\xff\xff\xff\xff\xff\xdf\x7f")[0]
 
     for col in data:
-        dtype = data[col].dtype
         # Cast from unsupported types to supported types
+        is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
+        orig = data[col]
+        if is_nullable_int:
+            missing_loc = data[col].isna()
+            if missing_loc.any():
+                # Replace with always safe value
+                data.loc[missing_loc, col] = 0
+            # Replace with NumPy-compatible column
+            data[col] = data[col].astype(data[col].dtype.numpy_dtype)
+        dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
                 if data[col].max() <= np.iinfo(c_data[1]).max:
@@ -637,7 +649,12 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                         f"Column {col} has a maximum value ({value}) outside the range "
                         f"supported by Stata ({float64_max})"
                     )
-
+        if is_nullable_int:
+            missing = orig.isna()
+            if missing.any():
+                # Replace missing by Stata sentinel value
+                sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
+                data.loc[missing, col] = sentinel
     if ws:
         warnings.warn(ws, PossiblePrecisionLoss)
 
