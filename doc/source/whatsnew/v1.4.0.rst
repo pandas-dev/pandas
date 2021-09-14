@@ -94,6 +94,21 @@ Multithreaded CSV reading with a new CSV Engine based on pyarrow
 :func:`pandas.read_csv` now accepts ``engine="pyarrow"`` (requires at least ``pyarrow`` 0.17.0) as an argument, allowing for faster csv parsing on multicore machines
 with pyarrow installed. See the :doc:`I/O docs </user_guide/io>` for more info. (:issue:`23697`)
 
+.. _whatsnew_140.enhancements.window_rank:
+
+Rank function for rolling and expanding windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Added ``rank`` function to :class:`Rolling` and :class:`Expanding`. The new function supports the ``method``, ``ascending``, and ``pct`` flags of :meth:`DataFrame.rank`. The ``method`` argument supports ``min``, ``max``, and ``average`` ranking methods.
+Example:
+
+.. ipython:: python
+
+    s = pd.Series([1, 4, 2, 3, 5, 3])
+    s.rolling(3).rank()
+
+    s.rolling(3).rank(method="max")
+
 .. _whatsnew_140.enhancements.other:
 
 Other enhancements
@@ -334,6 +349,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+- Bug in :func:`to_datetime` with ``infer_datetime_format=True`` failing to parse zero UTC offset (``Z``) correctly (:issue:`41047`)
 - Bug in :meth:`Series.dt.tz_convert` resetting index in a :class:`Series` with :class:`CategoricalIndex` (:issue:`43080`)
 -
 
@@ -433,7 +449,7 @@ Reshaping
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 - Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
 - Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
--
+- Bug in :func:`crosstab` when inputs are are categorical Series, there are categories that are not present in one or both of the Series, and ``margins=True``. Previously the margin value for missing categories was ``NaN``. It is now correctly reported as 0 (:issue:`43505`)
 
 Sparse
 ^^^^^^

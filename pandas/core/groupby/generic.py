@@ -500,16 +500,6 @@ class SeriesGroupBy(GroupBy[Series]):
     def _can_use_transform_fast(self, result) -> bool:
         return True
 
-    def _wrap_transform_fast_result(self, result: Series) -> Series:
-        """
-        fast version of transform, only applicable to
-        builtin/cythonizable functions
-        """
-        ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_nd(result._values, ids)
-        return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
-
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
         Return a copy of a Series excluding elements from groups that
@@ -1270,19 +1260,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return isinstance(result, DataFrame) and result.columns.equals(
             self._obj_with_exclusions.columns
         )
-
-    def _wrap_transform_fast_result(self, result: DataFrame) -> DataFrame:
-        """
-        Fast transform path for aggregations
-        """
-        obj = self._obj_with_exclusions
-
-        # for each col, reshape to size of original frame by take operation
-        ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
-        output = result.take(ids, axis=0)
-        output.index = obj.index
-        return output
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):

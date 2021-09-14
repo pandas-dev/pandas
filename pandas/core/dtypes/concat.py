@@ -53,8 +53,14 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
         # problem case: SparseArray.astype(dtype) doesn't follow the specified
         # dtype exactly, but converts this to Sparse[dtype] -> first manually
         # convert to dense array
+
+        # error: Argument 1 to "astype" of "_ArrayOrScalarCommon" has incompatible type
+        # "Union[dtype[Any], ExtensionDtype]"; expected "Union[dtype[Any], None, type, _
+        # SupportsDType[dtype[Any]], str, Union[Tuple[Any, int], Tuple[Any,
+        # Union[SupportsIndex, Sequence[SupportsIndex]]], List[Any], _DTypeDict,
+        # Tuple[Any, Any]]]"  [arg-type]
         arr = cast(SparseArray, arr)
-        return arr.to_dense().astype(dtype, copy=False)
+        return arr.to_dense().astype(dtype, copy=False)  # type: ignore[arg-type]
 
     if (
         isinstance(arr, np.ndarray)
