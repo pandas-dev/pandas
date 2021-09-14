@@ -72,6 +72,7 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
+    validate_inclusive,
 )
 
 from pandas.core.dtypes.common import (
@@ -7694,16 +7695,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        if (include_start != lib.no_default or include_end != lib.no_default) and (
-            inclusive is not None
-        ):
+        old_include_arg_used = (include_start != lib.no_default) or (
+            include_end != lib.no_default
+        )
+
+        if old_include_arg_used and inclusive is not None:
             raise ValueError(
                 "Deprecated arguments `include_start` and `include_end` "
                 "cannot be passed if `inclusive` has been given."
             )
         # If any of the deprecated arguments ('include_start', 'include_end')
         # have been passed
-        elif (include_start != lib.no_default) or (include_end != lib.no_default):
+        elif old_include_arg_used:
             warnings.warn(
                 "`include_start` and `include_end` are deprecated in "
                 "favour of `inclusive`.",
@@ -7720,20 +7723,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 (False, False): "neither",
             }
             inclusive = inc_dict[(left, right)]
-        else:  # On arg removal inclusive can default to "both"
-            if inclusive is None:
-                inclusive = "both"
-            elif inclusive not in ["both", "neither", "left", "right"]:
-                raise ValueError(
-                    f"Inclusive has to be either string of 'both', "
-                    f"'left', 'right', or 'neither'. Got {inclusive}."
-                )
-
+        elif inclusive is None:
+            # On arg removal inclusive can default to "both"
+            inclusive = "both"
+        left_inclusive, right_inclusive = validate_inclusive(inclusive)
         indexer = index.indexer_between_time(
             start_time,
             end_time,
-            include_start=inclusive in ["both", "left"],
-            include_end=inclusive in ["both", "right"],
+            include_start=left_inclusive,
+            include_end=right_inclusive,
         )
         return self._take_with_is_copy(indexer, axis=axis)
 
