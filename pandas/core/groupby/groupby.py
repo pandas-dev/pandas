@@ -2693,11 +2693,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        if is_ser:
-            # i.e. SeriesGroupBy
-            mgr = obj.to_frame()._mgr
-        else:
-            mgr = self._get_data_to_aggregate()
+        mgr = self._get_data_to_aggregate()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
         if len(res_mgr.items) != len(mgr.items):
