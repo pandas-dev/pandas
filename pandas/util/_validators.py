@@ -5,6 +5,7 @@ for validating data or function arguments
 from __future__ import annotations
 
 from typing import (
+    Any,
     Iterable,
     Sequence,
 )
@@ -429,7 +430,7 @@ def validate_ascending(
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]
 
 
-def validate_endpoints(closed):
+def validate_endpoints(closed: Any) -> tuple[bool, bool]:
     """
     Check that the `closed` argument is among [None, "left", "right"]
 
@@ -462,7 +463,7 @@ def validate_endpoints(closed):
     return left_closed, right_closed
 
 
-def validate_inclusive(inclusive):
+def validate_inclusive(inclusive: Any) -> tuple[bool, bool]:
     """
     Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
 
