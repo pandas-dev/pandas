@@ -842,7 +842,7 @@ class StylerRenderer:
 
         return self
 
-    def format_index(
+    def format_index2(
         self,
         formatter: ExtFormatter | None = None,
         axis: int | str = 0,

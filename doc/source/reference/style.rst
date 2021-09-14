@@ -39,7 +39,7 @@ Style application
    Styler.apply_index
    Styler.applymap_index
    Styler.format
-   Styler.format_index
+   Styler.format_index2
    Styler.hide_index
    Styler.hide_columns
    Styler.set_td_classes
