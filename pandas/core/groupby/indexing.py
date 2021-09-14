@@ -100,19 +100,15 @@ class _rowsGroupByIndexer:
             if isinstance(arg, tuple):
                 if all(is_integer(i) for i in arg):
                     mask = self._handle_list(arg)
-
                 else:
                     mask = self._handle_tuple(arg)
 
             elif isinstance(arg, slice):
                 mask = self._handle_slice(arg)
-
             elif is_integer(arg):
                 mask = self._handle_int(cast(int, arg))
-
             elif is_list_like(arg):
                 mask = self._handle_list(cast(Iterable[int], arg))
-
             else:
                 raise TypeError(
                     f"Invalid index {type(arg)}. "
@@ -127,7 +123,6 @@ class _rowsGroupByIndexer:
 
             if mask is None or mask is True:
                 result = self.groupByObject._selected_obj[:]
-
             else:
                 result = self.groupByObject._selected_obj[mask]
 
@@ -149,7 +144,6 @@ class _rowsGroupByIndexer:
     def _handle_int(self, arg: int) -> bool | np.ndarray:
         if arg >= 0:
             return self._ascending_count == arg
-
         else:
             return self._descending_count == (-arg - 1)
 
@@ -173,10 +167,8 @@ class _rowsGroupByIndexer:
         for arg in args:
             if is_integer(arg):
                 mask |= self._handle_int(cast(int, arg))
-
             elif isinstance(arg, slice):
                 mask |= self._handle_slice(arg)
-
             else:
                 raise ValueError(
                     f"Invalid argument {type(arg)}. Should be int or slice."
@@ -221,7 +213,6 @@ class _rowsGroupByIndexer:
         if stop is not None:
             if stop >= 0:
                 mask &= self._ascending_count < stop
-
             else:
                 mask &= self._descending_count >= -stop
 
