@@ -427,3 +427,70 @@ def validate_ascending(
         return validate_bool_kwarg(ascending, "ascending", **kwargs)
 
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]
+
+
+def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
+    """
+    Check that the `closed` argument is among [None, "left", "right"]
+
+    Parameters
+    ----------
+    closed : {None, "left", "right"}
+
+    Returns
+    -------
+    left_closed : bool
+    right_closed : bool
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_closed = False
+    right_closed = False
+
+    if closed is None:
+        left_closed = True
+        right_closed = True
+    elif closed == "left":
+        left_closed = True
+    elif closed == "right":
+        right_closed = True
+    else:
+        raise ValueError("Closed has to be either 'left', 'right' or None")
+
+    return left_closed, right_closed
+
+
+def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
+    """
+    Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
+
+    Parameters
+    ----------
+    inclusive : {"both", "neither", "left", "right"}
+
+    Returns
+    -------
+    left_right_inclusive : tuple[bool, bool]
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_right_inclusive: tuple[bool, bool] | None = None
+
+    if isinstance(inclusive, str):
+        left_right_inclusive = {
+            "both": (True, True),
+            "left": (True, False),
+            "right": (False, True),
+            "neither": (False, False),
+        }.get(inclusive)
+
+    if left_right_inclusive is None:
+        raise ValueError(
+            "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+        )
+
+    return left_right_inclusive
