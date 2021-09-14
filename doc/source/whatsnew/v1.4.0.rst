@@ -334,6 +334,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+- Bug in :func:`to_datetime` with ``infer_datetime_format=True`` failing to parse zero UTC offset (``Z``) correctly (:issue:`41047`)
 - Bug in :meth:`Series.dt.tz_convert` resetting index in a :class:`Series` with :class:`CategoricalIndex` (:issue:`43080`)
 -
 
