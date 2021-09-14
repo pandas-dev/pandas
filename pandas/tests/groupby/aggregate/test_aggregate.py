@@ -1213,21 +1213,6 @@ def test_nonagg_agg():
     tm.assert_frame_equal(result, expected)
 
 
-def test_agg_no_suffix_index():
-    # GH36189
-    df = DataFrame([[4, 9]] * 3, columns=["A", "B"])
-    result = df.agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
-    expected = DataFrame(
-        {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
-    )
-    tm.assert_frame_equal(result, expected)
-
-    # test Series case
-    result = df["A"].agg(["sum", lambda x: x.sum(), lambda x: x.sum()])
-    expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"], name="A")
-    tm.assert_series_equal(result, expected)
-
-
 def test_aggregate_datetime_objects():
     # https://github.com/pandas-dev/pandas/issues/36003
     # ensure we don't raise an error but keep object dtype for out-of-bounds
