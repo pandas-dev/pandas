@@ -173,6 +173,7 @@ class ToDatetimeISO8601:
         self.strings_tz_space = [
             x.strftime("%Y-%m-%d %H:%M:%S") + " -0800" for x in rng
         ]
+        self.strings_zero_tz = [x.strftime("%Y-%m-%d %H:%M:%S") + "Z" for x in rng]
 
     def time_iso8601(self):
         to_datetime(self.strings)
@@ -188,6 +189,10 @@ class ToDatetimeISO8601:
 
     def time_iso8601_tz_spaceformat(self):
         to_datetime(self.strings_tz_space)
+
+    def time_iso8601_infer_zero_tz_fromat(self):
+        # GH 41047
+        to_datetime(self.strings_zero_tz, infer_datetime_format=True)
 
 
 class ToDatetimeNONISO8601:

@@ -2032,6 +2032,23 @@ class TestToDatetimeInferFormat:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "ts,zero_tz,is_utc",
+        [
+            ("2019-02-02 08:07:13", "Z", True),
+            ("2019-02-02 08:07:13", "", False),
+            ("2019-02-02 08:07:13.012345", "Z", True),
+            ("2019-02-02 08:07:13.012345", "", False),
+        ],
+    )
+    def test_infer_datetime_format_zero_tz(self, ts, zero_tz, is_utc):
+        # GH 41047
+        s = Series([ts + zero_tz])
+        result = to_datetime(s, infer_datetime_format=True)
+        tz = pytz.utc if is_utc else None
+        expected = Series([Timestamp(ts, tz=tz)])
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("cache", [True, False])
     def test_to_datetime_iso8601_noleading_0s(self, cache):
         # GH 11871
