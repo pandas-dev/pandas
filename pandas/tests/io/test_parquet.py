@@ -931,13 +931,13 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
-    def test_read_empty_array(self, pa):
+    @pytest.mark.parametrize(
+        "dtype", ["int64", "float64", "object", "datetime64[ns, UTC]", "bool"]
+    )
+    def test_read_empty_array(self, pa, dtype):
         df = pd.DataFrame(
             {
-                "a": pd.array([], dtype="Int64"),
-                "b": pd.array([], dtype="UInt8"),
-                "c": pd.array([], dtype="string"),
-                "d": pd.array([], dtype="boolean"),
+                "value": pd.array([], dtype=dtype),
             }
         )
         check_round_trip(df, pa)
