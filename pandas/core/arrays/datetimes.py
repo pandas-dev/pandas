@@ -481,7 +481,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         # and removing would leave index empty
         to_remove_any = not (
             (left_inclusive or right_inclusive)
-            and len(index) == 1
+            and len(index)
             and start == index[0]
             and start == end
         )
