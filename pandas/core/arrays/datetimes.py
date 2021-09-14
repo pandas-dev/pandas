@@ -39,7 +39,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import npt
 from pandas.errors import PerformanceWarning
-from pandas.util._validators import validate_endpoints
+from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
@@ -417,7 +417,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
-        left_inclusive, right_inclusive = dtl.validate_inclusiveness(inclusive)
+        left_inclusive, right_inclusive = validate_inclusive(inclusive)
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
