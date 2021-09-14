@@ -548,11 +548,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
-
     def is_type_compatible(self, kind: str) -> bool:
         warnings.warn(
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
