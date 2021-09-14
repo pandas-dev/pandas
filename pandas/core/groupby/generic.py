@@ -38,7 +38,6 @@ from pandas.util._decorators import (
     doc,
 )
 
-from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
@@ -956,9 +955,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _iterate_slices(self) -> Iterable[Series]:
         obj = self._selected_obj
         if self.axis == 1:
-            # To be removed post #GH #43337 fix
-            transposed_dtype = find_common_type(obj.dtypes.tolist())
-            obj = obj.T.astype(transposed_dtype, copy=False)
+            obj = obj.T
 
         if isinstance(obj, Series) and obj.name not in self.exclusions:
             # Occurs when doing DataFrameGroupBy(...)["X"]
@@ -1470,9 +1467,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _get_data_to_aggregate(self) -> Manager2D:
         obj = self._obj_with_exclusions
         if self.axis == 1:
-            # To be removed post #GH #43337 fix
-            transposed_dtype = find_common_type(obj.dtypes.tolist())
-            return obj.T.astype(transposed_dtype, copy=False)._mgr
+            return obj.T._mgr
         else:
             return obj._mgr
 
@@ -1520,33 +1515,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if self.axis == 1:
             result = result.T
-            result = self._maybe_recast_columns_if_transposed(result)
 
         # Note: we only need to pass datetime=True in order to get numeric
         #  values converted
         return self._reindex_output(result)._convert(datetime=True)
-
-    def _maybe_recast_columns_if_transposed(self, result) -> DataFrame:
-        obj = self._selected_obj
-        dtype_df = obj.dtypes
-        if obj._is_homogeneous_type:
-            # not mixed dtype
-            return result
-        if isinstance(obj.columns, MultiIndex):
-            dtype_df_dict = (
-                dtype_df.reset_index(level=self.level)
-                .drop_duplicates(f"level_{self.level}")
-                .set_index(f"level_{self.level}")
-                .to_dict()[0]
-            )
-        else:
-            dtype_df_dict = dtype_df.drop_duplicates().loc[result.columns].to_dict()
-        result_cast = result.astype(dtype_df_dict, copy=False, errors="ignore")
-        if np.array_equal(result_cast.values, result.values):
-            # able to safely cast
-            return result_cast
-        else:
-            return result
 
     def _iterate_column_groupbys(self, obj: FrameOrSeries):
         for i, colname in enumerate(obj.columns):

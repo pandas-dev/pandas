@@ -62,7 +62,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_datetime64_dtype,
@@ -1214,7 +1213,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 numeric_only = True
                 # GH#42395 GH#43108 GH#43154
                 # Regression from 1.2.5 to 1.3 caused object columns to be dropped
-                obj = self._obj_with_exclusions
+                if self.axis:
+                    obj = self._obj_with_exclusions.T
+                else:
+                    obj = self._obj_with_exclusions
                 check = obj._get_numeric_data()
                 if len(obj.columns) and not len(check.columns) and not obj.empty:
                     numeric_only = False
@@ -1981,6 +1983,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 alias="add",
                 npfunc=np.sum,
             )
+
         return self._reindex_output(result, fill_value=0)
 
     @final
@@ -3141,9 +3144,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         mgr = obj._mgr
         if self.axis == 1:
-            # To be removed post #GH #43337 fix
-            transposed_dtype = find_common_type(obj.dtypes.tolist())
-            mgr = obj.T.astype(transposed_dtype, copy=False)._mgr
+            mgr = obj.T._mgr
 
         if numeric_only:
             mgr = mgr.get_numeric_data()

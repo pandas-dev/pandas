@@ -2517,9 +2517,9 @@ def test_rolling_wrong_param_min_period():
         ("sum", [5, 7, 9], "int64", {}),
         ("std", [4.5 ** 0.5] * 3, int, {"i": float, "j": float, "k": float}),
         ("var", [4.5] * 3, int, {"i": float, "j": float, "k": float}),
-        ("sum", [5, 7, 9], "Int64", {"j": "Int64"}),
+        ("sum", [5, 7, 9], "Int64", {"j": "int64"}),
         ("std", [4.5 ** 0.5] * 3, "Int64", {"i": float, "j": float, "k": float}),
-        ("var", [4.5] * 3, "Int64", {"i": "Float64", "j": "Float64", "k": "Float64"}),
+        ("var", [4.5] * 3, "Int64", {"i": "float64", "j": "float64", "k": "float64"}),
     ],
 )
 def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype_dict):
@@ -2538,10 +2538,10 @@ def test_multiindex_groupby_mixed_cols_axis1(func, expected, dtype, result_dtype
 @pytest.mark.parametrize(
     "func, expected_data, result_dtype_dict",
     [
-        ("sum", [[2, 4], [10, 12], [18, 20]], {10: "Int64", 20: "int64"}),
+        ("sum", [[2, 4], [10, 12], [18, 20]], {10: "int64", 20: "int64"}),
         # should ideally by Int64 #43330
-        ("std", [[2 ** 0.5] * 2] * 3, float),
-        ("var", [[2] * 2] * 3, {10: "Int64", 20: "int64"}),
+        ("std", [[2 ** 0.5] * 2] * 3, "float64"),
+        ("var", [[2] * 2] * 3, {10: "float64", 20: "float64"}),
     ],
 )
 def test_groupby_mixed_cols_axis1(func, expected_data, result_dtype_dict):
