@@ -430,7 +430,7 @@ def validate_ascending(
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]
 
 
-def validate_endpoints(closed: Any) -> tuple[bool, bool]:
+def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
     """
     Check that the `closed` argument is among [None, "left", "right"]
 
@@ -463,7 +463,7 @@ def validate_endpoints(closed: Any) -> tuple[bool, bool]:
     return left_closed, right_closed
 
 
-def validate_inclusive(inclusive: Any) -> tuple[bool, bool]:
+def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
     """
     Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
 
