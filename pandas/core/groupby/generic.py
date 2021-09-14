@@ -57,12 +57,12 @@ from pandas.core import (
     algorithms,
     nanops,
 )
-from pandas.core.aggregation import (
+from pandas.core.apply import (
+    GroupByApply,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.apply import GroupByApply
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
