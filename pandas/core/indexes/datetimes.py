@@ -881,7 +881,7 @@ def date_range(
     tz=None,
     normalize: bool = False,
     name: Hashable = None,
-    closed: bool | lib.NoDefault = lib.no_default,
+    closed: str | None | lib.NoDefault = lib.no_default,
     inclusive: str | None = None,
     **kwargs,
 ) -> DatetimeIndex:
@@ -920,10 +920,10 @@ def date_range(
     closed : {None, 'left', 'right'}, optional
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None, the default).
+
         .. deprecated:: 1.4.0
-            Argument `closed` have been deprecated
-            to standardize boundary inputs. Use `inclusive` instead, to set
-            each bound as closed or open.
+           Argument `closed` have been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
     **kwargs
@@ -1120,10 +1120,10 @@ def bdate_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
+
         .. deprecated:: 1.4.0
-            Argument `closed` have been deprecated
-            to standardize boundary inputs. Use `inclusive` instead, to set
-            each bound as closed or open.
+           Argument `closed` have been deprecated to standardize boundary inputs.
+           Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
     **kwargs
