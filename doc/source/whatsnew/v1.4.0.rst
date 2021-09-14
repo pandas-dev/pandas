@@ -434,7 +434,7 @@ Reshaping
 - Bug in :meth:`pandas.cut` on :class:`Series` with duplicate indices (:issue:`42185`) and non-exact :meth:`pandas.CategoricalIndex` (:issue:`42425`)
 - Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
 - Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
--
+- Bug in :func:`crosstab` when inputs are are categorical Series, there are categories that are not present in one or both of the Series, and ``margins=True``. Previously the margin value for missing categories was ``NaN``. It is now correctly reported as 0 (:issue:`43505`)
 
 Sparse
 ^^^^^^
