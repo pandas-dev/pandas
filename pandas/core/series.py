@@ -1740,6 +1740,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    b
         2    c
         """
+        columns: Index
         if name is None:
             name = self.name
             if name is None:
