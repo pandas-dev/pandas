@@ -166,4 +166,18 @@ class ArithmeticBlock:
         self.arr1 / self.arr2
 
 
+class MinMax:
+
+    params = (["min", "max"], [0.0, np.nan])
+    param_names = ["func", "fill_value"]
+
+    def setup(self, func, fill_value):
+        N = 1_000_000
+        arr = make_array(N, 1e-5, fill_value, np.float64)
+        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+
+    def time_min_max(self, func, fill_value):
+        getattr(self.sp_arr, func)()
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
