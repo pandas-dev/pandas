@@ -733,6 +733,14 @@ The :meth:`~plt.close` method is used to `close <https://matplotlib.org/3.1.1/ap
    @savefig series_plot_basic.png
    ts.plot();
 
+If running under Jupyter Notebook, the plot will appear on :meth:`~ts.plot`.  Otherwise use
+`matplotlib.pyplot.show <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.show.html>`__ to show it or
+`matplotlib.pyplot.savefig <https://matplotlib.org/3.1.1/api/_as_gen/matplotlib.pyplot.savefig.html>`__ to write it to a file.
+
+.. ipython:: python
+
+   plt.show();
+
 On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all
 of the columns with labels:
 
