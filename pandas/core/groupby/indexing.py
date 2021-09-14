@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     Iterable,
     cast,
 )
@@ -21,7 +22,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core.groupby import groupby
+if TYPE_CHECKING:
+    from pandas.core.groupby import groupby
+
 from pandas.core.indexes.api import CategoricalIndex
 
 
@@ -32,7 +35,12 @@ class GroupByIndexingMixin:
 
     @property
     def _rows(self) -> RowsGroupByIndexer:
-        return RowsGroupByIndexer(cast(groupby.GroupBy, self))
+        if TYPE_CHECKING:
+            groupby_object = cast(groupby.GroupBy, self)
+        else:
+            groupby_object = self
+
+        return RowsGroupByIndexer(groupby_object)
 
 
 @doc(GroupByIndexingMixin._rows)
