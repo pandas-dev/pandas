@@ -216,7 +216,7 @@ Manager2D = Union["ArrayManager", "BlockManager"]
 # Using List[int] here rather than Sequence[int] to disallow tuples.
 ScalarIndexer = Union[int, np.integer]
 SequenceIndexer = Union[slice, List[int], np.ndarray]
-GeneralSequenceIndexer = Union[Sequence[int], SequenceIndexer]
+TakeIndexer = Union[Sequence[int], np.ndarray]
 PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
 PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]

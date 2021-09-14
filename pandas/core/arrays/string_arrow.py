@@ -18,12 +18,12 @@ from pandas._libs import (
 )
 from pandas._typing import (
     Dtype,
-    GeneralSequenceIndexer,
     NpDtype,
     PositionalIndexer,
     Scalar,
     ScalarIndexer,
     SequenceIndexer,
+    TakeIndexer,
     npt,
 )
 from pandas.compat import (
@@ -512,7 +512,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
 
     def take(
         self,
-        indices: GeneralSequenceIndexer,
+        indices: TakeIndexer,
         allow_fill: bool = False,
         fill_value: Any = None,
     ):
