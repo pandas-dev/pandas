@@ -454,11 +454,13 @@ class GroupByMethods:
             # DataFrameGroupBy doesn't have these methods
             raise NotImplementedError
 
-        if (
-            ncols != 1
-            and application == "transformation"
-            and method in ["head", "tail", "unique", "value_counts", "size"]
-        ):
+        if application == "transformation" and method in [
+            "head",
+            "tail",
+            "unique",
+            "value_counts",
+            "size",
+        ]:
             # DataFrameGroupBy doesn't have these methods
             raise NotImplementedError
 
