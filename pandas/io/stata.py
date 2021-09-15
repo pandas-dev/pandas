@@ -18,6 +18,7 @@ import os
 import struct
 import sys
 from typing import (
+    TYPE_CHECKING,
     Any,
     AnyStr,
     Hashable,
@@ -46,6 +47,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_categorical_dtype,
     is_datetime64_dtype,
+    is_numeric_dtype,
 )
 
 from pandas import (
@@ -58,11 +60,16 @@ from pandas import (
     to_timedelta,
 )
 from pandas.core import generic
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.integer import _IntegerDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.series import Series
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 _version_error = (
     "Version of given Stata file is {version}. pandas supports importing "
@@ -583,14 +590,24 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
         (np.uint8, np.int8, np.int16),
         (np.uint16, np.int16, np.int32),
         (np.uint32, np.int32, np.int64),
+        (np.uint64, np.int64, np.float64),
     )
 
     float32_max = struct.unpack("<f", b"\xff\xff\xff\x7e")[0]
     float64_max = struct.unpack("<d", b"\xff\xff\xff\xff\xff\xff\xdf\x7f")[0]
 
     for col in data:
-        dtype = data[col].dtype
         # Cast from unsupported types to supported types
+        is_nullable_int = isinstance(data[col].dtype, (_IntegerDtype, BooleanDtype))
+        orig = data[col]
+        if is_nullable_int:
+            missing_loc = data[col].isna()
+            if missing_loc.any():
+                # Replace with always safe value
+                data.loc[missing_loc, col] = 0
+            # Replace with NumPy-compatible column
+            data[col] = data[col].astype(data[col].dtype.numpy_dtype)
+        dtype = data[col].dtype
         for c_data in conversion_data:
             if dtype == c_data[0]:
                 if data[col].max() <= np.iinfo(c_data[1]).max:
@@ -632,7 +649,12 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                         f"Column {col} has a maximum value ({value}) outside the range "
                         f"supported by Stata ({float64_max})"
                     )
-
+        if is_nullable_int:
+            missing = orig.isna()
+            if missing.any():
+                # Replace missing by Stata sentinel value
+                sentinel = StataMissingValue.BASE_MISSING_VALUES[data[col].dtype.name]
+                data.loc[missing, col] = sentinel
     if ws:
         warnings.warn(ws, PossiblePrecisionLoss)
 
@@ -658,24 +680,37 @@ class StataValueLabel:
         self.labname = catarray.name
         self._encoding = encoding
         categories = catarray.cat.categories
-        self.value_labels = list(zip(np.arange(len(categories)), categories))
+        self.value_labels: list[tuple[int | float, str]] = list(
+            zip(np.arange(len(categories)), categories)
+        )
         self.value_labels.sort(key=lambda x: x[0])
+
+        self._prepare_value_labels()
+
+    def _prepare_value_labels(self):
+        """Encode value labels."""
+
         self.text_len = 0
         self.txt: list[bytes] = []
         self.n = 0
+        # Offsets (length of categories), converted to int32
+        self.off = np.array([])
+        # Values, converted to int32
+        self.val = np.array([])
+        self.len = 0
 
         # Compute lengths and setup lists of offsets and labels
         offsets: list[int] = []
-        values: list[int] = []
+        values: list[int | float] = []
         for vl in self.value_labels:
-            category = vl[1]
+            category: str | bytes = vl[1]
             if not isinstance(category, str):
                 category = str(category)
                 warnings.warn(
-                    value_label_mismatch_doc.format(catarray.name),
+                    value_label_mismatch_doc.format(self.labname),
                     ValueLabelTypeMismatch,
                 )
-            category = category.encode(encoding)
+            category = category.encode(self._encoding)
             offsets.append(self.text_len)
             self.text_len += len(category) + 1  # +1 for the padding
             values.append(vl[0])
@@ -746,6 +781,38 @@ class StataValueLabel:
             bio.write(text + null_byte)
 
         return bio.getvalue()
+
+
+class StataNonCatValueLabel(StataValueLabel):
+    """
+    Prepare formatted version of value labels
+
+    Parameters
+    ----------
+    labname : str
+        Value label name
+    value_labels: Dictionary
+        Mapping of values to labels
+    encoding : {"latin-1", "utf-8"}
+        Encoding to use for value labels.
+    """
+
+    def __init__(
+        self,
+        labname: str,
+        value_labels: dict[float | int, str],
+        encoding: Literal["latin-1", "utf-8"] = "latin-1",
+    ):
+
+        if encoding not in ("latin-1", "utf-8"):
+            raise ValueError("Only latin-1 and utf-8 are supported.")
+
+        self.labname = labname
+        self._encoding = encoding
+        self.value_labels: list[tuple[int | float, str]] = sorted(
+            value_labels.items(), key=lambda x: x[0]
+        )
+        self._prepare_value_labels()
 
 
 class StataMissingValue:
@@ -2175,6 +2242,13 @@ class StataWriter(StataParser):
 
         .. versionadded:: 1.2.0
 
+    value_labels : dict of dicts
+        Dictionary containing columns as keys and dictionaries of column value
+        to labels as values. The combined length of all labels for a single
+        variable must be 32,000 characters or smaller.
+
+        .. versionadded:: 1.4.0
+
     Returns
     -------
     writer : StataWriter instance
@@ -2225,15 +2299,22 @@ class StataWriter(StataParser):
         variable_labels: dict[Hashable, str] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         super().__init__()
+        self.data = data
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
         self._time_stamp = time_stamp
         self._data_label = data_label
         self._variable_labels = variable_labels
+        self._non_cat_value_labels = value_labels
+        self._value_labels: list[StataValueLabel] = []
+        self._has_value_labels = np.array([], dtype=bool)
         self._compression = compression
         self._output_file: Buffer | None = None
+        self._converted_names: dict[Hashable, str] = {}
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
         self.storage_options = storage_options
@@ -2243,7 +2324,6 @@ class StataWriter(StataParser):
         self._byteorder = _set_endianness(byteorder)
         self._fname = fname
         self.type_converters = {253: np.int32, 252: np.int16, 251: np.int8}
-        self._converted_names: dict[Hashable, str] = {}
 
     def _write(self, to_write: str) -> None:
         """
@@ -2259,16 +2339,49 @@ class StataWriter(StataParser):
         """
         self.handles.handle.write(value)  # type: ignore[arg-type]
 
+    def _prepare_non_cat_value_labels(
+        self, data: DataFrame
+    ) -> list[StataNonCatValueLabel]:
+        """
+        Check for value labels provided for non-categorical columns. Value
+        labels
+        """
+        non_cat_value_labels: list[StataNonCatValueLabel] = []
+        if self._non_cat_value_labels is None:
+            return non_cat_value_labels
+
+        for labname, labels in self._non_cat_value_labels.items():
+            if labname in self._converted_names:
+                colname = self._converted_names[labname]
+            elif labname in data.columns:
+                colname = str(labname)
+            else:
+                raise KeyError(
+                    f"Can't create value labels for {labname}, it wasn't "
+                    "found in the dataset."
+                )
+
+            if not is_numeric_dtype(data[colname].dtype):
+                # Labels should not be passed explicitly for categorical
+                # columns that will be converted to int
+                raise ValueError(
+                    f"Can't create value labels for {labname}, value labels "
+                    "can only be applied to numeric columns."
+                )
+            svl = StataNonCatValueLabel(colname, labels)
+            non_cat_value_labels.append(svl)
+        return non_cat_value_labels
+
     def _prepare_categoricals(self, data: DataFrame) -> DataFrame:
         """
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
         is_cat = [is_categorical_dtype(data[col].dtype) for col in data]
-        self._is_col_cat = is_cat
-        self._value_labels: list[StataValueLabel] = []
         if not any(is_cat):
             return data
+
+        self._has_value_labels |= np.array(is_cat)
 
         get_base_missing_value = StataMissingValue.get_base_missing_value
         data_formatted = []
@@ -2448,6 +2561,17 @@ class StataWriter(StataParser):
 
         # Replace NaNs with Stata missing values
         data = self._replace_nans(data)
+
+        # Set all columns to initially unlabelled
+        self._has_value_labels = np.repeat(False, data.shape[1])
+
+        # Create value labels for non-categorical data
+        non_cat_value_labels = self._prepare_non_cat_value_labels(data)
+
+        non_cat_columns = [svl.labname for svl in non_cat_value_labels]
+        has_non_cat_val_labels = data.columns.isin(non_cat_columns)
+        self._has_value_labels |= has_non_cat_val_labels
+        self._value_labels.extend(non_cat_value_labels)
 
         # Convert categoricals to int data, and strip labels
         data = self._prepare_categoricals(data)
@@ -2688,7 +2812,7 @@ supported types."""
         # lbllist, 33*nvar, char array
         for i in range(self.nvar):
             # Use variable name when categorical
-            if self._is_col_cat[i]:
+            if self._has_value_labels[i]:
                 name = self.varlist[i]
                 name = self._null_terminate_str(name)
                 name = _pad_bytes(name[:32], 33)
@@ -3059,6 +3183,13 @@ class StataWriter117(StataWriter):
 
         .. versionadded:: 1.1.0
 
+    value_labels : dict of dicts
+        Dictionary containing columns as keys and dictionaries of column value
+        to labels as values. The combined length of all labels for a single
+        variable must be 32,000 characters or smaller.
+
+        .. versionadded:: 1.4.0
+
     Returns
     -------
     writer : StataWriter117 instance
@@ -3112,6 +3243,8 @@ class StataWriter117(StataWriter):
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         # Copy to new list since convert_strl might be modified later
         self._convert_strl: list[Hashable] = []
@@ -3127,6 +3260,7 @@ class StataWriter117(StataWriter):
             time_stamp=time_stamp,
             data_label=data_label,
             variable_labels=variable_labels,
+            value_labels=value_labels,
             compression=compression,
             storage_options=storage_options,
         )
@@ -3272,7 +3406,7 @@ class StataWriter117(StataWriter):
         for i in range(self.nvar):
             # Use variable name when categorical
             name = ""  # default name
-            if self._is_col_cat[i]:
+            if self._has_value_labels[i]:
                 name = self.varlist[i]
             name = self._null_terminate_str(name)
             encoded_name = _pad_bytes_new(name[:32].encode(self._encoding), vl_len + 1)
@@ -3449,6 +3583,13 @@ class StataWriterUTF8(StataWriter117):
 
         .. versionadded:: 1.1.0
 
+    value_labels : dict of dicts
+        Dictionary containing columns as keys and dictionaries of column value
+        to labels as values. The combined length of all labels for a single
+        variable must be 32,000 characters or smaller.
+
+        .. versionadded:: 1.4.0
+
     Returns
     -------
     StataWriterUTF8
@@ -3505,6 +3646,8 @@ class StataWriterUTF8(StataWriter117):
         version: int | None = None,
         compression: CompressionOptions = "infer",
         storage_options: StorageOptions = None,
+        *,
+        value_labels: dict[Hashable, dict[float | int, str]] | None = None,
     ):
         if version is None:
             version = 118 if data.shape[1] <= 32767 else 119
@@ -3525,6 +3668,7 @@ class StataWriterUTF8(StataWriter117):
             time_stamp=time_stamp,
             data_label=data_label,
             variable_labels=variable_labels,
+            value_labels=value_labels,
             convert_strl=convert_strl,
             compression=compression,
             storage_options=storage_options,

@@ -382,8 +382,7 @@ class StylerRenderer:
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths)
-                            and c not in self.hidden_columns,
+                            _is_visible(c, r, col_lengths),
                             display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
@@ -542,7 +541,7 @@ class StylerRenderer:
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    (_is_visible(r, c, idx_lengths) and not self.hide_index_[c]),
+                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
                     display_value=self._display_funcs_index[(r, c)](value),
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -1126,7 +1125,8 @@ def _get_level_lengths(
                 # stop the loop due to display trimming
                 break
             if not sparsify:
-                lengths[(i, j)] = 1
+                if j not in hidden_elements:
+                    lengths[(i, j)] = 1
             elif (row is not lib.no_default) and (j not in hidden_elements):
                 last_label = j
                 lengths[(i, last_label)] = 1

@@ -10,6 +10,7 @@ from pandas import (
     read_csv,
     read_table,
 )
+import pandas._testing as tm
 
 
 class BaseParser:
@@ -26,6 +27,16 @@ class BaseParser:
     def read_csv(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
         return read_csv(*args, **kwargs)
+
+    def read_csv_check_warnings(
+        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
+    ):
+        # We need to check the stacklevel here instead of in the tests
+        # since this is where read_csv is called and where the warning
+        # should point to.
+        kwargs = self.update_kwargs(kwargs)
+        with tm.assert_produces_warning(warn_type, match=warn_msg):
+            return read_csv(*args, **kwargs)
 
     def read_table(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)

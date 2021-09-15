@@ -1820,7 +1820,7 @@ class Styler(StylerRenderer):
         self,
         axis: Axis = 0,
         pixel_size: int | None = None,
-        levels: list[int] | None = None,
+        levels: Level | list[Level] | None = None,
     ) -> Styler:
         """
         Add CSS to permanently display the index or column headers in a scrolling frame.
@@ -1833,7 +1833,7 @@ class Styler(StylerRenderer):
             Required to configure the width of index cells or the height of column
             header cells when sticking a MultiIndex (or with a named Index).
             Defaults to 75 and 25 respectively.
-        levels : list of int
+        levels : int, str, list, optional
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
 
@@ -1897,11 +1897,12 @@ class Styler(StylerRenderer):
         else:
             # handle the MultiIndex case
             range_idx = list(range(obj.nlevels))
-            levels = sorted(levels) if levels else range_idx
+            levels_: list[int] = refactor_levels(levels, obj) if levels else range_idx
+            levels_ = sorted(levels_)
 
             if axis == 1:
                 styles = []
-                for i, level in enumerate(levels):
+                for i, level in enumerate(levels_):
                     styles.append(
                         {
                             "selector": f"thead tr:nth-child({level+1}) th",
@@ -1926,7 +1927,7 @@ class Styler(StylerRenderer):
 
             else:
                 styles = []
-                for i, level in enumerate(levels):
+                for i, level in enumerate(levels_):
                     props_ = props + (
                         f"left:{i * pixel_size}px; "
                         f"min-width:{pixel_size}px; "
