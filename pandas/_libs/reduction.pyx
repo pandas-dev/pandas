@@ -1,23 +1,10 @@
-
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
-
 import numpy as np
 
 cimport numpy as cnp
-from numpy cimport (
-    int64_t,
-    intp_t,
-    ndarray,
-)
 
 cnp.import_array()
 
 from pandas._libs.util cimport is_array
-
-from pandas._libs.lib import is_scalar
 
 
 cdef cnp.dtype _dtype_obj = np.dtype("object")
