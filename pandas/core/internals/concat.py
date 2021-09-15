@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import (
@@ -40,18 +39,13 @@ from pandas.core.dtypes.concat import (
     concat_compat,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-    isna_all,
-)
+from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
     ArrayManager,
@@ -422,29 +416,7 @@ class JoinUnit:
         blk = self.block
         if blk.dtype.kind == "V":
             return True
-
-        if not blk._can_hold_na:
-            return False
-
-        values = blk.values
-        if values.size == 0:
-            return True
-        if isinstance(values.dtype, SparseDtype):
-            return False
-
-        if values.ndim == 1:
-            # TODO(EA2D): no need for special case with 2D EAs
-            val = values[0]
-            if not is_scalar(val) or not isna(val):
-                # ideally isna_all would do this short-circuiting
-                return False
-            return isna_all(values)
-        else:
-            val = values[0][0]
-            if not is_scalar(val) or not isna(val):
-                # ideally isna_all would do this short-circuiting
-                return False
-            return all(isna_all(row) for row in values)
+        return False
 
     def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
         values: ArrayLike
@@ -590,9 +562,6 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
         # different from missing.na_value_for_dtype
         return None
     elif dtype.kind in ["i", "u"]:
-        if not has_none_blocks:
-            # different from missing.na_value_for_dtype
-            return None
         return np.nan
     elif dtype.kind == "O":
         return np.nan
