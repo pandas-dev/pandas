@@ -79,21 +79,6 @@ class RowsGroupByIndexer:
         GroupBy.tail : Return last n rows of each group.
         GroupBy.nth : Take the nth row from each group if n is an int, or a
             subset of rows, if n is a list of ints.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
-        ...                   columns=["A", "B"])
-        >>> df.groupby("A", as_index=False)._rows[1:2]
-           A  B
-        1  a  2
-        4  b  5
-
-        >>> df.groupby("A", as_index=False)._rows[1, -1]
-           A  B
-        1  a  2
-        2  a  3
-        4  b  5
         """
         with self.groupby_object._group_selection_context():
             if isinstance(arg, tuple):
