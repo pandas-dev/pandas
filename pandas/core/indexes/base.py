@@ -6364,7 +6364,10 @@ class Index(IndexOpsMixin, PandasObject):
                     arr[self.isna()] = False
                 return arr
             elif op in {operator.ne, operator.lt, operator.gt}:
-                return np.zeros(len(self), dtype=bool)
+                arr = np.zeros(len(self), dtype=bool)
+                if self._can_hold_na and not isinstance(self, ABCMultiIndex):
+                    arr[self.isna()] = True
+                return arr
 
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
             self
@@ -6381,6 +6384,9 @@ class Index(IndexOpsMixin, PandasObject):
             with np.errstate(all="ignore"):
                 result = op(self._values, other)
 
+        elif isinstance(self._values, ExtensionArray):
+            result = op(self._values, other)
+
         elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
@@ -6392,17 +6398,26 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def _arith_method(self, other, op):
-        """
-        Wrapper used to dispatch arithmetic operations.
-        """
-
-        from pandas import Series
-
-        result = op(Series(self), other)
+    def _construct_result(self, result, name):
         if isinstance(result, tuple):
-            return (Index._with_infer(result[0]), Index(result[1]))
-        return Index._with_infer(result)
+            return (
+                Index._with_infer(result[0], name=name),
+                Index._with_infer(result[1], name=name),
+            )
+        return Index._with_infer(result, name=name)
+
+    def _arith_method(self, other, op):
+        if (
+            isinstance(other, Index)
+            and is_object_dtype(other.dtype)
+            and type(other) is not Index
+        ):
+            # We return NotImplemented for object-dtype index *subclasses* so they have
+            # a chance to implement ops before we unwrap them.
+            # See https://github.com/pandas-dev/pandas/issues/31109
+            return NotImplemented
+
+        return super()._arith_method(other, op)
 
     @final
     def _unary_method(self, op):
