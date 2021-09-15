@@ -202,10 +202,13 @@ def test_str_output(datapath, parser):
 
 
 def test_wrong_file_path(parser):
+    path = "/my/fake/path/output.xml"
+
     with pytest.raises(
-        FileNotFoundError, match=("No such file or directory|没有那个文件或目录")
+        OSError,
+        match=(r"Cannot save file into a non-existent directory: .*path"),
     ):
-        geom_df.to_xml("/my/fake/path/output.xml", parser=parser)
+        geom_df.to_xml(path, parser=parser)
 
 
 # INDEX

@@ -5,6 +5,7 @@ from typing import (
     Any,
     Sequence,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -15,10 +16,13 @@ from pandas._libs import (
 )
 from pandas._typing import (
     ArrayLike,
-    Dtype,
+    AstypeArg,
     NpDtype,
     PositionalIndexer,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -123,6 +127,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             raise ValueError("values must be a 1D array")
         if mask.ndim != 1:
             raise ValueError("mask must be a 1D array")
+        if values.shape != mask.shape:
+            raise ValueError("values and mask must have same shape")
 
         if copy:
             values = values.copy()
@@ -135,7 +141,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
 
-    def __getitem__(self, item: PositionalIndexer) -> BaseMaskedArray | Any:
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(self: BaseMaskedArrayT, item: SequenceIndexer) -> BaseMaskedArrayT:
+        ...
+
+    def __getitem__(
+        self: BaseMaskedArrayT, item: PositionalIndexer
+    ) -> BaseMaskedArrayT | Any:
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
@@ -208,12 +224,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __invert__(self: BaseMaskedArrayT) -> BaseMaskedArrayT:
         return type(self)(~self._data, self._mask.copy())
 
-    # error: Argument 1 of "to_numpy" is incompatible with supertype "ExtensionArray";
-    # supertype defines the argument type as "Union[ExtensionDtype, str, dtype[Any],
-    # Type[str], Type[float], Type[int], Type[complex], Type[bool], Type[object], None]"
-    def to_numpy(  # type: ignore[override]
+    def to_numpy(
         self,
-        dtype: NpDtype | None = None,
+        dtype: npt.DTypeLike | None = None,
         copy: bool = False,
         na_value: Scalar = lib.no_default,
     ) -> np.ndarray:
@@ -280,9 +293,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            # error: Incompatible types in assignment (expression has type
-            # "Type[object]", variable has type "Union[str, dtype[Any], None]")
-            dtype = object  # type: ignore[assignment]
+            dtype = object
         if self._hasna:
             if (
                 not is_object_dtype(dtype)
@@ -301,7 +312,19 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
-    def astype(self, dtype: Dtype, copy: bool = True) -> ArrayLike:
+    @overload
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
+        ...
+
+    @overload
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
+        ...
+
+    @overload
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
+        ...
+
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):

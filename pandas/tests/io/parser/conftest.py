@@ -4,10 +4,13 @@ import os
 
 import pytest
 
+from pandas.compat._optional import VERSIONS
+
 from pandas import (
     read_csv,
     read_table,
 )
+import pandas._testing as tm
 
 
 class BaseParser:
@@ -24,6 +27,16 @@ class BaseParser:
     def read_csv(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
         return read_csv(*args, **kwargs)
+
+    def read_csv_check_warnings(
+        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
+    ):
+        # We need to check the stacklevel here instead of in the tests
+        # since this is where read_csv is called and where the warning
+        # should point to.
+        kwargs = self.update_kwargs(kwargs)
+        with tm.assert_produces_warning(warn_type, match=warn_msg):
+            return read_csv(*args, **kwargs)
 
     def read_table(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
@@ -48,6 +61,11 @@ class PythonParser(BaseParser):
     float_precision_choices = [None]
 
 
+class PyArrowParser(BaseParser):
+    engine = "pyarrow"
+    float_precision_choices = [None]
+
+
 @pytest.fixture
 def csv_dir_path(datapath):
     """
@@ -67,14 +85,19 @@ def csv1(datapath):
 _cParserHighMemory = CParserHighMemory()
 _cParserLowMemory = CParserLowMemory()
 _pythonParser = PythonParser()
+_pyarrowParser = PyArrowParser()
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
-_all_parsers = [*_c_parsers_only, *_py_parsers_only]
+_pyarrow_parsers_only = [_pyarrowParser]
+
+_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
 
 _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
-_all_parser_ids = [*_c_parser_ids, *_py_parser_ids]
+_pyarrow_parsers_ids = ["pyarrow"]
+
+_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parsers_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
@@ -82,6 +105,12 @@ def all_parsers(request):
     """
     Fixture all of the CSV parsers.
     """
+    if request.param.engine == "pyarrow":
+        pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
+        # Try setting num cpus to 1 to avoid hangs?
+        import pyarrow
+
+        pyarrow.set_cpu_count(1)
     return request.param
 
 
@@ -97,6 +126,14 @@ def c_parser_only(request):
 def python_parser_only(request):
     """
     Fixture all of the CSV parsers using the Python engine.
+    """
+    return request.param
+
+
+@pytest.fixture(params=_pyarrow_parsers_only, ids=_pyarrow_parsers_ids)
+def pyarrow_parser_only(request):
+    """
+    Fixture all of the CSV parsers using the Pyarrow engine.
     """
     return request.param
 
@@ -207,3 +244,36 @@ def numeric_decimal(request):
     represents the value to read while the second represents the expected result.
     """
     return request.param
+
+
+@pytest.fixture
+def pyarrow_xfail(request):
+    """
+    Fixture that xfails a test if the engine is pyarrow.
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+    elif "all_parsers_all_precisions" in request.fixturenames:
+        # Return value is tuple of (engine, precision)
+        parser = request.getfixturevalue("all_parsers_all_precisions")[0]
+    else:
+        return
+    if parser.engine == "pyarrow":
+        mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+        request.node.add_marker(mark)
+
+
+@pytest.fixture
+def pyarrow_skip(request):
+    """
+    Fixture that skips a test if the engine is pyarrow.
+    """
+    if "all_parsers" in request.fixturenames:
+        parser = request.getfixturevalue("all_parsers")
+    elif "all_parsers_all_precisions" in request.fixturenames:
+        # Return value is tuple of (engine, precision)
+        parser = request.getfixturevalue("all_parsers_all_precisions")[0]
+    else:
+        return
+    if parser.engine == "pyarrow":
+        pytest.skip("pyarrow doesn't support this.")

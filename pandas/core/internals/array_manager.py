@@ -315,10 +315,9 @@ class BaseArrayManager(DataManager):
             if self.ndim == 2 and arr.ndim == 2:
                 # 2D for np.ndarray or DatetimeArray/TimedeltaArray
                 assert len(arr) == 1
-                # error: Invalid index type "Tuple[int, slice]" for
-                # "Union[ndarray, ExtensionArray]"; expected type
-                # "Union[int, slice, ndarray]"
-                arr = arr[0, :]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[int, slice]"
+                arr = arr[0, :]  # type: ignore[call-overload]
             result_arrays.append(arr)
 
         return type(self)(result_arrays, self._axes)
@@ -841,10 +840,9 @@ class ArrayManager(BaseArrayManager):
         assert value.shape[0] == len(self._axes[0])
 
         for value_idx, mgr_idx in enumerate(indices):
-            # error: Invalid index type "Tuple[slice, int]" for
-            # "Union[ExtensionArray, ndarray]"; expected type
-            # "Union[int, slice, ndarray]"
-            value_arr = value[:, value_idx]  # type: ignore[index]
+            # error: No overload variant of "__getitem__" of "ExtensionArray" matches
+            # argument type "Tuple[slice, int]"
+            value_arr = value[:, value_idx]  # type: ignore[call-overload]
             self.arrays[mgr_idx] = value_arr
         return
 
@@ -864,10 +862,9 @@ class ArrayManager(BaseArrayManager):
         value = extract_array(value, extract_numpy=True)
         if value.ndim == 2:
             if value.shape[0] == 1:
-                # error: Invalid index type "Tuple[int, slice]" for
-                # "Union[Any, ExtensionArray, ndarray]"; expected type
-                # "Union[int, slice, ndarray]"
-                value = value[0, :]  # type: ignore[index]
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[int, slice]"
+                value = value[0, :]  # type: ignore[call-overload]
             else:
                 raise ValueError(
                     f"Expected a 1D array, got an array with shape {value.shape}"
@@ -1033,27 +1030,6 @@ class ArrayManager(BaseArrayManager):
 
         axes = [qs, self._axes[1]]
         return type(self)(new_arrs, axes)
-
-    def apply_2d(
-        self: ArrayManager, f, ignore_failures: bool = False, **kwargs
-    ) -> ArrayManager:
-        """
-        Variant of `apply`, but where the function should not be applied to
-        each column independently, but to the full data as a 2D array.
-        """
-        values = self.as_array()
-        try:
-            result = f(values, **kwargs)
-        except (TypeError, NotImplementedError):
-            if not ignore_failures:
-                raise
-            result_arrays = []
-            new_axes = [self._axes[0], self.axes[1].take([])]
-        else:
-            result_arrays = [result[:, i] for i in range(len(self._axes[1]))]
-            new_axes = self._axes
-
-        return type(self)(result_arrays, new_axes)
 
     # ----------------------------------------------------------------
 
@@ -1317,6 +1293,15 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         valid for the current SingleArrayManager (length, dtype, etc).
         """
         self.arrays[0] = values
+
+    def to_2d_mgr(self, columns: Index) -> ArrayManager:
+        """
+        Manager analogue of Series.to_frame
+        """
+        arrays = [self.arrays[0]]
+        axes = [self.axes[0], columns]
+
+        return ArrayManager(arrays, axes, verify_integrity=False)
 
 
 class NullArrayProxy:

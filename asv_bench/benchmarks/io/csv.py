@@ -206,7 +206,7 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
 class ReadCSVSkipRows(BaseIO):
 
     fname = "__test__.csv"
-    params = ([None, 10000], ["c", "python"])
+    params = ([None, 10000], ["c", "python", "pyarrow"])
     param_names = ["skiprows", "engine"]
 
     def setup(self, skiprows, engine):
@@ -320,7 +320,7 @@ class ReadCSVFloatPrecision(StringIORewind):
 
 
 class ReadCSVEngine(StringIORewind):
-    params = ["c", "python"]
+    params = ["c", "python", "pyarrow"]
     param_names = ["engine"]
 
     def setup(self, engine):
