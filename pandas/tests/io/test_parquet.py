@@ -936,6 +936,7 @@ class TestParquetPyArrow(Base):
         ["int64", "float64", "object", "datetime64[ns, UTC]", "bool", "Int64", "UInt8"],
     )
     def test_read_empty_array(self, pa, dtype):
+        # GH #41241
         df = pd.DataFrame(
             {
                 "value": pd.array([], dtype=dtype),
