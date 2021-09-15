@@ -36,6 +36,7 @@ from pandas._typing import (
     NpDtype,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.cast import astype_td64_unit_conversion
 from pandas.core.dtypes.common import (
@@ -312,7 +313,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end)
 
-        left_closed, right_closed = dtl.validate_endpoints(closed)
+        left_closed, right_closed = validate_endpoints(closed)
 
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq)
