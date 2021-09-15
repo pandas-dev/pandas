@@ -17,6 +17,7 @@ from pandas import (
     MultiIndex,
     RangeIndex,
     Series,
+    Timedelta,
     Timestamp,
     date_range,
     read_csv,
@@ -242,6 +243,10 @@ def test_pass_args_kwargs(ts, tsframe):
         expected = df_grouped.quantile(0.8)
         tm.assert_frame_equal(apply_result, expected, check_names=False)
         tm.assert_frame_equal(agg_result, expected)
+
+        apply_result = df_grouped.apply(DataFrame.quantile, [0.4, 0.8])
+        expected_seq = df_grouped.quantile([0.4, 0.8])
+        tm.assert_frame_equal(apply_result, expected_seq, check_names=False)
 
         agg_result = df_grouped.agg(f, q=80)
         apply_result = df_grouped.apply(DataFrame.quantile, q=0.8)
@@ -2389,6 +2394,67 @@ def test_groupby_empty_multi_column(as_index, numeric_only):
         index = RangeIndex(0)
         columns = ["A", "B", "C"] if not numeric_only else ["A", "B"]
     expected = DataFrame([], columns=columns, index=index)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_non_numeric_dtype():
+    # GH #43108
+    df = DataFrame(
+        [["M", [1]], ["M", [1]], ["W", [10]], ["W", [20]]], columns=["MW", "v"]
+    )
+
+    expected = DataFrame(
+        {
+            "v": [[1, 1], [10, 20]],
+        },
+        index=Index(["M", "W"], dtype="object", name="MW"),
+    )
+
+    gb = df.groupby(by=["MW"])
+    result = gb.sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_multi_non_numeric_dtype():
+    # GH #42395
+    df = DataFrame(
+        {
+            "x": [1, 0, 1, 1, 0],
+            "y": [Timedelta(i, "days") for i in range(1, 6)],
+            "z": [Timedelta(i * 10, "days") for i in range(1, 6)],
+        }
+    )
+
+    expected = DataFrame(
+        {
+            "y": [Timedelta(i, "days") for i in range(7, 9)],
+            "z": [Timedelta(i * 10, "days") for i in range(7, 9)],
+        },
+        index=Index([0, 1], dtype="int64", name="x"),
+    )
+
+    gb = df.groupby(by=["x"])
+    result = gb.sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_numeric_with_non_numeric_dtype():
+    # GH #43108
+    df = DataFrame(
+        {
+            "x": [1, 0, 1, 1, 0],
+            "y": [Timedelta(i, "days") for i in range(1, 6)],
+            "z": list(range(1, 6)),
+        }
+    )
+
+    expected = DataFrame(
+        {"z": [7, 8]},
+        index=Index([0, 1], dtype="int64", name="x"),
+    )
+
+    gb = df.groupby(by=["x"])
+    result = gb.sum()
     tm.assert_frame_equal(result, expected)
 
 

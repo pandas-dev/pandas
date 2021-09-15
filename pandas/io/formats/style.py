@@ -32,7 +32,6 @@ from pandas.util._decorators import doc
 
 import pandas as pd
 from pandas import (
-    Index,
     IndexSlice,
     RangeIndex,
 )
@@ -58,6 +57,7 @@ from pandas.io.formats.style_render import (
     Tooltips,
     maybe_convert_css_to_tuples,
     non_reducing_slice,
+    refactor_levels,
 )
 
 try:
@@ -527,10 +527,13 @@ class Styler(StylerRenderer):
             without multirow.
 
             .. versionchanged:: 1.4.0
-        multicol_align : {"r", "c", "l"}, optional
+        multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``
+            ``pandas.options.styler.latex.multicol_align``. If a naive option is
+            given renders without multicol.
+
+            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
@@ -882,6 +885,8 @@ class Styler(StylerRenderer):
         sparse_columns: bool | None = None,
         bold_headers: bool = False,
         caption: str | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
         encoding: str | None = None,
         doctype_html: bool = False,
         exclude_styles: bool = False,
@@ -926,6 +931,20 @@ class Styler(StylerRenderer):
             .. versionadded:: 1.4.0
         caption : str, optional
             Set, or overwrite, the caption on Styler before rendering.
+
+            .. versionadded:: 1.4.0
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows/max_columns``.
+
+            .. versionadded:: 1.4.0
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
 
             .. versionadded:: 1.4.0
         encoding : str, optional
@@ -978,6 +997,8 @@ class Styler(StylerRenderer):
         html = obj._render_html(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
+            max_rows=max_rows,
+            max_cols=max_columns,
             exclude_styles=exclude_styles,
             encoding=encoding,
             doctype_html=doctype_html,
@@ -1367,7 +1388,7 @@ class Styler(StylerRenderer):
         axis = self.data._get_axis_number(axis)
         obj = self.index if axis == 0 else self.columns
 
-        levels_ = _refactor_levels(level, obj)
+        levels_ = refactor_levels(level, obj)
         data = DataFrame(obj.to_list()).loc[:, levels_]
 
         if method == "apply":
@@ -1793,7 +1814,7 @@ class Styler(StylerRenderer):
         self,
         axis: Axis = 0,
         pixel_size: int | None = None,
-        levels: list[int] | None = None,
+        levels: Level | list[Level] | None = None,
     ) -> Styler:
         """
         Add CSS to permanently display the index or column headers in a scrolling frame.
@@ -1806,7 +1827,7 @@ class Styler(StylerRenderer):
             Required to configure the width of index cells or the height of column
             header cells when sticking a MultiIndex (or with a named Index).
             Defaults to 75 and 25 respectively.
-        levels : list of int
+        levels : int, str, list, optional
             If ``axis`` is a MultiIndex the specific levels to stick. If ``None`` will
             stick all levels.
 
@@ -1870,11 +1891,12 @@ class Styler(StylerRenderer):
         else:
             # handle the MultiIndex case
             range_idx = list(range(obj.nlevels))
-            levels = sorted(levels) if levels else range_idx
+            levels_: list[int] = refactor_levels(levels, obj) if levels else range_idx
+            levels_ = sorted(levels_)
 
             if axis == 1:
                 styles = []
-                for i, level in enumerate(levels):
+                for i, level in enumerate(levels_):
                     styles.append(
                         {
                             "selector": f"thead tr:nth-child({level+1}) th",
@@ -1899,7 +1921,7 @@ class Styler(StylerRenderer):
 
             else:
                 styles = []
-                for i, level in enumerate(levels):
+                for i, level in enumerate(levels_):
                     props_ = props + (
                         f"left:{i * pixel_size}px; "
                         f"min-width:{pixel_size}px; "
@@ -2185,7 +2207,7 @@ class Styler(StylerRenderer):
                 self.hide_index_names = True
                 return self
 
-            levels_ = _refactor_levels(level, self.index)
+            levels_ = refactor_levels(level, self.index)
             self.hide_index_ = [
                 True if lev in levels_ else False for lev in range(self.index.nlevels)
             ]
@@ -2324,7 +2346,7 @@ class Styler(StylerRenderer):
                 self.hide_column_names = True
                 return self
 
-            levels_ = _refactor_levels(level, self.columns)
+            levels_ = refactor_levels(level, self.columns)
             self.hide_columns_ = [
                 True if lev in levels_ else False for lev in range(self.columns.nlevels)
             ]
@@ -3511,37 +3533,3 @@ def _bar(
             index=data.index,
             columns=data.columns,
         )
-
-
-def _refactor_levels(
-    level: Level | list[Level] | None,
-    obj: Index,
-) -> list[Level]:
-    """
-    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
-
-    Parameters
-    ----------
-    level : int, str, list
-        Original ``level`` arg supplied to above methods.
-    obj:
-        Either ``self.index`` or ``self.columns``
-
-    Returns
-    -------
-    list : refactored arg with a list of levels to hide
-    """
-    if level is None:
-        levels_: list[Level] = list(range(obj.nlevels))
-    elif isinstance(level, int):
-        levels_ = [level]
-    elif isinstance(level, str):
-        levels_ = [obj._get_level_number(level)]
-    elif isinstance(level, list):
-        levels_ = [
-            obj._get_level_number(lev) if not isinstance(lev, int) else lev
-            for lev in level
-        ]
-    else:
-        raise ValueError("`level` must be of type `int`, `str` or list of such")
-    return levels_

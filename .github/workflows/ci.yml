@@ -168,6 +168,7 @@ jobs:
         PANDAS_DATA_MANAGER: array
         PATTERN: ${{ matrix.pattern }}
         PYTEST_WORKERS: "auto"
+        PYTEST_TARGET: pandas
       run: |
         source activate pandas-dev
         ci/run_tests.sh

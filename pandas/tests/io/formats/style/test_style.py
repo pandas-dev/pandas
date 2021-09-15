@@ -150,28 +150,56 @@ def test_mi_styler_sparsify_options(mi_styler):
     assert html1 != html2
 
 
-def test_trimming_maximum():
-    rn, cn = _get_trimming_maximums(100, 100, 100, scaling_factor=0.5)
-    assert (rn, cn) == (12, 6)
+@pytest.mark.parametrize(
+    "rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn",
+    [
+        (100, 100, 100, None, None, 12, 6),  # reduce to (12, 6) < 100 elements
+        (1000, 3, 750, None, None, 250, 3),  # dynamically reduce rows to 250, keep cols
+        (4, 1000, 500, None, None, 4, 125),  # dynamically reduce cols to 125, keep rows
+        (1000, 3, 750, 10, None, 10, 3),  # overwrite above dynamics with max_row
+        (4, 1000, 500, None, 5, 4, 5),  # overwrite above dynamics with max_col
+        (100, 100, 700, 50, 50, 25, 25),  # rows cols below given maxes so < 700 elmts
+    ],
+)
+def test_trimming_maximum(rn, cn, max_els, max_rows, max_cols, exp_rn, exp_cn):
+    rn, cn = _get_trimming_maximums(
+        rn, cn, max_els, max_rows, max_cols, scaling_factor=0.5
+    )
+    assert (rn, cn) == (exp_rn, exp_cn)
 
-    rn, cn = _get_trimming_maximums(1000, 3, 750, scaling_factor=0.5)
-    assert (rn, cn) == (250, 3)
 
-
-def test_render_trimming():
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_rows", 3),
+    ],
+)
+def test_render_trimming_rows(option, val):
+    # test auto and specific trimming of rows
     df = DataFrame(np.arange(120).reshape(60, 2))
-    with pd.option_context("styler.render.max_elements", 6):
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
     assert len(ctx["head"][0]) == 3  # index + 2 data cols
     assert len(ctx["body"]) == 4  # 3 data rows + trimming row
     assert len(ctx["body"][0]) == 3  # index + 2 data cols
 
-    df = DataFrame(np.arange(120).reshape(12, 10))
-    with pd.option_context("styler.render.max_elements", 6):
+
+@pytest.mark.parametrize(
+    "option, val",
+    [
+        ("styler.render.max_elements", 6),
+        ("styler.render.max_columns", 2),
+    ],
+)
+def test_render_trimming_cols(option, val):
+    # test auto and specific trimming of cols
+    df = DataFrame(np.arange(30).reshape(3, 10))
+    with pd.option_context(option, val):
         ctx = df.style._translate(True, True)
-    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming row
-    assert len(ctx["body"]) == 4  # 3 data rows + trimming row
-    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming row
+    assert len(ctx["head"][0]) == 4  # index + 2 data cols + trimming col
+    assert len(ctx["body"]) == 3  # 3 data rows
+    assert len(ctx["body"][0]) == 4  # index + 2 data cols + trimming col
 
 
 def test_render_trimming_mi():
@@ -1447,3 +1475,46 @@ def test_caption_raises(mi_styler, caption):
     msg = "`caption` must be either a string or 2-tuple of strings."
     with pytest.raises(ValueError, match=msg):
         mi_styler.set_caption(caption)
+
+
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_hiding_headers_over_axis_no_sparsify(axis):
+    # GH 43464
+    midx = MultiIndex.from_product([[1, 2], ["a", "a", "b"]])
+    df = DataFrame(
+        9,
+        index=midx if axis == "index" else [0],
+        columns=midx if axis == "columns" else [0],
+    )
+
+    styler = getattr(df.style, f"hide_{axis}")((1, "a"))
+    ctx = styler._translate(False, False)
+
+    if axis == "columns":  # test column headers
+        for ix in [(0, 1), (0, 2), (1, 1), (1, 2)]:
+            assert ctx["head"][ix[0]][ix[1]]["is_visible"] is False
+    if axis == "index":  # test row headers
+        for ix in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+            assert ctx["body"][ix[0]][ix[1]]["is_visible"] is False
+
+
+def test_get_level_lengths_mi_hidden():
+    # GH 43464
+    index = MultiIndex.from_arrays([[1, 1, 1, 2, 2, 2], ["a", "a", "b", "a", "a", "b"]])
+    expected = {
+        (0, 2): 1,
+        (0, 3): 1,
+        (0, 4): 1,
+        (0, 5): 1,
+        (1, 2): 1,
+        (1, 3): 1,
+        (1, 4): 1,
+        (1, 5): 1,
+    }
+    result = _get_level_lengths(
+        index,
+        sparsify=False,
+        max_index=100,
+        hidden_elements=[0, 1, 0, 1],  # hidden element can repeat if duplicated index
+    )
+    tm.assert_dict_equal(result, expected)
