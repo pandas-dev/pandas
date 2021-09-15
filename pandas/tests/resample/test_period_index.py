@@ -335,7 +335,7 @@ class TestPeriodIndex:
             freq="D",
             tz="America/Sao_Paulo",
             nonexistent="shift_forward",
-            closed="left",
+            inclusive="left",
         )
         tm.assert_index_equal(result.index, expected)
 
