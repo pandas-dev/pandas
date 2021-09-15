@@ -695,7 +695,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self, using_array_manager):
+    def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -707,11 +707,9 @@ class TestMerge:
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            }
+            },
+            dtype=object,
         )
-        if using_array_manager:
-            # TODO(ArrayManager) decide on exact casting rules in concat
-            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas2(self):
