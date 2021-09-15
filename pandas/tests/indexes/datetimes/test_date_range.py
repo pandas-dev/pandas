@@ -39,6 +39,34 @@ from pandas.core.arrays.datetimes import generate_range
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
+def _get_expected_range(
+    begin_to_match,
+    end_to_match,
+    both_range,
+    inclusive_endpoints,
+):
+    """Helper to get expected range from a both inclusive range"""
+    left_match = begin_to_match == both_range[0]
+    right_match = end_to_match == both_range[-1]
+
+    if inclusive_endpoints == "left" and right_match:
+        expected_range = both_range[:-1]
+    elif inclusive_endpoints == "right" and left_match:
+        expected_range = both_range[1:]
+    elif inclusive_endpoints == "neither" and left_match and right_match:
+        expected_range = both_range[1:-1]
+    elif inclusive_endpoints == "neither" and right_match:
+        expected_range = both_range[:-1]
+    elif inclusive_endpoints == "neither" and left_match:
+        expected_range = both_range[1:]
+    elif inclusive_endpoints == "both":
+        expected_range = both_range[:]
+    else:
+        expected_range = both_range[:]
+
+    return expected_range
+
+
 class TestTimestampEquivDateRange:
     # Older tests in TestTimeSeries constructed their `stamp` objects
     # using `date_range` instead of the `Timestamp` constructor.
@@ -552,25 +580,9 @@ class TestDateRanges:
             begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
         )
         both_range = date_range(begin, end, inclusive="both", freq=freq)
-
-        left_match = begin == both_range[0]
-        right_match = end == both_range[-1]
-
-        # Scenarios where datetimes are to be removed
-        if inclusive_endpoints_fixture == "left" and right_match:
-            expected_range = both_range[:-1]
-        elif inclusive_endpoints_fixture == "right" and left_match:
-            expected_range = both_range[1:]
-        elif inclusive_endpoints_fixture == "neither" and left_match and right_match:
-            expected_range = both_range[1:-1]
-        elif inclusive_endpoints_fixture == "neither" and right_match:
-            expected_range = both_range[:-1]
-        elif inclusive_endpoints_fixture == "neither" and left_match:
-            expected_range = both_range[1:]
-        elif inclusive_endpoints_fixture == "both":
-            expected_range = both_range[:]
-        else:
-            expected_range = both_range[:]
+        expected_range = _get_expected_range(
+            begin, end, both_range, inclusive_endpoints_fixture
+        )
 
         tm.assert_index_equal(expected_range, result_range)
 
@@ -586,24 +598,12 @@ class TestDateRanges:
             begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
         )
         both_range = date_range(begin, end, inclusive="both", freq=freq)
-
-        left_match = begin == both_range[0]
-        right_match = end == both_range[-1]
-
-        if inclusive_endpoints_fixture == "left" and right_match:
-            expected_range = both_range[:-1]
-        elif inclusive_endpoints_fixture == "right" and left_match:
-            expected_range = both_range[1:]
-        elif inclusive_endpoints_fixture == "neither" and left_match and right_match:
-            expected_range = both_range[1:-1]
-        elif inclusive_endpoints_fixture == "neither" and right_match:
-            expected_range = both_range[:-1]
-        elif inclusive_endpoints_fixture == "neither" and left_match:
-            expected_range = both_range[1:]
-        elif inclusive_endpoints_fixture == "both":
-            expected_range = both_range[:]
-        else:
-            expected_range = both_range[:]
+        expected_range = _get_expected_range(
+            begin,
+            end,
+            both_range,
+            inclusive_endpoints_fixture,
+        )
 
         tm.assert_index_equal(expected_range, result_range)
 
@@ -626,24 +626,12 @@ class TestDateRanges:
         both_range = date_range(
             begin, end, inclusive="both", freq=freq, tz="US/Eastern"
         )
-
-        left_match = begintz == both_range[0]
-        right_match = endtz == both_range[-1]
-
-        if inclusive_endpoints_fixture == "left" and right_match:
-            expected_range = both_range[:-1]
-        elif inclusive_endpoints_fixture == "right" and left_match:
-            expected_range = both_range[1:]
-        elif inclusive_endpoints_fixture == "neither" and left_match and right_match:
-            expected_range = both_range[1:-1]
-        elif inclusive_endpoints_fixture == "neither" and right_match:
-            expected_range = both_range[:-1]
-        elif inclusive_endpoints_fixture == "neither" and left_match:
-            expected_range = both_range[1:]
-        elif inclusive_endpoints_fixture == "both":
-            expected_range = both_range[:]
-        else:
-            expected_range = both_range[:]
+        expected_range = _get_expected_range(
+            begintz,
+            endtz,
+            both_range,
+            inclusive_endpoints_fixture,
+        )
 
         tm.assert_index_equal(expected_range, result_range)
 

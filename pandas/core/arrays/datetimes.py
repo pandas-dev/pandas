@@ -477,20 +477,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             arr = arr.astype("M8[ns]", copy=False)
             index = cls._simple_new(arr, freq=None, dtype=dtype)
 
-        # do not remove when one side is inclusive
-        # and removing would leave index empty
-        to_remove_any = not (
-            (left_inclusive or right_inclusive)
-            and len(index)
-            and start == index[0]
-            and start == end
-        )
-
-        if to_remove_any:
-            if (not left_inclusive) and len(index) and index[0] == start:
-                index = index[1:]
-            if (not right_inclusive) and len(index) and index[-1] == end:
-                index = index[:-1]
+        if start == end:
+            if not left_inclusive and not right_inclusive:
+                index = index[1:-1]
+        else:
+            if not left_inclusive or not right_inclusive:
+                if not left_inclusive and len(index) and index[0] == start:
+                    index = index[1:]
+                if not right_inclusive and len(index) and index[-1] == end:
+                    index = index[:-1]
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)

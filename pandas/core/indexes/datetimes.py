@@ -926,6 +926,8 @@ def date_range(
            Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
@@ -1036,12 +1038,12 @@ def date_range(
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
-    if inclusive is not None and closed is not lib.no_default:
+    if inclusive is not None and not isinstance(closed, lib.NoDefault):
         raise ValueError(
             "Deprecated argument `closed` cannot be passed"
             "if argument `inclusive` is not None"
         )
-    elif closed is not lib.no_default:
+    elif not isinstance(closed, lib.NoDefault):
         warnings.warn(
             "Argument `closed` is deprecated in favor of `inclusive`.",
             FutureWarning,
@@ -1126,6 +1128,8 @@ def bdate_range(
            Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
+
+        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
