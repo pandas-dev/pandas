@@ -922,7 +922,7 @@ def date_range(
         the 'left', 'right', or both sides (None, the default).
 
         .. deprecated:: 1.4.0
-           Argument `closed` have been deprecated to standardize boundary inputs.
+           Argument `closed` has been deprecated to standardize boundary inputs.
            Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
@@ -1124,7 +1124,7 @@ def bdate_range(
         the 'left', 'right', or both sides (None).
 
         .. deprecated:: 1.4.0
-           Argument `closed` have been deprecated to standardize boundary inputs.
+           Argument `closed` has been deprecated to standardize boundary inputs.
            Use `inclusive` instead, to set each bound as closed or open.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
