@@ -291,9 +291,21 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
     assert 0 not in indexers
 
+    needs_filling = False
+    if 1 in indexers:
+        # indexers[1] is shared by all the JoinUnits, so we can save time
+        #  by only doing this check once
+        if (indexers[1] == -1).any():
+            needs_filling = True
+
     if mgr.is_single_block:
         blk = mgr.blocks[0]
-        return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
+        return [
+            (
+                blk.mgr_locs,
+                JoinUnit(blk, mgr_shape, indexers, needs_filling=needs_filling),
+            )
+        ]
 
     blknos = mgr.blknos
     blklocs = mgr.blklocs
@@ -336,7 +348,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
         else:
             join_unit_indexers[0] = ax0_blk_indexer
 
-        unit = JoinUnit(blk, shape, join_unit_indexers)
+        unit = JoinUnit(blk, shape, join_unit_indexers, needs_filling=needs_filling)
 
         plan.append((placements, unit))
 
@@ -344,7 +356,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
 
 class JoinUnit:
-    def __init__(self, block: Block, shape: Shape, indexers=None):
+    def __init__(
+        self, block: Block, shape: Shape, indexers=None, *, needs_filling: bool = False
+    ):
         # Passing shape explicitly is required for cases when block is None.
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
@@ -353,27 +367,10 @@ class JoinUnit:
         self.indexers = indexers
         self.shape = shape
 
+        self.needs_filling = needs_filling
+
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
-
-    @cache_readonly
-    def needs_filling(self) -> bool:
-        for indexer in self.indexers.values():
-            # FIXME: cache results of indexer == -1 checks.
-            if (indexer == -1).any():
-                return True
-
-        return False
-
-    @cache_readonly
-    def dtype(self):
-        blk = self.block
-        if blk.values.dtype.kind == "V":
-            raise AssertionError("Block is None, no dtype")
-
-        if not self.needs_filling:
-            return blk.dtype
-        return ensure_dtype_can_hold_na(blk.dtype)
 
     @cache_readonly
     def is_na(self) -> bool:
@@ -540,12 +537,12 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         empty_dtype = join_units[0].block.dtype
         return empty_dtype
 
-    has_none_blocks = any(unit.is_na for unit in join_units)
+    needs_can_hold_na = any(unit.is_na or unit.needs_filling for unit in join_units)
 
-    dtypes = [unit.dtype for unit in join_units if not unit.is_na]
+    dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
 
     dtype = find_common_type(dtypes)
-    if has_none_blocks:
+    if needs_can_hold_na:
         dtype = ensure_dtype_can_hold_na(dtype)
     return dtype
 
@@ -617,7 +614,13 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]
     join_unit.shape = (length,) + join_unit.shape[1:]
 
-    return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
+    # extra_indexers does not introduce any -1s, so we can inherit needs_filling
+    return JoinUnit(
+        block=extra_block,
+        indexers=extra_indexers,
+        shape=extra_shape,
+        needs_filling=join_unit.needs_filling,
+    )
 
 
 def _combine_concat_plans(plans, concat_axis: int):
