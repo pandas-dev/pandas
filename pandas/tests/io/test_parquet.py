@@ -931,10 +931,7 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        ["int64", "float64", "object", "datetime64[ns, UTC]", "bool", "Int64", "UInt8"],
-    )
+    @pytest.mark.parametrize("dtype", ["Int64", "UInt8"])
     def test_read_empty_array(self, pa, dtype):
         # GH #41241
         df = pd.DataFrame(
@@ -942,7 +939,7 @@ class TestParquetPyArrow(Base):
                 "value": pd.array([], dtype=dtype),
             }
         )
-        check_round_trip(df, pa)
+        check_round_trip(df, pa, read_kwargs={"use_nullable_dtypes": True})
 
 
 class TestParquetFastParquet(Base):
