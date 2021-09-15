@@ -480,7 +480,7 @@ class GroupByMethods:
         if len(cols) == 1:
             cols = cols[0]
 
-        if application == "transform":
+        if application == "transformation":
             if method == "describe":
                 raise NotImplementedError
 
