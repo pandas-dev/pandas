@@ -179,6 +179,8 @@ class StylerRenderer:
         precision = (get_option("styler.format.precision"),)
         self._translate_string(d, max_colwidth, precision, align)
 
+        self.template_string.globals["parse_row"] = _parse_string_row
+
         d.update(kwargs)
         return self.template_string.render(**d)
 
@@ -679,6 +681,8 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
+        self._translate_latex(d)  # post process for hidden elements akin to latex
+
         # find the maximum length of items in each column
         d["col_max_char"] = [0] * len(d["body"][0])
         for row in d["head"] + d["body"]:
@@ -688,13 +692,21 @@ class StylerRenderer:
                     d["col_max_char"][cn] = chars
 
         def char_refactor(value, display, max_cw, precision, align):
+            align_options = {
+                "r": "rjust",
+                "c": "center",
+                "l": "ljust",
+                "none": "__str__",
+            }
+            args = (max_cw,) if align != "none" else ()
+            func = align_options[align]
             if len(display) <= max_cw:
-                return getattr(display, align)(max_cw)
+                return getattr(display, func)(*args)
             elif len(display) > max_cw:
                 if isinstance(value, (float, complex)):
-                    return getattr(f"{{:.{precision}E}}".format(value), align)(max_cw)
+                    return getattr(f"{{:.{precision}E}}".format(value), func)(*args)
                 elif isinstance(value, int):
-                    return getattr(f"{value:.0E}", align)(max_cw)
+                    return getattr(f"{value:.0E}", func)(*args)
                 else:
                     return display[: max_cw - 3] + "..."
 
@@ -1867,3 +1879,18 @@ def _escape_latex(s):
         .replace("^", "\\textasciicircum ")
         .replace("ab2§=§8yz", "\\textbackslash ")
     )
+
+
+def _parse_string_row(row: list, spacer: str, max_line: int) -> str:
+    """
+    Parse a row for jinja2 string template
+    """
+    res = ""
+    len_res = 0
+    for c in row:
+        if (len_res + len(c["display_value"])) > max_line:
+            res += "\n"
+            len_res = 0
+        res += c["display_value"] + spacer
+        len_res += len(c["display_value"] + spacer)
+    return res + "\n"

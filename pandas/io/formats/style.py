@@ -1016,19 +1016,28 @@ class Styler(StylerRenderer):
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         max_colwidth: int | None = None,
+        line_width: int | None = None,
         align: str | None = None,
+        delimiter: str = " ",
     ):
         obj = self._copy(deepcopy=True)
 
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
         max_colwidth = 1e9 if max_colwidth is None else max_colwidth
-        align_options = {"r": "rjust", "c": "center", "l": "ljust"}
-        align = "rjust" if align is None else align_options[align]
+        line_width = 1e9 if line_width is None else line_width
+        align = "none" if align is None else align
 
         text = obj._render_string(
             sparse_columns=sparse_columns,
             sparse_index=sparse_index,
             align=align,
             max_colwidth=max_colwidth,
+            line_width=line_width,
+            delimiter=delimiter,
         )
         return save_to_buffer(
             text, buf=buf, encoding=(encoding if buf is not None else None)
