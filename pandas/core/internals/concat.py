@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -330,12 +329,13 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
             )
         )
 
-        # Omit indexer if no item reindexing is required.
-        if unit_no_ax0_reindexing:
-            join_unit_indexers.pop(0, None)
-        else:
-            join_unit_indexers[0] = ax0_blk_indexer
+        if not unit_no_ax0_reindexing:
+            # create block from subset of columns
+            blk = blk.getitem_block(ax0_blk_indexer)
 
+        # Assertions disabled for performance
+        # assert blk._mgr_locs.as_slice == placements.as_slice
+        # assert blk.shape[0] == shape[0]
         unit = JoinUnit(blk, shape, join_unit_indexers)
 
         plan.append((placements, unit))
@@ -349,6 +349,7 @@ class JoinUnit:
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
             indexers = {}
+        # we should *never* have `0 in indexers`
         self.block = block
         self.indexers = indexers
         self.shape = shape
@@ -599,20 +600,11 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
 
     Extra items that didn't fit are returned as a separate block.
     """
-    if 0 not in join_unit.indexers:
-        extra_indexers = join_unit.indexers
+    assert 0 not in join_unit.indexers
+    extra_indexers = join_unit.indexers
 
-        if join_unit.block is None:
-            extra_block = None
-        else:
-            extra_block = join_unit.block.getitem_block(slice(length, None))
-            join_unit.block = join_unit.block.getitem_block(slice(length))
-    else:
-        extra_block = join_unit.block
-
-        extra_indexers = copy.copy(join_unit.indexers)
-        extra_indexers[0] = extra_indexers[0][length:]
-        join_unit.indexers[0] = join_unit.indexers[0][:length]
+    extra_block = join_unit.block.getitem_block(slice(length, None))
+    join_unit.block = join_unit.block.getitem_block(slice(length))
 
     extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]
     join_unit.shape = (length,) + join_unit.shape[1:]
