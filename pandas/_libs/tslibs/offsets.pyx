@@ -1211,6 +1211,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
         - hours
         - minutes
         - seconds
+        - milliseconds
         - microseconds
         - nanoseconds
 
