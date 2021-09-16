@@ -189,7 +189,35 @@ def concatenate_managers(
     if isinstance(mgrs_indexers[0][0], ArrayManager):
         return _concatenate_array_managers(mgrs_indexers, axes, concat_axis, copy)
 
+    # Assertions disabled for performance
+    # for tup in mgrs_indexers:
+    #    # caller is responsible for ensuring this
+    #    indexers = tup[1]
+    #    assert concat_axis not in indexers
+
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
+
+    # Assertion disabled for performance
+    # assert all(not x[1] for x in mgrs_indexers)
+
+    if concat_axis == 0:
+        mgrs = [x[0] for x in mgrs_indexers]
+
+        offset = 0
+        blocks = []
+        for mgr in mgrs:
+            for blk in mgr.blocks:
+                if copy:
+                    nb = blk.copy()
+                else:
+                    # by slicing instead of copy(deep=False), we get a new array
+                    #  object, see test_concat_copy
+                    nb = blk.getitem_block(slice(None))
+                nb._mgr_locs = nb._mgr_locs.add(offset)
+                blocks.append(nb)
+
+            offset += len(mgr.items)
+        return BlockManager(tuple(blocks), axes)
 
     concat_plans = [
         _get_mgr_concatenation_plan(mgr, indexers) for mgr, indexers in mgrs_indexers
@@ -250,22 +278,19 @@ def _maybe_reindex_columns_na_proxy(
     """
     new_mgrs_indexers = []
     for mgr, indexers in mgrs_indexers:
-        # We only reindex for axis=0 (i.e. columns), as this can be done cheaply
-        if 0 in indexers:
-            new_mgr = mgr.reindex_indexer(
-                axes[0],
-                indexers[0],
-                axis=0,
+        # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
+        #  is a cheap reindexing.
+        for i, indexer in indexers.items():
+            mgr = mgr.reindex_indexer(
+                axes[i],
+                indexers[i],
+                axis=i,
                 copy=False,
-                only_slice=True,
+                only_slice=True,  # only relevant for i==0
                 allow_dups=True,
-                use_na_proxy=True,
+                use_na_proxy=True,  # only relevant for i==0
             )
-            new_indexers = indexers.copy()
-            del new_indexers[0]
-            new_mgrs_indexers.append((new_mgr, new_indexers))
-        else:
-            new_mgrs_indexers.append((mgr, indexers))
+        new_mgrs_indexers.append((mgr, {}))
 
     return new_mgrs_indexers
 
