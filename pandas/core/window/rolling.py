@@ -586,7 +586,7 @@ class BaseWindow(SelectionMixin):
         obj = self._create_data(self._selected_obj)
         if self.axis == 1:
             obj = obj.T
-        values = self._prep_values(obj)
+        values = self._prep_values(obj.to_numpy())
         start, end = window_indexer.get_window_bounds(
             num_values=len(values),
             min_periods=min_periods,

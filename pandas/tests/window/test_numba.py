@@ -57,7 +57,11 @@ class TestEngine:
         expected = getattr(roll, method)(engine="cython")
 
         # Check the cache
-        assert (getattr(np, f"nan{method}"), "Rolling_apply_single") in NUMBA_FUNC_CACHE
+        if method != "mean":
+            assert (
+                getattr(np, f"nan{method}"),
+                "Rolling_apply_single",
+            ) in NUMBA_FUNC_CACHE
 
         tm.assert_frame_equal(result, expected)
 
@@ -75,10 +79,11 @@ class TestEngine:
         expected = getattr(expand, method)(engine="cython")
 
         # Check the cache
-        assert (
-            getattr(np, f"nan{method}"),
-            "Expanding_apply_single",
-        ) in NUMBA_FUNC_CACHE
+        if method != "mean":
+            assert (
+                getattr(np, f"nan{method}"),
+                "Expanding_apply_single",
+            ) in NUMBA_FUNC_CACHE
 
         tm.assert_frame_equal(result, expected)
 

@@ -6,12 +6,11 @@ Numba 1D aggregation kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
-
 import numba
 import numpy as np
 
 
-@numba.jit(nopython=True, nogil=True, parallel=True)
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def is_monotonic_increasing(bounds):
     n = len(bounds)
     if n == 1:
@@ -26,7 +25,7 @@ def is_monotonic_increasing(bounds):
     return True
 
 
-@numba.jit(nopython=True, nogil=True, parallel=True)
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def add_mean(val, nobs, sum_x, neg_ct, compensation):
     if not np.isnan(val):
         nobs += 1
@@ -39,7 +38,7 @@ def add_mean(val, nobs, sum_x, neg_ct, compensation):
     return nobs, sum_x, neg_ct, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=True)
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def remove_mean(val, nobs, sum_x, neg_ct, compensation):
     if not np.isnan(val):
         nobs -= 1
@@ -52,7 +51,7 @@ def remove_mean(val, nobs, sum_x, neg_ct, compensation):
     return nobs, sum_x, neg_ct, compensation
 
 
-@numba.jit(nopython=True, nogil=True, parallel=True)
+@numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_mean(
     values: np.array,
     start: np.array,
