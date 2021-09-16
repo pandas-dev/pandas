@@ -123,7 +123,8 @@ Other enhancements
 - Methods that relied on hashmap based algos such as :meth:`DataFrameGroupBy.value_counts`, :meth:`DataFrameGroupBy.count` and :func:`factorize` ignored imaginary component for complex numbers (:issue:`17927`)
 - Add :meth:`Series.str.removeprefix` and :meth:`Series.str.removesuffix` introduced in Python 3.9 to remove pre-/suffixes from string-type :class:`Series` (:issue:`36944`)
 - Attempting to write into a file in missing parent directory with :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_html`, :meth:`DataFrame.to_excel`, :meth:`DataFrame.to_feather`, :meth:`DataFrame.to_parquet`, :meth:`DataFrame.to_stata`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle`, and :meth:`DataFrame.to_xml` now explicitly mentions missing parent directory, the same is true for :class:`Series` counterparts (:issue:`24306`)
-
+- Added support for nullable boolean and integer types in :meth:`DataFrame.to_stata`, :class:`~pandas.io.stata.StataWriter`, :class:`~pandas.io.stata.StataWriter117`, and :class:`~pandas.io.stata.StataWriterUTF8` (:issue:`40855`)
+-
 
 .. ---------------------------------------------------------------------------
 
@@ -149,9 +150,44 @@ The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead t
 Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
 the value is a delimited date string (e.g. ``31-12-2012``).
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_140.notable_bug_fixes.concat_with_empty_or_all_na:
 
-notable_bug_fix2
+Ignoring dtypes in concat with empty or all-NA columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using :func:`concat` to concatenate two or more :class:`DataFrame` objects,
+if one of the DataFrames was empty or had all-NA values, its dtype was _sometimes_
+ignored when finding the concatenated dtype.  These are now consistently _not_ ignored (:issue:`43507`).
+
+.. ipython:: python
+
+    df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
+    df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
+    res = df1.append(df2)
+
+Previously, the float-dtype in ``df2`` would be ignored so the result dtype would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to ``NaT``.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [4]: res
+    Out[4]:
+             bar
+    0 2013-01-01
+    1        NaT
+
+Now the float-dtype is respected. Since the common dtype for these DataFrames is object, the ``np.nan`` is retained.
+
+*New behavior*:
+
+.. ipython:: python
+
+    res
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
+
+notable_bug_fix3
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------

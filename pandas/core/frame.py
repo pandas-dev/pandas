@@ -138,7 +138,7 @@ from pandas.core import (
     ops,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.aggregation import (
+from pandas.core.apply import (
     reconstruct_func,
     relabel_result,
 )
