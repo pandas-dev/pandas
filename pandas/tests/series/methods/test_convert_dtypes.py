@@ -233,5 +233,5 @@ class TestSeriesConvertDtypes:
 
         df = pd.DataFrame(data={"A": byte_str}, index=[0])
         result = df.convert_dtypes()
-        expected = df.astype(bytes)
+        expected = df
         tm.assert_frame_equal(result, expected)
