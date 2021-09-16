@@ -822,7 +822,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return (time_micros == micros).nonzero()[0]
 
     def indexer_between_time(
-        self, start_time, end_time, include_start: bool = True, include_end: bool = True
+        self, start_time, end_time, inclusive="both"
     ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day
@@ -852,12 +852,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
 
-        if include_start and include_end:
+        if inclusive == "both":
             lop = rop = operator.le
-        elif include_start:
+        elif inclusive == "left":
             lop = operator.le
             rop = operator.lt
-        elif include_end:
+        elif inclusive == "right":
             lop = operator.lt
             rop = operator.le
         else:
