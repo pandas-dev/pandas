@@ -300,7 +300,7 @@ cdef _validate_business_time(t_input):
 _relativedelta_kwds = {"years", "months", "weeks", "days", "year", "month",
                        "day", "weekday", "hour", "minute", "second",
                        "microsecond", "nanosecond", "nanoseconds", "hours",
-                       "minutes", "seconds", "microseconds"}
+                       "minutes", "seconds", "milliseconds", "microseconds"}
 
 
 cdef _determine_offset(kwds):
@@ -315,7 +315,7 @@ cdef _determine_offset(kwds):
 
     _kwds_use_relativedelta = ('years', 'months', 'weeks', 'days',
                                'year', 'month', 'week', 'day', 'weekday',
-                               'hour', 'minute', 'second', 'microsecond')
+                               'hour', 'minute', 'second', 'millisecond', 'microsecond')
 
     use_relativedelta = False
     if len(kwds_no_nanos) > 0:
