@@ -100,7 +100,6 @@ class TestDataFrameCorr:
 
     # ---------------------------------------------------------------------
 
-    @td.skip_if_no_scipy
     def test_corr_non_numeric(self, float_string_frame):
         # exclude non-numeric types
         result = float_string_frame.corr()
@@ -125,11 +124,9 @@ class TestDataFrameCorr:
         assert rs.loc["B", "B"] == 1
         assert isna(rs.loc["C", "C"])
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "spearman"])
     def test_corr_constant(self, meth):
         # constant --> all NA
-
         df = DataFrame(
             {
                 "A": [1, 1, 1, np.nan, np.nan, np.nan],
