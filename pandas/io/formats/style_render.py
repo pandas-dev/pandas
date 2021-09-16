@@ -181,7 +181,7 @@ class StylerRenderer:
 
         self.template_string.globals["parse_row"] = _parse_string_row
 
-        d.update(kwargs)
+        d.update({**kwargs, "max_colwidth": max_colwidth})
         return self.template_string.render(**d)
 
     def _compute(self):
@@ -690,6 +690,10 @@ class StylerRenderer:
                 chars = len(col["display_value"])
                 if chars > d["col_max_char"][cn]:
                     d["col_max_char"][cn] = chars
+        d["line_max_char"] = sum(
+            (chars if chars < max_colwidth else max_colwidth)
+            for chars in d["col_max_char"]
+        )
 
         def char_refactor(value, display, max_cw, precision, align):
             align_options = {
