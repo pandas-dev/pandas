@@ -7727,12 +7727,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # On arg removal inclusive can default to "both"
             inclusive = "both"
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        indexer = index.indexer_between_time(
-            start_time,
-            end_time,
-            include_start=left_inclusive,
-            include_end=right_inclusive,
-        )
+        indexer = index.indexer_between_time(start_time, end_time, inclusive)
         return self._take_with_is_copy(indexer, axis=axis)
 
     @doc(**_shared_doc_kwargs)
