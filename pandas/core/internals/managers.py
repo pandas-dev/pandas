@@ -1380,7 +1380,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def unstack(self, unstacker, fill_value) -> BlockManager:
         """
-        Return a BlockManager with all blocks unstacked..
+        Return a BlockManager with all blocks unstacked.
 
         Parameters
         ----------
@@ -1934,7 +1934,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool) -> list[Block]:
 
     nbs = []
     for (_, _, dtype), tup_block in grouper:
-        block_type = get_block_type(None, dtype)
+        block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
             is_dtlike = dtype.kind in ["m", "M"]
