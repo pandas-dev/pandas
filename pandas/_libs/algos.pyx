@@ -389,11 +389,11 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         int64_t nobs = 0
         bint no_nans
         float64_t vx, vy, sumx, sumxx, sumyy, mean, divisor
-        const int64_t[:] labels_n, labels_nobs
+        const intp_t[:] labels_n, labels_nobs
 
     N, K = (<object>mat).shape
     # For compatibility when calling rank_1d
-    labels_n = np.zeros(N, dtype=np.int64)
+    labels_n = np.zeros(N, dtype=np.intp)
 
     # Handle the edge case where we know all results will be nan
     # to keep conditional logic inside loop simpler
@@ -451,7 +451,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
                             with gil:
                                 # We need to slice back to nobs because rank_1d will
                                 # require arrays of nobs length
-                                labels_nobs = np.zeros(nobs, dtype=np.int64)
+                                labels_nobs = np.zeros(nobs, dtype=np.intp)
                                 rankedx = rank_1d(np.array(maskedx)[:nobs],
                                                   labels=labels_nobs)
                                 rankedy = rank_1d(np.array(maskedy)[:nobs],
