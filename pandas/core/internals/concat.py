@@ -385,14 +385,10 @@ class JoinUnit:
             return True
         return False
 
-    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
+    def get_reindexed_values(self, empty_dtype: DtypeObj) -> ArrayLike:
         values: ArrayLike
 
-        if upcasted_na is None and not self.is_na:
-            # No upcasting is necessary
-            values = self.block.get_values()
-
-        elif self.is_na:
+        if self.is_na:
             return make_na_array(empty_dtype, self.shape)
 
         else:
@@ -401,14 +397,9 @@ class JoinUnit:
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool:
-                # External code requested filling/upcasting, bool values must
-                # be upcasted to object to avoid being upcasted to numeric.
-                values = self.block.astype(np.object_).values
-            else:
-                # No dtype upcasting is done here, it will be performed during
-                # concatenation itself.
-                values = self.block.values
+            # No dtype upcasting is done here, it will be performed during
+            # concatenation itself.
+            values = self.block.values
 
         if not self.indexers:
             # If there's no indexing to be done, we want to signal outside
@@ -469,12 +460,7 @@ def _concatenate_join_units(
 
     empty_dtype = _get_empty_dtype(join_units)
 
-    upcasted_na = _dtype_to_na_value(empty_dtype)
-
-    to_concat = [
-        ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
-        for ju in join_units
-    ]
+    to_concat = [ju.get_reindexed_values(empty_dtype=empty_dtype) for ju in join_units]
 
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
