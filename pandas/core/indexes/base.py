@@ -3533,13 +3533,14 @@ class Index(IndexOpsMixin, PandasObject):
         method: str_t | None = None,
         limit: int | None = None,
         tolerance=None,
+        enforce_unique=True,
     ) -> npt.NDArray[np.intp]:
         method = missing.clean_reindex_fill_method(method)
         target = self._maybe_cast_listlike_indexer(target)
 
         self._check_indexing_method(method, limit, tolerance)
 
-        if not self._index_as_unique:
+        if enforce_unique and not self._index_as_unique:
             raise InvalidIndexError(self._requires_unique_msg)
 
         if len(target) == 0:

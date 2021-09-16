@@ -755,7 +755,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     for hlevel, level in zip(zipped, levels):
         hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel)
+        mapped = level.get_indexer(hlevel, enforce_unique=False)
 
         mask = mapped == -1
         if mask.any():
