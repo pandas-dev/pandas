@@ -52,7 +52,7 @@ def make_block(
 
     if klass is None:
         dtype = dtype or values.dtype
-        klass = get_block_type(values, dtype)
+        klass = get_block_type(dtype)
 
     elif klass is DatetimeTZBlock and not is_datetime64tz_dtype(values.dtype):
         # pyarrow calls get here
