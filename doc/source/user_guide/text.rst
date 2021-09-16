@@ -85,6 +85,11 @@ or convert from existing pandas data:
    s2
    type(s2[0])
 
+.. note::
+
+   * The parquet representation of `StringDtype` is the same, regardless of the storage.
+   * The data will be read in accordance with the `string_storage` settings.
+
 
 .. _text.differences:
 

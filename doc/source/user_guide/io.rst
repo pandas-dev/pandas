@@ -5491,6 +5491,27 @@ The above example creates a partitioned dataset that may look like:
    except OSError:
        pass
 
+.. note::
+
+   * The parquet representation of ``StringDtype`` is the same, regardless of the storage.
+   * The data will be read in accordance with the ``string_storage`` settings.
+
+.. ipython:: python
+
+    df1 = pd.DataFrame({"A": pd.array(['a', 'b'], dtype=pd.StringDtype("pyarrow"))})
+    df2 = pd.DataFrame({"A": pd.array(['a', 'b'], dtype=pd.StringDtype("python"))})
+
+    df1.to_parquet("test.parquet")
+    with pd.option_context("string_storage", "pyarrow"):
+        b = pd.read_parquet("test.parquet")
+    pd.testing.assert_frame_equal(b, a)
+
+    df2.to_parquet("test.parquet")
+    with pd.option_context("string_storage", "pyarrow"):
+        b = pd.read_parquet("test.parquet")
+    pd.testing.assert_frame_equal(b, a)
+
+
 .. _io.orc:
 
 ORC
