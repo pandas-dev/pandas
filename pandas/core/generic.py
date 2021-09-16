@@ -72,7 +72,6 @@ from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
     validate_fillna_kwargs,
-    validate_inclusive,
 )
 
 from pandas.core.dtypes.common import (
@@ -7726,7 +7725,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif inclusive is None:
             # On arg removal inclusive can default to "both"
             inclusive = "both"
-        left_inclusive, right_inclusive = validate_inclusive(inclusive)
         indexer = index.indexer_between_time(start_time, end_time, inclusive)
         return self._take_with_is_copy(indexer, axis=axis)
 
