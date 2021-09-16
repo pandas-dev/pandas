@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
@@ -70,7 +71,6 @@ from pandas.core.indexes.api import (
     PeriodIndex,
     TimedeltaIndex,
 )
-from pandas.core.numba_ import executor
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     NUMBA_FUNC_CACHE,
@@ -1364,7 +1364,7 @@ class RollingAndExpandingMixin(BaseWindow):
                     engine_kwargs=engine_kwargs,
                 )
             else:
-                from pandas.core.numba_.kernels import sliding_mean
+                from pandas.core._numba.kernels import sliding_mean
 
                 return self._numba_apply(sliding_mean, engine_kwargs, "rolling_mean")
         window_func = window_aggregations.roll_mean
