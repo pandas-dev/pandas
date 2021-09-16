@@ -3517,8 +3517,13 @@ class MultiIndex(Index):
             if len(self_values) == 0 and len(other_values) == 0:
                 continue
 
-            if not array_equivalent(self_values, other_values):
-                return False
+            if not isinstance(self_values, np.ndarray):
+                # i.e. ExtensionArray
+                if not self_values.equals(other_values):
+                    return False
+            else:
+                if not array_equivalent(self_values, other_values):
+                    return False
 
         return True
 
