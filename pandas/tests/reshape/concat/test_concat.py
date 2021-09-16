@@ -561,7 +561,7 @@ def test_duplicate_keys(keys):
 
 
 def test_duplicate_keys_same_frame():
-    # GH 33654
+    # GH 43595
     keys = ["e", "e"]
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     result = concat([df, df], axis=1, keys=keys)
