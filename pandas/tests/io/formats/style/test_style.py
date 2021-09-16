@@ -54,6 +54,8 @@ def mi_styler_comp(mi_styler):
     mi_styler.hide_index(names=True)
     mi_styler.set_table_attributes('class="box"')
     mi_styler.format(na_rep="MISSING", precision=3)
+    mi_styler.format_index(precision=2, axis=0)
+    mi_styler.format_index(precision=4, axis=1)
     mi_styler.highlight_max(axis=None)
     mi_styler.applymap_index(lambda x: "color: white;", axis=0)
     mi_styler.applymap_index(lambda x: "color: black;", axis=1)
@@ -1051,7 +1053,7 @@ class TestStyler:
             },
             {
                 "class": "col_heading level1 col0",
-                "display_value": 1,
+                "display_value": "1",
                 "is_visible": True,
                 "type": "th",
                 "value": 1,
@@ -1059,7 +1061,7 @@ class TestStyler:
             },
             {
                 "class": "col_heading level1 col1",
-                "display_value": 0,
+                "display_value": "0",
                 "is_visible": True,
                 "type": "th",
                 "value": 0,
@@ -1067,7 +1069,7 @@ class TestStyler:
             },
             {
                 "class": "col_heading level1 col2",
-                "display_value": 1,
+                "display_value": "1",
                 "is_visible": True,
                 "type": "th",
                 "value": 1,
@@ -1075,7 +1077,7 @@ class TestStyler:
             },
             {
                 "class": "col_heading level1 col3",
-                "display_value": 0,
+                "display_value": "0",
                 "is_visible": True,
                 "type": "th",
                 "value": 0,
@@ -1174,7 +1176,7 @@ class TestStyler:
         # column headers
         assert ctx["head"][0][2]["is_visible"]
         assert ctx["head"][1][2]["is_visible"]
-        assert ctx["head"][1][3]["display_value"] == 1
+        assert ctx["head"][1][3]["display_value"] == "1"
         # indices
         assert ctx["body"][0][0]["is_visible"]
         # data
