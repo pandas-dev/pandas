@@ -29,6 +29,7 @@ from pandas._libs.hashtable import duplicated
 from pandas._typing import (
     AnyArrayLike,
     DtypeObj,
+    F,
     Scalar,
     Shape,
     npt,
@@ -185,7 +186,7 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine, libindex.ObjectE
         return np.bitwise_or.reduce(codes, axis=1)
 
 
-def names_compat(meth):
+def names_compat(meth: F) -> F:
     """
     A decorator to allow either `name` or `names` keyword but not both.
 
@@ -201,7 +202,7 @@ def names_compat(meth):
 
         return meth(self_or_cls, *args, **kwargs)
 
-    return new_meth
+    return cast(F, new_meth)
 
 
 class MultiIndex(Index):
@@ -1541,11 +1542,6 @@ class MultiIndex(Index):
                     f"not {level + 1}"
                 ) from err
         return level
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
 
     @cache_readonly
     def is_monotonic_increasing(self) -> bool:
@@ -3683,7 +3679,12 @@ class MultiIndex(Index):
         return self
 
     def _validate_fill_value(self, item):
-        if not isinstance(item, tuple):
+        if isinstance(item, MultiIndex):
+            # GH#43212
+            if item.nlevels != self.nlevels:
+                raise ValueError("Item must have length equal to number of levels.")
+            return item._values
+        elif not isinstance(item, tuple):
             # Pad the key with empty strings if lower levels of the key
             # aren't specified:
             item = (item,) + ("",) * (self.nlevels - 1)

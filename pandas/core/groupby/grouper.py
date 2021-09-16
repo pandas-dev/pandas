@@ -617,7 +617,7 @@ class Grouping:
     def group_arraylike(self) -> ArrayLike:
         """
         Analogous to result_index, but holding an ArrayLike to ensure
-        we can can retain ExtensionDtypes.
+        we can retain ExtensionDtypes.
         """
         if self._group_index is not None:
             # _group_index is set in __init__ for MultiIndex cases
@@ -845,9 +845,11 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, InvalidIndexError):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
+            # InvalidIndexError raised on key-types inappropriate for index,
+            #  e.g. DatetimeIndex.get_loc(tuple())
             return False
 
     for gpr, level in zip(keys, levels):
