@@ -1013,11 +1013,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = (
-                self.filter(lambda x: True).axes[self.axis]
-                if self.dropna
-                else self._selected_obj._get_axis(self.axis)
-            )
+
+            ax = self._selected_obj._get_axis(self.axis)
+            if self.dropna:
+                labels = self.grouper.group_info[0]
+                mask = labels != -1
+                ax = ax[mask]
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
@@ -1558,6 +1559,26 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             # only reached for DataFrameGroupBy
             return self._transform_general(func, *args, **kwargs)
+
+    @final
+    def _wrap_transform_fast_result(self, result: FrameOrSeries) -> FrameOrSeries:
+        """
+        Fast transform path for aggregations.
+        """
+        obj = self._obj_with_exclusions
+
+        # for each col, reshape to size of original frame by take operation
+        ids, _, _ = self.grouper.group_info
+        result = result.reindex(self.grouper.result_index, copy=False)
+
+        if self.obj.ndim == 1:
+            # i.e. SeriesGroupBy
+            out = algorithms.take_nd(result._values, ids)
+            output = obj._constructor(out, index=obj.index, name=obj.name)
+        else:
+            output = result.take(ids, axis=0)
+            output.index = obj.index
+        return output
 
     # -----------------------------------------------------------------
     # Utilities
@@ -2673,11 +2694,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        if is_ser:
-            # i.e. SeriesGroupBy
-            mgr = obj.to_frame()._mgr
-        else:
-            mgr = self._get_data_to_aggregate()
+        mgr = self._get_data_to_aggregate()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
         if len(res_mgr.items) != len(mgr.items):
@@ -3057,7 +3074,6 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         grouper = self.grouper
 
         ids, _, ngroups = grouper.group_info
-        output: dict[base.OutputKey, ArrayLike] = {}
 
         how = base_func.__name__
         base_func = partial(base_func, labels=ids)
@@ -3113,48 +3129,42 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             return result.T
 
         obj = self._obj_with_exclusions
-        if obj.ndim == 2 and self.axis == 0:
-            # Operate block-wise instead of column-by-column
-            mgr = obj._mgr
-            if numeric_only:
-                mgr = mgr.get_numeric_data()
 
-            # setting ignore_failures=False for troubleshooting
-            res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=False)
-            output = type(obj)(res_mgr)
-            return self._wrap_aggregated_output(output)
+        # Operate block-wise instead of column-by-column
+        orig_ndim = obj.ndim
+        mgr = self._get_data_to_aggregate()
 
-        error_msg = ""
-        for idx, obj in enumerate(self._iterate_slices()):
-            values = obj._values
+        if numeric_only:
+            mgr = mgr.get_numeric_data()
 
-            if numeric_only and not is_numeric_dtype(values.dtype):
-                continue
+        res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
+        if len(res_mgr.items) != len(mgr.items):
+            howstr = how.replace("group_", "")
+            warnings.warn(
+                "Dropping invalid columns in "
+                f"{type(self).__name__}.{howstr} is deprecated. "
+                "In a future version, a TypeError will be raised. "
+                f"Before calling .{howstr}, select only columns which "
+                "should be valid for the function.",
+                FutureWarning,
+                stacklevel=3,
+            )
+            if len(res_mgr.items) == 0:
+                # We re-call grouped_reduce to get the right exception message
+                try:
+                    mgr.grouped_reduce(blk_func, ignore_failures=False)
+                except Exception as err:
+                    error_msg = str(err)
+                    raise TypeError(error_msg)
+                # We should never get here
+                raise TypeError("All columns were dropped in grouped_reduce")
 
-            try:
-                result = blk_func(values)
-            except TypeError as err:
-                error_msg = str(err)
-                howstr = how.replace("group_", "")
-                warnings.warn(
-                    "Dropping invalid columns in "
-                    f"{type(self).__name__}.{howstr} is deprecated. "
-                    "In a future version, a TypeError will be raised. "
-                    f"Before calling .{howstr}, select only columns which "
-                    "should be valid for the function.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-                continue
+        if orig_ndim == 1:
+            out = self._wrap_agged_manager(res_mgr)
+        else:
+            out = type(obj)(res_mgr)
 
-            key = base.OutputKey(label=obj.name, position=idx)
-            output[key] = result
-
-        # error_msg is "" on an frame/series with no rows or columns
-        if not output and error_msg != "":
-            raise TypeError(error_msg)
-
-        return self._wrap_aggregated_output(output)
+        return self._wrap_aggregated_output(out)
 
     @final
     @Substitution(name="groupby")

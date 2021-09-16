@@ -57,12 +57,12 @@ from pandas.core import (
     algorithms,
     nanops,
 )
-from pandas.core.aggregation import (
+from pandas.core.apply import (
+    GroupByApply,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.apply import GroupByApply
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -435,9 +435,6 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self:
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
-            # NB: libreduction does not pin name
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
@@ -502,16 +499,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     def _can_use_transform_fast(self, result) -> bool:
         return True
-
-    def _wrap_transform_fast_result(self, result: Series) -> Series:
-        """
-        fast version of transform, only applicable to
-        builtin/cythonizable functions
-        """
-        ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
-        out = algorithms.take_nd(result._values, ids)
-        return self.obj._constructor(out, index=self.obj.index, name=self.obj.name)
 
     def filter(self, func, dropna: bool = True, *args, **kwargs):
         """
@@ -623,10 +610,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.describe)
     def describe(self, **kwargs):
-        result = self.apply(lambda x: x.describe(**kwargs))
-        if self.axis == 1:
-            return result.T
-        return result.unstack()
+        return super().describe(**kwargs)
 
     def value_counts(
         self,
@@ -1273,19 +1257,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return isinstance(result, DataFrame) and result.columns.equals(
             self._obj_with_exclusions.columns
         )
-
-    def _wrap_transform_fast_result(self, result: DataFrame) -> DataFrame:
-        """
-        Fast transform path for aggregations
-        """
-        obj = self._obj_with_exclusions
-
-        # for each col, reshape to size of original frame by take operation
-        ids, _, _ = self.grouper.group_info
-        result = result.reindex(self.grouper.result_index, copy=False)
-        output = result.take(ids, axis=0)
-        output.index = obj.index
-        return output
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):

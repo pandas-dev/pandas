@@ -10,11 +10,7 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import (
-    NaT,
-    internals as libinternals,
-)
-from pandas._libs.missing import NA
+from pandas._libs import internals as libinternals
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -32,26 +28,18 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_obj,
     is_datetime64tz_dtype,
     is_dtype_equal,
-    is_scalar,
-    needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import (
     cast_to_common_type,
     concat_compat,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.missing import (
-    is_valid_na_for_dtype,
-    isna,
-    isna_all,
-)
 
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import (
     ArrayManager,
@@ -387,86 +375,24 @@ class JoinUnit:
             return blk.dtype
         return ensure_dtype_can_hold_na(blk.dtype)
 
-    def _is_valid_na_for(self, dtype: DtypeObj) -> bool:
-        """
-        Check that we are all-NA of a type/dtype that is compatible with this dtype.
-        Augments `self.is_na` with an additional check of the type of NA values.
-        """
-        if not self.is_na:
-            return False
-        if self.block.dtype.kind == "V":
-            return True
-
-        if self.dtype == object:
-            values = self.block.values
-            return all(is_valid_na_for_dtype(x, dtype) for x in values.ravel(order="K"))
-
-        na_value = self.block.fill_value
-        if na_value is NaT and not is_dtype_equal(self.dtype, dtype):
-            # e.g. we are dt64 and other is td64
-            # fill_values match but we should not cast self.block.values to dtype
-            # TODO: this will need updating if we ever have non-nano dt64/td64
-            return False
-
-        if na_value is NA and needs_i8_conversion(dtype):
-            # FIXME: kludge; test_append_empty_frame_with_timedelta64ns_nat
-            #  e.g. self.dtype == "Int64" and dtype is td64, we dont want
-            #  to consider these as matching
-            return False
-
-        # TODO: better to use can_hold_element?
-        return is_valid_na_for_dtype(na_value, dtype)
-
     @cache_readonly
     def is_na(self) -> bool:
         blk = self.block
         if blk.dtype.kind == "V":
             return True
-
-        if not blk._can_hold_na:
-            return False
-
-        values = blk.values
-        if values.size == 0:
-            return True
-        if isinstance(values.dtype, SparseDtype):
-            return False
-
-        if values.ndim == 1:
-            # TODO(EA2D): no need for special case with 2D EAs
-            val = values[0]
-            if not is_scalar(val) or not isna(val):
-                # ideally isna_all would do this short-circuiting
-                return False
-            return isna_all(values)
-        else:
-            val = values[0][0]
-            if not is_scalar(val) or not isna(val):
-                # ideally isna_all would do this short-circuiting
-                return False
-            return all(isna_all(row) for row in values)
+        return False
 
     def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
         values: ArrayLike
 
-        if upcasted_na is None and self.block.dtype.kind != "V":
+        if upcasted_na is None and not self.is_na:
             # No upcasting is necessary
             fill_value = self.block.fill_value
             values = self.block.get_values()
         else:
             fill_value = upcasted_na
 
-            if self._is_valid_na_for(empty_dtype):
-                # note: always holds when self.block.dtype.kind == "V"
-                blk_dtype = self.block.dtype
-
-                if blk_dtype == np.dtype("object"):
-                    # we want to avoid filling with np.nan if we are
-                    # using None; we already know that we are all
-                    # nulls
-                    values = self.block.values.ravel(order="K")
-                    if len(values) and values[0] is None:
-                        fill_value = None
+            if self.is_na:
 
                 if is_datetime64tz_dtype(empty_dtype):
                     i8values = np.full(self.shape, fill_value.value)
@@ -535,8 +461,7 @@ def _concatenate_join_units(
 
     empty_dtype = _get_empty_dtype(join_units)
 
-    has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
-    upcasted_na = _dtype_to_na_value(empty_dtype, has_none_blocks)
+    upcasted_na = _dtype_to_na_value(empty_dtype)
 
     to_concat = [
         ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
@@ -576,7 +501,7 @@ def _concatenate_join_units(
     return concat_values
 
 
-def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
+def _dtype_to_na_value(dtype: DtypeObj):
     """
     Find the NA value to go with this dtype.
     """
@@ -590,9 +515,6 @@ def _dtype_to_na_value(dtype: DtypeObj, has_none_blocks: bool):
         # different from missing.na_value_for_dtype
         return None
     elif dtype.kind in ["i", "u"]:
-        if not has_none_blocks:
-            # different from missing.na_value_for_dtype
-            return None
         return np.nan
     elif dtype.kind == "O":
         return np.nan
@@ -618,11 +540,9 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         empty_dtype = join_units[0].block.dtype
         return empty_dtype
 
-    has_none_blocks = any(unit.block.dtype.kind == "V" for unit in join_units)
+    has_none_blocks = any(unit.is_na for unit in join_units)
 
     dtypes = [unit.dtype for unit in join_units if not unit.is_na]
-    if not len(dtypes):
-        dtypes = [unit.dtype for unit in join_units if unit.block.dtype.kind != "V"]
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
