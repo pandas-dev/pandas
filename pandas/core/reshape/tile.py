@@ -113,7 +113,7 @@ def cut(
         An array-like object representing the respective bin for each value
         of `x`. The type depends on the value of `labels`.
 
-        * True (default) : returns a Series for Series `x` or a
+        * None (default) : returns a Series for Series `x` or a
           Categorical for all other inputs. The values stored within
           are Interval dtype.
 
