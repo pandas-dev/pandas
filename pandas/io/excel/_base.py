@@ -691,7 +691,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
         .. versionadded:: 1.3.0
     engine_kwargs : dict, optional
-        Keyword arguments to be passed into the engine. Not supported for odswriter.
+        Keyword arguments to be passed into the engine. These will be passed to
+        the following functions of the respective engines:
+
+        * odswriter: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
+        * xlsxwriter: ``xlsxwriter.Workbook(file, **engine_kwargs)``
+        * xlwt: ``xlwt.Workbook(encoding, **engine_kwargs)``
+        * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
+        * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
 
         .. versionadded:: 1.3.0
     **kwargs : dict, optional
