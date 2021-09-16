@@ -8,7 +8,6 @@ from operator import (
 import re
 import textwrap
 from typing import (
-    Callable,
     Sequence,
     TypeVar,
     Union,
@@ -635,13 +634,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed: str = "right",
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
-        # These need to be imported here to avoid circular dependencies.
         from pandas import (
             to_datetime,
+            to_numeric,
             to_timedelta,
         )
 
-        pattern = re.compile(r"\(.*,.*]")
+        # The different closing brackets define which pattern to look for.
+        brackets = {
+            "right": ("(", "]"),
+            "left": ("[", ")"),
+            "both": ("[", "]"),
+            "neither": ("(", ")"),
+        }
+        pattern = re.compile(
+            "\\" + brackets[closed][0] + ".*,.*\\" + brackets[closed][1]
+        )
 
         left, right = [], []
         for string in data:
@@ -651,7 +659,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             if breaks_match is None:
                 raise ValueError(
-                    "Could not find opening '(' and closing ']' "
+                    f"Could not find opening '{brackets[closed][0]}' "
+                    f"and closing '{brackets[closed][1]}' "
                     f"brackets in string: '{string}'"
                 )
             # Try to split 'left' and 'right' based on a comma and a space.
@@ -662,24 +671,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     f"Delimiter ', ' (comma + space) not found in string: {string}"
                 )
 
-            conversions: list[Callable] = [int, float, to_datetime, to_timedelta]
-            # Try to parse the breaks first as floats, then datetime, then timedelta.
-            for i, conversion in enumerate(conversions):
-                # Check if all breaks can be parsed as integers.
-                if i == 0 and not all(b.isdigit() for b in breaks):
-                    continue
+            # Try different types of string parsers in succession
+            # First try to parse the breaks as numbers (int, float etc.)
+            try:
+                newleft, newright = to_numeric(breaks, errors="raise")
+            except ValueError:
+                # If that failed, try parsing as datetime
                 try:
-                    newleft, newright = map(conversion, breaks)
-                    left.append(newleft)
-                    right.append(newright)
-                    break
+                    newleft, newright = to_datetime(breaks, errors="raise")
                 except ValueError:
-                    continue
-            else:
-                raise ValueError(
-                    "Could not parse string as Interval of float, Timedelta "
-                    f"or Timestamp: {string}"
-                )
+                    # If that also failed, try as timedelta
+                    try:
+                        newleft, newright = to_timedelta(breaks, errors="raise")
+                    except ValueError:
+                        # Finally, if all fails, raise an exception
+                        raise ValueError(
+                            "Could not parse string as numeric, Timedelta "
+                            f"or Timestamp Interval: {string}"
+                        )
+            left.append(newleft)
+            right.append(newright)
 
         # If dtype was not an IntervalDtype, try to parse it as such.
         if dtype is not None and not isinstance(dtype, IntervalDtype):

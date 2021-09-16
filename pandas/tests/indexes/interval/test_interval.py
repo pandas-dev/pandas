@@ -927,44 +927,58 @@ class TestIntervalIndex:
         tm.assert_index_equal(result, idx)
 
 
+@pytest.mark.parametrize("closed", ["left", "right", "both", "neither"])
 @pytest.mark.parametrize(
     "test_case",
     [
         (
             "float64",
-            IntervalIndex.from_breaks([0.0, 0.5, 1.0]),
-            ["(0.0, 0.5]", "(0.5, 1.0]"],
+            [0.0, 0.5, 1.0],
+            ["0.0, 0.5", "0.5, 1.0"],
         ),
-        ("int64", IntervalIndex.from_breaks([0, 5, 10]), ["(0, 5]", "(5, 10]"]),
+        ("int64", [0, 5, 10], ["0, 5", "5, 10"]),
         (
             "datetime64[ns]",
-            IntervalIndex.from_breaks(
-                [Timestamp(2015, 7, 1), Timestamp(2016, 8, 1), Timestamp(2018, 9, 1)]
-            ),
-            ["(2015-07-01, 2016-08-01]", "(2016-08-01, 2018-09-01]"],
+            [Timestamp(2015, 7, 1), Timestamp(2016, 8, 1), Timestamp(2018, 9, 1)],
+            ["2015-07-01, 2016-08-01", "2016-08-01, 2018-09-01"],
         ),
     ],
 )
-def test_from_strings(test_case):
+def test_from_strings(closed, test_case):
     """Test the IntervalIndex.from_strings class method."""
     # See https://github.com/pandas-dev/pandas/pull/41451
-    dtype, expected, string = test_case
+    dtype, expected, strings = test_case
 
-    # Attempt to parse the type dynamically
-    parsed_index = IntervalIndex.from_strings(string)
-    assert np.array_equal(parsed_index, expected)
-    assert parsed_index.left.dtype == dtype
+    brackets = {
+        "right": ("(", "]"),
+        "left": ("[", ")"),
+        "both": ("[", "]"),
+        "neither": ("(", ")"),
+    }
+    # Assign the brackets associated to the closed type to be tested
+    interval_strings = [brackets[closed][0] + s + brackets[closed][1] for s in strings]
+
+    # Attempt to infer the type dynamically
+    tm.assert_index_equal(
+        IntervalIndex.from_strings(interval_strings, closed=closed),
+        IntervalIndex.from_breaks(expected, closed=closed),
+        exact=True,
+    )
 
     # Parse it with a fixed dtype and assert that the result is correct.
-    parsed_index_static = IntervalIndex.from_strings(string, dtype=np.dtype(dtype))
-    assert np.array_equal(parsed_index, parsed_index_static)
-    assert parsed_index.dtype == parsed_index_static.dtype
+    tm.assert_index_equal(
+        IntervalIndex.from_strings(
+            interval_strings, dtype=np.dtype(dtype), closed=closed
+        ),
+        IntervalIndex.from_breaks(expected, closed=closed),
+        exact=True,
+    )
 
 
 @pytest.mark.parametrize(
     "wrong_indices",
     [
-        ("('hello', 'there']", r"Could not parse string as Interval"),
+        ("('hello', 'there']", r"Could not parse string as numeric"),
         ("(0.1,0.1)", r"Could not find opening '\(' and closing ']'"),
         ("(0.0,0.5]", r"Delimiter ', ' .* not found"),
     ],
