@@ -210,8 +210,6 @@ class TestGetLoc:
 class TestGetIndexer:
     def test_get_indexer_base(self, index):
 
-        print(index)
-
         if index._index_as_unique:
             expected = np.arange(index.size, dtype=np.intp)
             actual = index.get_indexer(index)

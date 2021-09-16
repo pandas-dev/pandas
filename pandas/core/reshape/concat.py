@@ -695,7 +695,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         else:
             levels = [ensure_index(x) for x in levels]
 
-    if not all_indexes_same(indexes):
+    if not all_indexes_same(indexes) or not all(level.is_unique for level in levels):
         codes_list = []
 
         # things are potentially different sizes, so compute the exact codes
@@ -755,7 +755,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     for hlevel, level in zip(zipped, levels):
         hlevel = ensure_index(hlevel)
-        mapped = level.get_indexer(hlevel, enforce_unique=False)
+        mapped = level.get_indexer(hlevel)
 
         mask = mapped == -1
         if mask.any():
