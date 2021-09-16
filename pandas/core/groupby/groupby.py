@@ -1448,6 +1448,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         *,
         alias: str,
         npfunc: Callable,
+        skipna=True,
     ):
 
         with group_selection_context(self):
@@ -1457,6 +1458,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 alt=npfunc,
                 numeric_only=numeric_only,
                 min_count=min_count,
+                skipna=skipna,
             )
             return result.__finalize__(self.obj, method="groupby")
 
@@ -1501,7 +1503,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return ensure_block_shape(res_values, ndim=ndim)
 
     def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1
+        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1,
+        skipna: bool = False,
     ):
         raise AbstractMethodError(self)
 
@@ -1967,7 +1970,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @doc(_groupby_agg_method_template, fname="sum", no=True, mc=0)
     def sum(
-        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        min_count: int = 0,
+        skipna: bool = True,
     ):
         numeric_only = self._resolve_numeric_only(numeric_only)
 
@@ -1980,6 +1986,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 min_count=min_count,
                 alias="add",
                 npfunc=np.sum,
+                skipna=skipna,
             )
 
         return self._reindex_output(result, fill_value=0)
@@ -1987,12 +1994,19 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @doc(_groupby_agg_method_template, fname="prod", no=True, mc=0)
     def prod(
-        self, numeric_only: bool | lib.NoDefault = lib.no_default, min_count: int = 0
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        min_count: int = 0,
+        skipna: bool = True,
     ):
         numeric_only = self._resolve_numeric_only(numeric_only)
 
         return self._agg_general(
-            numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
+            numeric_only=numeric_only,
+            min_count=min_count,
+            alias="prod",
+            npfunc=np.prod,
+            skipna=skipna,
         )
 
     @final

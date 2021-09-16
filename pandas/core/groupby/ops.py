@@ -322,6 +322,7 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
+        skipna: bool = True,
         **kwargs,
     ) -> ArrayLike:
         """
@@ -335,6 +336,7 @@ class WrappedCythonOp:
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
+                skipna=skipna,
                 **kwargs,
             )
 
@@ -359,6 +361,7 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=None,
+            skipna=skipna,
             **kwargs,
         )
 
@@ -393,6 +396,7 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
+        skipna: bool = True,
         **kwargs,
     ) -> BaseMaskedArray:
         """
@@ -413,6 +417,7 @@ class WrappedCythonOp:
             comp_ids=comp_ids,
             mask=mask,
             result_mask=result_mask,
+            skipna=skipna,
             **kwargs,
         )
 
@@ -435,6 +440,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: np.ndarray | None = None,
         result_mask: np.ndarray | None = None,
+        skipna: bool = True,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
@@ -451,6 +457,7 @@ class WrappedCythonOp:
                 comp_ids=comp_ids,
                 mask=mask,
                 result_mask=result_mask,
+                skipna=skipna,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -466,6 +473,7 @@ class WrappedCythonOp:
             comp_ids=comp_ids,
             mask=mask,
             result_mask=result_mask,
+            skipna=skipna,
             **kwargs,
         )
 
@@ -479,6 +487,7 @@ class WrappedCythonOp:
         comp_ids: np.ndarray,
         mask: np.ndarray | None,
         result_mask: np.ndarray | None,
+        skipna: bool = True,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
         orig_values = values
@@ -524,9 +533,10 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
+                    skipna=skipna,
                 )
             else:
-                func(result, counts, values, comp_ids, min_count)
+                func(result, counts, values, comp_ids, min_count, skipna=skipna)
         else:
             # TODO: min_count
             if self.uses_mask():
@@ -537,10 +547,19 @@ class WrappedCythonOp:
                     ngroups,
                     is_datetimelike,
                     mask=mask,
+                    skipna=skipna,
                     **kwargs,
                 )
             else:
-                func(result, values, comp_ids, ngroups, is_datetimelike, **kwargs)
+                func(
+                    result,
+                    values,
+                    comp_ids,
+                    ngroups,
+                    is_datetimelike,
+                    skipna=skipna,
+                    **kwargs,
+                )
 
         if self.kind == "aggregate":
             # i.e. counts is defined.  Locations where count<min_count
@@ -574,9 +593,10 @@ class WrappedCythonOp:
         *,
         values: ArrayLike,
         axis: int,
-        min_count: int = -1,
         comp_ids: np.ndarray,
         ngroups: int,
+        min_count: int = -1,
+        skipna: bool = True,
         **kwargs,
     ) -> ArrayLike:
         """
@@ -605,6 +625,7 @@ class WrappedCythonOp:
                 min_count=min_count,
                 ngroups=ngroups,
                 comp_ids=comp_ids,
+                skipna=skipna,
                 **kwargs,
             )
 
@@ -614,6 +635,7 @@ class WrappedCythonOp:
             ngroups=ngroups,
             comp_ids=comp_ids,
             mask=None,
+            skipna=skipna,
             **kwargs,
         )
 
@@ -890,6 +912,7 @@ class BaseGrouper:
         how: str,
         axis: int,
         min_count: int = -1,
+        skipna: bool = True,
         **kwargs,
     ) -> ArrayLike:
         """
@@ -907,6 +930,7 @@ class BaseGrouper:
             min_count=min_count,
             comp_ids=ids,
             ngroups=ngroups,
+            skipna=skipna,
             **kwargs,
         )
 
