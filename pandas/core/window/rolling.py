@@ -594,7 +594,7 @@ class BaseWindow(SelectionMixin):
             closed=self.closed,
         )
         aggregator = executor.generate_shared_aggregator(
-            kwargs, func, engine_kwargs, numba_cache_key_str
+            func, kwargs, engine_kwargs, numba_cache_key_str
         )
         result = aggregator(values, start, end, min_periods, *numba_args)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator

@@ -17,8 +17,8 @@ from pandas.core.util.numba_ import (
 
 
 def generate_shared_aggregator(
-    kwargs: dict[str, Any],
     func: Callable[..., Scalar],
+    kwargs: dict[str, Any],
     engine_kwargs: dict[str, bool] | None,
     cache_key_str: str,
 ):
@@ -28,10 +28,10 @@ def generate_shared_aggregator(
 
     Parameters
     ----------
-    kwargs : dict
-        **kwargs to be passed into the function
     func : function
         function to be applied to each window and will be JITed
+    kwargs : dict
+        **kwargs to be passed into the function
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
     cache_key_str: str
