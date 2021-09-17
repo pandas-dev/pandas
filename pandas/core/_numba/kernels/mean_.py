@@ -6,12 +6,14 @@ Numba 1D aggregation kernels that can be shared by
 
 Mirrors pandas/_libs/window/aggregation.pyx
 """
+from __future__ import annotations
+
 import numba
 import numpy as np
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
-def is_monotonic_increasing(bounds):
+def is_monotonic_increasing(bounds: np.ndarray) -> bool:
     n = len(bounds)
     if n == 1:
         return bounds[0] == bounds[0]
@@ -26,7 +28,9 @@ def is_monotonic_increasing(bounds):
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
-def add_mean(val, nobs, sum_x, neg_ct, compensation):
+def add_mean(
+    val: float, nobs: float, sum_x: float, neg_ct: int, compensation: float
+) -> tuple[float, float, int, float]:
     if not np.isnan(val):
         nobs += 1
         y = val - compensation
@@ -39,7 +43,9 @@ def add_mean(val, nobs, sum_x, neg_ct, compensation):
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
-def remove_mean(val, nobs, sum_x, neg_ct, compensation):
+def remove_mean(
+    val: float, nobs: float, sum_x: float, neg_ct: int, compensation: float
+) -> tuple[float, float, int, float]:
     if not np.isnan(val):
         nobs -= 1
         y = -val - compensation
@@ -57,7 +63,7 @@ def sliding_mean(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
-):
+) -> np.ndarray:
     N = len(start)
     nobs = 0.0
     sum_x = 0.0
