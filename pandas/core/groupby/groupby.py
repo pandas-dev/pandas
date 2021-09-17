@@ -2396,7 +2396,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @Substitution(see_also=_common_see_also)
     def nth(
         self,
-        arg: PositionalIndexer | tuple,
+        n: PositionalIndexer | tuple,
         dropna: Literal["any", "all", None] = None,
     ) -> FrameOrSeries:
         """
@@ -2408,15 +2408,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         Parameters
         ----------
-        arg : int, slice or list of ints and slices
+        n : int, slice or list of ints and slices
             A single nth value for the row or a list of nth values or slices.
 
             .. versionchanged:: 1.4.0
-                Added slice and lists containiing slices
+                Added slice and lists containiing slices.
 
         dropna : {'any', 'all', None}, default None
             Apply the specified dropna operation before counting which row is
-            the nth row.
+            the nth row. Only supported if n is an int.
 
         Returns
         -------
@@ -2482,13 +2482,13 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         4  2  5.0
         """
         if not dropna:
-            if isinstance(arg, Iterable):
-                return self._rows[tuple(arg)]
+            if isinstance(n, Iterable):
+                return self._rows[tuple(n)]
 
-            return self._rows[arg]
+            return self._rows[n]
 
         # dropna is truthy
-        if not is_integer(arg):
+        if not is_integer(n):
             raise ValueError("dropna option only supported for an integer argument")
 
         if dropna not in ["any", "all"]:
@@ -2501,7 +2501,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
-        n = cast(int, arg)
+        n = cast(int, n)
         max_len = n if n >= 0 else -1 - n
         dropped = self.obj.dropna(how=dropna, axis=self.axis)
 

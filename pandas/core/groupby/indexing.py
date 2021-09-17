@@ -125,7 +125,7 @@ class RowsGroupByIndexer:
 
             return result
 
-    def _handle_int(self, arg: int) -> bool | np.ndarray:
+    def _handle_int(self, arg: int) -> np.ndarray:
         if arg >= 0:
             return self._ascending_count == arg
         else:
