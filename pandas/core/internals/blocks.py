@@ -1290,6 +1290,7 @@ class Block(PandasObject):
         unstacker : reshape._Unstacker
         fill_value : int
             Only used in ExtensionBlock._unstack
+        new_placement : np.ndarray[np.intp]
         allow_fill : bool
 
         Returns
@@ -1922,13 +1923,12 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     return values
 
 
-def get_block_type(values, dtype: DtypeObj | None = None):
+def get_block_type(dtype: DtypeObj):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
     Parameters
     ----------
-    values : ndarray-like
     dtype : numpy or pandas dtype
 
     Returns
@@ -1937,9 +1937,6 @@ def get_block_type(values, dtype: DtypeObj | None = None):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    if dtype is None:
-        dtype = values.dtype
-
     vtype = dtype.type
     kind = dtype.kind
 
@@ -1974,7 +1971,7 @@ def new_block(values, placement, *, ndim: int, klass=None) -> Block:
     check_ndim(values, placement, ndim)
 
     if klass is None:
-        klass = get_block_type(values, values.dtype)
+        klass = get_block_type(values.dtype)
 
     values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
