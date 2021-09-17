@@ -23,15 +23,16 @@ def generate_shared_aggregator(
     cache_key_str: str,
 ):
     """
-    Generate a numba function that loops over the columns 2D object and applies
+    Generate a Numba function that loops over the columns 2D object and applies
     a 1D numba kernel over each column.
 
     Parameters
     ----------
     func : function
-        function to be applied to each window and will be JITed
+        aggregation function to be applied to each column
     kwargs : dict
-        **kwargs to be passed into the function
+        **kwargs to be passed into the function. Should be unused as not
+        supported by Numba
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
     cache_key_str: str
