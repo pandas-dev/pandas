@@ -2,9 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import (
-    is_platform_arm,
-)
+from pandas.compat import is_platform_arm
 
 import pandas as pd
 from pandas import (
