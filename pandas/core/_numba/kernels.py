@@ -53,9 +53,9 @@ def remove_mean(val, nobs, sum_x, neg_ct, compensation):
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_mean(
-    values: np.array,
-    start: np.array,
-    end: np.array,
+    values: np.ndarray,
+    start: np.ndarray,
+    end: np.ndarray,
     min_periods: int,
 ):
     N = len(start)

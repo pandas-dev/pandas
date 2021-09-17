@@ -572,8 +572,8 @@ class BaseWindow(SelectionMixin):
     def _numba_apply(
         self,
         func: Callable[..., Any],
-        engine_kwargs: dict[str, bool],
         numba_cache_key_str: str,
+        engine_kwargs: dict[str, bool] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
     ):
@@ -1366,7 +1366,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_mean
 
-                return self._numba_apply(sliding_mean, engine_kwargs, "rolling_mean")
+                return self._numba_apply(sliding_mean, "rolling_mean", engine_kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
