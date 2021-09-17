@@ -247,6 +247,5 @@ class TestDataFrameMissingData:
     def test_dropna_retains_RangeIndex_when_nothing_dropped(self):
         # GH#41965
         df = DataFrame({"a": range(10)})
-        expected = df.index.__repr__()
-        assert expected == df.dropna().index.__repr__()
-        assert expected == df.dropna(axis="index").index.__repr__()
+        tm.assert_frame_equal(df, df.dropna(), check_exact=True)
+        tm.assert_frame_equal(df, df.dropna(axis="index"), check_exact=True)
