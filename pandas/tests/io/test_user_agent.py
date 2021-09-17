@@ -13,8 +13,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.single
-
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):
     """
