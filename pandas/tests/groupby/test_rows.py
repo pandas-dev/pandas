@@ -1,4 +1,4 @@
-""" Test GroupBy.rows positional grouped indexing GH#42864"""
+# Test GroupBy._rows positional grouped indexing GH#42864
 
 import random
 
@@ -20,8 +20,7 @@ import pandas._testing as tm
     ],
 )
 def test_int(slice_test_df, slice_test_grouped, arg, expected_rows):
-    """Test single integer"""
-
+    # Test single integer
     result = slice_test_grouped._rows[arg]
     expected = slice_test_df.iloc[expected_rows]
 
@@ -29,8 +28,7 @@ def test_int(slice_test_df, slice_test_grouped, arg, expected_rows):
 
 
 def test_slice(slice_test_df, slice_test_grouped):
-    """Test single slice"""
-
+    # Test single slice
     result = slice_test_grouped._rows[0:3:2]
     expected = slice_test_df.iloc[[0, 1, 4, 5]]
 
@@ -53,8 +51,7 @@ def test_slice(slice_test_df, slice_test_grouped):
     ],
 )
 def test_list(slice_test_df, slice_test_grouped, arg, expected_rows):
-    """Test lists of integers and integer valued iterables"""
-
+    # Test lists of integers and integer valued iterables
     result = slice_test_grouped._rows[arg]
     expected = slice_test_df.iloc[expected_rows]
 
@@ -62,8 +59,7 @@ def test_list(slice_test_df, slice_test_grouped, arg, expected_rows):
 
 
 def test_ints(slice_test_df, slice_test_grouped):
-    """Test tuple of ints"""
-
+    # Test tuple of ints
     result = slice_test_grouped._rows[0, 2, -1]
     expected = slice_test_df.iloc[[0, 1, 3, 4, 5, 7]]
 
@@ -71,8 +67,7 @@ def test_ints(slice_test_df, slice_test_grouped):
 
 
 def test_slices(slice_test_df, slice_test_grouped):
-    """Test tuple of slices"""
-
+    # Test tuple of slices
     result = slice_test_grouped._rows[:2, -2:]
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
@@ -80,8 +75,7 @@ def test_slices(slice_test_df, slice_test_grouped):
 
 
 def test_mix(slice_test_df, slice_test_grouped):
-    """Test mixed tuple of ints and slices"""
-
+    # Test mixed tuple of ints and slices
     result = slice_test_grouped._rows[0, 1, -2:]
     expected = slice_test_df.iloc[[0, 1, 2, 3, 4, 6, 7]]
 
@@ -97,6 +91,7 @@ def test_mix(slice_test_df, slice_test_grouped):
     ],
 )
 def test_as_index(slice_test_df, arg, expected_rows):
+    # Test the default as_index behaviour
     result = slice_test_df.groupby("Group", sort=False)._rows[arg]
     expected = slice_test_df.iloc[expected_rows].set_index("Group")
 
@@ -104,8 +99,7 @@ def test_as_index(slice_test_df, arg, expected_rows):
 
 
 def test_doc_examples():
-    """Test the examples in the documentation"""
-
+    # Test the examples in the documentation
     df = pd.DataFrame(
         [["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]], columns=["A", "B"]
     )
@@ -157,8 +151,7 @@ def _make_df_from_data(data):
 
 
 def test_multiindex(multiindex_data):
-    """Test the multiindex mentioned as the use-case in the documentation"""
-
+    # Test the multiindex mentioned as the use-case in the documentation
     df = _make_df_from_data(multiindex_data)
     result = df.groupby("Date", as_index=False).nth(slice(3, -3))
 
@@ -172,8 +165,7 @@ def test_multiindex(multiindex_data):
 @pytest.mark.parametrize("method", ["head", "tail"])
 @pytest.mark.parametrize("simulated", [True, False])
 def test_against_head_and_tail(arg, method, simulated):
-    """Test gives the same results as grouped head and tail"""
-
+    # Test gives the same results as grouped head and tail
     n_groups = 100
     n_rows_per_group = 30
 
@@ -227,8 +219,7 @@ def test_against_head_and_tail(arg, method, simulated):
 @pytest.mark.parametrize("stop", [None, 0, 1, 10, -1, -10])
 @pytest.mark.parametrize("step", [None, 1, 5])
 def test_against_df_iloc(start, stop, step):
-    """Test that a single group gives the same results as DataFame.iloc"""
-
+    # Test that a single group gives the same results as DataFame.iloc
     n_rows = 30
 
     data = {
@@ -245,8 +236,7 @@ def test_against_df_iloc(start, stop, step):
 
 
 def test_series():
-    """Test grouped Series"""
-
+    # Test grouped Series
     ser = pd.Series([1, 2, 3, 4, 5], index=["a", "a", "a", "b", "b"])
     grouped = ser.groupby(level=0)
     result = grouped._rows[1:2]
@@ -257,8 +247,7 @@ def test_series():
 
 @pytest.mark.parametrize("step", [1, 2, 3, 4, 5])
 def test_step(step):
-    """Test slice with various step values"""
-
+    # Test slice with various step values
     data = [["x", f"x{i}"] for i in range(5)]
     data += [["y", f"y{i}"] for i in range(4)]
     data += [["z", f"z{i}"] for i in range(3)]
