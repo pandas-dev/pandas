@@ -9,7 +9,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import internals as libinternals
+from pandas._libs import (
+    NaT,
+    internals as libinternals,
+)
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
@@ -290,9 +293,21 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
     assert 0 not in indexers
 
+    needs_filling = False
+    if 1 in indexers:
+        # indexers[1] is shared by all the JoinUnits, so we can save time
+        #  by only doing this check once
+        if (indexers[1] == -1).any():
+            needs_filling = True
+
     if mgr.is_single_block:
         blk = mgr.blocks[0]
-        return [(blk.mgr_locs, JoinUnit(blk, mgr_shape, indexers))]
+        return [
+            (
+                blk.mgr_locs,
+                JoinUnit(blk, mgr_shape, indexers, needs_filling=needs_filling),
+            )
+        ]
 
     blknos = mgr.blknos
     blklocs = mgr.blklocs
@@ -336,7 +351,7 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
         # Assertions disabled for performance
         # assert blk._mgr_locs.as_slice == placements.as_slice
         # assert blk.shape[0] == shape[0]
-        unit = JoinUnit(blk, shape, join_unit_indexers)
+        unit = JoinUnit(blk, shape, join_unit_indexers, needs_filling=needs_filling)
 
         plan.append((placements, unit))
 
@@ -344,7 +359,9 @@ def _get_mgr_concatenation_plan(mgr: BlockManager, indexers: dict[int, np.ndarra
 
 
 class JoinUnit:
-    def __init__(self, block: Block, shape: Shape, indexers=None):
+    def __init__(
+        self, block: Block, shape: Shape, indexers=None, *, needs_filling: bool = False
+    ):
         # Passing shape explicitly is required for cases when block is None.
         # Note: block is None implies indexers is None, but not vice-versa
         if indexers is None:
@@ -354,27 +371,10 @@ class JoinUnit:
         self.indexers = indexers
         self.shape = shape
 
+        self.needs_filling = needs_filling
+
     def __repr__(self) -> str:
         return f"{type(self).__name__}({repr(self.block)}, {self.indexers})"
-
-    @cache_readonly
-    def needs_filling(self) -> bool:
-        for indexer in self.indexers.values():
-            # FIXME: cache results of indexer == -1 checks.
-            if (indexer == -1).any():
-                return True
-
-        return False
-
-    @cache_readonly
-    def dtype(self):
-        blk = self.block
-        if blk.values.dtype.kind == "V":
-            raise AssertionError("Block is None, no dtype")
-
-        if not self.needs_filling:
-            return blk.dtype
-        return ensure_dtype_can_hold_na(blk.dtype)
 
     @cache_readonly
     def is_na(self) -> bool:
@@ -383,59 +383,21 @@ class JoinUnit:
             return True
         return False
 
-    def get_reindexed_values(self, empty_dtype: DtypeObj, upcasted_na) -> ArrayLike:
+    def get_reindexed_values(self, empty_dtype: DtypeObj) -> ArrayLike:
         values: ArrayLike
 
-        if upcasted_na is None and not self.is_na:
-            # No upcasting is necessary
-            fill_value = self.block.fill_value
-            values = self.block.get_values()
+        if self.is_na:
+            return make_na_array(empty_dtype, self.shape)
+
         else:
-            fill_value = upcasted_na
-
-            if self.is_na:
-
-                if is_datetime64tz_dtype(empty_dtype):
-                    i8values = np.full(self.shape, fill_value.value)
-                    return DatetimeArray(i8values, dtype=empty_dtype)
-
-                elif is_1d_only_ea_dtype(empty_dtype):
-                    empty_dtype = cast(ExtensionDtype, empty_dtype)
-                    cls = empty_dtype.construct_array_type()
-
-                    missing_arr = cls._from_sequence([], dtype=empty_dtype)
-                    ncols, nrows = self.shape
-                    assert ncols == 1, ncols
-                    empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
-                    return missing_arr.take(
-                        empty_arr, allow_fill=True, fill_value=fill_value
-                    )
-                elif isinstance(empty_dtype, ExtensionDtype):
-                    # TODO: no tests get here, a handful would if we disabled
-                    #  the dt64tz special-case above (which is faster)
-                    cls = empty_dtype.construct_array_type()
-                    missing_arr = cls._empty(shape=self.shape, dtype=empty_dtype)
-                    missing_arr[:] = fill_value
-                    return missing_arr
-                else:
-                    # NB: we should never get here with empty_dtype integer or bool;
-                    #  if we did, the missing_arr.fill would cast to gibberish
-                    missing_arr = np.empty(self.shape, dtype=empty_dtype)
-                    missing_arr.fill(fill_value)
-                    return missing_arr
 
             if (not self.indexers) and (not self.block._can_consolidate):
                 # preserve these for validation in concat_compat
                 return self.block.values
 
-            if self.block.is_bool:
-                # External code requested filling/upcasting, bool values must
-                # be upcasted to object to avoid being upcasted to numeric.
-                values = self.block.astype(np.object_).values
-            else:
-                # No dtype upcasting is done here, it will be performed during
-                # concatenation itself.
-                values = self.block.values
+            # No dtype upcasting is done here, it will be performed during
+            # concatenation itself.
+            values = self.block.values
 
         if not self.indexers:
             # If there's no indexing to be done, we want to signal outside
@@ -450,6 +412,40 @@ class JoinUnit:
         return values
 
 
+def make_na_array(dtype: DtypeObj, shape: Shape) -> ArrayLike:
+    """
+    Construct an np.ndarray or ExtensionArray of the given dtype and shape
+    holding all-NA values.
+    """
+    if is_datetime64tz_dtype(dtype):
+        # NaT here is analogous to dtype.na_value below
+        i8values = np.full(shape, NaT.value)
+        return DatetimeArray(i8values, dtype=dtype)
+
+    elif is_1d_only_ea_dtype(dtype):
+        dtype = cast(ExtensionDtype, dtype)
+        cls = dtype.construct_array_type()
+
+        missing_arr = cls._from_sequence([], dtype=dtype)
+        nrows = shape[-1]
+        taker = -1 * np.ones((nrows,), dtype=np.intp)
+        return missing_arr.take(taker, allow_fill=True, fill_value=dtype.na_value)
+    elif isinstance(dtype, ExtensionDtype):
+        # TODO: no tests get here, a handful would if we disabled
+        #  the dt64tz special-case above (which is faster)
+        cls = dtype.construct_array_type()
+        missing_arr = cls._empty(shape=shape, dtype=dtype)
+        missing_arr[:] = dtype.na_value
+        return missing_arr
+    else:
+        # NB: we should never get here with dtype integer or bool;
+        #  if we did, the missing_arr.fill would cast to gibberish
+        missing_arr = np.empty(shape, dtype=dtype)
+        fill_value = _dtype_to_na_value(dtype)
+        missing_arr.fill(fill_value)
+        return missing_arr
+
+
 def _concatenate_join_units(
     join_units: list[JoinUnit], concat_axis: int, copy: bool
 ) -> ArrayLike:
@@ -462,12 +458,7 @@ def _concatenate_join_units(
 
     empty_dtype = _get_empty_dtype(join_units)
 
-    upcasted_na = _dtype_to_na_value(empty_dtype)
-
-    to_concat = [
-        ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
-        for ju in join_units
-    ]
+    to_concat = [ju.get_reindexed_values(empty_dtype=empty_dtype) for ju in join_units]
 
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
@@ -541,12 +532,12 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         empty_dtype = join_units[0].block.dtype
         return empty_dtype
 
-    has_none_blocks = any(unit.is_na for unit in join_units)
+    needs_can_hold_na = any(unit.is_na or unit.needs_filling for unit in join_units)
 
-    dtypes = [unit.dtype for unit in join_units if not unit.is_na]
+    dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
 
     dtype = find_common_type(dtypes)
-    if has_none_blocks:
+    if needs_can_hold_na:
         dtype = ensure_dtype_can_hold_na(dtype)
     return dtype
 
@@ -609,7 +600,13 @@ def _trim_join_unit(join_unit: JoinUnit, length: int) -> JoinUnit:
     extra_shape = (join_unit.shape[0] - length,) + join_unit.shape[1:]
     join_unit.shape = (length,) + join_unit.shape[1:]
 
-    return JoinUnit(block=extra_block, indexers=extra_indexers, shape=extra_shape)
+    # extra_indexers does not introduce any -1s, so we can inherit needs_filling
+    return JoinUnit(
+        block=extra_block,
+        indexers=extra_indexers,
+        shape=extra_shape,
+        needs_filling=join_unit.needs_filling,
+    )
 
 
 def _combine_concat_plans(plans, concat_axis: int):
