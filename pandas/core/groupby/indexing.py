@@ -105,7 +105,7 @@ class RowsGroupByIndexer:
             # Drop NA values in grouping
             mask &= ids != -1
 
-            if mask is None or mask is True:
+            if mask is True:
                 result = self.groupby_object._selected_obj[:]
             else:
                 result = self.groupby_object._selected_obj[mask]
