@@ -45,3 +45,5 @@ dependencies:
   - psycopg2=2.8.4
   - pymysql=0.10.1
   - sqlalchemy=1.3.11
+  - pip:
+      - pytest-timeout

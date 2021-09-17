@@ -34,3 +34,5 @@ dependencies:
   - xlrd
   - xlsxwriter
   - xlwt
+  - pip:
+      - pytest-timeout
