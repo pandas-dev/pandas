@@ -9,4 +9,4 @@ def array_strptime(
     errors: str = "raise",
 ) -> tuple[np.ndarray, np.ndarray]: ...
 
-# first  ndarray is M8[ns], second is object ndarray of tzinfo | None
+# first ndarray is M8[ns], second is object ndarray of tzinfo | None
