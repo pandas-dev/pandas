@@ -628,18 +628,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             ),
         }
     )
-    def from_strings(
+    def _from_sequence_of_strings(
         cls: type[IntervalArrayT],
         data: Sequence[str],
         closed: str = "right",
         dtype: Dtype | None = None,
     ) -> IntervalArrayT:
-        from pandas import (
-            to_datetime,
-            to_numeric,
-            to_timedelta,
-        )
-
         # The different closing brackets define which pattern to look for.
         brackets = {
             "right": ("(", "]"),
@@ -671,24 +665,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     f"Delimiter ', ' (comma + space) not found in string: {string}"
                 )
 
-            # Try different types of string parsers in succession
-            # First try to parse the breaks as numbers (int, float etc.)
-            try:
-                newleft, newright = to_numeric(breaks, errors="raise")
-            except ValueError:
-                # If that failed, try parsing as datetime
-                try:
-                    newleft, newright = to_datetime(breaks, errors="raise")
-                except ValueError:
-                    # If that also failed, try as timedelta
-                    try:
-                        newleft, newright = to_timedelta(breaks, errors="raise")
-                    except ValueError:
-                        # Finally, if all fails, raise an exception
-                        raise ValueError(
-                            "Could not parse string as numeric, Timedelta "
-                            f"or Timestamp Interval: {string}"
-                        )
+            newleft, newright = _parse_breaks(breaks)
             left.append(newleft)
             right.append(newright)
 
@@ -1817,3 +1794,40 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
     if not hasattr(values, "dtype"):
         return np.asarray(values)
     return values
+
+
+def _parse_breaks(breaks: list[str]) -> ArrayLike:
+    """
+    Parse string representations of interval breaks.
+
+    The succession to try is:
+        1. Numeric (float, int, etc)
+        2. Timestamp
+        3. Timedelta
+
+    If none work, a ValueError is raised.
+
+    Parameters
+    ----------
+    breaks : A list of strings to parse.
+
+    Returns
+    -------
+    The parsed breaks
+    """
+    from pandas import (
+        to_datetime,
+        to_numeric,
+        to_timedelta,
+    )
+
+    for parser in [to_numeric, to_datetime, to_timedelta]:
+        try:
+            return parser(breaks, errors="raise")
+        except ValueError:
+            continue
+    else:
+        raise ValueError(
+            "Could not parse string as numeric, Timedelta "
+            f"or Timestamp  Interval: {', '.join(breaks)}"
+        )
