@@ -243,3 +243,10 @@ class TestDataFrameMissingData:
             result = df.dropna(1)
         expected = DataFrame({"a": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
+
+    def test_dropna_retains_RangeIndex_when_nothing_dropped(self):
+        # GH#41965
+        df = DataFrame({"a": range(10)})
+        expected = df.index.__repr__()
+        assert expected == df.dropna().index.__repr__()
+        assert expected == df.dropna(axis="index").index.__repr__()

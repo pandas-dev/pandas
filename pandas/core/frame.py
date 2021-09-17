@@ -6004,7 +6004,12 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 raise TypeError("must specify how or thresh")
 
-        result = self.loc(axis=axis)[mask]
+        if all(mask):
+            # if nothing to be dropped retain self
+            # retains RangeIndex # GH41965
+            result = self
+        else:
+            result = self.loc(axis=axis)[mask]
 
         if inplace:
             self._update_inplace(result)
