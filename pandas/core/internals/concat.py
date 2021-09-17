@@ -293,7 +293,8 @@ def _maybe_reindex_columns_na_proxy(
     Columns added in this reindexing have dtype=np.void, indicating they
     should be ignored when choosing a column's final dtype.
     """
-    new_mgrs_indexers = []
+    new_mgrs_indexers: list[tuple[BlockManager, dict[int, np.ndarray]]] = []
+
     for mgr, indexers in mgrs_indexers:
         # For axis=0 (i.e. columns) we use_na_proxy and only_slice, so this
         #  is a cheap reindexing.
