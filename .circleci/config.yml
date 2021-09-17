@@ -1,0 +1,21 @@
+version: 2.1
+
+jobs:
+  test-arm:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.medium
+    environment:
+      ENV_FILE: ci/deps/circle-37-arm64.yaml
+      PYTEST_WORKERS: auto
+      PATTERN: "not slow and not network and not clipboard and not arm_slow"
+      PYTEST_TARGET: "pandas"
+    steps:
+      - checkout
+      - run: ci/setup_env.sh
+      - run: PATH=$HOME/miniconda3/envs/pandas-dev/bin:$HOME/miniconda3/condabin:$PATH ci/run_tests.sh
+
+workflows:
+  test:
+    jobs:
+      - test-arm

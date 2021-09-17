@@ -2,10 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import (
-    is_platform_arm,
-    is_platform_mac,
-)
+from pandas.compat import is_platform_arm
 
 import pandas as pd
 from pandas import (
@@ -536,7 +533,7 @@ class TestUInt64Index(NumericInt):
         tm.assert_index_equal(res, idx)
 
     @pytest.mark.xfail(
-        not (is_platform_arm() and is_platform_mac()),
+        not is_platform_arm(),
         reason="https://github.com/numpy/numpy/issues/19146",
     )
     def test_constructor_does_not_cast_to_float(self):
