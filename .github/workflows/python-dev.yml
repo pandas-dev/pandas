@@ -45,7 +45,7 @@ jobs:
         pip install -i https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
         pip install git+https://github.com/pytest-dev/pytest.git
         pip install git+https://github.com/nedbat/coveragepy.git
-        pip install cython python-dateutil pytz hypothesis pytest-xdist pytest-cov
+        pip install cython python-dateutil pytz hypothesis pytest-xdist pytest-cov pytest-timeout
         pip list
 
     - name: Build Pandas

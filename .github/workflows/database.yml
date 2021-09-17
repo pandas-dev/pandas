@@ -87,7 +87,7 @@ jobs:
       uses: ./.github/actions/build_pandas
 
     - name: Test
-      run: pytest -m "${{ env.PATTERN }}" -n 2 --dist=loadfile --cov=pandas --cov-report=xml pandas/tests/io
+      run: pytest -m "${{ env.PATTERN }}" -n 2 --dist=loadfile --cov=pandas --cov-report=xml pandas/tests/io --timeout=300
       if: always()
 
     - name: Build Version
