@@ -65,11 +65,11 @@ from pandas.core.construction import (
     range_to_ndarray,
     sanitize_array,
 )
-from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     TimedeltaIndex,
+    default_index,
     ensure_index,
     get_objs_combined_axis,
     union_indexes,
@@ -502,9 +502,9 @@ def nested_data_to_arrays(
             index = _get_names_from_index(data)
         elif isinstance(data[0], Categorical):
             # GH#38845 hit in test_constructor_categorical
-            index = ibase.default_index(len(data[0]))
+            index = default_index(len(data[0]))
         else:
-            index = ibase.default_index(len(data))
+            index = default_index(len(data))
 
     return arrays, columns, index
 
@@ -665,7 +665,7 @@ def _extract_index(data) -> Index:
                     )
                     raise ValueError(msg)
             else:
-                index = ibase.default_index(lengths[0])
+                index = default_index(lengths[0])
 
     # error: Argument 1 to "ensure_index" has incompatible type "Optional[Index]";
     # expected "Union[Union[Union[ExtensionArray, ndarray], Index, Series],
@@ -707,7 +707,7 @@ def reorder_arrays(
 def _get_names_from_index(data) -> Index:
     has_some_name = any(getattr(s, "name", None) is not None for s in data)
     if not has_some_name:
-        return ibase.default_index(len(data))
+        return default_index(len(data))
 
     index: list[Hashable] = list(range(len(data)))
     count = 0
@@ -729,12 +729,12 @@ def _get_axes(
     # return axes or defaults
 
     if index is None:
-        index = ibase.default_index(N)
+        index = default_index(N)
     else:
         index = ensure_index(index)
 
     if columns is None:
-        columns = ibase.default_index(K)
+        columns = default_index(K)
     else:
         columns = ensure_index(columns)
     return index, columns
@@ -833,7 +833,7 @@ def to_arrays(
             stacklevel=4,
         )
         if columns is None:
-            columns = ibase.default_index(len(data))
+            columns = default_index(len(data))
         elif len(columns) > len(data):
             raise ValueError("len(columns) > len(data)")
         elif len(columns) < len(data):
@@ -890,7 +890,7 @@ def _list_of_series_to_arrays(
     for s in data:
         index = getattr(s, "index", None)
         if index is None:
-            index = ibase.default_index(len(s))
+            index = default_index(len(s))
 
         if id(index) in indexer_cache:
             indexer = indexer_cache[id(index)]
@@ -995,7 +995,7 @@ def _validate_or_indexify_columns(
         not equal to length of content
     """
     if columns is None:
-        columns = ibase.default_index(len(content))
+        columns = default_index(len(content))
     else:
 
         # Add mask for data which is composed of list of lists

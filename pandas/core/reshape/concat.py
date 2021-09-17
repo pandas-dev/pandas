@@ -38,11 +38,11 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
     ensure_index,
     get_objs_combined_axis,
     get_unanimous_names,
 )
-import pandas.core.indexes.base as ibase
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -619,7 +619,7 @@ class _Concatenator:
             if self.bm_axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = ibase.default_index(len(self.objs))
+                idx = default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names: list[Hashable] = [None] * len(self.objs)
@@ -640,14 +640,14 @@ class _Concatenator:
                 if has_names:
                     return Index(names)
                 else:
-                    return ibase.default_index(len(self.objs))
+                    return default_index(len(self.objs))
             else:
                 return ensure_index(self.keys).set_names(self.names)
         else:
             indexes = [x.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = ibase.default_index(sum(len(i) for i in indexes))
+            idx = default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:
