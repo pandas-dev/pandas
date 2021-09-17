@@ -709,7 +709,7 @@ def test_utf16_encoding(datapath, parser):
 
 def test_unknown_encoding(datapath, parser):
     filename = datapath("io", "data", "xml", "baby_names.xml")
-    with pytest.raises(LookupError, match=("unknown encoding: uft-8")):
+    with pytest.raises(LookupError, match=("unknown encoding: UFT-8")):
         read_xml(filename, encoding="UFT-8", parser=parser)
 
 
