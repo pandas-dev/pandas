@@ -5,7 +5,9 @@ cimport numpy as cnp
 from numpy cimport (
     float64_t,
     int8_t,
+    int16_t,
     int32_t,
+    int64_t,
     ndarray,
     uint8_t,
 )
