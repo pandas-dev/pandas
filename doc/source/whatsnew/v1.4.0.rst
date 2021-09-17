@@ -72,7 +72,7 @@ Styler
 
 :class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
 
-  - Styling of indexing has been added, with :meth:`.Styler.apply_index` and :meth:`.Styler.applymap_index`. These mirror the signature of the methods already used to style data values, and work with both HTML and LaTeX format (:issue:`41893`).
+  - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML and LaTeX format (:issue:`41893`, :issue:`43101`).
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
@@ -150,9 +150,44 @@ The ``dayfirst`` option of :func:`to_datetime` isn't strict, and this can lead t
 Now, a warning will be raised if a date string cannot be parsed accordance to the given ``dayfirst`` value when
 the value is a delimited date string (e.g. ``31-12-2012``).
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_140.notable_bug_fixes.concat_with_empty_or_all_na:
 
-notable_bug_fix2
+Ignoring dtypes in concat with empty or all-NA columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using :func:`concat` to concatenate two or more :class:`DataFrame` objects,
+if one of the DataFrames was empty or had all-NA values, its dtype was _sometimes_
+ignored when finding the concatenated dtype.  These are now consistently _not_ ignored (:issue:`43507`).
+
+.. ipython:: python
+
+    df1 = pd.DataFrame({"bar": [pd.Timestamp("2013-01-01")]}, index=range(1))
+    df2 = pd.DataFrame({"bar": np.nan}, index=range(1, 2))
+    res = df1.append(df2)
+
+Previously, the float-dtype in ``df2`` would be ignored so the result dtype would be ``datetime64[ns]``. As a result, the ``np.nan`` would be cast to ``NaT``.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [4]: res
+    Out[4]:
+             bar
+    0 2013-01-01
+    1        NaT
+
+Now the float-dtype is respected. Since the common dtype for these DataFrames is object, the ``np.nan`` is retained.
+
+*New behavior*:
+
+.. ipython:: python
+
+    res
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
+
+notable_bug_fix3
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
