@@ -67,6 +67,7 @@ markers = [
   "arm_slow: mark a test as slow for arm64 architecture",
   "arraymanager: mark a test to run with ArrayManager enabled",
 ]
+log_cli = 1
 
 [tool.mypy]
 platform = "linux-64"
