@@ -276,10 +276,6 @@ def _get_filepath_or_buffer(
 
     compression = dict(compression, method=compression_method)
 
-    # uniform encoding names
-    if encoding is not None:
-        encoding = encoding.replace("_", "-").lower()
-
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
     if (
