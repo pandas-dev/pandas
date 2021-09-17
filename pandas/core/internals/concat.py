@@ -194,13 +194,13 @@ def concatenate_managers(
     #    indexers = tup[1]
     #    assert concat_axis not in indexers
 
+    if concat_axis == 0:
+        return _concat_managers_axis0(mgrs_indexers, axes, copy)
+
     mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
 
     # Assertion disabled for performance
     # assert all(not x[1] for x in mgrs_indexers)
-
-    if concat_axis == 0:
-        return _concat_managers_axis0(mgrs_indexers, axes, copy)
 
     concat_plans = [_get_mgr_concatenation_plan(mgr) for mgr, _ in mgrs_indexers]
     concat_plan = _combine_concat_plans(concat_plans)
@@ -254,13 +254,23 @@ def _concat_managers_axis0(
     concat_managers specialized to concat_axis=0, with reindexing already
     having been done in _maybe_reindex_columns_na_proxy.
     """
+    had_reindexers = {
+        i: len(mgrs_indexers[i][1]) > 0 for i in range(len(mgrs_indexers))
+    }
+    mgrs_indexers = _maybe_reindex_columns_na_proxy(axes, mgrs_indexers)
+
     mgrs = [x[0] for x in mgrs_indexers]
 
     offset = 0
     blocks = []
-    for mgr in mgrs:
+    for i, mgr in enumerate(mgrs):
+        # If we already reindexed, then we definitely don't need another copy
+        made_copy = had_reindexers[i]
+
         for blk in mgr.blocks:
-            if copy:
+            if made_copy:
+                nb = blk.copy(deep=False)
+            elif copy:
                 nb = blk.copy()
             else:
                 # by slicing instead of copy(deep=False), we get a new array
@@ -521,7 +531,7 @@ def _get_empty_dtype(join_units: Sequence[JoinUnit]) -> DtypeObj:
         empty_dtype = join_units[0].block.dtype
         return empty_dtype
 
-    needs_can_hold_na = any(unit.is_na or unit.needs_filling for unit in join_units)
+    needs_can_hold_na = any(unit.is_na for unit in join_units)
 
     dtypes = [unit.block.dtype for unit in join_units if not unit.is_na]
 
