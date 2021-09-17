@@ -3,6 +3,7 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    float32_t,
     float64_t,
     int8_t,
     int16_t,
