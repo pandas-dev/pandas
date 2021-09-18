@@ -5207,15 +5207,16 @@ class Index(IndexOpsMixin, PandasObject):
         (Int64Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         from pandas.core.indexes.range import RangeIndex
+
         idx = ensure_key_mapped(self, key)
 
         if isinstance(self, RangeIndex):
             if ascending:
                 return self
             else:
-                return RangeIndex(start=self.stop - 1,
-                                  stop=self.start - 1,
-                                  step=self.step * -1)
+                return RangeIndex(
+                    start=self.stop - 1, stop=self.start - 1, step=self.step * -1
+                    )
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
