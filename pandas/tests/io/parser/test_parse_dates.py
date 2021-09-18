@@ -1643,6 +1643,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
+@pytest.mark.slow
 @given(date_strategy)
 @settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
