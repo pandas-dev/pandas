@@ -5216,7 +5216,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return RangeIndex(
                     start=self.stop - 1, stop=self.start - 1, step=self.step * -1
-                    )
+                )
 
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
