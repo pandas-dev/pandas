@@ -782,3 +782,17 @@ def test_repr_option(styler):
 def test_siunitx_basic_headers(styler):
     assert "{} & {A} & {B} & {C} \\\\" in styler.to_latex(siunitx=True)
     assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
+
+
+def test_hide_index_latex(styler):
+    styler.hide_index([0])
+    result = styler.to_latex()
+    expected = dedent(
+        """\
+    \\begin{tabular}{lrrl}
+     & A & B & C \\\\
+    1 & 1 & -1.22 & cd \\\\
+    \\end{tabular}
+    """
+    )
+    assert expected == result

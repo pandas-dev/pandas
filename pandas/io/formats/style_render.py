@@ -621,28 +621,31 @@ class StylerRenderer:
         ]
         body = []
         for r, row in enumerate(d["body"]):
-            if all(self.hide_index_):
-                row_body_headers = []
-            else:
-                row_body_headers = [
-                    {
-                        **col,
-                        "display_value": col["display_value"]
-                        if col["is_visible"]
-                        else "",
-                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
-                    }
+            if r not in self.hidden_rows:
+                if all(self.hide_index_):
+                    row_body_headers = []
+                else:
+                    row_body_headers = [
+                        {
+                            **col,
+                            "display_value": col["display_value"]
+                            if col["is_visible"]
+                            else "",
+                            "cellstyle": self.ctx_index[r, c]
+                            if col["is_visible"]
+                            else [],
+                        }
+                        for c, col in enumerate(row)
+                        if col["type"] == "th"
+                    ]
+
+                row_body_cells = [
+                    {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
                     for c, col in enumerate(row)
-                    if col["type"] == "th"
+                    if (col["is_visible"] and col["type"] == "td")
                 ]
 
-            row_body_cells = [
-                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
-                for c, col in enumerate(row)
-                if (col["is_visible"] and col["type"] == "td")
-            ]
-
-            body.append(row_body_headers + row_body_cells)
+                body.append(row_body_headers + row_body_cells)
         d["body"] = body
 
     def format(
