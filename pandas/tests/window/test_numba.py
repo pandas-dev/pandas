@@ -43,7 +43,9 @@ class TestEngine:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("data", [DataFrame(np.eye(5)), Series(range(5))])
+    @pytest.mark.parametrize(
+        "data", [DataFrame(np.eye(5)), Series(range(5), name="foo")]
+    )
     def test_numba_vs_cython_rolling_methods(
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
