@@ -752,7 +752,7 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     expected_index = dedent(
         """\
     \\multirow[c]{2}{*}{\\bfseries{A}} & a & 0 & -0.610000 & ab \\\\
-     & b & 1 & -1.220000 & cd \\\\
+    \\bfseries{} & b & 1 & -1.220000 & cd \\\\
     B & \\bfseries{c} & 2 & -2.220000 & de \\\\
     """
     )
