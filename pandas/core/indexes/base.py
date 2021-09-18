@@ -168,7 +168,6 @@ if TYPE_CHECKING:
         DataFrame,
         IntervalIndex,
         MultiIndex,
-        RangeIndex,
         Series,
     )
     from pandas.core.arrays import PeriodArray
@@ -6797,12 +6796,6 @@ def trim_front(strings: list[str]) -> list[str]:
 def _validate_join_method(method: str) -> None:
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
-
-
-def default_index(n: int) -> RangeIndex:
-    from pandas.core.indexes.range import RangeIndex
-
-    return RangeIndex(0, n, name=None)
 
 
 def maybe_extract_name(name, obj, cls) -> Hashable:
