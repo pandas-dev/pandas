@@ -435,7 +435,7 @@ class RangeIndex(NumericIndex):
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index | RangeIndex:
         with rewrite_exception("Int64Index", type(self).__name__):
-            if len(self) == len(indices) and all(self == indices):
+            if len(self) == len(indices) and np.all(self == indices):
                 return self
             else:
                 return self._int64index.take(
