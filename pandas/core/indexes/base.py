@@ -5181,7 +5181,9 @@ class Index(IndexOpsMixin, PandasObject):
             if ascending:
                 return self
             else:
-                return RangeIndex(start=self.stop - 1,stop=self.start - 1, step=self.step * -1)
+                return RangeIndex(start=self.stop - 1,
+                                  stop=self.start - 1,
+                                  step=self.step * -1)
 
         if not isinstance(self, ABCMultiIndex):
             _as = nargsort(
