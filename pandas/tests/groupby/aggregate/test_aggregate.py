@@ -20,6 +20,7 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
+    to_datetime,
 )
 import pandas._testing as tm
 from pandas.core.base import SpecificationError
@@ -66,7 +67,6 @@ def test_agg_ser_multi_key(df):
 
 
 def test_groupby_aggregation_mixed_dtype():
-
     # GH 6212
     expected = DataFrame(
         {
@@ -1259,3 +1259,35 @@ def test_timeseries_groupby_agg():
 
     expected = DataFrame([[1.0]], index=[1])
     tm.assert_frame_equal(res, expected)
+
+
+def test_group_mean_timedelta_nat():
+    # GH43132
+    data = Series(["1 day", "3 days", "NaT"], dtype="timedelta64[ns]")
+    expected = Series(["2 days"], dtype="timedelta64[ns]")
+
+    result = data.groupby([0, 0, 0]).mean()
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_data, expected_output",
+    [
+        (  # no timezone
+            ["2021-01-01T00:00", "NaT", "2021-01-01T02:00"],
+            ["2021-01-01T01:00"],
+        ),
+        (  # timezone
+            ["2021-01-01T00:00-0100", "NaT", "2021-01-01T02:00-0100"],
+            ["2021-01-01T01:00-0100"],
+        ),
+    ],
+)
+def test_group_mean_datetime64_nat(input_data, expected_output):
+    # GH43132
+    data = to_datetime(Series(input_data))
+    expected = to_datetime(Series(expected_output))
+
+    result = data.groupby([0, 0, 0]).mean()
+    tm.assert_series_equal(result, expected)
