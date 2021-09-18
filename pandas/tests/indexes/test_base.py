@@ -21,21 +21,23 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
     Timestamp,
-    UInt64Index,
     date_range,
     isna,
     period_range,
 )
 import pandas._testing as tm
 from pandas.api.types import is_float_dtype
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,

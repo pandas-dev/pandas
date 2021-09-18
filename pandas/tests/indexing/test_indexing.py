@@ -25,6 +25,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import _mklbl
 from pandas.tests.indexing.test_floats import gen_obj
 
@@ -143,7 +144,7 @@ class TestFancy:
         assert df.loc[np.inf, 0] == 3
 
         result = df.index
-        expected = pd.Float64Index([1, 2, np.inf])
+        expected = Float64Index([1, 2, np.inf])
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):

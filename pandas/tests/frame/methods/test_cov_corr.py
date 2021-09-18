@@ -92,6 +92,7 @@ class TestDataFrameCorr:
     def test_corr_scipy_method(self, float_frame, method):
         float_frame["A"][:5] = np.nan
         float_frame["B"][5:10] = np.nan
+        float_frame["A"][:10] = float_frame["A"][10:20]
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
@@ -99,7 +100,6 @@ class TestDataFrameCorr:
 
     # ---------------------------------------------------------------------
 
-    @td.skip_if_no_scipy
     def test_corr_non_numeric(self, float_string_frame):
         # exclude non-numeric types
         result = float_string_frame.corr()
@@ -124,11 +124,9 @@ class TestDataFrameCorr:
         assert rs.loc["B", "B"] == 1
         assert isna(rs.loc["C", "C"])
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "spearman"])
     def test_corr_constant(self, meth):
         # constant --> all NA
-
         df = DataFrame(
             {
                 "A": [1, 1, 1, np.nan, np.nan, np.nan],

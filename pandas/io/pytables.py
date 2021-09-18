@@ -65,7 +65,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Index,
-    Int64Index,
     MultiIndex,
     PeriodIndex,
     Series,
@@ -73,6 +72,7 @@ from pandas import (
     concat,
     isna,
 )
+from pandas.core.api import Int64Index
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
@@ -4549,10 +4549,10 @@ class AppendableFrameTable(AppendableTable):
 
             # we could have a multi-index constructor here
             # ensure_index doesn't recognized our list-of-tuples here
-            if info.get("type") == "MultiIndex":
-                cols = MultiIndex.from_tuples(index_vals)
-            else:
+            if info.get("type") != "MultiIndex":
                 cols = Index(index_vals)
+            else:
+                cols = MultiIndex.from_tuples(index_vals)
 
             names = info.get("names")
             if names is not None:

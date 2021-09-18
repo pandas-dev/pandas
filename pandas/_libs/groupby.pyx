@@ -321,7 +321,8 @@ def group_shift_indexer(int64_t[::1] out, const intp_t[::1] labels,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
+def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
+                         ndarray[intp_t] sorted_labels,
                          ndarray[uint8_t] mask, str direction,
                          int64_t limit, bint dropna) -> None:
     """
@@ -329,11 +330,14 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
     Parameters
     ----------
-    out : np.ndarray[np.int64]
+    out : np.ndarray[np.intp]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
+    sorted_labels : np.ndarray[np.intp]
+        obtained by `np.argsort(labels, kind="mergesort")`; reversed if
+        direction == "bfill"
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
@@ -349,7 +353,6 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
     """
     cdef:
         Py_ssize_t i, N, idx
-        intp_t[:] sorted_labels
         intp_t curr_fill_idx=-1
         int64_t filled_vals = 0
 
@@ -357,11 +360,6 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
-
-    sorted_labels = np.argsort(labels, kind='mergesort').astype(
-        np.intp, copy=False)
-    if direction == 'bfill':
-        sorted_labels = sorted_labels[::-1]
 
     with nogil:
         for i in range(N):
@@ -770,25 +768,28 @@ def group_ohlc(floating[:, ::1] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_quantile(ndarray[float64_t] out,
+def group_quantile(ndarray[float64_t, ndim=2] out,
                    ndarray[numeric, ndim=1] values,
                    ndarray[intp_t] labels,
                    ndarray[uint8_t] mask,
-                   float64_t q,
+                   const intp_t[:] sort_indexer,
+                   const float64_t[:] qs,
                    str interpolation) -> None:
     """
     Calculate the quantile per group.
 
     Parameters
     ----------
-    out : np.ndarray[np.float64]
+    out : np.ndarray[np.float64, ndim=2]
         Array of aggregated values that will be written to.
     values : np.ndarray
         Array containing the values to apply the function against.
     labels : ndarray[np.intp]
         Array containing the unique group labels.
-    q : float
-        The quantile value to search for.
+    sort_indexer : ndarray[np.intp]
+        Indices describing sort order by values and labels.
+    qs : ndarray[float64_t]
+        The quantile values to search for.
     interpolation : {'linear', 'lower', 'highest', 'nearest', 'midpoint'}
 
     Notes
@@ -797,17 +798,20 @@ def group_quantile(ndarray[float64_t] out,
     provided `out` parameter.
     """
     cdef:
-        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz
+        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz, k, nqs
         Py_ssize_t grp_start=0, idx=0
         intp_t lab
-        uint8_t interp
-        float64_t q_idx, frac, val, next_val
-        ndarray[int64_t] counts, non_na_counts, sort_arr
+        InterpolationEnumType interp
+        float64_t q_val, q_idx, frac, val, next_val
+        int64_t[::1] counts, non_na_counts
 
     assert values.shape[0] == N
 
-    if not (0 <= q <= 1):
-        raise ValueError(f"'q' must be between 0 and 1. Got '{q}' instead")
+    if any(not (0 <= q <= 1) for q in qs):
+        wrong = [x for x in qs if not (0 <= x <= 1)][0]
+        raise ValueError(
+            f"Each 'q' must be between 0 and 1. Got '{wrong}' instead"
+        )
 
     inter_methods = {
         'linear': INTERPOLATION_LINEAR,
@@ -818,9 +822,10 @@ def group_quantile(ndarray[float64_t] out,
     }
     interp = inter_methods[interpolation]
 
-    counts = np.zeros_like(out, dtype=np.int64)
-    non_na_counts = np.zeros_like(out, dtype=np.int64)
-    ngroups = len(counts)
+    nqs = len(qs)
+    ngroups = len(out)
+    counts = np.zeros(ngroups, dtype=np.int64)
+    non_na_counts = np.zeros(ngroups, dtype=np.int64)
 
     # First figure out the size of every group
     with nogil:
@@ -833,16 +838,6 @@ def group_quantile(ndarray[float64_t] out,
             if not mask[i]:
                 non_na_counts[lab] += 1
 
-    # Get an index of values sorted by labels and then values
-    if labels.any():
-        # Put '-1' (NaN) labels as the last group so it does not interfere
-        # with the calculations.
-        labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
-    else:
-        labels_for_lexsort = labels
-    order = (values, labels_for_lexsort)
-    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
-
     with nogil:
         for i in range(ngroups):
             # Figure out how many group elements there are
@@ -850,33 +845,37 @@ def group_quantile(ndarray[float64_t] out,
             non_na_sz = non_na_counts[i]
 
             if non_na_sz == 0:
-                out[i] = NaN
+                for k in range(nqs):
+                    out[i, k] = NaN
             else:
-                # Calculate where to retrieve the desired value
-                # Casting to int will intentionally truncate result
-                idx = grp_start + <int64_t>(q * <float64_t>(non_na_sz - 1))
+                for k in range(nqs):
+                    q_val = qs[k]
 
-                val = values[sort_arr[idx]]
-                # If requested quantile falls evenly on a particular index
-                # then write that index's value out. Otherwise interpolate
-                q_idx = q * (non_na_sz - 1)
-                frac = q_idx % 1
+                    # Calculate where to retrieve the desired value
+                    # Casting to int will intentionally truncate result
+                    idx = grp_start + <int64_t>(q_val * <float64_t>(non_na_sz - 1))
 
-                if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                    out[i] = val
-                else:
-                    next_val = values[sort_arr[idx + 1]]
-                    if interp == INTERPOLATION_LINEAR:
-                        out[i] = val + (next_val - val) * frac
-                    elif interp == INTERPOLATION_HIGHER:
-                        out[i] = next_val
-                    elif interp == INTERPOLATION_MIDPOINT:
-                        out[i] = (val + next_val) / 2.0
-                    elif interp == INTERPOLATION_NEAREST:
-                        if frac > .5 or (frac == .5 and q > .5):  # Always OK?
-                            out[i] = next_val
-                        else:
-                            out[i] = val
+                    val = values[sort_indexer[idx]]
+                    # If requested quantile falls evenly on a particular index
+                    # then write that index's value out. Otherwise interpolate
+                    q_idx = q_val * (non_na_sz - 1)
+                    frac = q_idx % 1
+
+                    if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                        out[i, k] = val
+                    else:
+                        next_val = values[sort_indexer[idx + 1]]
+                        if interp == INTERPOLATION_LINEAR:
+                            out[i, k] = val + (next_val - val) * frac
+                        elif interp == INTERPOLATION_HIGHER:
+                            out[i, k] = next_val
+                        elif interp == INTERPOLATION_MIDPOINT:
+                            out[i, k] = (val + next_val) / 2.0
+                        elif interp == INTERPOLATION_NEAREST:
+                            if frac > .5 or (frac == .5 and q_val > .5):  # Always OK?
+                                out[i, k] = next_val
+                            else:
+                                out[i, k] = val
 
             # Increment the index reference in sorted_arr for the next group
             grp_start += grp_sz
@@ -1182,7 +1181,9 @@ cdef group_min_max(groupby_t[:, ::1] out,
                    const intp_t[::1] labels,
                    Py_ssize_t min_count=-1,
                    bint is_datetimelike=False,
-                   bint compute_max=True):
+                   bint compute_max=True,
+                   const uint8_t[:, ::1] mask=None,
+                   uint8_t[:, ::1] result_mask=None):
     """
     Compute minimum/maximum  of columns of `values`, in row groups `labels`.
 
@@ -1203,6 +1204,12 @@ cdef group_min_max(groupby_t[:, ::1] out,
         True if `values` contains datetime-like entries.
     compute_max : bint, default True
         True to compute group-wise max, False to compute min
+    mask : ndarray[bool, ndim=2], optional
+        If not None, indices represent missing values,
+        otherwise the mask will not be used
+    result_mask : ndarray[bool, ndim=2], optional
+        If not None, these specify locations in the output that are NA.
+        Modified in-place.
 
     Notes
     -----
@@ -1215,6 +1222,8 @@ cdef group_min_max(groupby_t[:, ::1] out,
         ndarray[groupby_t, ndim=2] group_min_or_max
         bint runtime_error = False
         int64_t[:, ::1] nobs
+        bint uses_mask = mask is not None
+        bint isna_entry
 
     # TODO(cython 3.0):
     # Instead of `labels.shape[0]` use `len(labels)`
@@ -1249,7 +1258,12 @@ cdef group_min_max(groupby_t[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
 
-                if not _treat_as_na(val, is_datetimelike):
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, is_datetimelike)
+
+                if not isna_entry:
                     nobs[lab, j] += 1
                     if compute_max:
                         if val > group_min_or_max[lab, j]:
@@ -1265,7 +1279,10 @@ cdef group_min_max(groupby_t[:, ::1] out,
                         runtime_error = True
                         break
                     else:
-                        out[i, j] = nan_val
+                        if uses_mask:
+                            result_mask[i, j] = True
+                        else:
+                            out[i, j] = nan_val
                 else:
                     out[i, j] = group_min_or_max[i, j]
 
@@ -1282,7 +1299,9 @@ def group_max(groupby_t[:, ::1] out,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[::1] labels,
               Py_ssize_t min_count=-1,
-              bint is_datetimelike=False) -> None:
+              bint is_datetimelike=False,
+              const uint8_t[:, ::1] mask=None,
+              uint8_t[:, ::1] result_mask=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
         out,
@@ -1292,6 +1311,8 @@ def group_max(groupby_t[:, ::1] out,
         min_count=min_count,
         is_datetimelike=is_datetimelike,
         compute_max=True,
+        mask=mask,
+        result_mask=result_mask,
     )
 
 
@@ -1302,7 +1323,9 @@ def group_min(groupby_t[:, ::1] out,
               ndarray[groupby_t, ndim=2] values,
               const intp_t[::1] labels,
               Py_ssize_t min_count=-1,
-              bint is_datetimelike=False) -> None:
+              bint is_datetimelike=False,
+              const uint8_t[:, ::1] mask=None,
+              uint8_t[:, ::1] result_mask=None) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
         out,
@@ -1312,6 +1335,8 @@ def group_min(groupby_t[:, ::1] out,
         min_count=min_count,
         is_datetimelike=is_datetimelike,
         compute_max=False,
+        mask=mask,
+        result_mask=result_mask,
     )
 
 
