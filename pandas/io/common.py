@@ -877,8 +877,7 @@ class _MMapWrapper(abc.Iterator):
         if self.decode:
             # memory mapping is applied before compression. Encoding should
             # be applied to the de-compressed data.
-            final: bool = len(content) == 0
-            return self.decoder.decode(content, final=final)
+            return content.decode(self.encoding, errors=self.errors)
         return content
 
     def __next__(self) -> str:
