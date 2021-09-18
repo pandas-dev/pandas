@@ -27,8 +27,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
--
+- Fixed bug in :meth:`.GroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue`:43132`)
 
 .. ---------------------------------------------------------------------------
 

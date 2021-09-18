@@ -77,7 +77,10 @@ def group_mean(
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[floating, ndim=2]
     labels: np.ndarray,  # const intp_t[:]
-    min_count: int = ...,
+    min_count: int = ...,  # Py_ssize_t
+    is_datetimelike: bool = ...,  # bint
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_ohlc(
     out: np.ndarray,  # floating[:, ::1]
