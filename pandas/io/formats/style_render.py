@@ -641,7 +641,8 @@ class StylerRenderer:
             for r, row in enumerate(d["head"])
         ]
         body = []
-        for r, row in enumerate(d["body"]):
+        rows = [row for r, row in enumerate(d["body"]) if r not in self.hidden_rows]
+        for r, row in enumerate(rows):
             if all(self.hide_index_):
                 row_body_headers = []
             else:
