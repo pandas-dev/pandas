@@ -97,7 +97,8 @@ def test_cython_agg_nothing_to_agg():
 
     frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
 
-    result = frame[["b"]].groupby(frame["a"]).mean()
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = frame[["b"]].groupby(frame["a"]).mean()
     expected = DataFrame([], index=frame["a"].sort_values().drop_duplicates())
     tm.assert_frame_equal(result, expected)
 

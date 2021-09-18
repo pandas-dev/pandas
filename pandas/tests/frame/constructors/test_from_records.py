@@ -11,7 +11,6 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     Index,
-    Int64Index,
     Interval,
     RangeIndex,
     Series,
@@ -188,8 +187,7 @@ class TestFromRecords:
         # should fail
         msg = "|".join(
             [
-                r"Shape of passed values is \(10, 3\), indices imply \(1, 3\)",
-                "Passed arrays should have the same length as the rows Index: 10 vs 1",
+                r"Length of values \(10\) does not match length of index \(1\)",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -268,8 +266,7 @@ class TestFromRecords:
         # wrong length
         msg = "|".join(
             [
-                r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)",
-                "Passed arrays should have the same length as the rows Index: 2 vs 1",
+                r"Length of values \(2\) does not match length of index \(1\)",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -450,7 +447,7 @@ class TestFromRecords:
         a = np.array([(1, 2)], dtype=[("id", np.int64), ("value", np.int64)])
         df = DataFrame.from_records(a, index="id")
 
-        ex_index = Int64Index([1], name="id")
+        ex_index = Index([1], name="id")
         expected = DataFrame({"value": [2]}, index=ex_index, columns=["value"])
         tm.assert_frame_equal(df, expected)
 

@@ -1248,8 +1248,9 @@ class LinePlot(MPLPlot):
                 left, right = get_xlim(lines)
                 ax.set_xlim(left, right)
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls, ax: Axes, x, y, style=None, column_num=None, stacking_id=None, **kwds
     ):
         # column_num is used to get the target column from plotf in line and
@@ -1383,8 +1384,9 @@ class AreaPlot(LinePlot):
         if self.logy or self.loglog:
             raise ValueError("Log-y scales are not supported in area plot")
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(
+    def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
         x,
@@ -1392,7 +1394,7 @@ class AreaPlot(LinePlot):
         style=None,
         column_num=None,
         stacking_id=None,
-        is_errorbar=False,
+        is_errorbar: bool = False,
         **kwds,
     ):
 
@@ -1483,8 +1485,11 @@ class BarPlot(MPLPlot):
         if is_list_like(self.left):
             self.left = np.array(self.left)
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(cls, ax: Axes, x, y, w, start=0, log=False, **kwds):
+    def _plot(  # type: ignore[override]
+        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+    ):
         return ax.bar(x, y, w, bottom=start, log=log, **kwds)
 
     @property
@@ -1601,8 +1606,11 @@ class BarhPlot(BarPlot):
     def _start_base(self):
         return self.left
 
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
-    def _plot(cls, ax: Axes, x, y, w, start=0, log=False, **kwds):
+    def _plot(  # type: ignore[override]
+        cls, ax: Axes, x, y, w, start=0, log=False, **kwds
+    ):
         return ax.barh(x, y, w, left=start, log=log, **kwds)
 
     def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge):

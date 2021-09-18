@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from functools import wraps
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Literal,
     Sequence,
     TypeVar,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -15,7 +18,11 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas._typing import (
     F,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
+    npt,
     type_t,
 )
 from pandas.errors import AbstractMethodError
@@ -44,6 +51,13 @@ from pandas.core.sorting import nargminmax
 NDArrayBackedExtensionArrayT = TypeVar(
     "NDArrayBackedExtensionArrayT", bound="NDArrayBackedExtensionArray"
 )
+
+if TYPE_CHECKING:
+
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+    )
 
 
 def ravel_compat(meth: F) -> F:
@@ -157,12 +171,22 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return to_concat[0]._from_backing_data(new_values)  # type: ignore[arg-type]
 
     @doc(ExtensionArray.searchsorted)
-    def searchsorted(self, value, side="left", sorter=None):
-        value = self._validate_searchsorted_value(value)
-        return self._ndarray.searchsorted(value, side=side, sorter=sorter)
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        npvalue = self._validate_searchsorted_value(value)
+        return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def _validate_searchsorted_value(self, value):
-        return value
+    def _validate_searchsorted_value(
+        self, value: NumpyValueArrayLike | ExtensionArray
+    ) -> NumpyValueArrayLike:
+        if isinstance(value, ExtensionArray):
+            return value.to_numpy()
+        else:
+            return value
 
     @doc(ExtensionArray.shift)
     def shift(self, periods=1, fill_value=None, axis=0):
@@ -184,6 +208,17 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def _validate_setitem_value(self, value):
         return value
+
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: NDArrayBackedExtensionArrayT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> NDArrayBackedExtensionArrayT:
+        ...
 
     def __getitem__(
         self: NDArrayBackedExtensionArrayT,

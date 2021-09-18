@@ -1,6 +1,6 @@
 .. _whatsnew_132:
 
-What's new in 1.3.2 (August ??, 2021)
+What's new in 1.3.2 (August 15, 2021)
 -------------------------------------
 
 These are the changes in pandas 1.3.2. See :ref:`release` for a full changelog
@@ -26,6 +26,7 @@ Fixed regressions
 - Fixed regression in :func:`concat` where ``copy=False`` was not honored in ``axis=1`` Series concatenation (:issue:`42501`)
 - Regression in :meth:`Series.nlargest` and :meth:`Series.nsmallest` with nullable integer or float dtype (:issue:`42816`)
 - Fixed regression in :meth:`Series.quantile` with :class:`Int64Dtype` (:issue:`42626`)
+- Fixed regression in :meth:`Series.groupby` and :meth:`DataFrame.groupby` where supplying the ``by`` argument with a Series named with a tuple would incorrectly raise (:issue:`42731`)
 
 .. ---------------------------------------------------------------------------
 
@@ -39,15 +40,6 @@ Bug fixes
 - :meth:`.Styler.hide_columns` now hides the index name header row as well as column headers (:issue:`42101`)
 - :meth:`.Styler.set_sticky` has amended CSS to control the column/index names and ensure the correct sticky positions (:issue:`42537`)
 - Bug in de-serializing datetime indexes in PYTHONOPTIMIZED mode (:issue:`42866`)
--
-
-.. ---------------------------------------------------------------------------
-
-.. _whatsnew_132.other:
-
-Other
-~~~~~
--
 
 .. ---------------------------------------------------------------------------
 
@@ -56,4 +48,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.3.1..v1.3.2|HEAD
+.. contributors:: v1.3.1..v1.3.2

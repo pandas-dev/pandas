@@ -21,18 +21,20 @@ from pandas import (
     CategoricalIndex,
     DataFrame,
     DatetimeIndex,
-    Float64Index,
-    Int64Index,
     IntervalIndex,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
     Series,
     TimedeltaIndex,
-    UInt64Index,
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.api import (
+    Float64Index,
+    Int64Index,
+    UInt64Index,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,
@@ -354,8 +356,8 @@ class TestMerge:
         df = merge(df1, df2, how="outer")
 
         # GH13169
-        # this really should be bool
-        assert df["key"].dtype == "object"
+        # GH#40073
+        assert df["key"].dtype == "bool"
 
         df1 = DataFrame({"val": [1]})
         df2 = DataFrame({"val": [2]})
@@ -366,10 +368,12 @@ class TestMerge:
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame(
-            {"key": [1, 1, 2, 2, 3], "value": np.arange(5)}, columns=["value", "key"]
+            {"key": [1, 1, 2, 2, 3], "value": np.arange(5)},
+            columns=["value", "key"],
+            dtype="int64",
         )
-        right = DataFrame({"rvalue": np.arange(6)})
-        key = np.array([1, 1, 2, 3, 4, 5])
+        right = DataFrame({"rvalue": np.arange(6)}, dtype="int64")
+        key = np.array([1, 1, 2, 3, 4, 5], dtype="int64")
 
         merged = merge(left, right, left_on="key", right_on=key, how="outer")
         merged2 = merge(right, left, left_on=key, right_on="key", how="outer")
@@ -691,7 +695,7 @@ class TestMerge:
 
         assert isinstance(result, NotADataFrame)
 
-    def test_join_append_timedeltas(self, using_array_manager):
+    def test_join_append_timedeltas(self):
         # timedelta64 issues with join/merge
         # GH 5695
 
@@ -703,11 +707,9 @@ class TestMerge:
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
                 "t": [timedelta(0, 22500), timedelta(0, 22500)],
-            }
+            },
+            dtype=object,
         )
-        if using_array_manager:
-            # TODO(ArrayManager) decide on exact casting rules in concat
-            expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
 
     def test_join_append_timedeltas2(self):
@@ -1642,6 +1644,57 @@ class TestMergeDtypes:
         with pytest.raises(ValueError, match=msg):
             merge(df2, df1, on=["A"])
 
+    @pytest.mark.parametrize(
+        "expected_data, how",
+        [
+            ([1, 2], "outer"),
+            ([], "inner"),
+            ([2], "right"),
+            ([1], "left"),
+        ],
+    )
+    def test_merge_EA_dtype(self, any_numeric_ea_dtype, how, expected_data):
+        # GH#40073
+        d1 = DataFrame([(1,)], columns=["id"], dtype=any_numeric_ea_dtype)
+        d2 = DataFrame([(2,)], columns=["id"], dtype=any_numeric_ea_dtype)
+        result = merge(d1, d2, how=how)
+        expected = DataFrame(expected_data, columns=["id"], dtype=any_numeric_ea_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected_data, how",
+        [
+            (["a", "b"], "outer"),
+            ([], "inner"),
+            (["b"], "right"),
+            (["a"], "left"),
+        ],
+    )
+    def test_merge_string_dtype(self, how, expected_data, any_string_dtype):
+        # GH#40073
+        d1 = DataFrame([("a",)], columns=["id"], dtype=any_string_dtype)
+        d2 = DataFrame([("b",)], columns=["id"], dtype=any_string_dtype)
+        result = merge(d1, d2, how=how)
+        expected = DataFrame(expected_data, columns=["id"], dtype=any_string_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "how, expected_data",
+        [
+            ("inner", [[True, 1, 4], [False, 5, 3]]),
+            ("outer", [[True, 1, 4], [False, 5, 3]]),
+            ("left", [[True, 1, 4], [False, 5, 3]]),
+            ("right", [[False, 5, 3], [True, 1, 4]]),
+        ],
+    )
+    def test_merge_bool_dtype(self, how, expected_data):
+        # GH#40073
+        df1 = DataFrame({"A": [True, False], "B": [1, 5]})
+        df2 = DataFrame({"A": [False, True], "C": [3, 4]})
+        result = merge(df1, df2, how=how)
+        expected = DataFrame(expected_data, columns=["A", "B", "C"])
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.fixture
 def left():
@@ -1756,6 +1809,35 @@ class TestMergeCategorical:
                 "Right": ["A1", "B1", "C1"],
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_multiindex_merge_with_unordered_categoricalindex(self, ordered):
+        # GH 36973
+        pcat = CategoricalDtype(categories=["P2", "P1"], ordered=ordered)
+        df1 = DataFrame(
+            {
+                "id": ["C", "C", "D"],
+                "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
+                "a": [0, 1, 2],
+            }
+        ).set_index(["id", "p"])
+        df2 = DataFrame(
+            {
+                "id": ["A", "C", "C"],
+                "p": Categorical(["P2", "P2", "P1"], dtype=pcat),
+                "d1": [10, 11, 12],
+            }
+        ).set_index(["id", "p"])
+        result = merge(df1, df2, how="left", left_index=True, right_index=True)
+        expected = DataFrame(
+            {
+                "id": ["C", "C", "D"],
+                "p": Categorical(["P2", "P1", "P2"], dtype=pcat),
+                "a": [0, 1, 2],
+                "d1": [11.0, 12.0, np.nan],
+            }
+        ).set_index(["id", "p"])
         tm.assert_frame_equal(result, expected)
 
     def test_other_columns(self, left, right):
@@ -2487,3 +2569,32 @@ def test_mergeerror_on_left_index_mismatched_dtypes():
     df_2 = DataFrame(data=["X"], columns=["C"], index=[999])
     with pytest.raises(MergeError, match="Can only pass argument"):
         merge(df_1, df_2, on=["C"], left_index=True)
+
+
+@pytest.mark.parametrize("dtype", [None, "Int64"])
+def test_merge_outer_with_NaN(dtype):
+    # GH#43550
+    left = DataFrame({"key": [1, 2], "col1": [1, 2]}, dtype=dtype)
+    right = DataFrame({"key": [np.nan, np.nan], "col2": [3, 4]}, dtype=dtype)
+    result = merge(left, right, on="key", how="outer")
+    expected = DataFrame(
+        {
+            "key": [1, 2, np.nan, np.nan],
+            "col1": [1, 2, np.nan, np.nan],
+            "col2": [np.nan, np.nan, 3, 4],
+        },
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # switch left and right
+    result = merge(right, left, on="key", how="outer")
+    expected = DataFrame(
+        {
+            "key": [np.nan, np.nan, 1, 2],
+            "col2": [3, 4, np.nan, np.nan],
+            "col1": [np.nan, np.nan, 1, 2],
+        },
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
