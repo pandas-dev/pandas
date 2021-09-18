@@ -170,11 +170,13 @@ class StylerRenderer:
         sparse_columns: bool,
         align: str,
         max_colwidth: int,
+        max_rows: int | None = None,
+        max_cols: int | None = None,
         **kwargs,
     ) -> str:
         self._compute()
 
-        d = self._translate(sparse_index, sparse_columns, blank="")
+        d = self._translate(sparse_index, sparse_columns, max_rows, max_cols, blank="")
 
         precision = (get_option("styler.format.precision"),)
         self._translate_string(d, max_colwidth, precision, align)
@@ -682,7 +684,7 @@ class StylerRenderer:
           - Remove hidden indexes or reinsert missing th elements if part of multiindex
             or multirow sparsification (so that \multirow and \multicol work correctly).
         """
-        self._translate_latex(d)  # post process for hidden elements akin to latex
+        # self._translate_latex(d)  # post process for hidden elements akin to latex
 
         # find the maximum length of items in each column
         d["col_max_char"] = [0] * len(d["body"][0])
