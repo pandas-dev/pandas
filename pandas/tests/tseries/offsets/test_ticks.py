@@ -61,6 +61,7 @@ def test_delta_to_tick():
     assert tick == Nano(5)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("cls", tick_classes)
 @settings(deadline=None)  # GH 24641
 @example(n=2, m=3)
@@ -82,7 +83,7 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
-@pytest.mark.arm_slow
+@pytest.mark.slow
 @pytest.mark.parametrize("cls", tick_classes)
 @settings(deadline=None)
 @example(n=2, m=3)

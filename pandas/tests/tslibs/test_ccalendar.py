@@ -59,6 +59,7 @@ def test_dt_correct_iso_8601_year_week_and_day(input_date_tuple, expected_iso_tu
     assert result == expected_iso_tuple
 
 
+@pytest.mark.slow
 @given(
     st.datetimes(
         min_value=pd.Timestamp.min.to_pydatetime(warn=False),
