@@ -100,10 +100,11 @@ class RowsGroupByIndexer:
                     "integers and slices"
                 )
 
-            ids, _, _ = self.groupby_object.grouper.group_info
+            if self.groupby_object.dropna:
+                # Drop NA values in grouping
+                ids, _, _ = self.groupby_object.grouper.group_info
 
-            # Drop NA values in grouping
-            mask &= ids != -1
+                mask &= ids != -1
 
             if mask is True:
                 result = self.groupby_object._selected_obj[:]
