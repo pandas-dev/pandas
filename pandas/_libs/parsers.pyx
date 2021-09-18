@@ -1985,18 +1985,15 @@ cdef list _maybe_encode(list values):
     return [x.encode('utf-8') if isinstance(x, str) else x for x in values]
 
 
-# TODO: only ever called with convert_empty=False
 def sanitize_objects(ndarray[object] values, set na_values,
                      bint convert_empty=True) -> int:
     """
-    Convert specified values, including the given set na_values and empty
-    strings if convert_empty is True, to np.nan.
+    Convert specified values, including the given set na_values to np.nan.
 
     Parameters
     ----------
     values : ndarray[object]
     na_values : set
-    convert_empty : bool, default True
 
     Returns
     -------
@@ -2006,19 +2003,14 @@ def sanitize_objects(ndarray[object] values, set na_values,
         Py_ssize_t i, n
         object val, onan
         Py_ssize_t na_count = 0
-        dict memo = {}
 
     n = len(values)
     onan = np.nan
 
     for i in range(n):
         val = values[i]
-        if (convert_empty and val == '') or (val in na_values):
+        if val in na_values:
             values[i] = onan
             na_count += 1
-        elif val in memo:
-            values[i] = memo[val]
-        else:
-            memo[val] = val
 
     return na_count
