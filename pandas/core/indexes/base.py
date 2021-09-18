@@ -168,7 +168,6 @@ if TYPE_CHECKING:
         DataFrame,
         IntervalIndex,
         MultiIndex,
-        RangeIndex,
         Series,
     )
     from pandas.core.arrays import PeriodArray
@@ -3060,7 +3059,7 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._outer_indexer(other)[0]
             except (TypeError, IncompatibleFrequency):
-                # incomparable objects
+                # incomparable objects; should only be for object dtype
                 value_list = list(lvals)
 
                 # worth making this faster? a very unusual case
@@ -3074,7 +3073,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = algos.union_with_duplicates(lvals, rvals)
             return _maybe_try_sort(result, sort)
 
-        # Self may have duplicates
+        # Self may have duplicates; other already checked as unique
         # find indexes of things in "other" that are not in "self"
         if self._index_as_unique:
             indexer = self.get_indexer(other)
@@ -3089,6 +3088,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = lvals
 
         if not self.is_monotonic or not other.is_monotonic:
+            # if both are monotonic then result should already be sorted
             result = _maybe_try_sort(result, sort)
 
         return result
@@ -3194,6 +3194,7 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
+                # non-comparable; should only be for object dtype
                 pass
             else:
                 # TODO: algos.unique1d should preserve DTA/TDA
@@ -4485,7 +4486,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_monotonic(
         self, other: Index, how: str_t = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        # We only get here with matching dtypes
+        # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype
 
         if self.equals(other):
@@ -6795,12 +6796,6 @@ def trim_front(strings: list[str]) -> list[str]:
 def _validate_join_method(method: str) -> None:
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
-
-
-def default_index(n: int) -> RangeIndex:
-    from pandas.core.indexes.range import RangeIndex
-
-    return RangeIndex(0, n, name=None)
 
 
 def maybe_extract_name(name, obj, cls) -> Hashable:
