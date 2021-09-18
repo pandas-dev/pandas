@@ -82,10 +82,10 @@ def csv1(datapath):
     return os.path.join(datapath("io", "data", "csv"), "test1.csv")
 
 
-_cParserHighMemory = CParserHighMemory()
-_cParserLowMemory = CParserLowMemory()
-_pythonParser = PythonParser()
-_pyarrowParser = PyArrowParser()
+_cParserHighMemory = CParserHighMemory
+_cParserLowMemory = CParserLowMemory
+_pythonParser = PythonParser
+_pyarrowParser = PyArrowParser
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
@@ -111,7 +111,7 @@ def all_parsers(request):
         import pyarrow
 
         pyarrow.set_cpu_count(1)
-    return request.param
+    return request.param()
 
 
 @pytest.fixture(params=_c_parsers_only, ids=_c_parser_ids)
