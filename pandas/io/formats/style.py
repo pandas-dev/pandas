@@ -1012,6 +1012,7 @@ class Styler(StylerRenderer):
     def to_string(
         self,
         buf=None,
+        *,
         encoding=None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
@@ -1020,6 +1021,45 @@ class Styler(StylerRenderer):
         align: str | None = None,
         delimiter: str = " ",
     ):
+        """
+        Write Styler to a file, buffer or string in text format.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        buf : str, Path, or StringIO-like, optional, default None
+            Buffer to write to. If ``None``, the output is returned as a string.
+        encoding : str, optional
+            Character encoding setting for file output.
+            Defaults to ``pandas.options.styler.render.encoding`` value of "utf-8".
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        max_colwidth : int, optional
+            The maximum number of characters in any column, data will be trimmed if
+            necessary.
+        line_width : int, optional
+            The maximum number of characters permitted on any line.
+        align: str, optional
+            The justification of values in columns.
+        delimiter: string, default single space
+            The separator between data elements.
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
+        """
         obj = self._copy(deepcopy=True)
 
         if sparse_index is None:
