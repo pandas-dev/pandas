@@ -341,7 +341,6 @@ class Block(PandasObject):
     def shape(self) -> Shape:
         return self.values.shape
 
-    @final
     @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
@@ -1844,6 +1843,12 @@ class ObjectBlock(NumpyBlock):
 class CategoricalBlock(ExtensionBlock):
     # this Block type is kept for backwards-compatibility
     __slots__ = ()
+
+    # GH#43232, GH#43334 self.values.dtype can be changed inplace until 2.0,
+    #  so this cannot be cached
+    @property
+    def dtype(self) -> DtypeObj:
+        return self.values.dtype
 
 
 # -----------------------------------------------------------------
