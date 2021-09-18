@@ -251,8 +251,6 @@ def test_copy(comprehensive, render, deepcopy, mi_styler, mi_styler_comp):
         styler.to_html()
 
     excl = [
-        "na_rep",  # deprecated
-        "precision",  # deprecated
         "cellstyle_map",  # render time vars..
         "cellstyle_map_columns",
         "cellstyle_map_index",
@@ -308,8 +306,6 @@ def test_clear(mi_styler_comp):
         "cellstyle_map",  # execution time only
         "cellstyle_map_columns",  # execution time only
         "cellstyle_map_index",  # execution time only
-        "precision",  # deprecated
-        "na_rep",  # deprecated
     ]
     # tests vars are not same vals on obj and clean copy before clear (except for excl)
     for attr in [a for a in styler.__dict__ if not (callable(a) or a in excl)]:
