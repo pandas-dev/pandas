@@ -785,6 +785,7 @@ def test_siunitx_basic_headers(styler):
 
 
 def test_hide_index_latex(styler):
+    # GH 43637
     styler.hide_index([0])
     result = styler.to_latex()
     expected = dedent(
