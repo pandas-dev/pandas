@@ -28,6 +28,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`.GroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue`:43132`)
+- Fixed bug in :meth:`.Styler.to_latex` where hidden rows were not respected (:issue:`43637`)
 
 .. ---------------------------------------------------------------------------
 
