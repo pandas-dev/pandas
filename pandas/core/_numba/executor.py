@@ -53,10 +53,10 @@ def generate_shared_aggregator(
 
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def column_looper(
-        values,
-        start,
-        end,
-        min_periods,
+        values: np.ndarray,
+        start: np.ndarray,
+        end: np.ndarray,
+        min_periods: int,
     ):
         result = np.empty((len(start), values.shape[1]))
         for i in numba.prange(values.shape[1]):
