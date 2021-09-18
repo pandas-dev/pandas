@@ -43,6 +43,7 @@ import pandas.io.date_converters as conv
 from pandas.io.parsers import read_csv
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 # constant
 _DEFAULT_DATETIME = datetime(1, 1, 1)
@@ -1608,7 +1609,7 @@ def test_parse_delimited_date_swap_no_warning(
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1644,6 +1645,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 
 
 @pytest.mark.slow
+@skip_pyarrow
 @given(date_strategy)
 @settings(deadline=None)
 @pytest.mark.parametrize("delimiter", list(" -./"))
