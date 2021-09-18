@@ -113,6 +113,7 @@ from pandas.core.indexers import (
     is_exact_shape_match,
     is_scalar_indexer,
 )
+from pandas.core.indexing import mask_setitem_value
 import pandas.core.missing as missing
 
 if TYPE_CHECKING:
@@ -936,6 +937,8 @@ class Block(PandasObject):
 
         if transpose:
             values = values.T
+
+        indexer, value = mask_setitem_value(indexer, value, len(values))
 
         # length checking
         check_setitem_lengths(indexer, value, values)
