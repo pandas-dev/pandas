@@ -609,10 +609,19 @@ class StylerRenderer:
         Post-process the default render dict for the LaTeX template format.
 
         Processing items included are:
-          - Remove hidden columns from the non-headers part of the body.
-          - Place cellstyles directly in td cells rather than use cellstyle_map.
-          - Remove hidden indexes or reinsert missing th elements if part of multiindex
-            or multirow sparsification (so that \multirow and \multicol work correctly).
+
+        1) Remove hidden columns from the non-headers part of the body. This is done
+        so that there are no repeated "&" latex separators generated from the template.
+        Alternatively this logic could be refactored into the template/template
+        parsing function.
+
+        2) Place cellstyles directly in td cells rather than use cellstyle_map. This is
+        necessary for a LaTeX format where styles have to be coded for each cell
+        specifically.
+
+        3) Remove hidden indexes or reinsert missing th elements if part of multiindex
+        or multirow sparsification (so that \multirow and \multicol work correctly), and
+        there are the correct number of cells (possibly blank) in a row.
         """
         d["head"] = [
             [
@@ -622,8 +631,16 @@ class StylerRenderer:
             ]
             for r, row in enumerate(d["head"])
         ]
+
         body = []
-        for r, row in enumerate(d["body"]):
+        index_levels = self.data.index.nlevels
+        for r, row in zip(
+            [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
+            d["body"],
+        ):
+            # note: cannot enumerate d["body"] because rows were dropped if hidden
+            # during _translate_body so must zip to acquire the true r-index associated
+            # with the ctx obj which contains the cell styles.
             if all(self.hide_index_):
                 row_body_headers = []
             else:
@@ -635,13 +652,13 @@ class StylerRenderer:
                         else "",
                         "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
                     }
-                    for c, col in enumerate(row)
-                    if col["type"] == "th"
+                    for c, col in enumerate(row[:index_levels])
+                    if (col["type"] == "th" and not self.hide_index_[c])
                 ]
 
             row_body_cells = [
-                {**col, "cellstyle": self.ctx[r, c - self.data.index.nlevels]}
-                for c, col in enumerate(row)
+                {**col, "cellstyle": self.ctx[r, c]}
+                for c, col in enumerate(row[index_levels:])
                 if (col["is_visible"] and col["type"] == "td")
             ]
 
