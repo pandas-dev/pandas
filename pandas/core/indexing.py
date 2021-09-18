@@ -1239,8 +1239,7 @@ class _LocIndexer(_LocationIndexer):
 
             if com.is_bool_indexer(key):
                 key = check_bool_indexer(labels, key)
-                (inds,) = key.nonzero()
-                return inds
+                return key
             else:
                 return self._get_listlike_indexer(key, axis)[1]
         else:
@@ -1804,6 +1803,7 @@ class _iLocIndexer(_LocationIndexer):
             The indexer we use for setitem along axis=0.
         """
         pi = plane_indexer
+        pi, value = mask_setitem_value(pi, value, len(self.obj))
 
         ser = self.obj._ixs(loc, axis=1)
 
@@ -2395,3 +2395,27 @@ def need_slice(obj: slice) -> bool:
         or obj.stop is not None
         or (obj.step is not None and obj.step != 1)
     )
+
+
+def mask_setitem_value(indexer, value, length: int):
+    """
+    Convert a boolean indexer to a positional indexer, masking `value` if necessary.
+    """
+    if com.is_bool_indexer(indexer):
+        indexer = np.asarray(indexer).nonzero()[0]
+        if is_list_like(value) and len(value) == length:
+            if not is_array_like(value):
+                value = [value[n] for n in indexer]
+            else:
+                value = value[indexer]
+
+    elif isinstance(indexer, tuple):
+        indexer = list(indexer)
+        for i, key in enumerate(indexer):
+            if com.is_bool_indexer(key):
+                new_key = np.asarray(key).nonzero()[0]
+                indexer[i] = new_key
+                # TODO: sometimes need to do take on the value?
+
+        indexer = tuple(indexer)
+    return indexer, value
