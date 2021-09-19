@@ -1636,7 +1636,11 @@ def _parse_latex_cell_styles(
 
 
 def _parse_latex_header_span(
-    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
+    cell: dict[str, Any],
+    multirow_align: str,
+    multicol_align: str,
+    wrap: bool = False,
+    convert_css: bool = False,
 ) -> str:
     r"""
     Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
@@ -1657,7 +1661,9 @@ def _parse_latex_header_span(
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """
-    display_val = _parse_latex_cell_styles(cell["cellstyle"], cell["display_value"])
+    display_val = _parse_latex_cell_styles(
+        cell["cellstyle"], cell["display_value"], convert_css
+    )
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:
