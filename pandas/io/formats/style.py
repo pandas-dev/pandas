@@ -3518,7 +3518,10 @@ def _bar(
         with _mpl(Styler.bar) as (plt, mpl_colors):
             norm = mpl_colors.Normalize(left, right)
             if not isinstance(colors, mpl_colors.Colormap):
-                raise ValueError("`colors` must be a matplotlib Colormap.")
+                raise ValueError(
+                    "`colors` must be a matplotlib Colormap if not string "
+                    "or list of strings."
+                )
             rgbas = colors(norm(values))
             if data.ndim == 1:
                 rgbas = [mpl_colors.rgb2hex(rgba) for rgba in rgbas]
@@ -3526,8 +3529,7 @@ def _bar(
                 rgbas = [[mpl_colors.rgb2hex(rgba) for rgba in row] for row in rgbas]
     elif isinstance(colors, list) and len(colors) > 2:
         raise ValueError(
-            "`color` must be string or a list-like "
-            "of length 2: [`color_neg`, `color_pos`] "
+            "`color` must be string, list-like of 2 strings, or matplotlib Colormap "
             "(eg: color=['#d65f5f', '#5fba7d'])"
         )
 
