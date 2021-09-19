@@ -918,11 +918,13 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory(["c", "t", "b", "naive"]),
     )
 
+    val_mca = ["r", "|r|", "|r", "r|", "c", "|c|", "|c", "c|", "l", "|l|", "|l", "l|"]
+    val_mca += ["naive-l", "naive-r"]
     cf.register_option(
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l", "naive-l", "naive-r"]),
+        validator=is_one_of_factory(val_mca),
     )
 
     cf.register_option(
