@@ -13,7 +13,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
@@ -119,7 +118,7 @@ def test_int64_min_issues(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize("conv", [None, np.int64, np.uint64])
 def test_int64_overflow(all_parsers, conv):
     data = """ID
@@ -163,7 +162,7 @@ def test_int64_overflow(all_parsers, conv):
             parser.read_csv(StringIO(data), converters={"ID": conv})
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "val", [np.iinfo(np.uint64).max, np.iinfo(np.int64).max, np.iinfo(np.int64).min]
 )
