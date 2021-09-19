@@ -321,7 +321,8 @@ def group_shift_indexer(int64_t[::1] out, const intp_t[::1] labels,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
+def group_fillna_indexer(ndarray[intp_t] out, ndarray[intp_t] labels,
+                         ndarray[intp_t] sorted_labels,
                          ndarray[uint8_t] mask, str direction,
                          int64_t limit, bint dropna) -> None:
     """
@@ -329,11 +330,14 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
     Parameters
     ----------
-    out : np.ndarray[np.int64]
+    out : np.ndarray[np.intp]
         Values into which this method will write its results.
     labels : np.ndarray[np.intp]
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
+    sorted_labels : np.ndarray[np.intp]
+        obtained by `np.argsort(labels, kind="mergesort")`; reversed if
+        direction == "bfill"
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
@@ -349,7 +353,6 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
     """
     cdef:
         Py_ssize_t i, N, idx
-        intp_t[:] sorted_labels
         intp_t curr_fill_idx=-1
         int64_t filled_vals = 0
 
@@ -357,11 +360,6 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[intp_t] labels,
 
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
-
-    sorted_labels = np.argsort(labels, kind='mergesort').astype(
-        np.intp, copy=False)
-    if direction == 'bfill':
-        sorted_labels = sorted_labels[::-1]
 
     with nogil:
         for i in range(N):
@@ -675,10 +673,45 @@ def group_mean(floating[:, ::1] out,
                int64_t[::1] counts,
                ndarray[floating, ndim=2] values,
                const intp_t[::1] labels,
-               Py_ssize_t min_count=-1) -> None:
+               Py_ssize_t min_count=-1,
+               bint is_datetimelike=False,
+               const uint8_t[:, ::1] mask=None,
+               uint8_t[:, ::1] result_mask=None
+               ) -> None:
+    """
+    Compute the mean per label given a label assignment for each value.
+    NaN values are ignored.
+
+    Parameters
+    ----------
+    out : np.ndarray[floating]
+        Values into which this method will write its results.
+    counts : np.ndarray[int64]
+        A zeroed array of the same shape as labels,
+        populated by group sizes during algorithm.
+    values : np.ndarray[floating]
+        2-d array of the values to find the mean of.
+    labels : np.ndarray[np.intp]
+        Array containing unique label for each group, with its
+        ordering matching up to the corresponding record in `values`.
+    min_count : Py_ssize_t
+        Only used in add and prod. Always -1.
+    is_datetimelike : bool
+        True if `values` contains datetime-like entries.
+    mask : ndarray[bool, ndim=2], optional
+        Not used.
+    result_mask : ndarray[bool, ndim=2], optional
+        Not used.
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object.
+    `counts` is modified to hold group sizes
+    """
+
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        floating val, count, y, t
+        floating val, count, y, t, nan_val
         floating[:, ::1] sumx, compensation
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
@@ -688,12 +721,13 @@ def group_mean(floating[:, ::1] out,
     if len_values != len_labels:
         raise ValueError("len(index) != len(labels)")
 
-    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     # the below is equivalent to `np.zeros_like(out)` but faster
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
     sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
     compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
 
     N, K = (<object>values).shape
+    nan_val = NPY_NAT if is_datetimelike else NAN
 
     with nogil:
         for i in range(N):
@@ -705,7 +739,7 @@ def group_mean(floating[:, ::1] out,
             for j in range(K):
                 val = values[i, j]
                 # not nan
-                if val == val:
+                if val == val and not (is_datetimelike and val == NPY_NAT):
                     nobs[lab, j] += 1
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
@@ -716,7 +750,7 @@ def group_mean(floating[:, ::1] out,
             for j in range(K):
                 count = nobs[i, j]
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    out[i, j] = nan_val
                 else:
                     out[i, j] = sumx[i, j] / count
 
@@ -774,6 +808,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
                    ndarray[numeric, ndim=1] values,
                    ndarray[intp_t] labels,
                    ndarray[uint8_t] mask,
+                   const intp_t[:] sort_indexer,
                    const float64_t[:] qs,
                    str interpolation) -> None:
     """
@@ -787,6 +822,8 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
         Array containing the values to apply the function against.
     labels : ndarray[np.intp]
         Array containing the unique group labels.
+    sort_indexer : ndarray[np.intp]
+        Indices describing sort order by values and labels.
     qs : ndarray[float64_t]
         The quantile values to search for.
     interpolation : {'linear', 'lower', 'highest', 'nearest', 'midpoint'}
@@ -800,9 +837,9 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz, k, nqs
         Py_ssize_t grp_start=0, idx=0
         intp_t lab
-        uint8_t interp
+        InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
-        ndarray[int64_t] counts, non_na_counts, sort_arr
+        int64_t[::1] counts, non_na_counts
 
     assert values.shape[0] == N
 
@@ -837,16 +874,6 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
             if not mask[i]:
                 non_na_counts[lab] += 1
 
-    # Get an index of values sorted by labels and then values
-    if labels.any():
-        # Put '-1' (NaN) labels as the last group so it does not interfere
-        # with the calculations.
-        labels_for_lexsort = np.where(labels == -1, labels.max() + 1, labels)
-    else:
-        labels_for_lexsort = labels
-    order = (values, labels_for_lexsort)
-    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
-
     with nogil:
         for i in range(ngroups):
             # Figure out how many group elements there are
@@ -864,7 +891,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
                     # Casting to int will intentionally truncate result
                     idx = grp_start + <int64_t>(q_val * <float64_t>(non_na_sz - 1))
 
-                    val = values[sort_arr[idx]]
+                    val = values[sort_indexer[idx]]
                     # If requested quantile falls evenly on a particular index
                     # then write that index's value out. Otherwise interpolate
                     q_idx = q_val * (non_na_sz - 1)
@@ -873,7 +900,7 @@ def group_quantile(ndarray[float64_t, ndim=2] out,
                     if frac == 0.0 or interp == INTERPOLATION_LOWER:
                         out[i, k] = val
                     else:
-                        next_val = values[sort_arr[idx + 1]]
+                        next_val = values[sort_indexer[idx + 1]]
                         if interp == INTERPOLATION_LINEAR:
                             out[i, k] = val + (next_val - val) * frac
                         elif interp == INTERPOLATION_HIGHER:

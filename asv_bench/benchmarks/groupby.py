@@ -454,6 +454,16 @@ class GroupByMethods:
             # DataFrameGroupBy doesn't have these methods
             raise NotImplementedError
 
+        if application == "transformation" and method in [
+            "head",
+            "tail",
+            "unique",
+            "value_counts",
+            "size",
+        ]:
+            # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
         ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups).reshape(-1, 1)
@@ -480,7 +490,7 @@ class GroupByMethods:
         if len(cols) == 1:
             cols = cols[0]
 
-        if application == "transform":
+        if application == "transformation":
             if method == "describe":
                 raise NotImplementedError
 
