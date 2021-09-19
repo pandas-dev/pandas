@@ -50,7 +50,7 @@ jobs:
 
     - name: Build Pandas
       run: |
-        python setup.py build_ext -q -j2 --define CYTHON_TRACE
+        python setup.py build_ext -q -j2 --with-cython-coverage
         python -m pip install -e . --no-build-isolation --no-use-pep517
 
     - name: Build Version

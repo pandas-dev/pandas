@@ -103,7 +103,7 @@ conda list pandas
 # Make sure any error below is reported as such
 
 echo "[Build extensions]"
-python setup.py build_ext -q -j2 --define CYTHON_TRACE
+python setup.py build_ext -q -j2 --with-cython-coverage
 
 echo "[Updating pip]"
 python -m pip install --no-deps -U pip wheel setuptools
