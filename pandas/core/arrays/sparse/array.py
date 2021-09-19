@@ -1026,7 +1026,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _take_without_fill(self: SparseArrayT, indices) -> SparseArrayT:
         to_shift = indices < 0
-        indices = indices.copy()
 
         n = len(self)
 
@@ -1037,6 +1036,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 raise IndexError("out of bounds value in 'indices'.")
 
         if to_shift.any():
+            indices = indices.copy()
             indices[to_shift] += n
 
         sp_indexer = self.sp_index.lookup_array(indices)
