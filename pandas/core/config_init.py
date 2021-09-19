@@ -817,8 +817,10 @@ styler_multirow_align = """
 """
 
 styler_multicol_align = """
-: {"r", "c", "l"}
-    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+: {"r", "c", "l", "naive-l", "naive-r"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns. Pipe
+    decorators can also be added to non-naive values to draw vertical
+    rules, e.g. "|r" will draw a rule on the left side of right aligned merged cells.
 """
 
 styler_environment = """

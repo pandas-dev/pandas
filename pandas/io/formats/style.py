@@ -533,7 +533,8 @@ class Styler(StylerRenderer):
             ``pandas.options.styler.latex.multicol_align``, which is "r".
             If a naive option is given renders without multicol.
             Pipe decorators can also be added to non-naive values to draw vertical
-            rules, e.g. "r|" will draw a rule on the right side of merged cells.
+            rules, e.g. "|r" will draw a rule on the left side of right aligned merged
+            cells.
 
             .. versionchanged:: 1.4.0
         siunitx : bool, default False
