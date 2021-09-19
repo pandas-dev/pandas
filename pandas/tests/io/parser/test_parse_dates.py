@@ -1574,7 +1574,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -1586,7 +1586,7 @@ def test_invalid_parse_delimited_date(all_parsers, date_string):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1681,7 +1681,7 @@ def test_hypothesis_delimited_date(date_format, dayfirst, delimiter, test_dateti
     assert result == expected
 
 
-@xfail_pyarrow
+@skip_pyarrow
 @pytest.mark.parametrize(
     "names, usecols, parse_dates, missing_cols",
     [
@@ -1714,7 +1714,7 @@ def test_missing_parse_dates_column_raises(
         )
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
@@ -1724,7 +1724,7 @@ def test_date_parser_and_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
