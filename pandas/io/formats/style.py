@@ -35,7 +35,6 @@ from pandas import (
     IndexSlice,
     RangeIndex,
 )
-from pandas.api.types import is_list_like
 from pandas.core import generic
 import pandas.core.common as com
 from pandas.core.frame import (
@@ -2677,17 +2676,6 @@ class Styler(StylerRenderer):
         -------
         self : Styler
         """
-        if not (is_list_like(color)):
-            color = [color, color]
-        elif len(color) == 1:
-            color = [color[0], color[0]]
-        elif len(color) > 2:
-            raise ValueError(
-                "`color` must be string or a list-like "
-                "of length 2: [`color_neg`, `color_pos`] "
-                "(eg: color=['#d65f5f', '#5fba7d'])"
-            )
-
         if not (0 <= width <= 100):
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
         elif not (0 <= height <= 100):
@@ -3367,7 +3355,7 @@ def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
 def _bar(
     data: FrameOrSeries,
     align: str | float | int | Callable,
-    colors: list[str],
+    colors: Any,
     width: float,
     height: float,
     vmin: float | None,
@@ -3429,7 +3417,7 @@ def _bar(
             cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
         return cell_css
 
-    def css_calc(x, left: float, right: float, align: str):
+    def css_calc(x, left: float, right: float, align: str, color: list | str):
         """
         Return the correct CSS for bar placement based on calculated values.
 
@@ -3460,7 +3448,8 @@ def _bar(
         if pd.isna(x):
             return base_css
 
-        color = colors[0] if x < 0 else colors[1]
+        if isinstance(color, list):
+            color = color[0] if x < 0 else color[1]
         x = left if x < left else x
         x = right if x > right else x  # trim data if outside of the window
 
@@ -3523,15 +3512,46 @@ def _bar(
             "value defining the center line or a callable that returns a float"
         )
 
+    rgbas = None
+    if not isinstance(colors, (list, str)):
+        # use the matplotlib colormap input
+        with _mpl(Styler.bar) as (plt, mpl_colors):
+            norm = mpl_colors.Normalize(left, right)
+            if not isinstance(colors, mpl_colors.Colormap):
+                raise ValueError("`colors` must be a matplotlib Colormap.")
+            rgbas = colors(norm(values))
+            if data.ndim == 1:
+                rgbas = [mpl_colors.rgb2hex(rgba) for rgba in rgbas]
+            else:
+                rgbas = [[mpl_colors.rgb2hex(rgba) for rgba in row] for row in rgbas]
+    elif isinstance(colors, list) and len(colors) > 2:
+        raise ValueError(
+            "`color` must be string or a list-like "
+            "of length 2: [`color_neg`, `color_pos`] "
+            "(eg: color=['#d65f5f', '#5fba7d'])"
+        )
+
     assert isinstance(align, str)  # mypy: should now be in [left, right, mid, zero]
     if data.ndim == 1:
-        return [css_calc(x - z, left - z, right - z, align) for x in values]
+        return [
+            css_calc(
+                x - z, left - z, right - z, align, colors if rgbas is None else rgbas[i]
+            )
+            for i, x in enumerate(values)
+        ]
     else:
-        return DataFrame(
+        return np.array(
             [
-                [css_calc(x - z, left - z, right - z, align) for x in row]
-                for row in values
-            ],
-            index=data.index,
-            columns=data.columns,
+                [
+                    css_calc(
+                        x - z,
+                        left - z,
+                        right - z,
+                        align,
+                        colors if rgbas is None else rgbas[i][j],
+                    )
+                    for j, x in enumerate(row)
+                ]
+                for i, row in enumerate(values)
+            ]
         )
