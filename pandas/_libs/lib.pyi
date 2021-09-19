@@ -5,6 +5,7 @@ from typing import (
     Any,
     Callable,
     Generator,
+    Hashable,
     Literal,
     overload,
 )
