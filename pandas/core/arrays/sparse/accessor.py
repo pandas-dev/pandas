@@ -360,16 +360,18 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     @staticmethod
     def _prep_index(data, index, columns):
-        from pandas.core.indexes.api import ensure_index
-        import pandas.core.indexes.base as ibase
+        from pandas.core.indexes.api import (
+            default_index,
+            ensure_index,
+        )
 
         N, K = data.shape
         if index is None:
-            index = ibase.default_index(N)
+            index = default_index(N)
         else:
             index = ensure_index(index)
         if columns is None:
-            columns = ibase.default_index(K)
+            columns = default_index(K)
         else:
             columns = ensure_index(columns)
 
