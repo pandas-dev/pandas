@@ -756,7 +756,7 @@ class BaseGrouper:
         return result_values, mutated
 
     @cache_readonly
-    def indices(self):
+    def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """dict {group name -> group indices}"""
         if len(self.groupings) == 1 and isinstance(self.result_index, CategoricalIndex):
             # This shows unused categories in indices GH#38642
