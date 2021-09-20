@@ -850,11 +850,6 @@ def test_groupby_multi_corner(df):
 
 def test_omit_nuisance(df):
     grouped = df.groupby("A")
-
-    result = grouped.mean()
-    expected = df.loc[:, ["A", "C", "D"]].groupby("A").mean()
-    tm.assert_frame_equal(result, expected)
-
     agged = grouped.agg(np.mean)
     exp = grouped.mean()
     tm.assert_frame_equal(agged, exp)
@@ -873,11 +868,21 @@ def test_omit_nuisance(df):
         grouped.agg(lambda x: x.sum(0, numeric_only=False))
 
 
-def test_omit_nuisance_sem(df):
-    # GH 38774 - sem should work with nuisance columns
+@pytest.mark.parametrize(
+    "agg_function",
+    [
+        "mean",
+        "sum",
+        "std",
+        "var",
+        "sem",
+    ],
+)
+def test_omit_nuisance_agg(df, agg_function):
+    # GH 38774, GH 38815
     grouped = df.groupby("A")
-    result = grouped.sem()
-    expected = df.loc[:, ["A", "C", "D"]].groupby("A").sem()
+    result = getattr(grouped, agg_function)()
+    expected = getattr(df.loc[:, ["A", "C", "D"]].groupby("A"), agg_function)()
     tm.assert_frame_equal(result, expected)
 
 
