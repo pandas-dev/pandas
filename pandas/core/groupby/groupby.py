@@ -2483,10 +2483,26 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         4  2  5.0
         """
         if not dropna:
-            if isinstance(n, Iterable):
-                return self._rows[tuple(n)]
+            with self._group_selection_context():
+                mask = self._make_mask(n)
 
-            return self._rows[n]
+                ids, _, _ = self.grouper.group_info
+
+                # Drop NA values in grouping
+                mask = mask & (ids != -1)
+
+                out = self._selected_obj[mask]
+                if not self.as_index:
+                    return out
+
+                result_index = self.grouper.result_index
+                out.index = result_index[ids[mask]]
+
+                if not self.observed and isinstance(result_index, CategoricalIndex):
+                    out = out.reindex(result_index)
+
+                out = self._reindex_output(out)
+                return out.sort_index() if self.sort else out
 
         # dropna is truthy
         if not is_integer(n):
@@ -3237,11 +3253,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         from the original DataFrame with original index and order preserved
         (``as_index`` flag is ignored).
 
-        Does not work for negative values of `n`.
+        Parameters
+        ----------
+        n : int
+            If positive: number of entries to include from start of each group.
+            If negative: number of entries to exclude from end of each group.
 
         Returns
         -------
         Series or DataFrame
+            Subset of original Series or DataFrame as determined by n.
         %(see_also)s
         Examples
         --------
@@ -3253,16 +3274,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         0  1  2
         2  5  6
         >>> df.groupby('A').head(-1)
-        Empty DataFrame
-        Columns: [A, B]
-        Index: []
+           A  B
+        0  1  2
         """
         self._reset_group_selection()
-        mask = self._cumcount_array() < n
-        if self.axis == 0:
-            return self._selected_obj[mask]
-        else:
-            return self._selected_obj.iloc[:, mask]
+        mask = self._make_mask(slice(None, n))
+        return self._apply_mask(mask)
 
     @final
     @Substitution(name="groupby")
@@ -3275,11 +3292,16 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         from the original DataFrame with original index and order preserved
         (``as_index`` flag is ignored).
 
-        Does not work for negative values of `n`.
+        Parameters
+        ----------
+        n : int
+            If positive: number of entries to include from end of each group.
+            If negative: number of entries to exclude from start of each group.
 
         Returns
         -------
         Series or DataFrame
+            Subset of original Series or DataFrame as determined by n.
         %(see_also)s
         Examples
         --------
@@ -3291,16 +3313,17 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         1  a  2
         3  b  2
         >>> df.groupby('A').tail(-1)
-        Empty DataFrame
-        Columns: [A, B]
-        Index: []
+           A  B
+        1  a  2
+        3  b  2
         """
         self._reset_group_selection()
-        mask = self._cumcount_array(ascending=False) < n
-        if self.axis == 0:
-            return self._selected_obj[mask]
+        if n:
+            mask = self._make_mask(slice(-n, None))
         else:
-            return self._selected_obj.iloc[:, mask]
+            mask = self._make_mask([])
+
+        return self._apply_mask(mask)
 
     @final
     def _reindex_output(

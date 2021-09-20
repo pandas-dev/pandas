@@ -517,11 +517,11 @@ def test_nth_multi_index_as_expected():
 @pytest.mark.parametrize(
     "op, n, expected_rows",
     [
-        ("head", -1, []),
+        ("head", -1, [0]),
         ("head", 0, []),
         ("head", 1, [0, 2]),
         ("head", 7, [0, 1, 2]),
-        ("tail", -1, []),
+        ("tail", -1, [1]),
         ("tail", 0, []),
         ("tail", 1, [1, 2]),
         ("tail", 7, [0, 1, 2]),
@@ -543,11 +543,11 @@ def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
 @pytest.mark.parametrize(
     "op, n, expected_cols",
     [
-        ("head", -1, []),
+        ("head", -1, [0]),
         ("head", 0, []),
         ("head", 1, [0, 2]),
         ("head", 7, [0, 1, 2]),
-        ("tail", -1, []),
+        ("tail", -1, [1]),
         ("tail", 0, []),
         ("tail", 1, [1, 2]),
         ("tail", 7, [0, 1, 2]),

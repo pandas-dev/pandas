@@ -25,106 +25,44 @@ from pandas.core.dtypes.common import (
 if TYPE_CHECKING:
     from pandas.core.groupby import groupby
 
-from pandas.core.indexes.api import CategoricalIndex
-
 
 class GroupByIndexingMixin:
     """
-    Mixin for adding ._rows to GroupBy.
+    Mixin for adding ._middle to GroupBy.
     """
 
-    @property
-    def _rows(self) -> RowsGroupByIndexer:
+    @cache_readonly
+    def _middle(self) -> MiddleGroupByIndexer:
         if TYPE_CHECKING:
-            groupby_object = cast(groupby.GroupBy, self)
-        else:
-            groupby_object = self
+            self = cast(groupby.GroupBy, self)
 
-        return RowsGroupByIndexer(groupby_object)
+        return MiddleGroupByIndexer(self)
 
-
-@doc(GroupByIndexingMixin._rows)
-class RowsGroupByIndexer:
-    def __init__(self, groupby_object: groupby.GroupBy):
-        self.groupby_object = groupby_object
-
-    def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
-        """
-        Positional index for selection by integer location per group.
-
-        Used to implement GroupBy._rows which is used to implement GroupBy.nth
-        in the case when the keyword dropna is None or absent.
-
-        Parameters
-        ----------
-        arg : PositionalIndexer | tuple
-            Allowed values are:
-            - int
-            - int valued iterable such as list or range
-            - slice with step either None or positive
-            - tuple of integers and slices
-
-        Returns
-        -------
-        Series
-            The filtered subset of the original groupby Series.
-        DataFrame
-            The filtered subset of the original groupby DataFrame.
-
-        See Also
-        --------
-        DataFrame.iloc : Purely integer-location based indexing for selection by
-            position.
-        GroupBy.head : Return first n rows of each group.
-        GroupBy.tail : Return last n rows of each group.
-        GroupBy.nth : Take the nth row from each group if n is an int, or a
-            subset of rows, if n is a list of ints.
-        """
-        with self.groupby_object._group_selection_context():
-            if isinstance(arg, tuple):
-                if all(is_integer(i) for i in arg):
-                    mask = self._handle_list(arg)
-                else:
-                    mask = self._handle_tuple(arg)
-
-            elif isinstance(arg, slice):
-                mask = self._handle_slice(arg)
-            elif is_integer(arg):
-                mask = self._handle_int(cast(int, arg))
-            elif is_list_like(arg):
+    def _make_mask(self, arg: PositionalIndexer | tuple) -> np.ndarray:
+        if is_list_like(arg):
+            if all(is_integer(i) for i in cast(Iterable, arg)):
                 mask = self._handle_list(cast(Iterable[int], arg))
             else:
-                raise TypeError(
-                    f"Invalid index {type(arg)}. "
-                    "Must be integer, list-like, slice or a tuple of "
-                    "integers and slices"
-                )
+                mask = self._handle_tuple(cast(tuple, arg))
 
-            if self.groupby_object.dropna:
-                # Drop NA values in grouping
-                ids, _, _ = self.groupby_object.grouper.group_info
+        elif isinstance(arg, slice):
+            mask = self._handle_slice(arg)
+        elif is_integer(arg):
+            mask = self._handle_int(cast(int, arg))
+        else:
+            raise TypeError(
+                f"Invalid index {type(arg)}. "
+                "Must be integer, list-like, slice or a tuple of "
+                "integers and slices"
+            )
 
-                mask &= ids != -1
-
-            if mask is True:
-                result = self.groupby_object._selected_obj[:]
+        if isinstance(mask, bool):
+            if mask:
+                mask = self._ascending_count >= 0
             else:
-                result = self.groupby_object._selected_obj[mask]
+                mask = self._ascending_count < 0
 
-            if self.groupby_object.as_index:
-                result_index = self.groupby_object.grouper.result_index
-                result.index = result_index[ids[mask]]
-
-                if not self.groupby_object.observed and isinstance(
-                    result_index, CategoricalIndex
-                ):
-                    result = result.reindex(result_index)
-
-                result = self.groupby_object._reindex_output(result)
-                if self.groupby_object.sort:
-                    result = result.sort_index()
-
-            return result
+        return cast(np.ndarray, mask)
 
     def _handle_int(self, arg: int) -> np.ndarray:
         if arg >= 0:
@@ -203,10 +141,67 @@ class RowsGroupByIndexer:
 
         return mask
 
+    def _apply_mask(self, mask: np.ndarray):
+        if TYPE_CHECKING:
+            self = cast(groupby.GroupBy, self)
+
+        if self.axis == 0:
+            return self._selected_obj[mask]
+        else:
+            return self._selected_obj.iloc[:, mask]
+
     @cache_readonly
     def _ascending_count(self) -> np.ndarray:
-        return self.groupby_object._cumcount_array()
+        if TYPE_CHECKING:
+            self = cast(groupby.GroupBy, self)
+
+        return self._cumcount_array()
 
     @cache_readonly
     def _descending_count(self) -> np.ndarray:
-        return self.groupby_object._cumcount_array(ascending=False)
+        if TYPE_CHECKING:
+            self = cast(groupby.GroupBy, self)
+
+        return self._cumcount_array(ascending=False)
+
+
+@doc(GroupByIndexingMixin._middle)
+class MiddleGroupByIndexer:
+    def __init__(self, groupby_object: groupby.GroupBy):
+        self.groupby_object = groupby_object
+
+    def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
+        """
+        Positional index for selection by integer location per group.
+
+        Used to implement GroupBy._middle which is used to implement GroupBy.nth
+        in the case when the keyword dropna is None or absent.
+
+        Parameters
+        ----------
+        arg : PositionalIndexer | tuple
+            Allowed values are:
+            - int
+            - int valued iterable such as list or range
+            - slice with step either None or positive
+            - tuple of integers and slices
+
+        Returns
+        -------
+        Series
+            The filtered subset of the original groupby Series.
+        DataFrame
+            The filtered subset of the original groupby DataFrame.
+
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+        GroupBy.head : Return first n rows of each group.
+        GroupBy.tail : Return last n rows of each group.
+        GroupBy.nth : Take the nth row from each group if n is an int, or a
+            subset of rows, if n is a list of ints.
+        """
+        self.groupby_object._reset_group_selection()
+        mask = self.groupby_object._make_mask(arg)
+        return self.groupby_object._apply_mask(mask)
