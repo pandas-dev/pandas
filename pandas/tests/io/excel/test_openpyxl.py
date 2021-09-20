@@ -87,8 +87,7 @@ def test_write_cells_merge_styled(ext):
 
 @pytest.mark.parametrize("iso_dates", [True, False])
 def test_kwargs(ext, iso_dates):
-    # GH 42286
-    # openpyxl doesn't utilize kwargs, only test that supplying a kwarg works
+    # GH 42286 GH 43445
     kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
         msg = re.escape("Use of **kwargs is deprecated")

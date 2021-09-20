@@ -728,14 +728,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     Default usage:
 
     >>> df = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df.to_excel(writer)
 
     To write to separate sheets in a single file:
 
     >>> df1 = pd.DataFrame([["AAA", "BBB"]], columns=["Spam", "Egg"])
     >>> df2 = pd.DataFrame([["ABC", "XYZ"]], columns=["Foo", "Bar"])
-    >>> with ExcelWriter("path_to_file.xlsx") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx") as writer:
     ...     df1.to_excel(writer, sheet_name="Sheet1")
     ...     df2.to_excel(writer, sheet_name="Sheet2")
 
@@ -750,7 +750,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     ...     index=["Date", "Datetime"],
     ...     columns=["X", "Y"],
     ... )
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     date_format="YYYY-MM-DD",
     ...     datetime_format="YYYY-MM-DD HH:MM:SS"
@@ -759,7 +759,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     You can also append to an existing Excel file:
 
-    >>> with ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
+    >>> with pd.ExcelWriter("path_to_file.xlsx", mode="a", engine="openpyxl") as writer:
     ...     df.to_excel(writer, sheet_name="Sheet3")
 
     You can store Excel file in RAM:
@@ -781,23 +781,23 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     You can specify additional arguments to the underlying engine:
 
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="xlsxwriter",
-    ...     engine_kwargs={"options":{"nan_inf_to_errors":True}}
+    ...     engine_kwargs={"options": {"nan_inf_to_errors": True}}
     ... ) as writer:
     ...     df.to_excel(writer)
 
     In append mode, ``engine_kwargs`` are passed through to
     openpyxl's ``load_workbook``:
 
-    >>> with ExcelWriter(
+    >>> with pd.ExcelWriter(
     ...     "path_to_file.xlsx",
     ...     engine="openpyxl",
     ...     mode="a",
-    ...     engine_kwargs={"keep_vba":True}
+    ...     engine_kwargs={"keep_vba": True}
     ... ) as writer:
-    ...     df.to_excel(writer)
+    ...     df.to_excel(writer, sheet_name="Sheet2")
     """
 
     # Defining an ExcelWriter implementation (see abstract methods for more...)
