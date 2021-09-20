@@ -155,24 +155,22 @@ class TestSeries(Generic):
     # issue #43659
     def test_rename_with_multiindex(self):
         arrays = [
-            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-            ["one", "two", "one", "two", "one", "two", "one", "two"],
+            ["bar", "baz", "baz", "foo", "qux"],
+            ["one", "one", "two", "two", "one"],
         ]
 
-        tuples = list(zip(*arrays))
-        index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        s = Series(np.ones(8), index=index)
+        index = MultiIndex.from_arrays(arrays, names=["first", "second"])
+        s = Series(np.ones(5), index=index)
         result = s.rename(index={"one": "yes"}, level="second", errors="raise")
 
         arrays_expected = [
-            ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-            ["yes", "two", "yes", "two", "yes", "two", "yes", "two"],
+            ["bar", "baz", "baz", "foo", "qux"],
+            ["yes", "yes", "two", "two", "yes"],
         ]
 
-        tuples_expected = list(zip(*arrays_expected))
-        index_expected = MultiIndex.from_tuples(
-            tuples_expected, names=["first", "second"]
+        index_expected = MultiIndex.from_arrays(
+            arrays_expected, names=["first", "second"]
         )
-        series_expected = Series(np.ones(8), index=index_expected)
+        series_expected = Series(np.ones(5), index=index_expected)
 
         assert result.equals(series_expected)
