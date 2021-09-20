@@ -3,10 +3,15 @@ from collections import (
     deque,
 )
 from decimal import Decimal
-from warnings import catch_warnings
+from warnings import (
+    catch_warnings,
+    simplefilter,
+)
 
 import numpy as np
 import pytest
+
+from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
@@ -570,7 +575,10 @@ def test_duplicate_keys_same_frame():
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "a"), (keys[1], "b")]
     )
     expected = DataFrame(expected_values, columns=expected_columns)
-    tm.assert_frame_equal(result, expected)
+    with catch_warnings():
+        # result.columns not sorted, resulting in performance warning
+        simplefilter("ignore", PerformanceWarning)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
