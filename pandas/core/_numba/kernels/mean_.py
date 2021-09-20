@@ -29,8 +29,8 @@ def is_monotonic_increasing(bounds: np.ndarray) -> bool:
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def add_mean(
-    val: float, nobs: float, sum_x: float, neg_ct: int, compensation: float
-) -> tuple[float, float, int, float]:
+    val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
+) -> tuple[int, float, int, float]:
     if not np.isnan(val):
         nobs += 1
         y = val - compensation
@@ -44,8 +44,8 @@ def add_mean(
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def remove_mean(
-    val: float, nobs: float, sum_x: float, neg_ct: int, compensation: float
-) -> tuple[float, float, int, float]:
+    val: float, nobs: int, sum_x: float, neg_ct: int, compensation: float
+) -> tuple[int, float, int, float]:
     if not np.isnan(val):
         nobs -= 1
         y = -val - compensation
@@ -65,7 +65,7 @@ def sliding_mean(
     min_periods: int,
 ) -> np.ndarray:
     N = len(start)
-    nobs = 0.0
+    nobs = 0
     sum_x = 0.0
     neg_ct = 0
     compensation_add = 0.0
