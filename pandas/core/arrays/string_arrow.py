@@ -521,7 +521,7 @@ class ArrowStringArray(OpsMixin, BaseStringArray, ObjectStringArrayMixin):
 
         Parameters
         ----------
-        indices : sequence of int
+        indices : sequence of int or one-dimensional np.ndarray of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.

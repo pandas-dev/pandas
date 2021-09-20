@@ -1446,7 +1446,7 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
-    indices : sequence of integers
+    indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
         The axis over which to select values.
