@@ -16,6 +16,9 @@ from pandas import (
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
+# GH#43650: Some expected failures with the pyarrow engine can occasionally
+# cause a deadlock instead, so we skip these instead of xfailing
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
