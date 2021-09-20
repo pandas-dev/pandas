@@ -5216,7 +5216,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return RangeIndex(
                         start=self.stop - self.step,
                         stop=self.start - self.step,
-                        step=self.step * -1
+                        step=self.step * -1,
                     )
                 else:
                     return self
@@ -5225,7 +5225,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return RangeIndex(
                         start=self.stop - self.step,
                         stop=self.start - self.step,
-                        step=self.step * -1
+                        step=self.step * -1,
                     )
                 else:
                     return self
