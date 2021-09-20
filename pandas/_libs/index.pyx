@@ -53,7 +53,7 @@ _SIZE_CUTOFF = 1_000_000
 cdef class IndexEngine:
 
     cdef readonly:
-        object vgetter
+        ndarray values
         HashTable mapping
         bint over_size_threshold
 
@@ -61,10 +61,10 @@ cdef class IndexEngine:
         bint unique, monotonic_inc, monotonic_dec
         bint need_monotonic_check, need_unique_check
 
-    def __init__(self, vgetter, n):
-        self.vgetter = vgetter
+    def __init__(self, ndarray values):
+        self.values = values
 
-        self.over_size_threshold = n >= _SIZE_CUTOFF
+        self.over_size_threshold = len(values) >= _SIZE_CUTOFF
         self.clear_mapping()
 
     def __contains__(self, val: object) -> bool:
@@ -214,8 +214,8 @@ cdef class IndexEngine:
             self.unique = 1
             self.need_unique_check = 0
 
-    cdef _get_index_values(self):
-        return self.vgetter()
+    cdef ndarray _get_index_values(self):
+        return self.values
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
@@ -438,8 +438,8 @@ cdef class DatetimeEngine(Int64Engine):
         self._ensure_mapping_populated()
         return conv in self.mapping
 
-    cdef _get_index_values(self):
-        return self.vgetter().view('i8')
+    cdef ndarray _get_index_values(self):
+        return self.values.view('i8')
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
@@ -537,9 +537,6 @@ cdef class PeriodEngine(Int64Engine):
 
         return Int64Engine.get_loc(self, conv)
 
-    cdef _get_index_values(self):
-        return super(PeriodEngine, self).vgetter().view("i8")
-
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
 
@@ -598,7 +595,7 @@ cdef class BaseMultiIndexCodesEngine:
 
         # Initialize underlying index (e.g. libindex.UInt64Engine) with
         # integers representing labels: we will use its get_loc and get_indexer
-        self._base.__init__(self, lambda: lab_ints, len(lab_ints))
+        self._base.__init__(self, lab_ints)
 
     def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
         raise NotImplementedError("Implemented by subclass")
