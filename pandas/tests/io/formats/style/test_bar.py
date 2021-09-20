@@ -305,13 +305,3 @@ def test_bar_value_error_raises():
     msg = r"`height` must be a value in \[0, 100\]"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(height=200).to_html()
-
-
-def test_bar_color_raises(df_pos):
-    msg = "`colors` must be a matplotlib Colormap if not string"
-    with pytest.raises(ValueError, match=msg):
-        df_pos.style.bar(color={"a", "b"}).to_html()
-
-    msg = "`color` must be string, list-like of 2 strings, or matplotlib Colormap"
-    with pytest.raises(ValueError, match=msg):
-        df_pos.style.bar(color=["a", "b", "c"]).to_html()
