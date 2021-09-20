@@ -680,7 +680,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         host, port, username, password, etc., if using a URL that will
         be parsed by ``fsspec``, e.g., starting "s3://", "gcs://".
 
-        .. versionadded:: 1.2.0
+        .. versionchanged:: 1.4.0
     if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
         exists (append mode only).
@@ -688,8 +688,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
-
-        .. versionadded:: 1.4.0
         * overlay: Write contents to the existing sheet without removing the old
         contents.
 
