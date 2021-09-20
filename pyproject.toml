@@ -139,6 +139,7 @@ reportOptionalIterable = false
 reportOptionalMemberAccess = false
 reportOptionalOperand = false
 reportOptionalSubscript = false
+reportOverlappingOverload = false
 reportPrivateImportUsage = false
 reportPrivateUsage = false
 reportPropertyTypeMismatch = false
