@@ -2628,11 +2628,12 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        color : str or 2-tuple/list
+        color : str, 2-tuple/list, matplotlib Colormap
             If a str is passed, the color is the same for both
             negative and positive numbers. If 2-tuple/list is used, the
             first element is the color_negative and the second is the
-            color_positive (eg: ['#d65f5f', '#5fba7d']).
+            color_positive (eg: ['#d65f5f', '#5fba7d']). Alternatively, assigns
+            colors from a Colormap based on the datavalues.
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
@@ -2675,6 +2676,12 @@ class Styler(StylerRenderer):
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        This section of the user guide:
+        `Table Visualization <../../user_guide/style.ipynb>`_ gives
+        a number of examples for different settings and color coordination.
         """
         if not (0 <= width <= 100):
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
