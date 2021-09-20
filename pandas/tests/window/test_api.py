@@ -331,6 +331,12 @@ def test_is_datetimelike_deprecated():
         assert not s.is_datetimelike
 
 
+def test_validate_deprecated():
+    s = Series(range(1)).rolling(1)
+    with tm.assert_produces_warning(FutureWarning):
+        assert s.validate() is None
+
+
 @pytest.mark.filterwarnings("ignore:min_periods:FutureWarning")
 def test_dont_modify_attributes_after_methods(
     arithmetic_win_operators, closed, center, min_periods
