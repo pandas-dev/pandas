@@ -1503,7 +1503,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         return ensure_block_shape(res_values, ndim=ndim)
 
     def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1,
+        self,
+        how: str,
+        alt: Callable,
+        numeric_only: bool,
+        min_count: int = -1,
         skipna: bool = False,
     ):
         raise AbstractMethodError(self)

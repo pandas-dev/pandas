@@ -329,7 +329,11 @@ class SeriesGroupBy(GroupBy[Series]):
         return output
 
     def _cython_agg_general(
-        self, how: str, alt: Callable, numeric_only: bool, min_count: int = -1,
+        self,
+        how: str,
+        alt: Callable,
+        numeric_only: bool,
+        min_count: int = -1,
         skipna: bool = True,
     ):
 
@@ -348,7 +352,9 @@ class SeriesGroupBy(GroupBy[Series]):
         def array_func(values: ArrayLike) -> ArrayLike:
             try:
                 result = self.grouper._cython_operation(
-                    "aggregate", values, how,
+                    "aggregate",
+                    values,
+                    how,
                     axis=data.ndim - 1,
                     min_count=min_count,
                     skipna=skipna,
