@@ -1644,7 +1644,6 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
-@pytest.mark.slow
 @skip_pyarrow
 @given(date_strategy)
 @settings(deadline=None)
