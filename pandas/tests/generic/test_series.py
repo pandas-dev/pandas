@@ -156,29 +156,23 @@ class TestSeries(Generic):
     def test_rename_with_multiindex(self):
         arrays = [
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-            ["one", "two", "one", "two", "one", "two", "one", "two"]
+            ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
 
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         s = Series(np.ones(8), index=index)
-        result = s.rename(index={"one": "yes"}, level='second', errors='raise')
+        result = s.rename(index={"one": "yes"}, level="second", errors="raise")
 
         arrays_expected = [
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-            ["yes", "two", "yes", "two", "yes", "two", "yes", "two"]
+            ["yes", "two", "yes", "two", "yes", "two", "yes", "two"],
         ]
 
         tuples_expected = list(zip(*arrays_expected))
         index_expected = MultiIndex.from_tuples(
-            tuples_expected, 
-            names=["first", "second"]
+            tuples_expected, names=["first", "second"]
         )
         series_expected = Series(np.ones(8), index=index_expected)
 
         assert result.equals(series_expected)
-
-
-
-
-
