@@ -162,7 +162,7 @@ class TestSeries(Generic):
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         s = Series(np.ones(8), index=index)
-        s.rename(index={'one': 'yes'}, level='second', errors='raise')
+        result = s.rename(index={"one": "yes"}, level='second', errors='raise')
 
         arrays_expected = [
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
@@ -174,9 +174,9 @@ class TestSeries(Generic):
             tuples_expected, 
             names=["first", "second"]
         )
-        s_expected = Series(np.ones(8), index=index_expected)
+        series_expected = Series(np.ones(8), index=index_expected)
 
-        assert s == s_expected
+        assert result.equals(series_expected)
 
 
 
