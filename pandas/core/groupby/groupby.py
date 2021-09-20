@@ -1013,11 +1013,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = (
-                self.filter(lambda x: True).axes[self.axis]
-                if self.dropna
-                else self._selected_obj._get_axis(self.axis)
-            )
+
+            ax = self._selected_obj._get_axis(self.axis)
+            if self.dropna:
+                labels = self.grouper.group_info[0]
+                mask = labels != -1
+                ax = ax[mask]
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
@@ -2693,11 +2694,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        if is_ser:
-            # i.e. SeriesGroupBy
-            mgr = obj.to_frame()._mgr
-        else:
-            mgr = self._get_data_to_aggregate()
+        mgr = self._get_data_to_aggregate()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
         if len(res_mgr.items) != len(mgr.items):
@@ -3135,13 +3132,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         # Operate block-wise instead of column-by-column
         orig_ndim = obj.ndim
-        if orig_ndim == 1:
-            # Operate on DataFrame, then squeeze below
-            obj = obj.to_frame()
-
-        mgr = obj._mgr
-        if self.axis == 1:
-            mgr = obj.T._mgr
+        mgr = self._get_data_to_aggregate()
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
@@ -3168,14 +3159,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # We should never get here
                 raise TypeError("All columns were dropped in grouped_reduce")
 
-        out = type(obj)(res_mgr)
-
         if orig_ndim == 1:
-            assert out.ndim == 2
-            assert out.shape[1] == 1
-            out = out.iloc[:, 0]
-            # restore name=None in case to_frame set columns to [0]
-            out.name = self.obj.name
+            out = self._wrap_agged_manager(res_mgr)
+        else:
+            out = type(obj)(res_mgr)
 
         return self._wrap_aggregated_output(out)
 
