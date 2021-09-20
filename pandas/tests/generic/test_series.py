@@ -152,8 +152,8 @@ class TestSeries(Generic):
         Series._metadata = _metadata
         Series.__finalize__ = _finalize  # FIXME: use monkeypatch
 
-    # issue #43659
     def test_rename_with_multiindex(self):
+        # issue #43659
         arrays = [
             ["bar", "baz", "baz", "foo", "qux"],
             ["one", "one", "two", "two", "one"],
