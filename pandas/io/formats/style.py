@@ -3450,6 +3450,8 @@ def _bar(
 
         if isinstance(color, list):
             color = color[0] if x < 0 else color[1]
+        assert isinstance(color, str)  # mypy redefinition
+
         x = left if x < left else x
         x = right if x > right else x  # trim data if outside of the window
 
