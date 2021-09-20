@@ -461,17 +461,17 @@ class Styler(StylerRenderer):
         column_format: str | None = None,
         position: str | None = None,
         position_float: str | None = None,
-        hrules: bool = False,
+        hrules: bool | None = None,
         label: str | None = None,
         caption: str | tuple | None = None,
         sparse_index: bool | None = None,
         sparse_columns: bool | None = None,
         multirow_align: str | None = None,
         multicol_align: str | None = None,
-        siunitx: bool = False,
+        siunitx: bool | None = None,
         environment: str | None = None,
         encoding: str | None = None,
-        convert_css: bool = False,
+        convert_css: bool | None = None,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -481,7 +481,7 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         buf : str, Path, or StringIO-like, optional, default None
-            Buffer to write to. If ``None``, the output is returned as a string.
+            Buffer to write to. If `None`, the output is returned as a string.
         column_format : str, optional
             The LaTeX column specification placed in location:
 
@@ -502,9 +502,10 @@ class Styler(StylerRenderer):
             \\<position_float>
 
             Cannot be used if ``environment`` is "longtable".
-        hrules : bool, default False
+        hrules : bool
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
+            Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -515,41 +516,44 @@ class Styler(StylerRenderer):
         sparse_index : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
-            Defaults to ``pandas.options.styler.sparse.index`` value.
+            Defaults to ``pandas.options.styler.sparse.index``, which is `True`.
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
-            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+            column. Defaults to ``pandas.options.styler.sparse.columns``, which
+            is `True`.
         multirow_align : {"c", "t", "b", "naive"}, optional
             If sparsifying hierarchical MultiIndexes whether to align text centrally,
             at the top or bottom using the multirow package. If not given defaults to
-            ``pandas.options.styler.latex.multirow_align``. If "naive" is given renders
-            without multirow.
+            ``pandas.options.styler.latex.multirow_align``, which is `"c"`.
+            If "naive" is given renders without multirow.
 
             .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``. If a naive option is
-            given renders without multicol.
+            ``pandas.options.styler.latex.multicol_align``, which is `"r"`.
+            If a naive option is given renders without multicol.
 
             .. versionchanged:: 1.4.0
-        siunitx : bool, default False
+        siunitx : bool
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
+            Defaults to ``pandas.options.styler.latex.siunitx``, which is `False`.
         environment : str, optional
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
             rendered. If not given defaults to
-            ``pandas.options.styler.latex.environment``.
+            ``pandas.options.styler.latex.environment``, which is `None`.
 
             .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
-            to ``pandas.options.styler.render.encoding`` value of "utf-8".
+            to ``pandas.options.styler.render.encoding``, which is "utf-8".
         convert_css : bool, default False
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
             `--latex`. See notes.
+            Defaults to ``pandas.options.styler.latex.convert_css``, which is `False`.
 
         Returns
         -------
@@ -785,6 +789,8 @@ class Styler(StylerRenderer):
             else []
         )
 
+        siunitx = get_option("styler.latex.siunitx") if siunitx is None else siunitx
+
         if column_format is not None:
             # add more recent setting to table_styles
             obj.set_table_styles(
@@ -834,6 +840,7 @@ class Styler(StylerRenderer):
                 overwrite=False,
             )
 
+        hrules = get_option("styler.latex.hrules") if hrules is None else hrules
         if hrules:
             obj.set_table_styles(
                 [
@@ -860,6 +867,8 @@ class Styler(StylerRenderer):
         environment = environment or get_option("styler.latex.environment")
         multicol_align = multicol_align or get_option("styler.latex.multicol_align")
         multirow_align = multirow_align or get_option("styler.latex.multirow_align")
+        if convert_css is None:
+            convert_css = get_option("styler.latex.convert_css")
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,

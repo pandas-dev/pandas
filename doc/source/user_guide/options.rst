@@ -512,6 +512,9 @@ styler.latex.multicol_align             r            Alignment of headers in a m
 styler.latex.multirow_align             c            Alignment of index labels in a merged row due to sparsification. Can be in {"c", "t", "b"}.
 styler.latex.environment                None         If given will replace the default ``\\begin{table}`` environment. If "longtable" is specified
                                                      this will render with a specific "longtable" template with longtable features.
+styler.latex.hrules                     False        If set to True will render ``\\toprule``, ``\\midrule``, and ``\bottomrule`` by default.
+styler.latex.siunitx                    False        If set to True will render column format and header format compatible with the siunitx package.
+styler.latex.convert_css                False        If set to True will render styles in LaTeX converted from a Styler built with HTML-CSS styles.
 ======================================= ============ ==================================
 
 
