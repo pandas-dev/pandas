@@ -9,12 +9,12 @@ from typing import (
 
 from pandas._typing import (
     Axis,
-    FrameOrSeries,
     WindowingRankType,
 )
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -40,13 +40,6 @@ from pandas.core.window.rolling import (
     BaseWindowGroupby,
     RollingAndExpandingMixin,
 )
-
-if TYPE_CHECKING:
-    from pandas import (
-        DataFrame,
-        Series,
-    )
-    from pandas.core.generic import NDFrame
 
 
 class Expanding(RollingAndExpandingMixin):

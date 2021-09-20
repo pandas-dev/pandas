@@ -1337,7 +1337,7 @@ def _make_unique_kwarg_list(
 
 
 def relabel_result(
-    result: FrameOrSeries,
+    result: DataFrame | Series,
     func: dict[str, list[Callable | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
