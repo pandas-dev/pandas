@@ -58,7 +58,7 @@ def generate_shared_aggregator(
         end: np.ndarray,
         min_periods: int,
     ):
-        result = np.empty((len(start), values.shape[1]))
+        result = np.empty((len(start), values.shape[1]), dtype=np.float64)
         for i in numba.prange(values.shape[1]):
             result[:, i] = func(values[:, i], start, end, min_periods)
         return result
