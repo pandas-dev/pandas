@@ -947,7 +947,7 @@ def mode(values, dropna: bool = True) -> Series:
     mode : Series
     """
     from pandas import Series
-    import pandas.core.indexes.base as ibase
+    from pandas.core.indexes.api import default_index
 
     values = _ensure_arraylike(values)
     original = values
@@ -973,7 +973,7 @@ def mode(values, dropna: bool = True) -> Series:
 
     result = _reconstruct_data(npresult, original.dtype, original)
     # Ensure index is type stable (should always use int index)
-    return Series(result, index=ibase.default_index(len(result)))
+    return Series(result, index=default_index(len(result)))
 
 
 def rank(
@@ -1252,6 +1252,8 @@ class SelectNSeries(SelectN):
 
     def compute(self, method: str) -> Series:
 
+        from pandas.core.reshape.concat import concat
+
         n = self.n
         dtype = self.obj.dtype
         if not self.is_valid_dtype_n_method(dtype):
@@ -1261,6 +1263,7 @@ class SelectNSeries(SelectN):
             return self.obj[[]]
 
         dropped = self.obj.dropna()
+        nan_index = self.obj.drop(dropped.index)
 
         if is_extension_array_dtype(dropped.dtype):
             # GH#41816 bc we have dropped NAs above, MaskedArrays can use the
@@ -1277,7 +1280,7 @@ class SelectNSeries(SelectN):
         # slow method
         if n >= len(self.obj):
             ascending = method == "nsmallest"
-            return dropped.sort_values(ascending=ascending).head(n)
+            return self.obj.sort_values(ascending=ascending).head(n)
 
         # fast method
         new_dtype = dropped.dtype
@@ -1295,6 +1298,8 @@ class SelectNSeries(SelectN):
         if self.keep == "last":
             arr = arr[::-1]
 
+        nbase = n
+        findex = len(self.obj)
         narr = len(arr)
         n = min(n, narr)
 
@@ -1306,12 +1311,13 @@ class SelectNSeries(SelectN):
 
         if self.keep != "all":
             inds = inds[:n]
+            findex = nbase
 
         if self.keep == "last":
             # reverse indices
             inds = narr - 1 - inds
 
-        return dropped.iloc[inds]
+        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
 
 
 class SelectNFrame(SelectN):
