@@ -219,7 +219,7 @@ SequenceIndexer = Union[slice, List[int], np.ndarray]
 PositionalIndexer = Union[ScalarIndexer, SequenceIndexer]
 PositionalIndexerTuple = Tuple[PositionalIndexer, PositionalIndexer]
 PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]
-if npt is not None:
+if TYPE_CHECKING:
     TakeIndexer = Union[Sequence[int], Sequence[np.integer], npt.NDArray[np.integer]]
 else:
     TakeIndexer = Union[Sequence[int], Sequence[np.integer], np.ndarray]
