@@ -76,4 +76,4 @@ class Render:
         self.st = self.df.style.applymap(lambda v: "color: red;")
         self.st.format("{:.3f}")
         self.st.hide_index(self.st.index[1:])
-        self.hide_columns(self.st.columns[1:])
+        self.st.hide_columns(self.st.columns[1:])
