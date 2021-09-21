@@ -378,11 +378,12 @@ class StylerRenderer:
                 if clabels:
                     column_headers = []
                     for c, value in enumerate(clabels[r]):
+                        header_element_visible = _is_visible(c, r, col_lengths)
                         header_element = _element(
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths),
+                            header_element_visible,
                             display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
@@ -393,7 +394,11 @@ class StylerRenderer:
 
                         if self.cell_ids:
                             header_element["id"] = f"level{r}_col{c}"
-                        if (r, c) in self.ctx_columns and self.ctx_columns[r, c]:
+                        if (
+                            header_element_visible
+                            and (r, c) in self.ctx_columns
+                            and self.ctx_columns[r, c]
+                        ):
                             header_element["id"] = f"level{r}_col{c}"
                             self.cellstyle_map_columns[
                                 tuple(self.ctx_columns[r, c])
