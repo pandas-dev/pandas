@@ -33,9 +33,10 @@ Bug fixes
 
 .. _whatsnew_134.other:
 
-Performance improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :meth:`Styler.to_html` by omitting CSSStyle rules for hidden table cells (:issue:`43619`)
+Other
+~~~~~
+-
+-
 
 .. ---------------------------------------------------------------------------
 
