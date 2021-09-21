@@ -785,6 +785,13 @@ def test_siunitx_basic_headers(styler):
     assert " & A & B & C \\\\" in styler.to_latex()  # default siunitx=False
 
 
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_css_convert_apply_index(styler, axis):
+    styler.applymap_index(lambda x: "font-weight: bold;", axis=axis)
+    for label in getattr(styler, axis):
+        assert f"\\bfseries {label}" in styler.to_latex(convert_css=True)
+
+
 def test_hide_index_latex(styler):
     # GH 43637
     styler.hide_index([0])
