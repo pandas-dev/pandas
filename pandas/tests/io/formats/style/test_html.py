@@ -469,40 +469,22 @@ def test_maximums(styler_mi, rows, cols):
     assert (">2</td>" in result) is not cols  # first trimmed horizontal element
 
 
-def test_omit_css_style_rules_for_hidden_cells():
+def test_include_css_style_rules_only_for_visible_cells(styler_mi):
     # GH 43619
-    df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
     result = (
-        df.style.set_uuid("")
-        .background_gradient()
-        .hide_columns(["A"])
-        .hide_index([0])
+        styler_mi.set_uuid("")
+        .applymap(lambda v: "color: blue;")
+        .hide_columns(styler_mi.data.columns[1:])
+        .hide_index(styler_mi.data.index[1:])
         .to_html()
     )
-    expected = dedent(
+    expected_styles = dedent(
         """\
         <style type="text/css">
-        #T__row1_col1 {
-          background-color: #023858;
-          color: #f1f1f1;
+        #T__row0_col0 {
+          color: blue;
         }
         </style>
-        <table id="T_">
-          <thead>
-            <tr>
-              <th class="blank level0" >&nbsp;</th>
-              <th id="T__level0_col1" class="col_heading level0 col1" >B</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-            </tr>
-            <tr>
-              <th id="T__level0_row1" class="row_heading level0 row1" >1</th>
-              <td id="T__row1_col1" class="data row1 col1" >4</td>
-            </tr>
-          </tbody>
-        </table>
         """
     )
-    assert result == expected
+    assert expected_styles in result
