@@ -267,14 +267,8 @@ def test_chunk_splits_multibyte_char(all_parsers):
     # utf-8 encoding of "ą" is b'\xc4\x85'
     df.iloc[2047] = "a" * 127 + "ą"
     with tm.ensure_clean("bug-gh43540.csv") as fname:
-        df.to_csv(
-            fname,
-            index=False,
-            header=False,
-            encoding="utf-8",
-            engine="c",
-        )
-        dfr = parser.read_csv(fname, header=None, memory_map=True)
+        df.to_csv(fname, index=False, header=False, encoding="utf-8")
+        dfr = parser.read_csv(fname, header=None, memory_map=True, engine="c")
     tm.assert_frame_equal(dfr, df)
 
 
