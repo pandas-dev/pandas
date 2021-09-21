@@ -28,8 +28,6 @@ dtypes = [('Float64', 'float64'),
 
 
 cdef class {{name}}Engine(IndexEngine):
-    # constructor-caller is responsible for ensuring that vgetter()
-    #  returns an ndarray with dtype {{dtype}}_t
 
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{name}}HashTable(n)

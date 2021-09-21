@@ -63,6 +63,7 @@ __all__ = [
     "union_indexes",
     "get_unanimous_names",
     "all_indexes_same",
+    "default_index",
 ]
 
 
@@ -287,3 +288,8 @@ def all_indexes_same(indexes) -> bool:
     itr = iter(indexes)
     first = next(itr)
     return all(first.equals(index) for index in itr)
+
+
+def default_index(n: int) -> RangeIndex:
+    rng = range(0, n)
+    return RangeIndex._simple_new(rng, name=None)
