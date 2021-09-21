@@ -892,13 +892,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif isinstance(key, tuple):
             data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
-            # special case to preserve dtypes
-            if key == slice(None):
-                return self.copy()
-            # TODO: this logic is surely elsewhere
-            # TODO: this could be more efficient
-            indices = np.arange(len(self), dtype=np.int32)[key]
-            return self.take(indices)
+            start = 0 if key.start is None else key.start
+            if start < 0:
+                start += len(self)
+
+            end = len(self) if key.step is None else key.stop
+            if end < 0:
+                end += len(self)
+
+            indices = self.sp_index.to_int_index().indices
+
+            keep_inds = np.flatnonzero((indices >= start) & (indices <= end))
+            sp_vals = self.sp_values[keep_inds]
+            sp_index = indices[keep_inds]
+            new_sp_index = make_sparse_index(len(self), sp_index, self.kind)
+            return type(self)._simple_new(sp_vals, new_sp_index, self.dtype)
         else:
             # TODO: I think we can avoid densifying when masking a
             # boolean SparseArray with another. Need to look at the
@@ -1762,10 +1770,10 @@ def make_sparse_index(length: int, indices, kind: Literal["integer"]) -> IntInde
 
 def make_sparse_index(length: int, indices, kind: SparseIndexKind) -> SparseIndex:
     index: SparseIndex
-    if kind == "block" or isinstance(kind, BlockIndex):
+    if kind == "block":
         locs, lens = splib.get_blocks(indices)
         index = BlockIndex(length, locs, lens)
-    elif kind == "integer" or isinstance(kind, IntIndex):
+    elif kind == "integer":
         index = IntIndex(length, indices)
     else:  # pragma: no cover
         raise ValueError("must be block or integer type")

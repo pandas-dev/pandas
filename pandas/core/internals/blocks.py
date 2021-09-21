@@ -2082,6 +2082,9 @@ def to_native_types(
     """convert to our native types format"""
     values = ensure_wrapped_if_datetimelike(values)
 
+    if is_sparse(values):
+        values = values.to_dense()
+
     if isinstance(values, (DatetimeArray, TimedeltaArray)):
         result = values._format_native_types(na_rep=na_rep, **kwargs)
         result = result.astype(object, copy=False)
