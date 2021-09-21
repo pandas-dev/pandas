@@ -43,7 +43,7 @@ class Render:
         self.st._render_html(True, True)
 
     def time_apply_format_hide_render(self, cols, rows):
-        self._style_format()
+        self._style_apply_format_hide()
         self.st._render_html(True, True)
 
     def peakmem_apply_format_hide_render(self, cols, rows):
