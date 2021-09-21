@@ -32,11 +32,11 @@ class GroupByIndexingMixin:
     """
 
     @cache_readonly
-    def _body(self) -> MiddleGroupByIndexer:
+    def _body(self) -> BodyGroupByIndexer:
         if TYPE_CHECKING:
             self = cast(groupby.GroupBy, self)
 
-        return MiddleGroupByIndexer(self)
+        return BodyGroupByIndexer(self)
 
     def _make_mask(self, arg: PositionalIndexer | tuple) -> np.ndarray:
         if is_list_like(arg):
@@ -166,7 +166,7 @@ class GroupByIndexingMixin:
 
 
 @doc(GroupByIndexingMixin._body)
-class MiddleGroupByIndexer:
+class BodyGroupByIndexer:
     def __init__(self, groupby_object: groupby.GroupBy):
         self.groupby_object = groupby_object
 
