@@ -609,7 +609,9 @@ class Apply(metaclass=abc.ABCMeta):
             is_ndframe = [isinstance(r, ABCNDFrame) for r in results]
 
         # combine results
+        result: DataFrame | Series
         if all(is_ndframe):
+            keys_to_use: Iterable[Hashable]
             keys_to_use = [k for k in arg.keys() if not results[k].empty]
             keys_to_use = keys_to_use if keys_to_use != [] else arg.keys()
             if selected_obj.ndim == 2:
@@ -619,8 +621,6 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
             keys = None if selected_obj.ndim == 1 else keys_to_use
             result = concat({k: results[k] for k in keys_to_use}, keys=keys, axis=1)
-            if result.ndim == 1:
-                result = result.to_frame()
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
             raise ValueError(

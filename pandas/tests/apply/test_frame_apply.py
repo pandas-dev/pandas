@@ -1450,9 +1450,9 @@ def test_apply_no_suffix_index(request):
     result = pdf.apply([np.square, lambda x: x, lambda x: x])
     if get_option("mode.new_udf_methods"):
         columns = MultiIndex.from_product(
-            [["A", "B"], ["square", "<lambda>", "<lambda>"]]
+            [["square", "<lambda>", "<lambda>"], ["A", "B"]]
         )
-        expected = DataFrame([[16, 4, 4, 81, 9, 9]], columns=columns)
+        expected = DataFrame(3 * [[16, 81, 4, 9, 4, 9]], columns=columns)
     else:
         columns = MultiIndex.from_product(
             [["A", "B"], ["square", "<lambda>", "<lambda>"]]
