@@ -890,7 +890,12 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        values = self._get_engine_target()
+        if needs_i8_conversion(self.dtype):
+            # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
+            # has no attribute "_ndarray"
+            values = self._data._ndarray  # type: ignore[union-attr]
+        else:
+            values = self._get_engine_target()
         return values.ravel(order=order)
 
     def view(self, cls=None):

@@ -503,7 +503,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_join_freq(other)
         return result
 
-    def _get_join_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> np.ndarray:
+        # engine methods and libjoin methods need dt64/td64 values cast to i8
         return self._data._ndarray.view("i8")
 
     def _from_join_target(self, result: np.ndarray):
