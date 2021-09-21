@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Hashable,
     final,
 )
@@ -303,7 +304,9 @@ class Grouper:
             raise ValueError("_set_grouper must be called before ax is accessed")
         return index
 
-    def _get_grouper(self, obj: NDFrame, validate: bool = True):
+    def _get_grouper(
+        self, obj: FrameOrSeries, validate: bool = True
+    ) -> tuple[Any, ops.BaseGrouper, FrameOrSeries]:
         """
         Parameters
         ----------
@@ -330,7 +333,9 @@ class Grouper:
             dropna=self.dropna,
         )
 
-        return self.binner, self.grouper, self.obj
+        # error: Incompatible return value type (got "Tuple[None, None, None]",
+        # expected "Tuple[Any, BaseGrouper, FrameOrSeries]")
+        return self.binner, self.grouper, self.obj  # type: ignore[return-value]
 
     @final
     def _set_grouper(self, obj: NDFrame, sort: bool = False):
