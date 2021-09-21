@@ -355,7 +355,7 @@ Performance improvements
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
 - :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
-- Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654 `)
+- Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 -
 
 .. ---------------------------------------------------------------------------
