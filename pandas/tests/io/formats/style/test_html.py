@@ -488,3 +488,24 @@ def test_include_css_style_rules_only_for_visible_cells(styler_mi):
         """
     )
     assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="index")
+        .hide_columns(styler_mi.data.columns)
+        .hide_index(styler_mi.data.index[1:])
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_row0, #T__level1_row0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
