@@ -78,7 +78,7 @@ class Duplicated:
         data = {
             "int": pd.Index(np.arange(N), dtype="int64"),
             "uint": pd.Index(np.arange(N), dtype="uint64"),
-            "float": pd.Index(np.random.randn(N), dype="float64"),
+            "float": pd.Index(np.random.randn(N), dtype="float64"),
             "string": tm.makeStringIndex(N),
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
