@@ -72,7 +72,7 @@ Styler
 
 :class:`.Styler` has been further developed in 1.4.0. The following enhancements have been made:
 
-  - Styling of indexing has been added, with :meth:`.Styler.apply_index` and :meth:`.Styler.applymap_index`. These mirror the signature of the methods already used to style data values, and work with both HTML and LaTeX format (:issue:`41893`).
+  - Styling and formatting of indexes has been added, with :meth:`.Styler.apply_index`, :meth:`.Styler.applymap_index` and :meth:`.Styler.format_index`. These mirror the signature of the methods already used to style and format data values, and work with both HTML and LaTeX format (:issue:`41893`, :issue:`43101`).
   - :meth:`.Styler.bar` introduces additional arguments to control alignment and display (:issue:`26070`, :issue:`36419`), and it also validates the input arguments ``width`` and ``height`` (:issue:`42511`).
   - :meth:`.Styler.to_latex` introduces keyword argument ``environment``, which also allows a specific "longtable" entry through a separate jinja2 template (:issue:`41866`).
   - :meth:`.Styler.to_html` introduces keyword arguments ``sparse_index``, ``sparse_columns``, ``bold_headers``, ``caption``, ``max_rows`` and ``max_columns`` (:issue:`41946`, :issue:`43149`, :issue:`42972`).
@@ -334,8 +334,8 @@ Other Deprecations
 - Deprecated the 'include_start' and 'include_end' arguments in :meth:`DataFrame.between_time`; in a future version passing 'include_start' or 'include_end' will raise (:issue:`40245`)
 - Deprecated the ``squeeze`` argument to :meth:`read_csv`, :meth:`read_table`, and :meth:`read_excel`. Users should squeeze the DataFrame afterwards with ``.squeeze("columns")`` instead. (:issue:`43242`)
 - Deprecated the ``index`` argument to :class:`SparseArray` construction (:issue:`23089`)
+- Deprecated :meth:`.Rolling.validate`, :meth:`.Expanding.validate`, and :meth:`.ExponentialMovingWindow.validate` (:issue:`43665`)
 - Deprecated the 'include_start' and 'include_end' arguments in :meth:`DatetimeIndex.indexer_between_time`; in a future version passing 'include_start' or 'include_end' will raise (:issue:`43602`)
--
 
 .. ---------------------------------------------------------------------------
 
@@ -487,6 +487,7 @@ Reshaping
 - Bug in :meth:`DataFrame.append` failing to retain dtypes when appended columns do not match (:issue:`43392`)
 - Bug in :func:`concat` of ``bool`` and ``boolean`` dtypes resulting in ``object`` dtype instead of ``boolean`` dtype (:issue:`42800`)
 - Bug in :func:`crosstab` when inputs are are categorical Series, there are categories that are not present in one or both of the Series, and ``margins=True``. Previously the margin value for missing categories was ``NaN``. It is now correctly reported as 0 (:issue:`43505`)
+- Bug in :func:`concat` would fail when the ``objs`` argument all had the same index and the ``keys`` argument contained duplicates (:issue:`43595`)
 
 Sparse
 ^^^^^^

@@ -276,10 +276,6 @@ def _get_filepath_or_buffer(
 
     compression = dict(compression, method=compression_method)
 
-    # uniform encoding names
-    if encoding is not None:
-        encoding = encoding.replace("_", "-").lower()
-
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
     if (
@@ -602,25 +598,11 @@ def get_handle(
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
         mode += "b"
 
-    # valdiate errors
+    # validate encoding and errors
+    if isinstance(encoding, str):
+        codecs.lookup(encoding)
     if isinstance(errors, str):
-        errors = errors.lower()
-    if errors not in (
-        None,
-        "strict",
-        "ignore",
-        "replace",
-        "xmlcharrefreplace",
-        "backslashreplace",
-        "namereplace",
-        "surrogateescape",
-        "surrogatepass",
-    ):
-        raise ValueError(
-            f"Invalid value for `encoding_errors` ({errors}). Please see "
-            + "https://docs.python.org/3/library/codecs.html#error-handlers "
-            + "for valid values."
-        )
+        codecs.lookup_error(errors)
 
     # open URLs
     ioargs = _get_filepath_or_buffer(
