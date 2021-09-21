@@ -33,7 +33,6 @@ class CParserWrapper(ParserBase):
     def __init__(self, src: FilePathOrBuffer, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
-
         ParserBase.__init__(self, kwds)
 
         self.low_memory = kwds.pop("low_memory", False)

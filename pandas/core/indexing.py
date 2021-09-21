@@ -1922,6 +1922,7 @@ class _iLocIndexer(_LocationIndexer):
                 # no columns and scalar
                 raise ValueError("cannot set a frame with no defined columns")
 
+            has_dtype = hasattr(value, "dtype")
             if isinstance(value, ABCSeries):
                 # append a Series
                 value = value.reindex(index=self.obj.columns, copy=True)
@@ -1939,7 +1940,18 @@ class _iLocIndexer(_LocationIndexer):
 
                 value = Series(value, index=self.obj.columns, name=indexer)
 
-            self.obj._mgr = self.obj.append(value)._mgr
+            if not len(self.obj):
+                # We will ignore the existing dtypes instead of using
+                #  internals.concat logic
+                df = value.to_frame().T
+                df.index = [indexer]
+                if not has_dtype:
+                    # i.e. if we already had a Series or ndarray, keep that
+                    #  dtype.  But if we had a list or dict, then do inference
+                    df = df.infer_objects()
+                self.obj._mgr = df._mgr
+            else:
+                self.obj._mgr = self.obj.append(value)._mgr
             self.obj._maybe_update_cacher(clear=True)
 
     def _ensure_iterable_column_indexer(self, column_indexer):
