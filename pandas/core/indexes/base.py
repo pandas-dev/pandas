@@ -890,7 +890,10 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        values = self._get_engine_target()
+        if needs_i8_conversion(self.dtype):
+            values = self._data._ndarray
+        else:
+            values = self._get_engine_target()
         return values.ravel(order=order)
 
     def view(self, cls=None):
