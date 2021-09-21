@@ -73,7 +73,7 @@ class Render:
         )
 
     def _style_apply_format_hide(self):
-        self.st.applymap(lambda v: "color: red;")
-        self.format("{:.3f}")
-        self.hide_index(self.st.index[1:])
+        self.st = self.df.style.applymap(lambda v: "color: red;")
+        self.st.format("{:.3f}")
+        self.st.hide_index(self.st.index[1:])
         self.hide_columns(self.st.columns[1:])
