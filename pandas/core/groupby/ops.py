@@ -514,7 +514,7 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max"]:
+            if self.how in ["min", "max", "mean"]:
                 func(
                     result,
                     counts,
