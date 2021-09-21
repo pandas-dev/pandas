@@ -51,9 +51,7 @@ cdef class {{name}}Engine(IndexEngine):
         # Returns ndarray[bool] or int
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
-            ndarray[intp_t, ndim=1] found
             ndarray[{{dtype}}_t, ndim=1] values
-            int count = 0
 
         self._check_type(val)
 
