@@ -451,6 +451,163 @@ class StylerRenderer:
 
         return head
 
+    def _generate_trimmed_row(
+        self,
+        row_heading_class: str,
+        trimmed_row_class: str,
+        trimmed_col_class: str,
+        data_class: str,
+        max_cols: int,
+    ) -> list:
+        """
+        When a render has too many rows we generate a trimming row containing "..."
+
+        Parameters
+        ----------
+        row_heading_class, trimmed_row_class, trimmed_col_class, data_class : str
+            Name of the CSS classes added to various elements
+        max_cols : int
+            Number of permissible columns
+
+        Returns
+        -------
+            list of elements
+        """
+        index_headers = [
+            _element(
+                "th",
+                f"{row_heading_class} level{c} {trimmed_row_class}",
+                "...",
+                not self.hide_index_[c],
+                attributes="",
+            )
+            for c in range(self.data.index.nlevels)
+        ]
+
+        data = [
+            _element(
+                "td",
+                f"{data_class} col{c} {trimmed_row_class}",
+                "...",
+                (c not in self.hidden_columns),
+                attributes="",
+            )
+            for c in range(max_cols)
+        ]
+
+        if len(self.data.columns) > max_cols:
+            # columns are also trimmed so we add the final element
+            data.append(
+                _element(
+                    "td",
+                    f"{data_class} {trimmed_row_class} {trimmed_col_class}",
+                    "...",
+                    True,
+                    attributes="",
+                )
+            )
+        return index_headers + data
+
+    def _generate_body_row(
+        self,
+        iter: tuple,
+        row_heading_class: str,
+        trimmed_col_class: str,
+        data_class: str,
+        max_cols: int,
+        idx_lengths: dict,
+    ) -> list:
+        """
+        Generate a regular row for the body section of appropriate format.
+
+          +--------------------------------------------+---------------------------+
+          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          +--------------------------------------------+---------------------------+
+
+        Parameters
+        ----------
+        iter : tuple
+            Iterable from outer scope: row number, row data tuple, row index labels.
+        rlabels : list
+            list of index values.
+        row_heading_class, trimmed_col_class, data_class : str
+            Various CSS classes added to different element types.
+        max_cols : int
+
+        idx_lengths :
+            A map of the sparsification structure of the index
+
+        Returns
+        -------
+            list of elements
+        """
+        r, row_tup, rlabels = iter
+
+        index_headers = []
+        for c, value in enumerate(rlabels):
+            header_element = _element(
+                "th",
+                f"{row_heading_class} level{c} row{r}",
+                value,
+                _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
+                display_value=self._display_funcs_index[(r, c)](value),
+                attributes=(
+                    f'rowspan="{idx_lengths.get((c, r), 0)}"'
+                    if idx_lengths.get((c, r), 0) > 1
+                    else ""
+                ),
+            )
+
+            if self.cell_ids:
+                header_element["id"] = f"level{c}_row{r}"  # id is specified
+            if (r, c) in self.ctx_index and self.ctx_index[r, c]:
+                # always add id if a style is specified
+                header_element["id"] = f"level{c}_row{r}"
+                self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
+                    f"level{c}_row{r}"
+                )
+
+            index_headers.append(header_element)
+
+        data = []
+        for c, value in enumerate(row_tup[1:]):
+            if c >= max_cols:
+                data.append(
+                    _element(
+                        "td",
+                        f"{data_class} row{r} {trimmed_col_class}",
+                        "...",
+                        True,
+                        attributes="",
+                    )
+                )
+                break
+
+            # add custom classes from cell context
+            cls = ""
+            if (r, c) in self.cell_context:
+                cls = " " + self.cell_context[r, c]
+
+            data_element = _element(
+                "td",
+                f"{data_class} row{r} col{c}{cls}",
+                value,
+                (c not in self.hidden_columns and r not in self.hidden_rows),
+                attributes="",
+                display_value=self._display_funcs[(r, c)](value),
+            )
+
+            if self.cell_ids:
+                data_element["id"] = f"row{r}_col{c}"
+            if (r, c) in self.ctx and self.ctx[r, c]:
+                # always add id if needed due to specified style
+                data_element["id"] = f"row{r}_col{c}"
+                self.cellstyle_map[tuple(self.ctx[r, c])].append(f"row{r}_col{c}")
+
+            data.append(data_element)
+
+        return index_headers + data
+
     def _translate_body(
         self,
         data_class: str,
@@ -491,117 +648,35 @@ class StylerRenderer:
             self.index, sparsify_index, max_rows, self.hidden_rows
         )
 
-        rlabels = self.data.index.tolist()[:max_rows]  # slice to allow trimming
+        rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
-        body = []
+        body, row_count = [], 0
         for r, row_tup in enumerate(self.data.itertuples()):
             if r not in self.hidden_rows:
-                if r >= max_rows:  # used only to add a '...' trimmed row:
-                    index_headers = [
-                        _element(
-                            "th",
-                            f"{row_heading_class} level{c} {trimmed_row_class}",
-                            "...",
-                            not self.hide_index_[c],
-                            attributes="",
-                        )
-                        for c in range(self.data.index.nlevels)
-                    ]
-
-                    data = [
-                        _element(
-                            "td",
-                            f"{data_class} col{c} {trimmed_row_class}",
-                            "...",
-                            (c not in self.hidden_columns),
-                            attributes="",
-                        )
-                        for c in range(max_cols)
-                    ]
-
-                    if len(self.data.columns) > max_cols:
-                        # columns are also trimmed so we add the final element
-                        data.append(
-                            _element(
-                                "td",
-                                f"{data_class} {trimmed_row_class} {trimmed_col_class}",
-                                "...",
-                                True,
-                                attributes="",
-                            )
-                        )
-
-                    body.append(index_headers + data)
+                row_count += 1  # count visible rows to ensure max not breached
+                if row_count > max_rows:  # used only to add a '...' trimmed row:
+                    trimmed_row = self._generate_trimmed_row(
+                        row_heading_class,
+                        trimmed_row_class,
+                        trimmed_col_class,
+                        data_class,
+                        max_cols,
+                    )
+                    body.append(trimmed_row)
                     break
 
-                index_headers = []
-                for c, value in enumerate(rlabels[r]):
-                    header_element = _element(
-                        "th",
-                        f"{row_heading_class} level{c} row{r}",
-                        value,
-                        _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
-                        display_value=self._display_funcs_index[(r, c)](value),
-                        attributes=(
-                            f'rowspan="{idx_lengths.get((c, r), 0)}"'
-                            if idx_lengths.get((c, r), 0) > 1
-                            else ""
-                        ),
-                    )
+                row = self._generate_body_row(
+                    (r, row_tup, rlabels[r]),
+                    row_heading_class,
+                    trimmed_col_class,
+                    data_class,
+                    max_cols,
+                    idx_lengths,
+                )
+                body.append(row)
 
-                    if self.cell_ids:
-                        header_element["id"] = f"level{c}_row{r}"  # id is specified
-                    if (r, c) in self.ctx_index and self.ctx_index[r, c]:
-                        # always add id if a style is specified
-                        header_element["id"] = f"level{c}_row{r}"
-                        self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
-                            f"level{c}_row{r}"
-                        )
-
-                    index_headers.append(header_element)
-
-                data = []
-                for c, value in enumerate(row_tup[1:]):
-                    if c >= max_cols:
-                        data.append(
-                            _element(
-                                "td",
-                                f"{data_class} row{r} {trimmed_col_class}",
-                                "...",
-                                True,
-                                attributes="",
-                            )
-                        )
-                        break
-
-                    # add custom classes from cell context
-                    cls = ""
-                    if (r, c) in self.cell_context:
-                        cls = " " + self.cell_context[r, c]
-
-                    data_element = _element(
-                        "td",
-                        f"{data_class} row{r} col{c}{cls}",
-                        value,
-                        (c not in self.hidden_columns and r not in self.hidden_rows),
-                        attributes="",
-                        display_value=self._display_funcs[(r, c)](value),
-                    )
-
-                    if self.cell_ids:
-                        data_element["id"] = f"row{r}_col{c}"
-                    if (r, c) in self.ctx and self.ctx[r, c]:
-                        # always add id if needed due to specified style
-                        data_element["id"] = f"row{r}_col{c}"
-                        self.cellstyle_map[tuple(self.ctx[r, c])].append(
-                            f"row{r}_col{c}"
-                        )
-
-                    data.append(data_element)
-
-                body.append(index_headers + data)
         return body
 
     def _translate_latex(self, d: dict) -> None:
