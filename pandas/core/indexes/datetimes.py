@@ -834,8 +834,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             Time passed either as object (datetime.time) or as string in
             appropriate format ("%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
-        include_start : bool, default True
-        include_end : bool, default True
+        inclusive : {"both", "neither", "left", "right"}, default "both"
+            Include boundaries; whether to set each bound as closed or open.
 
         Returns
         -------
