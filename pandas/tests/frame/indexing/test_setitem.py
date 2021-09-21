@@ -1059,7 +1059,8 @@ class TestDataFrameSetitemCopyViewSemantics:
             pytest.param(
                 [True, False],
                 marks=pytest.mark.xfail(
-                    reason="Boolean indexer incorrectly setting inplace"
+                    reason="Boolean indexer incorrectly setting inplace",
+                    strict=False,  # passing on some builds, no obvious pattern
                 ),
             ),
         ],
