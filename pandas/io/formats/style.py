@@ -1164,6 +1164,7 @@ class Styler(StylerRenderer):
           - table_attributes
           - table_styles
           - applied styles (_todo)
+          - css
 
         """
         # GH 40675
@@ -1184,6 +1185,7 @@ class Styler(StylerRenderer):
             "template_html_style",
             "template_html_table",
             "template_html",
+            "css",
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
