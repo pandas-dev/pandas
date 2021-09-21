@@ -44,9 +44,9 @@ class Factorize:
                 raise NotImplementedError
 
         data = {
-            "int": pd.Int64Index(np.arange(N)),
-            "uint": pd.UInt64Index(np.arange(N)),
-            "float": pd.Float64Index(np.random.randn(N)),
+            "int": pd.Index(np.arange(N), dtype="int64"),
+            "uint": pd.Index(np.arange(N), dtype="uint64"),
+            "float": pd.Index(np.random.randn(N), dtype="float64"),
             "object": string_index,
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
@@ -76,9 +76,9 @@ class Duplicated:
     def setup(self, unique, keep, dtype):
         N = 10 ** 5
         data = {
-            "int": pd.Int64Index(np.arange(N)),
-            "uint": pd.UInt64Index(np.arange(N)),
-            "float": pd.Float64Index(np.random.randn(N)),
+            "int": pd.Index(np.arange(N), dtype="int64"),
+            "uint": pd.Index(np.arange(N), dtype="uint64"),
+            "float": pd.Index(np.random.randn(N), dtype="float64"),
             "string": tm.makeStringIndex(N),
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
