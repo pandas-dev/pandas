@@ -13,6 +13,7 @@ from pandas._typing import (
     FilePathOrBuffer,
     StorageOptions,
 )
+from pandas.compat import pa_version_under4p0
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
@@ -179,6 +180,12 @@ class PyArrowImpl(BaseImpl):
             mode="wb",
             is_dir=partition_cols is not None,
         )
+
+        # Output compliant Parquet if PyArrow supports it and the user hasn't
+        # explicitly set the desired behavior
+        if not pa_version_under4p0 and "use_compliant_nested_type" not in kwargs:
+            kwargs["use_compliant_nested_type"] = True
+
         try:
             if partition_cols is not None:
                 # writes to multiple files under the given path
