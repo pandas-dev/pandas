@@ -180,4 +180,19 @@ class MinMax:
         getattr(self.sp_arr, func)()
 
 
+class Take:
+
+    params = ([np.array([0]), np.arange(100_000), np.full(100_000, -1)], [True, False])
+    param_names = ["indices", "allow_fill"]
+
+    def setup(self, indices, allow_fill):
+        N = 1_000_000
+        fill_value = 0.0
+        arr = make_array(N, 1e-5, fill_value, np.float64)
+        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+
+    def time_take(self, indices, allow_fill):
+        self.sp_arr.take(indices, allow_fill=allow_fill)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
