@@ -28,11 +28,11 @@ if TYPE_CHECKING:
 
 class GroupByIndexingMixin:
     """
-    Mixin for adding ._middle to GroupBy.
+    Mixin for adding ._body to GroupBy.
     """
 
     @cache_readonly
-    def _middle(self) -> MiddleGroupByIndexer:
+    def _body(self) -> MiddleGroupByIndexer:
         if TYPE_CHECKING:
             self = cast(groupby.GroupBy, self)
 
@@ -165,7 +165,7 @@ class GroupByIndexingMixin:
         return self._cumcount_array(ascending=False)
 
 
-@doc(GroupByIndexingMixin._middle)
+@doc(GroupByIndexingMixin._body)
 class MiddleGroupByIndexer:
     def __init__(self, groupby_object: groupby.GroupBy):
         self.groupby_object = groupby_object
@@ -174,7 +174,7 @@ class MiddleGroupByIndexer:
         """
         Positional index for selection by integer location per group.
 
-        Used to implement GroupBy._middle which is used to implement GroupBy.nth
+        Used to implement GroupBy._body which is used to implement GroupBy.nth
         in the case when the keyword dropna is None or absent.
 
         Parameters
