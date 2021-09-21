@@ -156,7 +156,7 @@ class BaseWindow(SelectionMixin):
             )
 
         self._selection = selection
-        self.validate()
+        self._validate()
 
     @property
     def win_type(self):
@@ -180,6 +180,14 @@ class BaseWindow(SelectionMixin):
         return self._win_freq_i8 is not None
 
     def validate(self) -> None:
+        warnings.warn(
+            "validate is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        return self._validate()
+
+    def _validate(self) -> None:
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None:
@@ -960,8 +968,8 @@ class Window(BaseWindow):
         "method",
     ]
 
-    def validate(self):
-        super().validate()
+    def _validate(self):
+        super()._validate()
 
         if not isinstance(self.win_type, str):
             raise ValueError(f"Invalid win_type {self.win_type}")
@@ -1528,8 +1536,8 @@ class Rolling(RollingAndExpandingMixin):
         "method",
     ]
 
-    def validate(self):
-        super().validate()
+    def _validate(self):
+        super()._validate()
 
         # we allow rolling on a datetimelike index
         if (
