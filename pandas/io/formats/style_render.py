@@ -72,8 +72,11 @@ class StylerRenderer:
         "row_heading": "row_heading",
         "col_heading": "col_heading",
         "index_name": "index_name",
+        "col": "col",
+        "row": "row",
         "col_trim": "col_trim",
         "row_trim": "row_trim",
+        "level": "level",
         "data": "data",
         "blank": "blank",
     }
@@ -334,9 +337,9 @@ class StylerRenderer:
                     _element(
                         "th",
                         (
-                            f"{self.css['blank']} level{r}"
+                            f"{self.css['blank']} {self.css['level']}{r}"
                             if name is None
-                            else f"{self.css['index_name']} level{r}"
+                            else f"{self.css['index_name']} {self.css['level']}{r}"
                         ),
                         name
                         if (name is not None and not self.hide_column_names)
@@ -350,7 +353,10 @@ class StylerRenderer:
                     for c, value in enumerate(clabels[r]):
                         header_element = _element(
                             "th",
-                            f"{self.css['col_heading']} level{r} col{c}",
+                            (
+                                f"{self.css['col_heading']} {self.css['level']}{r} "
+                                f"{self.css['col']}{c}"
+                            ),
                             value,
                             _is_visible(c, r, col_lengths),
                             display_value=self._display_funcs_columns[(r, c)](value),
@@ -362,12 +368,16 @@ class StylerRenderer:
                         )
 
                         if self.cell_ids:
-                            header_element["id"] = f"level{r}_col{c}"
+                            header_element[
+                                "id"
+                            ] = f"{self.css['level']}{r}_{self.css['col']}{c}"
                         if (r, c) in self.ctx_columns and self.ctx_columns[r, c]:
-                            header_element["id"] = f"level{r}_col{c}"
+                            header_element[
+                                "id"
+                            ] = f"{self.css['level']}{r}_{self.css['col']}{c}"
                             self.cellstyle_map_columns[
                                 tuple(self.ctx_columns[r, c])
-                            ].append(f"level{r}_col{c}")
+                            ].append(f"{self.css['level']}{r}_{self.css['col']}{c}")
 
                         column_headers.append(header_element)
 
@@ -377,7 +387,7 @@ class StylerRenderer:
                             _element(
                                 "th",
                                 (
-                                    f"{self.css['col_heading']} level{r} "
+                                    f"{self.css['col_heading']} {self.css['level']}{r} "
                                     f"{self.css['col_trim']}"
                                 ),
                                 "...",
@@ -397,7 +407,7 @@ class StylerRenderer:
             index_names = [
                 _element(
                     "th",
-                    f"{self.css['index_name']} level{c}",
+                    f"{self.css['index_name']} {self.css['level']}{c}",
                     self.css["blank_value"] if name is None else name,
                     not self.hide_index_[c],
                 )
@@ -414,7 +424,7 @@ class StylerRenderer:
             column_blanks = [
                 _element(
                     "th",
-                    f"{self.css['blank']} col{c}",
+                    f"{self.css['blank']} {self.css['col']}{c}",
                     self.css["blank_value"],
                     c not in self.hidden_columns,
                 )
@@ -461,7 +471,10 @@ class StylerRenderer:
                 index_headers = [
                     _element(
                         "th",
-                        f"{self.css['row_heading']} level{c} {self.css['row_trim']}",
+                        (
+                            f"{self.css['row_heading']} {self.css['level']}{c} "
+                            f"{self.css['row_trim']}"
+                        ),
                         "...",
                         not self.hide_index_[c],
                         attributes="",
@@ -472,7 +485,10 @@ class StylerRenderer:
                 data = [
                     _element(
                         "td",
-                        f"{self.css['data']} col{c} {self.css['row_trim']}",
+                        (
+                            f"{self.css['data']} {self.css['col']}{c} "
+                            f"{self.css['row_trim']}"
+                        ),
                         "...",
                         (c not in self.hidden_columns),
                         attributes="",
@@ -502,7 +518,10 @@ class StylerRenderer:
             for c, value in enumerate(rlabels[r]):
                 header_element = _element(
                     "th",
-                    f"{self.css['row_heading']} level{c} row{r}",
+                    (
+                        f"{self.css['row_heading']} {self.css['level']}{c} "
+                        f"{self.css['row']}{r}"
+                    ),
                     value,
                     _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
                     display_value=self._display_funcs_index[(r, c)](value),
@@ -514,12 +533,16 @@ class StylerRenderer:
                 )
 
                 if self.cell_ids:
-                    header_element["id"] = f"level{c}_row{r}"  # id is specified
+                    header_element[
+                        "id"
+                    ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
                 if (r, c) in self.ctx_index and self.ctx_index[r, c]:
                     # always add id if a style is specified
-                    header_element["id"] = f"level{c}_row{r}"
+                    header_element[
+                        "id"
+                    ] = f"{self.css['level']}{c}_{self.css['row']}{r}"
                     self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
-                        f"level{c}_row{r}"
+                        f"{self.css['level']}{c}_{self.css['row']}{r}"
                     )
 
                 index_headers.append(header_element)
@@ -530,7 +553,10 @@ class StylerRenderer:
                     data.append(
                         _element(
                             "td",
-                            f"{self.css['data']} row{r} {self.css['col_trim']}",
+                            (
+                                f"{self.css['data']} {self.css['row']}{r} "
+                                f"{self.css['col_trim']}"
+                            ),
                             "...",
                             True,
                             attributes="",
@@ -545,7 +571,10 @@ class StylerRenderer:
 
                 data_element = _element(
                     "td",
-                    f"{self.css['data']} row{r} col{c}{cls}",
+                    (
+                        f"{self.css['data']} {self.css['row']}{r} "
+                        f"{self.css['col']}{c}{cls}"
+                    ),
                     value,
                     (c not in self.hidden_columns and r not in self.hidden_rows),
                     attributes="",
@@ -553,11 +582,13 @@ class StylerRenderer:
                 )
 
                 if self.cell_ids:
-                    data_element["id"] = f"row{r}_col{c}"
+                    data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
                 if (r, c) in self.ctx and self.ctx[r, c]:
                     # always add id if needed due to specified style
-                    data_element["id"] = f"row{r}_col{c}"
-                    self.cellstyle_map[tuple(self.ctx[r, c])].append(f"row{r}_col{c}")
+                    data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
+                    self.cellstyle_map[tuple(self.ctx[r, c])].append(
+                        f"{self.css['row']}{r}_{self.css['col']}{c}"
+                    )
 
                 data.append(data_element)
 
