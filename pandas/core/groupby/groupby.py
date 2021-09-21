@@ -1658,6 +1658,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                     vals = func(vals)
                 else:
                     vals = vals.astype(bool, copy=False)
+
+                vals = cast(np.ndarray, vals)
             elif isinstance(vals, BaseMaskedArray):
                 vals = vals._data.astype(bool, copy=False)
             else:
