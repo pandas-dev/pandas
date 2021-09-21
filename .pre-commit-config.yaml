@@ -89,8 +89,7 @@ repos:
         language: node
         pass_filenames: false
         types: [python]
-        additional_dependencies: ['pyright@1.1.169']
--   repo: local
+        additional_dependencies: ['pyright@1.1.170']
     hooks:
     -   id: flake8-rst
         name: flake8-rst
