@@ -548,6 +548,34 @@ class RangeIndex(NumericIndex):
             return self._range == other._range
         return super().equals(other)
 
+    def sort_values(
+        self,
+        na_position: str = "last",
+        return_indexer: bool = False,
+        ascending: bool = True,
+        key: Callable | None = None,
+    ):
+        sorted_index = self
+        if ascending:
+            if self.step < 0:
+                sorted_index = RangeIndex(
+                    start=self.stop - self.step,
+                    stop=self.start - self.step,
+                    step=self.step * -1,
+                )
+        else:
+            if self.step > 0:
+                sorted_index = RangeIndex(
+                    start=self.stop - self.step,
+                    stop=self.start - self.step,
+                    step=self.step * -1,
+                )
+
+        if return_indexer:
+            return sorted_index, RangeIndex(start=0, stop=self.size, step=1)
+        else:
+            return sorted_index
+
     # --------------------------------------------------------------------
     # Set Operations
 
