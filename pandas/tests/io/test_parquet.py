@@ -941,6 +941,7 @@ class TestParquetPyArrow(Base):
             result = pyarrow.parquet.read_table(path)
 
         assert str(result.schema.field_by_name("a").type) == "list<element: int64>"
+        check_round_trip(df, pa)
 
 
 class TestParquetFastParquet(Base):
