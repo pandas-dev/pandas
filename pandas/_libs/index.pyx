@@ -422,7 +422,7 @@ cdef class DatetimeEngine(Int64Engine):
         try:
             self.get_loc(val)
             return True
-        except (KeyError, TypeError):
+        except KeyError:
             return False
 
     cdef _call_monotonic(self, values):
