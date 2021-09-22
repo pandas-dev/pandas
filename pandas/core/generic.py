@@ -3953,6 +3953,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         maybe_shortcut = False
         if self.ndim == 2 and isinstance(self.columns, MultiIndex):
             try:
+                # By using engine's __contains__ we effectively
+                # restrict to same-length tuples
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
                 pass
