@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import numbers
-from typing import (
-    TYPE_CHECKING,
-    overload,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -14,11 +11,9 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._typing import (
-    ArrayLike,
     AstypeArg,
     Dtype,
     DtypeObj,
-    npt,
     type_t,
 )
 
@@ -43,6 +38,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.arrays.numpy_ import PandasArray
 
 if TYPE_CHECKING:
     import pyarrow
@@ -413,22 +409,10 @@ class BooleanArray(BaseMaskedArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value)
 
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ExtensionArray:
 
         """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
+        Cast to an ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -441,8 +425,8 @@ class BooleanArray(BaseMaskedArray):
 
         Returns
         -------
-        ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
+        ExtensionArray
+            ExtensionArray subclass, depending on `dtype`.
 
         Raises
         ------
@@ -472,7 +456,8 @@ class BooleanArray(BaseMaskedArray):
         if is_float_dtype(dtype):
             na_value = np.nan
         # coerce
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        arr = self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        return PandasArray(arr)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

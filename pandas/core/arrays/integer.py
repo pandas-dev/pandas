@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import overload
 import warnings
 
 import numpy as np
@@ -11,11 +10,9 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._typing import (
-    ArrayLike,
     AstypeArg,
     Dtype,
     DtypeObj,
-    npt,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import cache_readonly
@@ -45,6 +42,7 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
+from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.ops import invalid_comparison
 from pandas.core.tools.numeric import to_numeric
 
@@ -340,21 +338,9 @@ class IntegerArray(NumericArray):
     def _coerce_to_array(self, value) -> tuple[np.ndarray, np.ndarray]:
         return coerce_to_array(value, dtype=self.dtype)
 
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ExtensionArray:
         """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
+        Cast to an ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -367,8 +353,8 @@ class IntegerArray(NumericArray):
 
         Returns
         -------
-        ndarray or ExtensionArray
-            NumPy ndarray, BooleanArray or IntegerArray with 'dtype' for its dtype.
+        ExtensionArray
+            ExtensionArray subclass, depending on `dtype`.
 
         Raises
         ------
@@ -392,7 +378,8 @@ class IntegerArray(NumericArray):
         else:
             na_value = lib.no_default
 
-        return self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        arr = self.to_numpy(dtype=dtype, na_value=na_value, copy=False)
+        return PandasArray(arr)
 
     def _values_for_argsort(self) -> np.ndarray:
         """

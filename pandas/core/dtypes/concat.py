@@ -77,8 +77,10 @@ def cast_to_common_type(arr: ArrayLike, dtype: DtypeObj) -> ArrayLike:
             # numpy's astype cannot handle ExtensionDtypes
             return pd_array(arr, dtype=dtype, copy=False)
         return arr.astype(dtype, copy=False)
-
-    return arr.astype(dtype, copy=False)
+    else:
+        if isinstance(arr, ExtensionArray):
+            return arr.to_numpy(dtype, copy=False)
+        return arr.astype(dtype, copy=False)
 
 
 def concat_compat(to_concat, axis: int = 0, ea_compat_axis: bool = False):

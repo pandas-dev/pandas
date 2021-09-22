@@ -4,12 +4,30 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+from pandas.core.arrays import ExtensionArray
 from pandas.core.internals import ObjectBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseCastingTests(BaseExtensionTests):
     """Casting to and from ExtensionDtypes"""
+
+    def test_extension_astype_returns_extension_array(self, all_data):
+        # Base test to ensure that EA.astype always returns an EA
+        # https://github.com/pandas-dev/pandas/issues/24877
+
+        # test for some dtype strings and objects that would map to numpy dtypes
+        for dtype_str in ["object", "int64", "float64"]:
+            for dtype in [dtype_str, np.dtype(dtype_str)]:
+                try:
+                    # only taking first two elements to have one case without NAs
+                    res = all_data[:2].astype(dtype)
+                except (TypeError, ValueError):
+                    # not all casts will be possible, so ignore TypeError/ValueErrors
+                    # and only check the result if there is a return value
+                    pass
+                else:
+                    assert isinstance(res, ExtensionArray)
 
     def test_astype_object_series(self, all_data):
         ser = pd.Series(all_data, name="A")

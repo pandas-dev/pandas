@@ -15,7 +15,6 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._typing import (
-    ArrayLike,
     AstypeArg,
     NpDtype,
     PositionalIndexer,
@@ -315,19 +314,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             data = self._data.astype(dtype, copy=copy)
         return data
 
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ExtensionArray:
         dtype = pandas_dtype(dtype)
 
         if is_dtype_equal(dtype, self.dtype):

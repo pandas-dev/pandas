@@ -72,6 +72,7 @@ from pandas.core.algorithms import (
     isin,
     unique,
 )
+from pandas.core.construction import array as pd_array
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -530,21 +531,9 @@ class ExtensionArray:
     # Additional Methods
     # ------------------------------------------------------------------------
 
-    @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
-
-    @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
-
-    @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
-
-    def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
+    def astype(self, dtype: AstypeArg, copy: bool = True) -> ExtensionArray:
         """
-        Cast to a NumPy array or ExtensionArray with 'dtype'.
+        Cast to an ExtensionArray with 'dtype'.
 
         Parameters
         ----------
@@ -557,10 +546,9 @@ class ExtensionArray:
 
         Returns
         -------
-        array : np.ndarray or ExtensionArray
-            An ExtensionArray if dtype is StringDtype,
-            or same as that of underlying array.
-            Otherwise a NumPy ndarray with 'dtype' for its dtype.
+        ExtensionArray
+            ExtensionArray subclass, depending on `dtype`. If `dtype` is a
+            numpy dtype, this returns a PandasArray.
         """
         from pandas.core.arrays.string_ import StringDtype
 
@@ -576,11 +564,7 @@ class ExtensionArray:
             # allow conversion to StringArrays
             return dtype.construct_array_type()._from_sequence(self, copy=False)
 
-        # error: Argument "dtype" to "array" has incompatible type
-        # "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None, type,
-        # _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return np.array(self, dtype=dtype, copy=copy)  # type: ignore[arg-type]
+        return pd_array(self, dtype=dtype, copy=copy)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -759,7 +743,7 @@ class ExtensionArray:
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method)
-                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
+                new_values, _ = func(self.to_numpy(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
@@ -838,7 +822,7 @@ class ExtensionArray:
         -------
         uniques : ExtensionArray
         """
-        uniques = unique(self.astype(object))
+        uniques = unique(self.to_numpy(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
     def searchsorted(
@@ -890,9 +874,9 @@ class ExtensionArray:
         # 1. Values outside the range of the `data_for_sorting` fixture
         # 2. Values between the values in the `data_for_sorting` fixture
         # 3. Missing values.
-        arr = self.astype(object)
+        arr = self.to_numpy(object)
         if isinstance(value, ExtensionArray):
-            value = value.astype(object)
+            value = value.to_numpy(object)
         return arr.searchsorted(value, side=side, sorter=sorter)
 
     def equals(self, other: object) -> bool:
@@ -967,7 +951,7 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`.
         """
-        return self.astype(object), np.nan
+        return self.to_numpy(object), np.nan
 
     def factorize(self, na_sentinel: int = -1) -> tuple[np.ndarray, ExtensionArray]:
         """

@@ -199,7 +199,8 @@ class JSONArray(ExtensionArray):
             value = self.astype(str)  # numpy doesn'y like nested dicts
             return dtype.construct_array_type()._from_sequence(value, copy=False)
 
-        return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+        arr = np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+        return pd.array(arr)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer

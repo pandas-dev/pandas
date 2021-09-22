@@ -443,7 +443,7 @@ class StringArray(BaseStringArray, PandasArray):
             arr[mask] = 0
             values = arr.astype(dtype)
             values[mask] = np.nan
-            return values
+            return PandasArray(values)
 
         return super().astype(dtype, copy)
 
