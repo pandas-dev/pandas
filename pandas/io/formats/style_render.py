@@ -22,6 +22,7 @@ import numpy as np
 from pandas._config import get_option
 
 from pandas._libs import lib
+from pandas._typing import Level
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.generic import ABCSeries
@@ -113,7 +114,13 @@ class StylerRenderer:
         precision = (
             get_option("styler.format.precision") if precision is None else precision
         )
-        self._display_funcs: DefaultDict[  # maps (row, col) -> formatting function
+        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
+            tuple[int, int], Callable[[Any], str]
+        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
@@ -371,11 +378,13 @@ class StylerRenderer:
                 if clabels:
                     column_headers = []
                     for c, value in enumerate(clabels[r]):
+                        header_element_visible = _is_visible(c, r, col_lengths)
                         header_element = _element(
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths),
+                            header_element_visible,
+                            display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
                                 if col_lengths.get((r, c), 0) > 1
@@ -385,7 +394,11 @@ class StylerRenderer:
 
                         if self.cell_ids:
                             header_element["id"] = f"level{r}_col{c}"
-                        if (r, c) in self.ctx_columns and self.ctx_columns[r, c]:
+                        if (
+                            header_element_visible
+                            and (r, c) in self.ctx_columns
+                            and self.ctx_columns[r, c]
+                        ):
                             header_element["id"] = f"level{r}_col{c}"
                             self.cellstyle_map_columns[
                                 tuple(self.ctx_columns[r, c])
@@ -529,11 +542,15 @@ class StylerRenderer:
 
             index_headers = []
             for c, value in enumerate(rlabels[r]):
+                header_element_visible = (
+                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c]
+                )
                 header_element = _element(
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
+                    header_element_visible,
+                    display_value=self._display_funcs_index[(r, c)](value),
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
                         if idx_lengths.get((c, r), 0) > 1
@@ -543,7 +560,11 @@ class StylerRenderer:
 
                 if self.cell_ids:
                     header_element["id"] = f"level{c}_row{r}"  # id is specified
-                if (r, c) in self.ctx_index and self.ctx_index[r, c]:
+                if (
+                    header_element_visible
+                    and (r, c) in self.ctx_index
+                    and self.ctx_index[r, c]
+                ):
                     # always add id if a style is specified
                     header_element["id"] = f"level{c}_row{r}"
                     self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
@@ -571,18 +592,21 @@ class StylerRenderer:
                 if (r, c) in self.cell_context:
                     cls = " " + self.cell_context[r, c]
 
+                data_element_visible = (
+                    c not in self.hidden_columns and r not in self.hidden_rows
+                )
                 data_element = _element(
                     "td",
                     f"{data_class} row{r} col{c}{cls}",
                     value,
-                    (c not in self.hidden_columns and r not in self.hidden_rows),
+                    data_element_visible,
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )
 
                 if self.cell_ids:
                     data_element["id"] = f"row{r}_col{c}"
-                if (r, c) in self.ctx and self.ctx[r, c]:
+                if data_element_visible and (r, c) in self.ctx and self.ctx[r, c]:
                     # always add id if needed due to specified style
                     data_element["id"] = f"row{r}_col{c}"
                     self.cellstyle_map[tuple(self.ctx[r, c])].append(f"row{r}_col{c}")
@@ -830,6 +854,175 @@ class StylerRenderer:
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
+
+        return self
+
+    def format_index(
+        self,
+        formatter: ExtFormatter | None = None,
+        axis: int | str = 0,
+        level: Level | list[Level] | None = None,
+        na_rep: str | None = None,
+        precision: int | None = None,
+        decimal: str = ".",
+        thousands: str | None = None,
+        escape: str | None = None,
+    ) -> StylerRenderer:
+        r"""
+        Format the text display value of index labels or column headers.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        formatter : str, callable, dict or None
+            Object to define how values are displayed. See notes.
+        axis : {0, "index", 1, "columns"}
+            Whether to apply the formatter to the index or column headers.
+        level : int, str, list
+            The level(s) over which to apply the generic formatter.
+        na_rep : str, optional
+            Representation for missing values.
+            If ``na_rep`` is None, no special formatting is applied.
+        precision : int, optional
+            Floating point precision to use for display purposes, if not determined by
+            the specified ``formatter``.
+        decimal : str, default "."
+            Character used as decimal separator for floats, complex and integers
+        thousands : str, optional, default None
+            Character used as thousands separator for floats, complex and integers
+        escape : str, optional
+            Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
+            in cell display string with HTML-safe sequences.
+            Use 'latex' to replace the characters ``&``, ``%``, ``$``, ``#``, ``_``,
+            ``{``, ``}``, ``~``, ``^``, and ``\`` in the cell display string with
+            LaTeX-safe sequences.
+            Escaping is done before ``formatter``.
+
+        Returns
+        -------
+        self : Styler
+
+        Notes
+        -----
+        This method assigns a formatting function, ``formatter``, to each level label
+        in the DataFrame's index or column headers. If ``formatter`` is ``None``,
+        then the default formatter is used.
+        If a callable then that function should take a label value as input and return
+        a displayable representation, such as a string. If ``formatter`` is
+        given as a string this is assumed to be a valid Python format specification
+        and is wrapped to a callable as ``string.format(x)``. If a ``dict`` is given,
+        keys should correspond to MultiIndex level numbers or names, and values should
+        be string or callable, as above.
+
+        The default formatter currently expresses floats and complex numbers with the
+        pandas display precision unless using the ``precision`` argument here. The
+        default formatter does not adjust the representation of missing values unless
+        the ``na_rep`` argument is used.
+
+        The ``level`` argument defines which levels of a MultiIndex to apply the
+        method to. If the ``formatter`` argument is given in dict form but does
+        not include all levels within the level argument then these unspecified levels
+        will have the default formatter applied. Any levels in the formatter dict
+        specifically excluded from the level argument will be ignored.
+
+        When using a ``formatter`` string the dtypes must be compatible, otherwise a
+        `ValueError` will be raised.
+
+        Examples
+        --------
+        Using ``na_rep`` and ``precision`` with the default ``formatter``
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=[2.0, np.nan, 4.0]])
+        >>> df.style.format_index(axis=1, na_rep='MISS', precision=3)  # doctest: +SKIP
+            2.000    MISS   4.000
+        0       1       2       3
+
+        Using a ``formatter`` specification on consistent dtypes in a level
+
+        >>> df.style.format_index('{:.2f}', axis=1, na_rep='MISS')  # doctest: +SKIP
+             2.00   MISS    4.00
+        0       1      2       3
+
+        Using the default ``formatter`` for unspecified levels
+
+        >>> df = pd.DataFrame([[1, 2, 3]],
+        ...     columns=pd.MultiIndex.from_arrays([["a", "a", "b"],[2, np.nan, 4]]))
+        >>> df.style.format_index({0: lambda v: upper(v)}, axis=1, precision=1)
+        ...  # doctest: +SKIP
+                       A       B
+              2.0    nan     4.0
+        0       1      2       3
+
+        Using a callable ``formatter`` function.
+
+        >>> func = lambda s: 'STRING' if isinstance(s, str) else 'FLOAT'
+        >>> df.style.format_index(func, axis=1, na_rep='MISS')
+        ...  # doctest: +SKIP
+                  STRING  STRING
+            FLOAT   MISS   FLOAT
+        0       1      2       3
+
+        Using a ``formatter`` with HTML ``escape`` and ``na_rep``.
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=['"A"', 'A&B', None])
+        >>> s = df.style.format_index('$ {0}', axis=1, escape="html", na_rep="NA")
+        <th .. >$ &#34;A&#34;</th>
+        <th .. >$ A&amp;B</th>
+        <th .. >NA</td>
+        ...
+
+        Using a ``formatter`` with LaTeX ``escape``.
+
+        >>> df = pd.DataFrame([[1, 2, 3]], columns=["123", "~", "$%#"])
+        >>> df.style.format_index("\\textbf{{{}}}", escape="latex", axis=1).to_latex()
+        ...  # doctest: +SKIP
+        \begin{tabular}{lrrr}
+        {} & {\textbf{123}} & {\textbf{\textasciitilde }} & {\textbf{\$\%\#}} \\
+        0 & 1 & 2 & 3 \\
+        \end{tabular}
+        """
+        axis = self.data._get_axis_number(axis)
+        if axis == 0:
+            display_funcs_, obj = self._display_funcs_index, self.index
+        else:
+            display_funcs_, obj = self._display_funcs_columns, self.columns
+        levels_ = refactor_levels(level, obj)
+
+        if all(
+            (
+                formatter is None,
+                level is None,
+                precision is None,
+                decimal == ".",
+                thousands is None,
+                na_rep is None,
+                escape is None,
+            )
+        ):
+            display_funcs_.clear()
+            return self  # clear the formatter / revert to default and avoid looping
+
+        if not isinstance(formatter, dict):
+            formatter = {level: formatter for level in levels_}
+        else:
+            formatter = {
+                obj._get_level_number(level): formatter_
+                for level, formatter_ in formatter.items()
+            }
+
+        for lvl in levels_:
+            format_func = _maybe_wrap_formatter(
+                formatter.get(lvl),
+                na_rep=na_rep,
+                precision=precision,
+                decimal=decimal,
+                thousands=thousands,
+                escape=escape,
+            )
+
+            for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
+                display_funcs_[idx] = format_func
 
         return self
 
@@ -1172,6 +1365,40 @@ def maybe_convert_css_to_tuples(style: CSSProperties) -> CSSList:
     return style
 
 
+def refactor_levels(
+    level: Level | list[Level] | None,
+    obj: Index,
+) -> list[int]:
+    """
+    Returns a consistent levels arg for use in ``hide_index`` or ``hide_columns``.
+
+    Parameters
+    ----------
+    level : int, str, list
+        Original ``level`` arg supplied to above methods.
+    obj:
+        Either ``self.index`` or ``self.columns``
+
+    Returns
+    -------
+    list : refactored arg with a list of levels to hide
+    """
+    if level is None:
+        levels_: list[int] = list(range(obj.nlevels))
+    elif isinstance(level, int):
+        levels_ = [level]
+    elif isinstance(level, str):
+        levels_ = [obj._get_level_number(level)]
+    elif isinstance(level, list):
+        levels_ = [
+            obj._get_level_number(lev) if not isinstance(lev, int) else lev
+            for lev in level
+        ]
+    else:
+        raise ValueError("`level` must be of type `int`, `str` or list of such")
+    return levels_
+
+
 class Tooltips:
     """
     An extension to ``Styler`` that allows for and manipulates tooltips on hover
@@ -1424,7 +1651,11 @@ def _parse_latex_cell_styles(
 
 
 def _parse_latex_header_span(
-    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
+    cell: dict[str, Any],
+    multirow_align: str,
+    multicol_align: str,
+    wrap: bool = False,
+    convert_css: bool = False,
 ) -> str:
     r"""
     Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
@@ -1445,7 +1676,9 @@ def _parse_latex_header_span(
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """
-    display_val = _parse_latex_cell_styles(cell["cellstyle"], cell["display_value"])
+    display_val = _parse_latex_cell_styles(
+        cell["cellstyle"], cell["display_value"], convert_css
+    )
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:

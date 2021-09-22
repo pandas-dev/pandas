@@ -1035,7 +1035,7 @@ class ArrayManager(BaseArrayManager):
 
     def unstack(self, unstacker, fill_value) -> ArrayManager:
         """
-        Return a BlockManager with all blocks unstacked..
+        Return a BlockManager with all blocks unstacked.
 
         Parameters
         ----------
@@ -1293,6 +1293,15 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         valid for the current SingleArrayManager (length, dtype, etc).
         """
         self.arrays[0] = values
+
+    def to_2d_mgr(self, columns: Index) -> ArrayManager:
+        """
+        Manager analogue of Series.to_frame
+        """
+        arrays = [self.arrays[0]]
+        axes = [self.axes[0], columns]
+
+        return ArrayManager(arrays, axes, verify_integrity=False)
 
 
 class NullArrayProxy:
