@@ -33,7 +33,7 @@ except ImportError as e:  # pragma: no cover
 
 # Use redundant imports (X as X) for type checkers to know what is part of the
 # public API. Pandas is not (yet) a py.typed library: the public API is determined
-# based on the documenation.
+# based on the documentation.
 from pandas._config import (
     get_option as get_option,
     set_option as set_option,
