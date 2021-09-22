@@ -550,9 +550,9 @@ class RangeIndex(NumericIndex):
 
     def sort_values(
         self,
-        na_position: str = "last",
         return_indexer: bool = False,
         ascending: bool = True,
+        na_position: str = "last",
         key: Callable | None = None,
     ):
         sorted_index = self
