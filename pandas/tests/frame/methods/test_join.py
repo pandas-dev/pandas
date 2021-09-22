@@ -373,3 +373,10 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.zone == "US/Central"
+
+def test_join_duplicate_indicies():
+    df1 = pd.DataFrame(np.random.randn(5), index=[0,1,2,3,3], columns=['a'])
+    df2 = pd.DataFrame(np.random.randn(5), index=[0,1,2,2,4], columns=['b'])
+    result = df1.join(df2, how='outer')
+    expected = pd.concat([df1, df2], axis=1)
+    tm.assert_frame_equal(result, expected)
