@@ -20,6 +20,7 @@ Fixed regressions
 - Fixed performance regression in :meth:`.GroupBy.first` and :meth:`.GroupBy.last` with :class:`StringDtype` (:issue:`41596`)
 - Fixed regression in :meth:`Series.cat.reorder_categories` failing to update the categories on the ``Series`` (:issue:`43232`)
 - Fixed regression in :meth:`Series.cat.categories` setter failing to update the categories on the ``Series`` (:issue:`43334`)
+- Fixed regression in :meth:`pandas.read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -1763,6 +1763,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # _wrap_agged_manager() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_manager(new_mgr)
+            if result.ndim == 1:
+                result.index = self.grouper.result_index
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2715,9 +2717,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 mgr.grouped_reduce(blk_func, ignore_failures=False)
 
         if is_ser:
-            res = obj._constructor_expanddim(res_mgr)
-            res = res[res.columns[0]]  # aka res.squeeze()
-            res.name = obj.name
+            res = self._wrap_agged_manager(res_mgr)
         else:
             res = obj._constructor(res_mgr)
 
@@ -3164,6 +3164,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if orig_ndim == 1:
             out = self._wrap_agged_manager(res_mgr)
+            out.index = self.grouper.result_index
         else:
             out = type(obj)(res_mgr)
 
