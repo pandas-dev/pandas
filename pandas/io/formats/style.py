@@ -147,7 +147,11 @@ class Styler(StylerRenderer):
     Attributes
     ----------
     env : Jinja2 jinja2.Environment
-    template : Jinja2 Template
+    template_html : Jinja2 Template
+    template_html_table : Jinja2 Template
+    template_html_style : Jinja2 Template
+    template_latex : Jinja2 Template
+    css : dict of css class names
     loader : Jinja2 Loader
 
     See Also
