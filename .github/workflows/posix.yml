@@ -70,18 +70,9 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         activate-environment: pandas-dev
-        channel-priority: flexible
+        channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-
-    - name: Export env file
-      run: conda env export -n pandas-dev > myenv.yml
-      
-    - name: Upload env file
-      uses: actions/upload-artifact@master
-      with:
-        name: Env file
-        path: myenv.yml
       
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
