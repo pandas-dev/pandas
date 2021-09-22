@@ -73,7 +73,7 @@ jobs:
         channel-priority: strict
         environment-file: ${{ env.ENV_FILE }}
         use-only-tar-bz2: true
-      
+
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
