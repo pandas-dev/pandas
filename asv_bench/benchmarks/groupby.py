@@ -623,12 +623,12 @@ class String:
         ],
     ]
 
-    def setup(self):
+    def setup(self, dtype):
         cols = list("abcdefghjkl")
         self.df = DataFrame(
             np.random.randint(0, 100, size=(1_000_000, len(cols))),
             columns=cols,
-            dtype="string",
+            dtype=dtype,
         )
 
     def time_str_func(self, method):
