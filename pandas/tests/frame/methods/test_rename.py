@@ -170,6 +170,29 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
+    def test_rename_series_with_multiindex(self):
+        # issue #43659
+        arrays = [
+            ["bar", "baz", "baz", "foo", "qux"],
+            ["one", "one", "two", "two", "one"],
+        ]
+
+        index = MultiIndex.from_arrays(arrays, names=["first", "second"])
+        s = Series(np.ones(5), index=index)
+        result = s.rename(index={"one": "yes"}, level="second", errors="raise")
+
+        arrays_expected = [
+            ["bar", "baz", "baz", "foo", "qux"],
+            ["yes", "yes", "two", "two", "yes"],
+        ]
+
+        index_expected = MultiIndex.from_arrays(
+            arrays_expected, names=["first", "second"]
+        )
+        series_expected = Series(np.ones(5), index=index_expected)
+
+        assert result.equals(series_expected)
+
     @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) setitem copy/view
     def test_rename_nocopy(self, float_frame):
         renamed = float_frame.rename(columns={"C": "foo"}, copy=False)

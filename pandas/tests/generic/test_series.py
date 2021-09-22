@@ -151,26 +151,3 @@ class TestSeries(Generic):
         # reset
         Series._metadata = _metadata
         Series.__finalize__ = _finalize  # FIXME: use monkeypatch
-
-    def test_rename_with_multiindex(self):
-        # issue #43659
-        arrays = [
-            ["bar", "baz", "baz", "foo", "qux"],
-            ["one", "one", "two", "two", "one"],
-        ]
-
-        index = MultiIndex.from_arrays(arrays, names=["first", "second"])
-        s = Series(np.ones(5), index=index)
-        result = s.rename(index={"one": "yes"}, level="second", errors="raise")
-
-        arrays_expected = [
-            ["bar", "baz", "baz", "foo", "qux"],
-            ["yes", "yes", "two", "two", "yes"],
-        ]
-
-        index_expected = MultiIndex.from_arrays(
-            arrays_expected, names=["first", "second"]
-        )
-        series_expected = Series(np.ones(5), index=index_expected)
-
-        assert result.equals(series_expected)
