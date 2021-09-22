@@ -9,7 +9,6 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Literal,
-    cast,
     overload,
 )
 import warnings
@@ -38,7 +37,9 @@ from pandas._libs.tslibs import (
     to_offset,
     tzconversion,
 )
+from pandas._typing import npt
 from pandas.errors import PerformanceWarning
+from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.cast import astype_dt64_to_dt64tz
 from pandas.core.dtypes.common import (
@@ -110,11 +111,13 @@ def tz_to_dtype(tz):
         return DatetimeTZDtype(tz=tz)
 
 
-def _field_accessor(name, field, docstring=None):
+def _field_accessor(name: str, field: str, docstring=None):
     def f(self):
         values = self._local_timestamps()
 
         if field in self._bool_ops:
+            result: np.ndarray
+
             if field.endswith(("start", "end")):
                 freq = self.freq
                 month_kw = 12
@@ -414,7 +417,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         if start is NaT or end is NaT:
             raise ValueError("Neither `start` nor `end` can be NaT")
 
-        left_closed, right_closed = dtl.validate_endpoints(closed)
+        left_closed, right_closed = validate_endpoints(closed)
         start, end, _normalized = _maybe_normalize_endpoints(start, end, normalize)
         tz = _infer_tz_from_endpoints(start, end, tz)
 
@@ -475,11 +478,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             index = cls._simple_new(arr, freq=None, dtype=dtype)
 
         if not left_closed and len(index) and index[0] == start:
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            index = cast(DatetimeArray, index[1:])
+            index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
-            # TODO: overload DatetimeLikeArrayMixin.__getitem__
-            index = cast(DatetimeArray, index[:-1])
+            index = index[:-1]
 
         dtype = tz_to_dtype(tz)
         return cls._simple_new(index._ndarray, freq=freq, dtype=dtype)
@@ -656,7 +657,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     @dtl.ravel_compat
     def _format_native_types(
         self, na_rep="NaT", date_format=None, **kwargs
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.object_]:
         from pandas.io.formats.format import get_format_datetime64_from_values
 
         fmt = get_format_datetime64_from_values(self, date_format)
@@ -1045,7 +1046,7 @@ default 'raise'
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
 
-    def to_pydatetime(self) -> np.ndarray:
+    def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
         Return Datetime Array/Index as object ndarray of datetime.datetime
         objects.
@@ -1262,7 +1263,7 @@ default 'raise'
         return result
 
     @property
-    def time(self) -> np.ndarray:
+    def time(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
@@ -1274,7 +1275,7 @@ default 'raise'
         return ints_to_pydatetime(timestamps, box="time")
 
     @property
-    def timetz(self) -> np.ndarray:
+    def timetz(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of datetime.time also containing timezone
         information. The time part of the Timestamps.
@@ -1282,7 +1283,7 @@ default 'raise'
         return ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
-    def date(self) -> np.ndarray:
+    def date(self) -> npt.NDArray[np.object_]:
         """
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).

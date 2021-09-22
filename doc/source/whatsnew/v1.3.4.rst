@@ -1,0 +1,49 @@
+.. _whatsnew_134:
+
+What's new in 1.3.4 (October ??, 2021)
+--------------------------------------
+
+These are the changes in pandas 1.3.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :meth:`merge` with integer and ``NaN`` keys failing with ``outer`` merge (:issue:`43550`)
+- Fixed regression in :meth:`DataFrame.corr` raising ``ValueError`` with ``method="spearman"`` on 32-bit platforms (:issue:`43588`)
+- Fixed performance regression in :meth:`MultiIndex.equals` (:issue:`43549`)
+- Fixed regression in :meth:`Series.cat.reorder_categories` failing to update the categories on the ``Series`` (:issue:`43232`)
+- Fixed regression in :meth:`Series.cat.categories` setter failing to update the categories on the ``Series`` (:issue:`43334`)
+- Fixed regression in :meth:`pandas.read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug in :meth:`.GroupBy.mean` with datetimelike values including ``NaT`` values returning incorrect results (:issue:`43132`)
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_134.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v1.3.3..v1.3.4|HEAD
