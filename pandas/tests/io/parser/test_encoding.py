@@ -239,7 +239,6 @@ def test_encoding_memory_map(all_parsers, encoding):
     tm.assert_frame_equal(df, expected)
 
 
-@skip_pyarrow
 def test_chunk_splits_multibyte_char(all_parsers):
     """
     Chunk splits a multibyte character with memory_map=True
