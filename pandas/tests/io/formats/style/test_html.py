@@ -474,6 +474,9 @@ def test_replaced_css_class_names(styler_mi):
     styler_mi.set_uuid("")
     styler_mi.hide_index(styler_mi.index[1:])
     styler_mi.hide_columns(styler_mi.columns[1:])
+    styler_mi.applymap_index(lambda v: "color: red;", axis=0)
+    styler_mi.applymap_index(lambda v: "color: green;", axis=1)
+    styler_mi.applymap(lambda v: "color: blue;")
     styler_mi.css = {
         "row_heading": "ROWHEAD",
         "col_heading": "COLHEAD",
@@ -489,6 +492,15 @@ def test_replaced_css_class_names(styler_mi):
     expected = dedent(
         """\
     <style type="text/css">
+    #T__ROW0_COL0 {
+      color: blue;
+    }
+    #T__LEVEL0_ROW0, #T__LEVEL1_ROW0 {
+      color: red;
+    }
+    #T__LEVEL0_COL0, #T__LEVEL1_COL0 {
+      color: green;
+    }
     </style>
     <table id="T_">
       <thead>
