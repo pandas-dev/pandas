@@ -462,6 +462,7 @@ def maybe_operate_rowwise(func: F) -> F:
             and values.ndim == 2
             and values.flags["C_CONTIGUOUS"]
             and values.dtype != object
+            and values.dtype != bool
         ):
             arrs = list(values)
             if kwargs.get("mask") is not None:
