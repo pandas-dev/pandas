@@ -1520,3 +1520,13 @@ def test_get_level_lengths_mi_hidden():
         hidden_elements=[0, 1, 0, 1],  # hidden element can repeat if duplicated index
     )
     tm.assert_dict_equal(result, expected)
+
+
+def test_row_trimming_hide_index():
+    # gh 43703
+    df = DataFrame([[1], [2], [3], [4], [5]])
+    with pd.option_context("styler.render.max_rows", 2):
+        ctx = df.style.hide_index([0, 1])._translate(True, True)
+    assert len(ctx["body"]) == 3
+    for r, val in enumerate(["3", "4", "..."]):
+        assert ctx["body"][r][1]["display_value"] == val
