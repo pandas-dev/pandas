@@ -349,7 +349,7 @@ class WrappedCythonOp:
         elif isinstance(values.dtype, FloatingDtype):
             # FloatingArray
             npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
-        elif isinstance(values.dtype, StringDtype) and self.how in ["last", "first"]:
+        elif isinstance(values.dtype, StringDtype):
             # StringArray
             npvalues = values.to_numpy(object, na_value=np.nan)
         else:
