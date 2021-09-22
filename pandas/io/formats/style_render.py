@@ -451,6 +451,138 @@ class StylerRenderer:
 
         return head
 
+    def _translate_body(
+        self,
+        data_class: str,
+        row_heading_class: str,
+        sparsify_index: bool,
+        max_rows: int,
+        max_cols: int,
+        trimmed_row_class: str,
+        trimmed_col_class: str,
+    ):
+        """
+        Build each <tr> within table <body> as a list
+
+        Use the following structure:
+          +--------------------------------------------+---------------------------+
+          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          +--------------------------------------------+---------------------------+
+
+        Also add elements to the cellstyle_map for more efficient grouped elements in
+        <style></style> block
+
+        Parameters
+        ----------
+        data_class : str
+            CSS class added to elements within data_by_column sections of the structure.
+        row_heading_class : str
+            CSS class added to elements within the index_header section of structure.
+        sparsify_index : bool
+            Whether index_headers section will add rowspan attributes (>1) to elements.
+
+        Returns
+        -------
+        body : list
+            The associated HTML elements needed for template rendering.
+        """
+        # for sparsifying a MultiIndex
+        idx_lengths = _get_level_lengths(
+            self.index, sparsify_index, max_rows, self.hidden_rows
+        )
+
+        rlabels = self.data.index.tolist()
+        if not isinstance(self.data.index, MultiIndex):
+            rlabels = [[x] for x in rlabels]
+
+        body, row_count = [], 0
+        for r, row_tup in enumerate(self.data.itertuples()):
+            if r not in self.hidden_rows:
+                row_count += 1  # count visible rows to ensure max not breached
+                if row_count > max_rows:  # used only to add a '...' trimmed row:
+                    trimmed_row = self._generate_trimmed_row(
+                        row_heading_class,
+                        trimmed_row_class,
+                        trimmed_col_class,
+                        data_class,
+                        max_cols,
+                    )
+                    body.append(trimmed_row)
+                    break
+
+                row = self._generate_body_row(
+                    (r, row_tup, rlabels[r]),
+                    row_heading_class,
+                    trimmed_col_class,
+                    data_class,
+                    max_cols,
+                    idx_lengths,
+                )
+                body.append(row)
+
+        return body
+
+    def _translate_latex(self, d: dict) -> None:
+        r"""
+        Post-process the default render dict for the LaTeX template format.
+
+        Processing items included are:
+
+        1) Remove hidden columns from the non-headers part of the body. This is done
+        so that there are no repeated "&" latex separators generated from the template.
+        Alternatively this logic could be refactored into the template/template
+        parsing function.
+
+        2) Place cellstyles directly in td cells rather than use cellstyle_map. This is
+        necessary for a LaTeX format where styles have to be coded for each cell
+        specifically.
+
+        3) Remove hidden indexes or reinsert missing th elements if part of multiindex
+        or multirow sparsification (so that \multirow and \multicol work correctly), and
+        there are the correct number of cells (possibly blank) in a row.
+        """
+        d["head"] = [
+            [
+                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
+                for c, col in enumerate(row)
+                if col["is_visible"]
+            ]
+            for r, row in enumerate(d["head"])
+        ]
+
+        body = []
+        index_levels = self.data.index.nlevels
+        for r, row in zip(
+            [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
+            d["body"],
+        ):
+            # note: cannot enumerate d["body"] because rows were dropped if hidden
+            # during _translate_body so must zip to acquire the true r-index associated
+            # with the ctx obj which contains the cell styles.
+            if all(self.hide_index_):
+                row_body_headers = []
+            else:
+                row_body_headers = [
+                    {
+                        **col,
+                        "display_value": col["display_value"]
+                        if col["is_visible"]
+                        else "",
+                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
+                    }
+                    for c, col in enumerate(row[:index_levels])
+                    if (col["type"] == "th" and not self.hide_index_[c])
+                ]
+
+            row_body_cells = [
+                {**col, "cellstyle": self.ctx[r, c]}
+                for c, col in enumerate(row[index_levels:])
+                if (col["is_visible"] and col["type"] == "td")
+            ]
+
+            body.append(row_body_headers + row_body_cells)
+        d["body"] = body
+
     def _generate_trimmed_row(
         self,
         row_heading_class: str,
@@ -607,138 +739,6 @@ class StylerRenderer:
             data.append(data_element)
 
         return index_headers + data
-
-    def _translate_body(
-        self,
-        data_class: str,
-        row_heading_class: str,
-        sparsify_index: bool,
-        max_rows: int,
-        max_cols: int,
-        trimmed_row_class: str,
-        trimmed_col_class: str,
-    ):
-        """
-        Build each <tr> within table <body> as a list
-
-        Use the following structure:
-          +--------------------------------------------+---------------------------+
-          |  index_header_0    ...    index_header_n   |  data_by_column           |
-          +--------------------------------------------+---------------------------+
-
-        Also add elements to the cellstyle_map for more efficient grouped elements in
-        <style></style> block
-
-        Parameters
-        ----------
-        data_class : str
-            CSS class added to elements within data_by_column sections of the structure.
-        row_heading_class : str
-            CSS class added to elements within the index_header section of structure.
-        sparsify_index : bool
-            Whether index_headers section will add rowspan attributes (>1) to elements.
-
-        Returns
-        -------
-        body : list
-            The associated HTML elements needed for template rendering.
-        """
-        # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(
-            self.index, sparsify_index, max_rows, self.hidden_rows
-        )
-
-        rlabels = self.data.index.tolist()
-        if not isinstance(self.data.index, MultiIndex):
-            rlabels = [[x] for x in rlabels]
-
-        body, row_count = [], 0
-        for r, row_tup in enumerate(self.data.itertuples()):
-            if r not in self.hidden_rows:
-                row_count += 1  # count visible rows to ensure max not breached
-                if row_count > max_rows:  # used only to add a '...' trimmed row:
-                    trimmed_row = self._generate_trimmed_row(
-                        row_heading_class,
-                        trimmed_row_class,
-                        trimmed_col_class,
-                        data_class,
-                        max_cols,
-                    )
-                    body.append(trimmed_row)
-                    break
-
-                row = self._generate_body_row(
-                    (r, row_tup, rlabels[r]),
-                    row_heading_class,
-                    trimmed_col_class,
-                    data_class,
-                    max_cols,
-                    idx_lengths,
-                )
-                body.append(row)
-
-        return body
-
-    def _translate_latex(self, d: dict) -> None:
-        r"""
-        Post-process the default render dict for the LaTeX template format.
-
-        Processing items included are:
-
-        1) Remove hidden columns from the non-headers part of the body. This is done
-        so that there are no repeated "&" latex separators generated from the template.
-        Alternatively this logic could be refactored into the template/template
-        parsing function.
-
-        2) Place cellstyles directly in td cells rather than use cellstyle_map. This is
-        necessary for a LaTeX format where styles have to be coded for each cell
-        specifically.
-
-        3) Remove hidden indexes or reinsert missing th elements if part of multiindex
-        or multirow sparsification (so that \multirow and \multicol work correctly), and
-        there are the correct number of cells (possibly blank) in a row.
-        """
-        d["head"] = [
-            [
-                {**col, "cellstyle": self.ctx_columns[r, c - self.index.nlevels]}
-                for c, col in enumerate(row)
-                if col["is_visible"]
-            ]
-            for r, row in enumerate(d["head"])
-        ]
-
-        body = []
-        index_levels = self.data.index.nlevels
-        for r, row in zip(
-            [r for r in range(len(self.data.index)) if r not in self.hidden_rows],
-            d["body"],
-        ):
-            # note: cannot enumerate d["body"] because rows were dropped if hidden
-            # during _translate_body so must zip to acquire the true r-index associated
-            # with the ctx obj which contains the cell styles.
-            if all(self.hide_index_):
-                row_body_headers = []
-            else:
-                row_body_headers = [
-                    {
-                        **col,
-                        "display_value": col["display_value"]
-                        if col["is_visible"]
-                        else "",
-                        "cellstyle": self.ctx_index[r, c] if col["is_visible"] else [],
-                    }
-                    for c, col in enumerate(row[:index_levels])
-                    if (col["type"] == "th" and not self.hide_index_[c])
-                ]
-
-            row_body_cells = [
-                {**col, "cellstyle": self.ctx[r, c]}
-                for c, col in enumerate(row[index_levels:])
-                if (col["is_visible"] and col["type"] == "td")
-            ]
-
-            body.append(row_body_headers + row_body_cells)
-        d["body"] = body
 
     def format(
         self,
