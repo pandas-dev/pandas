@@ -19,6 +19,7 @@ Fixed regressions
 - Fixed performance regression in :meth:`MultiIndex.equals` (:issue:`43549`)
 - Fixed regression in :meth:`Series.cat.reorder_categories` failing to update the categories on the ``Series`` (:issue:`43232`)
 - Fixed regression in :meth:`Series.cat.categories` setter failing to update the categories on the ``Series`` (:issue:`43334`)
+- Fixed regression in :meth:`pandas.read_csv` raising ``UnicodeDecodeError`` exception when ``memory_map=True`` (:issue:`43540`)
 -
 
 .. ---------------------------------------------------------------------------

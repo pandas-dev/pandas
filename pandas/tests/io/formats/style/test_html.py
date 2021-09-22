@@ -469,6 +469,127 @@ def test_maximums(styler_mi, rows, cols):
     assert (">2</td>" in result) is not cols  # first trimmed horizontal element
 
 
+def test_replaced_css_class_names(styler_mi):
+    styler_mi.index.names = ["n1", "n2"]
+    styler_mi.set_uuid("")
+    styler_mi.hide_index(styler_mi.index[1:])
+    styler_mi.hide_columns(styler_mi.columns[1:])
+    styler_mi.css = {
+        "row_heading": "",
+        "col_heading": "",
+        "index_name": "",
+        "col": "c",
+        "row": "r",
+        "col_trim": "",
+        "row_trim": "",
+        "level": "l",
+        "data": "",
+        "blank": "",
+    }
+    expected = dedent(
+        """\
+    <style type="text/css">
+    </style>
+    <table id="T_">
+      <thead>
+        <tr>
+          <th class="" >&nbsp;</th>
+          <th class=" l0" >n1</th>
+          <th id="T__l0_c0" class=" l0 c0" >a</th>
+        </tr>
+        <tr>
+          <th class="" >&nbsp;</th>
+          <th class=" l1" >n2</th>
+          <th id="T__l1_c0" class=" l1 c0" >c</th>
+        </tr>
+        <tr>
+          <th class=" l0" >n1</th>
+          <th class=" l1" >n2</th>
+          <th class=" c0" >&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th id="T__l0_r0" class=" l0 r0" >a</th>
+          <th id="T__l1_r0" class=" l1 r0" >c</th>
+          <td id="T__r0_c0" class=" r0 c0" >0</td>
+        </tr>
+        <tr>
+        </tr>
+        <tr>
+        </tr>
+        <tr>
+        </tr>
+      </tbody>
+    </table>
+    """
+    )
+    assert styler_mi.to_html() == expected
+
+
+def test_include_css_style_rules_only_for_visible_cells(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap(lambda v: "color: blue;")
+        .hide_columns(styler_mi.data.columns[1:])
+        .hide_index(styler_mi.data.index[1:])
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__row0_col0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="index")
+        .hide_columns(styler_mi.data.columns)
+        .hide_index(styler_mi.data.index[1:])
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_row0, #T__level1_row0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="columns")
+        .hide_columns(styler_mi.data.columns[1:])
+        .hide_index(styler_mi.data.index)
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_col0, #T__level1_col0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
 def test_hiding_index_columns_multiindex_alignment():
     # gh 43644
     midx = MultiIndex.from_product(
