@@ -931,6 +931,17 @@ class TestParquetPyArrow(Base):
         else:
             assert isinstance(result._mgr, pd.core.internals.BlockManager)
 
+    @td.skip_if_no("pyarrow", min_version="4.0.0")
+    def test_list_column_results_in_compliant_parquet(self, pa):
+        # https://github.com/pandas-dev/pandas/issues/43689
+        df = pd.DataFrame({"a": [[1], [2]]})
+
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, pa)
+            result = pyarrow.parquet.read_table(path)
+
+        assert str(result.schema.field_by_name("a").type) == "list<element: int64>"
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
