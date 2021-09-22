@@ -239,6 +239,25 @@ def test_encoding_memory_map(all_parsers, encoding):
     tm.assert_frame_equal(df, expected)
 
 
+def test_chunk_splits_multibyte_char(all_parsers):
+    """
+    Chunk splits a multibyte character with memory_map=True
+
+    GH 43540
+    """
+    parser = all_parsers
+    # DEFAULT_CHUNKSIZE = 262144, defined in parsers.pyx
+    df = DataFrame(data=["a" * 127] * 2048)
+
+    # Put two-bytes utf-8 encoded character "ą" at the end of chunk
+    # utf-8 encoding of "ą" is b'\xc4\x85'
+    df.iloc[2047] = "a" * 127 + "ą"
+    with tm.ensure_clean("bug-gh43540.csv") as fname:
+        df.to_csv(fname, index=False, header=False, encoding="utf-8")
+        dfr = parser.read_csv(fname, header=None, memory_map=True, engine="c")
+    tm.assert_frame_equal(dfr, df)
+
+
 def test_not_readable(all_parsers):
     # GH43439
     parser = all_parsers
