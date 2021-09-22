@@ -890,7 +890,12 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        values = self._get_engine_target()
+        if needs_i8_conversion(self.dtype):
+            # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
+            # has no attribute "_ndarray"
+            values = self._data._ndarray  # type: ignore[union-attr]
+        else:
+            values = self._get_engine_target()
         return values.ravel(order=order)
 
     def view(self, cls=None):
@@ -3054,6 +3059,7 @@ class Index(IndexOpsMixin, PandasObject):
             and self.is_monotonic
             and other.is_monotonic
             and not (self.has_duplicates and other.has_duplicates)
+            and self._can_use_libjoin
         ):
             # Both are unique and monotonic, so can use outer join
             try:
@@ -3184,13 +3190,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if (
-            self.is_monotonic
-            and other.is_monotonic
-            and not is_interval_dtype(self.dtype)
-        ):
-            # For IntervalIndex _inner_indexer is not more performant than get_indexer,
-            #  so don't take this fastpath
+        if self.is_monotonic and other.is_monotonic and self._can_use_libjoin:
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
@@ -4173,12 +4173,15 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic and other.is_monotonic:
-                return self._join_monotonic(other, how=how)
+                if self._can_use_libjoin:
+                    # otherwise we will fall through to _join_via_get_indexer
+                    return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
         elif (
             self.is_monotonic
             and other.is_monotonic
+            and self._can_use_libjoin
             and (
                 not isinstance(self, ABCMultiIndex)
                 or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
@@ -4539,6 +4542,15 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name)
+
+    @cache_readonly
+    def _can_use_libjoin(self) -> bool:
+        """
+        Whether we can use the fastpaths implement in _libs.join
+        """
+        # Note: this will need to be updated when e.g. Nullable dtypes
+        #  are supported in Indexes.
+        return not is_interval_dtype(self.dtype)
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -6339,8 +6351,11 @@ class Index(IndexOpsMixin, PandasObject):
         KeyError
             If not all of the labels are found in the selected axis
         """
-        arr_dtype = "object" if self.dtype == "object" else None
-        labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+        if not isinstance(labels, Index):
+            # avoid materializing e.g. RangeIndex
+            arr_dtype = "object" if self.dtype == "object" else None
+            labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+
         indexer = self.get_indexer_for(labels)
         mask = indexer == -1
         if mask.any():
