@@ -222,7 +222,7 @@ PositionalIndexer2D = Union[PositionalIndexer, PositionalIndexerTuple]
 if TYPE_CHECKING:
     TakeIndexer = Union[Sequence[int], Sequence[np.integer], npt.NDArray[np.integer]]
 else:
-    TakeIndexer = Union[Sequence[int], Sequence[np.integer], np.ndarray]
+    TakeIndexer = Any
 
 # Windowing rank methods
 WindowingRankType = Literal["average", "min", "max"]
