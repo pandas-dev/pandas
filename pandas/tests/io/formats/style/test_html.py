@@ -525,3 +525,66 @@ def test_replaced_css_class_names(styler_mi):
     """
     )
     assert styler_mi.to_html() == expected
+
+
+def test_include_css_style_rules_only_for_visible_cells(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap(lambda v: "color: blue;")
+        .hide_columns(styler_mi.data.columns[1:])
+        .hide_index(styler_mi.data.index[1:])
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__row0_col0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_index_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="index")
+        .hide_columns(styler_mi.data.columns)
+        .hide_index(styler_mi.data.index[1:])
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_row0, #T__level1_row0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result
+
+
+def test_include_css_style_rules_only_for_visible_column_labels(styler_mi):
+    # GH 43619
+    result = (
+        styler_mi.set_uuid("")
+        .applymap_index(lambda v: "color: blue;", axis="columns")
+        .hide_columns(styler_mi.data.columns[1:])
+        .hide_index(styler_mi.data.index)
+        .to_html()
+    )
+    expected_styles = dedent(
+        """\
+        <style type="text/css">
+        #T__level0_col0, #T__level1_col0 {
+          color: blue;
+        }
+        </style>
+        """
+    )
+    assert expected_styles in result

@@ -79,6 +79,7 @@ Styler
   - Keyword arguments ``level`` and ``names`` added to :meth:`.Styler.hide_index` and :meth:`.Styler.hide_columns` for additional control of visibility of MultiIndexes and index names (:issue:`25475`, :issue:`43404`, :issue:`43346`)
   - Global options have been extended to configure default ``Styler`` properties including formatting and encoding and mathjax options and LaTeX (:issue:`41395`)
   - Naive sparsification is now possible for LaTeX without the multirow package (:issue:`43369`)
+  - :meth:`Styler.to_html` omits CSSStyle rules for hidden table elements (:issue:`43619`)
   - Custom CSS classes can now be directly specified without string replacement (:issue:`43686`)
 
 Formerly Styler relied on ``display.html.use_mathjax``, which has now been replaced by ``styler.html.mathjax``.
@@ -356,7 +357,7 @@ Performance improvements
 - Performance improvement in indexing with a :class:`MultiIndex` indexer on another :class:`MultiIndex` (:issue:43370`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
 - :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
-- Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654 `)
+- Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
 -
 
 .. ---------------------------------------------------------------------------

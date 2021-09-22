@@ -351,6 +351,7 @@ class StylerRenderer:
                 if clabels:
                     column_headers = []
                     for c, value in enumerate(clabels[r]):
+                        header_element_visible = _is_visible(c, r, col_lengths)
                         header_element = _element(
                             "th",
                             (
@@ -358,7 +359,7 @@ class StylerRenderer:
                                 f"{self.css['col']}{c}"
                             ),
                             value,
-                            _is_visible(c, r, col_lengths),
+                            header_element_visible,
                             display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
@@ -371,7 +372,11 @@ class StylerRenderer:
                             header_element[
                                 "id"
                             ] = f"{self.css['level']}{r}_{self.css['col']}{c}"
-                        if (r, c) in self.ctx_columns and self.ctx_columns[r, c]:
+                        if (
+                            header_element_visible
+                            and (r, c) in self.ctx_columns
+                            and self.ctx_columns[r, c]
+                        ):
                             header_element[
                                 "id"
                             ] = f"{self.css['level']}{r}_{self.css['col']}{c}"
@@ -516,6 +521,9 @@ class StylerRenderer:
 
             index_headers = []
             for c, value in enumerate(rlabels[r]):
+                header_element_visible = (
+                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c]
+                )
                 header_element = _element(
                     "th",
                     (
@@ -523,7 +531,7 @@ class StylerRenderer:
                         f"{self.css['row']}{r}"
                     ),
                     value,
-                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
+                    header_element_visible,
                     display_value=self._display_funcs_index[(r, c)](value),
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -536,7 +544,11 @@ class StylerRenderer:
                     header_element[
                         "id"
                     ] = f"{self.css['level']}{c}_{self.css['row']}{r}"  # id is given
-                if (r, c) in self.ctx_index and self.ctx_index[r, c]:
+                if (
+                    header_element_visible
+                    and (r, c) in self.ctx_index
+                    and self.ctx_index[r, c]
+                ):
                     # always add id if a style is specified
                     header_element[
                         "id"
@@ -569,6 +581,9 @@ class StylerRenderer:
                 if (r, c) in self.cell_context:
                     cls = " " + self.cell_context[r, c]
 
+                data_element_visible = (
+                    c not in self.hidden_columns and r not in self.hidden_rows
+                )
                 data_element = _element(
                     "td",
                     (
@@ -576,14 +591,14 @@ class StylerRenderer:
                         f"{self.css['col']}{c}{cls}"
                     ),
                     value,
-                    (c not in self.hidden_columns and r not in self.hidden_rows),
+                    data_element_visible,
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )
 
                 if self.cell_ids:
                     data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
-                if (r, c) in self.ctx and self.ctx[r, c]:
+                if data_element_visible and (r, c) in self.ctx and self.ctx[r, c]:
                     # always add id if needed due to specified style
                     data_element["id"] = f"{self.css['row']}{r}_{self.css['col']}{c}"
                     self.cellstyle_map[tuple(self.ctx[r, c])].append(
