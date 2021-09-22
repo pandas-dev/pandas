@@ -418,19 +418,12 @@ cdef class DatetimeEngine(Int64Engine):
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
         #  - val is hashable
-        cdef:
-            int64_t loc, conv
-
-        conv = self._unbox_scalar(val)
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                return self._get_loc_duplicates(conv)
-            values = self.values
-            loc = values.searchsorted(conv, side='left')
-            return values[loc] == conv
-
-        self._ensure_mapping_populated()
-        return conv in self.mapping
+        self._unbox_scalar(val)
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
