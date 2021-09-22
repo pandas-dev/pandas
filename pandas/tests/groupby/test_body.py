@@ -161,7 +161,7 @@ def test_multiindex(multiindex_data):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("arg", [1, 5, 30, 1000])
+@pytest.mark.parametrize("arg", [1, 5, 30, 1000, -1, -5, -30, -1000])
 @pytest.mark.parametrize("method", ["head", "tail"])
 @pytest.mark.parametrize("simulated", [True, False])
 def test_against_head_and_tail(arg, method, simulated):
@@ -181,13 +181,14 @@ def test_against_head_and_tail(arg, method, simulated):
     }
     df = pd.DataFrame(data)
     grouped = df.groupby("group", as_index=False)
+    size = arg if arg >= 0 else n_rows_per_group + arg
 
     if method == "head":
         result = grouped._body[:arg]
 
         if simulated:
             indices = []
-            for j in range(arg):
+            for j in range(size):
                 for i in range(n_groups):
                     if j * n_groups + i < n_groups * n_rows_per_group:
                         indices.append(j * n_groups + i)
@@ -202,10 +203,10 @@ def test_against_head_and_tail(arg, method, simulated):
 
         if simulated:
             indices = []
-            for j in range(arg):
+            for j in range(size):
                 for i in range(n_groups):
-                    if (n_rows_per_group + j - arg) * n_groups + i >= 0:
-                        indices.append((n_rows_per_group + j - arg) * n_groups + i)
+                    if (n_rows_per_group + j - size) * n_groups + i >= 0:
+                        indices.append((n_rows_per_group + j - size) * n_groups + i)
 
             expected = df.iloc[indices]
 
