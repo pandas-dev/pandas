@@ -186,9 +186,45 @@ Now the float-dtype is respected. Since the common dtype for these DataFrames is
 
     res
 
-.. _whatsnew_140.notable_bug_fixes.notable_bug_fix3:
+.. _whatsnew_140.notable_bug_fixes.write_compliant_parquet_nested_type:
 
-notable_bug_fix3
+Write compliant Parquet nested types if possible
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When using :meth:`DataFrame.to_parquet` to write a DataFrame to Parquet, if any of the columns contained arrays
+of values the :mod:`pyarrow` engine would write a non-compliant format. This behavior is now fixed when the installed
+version of PyArrow is at least ``4.0.0``.
+
+https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#nested-types
+
+.. ipython:: python
+
+    import pandas as pd
+    import pyarrow.parquet as pq
+
+    df = pd.DataFrame({"int_array_col": [[1, 2, 3], [4, 5, 6]]})
+    df.to_parquet("/tmp/sample_df")
+    parquet_table = pq.read_table("/tmp/sample_df")
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [4]: parquet_table.schema.types
+    Out[4]:
+    [ListType(list<item: int64>)]
+
+*New behavior*:
+
+.. code-block:: ipython
+
+    In [4]: parquet_table.schema.types
+    Out[4]:
+    [ListType(list<element: int64>)]
+
+.. _whatsnew_140.notable_bug_fixes.notable_bug_fix4:
+
+notable_bug_fix4
 ^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
