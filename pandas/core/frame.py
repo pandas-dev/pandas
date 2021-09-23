@@ -4994,8 +4994,8 @@ class DataFrame(NDFrame, OpsMixin):
         copy : bool, default True
             Also copy underlying data.
         inplace : bool, default False
-            Whether to return a new DataFrame. If True then value of copy is
-            ignored.
+            Whether to return a new DataFrame. If True, performs operation
+            inplace and returns None.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
