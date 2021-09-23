@@ -91,11 +91,7 @@ cdef class IndexEngine:
             values = self.values
 
             self._check_type(val)
-            try:
-                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
-            except TypeError:
-                # GH#35788 e.g. val=None with float64 values
-                raise KeyError(val)
+            loc = self._searchsorted_left(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
@@ -113,6 +109,17 @@ cdef class IndexEngine:
         except (TypeError, ValueError, OverflowError):
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
             raise KeyError(val)
+
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        """
+        See ObjectEngine._searchsorted_left.__doc__.
+        """
+        try:
+            loc = self.values.searchsorted(val, side="left")
+        except TypeError as err:
+            # GH#35788 e.g. val=None with float64 values
+            raise KeyError(val)
+        return loc
 
     cdef inline _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
@@ -385,6 +392,11 @@ cdef class IndexEngine:
 
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
+    # GH#1757 ndarray.searchsorted is not safe to use with array of tuples
+    #  (treats a tuple `val` as a sequence of keys instead of a single key),
+    #  so we implement something similar.
+    # This is equivalent to the stdlib's bisect.bisect_left
+
     cdef:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
@@ -416,6 +428,15 @@ cdef class ObjectEngine(IndexEngine):
     """
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
+
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        # using values.searchsorted here would treat a tuple `val` as a sequence
+        #  instead of a single key, so we use a different implementation
+        try:
+            loc = _bin_search(self.values, val)
+        except TypeError as err:
+            raise KeyError(val) from err
+        return loc
 
     cdef ndarray _get_bool_indexer(self, object val):
         # We need to check for equality and for matching NAs
@@ -449,19 +470,12 @@ cdef class DatetimeEngine(Int64Engine):
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
         #  - val is hashable
-        cdef:
-            int64_t loc, conv
-
-        conv = self._unbox_scalar(val)
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                return self._get_loc_duplicates(conv)
-            values = self.values
-            loc = values.searchsorted(conv, side='left')
-            return values[loc] == conv
-
-        self._ensure_mapping_populated()
-        return conv in self.mapping
+        self._unbox_scalar(val)
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
