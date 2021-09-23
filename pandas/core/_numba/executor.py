@@ -18,7 +18,7 @@ from pandas.core.util.numba_ import (
 
 def generate_shared_aggregator(
     func: Callable[..., Scalar],
-    kwargs: dict[str, Any],
+    kwargs: dict[str, Any] | None,
     engine_kwargs: dict[str, bool] | None,
     cache_key_str: str,
 ):

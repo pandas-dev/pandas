@@ -78,6 +78,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import nanops
+from pandas.core._numba import executor
 import pandas.core.algorithms as algorithms
 from pandas.core.arrays import (
     BaseMaskedArray,
@@ -1251,6 +1252,25 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             sorted_data,
         )
 
+    def _numba_agg_general(
+        self,
+        func: Callable,
+        engine_kwargs: dict[str, bool] | None,
+        numba_cache_key_str: str,
+    ):
+        """
+        Perform groupby with a standard numerical aggregation function (e.g. mean)
+        with Numba.
+        """
+        with group_selection_context(self):
+            data = self._selected_obj
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
+        aggregator = executor.generate_shared_aggregator(
+            func, None, engine_kwargs, numba_cache_key_str
+        )
+        result = aggregator(sorted_data, starts, ends, 0)
+        return result
+
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
         """
@@ -1771,7 +1791,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def mean(self, numeric_only: bool | lib.NoDefault = lib.no_default):
+    def mean(
+        self,
+        numeric_only: bool | lib.NoDefault = lib.no_default,
+        engine: str = "cython",
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
         """
         Compute mean of groups, excluding missing values.
 
@@ -1821,12 +1846,20 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         numeric_only = self._resolve_numeric_only(numeric_only)
 
-        result = self._cython_agg_general(
-            "mean",
-            alt=lambda x: Series(x).mean(numeric_only=numeric_only),
-            numeric_only=numeric_only,
-        )
-        return result.__finalize__(self.obj, method="groupby")
+        if maybe_use_numba(engine):
+            from pandas.core._numba.kernels import sliding_mean
+
+            result = self._numba_agg_general(
+                sliding_mean, engine_kwargs, "groupby_mean"
+            )
+            return result
+        else:
+            result = self._cython_agg_general(
+                "mean",
+                alt=lambda x: Series(x).mean(numeric_only=numeric_only),
+                numeric_only=numeric_only,
+            )
+            return result.__finalize__(self.obj, method="groupby")
 
     @final
     @Substitution(name="groupby")
