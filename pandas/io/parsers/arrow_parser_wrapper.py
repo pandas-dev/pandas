@@ -100,8 +100,10 @@ class ArrowParserWrapper(ParserBase):
                     self.names = range(num_cols)
             if len(self.names) != num_cols:
                 # usecols is passed through to pyarrow, we only handle index col here
-                # pretty much we just pad names to the expected length
-                self.names = range(num_cols - len(self.names)) + self.names
+                # The only way self.names is not the same length as number of cols is
+                # if we have int index_col. We should just pad the names(they will get
+                # removed anyways) to expected length then.
+                self.names = list(range(num_cols - len(self.names))) + self.names
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
