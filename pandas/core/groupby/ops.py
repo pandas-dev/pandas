@@ -81,6 +81,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -395,6 +396,9 @@ class WrappedCythonOp:
                 mask=None,
                 **kwargs,
             )
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
             if self.how in ["rank"]:
                 # i.e. how in WrappedCythonOp.cast_blocklist, since
                 #  other cast_blocklist methods dont go through cython_operation
