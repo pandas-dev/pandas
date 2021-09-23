@@ -152,6 +152,14 @@ class TestGetLoc:
             with tm.assert_produces_warning(FutureWarning, match="deprecated"):
                 idx.get_loc(np.nan, method=method)
 
+    @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
+    def test_get_loc_numericindex_none_raises(self, dtype):
+        # case that goes through searchsorted and key is non-comparable to values
+        arr = np.arange(10 ** 7, dtype=dtype)
+        idx = Index(arr)
+        with pytest.raises(KeyError, match="None"):
+            idx.get_loc(None)
+
 
 class TestGetIndexer:
     def test_get_indexer(self):

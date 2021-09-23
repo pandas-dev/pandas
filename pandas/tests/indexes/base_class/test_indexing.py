@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import Index
 import pandas._testing as tm
 
@@ -36,3 +37,22 @@ class TestGetIndexerNonUnique:
         indexes, missing = Index(["A", "B"]).get_indexer_non_unique(Index([0]))
         tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
         tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)
+
+
+class TestGetLoc:
+    @pytest.mark.slow  # to_flat_index takes a while
+    def test_get_loc_tuple_monotonic_above_size_cutoff(self):
+        # Go through the libindex path for which using
+        # _bin_search vs ndarray.searchsorted makes a difference
+
+        lev = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+        dti = pd.date_range("2016-01-01", periods=100)
+
+        mi = pd.MultiIndex.from_product([lev, range(10 ** 3), dti])
+        oidx = mi.to_flat_index()
+
+        loc = len(oidx) // 2
+        tup = oidx[loc]
+
+        res = oidx.get_loc(tup)
+        assert res == loc
