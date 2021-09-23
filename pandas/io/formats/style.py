@@ -1170,6 +1170,7 @@ class Styler(StylerRenderer):
           - applied styles (_todo)
           - css
 
+        Other added attributes should be consider either for copy and/or export.
         """
         # GH 40675
         styler = Styler(
