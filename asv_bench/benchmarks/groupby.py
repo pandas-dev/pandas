@@ -603,6 +603,38 @@ class Float32:
         self.df.groupby(["a"])["b"].sum()
 
 
+class String:
+    # GH#41596
+    param_names = ["dtype", "method"]
+    params = [
+        ["str", "string[python]"],
+        [
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "var",
+            "first",
+            "last",
+            "any",
+            "all",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        cols = list("abcdefghjkl")
+        self.df = DataFrame(
+            np.random.randint(0, 100, size=(1_000_000, len(cols))),
+            columns=cols,
+            dtype=dtype,
+        )
+
+    def time_str_func(self, dtype, method):
+        self.df.groupby("a")[self.df.columns[1:]].agg(method)
+
+
 class Categories:
     def setup(self):
         N = 10 ** 5
