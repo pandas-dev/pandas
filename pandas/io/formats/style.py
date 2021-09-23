@@ -1169,7 +1169,6 @@ class Styler(StylerRenderer):
           - table_styles
           - applied styles (_todo)
           - css
-
         """
         # GH 40675
         styler = Styler(
