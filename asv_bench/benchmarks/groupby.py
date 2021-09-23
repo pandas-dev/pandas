@@ -623,7 +623,7 @@ class String:
         ],
     ]
 
-    def setup(self, dtype):
+    def setup(self, dtype, method):
         cols = list("abcdefghjkl")
         self.df = DataFrame(
             np.random.randint(0, 100, size=(1_000_000, len(cols))),
@@ -631,7 +631,7 @@ class String:
             dtype=dtype,
         )
 
-    def time_str_func(self, method):
+    def time_str_func(self, dtype, method):
         self.df.groupby("a")[self.df.columns[1:]].agg(method)
 
 
