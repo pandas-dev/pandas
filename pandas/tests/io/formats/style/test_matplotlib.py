@@ -260,9 +260,10 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
         styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
 
 
-def test_bar_colormap():
+@pytest.mark.parametrize("cmap", ["PuBu", mpl.cm.get_cmap("PuBu")])
+def test_bar_colormap(cmap):
     data = DataFrame([[1, 2], [3, 4]])
-    ctx = data.style.bar(color=mpl.cm.get_cmap("PuBu"), axis=None)._compute().ctx
+    ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx
     pubu_colors = {
         (0, 0): "#d0d1e6",
         (1, 0): "#056faf",
@@ -274,10 +275,12 @@ def test_bar_colormap():
 
 
 def test_bar_color_raises(df):
-    msg = "`colors` must be a matplotlib Colormap if not string or list of strings"
+    msg = "`color` must be string or list or tuple of 2 strings"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(color={"a", "b"}).to_html()
-
-    msg = "`color` must be string, list-like of 2 strings, or matplotlib Colormap"
     with pytest.raises(ValueError, match=msg):
         df.style.bar(color=["a", "b", "c"]).to_html()
+
+    msg = "`color` and `cmap` cannot both be given"
+    with pytest.raises(ValueError, match=msg):
+        df.style.bar(color="something", cmap="something else").to_html()

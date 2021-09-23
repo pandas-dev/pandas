@@ -60,7 +60,7 @@ from pandas.io.formats.style_render import (
 )
 
 try:
-    from matplotlib import colors
+    import matplotlib as mpl
     import matplotlib.pyplot as plt
 
     has_mpl = True
@@ -72,7 +72,7 @@ except ImportError:
 @contextmanager
 def _mpl(func: Callable):
     if has_mpl:
-        yield plt, colors
+        yield plt, mpl
     else:
         raise ImportError(no_mpl_message.format(func.__name__))
 
@@ -2608,7 +2608,8 @@ class Styler(StylerRenderer):
         subset: Subset | None = None,
         axis: Axis | None = 0,
         *,
-        color="#d65f5f",
+        color: str | list | tuple | None = None,
+        cmap: Any | None = None,
         width: float = 100,
         height: float = 100,
         align: str | float | int | Callable = "mid",
@@ -2631,12 +2632,16 @@ class Styler(StylerRenderer):
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
-        color : str, 2-tuple/list, matplotlib Colormap
+        color : str or 2-tuple/list
             If a str is passed, the color is the same for both
             negative and positive numbers. If 2-tuple/list is used, the
             first element is the color_negative and the second is the
-            color_positive (eg: ['#d65f5f', '#5fba7d']). Alternatively, assigns
-            colors from a Colormap based on the datavalues.
+            color_positive (eg: ['#d65f5f', '#5fba7d']).
+        cmap : str, matplotlib.cm.ColorMap
+            A string name of a matplotlib Colormap, or a Colormap object. Cannot be
+            used together with ``color``.
+
+            .. versionadded:: 1.4.0
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
@@ -2686,6 +2691,19 @@ class Styler(StylerRenderer):
         `Table Visualization <../../user_guide/style.ipynb>`_ gives
         a number of examples for different settings and color coordination.
         """
+        if color is None and cmap is None:
+            color = "#d65f5f"
+        elif color is not None and cmap is not None:
+            raise ValueError("`color` and `cmap` cannot both be given")
+        elif color is not None:
+            if (isinstance(color, (list, tuple)) and len(color) > 2) or not isinstance(
+                color, (str, list, tuple)
+            ):
+                raise ValueError(
+                    "`color` must be string or list or tuple of 2 strings,"
+                    "(eg: color=['#d65f5f', '#5fba7d'])"
+                )
+
         if not (0 <= width <= 100):
             raise ValueError(f"`width` must be a value in [0, 100], got {width}")
         elif not (0 <= height <= 100):
@@ -2700,6 +2718,7 @@ class Styler(StylerRenderer):
             axis=axis,
             align=align,
             colors=color,
+            cmap=cmap,
             width=width / 100,
             height=height / 100,
             vmin=vmin,
@@ -3256,12 +3275,12 @@ def _background_gradient(
     else:  # else validate gmap against the underlying data
         gmap = _validate_apply_axis_arg(gmap, "gmap", float, data)
 
-    with _mpl(Styler.background_gradient) as (plt, colors):
+    with _mpl(Styler.background_gradient) as (plt, mpl):
         smin = np.nanmin(gmap) if vmin is None else vmin
         smax = np.nanmax(gmap) if vmax is None else vmax
         rng = smax - smin
         # extend lower / upper bounds, compresses color range
-        norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
+        norm = mpl.colors.Normalize(smin - (rng * low), smax + (rng * high))
         rgbas = plt.cm.get_cmap(cmap)(norm(gmap))
 
         def relative_luminance(rgba) -> float:
@@ -3290,9 +3309,11 @@ def _background_gradient(
             if not text_only:
                 dark = relative_luminance(rgba) < text_color_threshold
                 text_color = "#f1f1f1" if dark else "#000000"
-                return f"background-color: {colors.rgb2hex(rgba)};color: {text_color};"
+                return (
+                    f"background-color: {mpl.colors.rgb2hex(rgba)};color: {text_color};"
+                )
             else:
-                return f"color: {colors.rgb2hex(rgba)};"
+                return f"color: {mpl.colors.rgb2hex(rgba)};"
 
         if data.ndim == 1:
             return [css(rgba, text_only) for rgba in rgbas]
@@ -3365,7 +3386,8 @@ def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
 def _bar(
     data: FrameOrSeries,
     align: str | float | int | Callable,
-    colors: Any,
+    colors: str | list | tuple,
+    cmap: Any,
     width: float,
     height: float,
     vmin: float | None,
@@ -3427,7 +3449,7 @@ def _bar(
             cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
         return cell_css
 
-    def css_calc(x, left: float, right: float, align: str, color: list | str):
+    def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):
         """
         Return the correct CSS for bar placement based on calculated values.
 
@@ -3458,7 +3480,7 @@ def _bar(
         if pd.isna(x):
             return base_css
 
-        if isinstance(color, list):
+        if isinstance(color, (list, tuple)):
             color = color[0] if x < 0 else color[1]
         assert isinstance(color, str)  # mypy redefinition
 
@@ -3525,25 +3547,20 @@ def _bar(
         )
 
     rgbas = None
-    if not isinstance(colors, (list, str)):
+    if cmap is not None:
         # use the matplotlib colormap input
-        with _mpl(Styler.bar) as (plt, mpl_colors):
-            norm = mpl_colors.Normalize(left, right)
-            if not isinstance(colors, mpl_colors.Colormap):
-                raise ValueError(
-                    "`colors` must be a matplotlib Colormap if not string "
-                    "or list of strings."
-                )
-            rgbas = colors(norm(values))
+        with _mpl(Styler.bar) as (plt, mpl):
+            cmap = (
+                mpl.cm.get_cmap(cmap)
+                if isinstance(cmap, str)
+                else cmap  # assumed to be a Colormap instance as documented
+            )
+            norm = mpl.colors.Normalize(left, right)
+            rgbas = cmap(norm(values))
             if data.ndim == 1:
-                rgbas = [mpl_colors.rgb2hex(rgba) for rgba in rgbas]
+                rgbas = [mpl.colors.rgb2hex(rgba) for rgba in rgbas]
             else:
-                rgbas = [[mpl_colors.rgb2hex(rgba) for rgba in row] for row in rgbas]
-    elif isinstance(colors, list) and len(colors) > 2:
-        raise ValueError(
-            "`color` must be string, list-like of 2 strings, or matplotlib Colormap "
-            "(eg: color=['#d65f5f', '#5fba7d'])"
-        )
+                rgbas = [[mpl.colors.rgb2hex(rgba) for rgba in row] for row in rgbas]
 
     assert isinstance(align, str)  # mypy: should now be in [left, right, mid, zero]
     if data.ndim == 1:
