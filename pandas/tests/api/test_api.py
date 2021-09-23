@@ -217,6 +217,26 @@ class TestPDApi(Base):
         )
         self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
 
+    def test_api_all(self):
+        expected = set(
+            self.lib
+            + self.misc
+            + self.modules
+            + self.classes
+            + self.funcs
+            + self.funcs_option
+            + self.funcs_read
+            + self.funcs_json
+            + self.funcs_to
+        )
+        actual = set(pd.__all__)
+
+        extraneous = actual - expected
+        assert not extraneous
+
+        missing = expected - actual
+        assert not missing
+
     def test_depr(self):
         deprecated_list = (
             self.deprecated_modules
