@@ -30,19 +30,15 @@ class TestPDApi(Base):
     ignored = ["tests", "locale", "conftest"]
 
     # top-level sub-packages
-    lib = [
-        "api",
-        "arrays",
+    public_lib = ["api", "arrays", "options", "test", "testing"]
+    private_lib = [
         "compat",
         "core",
         "errors",
         "pandas",
         "plotting",
-        "test",
-        "testing",
         "tseries",
         "util",
-        "options",
         "io",
     ]
 
@@ -204,7 +200,8 @@ class TestPDApi(Base):
     def test_api(self):
 
         checkthese = (
-            self.lib
+            self.public_lib
+            + self.private_lib
             + self.misc
             + self.modules
             + self.classes
@@ -219,7 +216,7 @@ class TestPDApi(Base):
 
     def test_api_all(self):
         expected = set(
-            self.lib
+            self.public_lib
             + self.misc
             + self.modules
             + self.classes
