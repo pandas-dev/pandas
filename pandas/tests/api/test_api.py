@@ -30,17 +30,18 @@ class TestPDApi(Base):
     ignored = ["tests", "locale", "conftest"]
 
     # top-level sub-packages
-    public_lib = ["api", "arrays", "options", "test", "testing"]
-    private_lib = [
-        "compat",
-        "core",
+    public_lib = [
+        "api",
+        "arrays",
+        "options",
+        "test",
+        "testing",
         "errors",
-        "pandas",
         "plotting",
-        "tseries",
-        "util",
         "io",
+        "tseries",
     ]
+    private_lib = ["compat", "core", "pandas", "util"]
 
     # these are already deprecated; awaiting removal
     deprecated_modules: list[str] = ["np", "datetime"]

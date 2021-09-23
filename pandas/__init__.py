@@ -131,7 +131,7 @@ from pandas.core.reshape.api import (
     qcut,
 )
 
-from pandas import api
+from pandas import api, arrays, errors, io, plotting, testing, tseries
 from pandas.util._print_versions import show_versions
 
 from pandas.io.api import (
@@ -170,8 +170,6 @@ from pandas.io.api import (
 from pandas.io.json import _json_normalize as json_normalize
 
 from pandas.util._tester import test
-from pandas import testing
-from pandas import arrays
 
 # use the closest tagged version if possible
 from pandas._version import get_versions
@@ -359,12 +357,14 @@ __all__ = [
     "cut",
     "date_range",
     "describe_option",
+    "errors",
     "eval",
     "factorize",
     "get_dummies",
     "get_option",
     "infer_freq",
     "interval_range",
+    "io",
     "isna",
     "isnull",
     "json_normalize",
@@ -381,6 +381,7 @@ __all__ = [
     "period_range",
     "pivot",
     "pivot_table",
+    "plotting",
     "qcut",
     "read_clipboard",
     "read_csv",
@@ -413,6 +414,7 @@ __all__ = [
     "to_numeric",
     "to_pickle",
     "to_timedelta",
+    "tseries",
     "unique",
     "value_counts",
     "wide_to_long",
