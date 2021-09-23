@@ -422,7 +422,7 @@ def unique(values):
     """
     values = _ensure_arraylike(values)
 
-    if is_extension_array_dtype(values):
+    if is_extension_array_dtype(values.dtype):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -947,7 +947,7 @@ def mode(values, dropna: bool = True) -> Series:
     mode : Series
     """
     from pandas import Series
-    import pandas.core.indexes.base as ibase
+    from pandas.core.indexes.api import default_index
 
     values = _ensure_arraylike(values)
     original = values
@@ -973,7 +973,7 @@ def mode(values, dropna: bool = True) -> Series:
 
     result = _reconstruct_data(npresult, original.dtype, original)
     # Ensure index is type stable (should always use int index)
-    return Series(result, index=ibase.default_index(len(result)))
+    return Series(result, index=default_index(len(result)))
 
 
 def rank(

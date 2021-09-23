@@ -125,13 +125,13 @@ from pandas.core.construction import (
 )
 from pandas.core.describe import describe_ndframe
 from pandas.core.flags import Flags
-from pandas.core.indexes import base as ibase
 from pandas.core.indexes.api import (
     DatetimeIndex,
     Index,
     MultiIndex,
     PeriodIndex,
     RangeIndex,
+    default_index,
     ensure_index,
 )
 from pandas.core.internals import (
@@ -3454,6 +3454,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...                         archive_name='out.csv')  # doctest: +SKIP
         >>> df.to_csv('out.zip', index=False,
         ...           compression=compression_opts)  # doctest: +SKIP
+
+        To write a csv file to a new folder or nested folder you will first
+        need to create it using either Pathlib or os:
+
+        >>> from pathlib import Path
+        >>> filepath = Path('folder/subfolder/out.csv')
+        >>> filepath.parent.mkdir(parents=True, exist_ok=True)
+        >>> df.to_csv(filepath)
+
+        >>> import os
+        >>> os.makedirs('folder/subfolder', exist_ok=True)
+        >>> df.to_csv('folder/subfolder/out.csv')
         """
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -3941,6 +3953,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         maybe_shortcut = False
         if self.ndim == 2 and isinstance(self.columns, MultiIndex):
             try:
+                # By using engine's __contains__ we effectively
+                # restrict to same-length tuples
                 maybe_shortcut = key not in self.columns._engine
             except TypeError:
                 pass
@@ -4589,7 +4603,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if ignore_index:
             axis = 1 if isinstance(self, ABCDataFrame) else 0
-            new_data.set_axis(axis, ibase.default_index(len(indexer)))
+            new_data.set_axis(axis, default_index(len(indexer)))
 
         result = self._constructor(new_data)
 
@@ -5330,7 +5344,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = self.take(sampled_indices, axis=axis)
 
         if ignore_index:
-            result.index = ibase.default_index(len(result))
+            result.index = default_index(len(result))
 
         return result
 
