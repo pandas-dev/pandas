@@ -124,4 +124,4 @@ class TestRename:
         )
         series_expected = Series(np.ones(5), index=index_expected)
 
-        assert result.equals(series_expected)
+        tm.assert_series_equal(result, series_expected)
