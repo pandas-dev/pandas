@@ -93,15 +93,16 @@ def test_apply_args():
 
 
 @pytest.mark.parametrize(
-    "args, kwargs", [(tuple(), {}), (tuple(), {"a": 1}), ((1,), {"c": 2})]
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
 )
-def test_agg_args(args, kwargs):
+def test_agg_args(args, kwargs, increment):
     def f(x, a=0, b=0, c=0):
-        return x + a + b + c
+        return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
     result = s.agg(f, 0, *args, **kwargs)
-    expected = s + sum(args) + sum(kwargs.values())
+    expected = s + increment
     tm.assert_series_equal(result, expected)
 
 

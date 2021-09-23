@@ -1050,7 +1050,6 @@ class SeriesApply(NDFrameApply):
     def agg(self):
         result = super().agg()
         if result is None:
-            # super().agg() handles list/dict-likes, so args and kwargs already curried
             f = self.f
             kwargs = self.kwargs
 
