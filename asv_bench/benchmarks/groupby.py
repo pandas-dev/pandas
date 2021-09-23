@@ -607,7 +607,7 @@ class String:
     # GH#41596
     param_names = ["dtype", "method"]
     params = [
-        ["str", "string[python]", "string[pyarrow]"],
+        ["str", "string[python]"],
         [
             "sum",
             "prod",
