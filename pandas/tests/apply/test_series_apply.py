@@ -97,6 +97,7 @@ def test_apply_args():
     [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
 )
 def test_agg_args(args, kwargs, increment):
+    # GH 43357
     def f(x, a=0, b=0, c=0):
         return x + a + 10 * b + 100 * c
 
