@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+from pandas.core._numba import executor
 from pandas.core.algorithms import factorize
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.arrays import ExtensionArray
@@ -575,6 +576,44 @@ class BaseWindow(SelectionMixin):
             return self._apply_blockwise(homogeneous_func, name)
         else:
             return self._apply_tablewise(homogeneous_func, name)
+
+    def _numba_apply(
+        self,
+        func: Callable[..., Any],
+        numba_cache_key_str: str,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        window_indexer = self._get_window_indexer()
+        min_periods = (
+            self.min_periods
+            if self.min_periods is not None
+            else window_indexer.window_size
+        )
+        obj = self._create_data(self._selected_obj)
+        if self.axis == 1:
+            obj = obj.T
+        values = self._prep_values(obj.to_numpy())
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+        start, end = window_indexer.get_window_bounds(
+            num_values=len(values),
+            min_periods=min_periods,
+            center=self.center,
+            closed=self.closed,
+        )
+        aggregator = executor.generate_shared_aggregator(
+            func, engine_kwargs, numba_cache_key_str
+        )
+        result = aggregator(values, start, end, min_periods)
+        NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
+        result = result.T if self.axis == 1 else result
+        if obj.ndim == 1:
+            result = result.squeeze()
+            out = obj._constructor(result, index=obj.index, name=obj.name)
+            return out
+        else:
+            out = obj._constructor(result, index=obj.index, columns=obj.columns)
+            return self._resolve_output(out, obj)
 
     def aggregate(self, func, *args, **kwargs):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
@@ -1331,15 +1370,16 @@ class RollingAndExpandingMixin(BaseWindow):
         if maybe_use_numba(engine):
             if self.method == "table":
                 func = generate_manual_numpy_nan_agg_with_axis(np.nanmean)
+                return self.apply(
+                    func,
+                    raw=True,
+                    engine=engine,
+                    engine_kwargs=engine_kwargs,
+                )
             else:
-                func = np.nanmean
+                from pandas.core._numba.kernels import sliding_mean
 
-            return self.apply(
-                func,
-                raw=True,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
-            )
+                return self._numba_apply(sliding_mean, "rolling_mean", engine_kwargs)
         window_func = window_aggregations.roll_mean
         return self._apply(window_func, name="mean", **kwargs)
 
