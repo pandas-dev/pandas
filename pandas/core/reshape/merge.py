@@ -37,6 +37,7 @@ from pandas.util._decorators import (
     Substitution,
 )
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_int64,
@@ -912,7 +913,7 @@ class _MergeOperation:
                     result_dtype = lvals.dtype
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
-                    result_dtype = lvals.dtype
+                    result_dtype = find_common_type([lvals.dtype, rvals.dtype])
 
                 if result._is_label_reference(name):
                     result[name] = Series(

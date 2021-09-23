@@ -91,6 +91,20 @@ class ToCoo:
         self.ss_two_lvl.sparse.to_coo(sort_labels=sort_labels)
 
 
+class ToCooFrame:
+    def setup(self):
+        N = 10000
+        k = 10
+        arr = np.full((N, k), np.nan)
+        arr[0, 0] = 3.0
+        arr[12, 7] = -1.0
+        arr[0, 9] = 11.2
+        self.df = pd.DataFrame(arr, dtype=pd.SparseDtype("float"))
+
+    def time_to_coo(self):
+        self.df.sparse.to_coo()
+
+
 class Arithmetic:
 
     params = ([0.1, 0.01], [0, np.nan])
@@ -150,6 +164,35 @@ class ArithmeticBlock:
 
     def time_division(self, fill_value):
         self.arr1 / self.arr2
+
+
+class MinMax:
+
+    params = (["min", "max"], [0.0, np.nan])
+    param_names = ["func", "fill_value"]
+
+    def setup(self, func, fill_value):
+        N = 1_000_000
+        arr = make_array(N, 1e-5, fill_value, np.float64)
+        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+
+    def time_min_max(self, func, fill_value):
+        getattr(self.sp_arr, func)()
+
+
+class Take:
+
+    params = ([np.array([0]), np.arange(100_000), np.full(100_000, -1)], [True, False])
+    param_names = ["indices", "allow_fill"]
+
+    def setup(self, indices, allow_fill):
+        N = 1_000_000
+        fill_value = 0.0
+        arr = make_array(N, 1e-5, fill_value, np.float64)
+        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+
+    def time_take(self, indices, allow_fill):
+        self.sp_arr.take(indices, allow_fill=allow_fill)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

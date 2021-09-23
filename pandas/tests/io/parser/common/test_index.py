@@ -17,6 +17,10 @@ import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
+# GH#43650: Some expected failures with the pyarrow engine can occasionally
+# cause a deadlock instead, so we skip these instead of xfailing
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize(
     "data,kwargs,expected",
@@ -271,7 +275,7 @@ def test_empty_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_multi_index(all_parsers):
     # see gh-10467
     data = "x,y,z"
@@ -284,7 +288,7 @@ def test_empty_with_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@skip_pyarrow
 def test_empty_with_reversed_multi_index(all_parsers):
     data = "x,y,z"
     parser = all_parsers
