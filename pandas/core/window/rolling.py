@@ -582,8 +582,6 @@ class BaseWindow(SelectionMixin):
         func: Callable[..., Any],
         numba_cache_key_str: str,
         engine_kwargs: dict[str, bool] | None = None,
-        numba_args: tuple[Any, ...] = (),
-        **kwargs,
     ):
         window_indexer = self._get_window_indexer()
         min_periods = (
@@ -604,9 +602,9 @@ class BaseWindow(SelectionMixin):
             closed=self.closed,
         )
         aggregator = executor.generate_shared_aggregator(
-            func, kwargs, engine_kwargs, numba_cache_key_str
+            func, engine_kwargs, numba_cache_key_str
         )
-        result = aggregator(values, start, end, min_periods, *numba_args)
+        result = aggregator(values, start, end, min_periods)
         NUMBA_FUNC_CACHE[(func, numba_cache_key_str)] = aggregator
         result = result.T if self.axis == 1 else result
         if obj.ndim == 1:
