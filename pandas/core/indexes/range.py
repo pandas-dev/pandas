@@ -17,7 +17,10 @@ import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.lib import no_default
-from pandas._typing import Dtype
+from pandas._typing import (
+    Dtype,
+    npt,
+)
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
@@ -98,6 +101,7 @@ class RangeIndex(NumericIndex):
     _engine_type = libindex.Int64Engine
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range
+    _is_backward_compat_public_numeric_index: bool = False
 
     # --------------------------------------------------------------------
     # Constructors
@@ -395,8 +399,7 @@ class RangeIndex(NumericIndex):
         method: str | None = None,
         limit: int | None = None,
         tolerance=None,
-    ) -> np.ndarray:
-        # -> np.ndarray[np.intp]
+    ) -> npt.NDArray[np.intp]:
         if com.any_not_none(method, tolerance, limit):
             return super()._get_indexer(
                 target, method=method, tolerance=tolerance, limit=limit
@@ -408,10 +411,6 @@ class RangeIndex(NumericIndex):
             # GH 28678: work on reversed range for simplicity
             reverse = self._range[::-1]
             start, stop, step = reverse.start, reverse.stop, reverse.step
-
-        if not is_signed_integer_dtype(target):
-            # checks/conversions/roundings are delegated to general method
-            return super()._get_indexer(target, method=method, tolerance=tolerance)
 
         target_array = np.asarray(target)
         locs = target_array - start
@@ -506,7 +505,7 @@ class RangeIndex(NumericIndex):
         nv.validate_max(args, kwargs)
         return self._minmax("max")
 
-    def argsort(self, *args, **kwargs) -> np.ndarray:
+    def argsort(self, *args, **kwargs) -> npt.NDArray[np.intp]:
         """
         Returns the indices that would sort the index and its
         underlying data.
@@ -533,7 +532,7 @@ class RangeIndex(NumericIndex):
 
     def factorize(
         self, sort: bool = False, na_sentinel: int | None = -1
-    ) -> tuple[np.ndarray, RangeIndex]:
+    ) -> tuple[npt.NDArray[np.intp], RangeIndex]:
         codes = np.arange(len(self), dtype=np.intp)
         uniques = self
         if sort and self.step < 0:
@@ -553,13 +552,11 @@ class RangeIndex(NumericIndex):
     # Set Operations
 
     def _intersection(self, other: Index, sort=False):
+        # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
             # Int64Index
             return super()._intersection(other, sort=sort)
-
-        if not len(self) or not len(other):
-            return self._simple_new(_empty_range)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range
@@ -730,6 +727,18 @@ class RangeIndex(NumericIndex):
         if first is not self._range:
             new_index = new_index[::-1]
         return new_index
+
+    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+        if not isinstance(other, RangeIndex) or sort is not None:
+            return super().symmetric_difference(other, result_name, sort)
+
+        left = self.difference(other)
+        right = other.difference(self)
+        result = left.union(right)
+
+        if result_name is not None:
+            result = result.rename(result_name)
+        return result
 
     # --------------------------------------------------------------------
 

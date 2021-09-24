@@ -96,7 +96,10 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.reshape.concat import concat
 
-from pandas.io.common import stringify_path
+from pandas.io.common import (
+    check_parent_directory,
+    stringify_path,
+)
 from pandas.io.formats.printing import (
     adjoin,
     justify,
@@ -1147,6 +1150,7 @@ def get_buffer(buf: FilePathOrBuffer[str] | None, encoding: str | None = None):
     if hasattr(buf, "write"):
         yield buf
     elif isinstance(buf, str):
+        check_parent_directory(str(buf))
         with open(buf, "w", encoding=encoding, newline="") as f:
             # GH#30034 open instead of codecs.open prevents a file leak
             #  if we have an invalid encoding argument.
@@ -1956,16 +1960,14 @@ class EngFormatter:
         """
         Formats a number in engineering notation, appending a letter
         representing the power of 1000 of the original number. Some examples:
-
-        >>> format_eng(0)       # for self.accuracy = 0
+        >>> format_eng = EngFormatter(accuracy=0, use_eng_prefix=True)
+        >>> format_eng(0)
         ' 0'
-
-        >>> format_eng(1000000) # for self.accuracy = 1,
-                                #     self.use_eng_prefix = True
+        >>> format_eng = EngFormatter(accuracy=1, use_eng_prefix=True)
+        >>> format_eng(1_000_000)
         ' 1.0M'
-
-        >>> format_eng("-1e-6") # for self.accuracy = 2
-                                #     self.use_eng_prefix = False
+        >>> format_eng = EngFormatter(accuracy=2, use_eng_prefix=False)
+        >>> format_eng("-1e-6")
         '-1.00E-06'
 
         @param num: the value to represent

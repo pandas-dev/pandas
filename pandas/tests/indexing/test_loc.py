@@ -36,6 +36,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import is_scalar
+from pandas.core.api import Float64Index
 from pandas.tests.indexing.common import Base
 
 
@@ -140,6 +141,37 @@ class TestLoc(Base):
         df.loc[1, "col1"] = np.arange(2)
         expected = DataFrame(
             [[20, "a"], [0, "a"], [1, "a"]], columns=["col1", "col2"], index=[10, 1, 1]
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_column_types_consistent(self):
+        # GH 26779
+        df = DataFrame(
+            data={
+                "channel": [1, 2, 3],
+                "A": ["String 1", np.NaN, "String 2"],
+                "B": [
+                    Timestamp("2019-06-11 11:00:00"),
+                    pd.NaT,
+                    Timestamp("2019-06-11 12:00:00"),
+                ],
+            }
+        )
+        df2 = DataFrame(
+            data={"A": ["String 3"], "B": [Timestamp("2019-06-11 12:00:00")]}
+        )
+        # Change Columns A and B to df2.values wherever Column A is NaN
+        df.loc[df["A"].isna(), ["A", "B"]] = df2.values
+        expected = DataFrame(
+            data={
+                "channel": [1, 2, 3],
+                "A": ["String 1", "String 3", "String 2"],
+                "B": [
+                    Timestamp("2019-06-11 11:00:00"),
+                    Timestamp("2019-06-11 12:00:00"),
+                    Timestamp("2019-06-11 12:00:00"),
+                ],
+            }
         )
         tm.assert_frame_equal(df, expected)
 
@@ -682,7 +714,9 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df = DataFrame({1: [1, 2], 2: [3, 4], "a": ["a", "b"]})
 
         result = df.loc[0, [1, 2]]
-        expected = Series([1, 3], index=[1, 2], dtype=object, name=0)
+        expected = Series(
+            [1, 3], index=Index([1, 2], dtype=object), dtype=object, name=0
+        )
         tm.assert_series_equal(result, expected)
 
         expected = DataFrame({1: [5, 2], 2: [6, 4], "a": ["a", "b"]})
@@ -1376,12 +1410,12 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         expected = expected.sort_index(axis=1)
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_uint_drop(self, any_int_dtype):
+    def test_loc_setitem_uint_drop(self, any_int_numpy_dtype):
         # see GH#18311
         # assigning series.loc[0] = 4 changed series.dtype to int
-        series = Series([1, 2, 3], dtype=any_int_dtype)
+        series = Series([1, 2, 3], dtype=any_int_numpy_dtype)
         series.loc[0] = 4
-        expected = Series([4, 2, 3], dtype=any_int_dtype)
+        expected = Series([4, 2, 3], dtype=any_int_numpy_dtype)
         tm.assert_series_equal(series, expected)
 
     def test_loc_setitem_td64_non_nano(self):
@@ -1663,6 +1697,30 @@ class TestLocWithMultiIndex:
         with pytest.raises(KeyError, match=r"\['b'\] not in index"):
             df.loc[df["a"] < lt_value, :].loc[["b"], :]
 
+    def test_loc_multiindex_null_slice_na_level(self):
+        # GH#42055
+        lev1 = np.array([np.nan, np.nan])
+        lev2 = ["bar", "baz"]
+        mi = MultiIndex.from_arrays([lev1, lev2])
+        ser = Series([0, 1], index=mi)
+        result = ser.loc[:, "bar"]
+
+        # TODO: should we have name="bar"?
+        expected = Series([0], index=[np.nan])
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_drops_level(self):
+        # Based on test_series_varied_multiindex_alignment, where
+        #  this used to fail to drop the first level
+        mi = MultiIndex.from_product(
+            [list("ab"), list("xy"), [1, 2]], names=["ab", "xy", "num"]
+        )
+        ser = Series(range(8), index=mi)
+
+        loc_result = ser.loc["a", :, :]
+        expected = ser.index.droplevel(0)[:4]
+        tm.assert_index_equal(loc_result.index, expected)
+
 
 class TestLocSetitemWithExpansion:
     @pytest.mark.slow
@@ -1781,7 +1839,7 @@ class TestLocSetitemWithExpansion:
         df.loc[0, np.inf] = 3
 
         result = df.columns
-        expected = pd.Float64Index([0, 1, np.inf])
+        expected = Float64Index([0, 1, np.inf])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
@@ -2375,6 +2433,18 @@ class TestLocListlike:
         with pytest.raises(KeyError, match="not in index"):
             ser.loc[keys]
 
+    def test_loc_named_index(self):
+        # GH 42790
+        df = DataFrame(
+            [[1, 2], [4, 5], [7, 8]],
+            index=["cobra", "viper", "sidewinder"],
+            columns=["max_speed", "shield"],
+        )
+        expected = df.iloc[:2]
+        expected.index.name = "foo"
+        result = df.loc[Index(["cobra", "viper"], name="foo")]
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
@@ -2389,9 +2459,6 @@ def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_col
     df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
-
-    if df.columns.is_object() and all(isinstance(x, int) for x in column_key):
-        expected.columns = expected.columns.astype(int)
 
     tm.assert_frame_equal(result, expected, check_column_type=True)
 
@@ -2515,6 +2582,36 @@ def test_loc_with_period_index_indexer():
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df.iloc[0:5], df.loc[idx[0:5]])
     tm.assert_frame_equal(df, df.loc[list(idx)])
+
+
+def test_loc_getitem_multiindex_tuple_level():
+    # GH#27591
+    lev1 = ["a", "b", "c"]
+    lev2 = [(0, 1), (1, 0)]
+    lev3 = [0, 1]
+    cols = MultiIndex.from_product([lev1, lev2, lev3], names=["x", "y", "z"])
+    df = DataFrame(6, index=range(5), columns=cols)
+
+    # the lev2[0] here should be treated as a single label, not as a sequence
+    #  of labels
+    result = df.loc[:, (lev1[0], lev2[0], lev3[0])]
+
+    # TODO: i think this actually should drop levels
+    expected = df.iloc[:, :1]
+    tm.assert_frame_equal(result, expected)
+
+    alt = df.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=1)
+    tm.assert_frame_equal(alt, expected)
+
+    # same thing on a Series
+    ser = df.iloc[0]
+    expected2 = ser.iloc[:1]
+
+    alt2 = ser.xs((lev1[0], lev2[0], lev3[0]), level=[0, 1, 2], axis=0)
+    tm.assert_series_equal(alt2, expected2)
+
+    result2 = ser.loc[lev1[0], lev2[0], lev3[0]]
+    assert result2 == 6
 
 
 class TestLocSeries:
@@ -2744,3 +2841,19 @@ class TestLocSeries:
             [[Timedelta(6, unit="s"), "foo"]], columns=["time", "value"], index=[1]
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_set_multiple_items_in_multiple_new_columns(self):
+        # GH 25594
+        df = DataFrame(index=[1, 2], columns=["a"])
+        df.loc[1, ["b", "c"]] = [6, 7]
+
+        expected = DataFrame(
+            {
+                "a": Series([np.nan, np.nan], dtype="object"),
+                "b": [6, np.nan],
+                "c": [7, np.nan],
+            },
+            index=[1, 2],
+        )
+
+        tm.assert_frame_equal(df, expected)

@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 import numpy as np
 import pytest
@@ -689,6 +690,14 @@ class TestGetLoc:
         with pytest.raises(TypeError, match=msg):
             idx.get_loc([])
 
+    def test_get_loc_nested_tuple_raises_keyerror(self):
+        # raise KeyError, not TypeError
+        mi = MultiIndex.from_product([range(3), range(4), range(5), range(6)])
+        key = ((2, 3, 4), "foo")
+
+        with pytest.raises(KeyError, match=re.escape(str(key))):
+            mi.get_loc(key)
+
 
 class TestWhere:
     def test_where(self):
@@ -811,7 +820,8 @@ def test_timestamp_multiindex_indexer():
 def test_get_slice_bound_with_missing_value(index_arr, expected, target, algo):
     # issue 19132
     idx = MultiIndex.from_arrays(index_arr)
-    result = idx.get_slice_bound(target, side=algo, kind="loc")
+    with tm.assert_produces_warning(FutureWarning, match="'kind' argument"):
+        result = idx.get_slice_bound(target, side=algo, kind="loc")
     assert result == expected
 
 

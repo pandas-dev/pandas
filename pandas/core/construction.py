@@ -402,12 +402,10 @@ def extract_array(
     >>> extract_array([1, 2, 3])
     [1, 2, 3]
 
-    For an ndarray-backed Series / Index a PandasArray is returned.
+    For an ndarray-backed Series / Index the ndarray is returned.
 
     >>> extract_array(pd.Series([1, 2, 3]))
-    <PandasArray>
-    [1, 2, 3]
-    Length: 3, dtype: int64
+    array([1, 2, 3])
 
     To extract all the way down to the ndarray, pass ``extract_numpy=True``.
 
@@ -420,9 +418,9 @@ def extract_array(
                 return obj._values
             return obj
 
-        obj = obj.array
+        obj = obj._values
 
-    if extract_numpy and isinstance(obj, ABCPandasArray):
+    elif extract_numpy and isinstance(obj, ABCPandasArray):
         obj = obj.to_numpy()
 
     return obj
@@ -552,7 +550,6 @@ def sanitize_array(
             subarr = subarr.astype(dtype, copy=copy)
         elif copy:
             subarr = subarr.copy()
-        return subarr
 
     else:
         if isinstance(data, (set, frozenset)):
@@ -560,8 +557,11 @@ def sanitize_array(
             raise TypeError(f"'{type(data).__name__}' type is unordered")
 
         # materialize e.g. generators, convert e.g. tuples, abc.ValueView
-        # TODO: non-standard array-likes we can convert to ndarray more efficiently?
-        data = list(data)
+        if hasattr(data, "__array__"):
+            # e.g. dask array GH#38645
+            data = np.asarray(data)
+        else:
+            data = list(data)
 
         if dtype is not None or len(data) == 0:
             subarr = _try_cast(data, dtype, copy, raise_cast_failure)
@@ -767,7 +767,7 @@ def _try_cast(
                 f"Could not cast to {dtype}, falling back to object. This "
                 "behavior is deprecated. In a future version, when a dtype is "
                 "passed to 'DataFrame', either all columns will be cast to that "
-                "dtype, or a TypeError will be raised",
+                "dtype, or a TypeError will be raised.",
                 FutureWarning,
                 stacklevel=7,
             )

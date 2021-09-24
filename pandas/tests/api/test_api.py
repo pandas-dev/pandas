@@ -68,6 +68,7 @@ class TestPDApi(Base):
         "Index",
         "Int64Index",
         "MultiIndex",
+        "NumericIndex",
         "Period",
         "PeriodIndex",
         "RangeIndex",
@@ -99,7 +100,7 @@ class TestPDApi(Base):
     ]
 
     # these are already deprecated; awaiting removal
-    deprecated_classes: list[str] = []
+    deprecated_classes: list[str] = ["Float64Index", "Int64Index", "UInt64Index"]
 
     # these should be deprecated in the future
     deprecated_classes_in_future: list[str] = ["SparseArray"]
@@ -193,7 +194,6 @@ class TestPDApi(Base):
         "_hashtable",
         "_lib",
         "_libs",
-        "_np_version_under1p18",
         "_is_numpy_dev",
         "_testing",
         "_tslib",

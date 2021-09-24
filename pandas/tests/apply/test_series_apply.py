@@ -2,12 +2,9 @@ from collections import (
     Counter,
     defaultdict,
 )
-from itertools import chain
 
 import numpy as np
 import pytest
-
-from pandas.core.dtypes.common import is_number
 
 import pandas as pd
 from pandas import (
@@ -87,20 +84,27 @@ def test_apply_dont_convert_dtype():
     assert result.dtype == object
 
 
-def test_with_string_args(datetime_series):
-
-    for arg in ["sum", "mean", "min", "max", "std"]:
-        result = datetime_series.apply(arg)
-        expected = getattr(datetime_series, arg)()
-        assert result == expected
-
-
 def test_apply_args():
     s = Series(["foo,bar"])
 
     result = s.apply(str.split, args=(",",))
     assert result[0] == ["foo", "bar"]
     assert isinstance(result[0], list)
+
+
+@pytest.mark.parametrize(
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
+)
+def test_agg_args(args, kwargs, increment):
+    # GH 43357
+    def f(x, a=0, b=0, c=0):
+        return x + a + 10 * b + 100 * c
+
+    s = Series([1, 2])
+    result = s.agg(f, 0, *args, **kwargs)
+    expected = s + increment
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_map_box_timestamps():
@@ -415,92 +419,6 @@ def test_non_callable_aggregates(how):
     # test when mixed w/ callable reducers
     result = getattr(s, how)(["size", "count", "mean"])
     expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("sum", 0),
-                ("max", np.nan),
-                ("min", np.nan),
-                ("all", True),
-                ("any", False),
-                ("mean", np.nan),
-                ("prod", 1),
-                ("std", np.nan),
-                ("var", np.nan),
-                ("median", np.nan),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("sum", 6),
-                ("max", 3),
-                ("min", 1),
-                ("all", True),
-                ("any", True),
-                ("mean", 2),
-                ("prod", 6),
-                ("std", 1),
-                ("var", 1),
-                ("median", 2),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()),
-            [
-                ("sum", "abc"),
-                ("max", "c"),
-                ("min", "a"),
-                ("all", True),
-                ("any", True),
-            ],
-        ),
-    ),
-)
-def test_agg_cython_table(series, func, expected):
-    # GH21224
-    # test reducing functions in
-    # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
-    if is_number(expected):
-        assert np.isclose(result, expected, equal_nan=True)
-    else:
-        assert result == expected
-
-
-@pytest.mark.parametrize(
-    "series, func, expected",
-    chain(
-        tm.get_cython_table_params(
-            Series(dtype=np.float64),
-            [
-                ("cumprod", Series([], Index([]), dtype=np.float64)),
-                ("cumsum", Series([], Index([]), dtype=np.float64)),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series([np.nan, 1, 2, 3]),
-            [
-                ("cumprod", Series([np.nan, 1, 2, 6])),
-                ("cumsum", Series([np.nan, 1, 3, 6])),
-            ],
-        ),
-        tm.get_cython_table_params(
-            Series("a b c".split()), [("cumsum", Series(["a", "ab", "abc"]))]
-        ),
-    ),
-)
-def test_agg_cython_table_transform(series, func, expected):
-    # GH21224
-    # test transforming functions in
-    # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 

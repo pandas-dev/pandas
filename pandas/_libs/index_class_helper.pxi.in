@@ -28,8 +28,6 @@ dtypes = [('Float64', 'float64'),
 
 
 cdef class {{name}}Engine(IndexEngine):
-    # constructor-caller is responsible for ensuring that vgetter()
-    #  returns an ndarray with dtype {{dtype}}_t
 
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.{{name}}HashTable(n)
@@ -51,13 +49,11 @@ cdef class {{name}}Engine(IndexEngine):
         # Returns ndarray[bool] or int
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
-            ndarray[intp_t, ndim=1] found
             ndarray[{{dtype}}_t, ndim=1] values
-            int count = 0
 
         self._check_type(val)
 
-        values = self._get_index_values()
+        values = self.values
         try:
             with warnings.catch_warnings():
                 # e.g. if values is float64 and `val` is a str, suppress warning

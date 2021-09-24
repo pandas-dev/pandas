@@ -15,6 +15,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
+# GH#43650: Some expected failures with the pyarrow engine can occasionally
+# cause a deadlock instead, so we skip these instead of xfailing
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+
 
 @pytest.mark.parametrize(
     "data,kwargs,expected",
@@ -78,6 +84,7 @@ def test_pass_names_with_index(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize("index_col", [[0, 1], [1, 0]])
 def test_multi_index_no_level_names(all_parsers, index_col):
     data = """index1,index2,A,B,C,D
@@ -102,6 +109,7 @@ bar,two,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_multi_index_no_level_names_implicit(all_parsers):
     parser = all_parsers
     data = """A,B,C,D
@@ -135,6 +143,7 @@ bar,two,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,expected,header",
     [
@@ -156,6 +165,7 @@ def test_multi_index_blank_df(all_parsers, data, expected, header, round_trip):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_no_unnamed_index(all_parsers):
     parser = all_parsers
     data = """ id c0 c1 c2
@@ -198,6 +208,7 @@ bar,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_duplicate_index_implicit(all_parsers):
     data = """A,B,C,D
 foo,2,3,4,5
@@ -225,6 +236,7 @@ bar,12,13,14,15
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_read_csv_no_index_name(all_parsers, csv_dir_path):
     parser = all_parsers
     csv2 = os.path.join(csv_dir_path, "test2.csv")
@@ -252,6 +264,7 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow
 def test_empty_with_index(all_parsers):
     # see gh-10184
     data = "x,y"
@@ -262,6 +275,7 @@ def test_empty_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_empty_with_multi_index(all_parsers):
     # see gh-10467
     data = "x,y,z"
@@ -274,6 +288,7 @@ def test_empty_with_multi_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow
 def test_empty_with_reversed_multi_index(all_parsers):
     data = "x,y,z"
     parser = all_parsers

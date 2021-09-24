@@ -19,7 +19,10 @@ from pandas.io.excel._base import (
     BaseExcelReader,
     ExcelWriter,
 )
-from pandas.io.excel._util import validate_freeze_panes
+from pandas.io.excel._util import (
+    combine_kwargs,
+    validate_freeze_panes,
+)
 
 if TYPE_CHECKING:
     from openpyxl.descriptors.serialisable import Serialisable
@@ -39,9 +42,12 @@ class OpenpyxlWriter(ExcelWriter):
         storage_options: StorageOptions = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        **kwargs,
     ):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
+
+        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
 
         super().__init__(
             path,
@@ -530,7 +536,7 @@ class OpenpyxlReader(BaseExcelReader):
 
     @property
     def sheet_names(self) -> list[str]:
-        return self.book.sheetnames
+        return [sheet.title for sheet in self.book.worksheets]
 
     def get_sheet_by_name(self, name: str):
         self.raise_if_bad_sheet_by_name(name)

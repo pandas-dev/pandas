@@ -4,6 +4,7 @@ from collections import (
     abc,
     defaultdict,
 )
+from copy import copy
 import csv
 from io import StringIO
 import re
@@ -81,7 +82,7 @@ class PythonParser(ParserBase):
         self.verbose = kwds["verbose"]
         self.converters = kwds["converters"]
 
-        self.dtype = kwds["dtype"]
+        self.dtype = copy(kwds["dtype"])
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
 
@@ -432,7 +433,6 @@ class PythonParser(ParserBase):
                                 and self.dtype.get(col) is None
                             ):
                                 self.dtype.update({col: self.dtype.get(old_col)})
-
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
@@ -1159,7 +1159,7 @@ class FixedWidthReader(abc.Iterator):
 
     def detect_colspecs(self, infer_nrows=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = "".join(fr"\{x}" for x in self.delimiter)
+        delimiters = "".join([fr"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
         rows = self.get_rows(infer_nrows, skiprows)
         if not rows:

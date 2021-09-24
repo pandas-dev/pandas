@@ -7,9 +7,11 @@ from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Sequence,
     TypeVar,
     cast,
+    final,
 )
 import warnings
 
@@ -26,10 +28,6 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
     parsing,
-)
-from pandas._typing import (
-    Callable,
-    final,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
@@ -240,10 +238,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         """
         attrs = super()._format_attrs()
         for attrib in self._attributes:
+            # iterating over _attributes prevents us from doing this for PeriodIndex
             if attrib == "freq":
                 freq = self.freqstr
                 if freq is not None:
-                    freq = repr(freq)
+                    freq = repr(freq)  # e.g. D -> 'D'
                 # Argument 1 to "append" of "list" has incompatible type
                 # "Tuple[str, Optional[str]]"; expected "Tuple[str, Union[str, int]]"
                 attrs.append(("freq", freq))  # type: ignore[arg-type]
@@ -345,6 +344,43 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
 
             # try to find the dates
             return (lhs_mask & rhs_mask).nonzero()[0]
+
+    def _maybe_cast_slice_bound(self, label, side: str, kind=lib.no_default):
+        """
+        If label is a string, cast it to scalar type according to resolution.
+
+        Parameters
+        ----------
+        label : object
+        side : {'left', 'right'}
+        kind : {'loc', 'getitem'} or None
+
+        Returns
+        -------
+        label : object
+
+        Notes
+        -----
+        Value of `side` parameter should be validated in caller.
+        """
+        assert kind in ["loc", "getitem", None, lib.no_default]
+        self._deprecated_arg(kind, "kind", "_maybe_cast_slice_bound")
+
+        if isinstance(label, str):
+            try:
+                parsed, reso = self._parse_with_reso(label)
+            except ValueError as err:
+                # DTI -> parsing.DateParseError
+                # TDI -> 'unit abbreviation w/o a number'
+                # PI -> string cannot be parsed as datetime-like
+                raise self._invalid_indexer("slice", label) from err
+
+            lower, upper = self._parsed_string_to_bounds(reso, parsed)
+            return lower if side == "left" else upper
+        elif not isinstance(label, self._data._recognized_scalars):
+            raise self._invalid_indexer("slice", label)
+
+        return label
 
     # --------------------------------------------------------------------
     # Arithmetic Methods
@@ -467,7 +503,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_join_freq(other)
         return result
 
-    def _get_join_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> np.ndarray:
+        # engine methods and libjoin methods need dt64/td64 values cast to i8
         return self._data._ndarray.view("i8")
 
     def _from_join_target(self, result: np.ndarray):
@@ -512,15 +549,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return False
-
     def is_type_compatible(self, kind: str) -> bool:
         warnings.warn(
             f"{type(self).__name__}.is_type_compatible is deprecated and will be "
-            "removed in a future version",
+            "removed in a future version.",
             FutureWarning,
             stacklevel=2,
         )
@@ -531,15 +563,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
 
     def _intersection(self, other: Index, sort=False) -> Index:
         """
-        intersection specialized to the case with matching dtypes.
+        intersection specialized to the case with matching dtypes and both non-empty.
         """
         other = cast("DatetimeTimedeltaMixin", other)
-        if len(self) == 0:
-            return self.copy()._get_reconciled_name_object(other)
-        if len(other) == 0:
-            return other.copy()._get_reconciled_name_object(self)
 
-        elif not self._can_fast_intersect(other):
+        if not self._can_fast_intersect(other):
             result = Index._intersection(self, other, sort=sort)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
@@ -548,6 +576,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
             return result._with_freq(None)._with_freq("infer")
+
+        else:
+            return self._fast_intersect(other, sort)
+
+    def _fast_intersect(self, other, sort):
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -626,11 +659,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         return (right_start == left_end + freq) or right_start in left
 
     def _fast_union(self: _T, other: _T, sort=None) -> _T:
-        if len(other) == 0:
-            return self.view(type(self))
-
-        if len(self) == 0:
-            return other.view(type(self))
+        # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
         if self[0] <= other[0]:
@@ -641,8 +670,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             left, right = self, other
             left_start = left[0]
             loc = right.searchsorted(left_start, side="left")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[:loc]  # type: ignore[misc]
+            right_chunk = right._values[:loc]
             dates = concat_compat((left._values, right_chunk))
             # With sort being False, we can't infer that result.freq == self.freq
             # TODO: no tests rely on the _with_freq("infer"); needed?
@@ -658,8 +686,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side="right")
-            # error: Slice index must be an integer or None
-            right_chunk = right._values[loc:]  # type: ignore[misc]
+            right_chunk = right._values[loc:]
             dates = concat_compat([left._values, right_chunk])
             # The can_fast_union check ensures that the result.freq
             #  should match self.freq
@@ -680,4 +707,4 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort=sort)._with_freq("infer")
+            return super()._union(other, sort)._with_freq("infer")

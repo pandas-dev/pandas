@@ -4,7 +4,10 @@ split-apply-combine paradigm.
 """
 from __future__ import annotations
 
-from typing import Hashable
+from typing import (
+    Hashable,
+    final,
+)
 import warnings
 
 import numpy as np
@@ -12,7 +15,6 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
-    final,
 )
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
@@ -490,7 +492,7 @@ class Grouping:
                 self.grouping_vector,  # Index
                 self._codes,
                 self._group_index,
-            ) = index._get_grouper_for_level(mapper, ilevel)
+            ) = index._get_grouper_for_level(mapper, level=ilevel)
 
         # a passed Grouper like, directly get the grouper in the same way
         # as single grouper groupby, use the group_info to get codes
@@ -615,13 +617,22 @@ class Grouping:
     def group_arraylike(self) -> ArrayLike:
         """
         Analogous to result_index, but holding an ArrayLike to ensure
-        we can can retain ExtensionDtypes.
+        we can retain ExtensionDtypes.
         """
+        if self._group_index is not None:
+            # _group_index is set in __init__ for MultiIndex cases
+            return self._group_index._values
+
+        elif self._all_grouper is not None:
+            # retain dtype for categories, including unobserved ones
+            return self.result_index._values
+
         return self._codes_and_uniques[1]
 
     @cache_readonly
     def result_index(self) -> Index:
-        # TODO: what's the difference between result_index vs group_index?
+        # result_index retains dtype for categories, including unobserved ones,
+        #  which group_index does not
         if self._all_grouper is not None:
             group_idx = self.group_index
             assert isinstance(group_idx, CategoricalIndex)
@@ -633,8 +644,9 @@ class Grouping:
         if self._group_index is not None:
             # _group_index is set in __init__ for MultiIndex cases
             return self._group_index
-        uniques = self.group_arraylike
-        return Index(uniques, name=self.name)
+
+        uniques = self._codes_and_uniques[1]
+        return Index._with_infer(uniques, name=self.name)
 
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[np.ndarray, ArrayLike]:
@@ -833,9 +845,11 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, InvalidIndexError):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
+            # InvalidIndexError raised on key-types inappropriate for index,
+            #  e.g. DatetimeIndex.get_loc(tuple())
             return False
 
     for gpr, level in zip(keys, levels):

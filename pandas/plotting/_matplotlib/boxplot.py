@@ -18,6 +18,7 @@ from pandas.plotting._matplotlib.core import (
     LinePlot,
     MPLPlot,
 )
+from pandas.plotting._matplotlib.groupby import create_iter_data_given_by
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.tools import (
     create_subplots,
@@ -135,18 +136,37 @@ class BoxPlot(LinePlot):
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 
-            for i, (label, y) in enumerate(self._iter_data()):
+            # Re-create iterated data if `by` is assigned by users
+            data = (
+                create_iter_data_given_by(self.data, self._kind)
+                if self.by is not None
+                else self.data
+            )
+
+            for i, (label, y) in enumerate(self._iter_data(data=data)):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
+
+                # When by is applied, show title for subplots to know which group it is
+                # just like df.boxplot, and need to apply T on y to provide right input
+                if self.by is not None:
+                    y = y.T
+                    ax.set_title(pprint_thing(label))
+
+                    # When `by` is assigned, the ticklabels will become unique grouped
+                    # values, instead of label which is used as subtitle in this case.
+                    ticklabels = [
+                        pprint_thing(col) for col in self.data.columns.levels[0]
+                    ]
+                else:
+                    ticklabels = [pprint_thing(label)]
 
                 ret, bp = self._plot(
                     ax, y, column_num=i, return_type=self.return_type, **kwds
                 )
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
-
-                label = [pprint_thing(label)]
-                self._set_ticklabels(ax, label)
+                self._set_ticklabels(ax, ticklabels)
         else:
             y = self.data.values.T
             ax = self._get_ax(0)

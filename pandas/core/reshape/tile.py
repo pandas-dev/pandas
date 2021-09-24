@@ -4,6 +4,7 @@ Quantilization functions and related stuff
 from typing import (
     Any,
     Callable,
+    Literal,
 )
 
 import numpy as np
@@ -112,7 +113,7 @@ def cut(
         An array-like object representing the respective bin for each value
         of `x`. The type depends on the value of `labels`.
 
-        * True (default) : returns a Series for Series `x` or a
+        * None (default) : returns a Series for Series `x` or a
           Categorical for all other inputs. The values stored within
           are Interval dtype.
 
@@ -384,7 +385,7 @@ def qcut(
 
 def _bins_to_cuts(
     x,
-    bins,
+    bins: np.ndarray,
     right: bool = True,
     labels=None,
     precision: int = 3,
@@ -417,11 +418,11 @@ def _bins_to_cuts(
         else:
             bins = unique_bins
 
-    side = "left" if right else "right"
+    side: Literal["left", "right"] = "left" if right else "right"
     ids = ensure_platform_int(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        ids[np.asarray(x) == bins[0]] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
