@@ -78,6 +78,7 @@ from pandas.core.groupby.groupby import (
     _apply_docs,
     _transform_template,
     group_selection_context,
+    warn_dropping_nuisance_columns_deprecated,
 )
 from pandas.core.indexes.api import (
     Index,
@@ -999,14 +1000,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         new_mgr = data.grouped_reduce(array_func, ignore_failures=True)
 
         if len(new_mgr) < len(data):
-            warnings.warn(
-                f"Dropping invalid columns in {type(self).__name__}.{how} "
-                "is deprecated. In a future version, a TypeError will be raised. "
-                f"Before calling .{how}, select only columns which should be "
-                "valid for the function.",
-                FutureWarning,
-                stacklevel=4,
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), how)
 
         return self._wrap_agged_manager(new_mgr)
 
@@ -1195,14 +1189,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr.set_axis(1, mgr.axes[1])
 
         if len(res_mgr) < len(mgr):
-            warnings.warn(
-                f"Dropping invalid columns in {type(self).__name__}.{how} "
-                "is deprecated. In a future version, a TypeError will be raised. "
-                f"Before calling .{how}, select only columns which should be "
-                "valid for the transforming function.",
-                FutureWarning,
-                stacklevel=4,
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), how)
 
         res_df = self.obj._constructor(res_mgr)
         if self.axis == 1:
@@ -1314,14 +1301,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 output[i] = sgb.transform(wrapper)
             except TypeError:
                 # e.g. trying to call nanmean with string values
-                warnings.warn(
-                    f"Dropping invalid columns in {type(self).__name__}.transform "
-                    "is deprecated. In a future version, a TypeError will be raised. "
-                    "Before calling .transform, select only columns which should be "
-                    "valid for the transforming function.",
-                    FutureWarning,
-                    stacklevel=5,
-                )
+                warn_dropping_nuisance_columns_deprecated(type(self), "transform")
             else:
                 inds.append(i)
 

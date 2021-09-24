@@ -1422,14 +1422,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # if this function is invalid for this dtype, we will ignore it.
                 result = self.grouper.agg_series(obj, f)
             except TypeError:
-                warnings.warn(
-                    f"Dropping invalid columns in {type(self).__name__}.agg "
-                    "is deprecated. In a future version, a TypeError will be raised. "
-                    "Before calling .agg, select only columns which should be "
-                    "valid for the aggregating function.",
-                    FutureWarning,
-                    stacklevel=3,
-                )
+                warn_dropping_nuisance_columns_deprecated(type(self), "agg")
                 continue
 
             key = base.OutputKey(label=name, position=idx)
@@ -2709,15 +2702,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
         if not is_ser and len(res_mgr.items) != len(mgr.items):
-            warnings.warn(
-                "Dropping invalid columns in "
-                f"{type(self).__name__}.quantile is deprecated. "
-                "In a future version, a TypeError will be raised. "
-                "Before calling .quantile, select only columns which "
-                "should be valid for the function.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), "quantile")
+
             if len(res_mgr.items) == 0:
                 # re-call grouped_reduce to get the desired exception message
                 mgr.grouped_reduce(blk_func, ignore_failures=False)
@@ -3150,15 +3136,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not is_ser and len(res_mgr.items) != len(mgr.items):
             howstr = how.replace("group_", "")
-            warnings.warn(
-                "Dropping invalid columns in "
-                f"{type(self).__name__}.{howstr} is deprecated. "
-                "In a future version, a TypeError will be raised. "
-                f"Before calling .{howstr}, select only columns which "
-                "should be valid for the function.",
-                FutureWarning,
-                stacklevel=3,
-            )
+            warn_dropping_nuisance_columns_deprecated(type(self), howstr)
+
             if len(res_mgr.items) == 0:
                 # We re-call grouped_reduce to get the right exception message
                 try:
@@ -3627,3 +3606,15 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     else:
         mi = MultiIndex.from_product([idx, qs])
     return mi
+
+
+def warn_dropping_nuisance_columns_deprecated(cls, how: str) -> None:
+    warnings.warn(
+        "Dropping invalid columns in "
+        f"{cls.__name__}.{how} is deprecated. "
+        "In a future version, a TypeError will be raised. "
+        f"Before calling .{how}, select only columns which "
+        "should be valid for the function.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
