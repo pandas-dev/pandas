@@ -414,6 +414,28 @@ class Apply(metaclass=abc.ABCMeta):
             )
             return concatenated.reindex(full_ordered_index, copy=False)
 
+    def new_list_single_arg(
+        self, method: str, a: AggFuncTypeBase, result_dim: int | None
+    ) -> tuple[int | None, AggFuncTypeBase | None, DataFrame | Series | None]:
+        name = None
+        result = None
+        try:
+            if isinstance(a, (tuple, list)):
+                # Handle (name, value) pairs
+                name, a = a
+            result = getattr(self.obj, method)(a)
+            if result_dim is None:
+                result_dim = getattr(result, "ndim", 0)
+            elif getattr(result, "ndim", 0) != result_dim:
+                raise ValueError("cannot combine transform and aggregation operations")
+        except TypeError:
+            pass
+        else:
+            # make sure we find a good name
+            if name is None:
+                name = com.get_callable_name(a) or a
+        return result_dim, name, result
+
     def new_list_like(self, method: str) -> DataFrame | Series:
         """
         Compute aggregation in the case of a list-like argument.
@@ -432,26 +454,9 @@ class Apply(metaclass=abc.ABCMeta):
         result_dim = None
 
         for a in arg:
-            name = None
-            try:
-                if isinstance(a, (tuple, list)):
-                    # Handle (name, value) pairs
-                    name, a = a
-                new_res = getattr(obj, method)(a)
-                if result_dim is None:
-                    result_dim = getattr(new_res, "ndim", 0)
-                elif getattr(new_res, "ndim", 0) != result_dim:
-                    raise ValueError(
-                        "cannot combine transform and aggregation operations"
-                    )
-            except TypeError:
-                pass
-            else:
+            result_dim, name, new_res = self.new_list_single_arg(method, a, result_dim)
+            if new_res is not None:
                 results.append(new_res)
-
-                # make sure we find a good name
-                if name is None:
-                    name = com.get_callable_name(a) or a
                 keys.append(name)
 
         # if we are empty
