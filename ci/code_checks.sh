@@ -104,9 +104,9 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     MSG='Performing static analysis using mypy' ; echo $MSG
     mypy pandas
     RET=$(($RET + $?)) ; echo $MSG "DONE"
-    
+
     MSG='Performing static analysis using pyright' ; echo $MSG
-    pre-commit run --hook-stage manual --all-files
+    pre-commit run --all-files pyright
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 fi
 
