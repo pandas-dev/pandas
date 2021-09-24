@@ -24,6 +24,7 @@ class Test_AntiJoin:
         ],
     )
     def test_basic_anti_index(self, how, exp_index, exp_values):
+        # basic test containing NaNs w/o on param
         left = DataFrame({"A": [1, 2, 3], "C": [10, 20, 30]}, index=["a", "b", "c"])
         right = DataFrame({"B": [1, 2, 4], "C": [10, 20, 40]}, index=["a", "b", "d"])
         expected = DataFrame(
@@ -68,6 +69,7 @@ class Test_AntiJoin:
         ],
     )
     def test_basic_anti_on(self, on, how, data):
+        # basic test containing NaNs with on param
         left = DataFrame({"A": [1, 2, 3], "C": [5, 6, 7]}, index=["a", "b", "c"])
         right = DataFrame({"B": [1, 2, 4], "C": [7, 8, 9]}, index=["a", "b", "d"])
         expected = DataFrame(data, columns=["A", "C", "B"])
@@ -105,6 +107,7 @@ class Test_AntiJoin:
         ],
     )
     def test_basic_anti_lefton_righton(self, expected, how, left_on, right_on):
+        # basic test containing NaNs with left_on / right_on params
         left = DataFrame({"A": [1, 2, 3], "C": [5, 6, 7]}, index=["a", "b", "c"])
         right = DataFrame({"B": [1, 2, 4], "C": [7, 8, 9]}, index=["a", "b", "d"])
         result = merge(
@@ -164,6 +167,7 @@ class Test_AntiJoin:
         ],
     )
     def test_anti_index_with_col(self, expected, how):
+        # basic test containing NaNs with left_index and right_on params
         left = DataFrame(
             {"A": [1, 2, 3], "B": [4, 5, 6], "C": [5, 6, 7]}, index=["a", "b", "c"]
         )
@@ -229,6 +233,7 @@ class Test_AntiJoin:
         ],
     )
     def test_anti_multicol(self, expected, how, on):
+        # test with multicol with and w/o on param
         right = DataFrame({"B": [5, 5, 9], "C": [4, 6, 7], "D": ["a", "b", "d"]})
         left = DataFrame(
             {"A": [1, 2, 3], "B": [4, 5, 6], "C": [5, 6, 7]}, index=["a", "b", "c"]
