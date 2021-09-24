@@ -1271,7 +1271,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         )
         result = aggregator(sorted_data, starts, ends, 0)
 
-        cache_key = (func, "numba_cache_key_str")
+        cache_key = (func, numba_cache_key_str)
         if cache_key not in NUMBA_FUNC_CACHE:
             NUMBA_FUNC_CACHE[cache_key] = aggregator
 
