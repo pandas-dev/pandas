@@ -57,12 +57,12 @@ from pandas.core import (
     algorithms,
     nanops,
 )
-from pandas.core.aggregation import (
+from pandas.core.apply import (
+    GroupByApply,
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
 )
-from pandas.core.apply import GroupByApply
 from pandas.core.base import SpecificationError
 import pandas.core.common as com
 from pandas.core.construction import create_series_with_explicit_dtype
@@ -80,6 +80,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
+    default_index,
 )
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
@@ -161,15 +162,16 @@ class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
         single = mgr.iget(0)
         ser = self.obj._constructor(single, name=self.obj.name)
-        ser.index = self.grouper.result_index
+        # NB: caller is responsible for setting ser.index
         return ser
 
     def _get_data_to_aggregate(self) -> Manager2D:
-        obj = self._obj_with_exclusions
-        df = obj.to_frame()
-        df.columns = [obj.name]  # in case name is None, we need to overwrite [0]
-
-        return df._mgr
+        ser = self._obj_with_exclusions
+        single = ser._mgr
+        columns = default_index(1)
+        # Much faster than using ser.to_frame() since we avoid inferring columns
+        #  from scalar
+        return single.to_2d_mgr(columns)
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj
@@ -610,10 +612,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.describe)
     def describe(self, **kwargs):
-        result = self.apply(lambda x: x.describe(**kwargs))
-        if self.axis == 1:
-            return result.T
-        return result.unstack()
+        return super().describe(**kwargs)
 
     def value_counts(
         self,

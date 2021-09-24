@@ -1013,11 +1013,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         if not not_indexed_same:
             result = concat(values, axis=self.axis)
-            ax = (
-                self.filter(lambda x: True).axes[self.axis]
-                if self.dropna
-                else self._selected_obj._get_axis(self.axis)
-            )
+
+            ax = self._selected_obj._get_axis(self.axis)
+            if self.dropna:
+                labels = self.grouper.group_info[0]
+                mask = labels != -1
+                ax = ax[mask]
 
             # this is a very unfortunate situation
             # we can't use reindex to restore the original order
@@ -1653,9 +1654,12 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if is_object_dtype(vals.dtype):
                 # GH#37501: don't raise on pd.NA when skipna=True
                 if skipna:
-                    vals = np.array([bool(x) if not isna(x) else True for x in vals])
+                    func = np.vectorize(lambda x: bool(x) if not isna(x) else True)
+                    vals = func(vals)
                 else:
-                    vals = np.array([bool(x) for x in vals])
+                    vals = vals.astype(bool, copy=False)
+
+                vals = cast(np.ndarray, vals)
             elif isinstance(vals, BaseMaskedArray):
                 vals = vals._data.astype(bool, copy=False)
             else:
@@ -1759,6 +1763,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         # _wrap_agged_manager() returns. GH 35028
         with com.temp_setattr(self, "observed", True):
             result = self._wrap_agged_manager(new_mgr)
+            if result.ndim == 1:
+                result.index = self.grouper.result_index
 
         return self._reindex_output(result, fill_value=0)
 
@@ -2693,11 +2699,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         obj = self._obj_with_exclusions
         is_ser = obj.ndim == 1
-        if is_ser:
-            # i.e. SeriesGroupBy
-            mgr = obj.to_frame()._mgr
-        else:
-            mgr = self._get_data_to_aggregate()
+        mgr = self._get_data_to_aggregate()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
         if len(res_mgr.items) != len(mgr.items):
@@ -2715,9 +2717,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 mgr.grouped_reduce(blk_func, ignore_failures=False)
 
         if is_ser:
-            res = obj._constructor_expanddim(res_mgr)
-            res = res[res.columns[0]]  # aka res.squeeze()
-            res.name = obj.name
+            res = self._wrap_agged_manager(res_mgr)
         else:
             res = obj._constructor(res_mgr)
 
@@ -3135,13 +3135,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
         # Operate block-wise instead of column-by-column
         orig_ndim = obj.ndim
-        if orig_ndim == 1:
-            # Operate on DataFrame, then squeeze below
-            obj = obj.to_frame()
-
-        mgr = obj._mgr
-        if self.axis == 1:
-            mgr = obj.T._mgr
+        mgr = self._get_data_to_aggregate()
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
@@ -3168,14 +3162,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # We should never get here
                 raise TypeError("All columns were dropped in grouped_reduce")
 
-        out = type(obj)(res_mgr)
-
         if orig_ndim == 1:
-            assert out.ndim == 2
-            assert out.shape[1] == 1
-            out = out.iloc[:, 0]
-            # restore name=None in case to_frame set columns to [0]
-            out.name = self.obj.name
+            out = self._wrap_agged_manager(res_mgr)
+            out.index = self.grouper.result_index
+        else:
+            out = type(obj)(res_mgr)
 
         return self._wrap_aggregated_output(out)
 

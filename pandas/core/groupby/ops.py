@@ -82,6 +82,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
@@ -348,6 +349,9 @@ class WrappedCythonOp:
         elif isinstance(values.dtype, FloatingDtype):
             # FloatingArray
             npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {values.dtype}"
@@ -375,7 +379,9 @@ class WrappedCythonOp:
         """
         # TODO: allow EAs to override this logic
 
-        if isinstance(values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype)):
+        if isinstance(
+            values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
+        ):
             dtype = self._get_result_dtype(values.dtype)
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
@@ -514,7 +520,7 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max"]:
+            if self.how in ["min", "max", "mean"]:
                 func(
                     result,
                     counts,
