@@ -77,6 +77,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    PandasDtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -1305,6 +1306,9 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
+    if isinstance(dtype, PandasDtype):
+        # Ensure we don't end up with a PandasArray
+        dtype = dtype.numpy_dtype
 
     try:
         new_values = astype_array(values, dtype, copy=copy)
