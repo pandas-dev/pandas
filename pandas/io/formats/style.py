@@ -530,8 +530,11 @@ class Styler(StylerRenderer):
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``. If a naive option is
-            given renders without multicol.
+            ``pandas.options.styler.latex.multicol_align``, which is "r".
+            If a naive option is given renders without multicol.
+            Pipe decorators can also be added to non-naive values to draw vertical
+            rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
+            cells.
 
             .. versionchanged:: 1.4.0
         siunitx : bool, default False
@@ -1184,6 +1187,8 @@ class Styler(StylerRenderer):
         ]
         deep = [  # nested lists or dicts
             "_display_funcs",
+            "_display_funcs_index",
+            "_display_funcs_columns",
             "hidden_rows",
             "hidden_columns",
             "ctx",
