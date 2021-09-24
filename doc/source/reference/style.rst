@@ -28,7 +28,6 @@ Styler properties
    Styler.template_html_table
    Styler.template_latex
    Styler.loader
-   Styler.css
 
 Style application
 -----------------
