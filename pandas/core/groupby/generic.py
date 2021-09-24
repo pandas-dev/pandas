@@ -21,6 +21,7 @@ from typing import (
     Mapping,
     TypeVar,
     Union,
+    cast,
 )
 import warnings
 
@@ -30,7 +31,9 @@ from pandas._libs import reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     FrameOrSeries,
+    Manager,
     Manager2D,
+    SingleManager,
 )
 from pandas.util._decorators import (
     Appender,
@@ -80,7 +83,6 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
     all_indexes_same,
-    default_index,
 )
 from pandas.core.series import Series
 from pandas.core.util.numba_ import maybe_use_numba
@@ -159,19 +161,21 @@ def pin_allowlisted_properties(klass: type[FrameOrSeries], allowlist: frozenset[
 class SeriesGroupBy(GroupBy[Series]):
     _apply_allowlist = base.series_apply_allowlist
 
-    def _wrap_agged_manager(self, mgr: Manager2D) -> Series:
-        single = mgr.iget(0)
+    def _wrap_agged_manager(self, mgr: Manager) -> Series:
+        if mgr.ndim == 1:
+            mgr = cast(SingleManager, mgr)
+            single = mgr
+        else:
+            mgr = cast(Manager2D, mgr)
+            single = mgr.iget(0)
         ser = self.obj._constructor(single, name=self.obj.name)
         # NB: caller is responsible for setting ser.index
         return ser
 
-    def _get_data_to_aggregate(self) -> Manager2D:
+    def _get_data_to_aggregate(self) -> SingleManager:
         ser = self._obj_with_exclusions
         single = ser._mgr
-        columns = default_index(1)
-        # Much faster than using ser.to_frame() since we avoid inferring columns
-        #  from scalar
-        return single.to_2d_mgr(columns)
+        return single
 
     def _iterate_slices(self) -> Iterable[Series]:
         yield self._selected_obj

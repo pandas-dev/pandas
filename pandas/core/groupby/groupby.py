@@ -1745,6 +1745,8 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         ids, _, ngroups = self.grouper.group_info
         mask = ids != -1
 
+        is_series = data.ndim == 1
+
         def hfunc(bvalues: ArrayLike) -> ArrayLike:
             # TODO(2DEA): reshape would not be necessary with 2D EAs
             if bvalues.ndim == 1:
@@ -1754,6 +1756,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups, axis=1)
+            if is_series:
+                assert counted.ndim == 2
+                assert counted.shape[0] == 1
+                return counted[0]
             return counted
 
         new_mgr = data.grouped_reduce(hfunc)
@@ -2702,7 +2708,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         mgr = self._get_data_to_aggregate()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
-        if len(res_mgr.items) != len(mgr.items):
+        if not is_ser and len(res_mgr.items) != len(mgr.items):
             warnings.warn(
                 "Dropping invalid columns in "
                 f"{type(self).__name__}.quantile is deprecated. "
@@ -3134,14 +3140,15 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         obj = self._obj_with_exclusions
 
         # Operate block-wise instead of column-by-column
-        orig_ndim = obj.ndim
+        is_ser = obj.ndim == 1
         mgr = self._get_data_to_aggregate()
 
         if numeric_only:
             mgr = mgr.get_numeric_data()
 
         res_mgr = mgr.grouped_reduce(blk_func, ignore_failures=True)
-        if len(res_mgr.items) != len(mgr.items):
+
+        if not is_ser and len(res_mgr.items) != len(mgr.items):
             howstr = how.replace("group_", "")
             warnings.warn(
                 "Dropping invalid columns in "
@@ -3162,7 +3169,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
                 # We should never get here
                 raise TypeError("All columns were dropped in grouped_reduce")
 
-        if orig_ndim == 1:
+        if is_ser:
             out = self._wrap_agged_manager(res_mgr)
             out.index = self.grouper.result_index
         else:
