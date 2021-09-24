@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-)
+from typing import Callable
 
 import numpy as np
 
@@ -18,7 +15,6 @@ from pandas.core.util.numba_ import (
 
 def generate_shared_aggregator(
     func: Callable[..., Scalar],
-    kwargs: dict[str, Any] | None,
     engine_kwargs: dict[str, bool] | None,
     cache_key_str: str,
 ):
@@ -30,9 +26,6 @@ def generate_shared_aggregator(
     ----------
     func : function
         aggregation function to be applied to each column
-    kwargs : dict
-        **kwargs to be passed into the function. Should be unused as not
-        supported by Numba
     engine_kwargs : dict
         dictionary of arguments to be passed into numba.jit
     cache_key_str: str
@@ -43,7 +36,7 @@ def generate_shared_aggregator(
     -------
     Numba function
     """
-    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, kwargs)
+    nopython, nogil, parallel = get_jit_arguments(engine_kwargs, None)
 
     cache_key = (func, cache_key_str)
     if cache_key in NUMBA_FUNC_CACHE:
