@@ -503,7 +503,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex):
         result._data._freq = self._get_join_freq(other)
         return result
 
-    def _get_join_target(self) -> np.ndarray:
+    def _get_engine_target(self) -> np.ndarray:
+        # engine methods and libjoin methods need dt64/td64 values cast to i8
         return self._data._ndarray.view("i8")
 
     def _from_join_target(self, result: np.ndarray):
@@ -547,11 +548,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin):
     def _with_freq(self, freq):
         arr = self._data._with_freq(freq)
         return type(self)._simple_new(arr, name=self._name)
-
-    @property
-    def _has_complex_internals(self) -> bool:
-        # used to avoid libreduction code paths, which raise or require conversion
-        return True
 
     def is_type_compatible(self, kind: str) -> bool:
         warnings.warn(

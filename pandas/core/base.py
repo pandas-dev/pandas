@@ -52,7 +52,10 @@ from pandas.core.dtypes.missing import (
     remove_na_arraylike,
 )
 
-from pandas.core import algorithms
+from pandas.core import (
+    algorithms,
+    ops,
+)
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.algorithms import (
     duplicated,
@@ -61,7 +64,11 @@ from pandas.core.algorithms import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.construction import create_series_with_explicit_dtype
+from pandas.core.construction import (
+    create_series_with_explicit_dtype,
+    ensure_wrapped_if_datetimelike,
+    extract_array,
+)
 import pandas.core.nanops as nanops
 
 if TYPE_CHECKING:
@@ -516,16 +523,8 @@ class IndexOpsMixin(OpsMixin):
         """
         if is_extension_array_dtype(self.dtype):
             # error: Too many arguments for "to_numpy" of "ExtensionArray"
-
-            # error: Argument 1 to "to_numpy" of "ExtensionArray" has incompatible type
-            # "Optional[Union[dtype[Any], None, type, _SupportsDType[dtype[Any]], str,
-            # Union[Tuple[Any, int], Tuple[Any, Union[SupportsIndex,
-            # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]]";
-            # expected "Optional[Union[ExtensionDtype, Union[str, dtype[Any]],
-            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]]"
             return self.array.to_numpy(  # type: ignore[call-arg]
-                dtype, copy=copy, na_value=na_value, **kwargs  # type: ignore[arg-type]
+                dtype, copy=copy, na_value=na_value, **kwargs
             )
         elif kwargs:
             bad_keys = list(kwargs.keys())[0]
@@ -1246,3 +1245,23 @@ class IndexOpsMixin(OpsMixin):
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
         return duplicated(self._values, keep=keep)
+
+    def _arith_method(self, other, op):
+        res_name = ops.get_op_result_name(self, other)
+
+        lvalues = self._values
+        rvalues = extract_array(other, extract_numpy=True, extract_range=True)
+        rvalues = ops.maybe_prepare_scalar_for_op(rvalues, lvalues.shape)
+        rvalues = ensure_wrapped_if_datetimelike(rvalues)
+
+        with np.errstate(all="ignore"):
+            result = ops.arithmetic_op(lvalues, rvalues, op)
+
+        return self._construct_result(result, name=res_name)
+
+    def _construct_result(self, result, name):
+        """
+        Construct an appropriately-wrapped result from the ArrayLike result
+        of an arithmetic-like operation.
+        """
+        raise AbstractMethodError(self)

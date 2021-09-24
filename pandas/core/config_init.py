@@ -769,6 +769,18 @@ styler_max_elements = """
     trimming will occur over columns, rows or both if needed.
 """
 
+styler_max_rows = """
+: int, optional
+    The maximum number of rows that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
+styler_max_columns = """
+: int, optional
+    The maximum number of columns that will be rendered. May still be reduced to
+    satsify ``max_elements``, which takes precedence.
+"""
+
 styler_precision = """
 : int
     The precision for floats and complex numbers.
@@ -804,9 +816,11 @@ styler_multirow_align = """
     The specifier for vertical alignment of sparsified LaTeX multirows.
 """
 
-styler_multicol_align = """
-: {"r", "c", "l"}
-    The specifier for horizontal alignment of sparsified LaTeX multicolumns.
+styler_multicol_align = r"""
+: {"r", "c", "l", "naive-l", "naive-r"}
+    The specifier for horizontal alignment of sparsified LaTeX multicolumns. Pipe
+    decorators can also be added to non-naive values to draw vertical
+    rules, e.g. "\|r" will draw a rule on the left side of right aligned merged cells.
 """
 
 styler_environment = """
@@ -844,6 +858,20 @@ with cf.config_prefix("styler"):
         "render.max_elements",
         2 ** 18,
         styler_max_elements,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_rows",
+        None,
+        styler_max_rows,
+        validator=is_nonnegative_int,
+    )
+
+    cf.register_option(
+        "render.max_columns",
+        None,
+        styler_max_columns,
         validator=is_nonnegative_int,
     )
 
@@ -892,11 +920,13 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory(["c", "t", "b", "naive"]),
     )
 
+    val_mca = ["r", "|r|", "|r", "r|", "c", "|c|", "|c", "c|", "l", "|l|", "|l", "l|"]
+    val_mca += ["naive-l", "naive-r"]
     cf.register_option(
         "latex.multicol_align",
         "r",
         styler_multicol_align,
-        validator=is_one_of_factory(["r", "c", "l"]),
+        validator=is_one_of_factory(val_mca),
     )
 
     cf.register_option(

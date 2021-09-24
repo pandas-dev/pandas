@@ -49,6 +49,9 @@ from pandas._typing import (
     DtypeObj,
     NpDtype,
     PositionalIndexer2D,
+    PositionalIndexerTuple,
+    ScalarIndexer,
+    SequenceIndexer,
     npt,
 )
 from pandas.compat.numpy import function as nv
@@ -313,17 +316,33 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             return np.array(list(self), dtype=object)
         return self._ndarray
 
+    @overload
+    def __getitem__(self, item: ScalarIndexer) -> DTScalarOrNaT:
+        ...
+
+    @overload
     def __getitem__(
-        self, key: PositionalIndexer2D
-    ) -> DatetimeLikeArrayMixin | DTScalarOrNaT:
+        self: DatetimeLikeArrayT,
+        item: SequenceIndexer | PositionalIndexerTuple,
+    ) -> DatetimeLikeArrayT:
+        ...
+
+    def __getitem__(
+        self: DatetimeLikeArrayT, key: PositionalIndexer2D
+    ) -> DatetimeLikeArrayT | DTScalarOrNaT:
         """
         This getitem defers to the underlying array, which by-definition can
         only handle list-likes, slices, and integer scalars
         """
-        result = super().__getitem__(key)
+        # Use cast as we know we will get back a DatetimeLikeArray or DTScalar
+        result = cast(
+            Union[DatetimeLikeArrayT, DTScalarOrNaT], super().__getitem__(key)
+        )
         if lib.is_scalar(result):
             return result
-
+        else:
+            # At this point we know the result is an array.
+            result = cast(DatetimeLikeArrayT, result)
         result._freq = self._get_getitem_freq(key)
         return result
 
@@ -1768,11 +1787,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             uniques = self.copy()  # TODO: copy or view?
             if sort and self.freq.n < 0:
                 codes = codes[::-1]
-                # TODO: overload __getitem__, a slice indexer returns same type as self
-                # error: Incompatible types in assignment (expression has type
-                # "Union[DatetimeLikeArrayMixin, Union[Any, Any]]", variable
-                # has type "TimelikeOps")
-                uniques = uniques[::-1]  # type: ignore[assignment]
+                uniques = uniques[::-1]
             return codes, uniques
         # FIXME: shouldn't get here; we are ignoring sort
         return super().factorize(na_sentinel=na_sentinel)
@@ -1806,39 +1821,6 @@ def validate_periods(periods):
         elif not lib.is_integer(periods):
             raise TypeError(f"periods must be a number, got {periods}")
     return periods
-
-
-def validate_endpoints(closed):
-    """
-    Check that the `closed` argument is among [None, "left", "right"]
-
-    Parameters
-    ----------
-    closed : {None, "left", "right"}
-
-    Returns
-    -------
-    left_closed : bool
-    right_closed : bool
-
-    Raises
-    ------
-    ValueError : if argument is not among valid values
-    """
-    left_closed = False
-    right_closed = False
-
-    if closed is None:
-        left_closed = True
-        right_closed = True
-    elif closed == "left":
-        left_closed = True
-    elif closed == "right":
-        right_closed = True
-    else:
-        raise ValueError("Closed has to be either 'left', 'right' or None")
-
-    return left_closed, right_closed
 
 
 def validate_inferred_freq(freq, inferred_freq, freq_infer):

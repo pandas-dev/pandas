@@ -6,6 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
+    Any,
     Hashable,
     Sequence,
     TypeVar,
@@ -37,7 +38,11 @@ from pandas._typing import (
     Dtype,
     NpDtype,
     Ordered,
+    PositionalIndexer2D,
+    PositionalIndexerTuple,
     Scalar,
+    ScalarIndexer,
+    SequenceIndexer,
     Shape,
     npt,
     type_t,
@@ -47,6 +52,7 @@ from pandas.util._decorators import (
     cache_readonly,
     deprecate_kwarg,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
@@ -1111,10 +1117,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             warn(
                 "The `inplace` parameter in pandas.Categorical."
                 "reorder_categories is deprecated and will be removed in "
-                "a future version. Removing unused categories will always "
+                "a future version. Reordering categories will always "
                 "return a new Categorical object.",
                 FutureWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         else:
             inplace = False
@@ -2017,7 +2023,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: ScalarIndexer) -> Any:
+        ...
+
+    @overload
+    def __getitem__(
+        self: CategoricalT,
+        key: SequenceIndexer | PositionalIndexerTuple,
+    ) -> CategoricalT:
+        ...
+
+    def __getitem__(self: CategoricalT, key: PositionalIndexer2D) -> CategoricalT | Any:
         """
         Return an item.
         """
