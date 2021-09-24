@@ -17,6 +17,8 @@ from io import (
 )
 import mmap
 import os
+from pathlib import Path
+import tempfile
 from typing import (
     IO,
     Any,
@@ -274,10 +276,6 @@ def _get_filepath_or_buffer(
 
     compression = dict(compression, method=compression_method)
 
-    # uniform encoding names
-    if encoding is not None:
-        encoding = encoding.replace("_", "-").lower()
-
     # bz2 and xz do not write the byte order mark for utf-16 and utf-32
     # print a warning when writing such files
     if (
@@ -519,6 +517,21 @@ def infer_compression(
     raise ValueError(msg)
 
 
+def check_parent_directory(path: Path | str) -> None:
+    """
+    Check if parent directory of a file exists, raise OSError if it does not
+
+    Parameters
+    ----------
+    path: Path or str
+        Path to check parent directory of
+
+    """
+    parent = Path(path).parent
+    if not parent.is_dir():
+        raise OSError(fr"Cannot save file into a non-existent directory: '{parent}'")
+
+
 def get_handle(
     path_or_buf: FilePathOrBuffer,
     mode: str,
@@ -585,25 +598,11 @@ def get_handle(
     if _is_binary_mode(path_or_buf, mode) and "b" not in mode:
         mode += "b"
 
-    # valdiate errors
+    # validate encoding and errors
+    if isinstance(encoding, str):
+        codecs.lookup(encoding)
     if isinstance(errors, str):
-        errors = errors.lower()
-    if errors not in (
-        None,
-        "strict",
-        "ignore",
-        "replace",
-        "xmlcharrefreplace",
-        "backslashreplace",
-        "namereplace",
-        "surrogateescape",
-        "surrogatepass",
-    ):
-        raise ValueError(
-            f"Invalid value for `encoding_errors` ({errors}). Please see "
-            + "https://docs.python.org/3/library/codecs.html#error-handlers "
-            + "for valid values."
-        )
+        codecs.lookup_error(errors)
 
     # open URLs
     ioargs = _get_filepath_or_buffer(
@@ -630,6 +629,10 @@ def get_handle(
     is_path = isinstance(handle, str)
     compression_args = dict(ioargs.compression)
     compression = compression_args.pop("method")
+
+    # Only for write methods
+    if "r" not in mode and is_path:
+        check_parent_directory(str(handle))
 
     if compression:
         # compression libraries do not like an explicit text-mode
@@ -736,6 +739,12 @@ def get_handle(
         # only marked as wrapped when the caller provided a handle
         is_wrapped = not (
             isinstance(ioargs.filepath_or_buffer, str) or ioargs.should_close
+        )
+
+    if "r" in ioargs.mode and not hasattr(handle, "read"):
+        raise TypeError(
+            "Expected file path name or file-like object, "
+            f"got {type(ioargs.filepath_or_buffer)} type"
         )
 
     handles.reverse()  # close the most recently added buffer first
@@ -868,7 +877,8 @@ class _MMapWrapper(abc.Iterator):
         if self.decode:
             # memory mapping is applied before compression. Encoding should
             # be applied to the de-compressed data.
-            return content.decode(self.encoding, errors=self.errors)
+            final = size == -1 or len(content) < size
+            return self.decoder.decode(content, final=final)
         return content
 
     def __next__(self) -> str:
@@ -993,8 +1003,15 @@ def _is_binary_mode(handle: FilePathOrBuffer, mode: str) -> bool:
     if "t" in mode or "b" in mode:
         return "b" in mode
 
-    # classes that expect string but have 'b' in mode
-    text_classes = (codecs.StreamWriter, codecs.StreamReader, codecs.StreamReaderWriter)
+    # exceptions
+    text_classes = (
+        # classes that expect string but have 'b' in mode
+        codecs.StreamWriter,
+        codecs.StreamReader,
+        codecs.StreamReaderWriter,
+        # cannot be wrapped in TextIOWrapper GH43439
+        tempfile.SpooledTemporaryFile,
+    )
     if issubclass(type(handle), text_classes):
         return False
 

@@ -163,15 +163,14 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-
     from pandas import (
         CategoricalIndex,
         DataFrame,
         IntervalIndex,
         MultiIndex,
-        RangeIndex,
         Series,
     )
+    from pandas.core.arrays import PeriodArray
 
 
 __all__ = ["Index"]
@@ -242,6 +241,10 @@ def _new_Index(cls, d):
             # GH#23752 "labels" kwarg has been replaced with "codes"
             d["codes"] = d.pop("labels")
 
+    elif "dtype" not in d and "data" in d:
+        # Prevent Index.__new__ from conducting inference;
+        #  "data" key not in RangeIndex
+        d["dtype"] = d["data"].dtype
     return cls.__new__(cls, **d)
 
 
@@ -816,7 +819,7 @@ class Index(IndexOpsMixin, PandasObject):
         # to avoid a reference cycle, bind `target_values` to a local variable, so
         # `self` is not passed into the lambda.
         target_values = self._get_engine_target()
-        return self._engine_type(lambda: target_values, len(self))
+        return self._engine_type(target_values)
 
     @final
     @cache_readonly
@@ -887,7 +890,12 @@ class Index(IndexOpsMixin, PandasObject):
             FutureWarning,
             stacklevel=2,
         )
-        values = self._get_engine_target()
+        if needs_i8_conversion(self.dtype):
+            # Item "ndarray[Any, Any]" of "Union[ExtensionArray, ndarray[Any, Any]]"
+            # has no attribute "_ndarray"
+            values = self._data._ndarray  # type: ignore[union-attr]
+        else:
+            values = self._get_engine_target()
         return values.ravel(order=order)
 
     def view(self, cls=None):
@@ -3051,12 +3059,13 @@ class Index(IndexOpsMixin, PandasObject):
             and self.is_monotonic
             and other.is_monotonic
             and not (self.has_duplicates and other.has_duplicates)
+            and self._can_use_libjoin
         ):
             # Both are unique and monotonic, so can use outer join
             try:
                 return self._outer_indexer(other)[0]
             except (TypeError, IncompatibleFrequency):
-                # incomparable objects
+                # incomparable objects; should only be for object dtype
                 value_list = list(lvals)
 
                 # worth making this faster? a very unusual case
@@ -3070,7 +3079,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = algos.union_with_duplicates(lvals, rvals)
             return _maybe_try_sort(result, sort)
 
-        # Self may have duplicates
+        # Self may have duplicates; other already checked as unique
         # find indexes of things in "other" that are not in "self"
         if self._index_as_unique:
             indexer = self.get_indexer(other)
@@ -3085,6 +3094,7 @@ class Index(IndexOpsMixin, PandasObject):
             result = lvals
 
         if not self.is_monotonic or not other.is_monotonic:
+            # if both are monotonic then result should already be sorted
             result = _maybe_try_sort(result, sort)
 
         return result
@@ -3180,16 +3190,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if (
-            self.is_monotonic
-            and other.is_monotonic
-            and not is_interval_dtype(self.dtype)
-        ):
-            # For IntervalIndex _inner_indexer is not more performant than get_indexer,
-            #  so don't take this fastpath
+        if self.is_monotonic and other.is_monotonic and self._can_use_libjoin:
             try:
                 result = self._inner_indexer(other)[0]
             except TypeError:
+                # non-comparable; should only be for object dtype
                 pass
             else:
                 # TODO: algos.unique1d should preserve DTA/TDA
@@ -3614,7 +3619,11 @@ class Index(IndexOpsMixin, PandasObject):
         elif method == "nearest":
             indexer = self._get_nearest_indexer(target, limit, tolerance)
         else:
-            indexer = self._engine.get_indexer(target._get_engine_target())
+            tgt_values = target._get_engine_target()
+            if target._is_multi and self._is_multi:
+                tgt_values = self._engine._extract_level_codes(target)
+
+            indexer = self._engine.get_indexer(tgt_values)
 
         return ensure_platform_int(indexer)
 
@@ -3693,19 +3702,18 @@ class Index(IndexOpsMixin, PandasObject):
                 target=target._values, values=self._values, method=method, limit=limit
             )
 
-        target_values = target._get_engine_target()
-
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             engine_method = (
                 self._engine.get_pad_indexer
                 if method == "pad"
                 else self._engine.get_backfill_indexer
             )
+            target_values = target._get_engine_target()
             indexer = engine_method(target_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method, limit)
         if tolerance is not None and len(self):
-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
         return indexer
 
     @final
@@ -3722,7 +3730,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "if index and target are monotonic"
             )
 
-        side = "left" if method == "pad" else "right"
+        side: Literal["left", "right"] = "left" if method == "pad" else "right"
 
         # find exact matches first (this simplifies the algorithm)
         indexer = self.get_indexer(target)
@@ -3757,10 +3765,8 @@ class Index(IndexOpsMixin, PandasObject):
         left_indexer = self.get_indexer(target, "pad", limit=limit)
         right_indexer = self.get_indexer(target, "backfill", limit=limit)
 
-        target_values = target._get_engine_target()
-        own_values = self._get_engine_target()
-        left_distances = np.abs(own_values[left_indexer] - target_values)
-        right_distances = np.abs(own_values[right_indexer] - target_values)
+        left_distances = self._difference_compat(target, left_indexer)
+        right_distances = self._difference_compat(target, right_indexer)
 
         op = operator.lt if self.is_monotonic_increasing else operator.le
         indexer = np.where(
@@ -3769,19 +3775,38 @@ class Index(IndexOpsMixin, PandasObject):
             right_indexer,
         )
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target_values, indexer, tolerance)
+            indexer = self._filter_indexer_tolerance(target, indexer, tolerance)
         return indexer
 
     @final
     def _filter_indexer_tolerance(
         self,
-        target: np.ndarray,
+        target: Index,
         indexer: npt.NDArray[np.intp],
         tolerance,
     ) -> npt.NDArray[np.intp]:
-        own_values = self._get_engine_target()
-        distance = abs(own_values[indexer] - target)
+
+        distance = self._difference_compat(target, indexer)
+
         return np.where(distance <= tolerance, indexer, -1)
+
+    @final
+    def _difference_compat(
+        self, target: Index, indexer: npt.NDArray[np.intp]
+    ) -> ArrayLike:
+        # Compatibility for PeriodArray, for which __sub__ returns an ndarray[object]
+        #  of DateOffset objects, which do not support __abs__ (and would be slow
+        #  if they did)
+
+        if isinstance(self.dtype, PeriodDtype):
+            # Note: we only get here with matching dtypes
+            own_values = cast("PeriodArray", self._data)._ndarray
+            target_values = cast("PeriodArray", target._data)._ndarray
+            diff = own_values[indexer] - target_values
+        else:
+            # error: Unsupported left operand type for - ("ExtensionArray")
+            diff = self._values[indexer] - target._values  # type: ignore[operator]
+        return abs(diff)
 
     # --------------------------------------------------------------------
     # Indexer Conversion Methods
@@ -4148,12 +4173,15 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic and other.is_monotonic:
-                return self._join_monotonic(other, how=how)
+                if self._can_use_libjoin:
+                    # otherwise we will fall through to _join_via_get_indexer
+                    return self._join_monotonic(other, how=how)
             else:
                 return self._join_non_unique(other, how=how)
         elif (
             self.is_monotonic
             and other.is_monotonic
+            and self._can_use_libjoin
             and (
                 not isinstance(self, ABCMultiIndex)
                 or not any(is_categorical_dtype(dtype) for dtype in self.dtypes)
@@ -4461,7 +4489,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_monotonic(
         self, other: Index, how: str_t = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        # We only get here with matching dtypes
+        # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype
 
         if self.equals(other):
@@ -4514,6 +4542,15 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name)
+
+    @cache_readonly
+    def _can_use_libjoin(self) -> bool:
+        """
+        Whether we can use the fastpaths implement in _libs.join
+        """
+        # Note: this will need to be updated when e.g. Nullable dtypes
+        #  are supported in Indexes.
+        return not is_interval_dtype(self.dtype)
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -4688,14 +4725,6 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
         return value
 
-    @property
-    def _has_complex_internals(self) -> bool:
-        """
-        Indicates if an index is not directly backed by a numpy array
-        """
-        # used to avoid libreduction code paths, which raise or require conversion
-        return False
-
     def _is_memory_usage_qualified(self) -> bool:
         """
         Return a boolean if we need a qualified .info display.
@@ -4795,11 +4824,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = getitem(key)
         if not is_scalar(result):
-            # error: Argument 1 to "ndim" has incompatible type "Union[ExtensionArray,
-            # Any]"; expected "Union[Union[int, float, complex, str, bytes, generic],
-            # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], _SupportsArray]"
-            if np.ndim(result) > 1:  # type: ignore[arg-type]
+            if np.ndim(result) > 1:
                 deprecate_ndim_indexing(result)
                 return result
             # NB: Using _constructor._simple_new would break if MultiIndex
@@ -5114,13 +5139,17 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of the `asof` function
             for every element in `where`.
         """
-        locs = self._values[mask].searchsorted(where._values, side="right")
+        # error: No overload variant of "searchsorted" of "ndarray" matches argument
+        # types "Union[ExtensionArray, ndarray[Any, Any]]", "str"
+        # TODO: will be fixed when ExtensionArray.searchsorted() is fixed
+        locs = self._values[mask].searchsorted(
+            where._values, side="right"  # type: ignore[call-overload]
+        )
         locs = np.where(locs > 0, locs - 1, 0)
 
         result = np.arange(len(self), dtype=np.intp)[mask].take(locs)
 
-        # TODO: overload return type of ExtensionArray.__getitem__
-        first_value = cast(Any, self._values[mask.argmax()])
+        first_value = self._values[mask.argmax()]
         result[(locs == 0) & (where._values < first_value)] = -1
 
         return result
@@ -5455,6 +5484,8 @@ class Index(IndexOpsMixin, PandasObject):
         # Note: _maybe_promote ensures we never get here with MultiIndex
         #  self and non-Multi target
         tgt_values = target._get_engine_target()
+        if self._is_multi and target._is_multi:
+            tgt_values = self._engine._extract_level_codes(target)
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
@@ -6053,7 +6084,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return label
 
-    def _searchsorted_monotonic(self, label, side: str_t = "left"):
+    def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
         if self.is_monotonic_increasing:
             return self.searchsorted(label, side=side)
         elif self.is_monotonic_decreasing:
@@ -6067,7 +6098,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         raise ValueError("index must be monotonic increasing or decreasing")
 
-    def get_slice_bound(self, label, side: str_t, kind=no_default) -> int:
+    def get_slice_bound(
+        self, label, side: Literal["left", "right"], kind=no_default
+    ) -> int:
         """
         Calculate slice bound that corresponds to given label.
 
@@ -6318,8 +6351,11 @@ class Index(IndexOpsMixin, PandasObject):
         KeyError
             If not all of the labels are found in the selected axis
         """
-        arr_dtype = "object" if self.dtype == "object" else None
-        labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+        if not isinstance(labels, Index):
+            # avoid materializing e.g. RangeIndex
+            arr_dtype = "object" if self.dtype == "object" else None
+            labels = com.index_labels_to_array(labels, dtype=arr_dtype)
+
         indexer = self.get_indexer_for(labels)
         mask = indexer == -1
         if mask.any():
@@ -6344,7 +6380,10 @@ class Index(IndexOpsMixin, PandasObject):
                     arr[self.isna()] = False
                 return arr
             elif op in {operator.ne, operator.lt, operator.gt}:
-                return np.zeros(len(self), dtype=bool)
+                arr = np.zeros(len(self), dtype=bool)
+                if self._can_hold_na and not isinstance(self, ABCMultiIndex):
+                    arr[self.isna()] = True
+                return arr
 
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
             self
@@ -6361,6 +6400,9 @@ class Index(IndexOpsMixin, PandasObject):
             with np.errstate(all="ignore"):
                 result = op(self._values, other)
 
+        elif isinstance(self._values, ExtensionArray):
+            result = op(self._values, other)
+
         elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
             # don't pass MultiIndex
             with np.errstate(all="ignore"):
@@ -6372,17 +6414,26 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def _arith_method(self, other, op):
-        """
-        Wrapper used to dispatch arithmetic operations.
-        """
-
-        from pandas import Series
-
-        result = op(Series(self), other)
+    def _construct_result(self, result, name):
         if isinstance(result, tuple):
-            return (Index._with_infer(result[0]), Index(result[1]))
-        return Index._with_infer(result)
+            return (
+                Index._with_infer(result[0], name=name),
+                Index._with_infer(result[1], name=name),
+            )
+        return Index._with_infer(result, name=name)
+
+    def _arith_method(self, other, op):
+        if (
+            isinstance(other, Index)
+            and is_object_dtype(other.dtype)
+            and type(other) is not Index
+        ):
+            # We return NotImplemented for object-dtype index *subclasses* so they have
+            # a chance to implement ops before we unwrap them.
+            # See https://github.com/pandas-dev/pandas/issues/31109
+            return NotImplemented
+
+        return super()._arith_method(other, op)
 
     @final
     def _unary_method(self, op):
@@ -6760,12 +6811,6 @@ def trim_front(strings: list[str]) -> list[str]:
 def _validate_join_method(method: str) -> None:
     if method not in ["left", "right", "inner", "outer"]:
         raise ValueError(f"do not recognize join method {method}")
-
-
-def default_index(n: int) -> RangeIndex:
-    from pandas.core.indexes.range import RangeIndex
-
-    return RangeIndex(0, n, name=None)
 
 
 def maybe_extract_name(name, obj, cls) -> Hashable:
