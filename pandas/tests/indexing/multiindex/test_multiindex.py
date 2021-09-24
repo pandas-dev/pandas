@@ -78,7 +78,7 @@ class TestMultiIndexBasic:
                 "c": [10, 15, np.nan, 20],
             }
         )
-        df = df.set_index(["a", "b"])
+        df = df.set_index(["a", "b"], drop=False)
         expected = DataFrame(
             {
                 "a": [pd.NaT, pd.NaT, pd.NaT, pd.NaT],
