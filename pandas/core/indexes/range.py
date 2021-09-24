@@ -16,7 +16,10 @@ import warnings
 import numpy as np
 
 from pandas._libs import index as libindex
-from pandas._libs.lib import no_default
+from pandas._libs.lib import (
+    maybe_indices_to_slice,
+    no_default,
+)
 from pandas._typing import (
     Dtype,
     npt,
@@ -435,16 +438,8 @@ class RangeIndex(NumericIndex):
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index | RangeIndex:
         with rewrite_exception("Int64Index", type(self).__name__):
-            if len(self) == len(indices) and np.all(self == indices):
-                return self.copy()
-            else:
-                return self._int64index.take(
-                    indices,
-                    axis=axis,
-                    allow_fill=allow_fill,
-                    fill_value=fill_value,
-                    **kwargs,
-                )
+            slc = maybe_indices_to_slice(indices, len(indices))
+            return self[slc]
 
     def tolist(self) -> list[int]:
         return list(self._range)
