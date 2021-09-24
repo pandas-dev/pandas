@@ -1264,12 +1264,24 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         """
         with group_selection_context(self):
             data = self._selected_obj
-        starts, ends, sorted_index, sorted_data = self._numba_prep(func, data)
+        df = data if data.ndim == 2 else data.to_frame()
+        starts, ends, sorted_index, sorted_data = self._numba_prep(func, df)
         aggregator = executor.generate_shared_aggregator(
-            func, None, engine_kwargs, numba_cache_key_str
+            func, engine_kwargs, numba_cache_key_str
         )
         result = aggregator(sorted_data, starts, ends, 0)
-        return result
+
+        cache_key = (func, "numba_cache_key_str")
+        if cache_key not in NUMBA_FUNC_CACHE:
+            NUMBA_FUNC_CACHE[cache_key] = aggregator
+
+        index = self.grouper.result_index
+        if data.ndim == 1:
+            result_kwargs = {"name": data.name}
+            result = result.ravel()
+        else:
+            result_kwargs = {"columns": data.columns}
+        return data._constructor(result, index=index, **result_kwargs)
 
     @final
     def _transform_with_numba(self, data, func, *args, engine_kwargs=None, **kwargs):
@@ -1806,6 +1818,23 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             Include only float, int, boolean columns. If None, will attempt to use
             everything, then use only numeric data.
 
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
+
+            .. versionadded:: 1.4.0
+
         Returns
         -------
         pandas.Series or pandas.DataFrame
@@ -1849,10 +1878,7 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
-            result = self._numba_agg_general(
-                sliding_mean, engine_kwargs, "groupby_mean"
-            )
-            return result
+            return self._numba_agg_general(sliding_mean, engine_kwargs, "groupby_mean")
         else:
             result = self._cython_agg_general(
                 "mean",
