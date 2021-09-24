@@ -2707,6 +2707,10 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
             if len(res_mgr.items) == 0:
                 # re-call grouped_reduce to get the desired exception message
                 mgr.grouped_reduce(blk_func, ignore_failures=False)
+                # grouped_reduce _should_ raise, so this should not be reached
+                raise TypeError(  # pragma: no cover
+                    "All columns were dropped in grouped_reduce"
+                )
 
         if is_ser:
             res = self._wrap_agged_manager(res_mgr)
@@ -3140,13 +3144,11 @@ class GroupBy(BaseGroupBy[FrameOrSeries]):
 
             if len(res_mgr.items) == 0:
                 # We re-call grouped_reduce to get the right exception message
-                try:
-                    mgr.grouped_reduce(blk_func, ignore_failures=False)
-                except Exception as err:
-                    error_msg = str(err)
-                    raise TypeError(error_msg)
-                # We should never get here
-                raise TypeError("All columns were dropped in grouped_reduce")
+                mgr.grouped_reduce(blk_func, ignore_failures=False)
+                # grouped_reduce _should_ raise, so this should not be reached
+                raise TypeError(  # pragma: no cover
+                    "All columns were dropped in grouped_reduce"
+                )
 
         if is_ser:
             out = self._wrap_agged_manager(res_mgr)
