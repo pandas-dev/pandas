@@ -861,6 +861,16 @@ def test_groupby_aggregate_empty_key_empty_return():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_aggregate_empty_with_multiindex_frame():
+    # GH 39178
+    df = DataFrame(columns=["a", "b", "c"])
+    result = df.groupby(["a", "b"]).agg(d=("c", list))
+    expected = DataFrame(
+        columns=["d"], index=MultiIndex([[], []], [[], []], names=["a", "b"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_grouby_agg_loses_results_with_as_index_false_relabel():
     # GH 32240: When the aggregate function relabels column names and
     # as_index=False is specified, the results are dropped.
