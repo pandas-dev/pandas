@@ -84,14 +84,10 @@ cdef class IndexEngine:
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
-            values = self._get_index_values()
+            values = self.values
 
             self._check_type(val)
-            try:
-                loc = _bin_search(values, val)  # .searchsorted(val, side='left')
-            except TypeError:
-                # GH#35788 e.g. val=None with float64 values
-                raise KeyError(val)
+            loc = self._searchsorted_left(val)
             if loc >= len(values):
                 raise KeyError(val)
             if values[loc] != val:
@@ -110,13 +106,24 @@ cdef class IndexEngine:
             # GH#41775 OverflowError e.g. if we are uint64 and val is -1
             raise KeyError(val)
 
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        """
+        See ObjectEngine._searchsorted_left.__doc__.
+        """
+        try:
+            loc = self.values.searchsorted(val, side="left")
+        except TypeError as err:
+            # GH#35788 e.g. val=None with float64 values
+            raise KeyError(val)
+        return loc
+
     cdef inline _get_loc_duplicates(self, object val):
         # -> Py_ssize_t | slice | ndarray[bool]
         cdef:
             Py_ssize_t diff
 
         if self.is_monotonic_increasing:
-            values = self._get_index_values()
+            values = self.values
             try:
                 left = values.searchsorted(val, side='left')
                 right = values.searchsorted(val, side='right')
@@ -139,7 +146,7 @@ cdef class IndexEngine:
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
 
-        indexer = self._get_index_values() == val
+        indexer = self.values == val
         return self._unpack_bool_indexer(indexer, val)
 
     cdef _unpack_bool_indexer(self,
@@ -199,7 +206,7 @@ cdef class IndexEngine:
         cdef:
             bint is_unique
         try:
-            values = self._get_index_values()
+            values = self.values
             self.monotonic_inc, self.monotonic_dec, is_unique = \
                 self._call_monotonic(values)
         except TypeError:
@@ -214,17 +221,14 @@ cdef class IndexEngine:
             self.unique = 1
             self.need_unique_check = 0
 
-    cdef ndarray _get_index_values(self):
-        return self.values
-
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.backfill(self._get_index_values(), other, limit=limit)
+        return algos.backfill(self.values, other, limit=limit)
 
     def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        return algos.pad(self._get_index_values(), other, limit=limit)
+        return algos.pad(self.values, other, limit=limit)
 
     cdef _make_hash_table(self, Py_ssize_t n):
         raise NotImplementedError
@@ -243,7 +247,7 @@ cdef class IndexEngine:
 
         if not self.is_mapping_populated:
 
-            values = self._get_index_values()
+            values = self.values
             self.mapping = self._make_hash_table(len(values))
             self._call_map_locations(values)
 
@@ -291,7 +295,7 @@ cdef class IndexEngine:
             bint d_has_nan = False, stargets_has_nan = False, need_nan_check = True
 
         self._ensure_mapping_populated()
-        values = np.array(self._get_index_values(), copy=False)
+        values = self.values
         stargets = set(targets)
 
         n = len(values)
@@ -376,6 +380,11 @@ cdef class IndexEngine:
 
 
 cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
+    # GH#1757 ndarray.searchsorted is not safe to use with array of tuples
+    #  (treats a tuple `val` as a sequence of keys instead of a single key),
+    #  so we implement something similar.
+    # This is equivalent to the stdlib's bisect.bisect_left
+
     cdef:
         Py_ssize_t mid = 0, lo = 0, hi = len(values) - 1
         object pval
@@ -408,11 +417,17 @@ cdef class ObjectEngine(IndexEngine):
     cdef _make_hash_table(self, Py_ssize_t n):
         return _hash.PyObjectHashTable(n)
 
+    cdef Py_ssize_t _searchsorted_left(self, val) except? -1:
+        # using values.searchsorted here would treat a tuple `val` as a sequence
+        #  instead of a single key, so we use a different implementation
+        try:
+            loc = _bin_search(self.values, val)
+        except TypeError as err:
+            raise KeyError(val) from err
+        return loc
+
 
 cdef class DatetimeEngine(Int64Engine):
-
-    cdef str _get_box_dtype(self):
-        return 'M8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         # NB: caller is responsible for ensuring tzawareness compat
@@ -424,22 +439,12 @@ cdef class DatetimeEngine(Int64Engine):
     def __contains__(self, val: object) -> bool:
         # We assume before we get here:
         #  - val is hashable
-        cdef:
-            int64_t loc, conv
-
-        conv = self._unbox_scalar(val)
-        if self.over_size_threshold and self.is_monotonic_increasing:
-            if not self.is_unique:
-                return self._get_loc_duplicates(conv)
-            values = self._get_index_values()
-            loc = values.searchsorted(conv, side='left')
-            return values[loc] == conv
-
-        self._ensure_mapping_populated()
-        return conv in self.mapping
-
-    cdef ndarray _get_index_values(self):
-        return self.values.view('i8')
+        self._unbox_scalar(val)
+        try:
+            self.get_loc(val)
+            return True
+        except KeyError:
+            return False
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=True)
@@ -462,7 +467,7 @@ cdef class DatetimeEngine(Int64Engine):
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
                 return self._get_loc_duplicates(conv)
-            values = self._get_index_values()
+            values = self.values
 
             loc = values.searchsorted(conv, side='left')
 
@@ -479,34 +484,8 @@ cdef class DatetimeEngine(Int64Engine):
         except KeyError:
             raise KeyError(val)
 
-    def get_indexer_non_unique(self, ndarray targets):
-        # we may get datetime64[ns] or timedelta64[ns], cast these to int64
-        return super().get_indexer_non_unique(targets.view("i8"))
-
-    def get_indexer(self, ndarray values) -> np.ndarray:
-        self._ensure_mapping_populated()
-        if values.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(values)).astype(np.intp)
-        values = np.asarray(values).view('i8')
-        return self.mapping.lookup(values)
-
-    def get_pad_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        if other.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(other)).astype(np.intp)
-        other = np.asarray(other).view('i8')
-        return algos.pad(self._get_index_values(), other, limit=limit)
-
-    def get_backfill_indexer(self, other: np.ndarray, limit=None) -> np.ndarray:
-        if other.dtype != self._get_box_dtype():
-            return np.repeat(-1, len(other)).astype(np.intp)
-        other = np.asarray(other).view('i8')
-        return algos.backfill(self._get_index_values(), other, limit=limit)
-
 
 cdef class TimedeltaEngine(DatetimeEngine):
-
-    cdef str _get_box_dtype(self):
-        return 'm8[ns]'
 
     cdef int64_t _unbox_scalar(self, scalar) except? -1:
         if not (isinstance(scalar, _Timedelta) or scalar is NaT):

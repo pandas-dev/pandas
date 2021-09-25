@@ -468,10 +468,10 @@ class Styler(StylerRenderer):
         sparse_columns: bool | None = None,
         multirow_align: str | None = None,
         multicol_align: str | None = None,
-        siunitx: bool | None = None,
+        siunitx: bool = False,
         environment: str | None = None,
         encoding: str | None = None,
-        convert_css: bool | None = None,
+        convert_css: bool = False,
     ):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
@@ -532,13 +532,15 @@ class Styler(StylerRenderer):
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
-            ``pandas.options.styler.latex.multicol_align``, which is `"r"`.
+            ``pandas.options.styler.latex.multicol_align``, which is "r".
             If a naive option is given renders without multicol.
+            Pipe decorators can also be added to non-naive values to draw vertical
+            rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
+            cells.
 
             .. versionchanged:: 1.4.0
-        siunitx : bool
+        siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
-            Defaults to ``pandas.options.styler.latex.siunitx``, which is `False`.
         environment : str, optional
             If given, the environment that will replace 'table' in ``\\begin{table}``.
             If 'longtable' is specified then a more suitable template is
@@ -553,7 +555,6 @@ class Styler(StylerRenderer):
             Convert simple cell-styles from CSS to LaTeX format. Any CSS not found in
             conversion table is dropped. A style can be forced by adding option
             `--latex`. See notes.
-            Defaults to ``pandas.options.styler.latex.convert_css``, which is `False`.
 
         Returns
         -------
@@ -789,8 +790,6 @@ class Styler(StylerRenderer):
             else []
         )
 
-        siunitx = get_option("styler.latex.siunitx") if siunitx is None else siunitx
-
         if column_format is not None:
             # add more recent setting to table_styles
             obj.set_table_styles(
@@ -867,8 +866,6 @@ class Styler(StylerRenderer):
         environment = environment or get_option("styler.latex.environment")
         multicol_align = multicol_align or get_option("styler.latex.multicol_align")
         multirow_align = multirow_align or get_option("styler.latex.multirow_align")
-        if convert_css is None:
-            convert_css = get_option("styler.latex.convert_css")
         latex = obj._render_latex(
             sparse_index=sparse_index,
             sparse_columns=sparse_columns,
