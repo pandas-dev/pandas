@@ -779,9 +779,8 @@ def test_repr_option(styler):
         assert styler._repr_html_() is None
 
 
-@pytest.mark.parametrize("option", ["siunitx", "hrules", "convert_css"])
+@pytest.mark.parametrize("option", ["hrules"])
 def test_bool_options(styler, option):
-    styler.applymap(lambda x: "font-weight: bold;")
     with option_context(f"styler.latex.{option}", False):
         latex_false = styler.to_latex()
     with option_context(f"styler.latex.{option}", True):

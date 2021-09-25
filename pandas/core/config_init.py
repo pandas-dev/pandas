@@ -828,16 +828,6 @@ styler_hrules = """
     Whether to add horizontal rules on top and bottom and below the headers.
 """
 
-styler_siunitx = """
-: bool
-    Whether to render LaTeX suitable for the siunitx package.
-"""
-
-styler_conv_css = """
-: bool
-    Whether to render LaTeX styles converted from an HTML-CSS Styler.
-"""
-
 styler_environment = """
 : str
     The environment to replace ``\\begin{table}``. If "longtable" is used results
@@ -944,11 +934,7 @@ with cf.config_prefix("styler"):
         validator=is_one_of_factory(val_mca),
     )
 
-    cf.register_option("latex.siunitx", False, styler_siunitx, validator=is_bool)
-
     cf.register_option("latex.hrules", False, styler_hrules, validator=is_bool)
-
-    cf.register_option("latex.convert_css", False, styler_conv_css, validator=is_bool)
 
     cf.register_option(
         "latex.environment",
