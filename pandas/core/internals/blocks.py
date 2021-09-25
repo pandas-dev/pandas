@@ -1128,7 +1128,6 @@ class Block(PandasObject):
             **kwargs,
         )
 
-        interp_values = maybe_coerce_values(interp_values)
         nbs = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(nbs, downcast)
 
@@ -1903,10 +1902,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     -------
     values : np.ndarray or ExtensionArray
     """
-
-    # Note: the only test that needs extract_array here is one where we
-    #  pass PandasDtype to Series.astype, then need to extract PandasArray here.
-    values = extract_array(values, extract_numpy=True)
+    # Caller is responsible for ensuring PandasArray is already extracted.
 
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)

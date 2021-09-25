@@ -336,6 +336,19 @@ class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
         # Fails creating expected (key column becomes a PandasDtype because)
         super().test_merge(data, na_value)
 
+    @pytest.mark.parametrize(
+        "in_frame",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(reason="PandasArray inconsistently extracted"),
+            ),
+        ],
+    )
+    def test_concat(self, data, in_frame):
+        super().test_concat(data, in_frame)
+
 
 class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
     @skip_nested
