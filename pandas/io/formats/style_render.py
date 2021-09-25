@@ -294,7 +294,7 @@ class StylerRenderer:
         d.update({"table_attributes": table_attr})
 
         if self.tooltips:
-            d = self.tooltips._translate(self.data, self.uuid, d)
+            d = self.tooltips._translate(self, d)
 
         return d
 
@@ -378,11 +378,12 @@ class StylerRenderer:
                 if clabels:
                     column_headers = []
                     for c, value in enumerate(clabels[r]):
+                        header_element_visible = _is_visible(c, r, col_lengths)
                         header_element = _element(
                             "th",
                             f"{col_heading_class} level{r} col{c}",
                             value,
-                            _is_visible(c, r, col_lengths),
+                            header_element_visible,
                             display_value=self._display_funcs_columns[(r, c)](value),
                             attributes=(
                                 f'colspan="{col_lengths.get((r, c), 0)}"'
@@ -393,7 +394,11 @@ class StylerRenderer:
 
                         if self.cell_ids:
                             header_element["id"] = f"level{r}_col{c}"
-                        if (r, c) in self.ctx_columns and self.ctx_columns[r, c]:
+                        if (
+                            header_element_visible
+                            and (r, c) in self.ctx_columns
+                            and self.ctx_columns[r, c]
+                        ):
                             header_element["id"] = f"level{r}_col{c}"
                             self.cellstyle_map_columns[
                                 tuple(self.ctx_columns[r, c])
@@ -537,11 +542,14 @@ class StylerRenderer:
 
             index_headers = []
             for c, value in enumerate(rlabels[r]):
+                header_element_visible = (
+                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c]
+                )
                 header_element = _element(
                     "th",
                     f"{row_heading_class} level{c} row{r}",
                     value,
-                    _is_visible(r, c, idx_lengths) and not self.hide_index_[c],
+                    header_element_visible,
                     display_value=self._display_funcs_index[(r, c)](value),
                     attributes=(
                         f'rowspan="{idx_lengths.get((c, r), 0)}"'
@@ -552,7 +560,11 @@ class StylerRenderer:
 
                 if self.cell_ids:
                     header_element["id"] = f"level{c}_row{r}"  # id is specified
-                if (r, c) in self.ctx_index and self.ctx_index[r, c]:
+                if (
+                    header_element_visible
+                    and (r, c) in self.ctx_index
+                    and self.ctx_index[r, c]
+                ):
                     # always add id if a style is specified
                     header_element["id"] = f"level{c}_row{r}"
                     self.cellstyle_map_index[tuple(self.ctx_index[r, c])].append(
@@ -580,18 +592,21 @@ class StylerRenderer:
                 if (r, c) in self.cell_context:
                     cls = " " + self.cell_context[r, c]
 
+                data_element_visible = (
+                    c not in self.hidden_columns and r not in self.hidden_rows
+                )
                 data_element = _element(
                     "td",
                     f"{data_class} row{r} col{c}{cls}",
                     value,
-                    (c not in self.hidden_columns and r not in self.hidden_rows),
+                    data_element_visible,
                     attributes="",
                     display_value=self._display_funcs[(r, c)](value),
                 )
 
                 if self.cell_ids:
                     data_element["id"] = f"row{r}_col{c}"
-                if (r, c) in self.ctx and self.ctx[r, c]:
+                if data_element_visible and (r, c) in self.ctx and self.ctx[r, c]:
                     # always add id if needed due to specified style
                     data_element["id"] = f"row{r}_col{c}"
                     self.cellstyle_map[tuple(self.ctx[r, c])].append(f"row{r}_col{c}")
@@ -1493,7 +1508,7 @@ class Tooltips:
             },
         ]
 
-    def _translate(self, styler_data: DataFrame | Series, uuid: str, d: dict):
+    def _translate(self, styler: StylerRenderer, d: dict):
         """
         Mutate the render dictionary to allow for tooltips:
 
@@ -1514,21 +1529,23 @@ class Tooltips:
         -------
         render_dict : Dict
         """
-        self.tt_data = self.tt_data.reindex_like(styler_data)
-
+        self.tt_data = self.tt_data.reindex_like(styler.data)
         if self.tt_data.empty:
             return d
 
         name = self.class_name
-
         mask = (self.tt_data.isna()) | (self.tt_data.eq(""))  # empty string = no ttip
         self.table_styles = [
             style
             for sublist in [
-                self._pseudo_css(uuid, name, i, j, str(self.tt_data.iloc[i, j]))
+                self._pseudo_css(styler.uuid, name, i, j, str(self.tt_data.iloc[i, j]))
                 for i in range(len(self.tt_data.index))
                 for j in range(len(self.tt_data.columns))
-                if not mask.iloc[i, j]
+                if not (
+                    mask.iloc[i, j]
+                    or i in styler.hidden_rows
+                    or j in styler.hidden_columns
+                )
             ]
             for style in sublist
         ]
@@ -1636,7 +1653,11 @@ def _parse_latex_cell_styles(
 
 
 def _parse_latex_header_span(
-    cell: dict[str, Any], multirow_align: str, multicol_align: str, wrap: bool = False
+    cell: dict[str, Any],
+    multirow_align: str,
+    multicol_align: str,
+    wrap: bool = False,
+    convert_css: bool = False,
 ) -> str:
     r"""
     Refactor the cell `display_value` if a 'colspan' or 'rowspan' attribute is present.
@@ -1657,7 +1678,9 @@ def _parse_latex_header_span(
     >>> _parse_latex_header_span(cell, 't', 'c')
     '\\multicolumn{3}{c}{text}'
     """
-    display_val = _parse_latex_cell_styles(cell["cellstyle"], cell["display_value"])
+    display_val = _parse_latex_cell_styles(
+        cell["cellstyle"], cell["display_value"], convert_css
+    )
     if "attributes" in cell:
         attrs = cell["attributes"]
         if 'colspan="' in attrs:

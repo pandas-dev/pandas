@@ -307,6 +307,9 @@ class IntegerArray(NumericArray):
 
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
+    # Fill values used for any/all
+    _truthy_value = 1
+    _falsey_value = 0
 
     @cache_readonly
     def dtype(self) -> _IntegerDtype:
