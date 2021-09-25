@@ -33,6 +33,7 @@ from pandas._typing import (
     FrameOrSeries,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -335,6 +336,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         results = []
         keys = []
+        failed_names = []
 
         # degenerate case
         if selected_obj.ndim == 1:
@@ -344,7 +346,7 @@ class Apply(metaclass=abc.ABCMeta):
                     new_res = colg.aggregate(a)
 
                 except TypeError:
-                    pass
+                    failed_names.append(com.get_callable_name(a) or a)
                 else:
                     results.append(new_res)
 
@@ -358,10 +360,14 @@ class Apply(metaclass=abc.ABCMeta):
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
-                    new_res = colg.aggregate(arg)
+                    with warnings.catch_warnings(record=True) as w:
+                        new_res = colg.aggregate(arg)
+                        if len(w) > 0:
+                            failed_names.append(col)
                 except (TypeError, DataError):
-                    pass
+                    failed_names.append(col)
                 except ValueError as err:
+                    failed_names.append(col)
                     # cannot aggregate
                     if "Must produce aggregated value" in str(err):
                         # raised directly in _aggregate_named
@@ -383,6 +389,15 @@ class Apply(metaclass=abc.ABCMeta):
         # if we are empty
         if not len(results):
             raise ValueError("no results")
+
+        if len(failed_names) > 0:
+            warnings.warn(
+                f"{failed_names} did not aggregate successfully. If any error is "
+                f"raised this will raise in a future version of pandas. "
+                f"Drop these columns/ops to avoid this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         try:
             concatenated = concat(results, keys=keys, axis=1, sort=False)

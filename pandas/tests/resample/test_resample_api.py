@@ -352,7 +352,9 @@ def test_agg():
     for t in cases:
         warn = FutureWarning if t in cases[1:3] else None
         with tm.assert_produces_warning(
-            warn, match="Dropping invalid columns", check_stacklevel=False
+            warn,
+            match=r"\['date'\] did not aggregate successfully",
+            check_stacklevel=False,
         ):
             # .var on dt64 column raises and is dropped
             result = t.aggregate([np.mean, np.std])
