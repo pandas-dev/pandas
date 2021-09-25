@@ -83,7 +83,8 @@ class GroupByIndexingMixin:
           By contrast, ``DataFrame.iloc`` can change the row order.
         - ``groupby()`` parameters such as as_index and dropna are ignored.
 
-        The differences between ``_body`` and ``nth`` with ``as_index=False`` are:
+        The differences between ``_body[]`` and :meth:`~GroupBy.nth`
+        with ``as_index=False`` are:
 
         - Input to ``_body`` can include one or more slices whereas ``nth`` just handles
           an integer or a list of integers.
