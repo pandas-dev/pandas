@@ -702,7 +702,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if key.arg:
                     kwargs[key.arg] = self.visit(key.value).value
 
-            return self.const_type(res(*new_args, **kwargs), self.env)
+            name = self.env.add_tmp(res(*new_args, **kwargs))
+            return self.term_type(name=name, env=self.env)
 
     def translate_In(self, op):
         return op
