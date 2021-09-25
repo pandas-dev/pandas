@@ -525,17 +525,18 @@ class StylerRenderer:
             rlabels = [[x] for x in rlabels]
 
         body, row_count = [], 0
-        for r, row_tup in enumerate(self.data.itertuples()):
-            if r not in self.hidden_rows:
-                row_count += 1
-                if row_count > max_rows:  # used only to add a '...' trimmed row:
-                    trimmed_row = self._generate_trimmed_row(max_cols)
-                    body.append(trimmed_row)
-                    break
-                body_row = self._generate_body_row(
-                    (r, row_tup, rlabels), max_cols, idx_lengths
-                )
-                body.append(body_row)
+        for r, row_tup in [
+            z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
+        ]:
+            row_count += 1
+            if row_count > max_rows:  # used only to add a '...' trimmed row:
+                trimmed_row = self._generate_trimmed_row(max_cols)
+                body.append(trimmed_row)
+                break
+            body_row = self._generate_body_row(
+                (r, row_tup, rlabels), max_cols, idx_lengths
+            )
+            body.append(body_row)
         return body
 
     def _generate_trimmed_row(self, max_cols: int) -> list:
