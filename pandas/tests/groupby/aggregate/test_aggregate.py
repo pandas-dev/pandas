@@ -17,7 +17,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    Int64Index,
     MultiIndex,
     Series,
     concat,
@@ -860,14 +859,6 @@ def test_groupby_aggregate_empty_key_empty_return():
     result = df.groupby("a").agg({"b": []})
     expected = DataFrame(columns=MultiIndex(levels=[["b"], []], codes=[[], []]))
     tm.assert_frame_equal(result, expected)
-
-
-def test_groupby_aggregate_empty_with_multiindex_series():
-    # GH 39178
-    ser = Series(name="a", dtype=object)
-    result = ser.groupby([]).agg(list)
-    expected = Series(index=Int64Index([], dtype="int64"), name="a", dtype=object)
-    tm.assert_series_equal(result, expected)
 
 
 def test_groupby_aggregate_empty_with_multiindex_frame():
