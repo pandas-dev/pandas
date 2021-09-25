@@ -354,7 +354,6 @@ def test_agg():
         with tm.assert_produces_warning(
             warn,
             match=r"\['date'\] did not aggregate successfully",
-            check_stacklevel=False,
         ):
             # .var on dt64 column raises and is dropped
             result = t.aggregate([np.mean, np.std])

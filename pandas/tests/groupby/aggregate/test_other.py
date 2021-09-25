@@ -47,7 +47,6 @@ def test_agg_api():
     with tm.assert_produces_warning(
         FutureWarning,
         match=r"\['key2'\] did not aggregate successfully",
-        check_stacklevel=False,
     ):
         expected = grouped.agg([peak_to_peak])
     expected.columns = ["data1", "data2"]
@@ -55,7 +54,6 @@ def test_agg_api():
     with tm.assert_produces_warning(
         FutureWarning,
         match=r"\['key2'\] did not aggregate successfully",
-        check_stacklevel=False,
     ):
         result = grouped.agg(peak_to_peak)
     tm.assert_frame_equal(result, expected)
