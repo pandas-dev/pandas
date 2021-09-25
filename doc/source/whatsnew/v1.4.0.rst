@@ -429,7 +429,7 @@ Indexing
 - Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
 - Bug in :meth:`DataFrame.query` where method calls in query strings led to errors when the ``numexpr`` package was installed. (:issue:`22435`)
 - Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
-- Bug in :meth:`DataFrame.dropna` where :class:`RangeIndex` looses its type even when nothing is dropped (:issue:`41965`)
+- Bug in :meth:`DataFrame.dropna` where :class:`RangeIndex` loses its type even when nothing is dropped (:issue:`41965`)
 
 
 Missing
