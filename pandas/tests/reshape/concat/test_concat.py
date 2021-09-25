@@ -698,3 +698,13 @@ def test_concat_posargs_deprecation():
         result = concat([df, df2], 0)
     expected = DataFrame([[1, 2, 3], [4, 5, 6]], index=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_series_with_decreasing_rangeindex():
+    # GH#41965
+    ser1 = Series([], index=pd.RangeIndex(0), dtype="int64")
+    ser2 = Series([0], index=pd.RangeIndex(0, -1, -1), dtype="int64")
+    # expected should be exactly ser2, as ser1 is empty
+    expected = ser2.copy()
+    result = concat([ser1, ser2])
+    tm.assert_series_equal(expected, result, check_index_type=True)

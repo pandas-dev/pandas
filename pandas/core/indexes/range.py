@@ -779,7 +779,8 @@ class RangeIndex(NumericIndex):
             if start is None:
                 # This is set by the first non-empty index
                 start = rng.start
-                if step is None and len(rng) > 1:
+                if step is None and (len(rng) > 1 or rng.step < 0):
+                    # GH #41965 for decreasing RangeIndex, like range(0, -1, -1)
                     step = rng.step
             elif step is None:
                 # First non-empty index had only one element
