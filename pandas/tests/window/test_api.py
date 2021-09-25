@@ -91,7 +91,7 @@ def test_agg():
     b_std = r["B"].std()
 
     result = r.aggregate([np.mean, np.std])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = concat([a_mean, b_mean, a_std, b_std], axis=1)
         expected.columns = MultiIndex.from_product([["mean", "std"], ["A", "B"]])
     else:
@@ -152,7 +152,7 @@ def test_agg_consistency():
     r = df.rolling(window=3)
 
     result = r.agg([np.sum, np.mean]).columns
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = MultiIndex.from_product([["sum", "mean"], list("AB")])
     else:
         expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])

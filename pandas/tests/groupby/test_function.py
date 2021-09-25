@@ -1139,7 +1139,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     tm.assert_frame_equal(result, expected)
 
     result = groups.agg([function])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected.columns = MultiIndex.from_tuples([(function, "b")])
     else:
         expected.columns = MultiIndex.from_tuples([("b", function)])

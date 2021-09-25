@@ -348,7 +348,7 @@ def test_agg():
     b_std = r["B"].std()
     b_sum = r["B"].sum()
 
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = pd.concat([a_mean, b_mean, a_std, b_std], axis=1)
         expected.columns = pd.MultiIndex.from_product([["mean", "std"], ["A", "B"]])
     else:
@@ -632,7 +632,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1d").aggregate(["mean"])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = DataFrame(
             [47.5, 143.5, 195.5],
             index=date_range(

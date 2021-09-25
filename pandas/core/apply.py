@@ -170,8 +170,8 @@ class Apply(metaclass=abc.ABCMeta):
             return self.agg_dict_like()
         elif is_list_like(arg):
             # we require a list, but not a 'str'
-            if get_option("new_udf_methods"):
-                return self.new_list_like("agg")
+            if get_option("future_udf_behavior"):
+                return self.future_list_like("agg")
             else:
                 return self.agg_list_like()
 
@@ -414,7 +414,7 @@ class Apply(metaclass=abc.ABCMeta):
             )
             return concatenated.reindex(full_ordered_index, copy=False)
 
-    def new_list_single_arg(
+    def future_list_single_arg(
         self, method: str, a: AggFuncTypeBase, result_dim: int | None
     ) -> tuple[int | None, AggFuncTypeBase | None, DataFrame | Series | None]:
         name = None
@@ -436,7 +436,7 @@ class Apply(metaclass=abc.ABCMeta):
                 name = com.get_callable_name(a) or a
         return result_dim, name, result
 
-    def new_list_like(self, method: str) -> DataFrame | Series:
+    def future_list_like(self, method: str) -> DataFrame | Series:
         """
         Compute aggregation in the case of a list-like argument.
 
@@ -454,7 +454,9 @@ class Apply(metaclass=abc.ABCMeta):
         result_dim = None
 
         for a in arg:
-            result_dim, name, new_res = self.new_list_single_arg(method, a, result_dim)
+            result_dim, name, new_res = self.future_list_single_arg(
+                method, a, result_dim
+            )
             if new_res is not None:
                 results.append(new_res)
                 keys.append(name)

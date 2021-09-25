@@ -98,7 +98,7 @@ def test_resample_loffset_arg_type(frame, create_index, arg):
         result_agg = df.resample("2D", loffset="2H").agg(arg)
 
     if isinstance(arg, list):
-        if get_option("new_udf_methods"):
+        if get_option("future_udf_behavior"):
             expected.columns = pd.MultiIndex.from_tuples([("mean", "value")])
         else:
             expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])
@@ -220,7 +220,7 @@ def test_loffset_returns_datetimeindex(frame, kind, agg_arg):
     with tm.assert_produces_warning(FutureWarning):
         result_agg = df.resample("2D", loffset="2H", kind=kind).agg(agg_arg)
     if isinstance(agg_arg, list):
-        if get_option("new_udf_methods"):
+        if get_option("future_udf_behavior"):
             expected.columns = pd.MultiIndex.from_tuples([("mean", "value")])
         else:
             expected.columns = pd.MultiIndex.from_tuples([("value", "mean")])

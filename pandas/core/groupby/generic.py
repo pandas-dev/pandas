@@ -895,7 +895,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        # with group_selection_context(self):
         op = GroupByApply(self, func, args, kwargs)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
@@ -907,8 +906,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns
 
         if result is None:
-            if get_option("new_udf_methods"):
-                return self._new_agg(func, args, kwargs)
+            if get_option("future_udf_behavior"):
+                return self._future_agg(func, args, kwargs)
 
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
@@ -959,7 +958,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         return result
 
-    def _new_agg(self, func, args, kwargs):
+    def _future_agg(self, func, args, kwargs):
         if args or kwargs:
             # test_pass_args_kwargs gets here (with and without as_index)
             # can't return early

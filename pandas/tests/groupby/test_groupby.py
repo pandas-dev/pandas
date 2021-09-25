@@ -585,7 +585,7 @@ def test_frame_multi_key_function_list():
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
     agged = grouped.agg(funcs)
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = pd.concat(
             [grouped.agg(funcs[0]), grouped.agg(funcs[1])],
             keys=["mean", "std"],
@@ -1993,7 +1993,7 @@ def test_groupby_agg_ohlc_non_first():
         index=date_range("2018-01-01", periods=2, freq="D", name="dti"),
     )
 
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         # TODO (GH 35725): This will not raise when agg-must-agg is implemented
         msg = "Cannot concat indices that do not have the same number of levels"
         with pytest.raises(AssertionError, match=msg):

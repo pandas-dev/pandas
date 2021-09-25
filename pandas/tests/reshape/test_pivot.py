@@ -1908,7 +1908,7 @@ class TestPivotTable:
         )
         index = Index([1, 2, 3, greek], dtype="object", name="foo")
 
-        if get_option("new_udf_methods"):
+        if get_option("future_udf_behavior"):
             expected = Series([1, 1, 1, 3], index=index)
             expected.index.name = None
             tm.assert_series_equal(table, expected)

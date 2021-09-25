@@ -511,20 +511,20 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
-new_udf_methods = """
+future_udf_behavior = """
 : boolean
-    Whether to use the new UDF method implementations. Currently experimental.
+    Whether to use the future UDF method implementations. Currently experimental.
     Defaults to False.
 """
 
 
 with cf.config_prefix("mode"):
     cf.register_option(
-        "new_udf_methods",
+        "future_udf_behavior",
         # Get the default from an environment variable, if set, otherwise defaults
-        # to "block". This environment variable can be set for testing.
-        os.environ.get("PANDAS_NEW_UDF_METHODS", "false").lower() == "true",
-        new_udf_methods,
+        # to False. This environment variable can be set for testing.
+        os.environ.get("PANDAS_FUTURE_UDF_BEHAVIOR", "false").lower() == "true",
+        future_udf_behavior,
         validator=is_bool,
     )
 

@@ -640,7 +640,7 @@ def test_apply_dup_names_multi_agg():
     # GH 21063
     df = DataFrame([[0, 1], [2, 3]], columns=["a", "a"])
     expected = DataFrame([[0, 1]], columns=["a", "a"], index=["min"])
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.T
     result = df.agg(["min"])
 
@@ -1013,7 +1013,7 @@ def test_agg_transform(axis, float_frame):
         # list-like
         result = float_frame.apply([np.sqrt], axis=axis)
         expected = f_sqrt.copy()
-        if get_option("mode.new_udf_methods"):
+        if get_option("future_udf_behavior"):
             if axis in {0, "index"}:
                 expected.columns = MultiIndex.from_product(
                     [["sqrt"], float_frame.columns]
@@ -1033,7 +1033,7 @@ def test_agg_transform(axis, float_frame):
         # these are in the order as if we are applying both
         # functions per series and then concatting
         result = float_frame.apply([np.abs, np.sqrt], axis=axis)
-        if get_option("mode.new_udf_methods"):
+        if get_option("future_udf_behavior"):
             expected = pd.concat([f_abs, f_sqrt], axis=other_axis)
             if axis in {0, "index"}:
                 expected.columns = MultiIndex.from_product(
@@ -1064,7 +1064,7 @@ def test_demo():
     expected = DataFrame(
         {"A": [0, 4], "B": [5, 5]}, columns=["A", "B"], index=["min", "max"]
     )
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1113,7 +1113,7 @@ def test_agg_multiple_mixed_no_warning():
         index=["min", "sum"],
     )
     klass, match = None, None
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.T
         klass, match = FutureWarning, "Dropping of nuisance columns"
     # sorted index
@@ -1123,7 +1123,7 @@ def test_agg_multiple_mixed_no_warning():
     tm.assert_frame_equal(result, expected)
 
     klass, match = None, None
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         klass, match = FutureWarning, "Dropping of nuisance columns"
 
     with tm.assert_produces_warning(klass, match=match, check_stacklevel=False):
@@ -1131,7 +1131,7 @@ def test_agg_multiple_mixed_no_warning():
 
     # GH40420: the result of .agg should have an index that is sorted
     # according to the arguments provided to agg.
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.loc[["D", "C", "B", "A"], ["sum", "min"]]
     else:
         expected = expected[["D", "C", "B", "A"]].reindex(["sum", "min"])
@@ -1153,7 +1153,7 @@ def test_agg_reduce(axis, float_frame):
     )
     expected.columns = ["mean", "max", "sum"]
     expected = expected.T if axis in {0, "index"} else expected
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.T
 
     result = float_frame.agg(["mean", "max", "sum"], axis=axis)
@@ -1231,7 +1231,7 @@ def test_nuiscance_columns():
         index=["min"],
         columns=df.columns,
     )
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1242,11 +1242,15 @@ def test_nuiscance_columns():
     expected = Series([6, 6.0, "foobarbaz"], index=["A", "B", "C"])
     tm.assert_series_equal(result, expected)
 
-    result = df.agg(["sum"])
+    warn = FutureWarning if get_option("future_udf_behavior") else None
+    with tm.assert_produces_warning(
+        warn, match="Select only valid", check_stacklevel=False
+    ):
+        result = df.agg(["sum"])
     expected = DataFrame(
         [[6, 6.0, "foobarbaz"]], index=["sum"], columns=["A", "B", "C"]
     )
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1287,7 +1291,7 @@ def test_non_callable_aggregates(how):
         }
     )
 
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         tm.assert_frame_equal(result2, expected)
         tm.assert_frame_equal(result1, expected.T)
     else:
@@ -1330,7 +1334,7 @@ def test_agg_listlike_result():
 
     result = df.agg([func])
     expected = expected.to_frame("func")
-    if not get_option("mode.new_udf_methods"):
+    if not get_option("future_udf_behavior"):
         expected = expected.T
     tm.assert_frame_equal(result, expected)
 
@@ -1448,7 +1452,7 @@ def test_apply_no_suffix_index(request):
     # GH36189
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
     result = pdf.apply([np.square, lambda x: x, lambda x: x])
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         columns = MultiIndex.from_product(
             [["square", "<lambda>", "<lambda>"], ["A", "B"]]
         )
@@ -1489,7 +1493,7 @@ def test_aggregation_func_column_order():
 
     aggs = ["sum", foo, "count", "min"]
     result = df.agg(aggs)
-    if get_option("mode.new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = DataFrame(
             {
                 "sum": ["123456", 21, 18, 17],

@@ -500,7 +500,7 @@ def test_order_aggregate_multiple_funcs():
     # GH 25692
     df = DataFrame({"A": [1, 1, 2, 2], "B": [1, 2, 3, 4]})
 
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         # TODO (GH 35725): This will not raise when agg-must-agg is implemented
         msg = "Cannot concat indices that do not have the same number of levels"
         with pytest.raises(AssertionError, match=msg):
@@ -1214,7 +1214,7 @@ def test_nonagg_agg():
     g = df.groupby("a")
 
     result = g.agg(["cumsum"])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         result.columns = result.columns.droplevel(0)
     else:
         result.columns = result.columns.droplevel(-1)

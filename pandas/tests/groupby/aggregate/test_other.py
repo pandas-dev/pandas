@@ -203,7 +203,7 @@ def test_aggregate_api_consistency():
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg([np.sum, np.mean])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = pd.concat([c_sum, d_sum, c_mean, d_mean], axis=1)
         expected.columns = MultiIndex.from_product([["sum", "mean"], ["C", "D"]])
     else:
@@ -212,7 +212,7 @@ def test_aggregate_api_consistency():
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped[["D", "C"]].agg([np.sum, np.mean])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected = pd.concat([d_sum, c_sum, d_mean, c_mean], axis=1)
         expected.columns = MultiIndex.from_product([["sum", "mean"], ["D", "C"]])
     else:
@@ -403,7 +403,7 @@ def test_agg_consistency():
     g = df.groupby("date")
 
     expected = g.agg([P1])
-    if get_option("new_udf_methods"):
+    if get_option("future_udf_behavior"):
         expected.columns = expected.columns.levels[1]
     else:
         expected.columns = expected.columns.levels[0]
