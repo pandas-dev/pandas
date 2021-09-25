@@ -2053,7 +2053,7 @@ class Styler(StylerRenderer):
         if isinstance(table_styles, dict):
             axis = self.data._get_axis_number(axis)
             obj = self.data.index if axis == 1 else self.data.columns
-            idf = ".row" if axis == 1 else ".col"
+            idf = f".{self.css['row']}" if axis == 1 else f".{self.css['col']}"
 
             table_styles = [
                 {
