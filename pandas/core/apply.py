@@ -367,17 +367,16 @@ class Apply(metaclass=abc.ABCMeta):
                 except (TypeError, DataError):
                     failed_names.append(col)
                 except ValueError as err:
-                    failed_names.append(col)
                     # cannot aggregate
                     if "Must produce aggregated value" in str(err):
                         # raised directly in _aggregate_named
-                        pass
+                        failed_names.append(col)
                     elif "no results" in str(err):
                         # reached in test_frame_apply.test_nuiscance_columns
                         #  where the colg.aggregate(arg) ends up going through
                         #  the selected_obj.ndim == 1 branch above with arg == ["sum"]
                         #  on a datetime64[ns] column
-                        pass
+                        failed_names.append(col)
                     else:
                         raise
                 else:
