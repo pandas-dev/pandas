@@ -339,12 +339,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             dtype = dtype.subtype
 
         cols, rows, data = [], [], []
-        for col, name in enumerate(self._parent):
-            s = self._parent[name]
-            row = s.array.sp_index.to_int_index().indices
+        for col, (_, ser) in enumerate(self._parent.iteritems()):
+            row = ser.array.sp_index.to_int_index().indices
             cols.append(np.repeat(col, len(row)))
             rows.append(row)
-            data.append(s.array.sp_values.astype(dtype, copy=False))
+            data.append(ser.array.sp_values.astype(dtype, copy=False))
 
         cols = np.concatenate(cols)
         rows = np.concatenate(rows)
@@ -361,16 +360,18 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
 
     @staticmethod
     def _prep_index(data, index, columns):
-        from pandas.core.indexes.api import ensure_index
-        import pandas.core.indexes.base as ibase
+        from pandas.core.indexes.api import (
+            default_index,
+            ensure_index,
+        )
 
         N, K = data.shape
         if index is None:
-            index = ibase.default_index(N)
+            index = default_index(N)
         else:
             index = ensure_index(index)
         if columns is None:
-            columns = ibase.default_index(K)
+            columns = default_index(K)
         else:
             columns = ensure_index(columns)
 

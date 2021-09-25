@@ -71,7 +71,9 @@ class TestFrameAccessor:
         expected = pd.DataFrame(mat.toarray(), columns=columns).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("colnames", [("A", "B"), (1, 2), (1, pd.NA), (0.1, 0.2)])
+    @pytest.mark.parametrize(
+        "colnames", [("A", "B"), (1, 2), (1, pd.NA), (0.1, 0.2), ("x", "x"), (0, 0)]
+    )
     @td.skip_if_no_scipy
     def test_to_coo(self, colnames):
         import scipy.sparse

@@ -82,7 +82,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
-import pandas.core.common as com
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import grouper
@@ -349,6 +349,9 @@ class WrappedCythonOp:
         elif isinstance(values.dtype, FloatingDtype):
             # FloatingArray
             npvalues = values.to_numpy(values.dtype.numpy_dtype, na_value=np.nan)
+        elif isinstance(values.dtype, StringDtype):
+            # StringArray
+            npvalues = values.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(
                 f"function is not implemented for this dtype: {values.dtype}"
@@ -376,7 +379,9 @@ class WrappedCythonOp:
         """
         # TODO: allow EAs to override this logic
 
-        if isinstance(values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype)):
+        if isinstance(
+            values.dtype, (BooleanDtype, _IntegerDtype, FloatingDtype, StringDtype)
+        ):
             dtype = self._get_result_dtype(values.dtype)
             cls = dtype.construct_array_type()
             return cls._from_sequence(res_values, dtype=dtype)
@@ -515,7 +520,7 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max"]:
+            if self.how in ["min", "max", "mean"]:
                 func(
                     result,
                     counts,
@@ -758,6 +763,7 @@ class BaseGrouper:
         keys = [ping.group_index for ping in self.groupings]
         return get_indexer_dict(codes_list, keys)
 
+    @final
     @property
     def codes(self) -> list[np.ndarray]:
         return [ping.codes for ping in self.groupings]
@@ -837,6 +843,7 @@ class BaseGrouper:
         ids, obs_ids, _ = self.group_info
         return decons_obs_group_ids(ids, obs_ids, self.shape, codes, xnull=True)
 
+    @final
     @cache_readonly
     def result_arraylike(self) -> ArrayLike:
         """
@@ -933,10 +940,6 @@ class BaseGrouper:
             result = self._aggregate_series_pure_python(obj, func)
 
         elif not isinstance(obj._values, np.ndarray):
-            # _aggregate_series_fast would raise TypeError when
-            #  calling libreduction.Slider
-            # In the datetime64tz case it would incorrectly cast to tz-naive
-            # TODO: can we get a performant workaround for EAs backed by ndarray?
             result = self._aggregate_series_pure_python(obj, func)
 
             # we can preserve a little bit more aggressively with EA dtype
@@ -945,17 +948,8 @@ class BaseGrouper:
             #  is sufficiently strict that it casts appropriately.
             preserve_dtype = True
 
-        elif obj.index._has_complex_internals:
-            # Preempt TypeError in _aggregate_series_fast
-            result = self._aggregate_series_pure_python(obj, func)
-
-        elif isinstance(self, BinGrouper):
-            # Not yet able to remove the BaseGrouper aggregate_series_fast,
-            #  as test_crosstab.test_categorical breaks without it
-            result = self._aggregate_series_pure_python(obj, func)
-
         else:
-            result = self._aggregate_series_fast(obj, func)
+            result = self._aggregate_series_pure_python(obj, func)
 
         npvalues = lib.maybe_convert_objects(result, try_float=False)
         if preserve_dtype:
@@ -963,23 +957,6 @@ class BaseGrouper:
         else:
             out = npvalues
         return out
-
-    def _aggregate_series_fast(self, obj: Series, func: F) -> npt.NDArray[np.object_]:
-        # At this point we have already checked that
-        #  - obj.index is not a MultiIndex
-        #  - obj is backed by an ndarray, not ExtensionArray
-        #  - len(obj) > 0
-        func = com.is_builtin_func(func)
-
-        ids, _, ngroups = self.group_info
-
-        # avoids object / Series creation overhead
-        indexer = get_group_index_sorter(ids, ngroups)
-        obj = obj.take(indexer)
-        ids = ids.take(indexer)
-        sgrouper = libreduction.SeriesGrouper(obj, func, ids, ngroups)
-        result, _ = sgrouper.get_result()
-        return result
 
     @final
     def _aggregate_series_pure_python(
@@ -995,9 +972,6 @@ class BaseGrouper:
         splitter = get_splitter(obj, ids, ngroups, axis=0)
 
         for i, group in enumerate(splitter):
-
-            # Each step of this loop corresponds to
-            #  libreduction._BaseGrouper._apply_to_group
             res = func(group)
             res = libreduction.extract_result(res)
 

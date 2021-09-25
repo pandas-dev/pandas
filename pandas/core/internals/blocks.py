@@ -228,6 +228,11 @@ class Block(PandasObject):
         # expected "ndarray")
         return self.values  # type: ignore[return-value]
 
+    def values_for_json(self) -> np.ndarray:
+        # Incompatible return value type (got "Union[ndarray[Any, Any],
+        # ExtensionArray]", expected "ndarray[Any, Any]")
+        return self.values  # type: ignore[return-value]
+
     @final
     @cache_readonly
     def fill_value(self):
@@ -331,7 +336,6 @@ class Block(PandasObject):
     def shape(self) -> Shape:
         return self.values.shape
 
-    @final
     @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
@@ -368,8 +372,7 @@ class Block(PandasObject):
         apply the function to my values; return a block if we are not
         one
         """
-        with np.errstate(all="ignore"):
-            result = func(self.values, **kwargs)
+        result = func(self.values, **kwargs)
 
         return self._split_op_result(result)
 
@@ -395,9 +398,9 @@ class Block(PandasObject):
         return [nb]
 
     @final
-    def _split_op_result(self, result) -> list[Block]:
+    def _split_op_result(self, result: ArrayLike) -> list[Block]:
         # See also: split_and_operate
-        if is_extension_array_dtype(result) and result.ndim > 1:
+        if result.ndim > 1 and isinstance(result.dtype, ExtensionDtype):
             # TODO(EA2D): unnecessary with 2D EAs
             # if we get a 2D ExtensionArray, we need to split it into 1D pieces
             nbs = []
@@ -411,11 +414,9 @@ class Block(PandasObject):
                 nbs.append(block)
             return nbs
 
-        if not isinstance(result, Block):
-            result = maybe_coerce_values(result)
-            result = self.make_block(result)
+        nb = self.make_block(result)
 
-        return [result]
+        return [nb]
 
     def fillna(
         self, value, limit=None, inplace: bool = False, downcast=None
@@ -470,7 +471,8 @@ class Block(PandasObject):
         for i, ref_loc in enumerate(self._mgr_locs):
             vals = self.values[slice(i, i + 1)]
 
-            nb = self.make_block(vals, BlockPlacement(ref_loc))
+            bp = BlockPlacement(ref_loc)
+            nb = type(self)(vals, placement=bp, ndim=2)
             new_blocks.append(nb)
         return new_blocks
 
@@ -643,7 +645,7 @@ class Block(PandasObject):
         values = self.values
         if deep:
             values = values.copy()
-        return self.make_block_same_class(values)
+        return type(self)(values, placement=self._mgr_locs, ndim=self.ndim)
 
     # ---------------------------------------------------------------------
     # Replace
@@ -1286,6 +1288,7 @@ class Block(PandasObject):
         unstacker : reshape._Unstacker
         fill_value : int
             Only used in ExtensionBlock._unstack
+        new_placement : np.ndarray[np.intp]
         allow_fill : bool
 
         Returns
@@ -1374,6 +1377,9 @@ class EABackedBlock(Block):
             values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
+
+    def values_for_json(self) -> np.ndarray:
+        return np.asarray(self.values)
 
     def interpolate(
         self, method="pad", axis=0, inplace=False, limit=None, fill_value=None, **kwargs
@@ -1805,6 +1811,11 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
 
+    def values_for_json(self) -> np.ndarray:
+        # special casing datetimetz to avoid conversion through
+        #  object dtype
+        return self.values._ndarray
+
 
 class DatetimeTZBlock(DatetimeLikeBlock):
     """implement a datetime64 block with a tz attribute"""
@@ -1867,6 +1878,12 @@ class CategoricalBlock(ExtensionBlock):
     # this Block type is kept for backwards-compatibility
     __slots__ = ()
 
+    # GH#43232, GH#43334 self.values.dtype can be changed inplace until 2.0,
+    #  so this cannot be cached
+    @property
+    def dtype(self) -> DtypeObj:
+        return self.values.dtype
+
 
 # -----------------------------------------------------------------
 # Constructor Helpers
@@ -1904,13 +1921,12 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     return values
 
 
-def get_block_type(values, dtype: DtypeObj | None = None):
+def get_block_type(dtype: DtypeObj):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
 
     Parameters
     ----------
-    values : ndarray-like
     dtype : numpy or pandas dtype
 
     Returns
@@ -1919,9 +1935,6 @@ def get_block_type(values, dtype: DtypeObj | None = None):
     """
     # We use vtype and kind checks because they are much more performant
     #  than is_foo_dtype
-    if dtype is None:
-        dtype = values.dtype
-
     vtype = dtype.type
     kind = dtype.kind
 
@@ -1947,7 +1960,7 @@ def get_block_type(values, dtype: DtypeObj | None = None):
     return cls
 
 
-def new_block(values, placement, *, ndim: int, klass=None) -> Block:
+def new_block(values, placement, *, ndim: int) -> Block:
     # caller is responsible for ensuring values is NOT a PandasArray
 
     if not isinstance(placement, BlockPlacement):
@@ -1955,8 +1968,7 @@ def new_block(values, placement, *, ndim: int, klass=None) -> Block:
 
     check_ndim(values, placement, ndim)
 
-    if klass is None:
-        klass = get_block_type(values, values.dtype)
+    klass = get_block_type(values.dtype)
 
     values = maybe_coerce_values(values)
     return klass(values, ndim=ndim, placement=placement)
