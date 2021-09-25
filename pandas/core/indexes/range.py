@@ -438,17 +438,19 @@ class RangeIndex(NumericIndex):
         self, indices, axis: int = 0, allow_fill: bool = True, fill_value=None, **kwargs
     ) -> Int64Index | RangeIndex:
         with rewrite_exception("Int64Index", type(self).__name__):
-            try:
-                slc = maybe_indices_to_slice(indices, len(indices))
-                return self[slc]
-            except (ValueError, TypeError):
-                return self._int64index.take(
-                    indices,
-                    axis=axis,
-                    allow_fill=allow_fill,
-                    fill_value=fill_value,
-                    **kwargs,
-                )
+            if fill_value is None:
+                try:
+                    slc = maybe_indices_to_slice(indices, len(indices))
+                    return self[slc]
+                except (ValueError, TypeError):
+                    pass
+            return self._int64index.take(
+                indices,
+                axis=axis,
+                allow_fill=allow_fill,
+                fill_value=fill_value,
+                **kwargs,
+            )
 
     def tolist(self) -> list[int]:
         return list(self._range)
