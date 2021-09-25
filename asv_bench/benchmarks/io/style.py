@@ -87,7 +87,7 @@ class Render:
         self.st.hide_columns(self.st.columns[1:])
 
     def _style_tooltips(self):
-        ttips = DataFrame("text", index=self.df.index[::2], columns=self.columns[::2])
+        ttips = DataFrame("abc", index=self.df.index[::2], columns=self.df.columns[::2])
         self.st = self.df.style.set_tooltips(ttips)
         self.st.hide_index(self.st.index[12:])
         self.st.hide_columns(self.st.columns[12:])
