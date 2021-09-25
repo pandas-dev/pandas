@@ -605,7 +605,8 @@ class PeriodArray(dtl.DatelikeOps):
 
         freq = Period._maybe_convert_freq(freq)
 
-        base1 = self.freq._period_dtype_code
+        # error: "BaseOffset" has no attribute "_period_dtype_code"
+        base1 = self.freq._period_dtype_code  # type: ignore[attr-defined]
         base2 = freq._period_dtype_code
 
         asi8 = self.asi8

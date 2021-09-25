@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import timedelta
 from typing import Literal
 
 import numpy as np
@@ -14,9 +14,6 @@ from pandas._typing import (
 
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str
-
-def is_period_object(obj: object) -> bool: ...
-def get_period_ordinal(dts: datetime, freq: int) -> int: ...
 
 class IncompatibleFrequency(ValueError): ...
 
@@ -37,7 +34,7 @@ def get_period_field_arr(
 ) -> npt.NDArray[np.int64]: ...
 def from_ordinals(
     values: npt.NDArray[np.int64],  # const int64_t[:]
-    freq: Frequency,
+    freq: timedelta | BaseOffset | str | None,
 ) -> npt.NDArray[np.int64]: ...
 def extract_ordinals(
     values: npt.NDArray[np.object_],
@@ -63,7 +60,7 @@ class Period:
     def __new__(  # type: ignore[misc]
         cls,
         value=...,
-        freq: int | str | None = ...,
+        freq: int | str | BaseOffset | None = ...,
         ordinal: int | None = ...,
         year: int | None = ...,
         month: int | None = ...,
@@ -86,7 +83,7 @@ class Period:
         how: str = ...,
         tz: Timezone | None = ...,
     ) -> Timestamp: ...
-    def asfreq(self, freq: str, how: str = ...) -> Period: ...
+    def asfreq(self, freq: str | BaseOffset, how: str = ...) -> Period: ...
     @property
     def freqstr(self) -> str: ...
     @property

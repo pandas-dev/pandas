@@ -1698,9 +1698,15 @@ class Rolling(RollingAndExpandingMixin):
                     "compatible with a datetimelike index"
                 ) from err
             if isinstance(self._on, PeriodIndex):
-                self._win_freq_i8 = freq.nanos / (self._on.freq.nanos / self._on.freq.n)
+                # error: Incompatible types in assignment (expression has type "float",
+                # variable has type "None")
+                self._win_freq_i8 = freq.nanos / (  # type: ignore[assignment]
+                    self._on.freq.nanos / self._on.freq.n
+                )
             else:
-                self._win_freq_i8 = freq.nanos
+                # error: Incompatible types in assignment (expression has type "int",
+                # variable has type "None")
+                self._win_freq_i8 = freq.nanos  # type: ignore[assignment]
 
             # min_periods must be an integer
             if self.min_periods is None:
