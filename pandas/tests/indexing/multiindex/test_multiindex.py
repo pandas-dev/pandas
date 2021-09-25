@@ -81,8 +81,6 @@ class TestMultiIndexBasic:
         df = df.set_index(["a", "b"])
         expected = DataFrame(
             {
-                "a": [pd.NaT, pd.NaT, pd.NaT, pd.NaT],
-                "b": ["C1", "C2", "C3", "C4"],
                 "c": [10, 15, np.nan, 20],
             },
             index=[
@@ -90,7 +88,6 @@ class TestMultiIndexBasic:
                 Index(["C1", "C2", "C3", "C4"], name="b"),
             ],
         )
-        expected = expected.drop(columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
 
     def test_nested_tuples_duplicates(self):
