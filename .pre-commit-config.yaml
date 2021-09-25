@@ -83,6 +83,15 @@ repos:
             - pandas-dev-flaker==0.2.0
 -   repo: local
     hooks:
+    -   id: pyright
+        name: pyright
+        entry: pyright
+        language: node
+        pass_filenames: false
+        types: [python]
+        additional_dependencies: ['pyright@1.1.170']
+-   repo: local
+    hooks:
     -   id: flake8-rst
         name: flake8-rst
         description: Run flake8 on code snippets in docstrings or RST files

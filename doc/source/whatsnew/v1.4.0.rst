@@ -357,7 +357,7 @@ Performance improvements
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`43469`)
 - :meth:`SparseArray.min` and :meth:`SparseArray.max` no longer require converting to a dense array (:issue:`43526`)
 - Performance improvement in :meth:`SparseArray.take` with ``allow_fill=False`` (:issue:`43654`)
--
+- Performance improvement in :meth:`.Rolling.mean` and :meth:`.Expanding.mean` with ``engine="numba"`` (:issue:`43612`)
 
 .. ---------------------------------------------------------------------------
 
@@ -378,6 +378,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :class:`DataFrame` constructor unnecessarily copying non-datetimelike 2D object arrays (:issue:`39272`)
+- Bug in :func:`to_datetime` with ``format`` and ``pandas.NA`` was raising ``ValueError`` (:issue:`42957`)
 - :func:`to_datetime` would silently swap ``MM/DD/YYYY`` and ``DD/MM/YYYY`` formats if the given ``dayfirst`` option could not be respected - now, a warning is raised in the case of delimited date strings (e.g. ``31-12-2012``) (:issue:`12585`)
 -
 
@@ -426,6 +427,7 @@ Indexing
 - Bug in :meth:`Index.get_indexer_non_unique` when index contains multiple ``np.nan`` (:issue:`35392`)
 - Bug in :meth:`DataFrame.query` did not handle the degree sign in a backticked column name, such as \`Temp(°C)\`, used in an expression to query a dataframe (:issue:`42826`)
 - Bug in :meth:`DataFrame.drop` where the error message did not show missing labels with commas when raising ``KeyError`` (:issue:`42881`)
+- Bug in :meth:`DataFrame.query` where method calls in query strings led to errors when the ``numexpr`` package was installed. (:issue:`22435`)
 - Bug in :meth:`DataFrame.nlargest` and :meth:`Series.nlargest` where sorted result did not count indexes containing ``np.nan`` (:issue:`28984`)
 
 
