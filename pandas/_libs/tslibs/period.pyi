@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 import numpy as np
@@ -13,6 +14,9 @@ from pandas._typing import (
 
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str
+
+def is_period_object(obj: object) -> bool: ...
+def get_period_ordinal(dts: datetime, freq: int) -> int: ...
 
 class IncompatibleFrequency(ValueError): ...
 

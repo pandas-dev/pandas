@@ -13,6 +13,7 @@ iNaT: int
 nat_strings: set[str]
 
 def is_null_datetimelike(val: object, inat_is_null: bool = ...) -> bool: ...
+def checknull_with_nat(val: object) -> bool: ...
 
 class NaTType(datetime):
     value: np.int64

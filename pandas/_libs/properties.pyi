@@ -1,0 +1,3 @@
+
+cache_readonly = property
+
