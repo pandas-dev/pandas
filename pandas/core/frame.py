@@ -473,18 +473,14 @@ ValueError: columns overlap but no suffix specified:
 1  2  8
 2  4  9
 >>> df1.merge(df2, on="C", how="anti_left")
-# because `7` is common in column `C` it's dropped from df1
    A  C   B
 0  1  5 NaN
 1  2  6 NaN
 >>> df1.merge(df2, on="C", how="anti_right")
-# because `7` is common in column `C` it's dropped from df2
     A  C  B
 0 NaN  8  2
 1 NaN  9  4
 >>> df1.merge(df2, on="C", how="anti_full")
-# because `7` is common in column `C` it's dropped from both
-# df1 and df2, then outer merged
      A  C    B
 0  1.0  5  NaN
 1  2.0  6  NaN
