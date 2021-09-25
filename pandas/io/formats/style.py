@@ -143,6 +143,8 @@ class Styler(StylerRenderer):
         uses ``pandas.options.styler.format.formatter``.
 
         .. versionadded:: 1.4.0
+    css : dict, optional
+        A dict of strings used to replace the default CSS classes described below.
 
     Attributes
     ----------
@@ -151,7 +153,6 @@ class Styler(StylerRenderer):
     template_html_table : Jinja2 Template
     template_html_style : Jinja2 Template
     template_latex : Jinja2 Template
-    css : dict of css class names
     loader : Jinja2 Loader
 
     See Also
@@ -187,6 +188,10 @@ class Styler(StylerRenderer):
 
     * Blank cells include ``blank``
     * Data cells include ``data``
+    * Trimmed cells include ``col_trim`` or ``row_trim``.
+
+    Any, or all, or these classes can be renamed by using the ``css`` argument, giving
+    a value such as `{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}`.
     """
 
     def __init__(
@@ -204,6 +209,7 @@ class Styler(StylerRenderer):
         thousands: str | None = None,
         escape: str | None = None,
         formatter: ExtFormatter | None = None,
+        css: dict[str, str] | None = None,
     ):
         super().__init__(
             data=data,
@@ -214,6 +220,7 @@ class Styler(StylerRenderer):
             caption=caption,
             cell_ids=cell_ids,
             precision=precision,
+            css=css,
         )
 
         # validate ordered args
@@ -1164,6 +1171,7 @@ class Styler(StylerRenderer):
           - caption
 
         Non-data dependent attributes [copied and exported]:
+          - css
           - hidden index state and hidden columns state (.hide_index_, .hide_columns_)
           - table_attributes
           - table_styles
@@ -1188,9 +1196,9 @@ class Styler(StylerRenderer):
             "template_html_style",
             "template_html_table",
             "template_html",
-            "css",
         ]
         deep = [  # nested lists or dicts
+            "css",
             "_display_funcs",
             "_display_funcs_index",
             "_display_funcs_columns",

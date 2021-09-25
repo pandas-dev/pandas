@@ -23,7 +23,6 @@ Styler properties
    :toctree: api/
 
    Styler.env
-   Styler.css
    Styler.template_html
    Styler.template_html_style
    Styler.template_html_table
