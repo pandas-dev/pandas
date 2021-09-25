@@ -33,6 +33,79 @@ class GroupByIndexingMixin:
 
     @cache_readonly
     def _body(self) -> BodyGroupByIndexer:
+        """
+        Return positional selection for each group.
+
+        ``groupby._body[i:j]`` is similar to
+        ``groupby.apply(lambda x: x.iloc[i:j])``
+        but much faster and preserves the original index and order.
+
+        ``_body[]`` is compatible with and extends :meth:`~GroupBy.head` and
+        :meth:`~GroupBy.tail`. For example:
+
+        - ``head(5)``
+        - ``_body[5:-5]``
+        - ``tail(5)``
+
+        together return all the rows.
+
+        Allowed inputs for the index are:
+
+        - An integer valued iterable, e.g. ``range(2, 4)``.
+        - A comma separated list of integers and slices, e.g. ``5``, ``2, 4``, ``2:4``.
+
+        The output format is the same as :meth:`~GroupBy.head` and
+        :meth:`~GroupBy.tail`, namely
+        a subset of the ``DataFrame`` or ``Series`` with the index and order preserved.
+
+        Returns
+        -------
+        Series
+            The filtered subset of the original Series.
+        DataFrame
+            The filtered subset of the original DataFrame.
+
+        See Also
+        --------
+        DataFrame.iloc : Purely integer-location based indexing for selection by
+            position.
+        GroupBy.head : Return first n rows of each group.
+        GroupBy.tail : Return last n rows of each group.
+        GroupBy.nth : Take the nth row from each group if n is an int, or a
+            subset of rows, if n is a list of ints.
+
+        Notes
+        -----
+        - The slice step cannot be negative.
+        - If the index specification results in overlaps, the item is not duplicated.
+        - If the index specification changes the order of items, then
+          they are returned in their original order.
+          By contrast, ``DataFrame.iloc`` can change the row order.
+        - ``groupby()`` parameters such as as_index and dropna are ignored.
+
+        The differences between ``_body`` and ``nth`` with ``as_index=False`` are:
+
+        - Input to ``_body`` can include one or more slices whereas ``nth`` just handles
+          an integer or a list of integers.
+        - ``_body`` can  accept a slice relative to the last row of each group.
+        - ``GroupBy._body`` does not have an equivalent to the ``nth`` ``dropna``
+          parameter.
+
+        Examples
+        --------
+            >>> df = pd.DataFrame([["a", 1], ["a", 2], ["a", 3], ["b", 4], ["b", 5]],
+            ...                   columns=["A", "B"])
+            >>> df.groupby("A", as_index=False)._body[1:2]
+               A  B
+            1  a  2
+            4  b  5
+
+            >>> df.groupby("A", as_index=False)._body[1, -1]
+               A  B
+            1  a  2
+            2  a  3
+            4  b  5
+        """
         if TYPE_CHECKING:
             self = cast(groupby.GroupBy, self)
 
@@ -172,10 +245,9 @@ class BodyGroupByIndexer:
 
     def __getitem__(self, arg: PositionalIndexer | tuple) -> FrameOrSeries:
         """
-        Positional index for selection by integer location per group.
+        Select by positional index per group.
 
-        Used to implement GroupBy._body which is used to implement GroupBy.nth
-        in the case when the keyword dropna is None or absent.
+        Implements GroupBy._body
 
         Parameters
         ----------
@@ -195,10 +267,10 @@ class BodyGroupByIndexer:
 
         See Also
         --------
-        DataFrame.iloc : Purely integer-location based indexing for selection by
-            position.
+        DataFrame.iloc : Integer-location based indexing for selection by position.
         GroupBy.head : Return first n rows of each group.
         GroupBy.tail : Return last n rows of each group.
+        GroupBy._body : Return positional selection for each group.
         GroupBy.nth : Take the nth row from each group if n is an int, or a
             subset of rows, if n is a list of ints.
         """
