@@ -4,6 +4,7 @@ import abc
 from collections import defaultdict
 from functools import partial
 import inspect
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -338,6 +339,12 @@ class Apply(metaclass=abc.ABCMeta):
         keys = []
         failed_names = []
 
+        depr_nuisance_columns_msg = (
+            "{} did not aggregate successfully. If any error is "
+            "raised this will raise in a future version of pandas. "
+            "Drop these columns/ops to avoid this warning."
+        )
+
         # degenerate case
         if selected_obj.ndim == 1:
             for a in arg:
@@ -360,10 +367,24 @@ class Apply(metaclass=abc.ABCMeta):
             for index, col in enumerate(selected_obj):
                 colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
                 try:
-                    with warnings.catch_warnings(record=True) as w:
+                    # Capture and suppress any warnings emitted by us in the call
+                    # to agg below, but pass through any warnings that were
+                    # generated otherwise.
+                    with warnings.catch_warnings(record=True) as record:
                         new_res = colg.aggregate(arg)
-                        if len(w) > 0:
-                            failed_names.append(col)
+                    if len(record) > 0:
+                        match = re.compile(depr_nuisance_columns_msg.format(".*"))
+                        for warning in record:
+                            if re.match(match, str(warning.message)):
+                                failed_names.append(col)
+                            else:
+                                warnings.warn_explicit(
+                                    message=warning.message,
+                                    category=warning.category,
+                                    filename=warning.filename,
+                                    lineno=warning.lineno,
+                                )
+
                 except (TypeError, DataError):
                     failed_names.append(col)
                 except ValueError as err:
@@ -391,9 +412,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         if len(failed_names) > 0:
             warnings.warn(
-                f"{failed_names} did not aggregate successfully. If any error is "
-                f"raised this will raise in a future version of pandas. "
-                f"Drop these columns/ops to avoid this warning.",
+                depr_nuisance_columns_msg.format(failed_names),
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
