@@ -3483,7 +3483,7 @@ class Index(IndexOpsMixin, PandasObject):
         Compute indexer and mask for new index given the current index. The
         indexer should be then used as an input to ndarray.take to align the
         current data to the new index.
-        
+
         Returns -1 for unmatched values, for further explanation see the example
         below.
 
