@@ -349,13 +349,11 @@ class StylerRenderer:
 
     def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
         """
-        Generate the row containing column headers
+        Generate the row containing column headers:
 
-             +----------------------------+---------------+---------------------------+
-             |  index_blanks ...          | column_name_0 |  column_headers (level_0) |
-          1) |       ..                   |       ..      |             ..            |
-             |  index_blanks ...          | column_name_n |  column_headers (level_n) |
-             +----------------------------+---------------+---------------------------+
+         +----------------------------+---------------+---------------------------+
+         |  index_blanks ...          | column_name_i |  column_headers (level_i) |
+         +----------------------------+---------------+---------------------------+
 
         Parameters
         ----------
@@ -447,9 +445,9 @@ class StylerRenderer:
         """
         Generate the row containing index names
 
-             +----------------------------+---------------+---------------------------+
-          2) |  index_names (level_0 to level_n) ...      | column_blanks ...         |
-             +----------------------------+---------------+---------------------------+
+         +----------------------------+---------------+---------------------------+
+         |  index_names (level_0 to level_n) ...      | column_blanks ...         |
+         +----------------------------+---------------+---------------------------+
 
         Parameters
         ----------
@@ -499,7 +497,7 @@ class StylerRenderer:
 
         Use the following structure:
           +--------------------------------------------+---------------------------+
-          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          |  index_header_0    ...    index_header_n   |  data_by_column   ...     |
           +--------------------------------------------+---------------------------+
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
@@ -603,7 +601,7 @@ class StylerRenderer:
         Generate a regular row for the body section of appropriate format.
 
           +--------------------------------------------+---------------------------+
-          |  index_header_0    ...    index_header_n   |  data_by_column           |
+          |  index_header_0    ...    index_header_n   |  data_by_column   ...     |
           +--------------------------------------------+---------------------------+
 
         Parameters
