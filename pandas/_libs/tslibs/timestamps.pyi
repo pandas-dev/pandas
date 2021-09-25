@@ -17,7 +17,6 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
-    NaT,
     NaTType,
     Period,
     Timedelta,
