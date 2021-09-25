@@ -90,7 +90,6 @@ repos:
         pass_filenames: false
         types: [python]
         additional_dependencies: ['pyright@1.1.170']
-        stages: [manual]
 -   repo: local
     hooks:
     -   id: flake8-rst
