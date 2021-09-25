@@ -68,18 +68,6 @@ class StylerRenderer:
     template_html_table = env.get_template("html_table.tpl")
     template_html_style = env.get_template("html_style.tpl")
     template_latex = env.get_template("latex.tpl")
-    css = {
-        "row_heading": "row_heading",
-        "col_heading": "col_heading",
-        "index_name": "index_name",
-        "col": "col",
-        "row": "row",
-        "col_trim": "col_trim",
-        "row_trim": "row_trim",
-        "level": "level",
-        "data": "data",
-        "blank": "blank",
-    }
 
     def __init__(
         self,
@@ -91,6 +79,7 @@ class StylerRenderer:
         caption: str | tuple | None = None,
         cell_ids: bool = True,
         precision: int | None = None,
+        css: dict | None = None,
     ):
 
         # validate ordered args
@@ -109,6 +98,20 @@ class StylerRenderer:
         self.table_attributes = table_attributes
         self.caption = caption
         self.cell_ids = cell_ids
+        self.css = {
+            "row_heading": "row_heading",
+            "col_heading": "col_heading",
+            "index_name": "index_name",
+            "col": "col",
+            "row": "row",
+            "col_trim": "col_trim",
+            "row_trim": "row_trim",
+            "level": "level",
+            "data": "data",
+            "blank": "blank",
+        }
+        if css is not None:
+            self.css = {**self.css, **css}  # overwrite default with optional changes
 
         # add rendering variables
         self.hide_index_names: bool = False
