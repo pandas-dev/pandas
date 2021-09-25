@@ -889,9 +889,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        with group_selection_context(self):
-            op = GroupByApply(self, func, args, kwargs)
-            result = op.agg()
+        # with group_selection_context(self):
+        op = GroupByApply(self, func, args, kwargs)
+        result = op.agg()
         if not is_dict_like(func) and result is not None:
             return result
         elif relabeling and result is not None:
