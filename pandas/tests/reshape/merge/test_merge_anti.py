@@ -435,7 +435,7 @@ class Test_AntiJoin:
         expected = DataFrame(
             {
                 "Date": pd.date_range(
-                    "20-10-2021", periods=2, freq="6D", tz="Asia/Kolkata"
+                    "10-20-2021", periods=2, freq="6D", tz="Asia/Kolkata"
                 ),
                 "a_x": [3, 4],
                 "a_y": [np.nan, np.nan],
