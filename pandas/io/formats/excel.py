@@ -472,7 +472,7 @@ class ExcelFormatter:
         self.na_rep = na_rep
         if not isinstance(df, DataFrame):
             self.styler = df
-            self.styler._compute()
+            self.styler._compute()  # calculate applied styles
             df = df.data
             if style_converter is None:
                 style_converter = CSSToExcelConverter()
