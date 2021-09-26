@@ -52,7 +52,7 @@ jobs:
 
     - name: Install pyright
       # note: keep version in sync with .pre-commit-config.yaml
-      run: npm install pyright@1.1.171
+      run: npm install -g pyright@1.1.171
 
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
