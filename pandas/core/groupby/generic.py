@@ -98,7 +98,7 @@ AggScalar = Union[str, Callable[..., Any]]
 ScalarResult = TypeVar("ScalarResult")
 
 
-def generate_property(name: str, klass: type[NDFrameT]):
+def generate_property(name: str, klass: type[NDFrame]):
     """
     Create a property for a GroupBy subclass to dispatch to DataFrame/Series.
 
@@ -121,7 +121,7 @@ def generate_property(name: str, klass: type[NDFrameT]):
     return property(prop)
 
 
-def pin_allowlisted_properties(klass: type[NDFrameT], allowlist: frozenset[str]):
+def pin_allowlisted_properties(klass: type[NDFrame], allowlist: frozenset[str]):
     """
     Create GroupBy member defs for DataFrame/Series names in a allowlist.
 
