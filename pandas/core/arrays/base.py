@@ -33,6 +33,7 @@ from pandas._typing import (
     ScalarIndexer,
     SequenceIndexer,
     Shape,
+    TakeIndexer,
     npt,
 )
 from pandas.compat import set_function_name
@@ -1076,7 +1077,7 @@ class ExtensionArray:
 
     def take(
         self: ExtensionArrayT,
-        indices: Sequence[int],
+        indices: TakeIndexer,
         *,
         allow_fill: bool = False,
         fill_value: Any = None,
@@ -1086,7 +1087,7 @@ class ExtensionArray:
 
         Parameters
         ----------
-        indices : sequence of int
+        indices : sequence of int or one-dimensional np.ndarray of int
             Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
