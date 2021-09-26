@@ -18,6 +18,7 @@ from pandas._typing import (
 
 if TYPE_CHECKING:
     from pandas import DataFrame, Series
+    from pandas.core.generic import NDFrame
 
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -93,7 +94,7 @@ def get_center_of_mass(
 
 
 def _calculate_deltas(
-    times: str | np.ndarray | FrameOrSeries | None,
+    times: str | np.ndarray | NDFrame | None,
     halflife: float | TimedeltaConvertibleTypes | None,
 ) -> np.ndarray:
     """

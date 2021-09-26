@@ -934,9 +934,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def isna(self) -> np.ndarray:
         return isna(self._left)
 
-    def shift(
-        self: IntervalArrayT, periods: int = 1, fill_value: object = None
-    ) -> IntervalArray:
+    def shift(self, periods: int = 1, fill_value: object = None) -> IntervalArray:
         if not len(self) or periods == 0:
             return self.copy()
 

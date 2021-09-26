@@ -4,15 +4,13 @@ import bz2
 from functools import wraps
 import gzip
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
 )
 import zipfile
 
-from pandas._typing import (
-    FilePathOrBuffer,
-    FrameOrSeries,
-)
+from pandas._typing import FilePathOrBuffer
 from pandas.compat import (
     get_lzma_file,
     import_lzma,
@@ -23,6 +21,12 @@ from pandas._testing._random import rands
 from pandas._testing.contexts import ensure_clean
 
 from pandas.io.common import urlopen
+
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 _RAISE_NETWORK_ERROR_DEFAULT = False
 
@@ -272,7 +276,9 @@ def can_connect(url, error_classes=None):
 # File-IO
 
 
-def round_trip_pickle(obj: Any, path: FilePathOrBuffer | None = None) -> FrameOrSeries:
+def round_trip_pickle(
+    obj: Any, path: FilePathOrBuffer | None = None
+) -> DataFrame | Series:
     """
     Pickle an object and then read it again.
 

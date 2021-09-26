@@ -10,6 +10,7 @@ from __future__ import annotations
 import collections
 import functools
 from typing import (
+    Callable,
     Generic,
     Hashable,
     Iterator,
@@ -29,7 +30,6 @@ import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    F,
     FrameOrSeries,
     Shape,
     npt,
@@ -700,7 +700,7 @@ class BaseGrouper:
             yield key, group.__finalize__(data, method="groupby")
 
     @final
-    def _get_splitter(self, data: FrameOrSeries, axis: int = 0) -> DataSplitter:
+    def _get_splitter(self, data: NDFrame, axis: int = 0) -> DataSplitter:
         """
         Returns
         -------
@@ -732,7 +732,9 @@ class BaseGrouper:
             return get_flattened_list(ids, ngroups, self.levels, self.codes)
 
     @final
-    def apply(self, f: F, data: FrameOrSeries, axis: int = 0) -> tuple[list, bool]:
+    def apply(
+        self, f: Callable, data: DataFrame | Series, axis: int = 0
+    ) -> tuple[list, bool]:
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
         group_keys = self.group_keys_seq
@@ -918,7 +920,7 @@ class BaseGrouper:
 
     @final
     def agg_series(
-        self, obj: Series, func: F, preserve_dtype: bool = False
+        self, obj: Series, func: Callable, preserve_dtype: bool = False
     ) -> ArrayLike:
         """
         Parameters
@@ -960,7 +962,7 @@ class BaseGrouper:
 
     @final
     def _aggregate_series_pure_python(
-        self, obj: Series, func: F
+        self, obj: Series, func: Callable
     ) -> npt.NDArray[np.object_]:
         ids, _, ngroups = self.group_info
 
@@ -1061,7 +1063,7 @@ class BinGrouper(BaseGrouper):
         """
         return self
 
-    def get_iterator(self, data: FrameOrSeries, axis: int = 0):
+    def get_iterator(self, data: NDFrame, axis: int = 0):
         """
         Groupby iterator
 
@@ -1142,7 +1144,7 @@ class BinGrouper(BaseGrouper):
         ping = grouper.Grouping(lev, lev, in_axis=False, level=None)
         return [ping]
 
-    def _aggregate_series_fast(self, obj: Series, func: F) -> np.ndarray:
+    def _aggregate_series_fast(self, obj: Series, func: Callable) -> np.ndarray:
         # -> np.ndarray[object]
         raise NotImplementedError(
             "This should not be reached; use _aggregate_series_pure_python"
@@ -1241,7 +1243,7 @@ class FrameSplitter(DataSplitter):
 
 
 def get_splitter(
-    data: FrameOrSeries, labels: np.ndarray, ngroups: int, axis: int = 0
+    data: NDFrame, labels: np.ndarray, ngroups: int, axis: int = 0
 ) -> DataSplitter:
     if isinstance(data, Series):
         klass: type[DataSplitter] = SeriesSplitter

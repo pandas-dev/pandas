@@ -3250,7 +3250,7 @@ def _background_gradient(
     text_color_threshold: float = 0.408,
     vmin: float | None = None,
     vmax: float | None = None,
-    gmap: Sequence | np.ndarray | FrameOrSeries | None = None,
+    gmap: Sequence | np.ndarray | DataFrame | Series | None = None,
     text_only: bool = False,
 ):
     """
@@ -3357,7 +3357,7 @@ def _highlight_between(
     return np.where(g_left & l_right, props, "")
 
 
-def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
+def _highlight_value(data: DataFrame | Series, op: str, props: str) -> np.ndarray:
     """
     Return an array of css strings based on the condition of values matching an op.
     """
@@ -3368,7 +3368,7 @@ def _highlight_value(data: FrameOrSeries, op: str, props: str) -> np.ndarray:
 
 
 def _bar(
-    data: FrameOrSeries,
+    data: NDFrame,
     align: str | float | int | Callable,
     colors: list[str],
     width: float,

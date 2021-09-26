@@ -1523,7 +1523,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  values converted
         return self._reindex_output(result)._convert(datetime=True)
 
-    def _iterate_column_groupbys(self, obj: FrameOrSeries):
+    def _iterate_column_groupbys(self, obj: DataFrame | Series):
         for i, colname in enumerate(obj.columns):
             yield colname, SeriesGroupBy(
                 obj.iloc[:, i],
@@ -1532,7 +1532,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 exclusions=self.exclusions,
             )
 
-    def _apply_to_column_groupbys(self, func, obj: FrameOrSeries) -> DataFrame:
+    def _apply_to_column_groupbys(self, func, obj: DataFrame | Series) -> DataFrame:
         from pandas.core.reshape.concat import concat
 
         columns = obj.columns

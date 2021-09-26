@@ -4,6 +4,7 @@ import copy
 from datetime import timedelta
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Hashable,
     Literal,
@@ -90,6 +91,12 @@ from pandas.tseries.offsets import (
     Tick,
 )
 
+if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 _shared_docs_kwargs: dict[str, str] = {}
 
 
@@ -135,7 +142,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: DataFrame | Series,
         groupby: TimeGrouper,
         axis: int = 0,
         kind=None,

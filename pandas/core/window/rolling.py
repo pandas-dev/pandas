@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
+    from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
     from pandas.core.internals import Block  # noqa:F401
 
@@ -117,7 +118,7 @@ class BaseWindow(SelectionMixin):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: NDFrame,
         window=None,
         min_periods: int | None = None,
         center: bool = False,
@@ -635,7 +636,7 @@ class BaseWindowGroupby(BaseWindow):
 
     def __init__(
         self,
-        obj: FrameOrSeries,
+        obj: DataFrame | Series,
         *args,
         _grouper: BaseGrouper,
         _as_index: bool = True,
@@ -660,7 +661,7 @@ class BaseWindowGroupby(BaseWindow):
         numba_cache_key: tuple[Callable, str] | None = None,
         numba_args: tuple[Any, ...] = (),
         **kwargs,
-    ) -> FrameOrSeries:
+    ) -> DataFrame | Series:
         result = super()._apply(
             func,
             name,
