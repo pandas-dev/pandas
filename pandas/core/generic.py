@@ -709,13 +709,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @overload
-    def set_axis(
-        self: FrameOrSeries, labels, axis: Axis, inplace: Literal[True]
-    ) -> None:
+    def set_axis(self, labels, axis: Axis, inplace: Literal[True]) -> None:
         ...
 
     @overload
-    def set_axis(self: FrameOrSeries, labels, *, inplace: Literal[True]) -> None:
+    def set_axis(self, labels, *, inplace: Literal[True]) -> None:
         ...
 
     @overload
@@ -2703,10 +2701,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.io import pytables
 
+        # Argument 3 to "to_hdf" has incompatible type "NDFrame"; expected
+        # "Union[DataFrame, Series]" [arg-type]
         pytables.to_hdf(
             path_or_buf,
             key,
-            self,
+            self,  # type: ignore[arg-type]
             mode=mode,
             complevel=complevel,
             complib=complib,
@@ -3850,7 +3850,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return result
 
     @final
-    def _set_is_copy(self, ref: FrameOrSeries, copy: bool_t = True) -> None:
+    def _set_is_copy(self, ref: NDFrame, copy: bool_t = True) -> None:
         if not copy:
             self._is_copy = None
         else:
@@ -11019,13 +11019,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         adjust: bool_t = True,
         ignore_na: bool_t = False,
         axis: Axis = 0,
-        times: str | np.ndarray | FrameOrSeries | None = None,
+        times: str | np.ndarray | DataFrame | Series | None = None,
         method: str = "single",
     ) -> ExponentialMovingWindow:
         axis = self._get_axis_number(axis)
-        # error: Value of type variable "FrameOrSeries" of "ExponentialMovingWindow"
-        # cannot be "object"
-        return ExponentialMovingWindow(  # type: ignore[type-var]
+        return ExponentialMovingWindow(
             self,
             com=com,
             span=span,
