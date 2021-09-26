@@ -108,7 +108,7 @@ if [[ -z "$CHECK" || "$CHECK" == "typing" ]]; then
     # run pyright, if it is installed
     if command -v pyright &> /dev/null ; then
         MSG='Performing static analysis using pyright' ; echo $MSG
-        pre-commit run --all-files --hook-stage manual pyright
+        pyright
         RET=$(($RET + $?)) ; echo $MSG "DONE"
     fi
 fi
