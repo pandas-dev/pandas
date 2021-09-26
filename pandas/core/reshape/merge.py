@@ -1522,16 +1522,12 @@ def _anti_helper(
 
     # If not Index. Convert the columns into Index or
     # MultiIndex as required
-    if not isinstance(_left, Index):
-        if len(_left.columns) == 1:
-            _left = Index(_left.values.flatten(), dtype=_left.dtypes[0])
-        else:
-            _left = MultiIndex.from_frame(_left)
-    if not isinstance(_right, Index):
-        if len(_right.columns) == 1:
-            _right = Index(_right.values.flatten(), dtype=_right.dtypes[0])
-        else:
-            _right = MultiIndex.from_frame(_right)
+    for _side in [_left, _right]:
+        if not isinstance(_side, Index):
+            if len(_side.columns) == 1:
+                _side = Index(_side.values.flatten(), dtype=_side.dtypes[0])
+            else:
+                _side = MultiIndex.from_frame(_side)
 
     how_dict: dict[str, str] = {
         "anti_left": "left",
