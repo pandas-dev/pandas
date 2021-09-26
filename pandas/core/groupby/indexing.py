@@ -19,12 +19,11 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas import (
-    DataFrame,
-    Series,
-)
-
 if TYPE_CHECKING:
+    from pandas import (
+        DataFrame,
+        Series,
+    )
     from pandas.core.groupby import groupby
 
 
