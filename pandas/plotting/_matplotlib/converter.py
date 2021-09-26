@@ -4,7 +4,6 @@ import contextlib
 import datetime as pydt
 from datetime import (
     datetime,
-    timedelta,
     tzinfo,
 )
 import functools
