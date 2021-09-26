@@ -4320,12 +4320,8 @@ class Index(IndexOpsMixin, PandasObject):
         )
         mask = left_idx == -1
 
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible
-        # type "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
-        join_array = self._values.take(left_idx)  # type: ignore[arg-type]
-        # error: Argument 1 to "take" of "ExtensionArray" has incompatible type
-        # "ndarray[Any, dtype[signedinteger[Any]]]"; expected "Sequence[int]"
-        right = other._values.take(right_idx)  # type: ignore[arg-type]
+        join_array = self._values.take(left_idx)
+        right = other._values.take(right_idx)
 
         if isinstance(join_array, np.ndarray):
             np.putmask(join_array, mask, right)
