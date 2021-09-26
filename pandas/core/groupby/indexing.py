@@ -89,7 +89,7 @@ class GroupByIndexingMixin:
         - Input to ``_body`` can include one or more slices whereas ``nth`` just handles
           an integer or a list of integers.
         - ``_body`` can  accept a slice relative to the last row of each group.
-        - ``GroupBy._body`` does not have an equivalent to the ``nth`` ``dropna``
+        - ``_body`` does not have an equivalent to the ``nth()`` ``dropna``
           parameter.
 
         Examples
